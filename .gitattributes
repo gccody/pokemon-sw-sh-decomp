@@ -1,0 +1,10 @@
+# Store and check out text files with LF on every platform, so diffs don't
+# churn between Windows (core.autocrlf) and Linux/macOS contributors.
+* text=auto eol=lf
+
+# Binary files: never convert or diff as text.
+*.png  binary
+*.jpg  binary
+*.ico  binary
+*.zip  binary
+*.exe  binary
