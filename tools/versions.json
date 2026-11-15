@@ -1,0 +1,16 @@
+{
+  "sword": {
+    "title": "Pokemon Sword",
+    "title_id": "0100abf008968000",
+    "version": "1.0.0",
+    "main_build_id": "8dafedbb5be81c2c0160161159a791e67e3d6162",
+    "main_text_sha256": "820ed49f317897f8058fad60ff7ee023aa7d24181926fd12b659a134a7fa2fc7"
+  },
+  "shield": {
+    "title": "Pokemon Shield",
+    "title_id": "01008db008c2c000",
+    "version": "1.0.0",
+    "main_build_id": "b56ca071216570e8943206f10c3f3f2fc9eee918",
+    "main_text_sha256": "05e0d1227f33120910f5020ce63d478e29246c0e17bf76f287feb134b809d2be"
+  }
+}

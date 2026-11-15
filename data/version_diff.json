@@ -1,0 +1,196 @@
+{
+ "counts": {
+  "common": 103985,
+  "diverged": 17,
+  "common-data": 3
+ },
+ "diverged": [
+  {
+   "sword": "0x00000071007c2d80",
+   "shield": "0x00000071007c2d80",
+   "sword_size": 8,
+   "shield_size": 8,
+   "notes": [
+    "instructions differ"
+   ]
+  },
+  {
+   "sword": "0x0000007100bc0b00",
+   "shield": "0x0000007100bc0b00",
+   "sword_size": 300,
+   "shield_size": 300,
+   "notes": [
+    "instructions differ"
+   ]
+  },
+  {
+   "sword": "0x0000007100c48da0",
+   "shield": "0x0000007100c48da0",
+   "sword_size": 300,
+   "shield_size": 352,
+   "notes": [
+    "instructions differ"
+   ]
+  },
+  {
+   "sword": "0x0000007100e3a000",
+   "shield": "0x0000007100e3a030",
+   "sword_size": 300,
+   "shield_size": 300,
+   "notes": [
+    "instructions differ"
+   ]
+  },
+  {
+   "sword": "0x0000007100e3b270",
+   "shield": "0x0000007100e3b2a0",
+   "sword_size": 276,
+   "shield_size": 276,
+   "notes": [
+    "instructions differ"
+   ]
+  },
+  {
+   "sword": "0x0000007100e3ba60",
+   "shield": "0x0000007100e3ba90",
+   "sword_size": 276,
+   "shield_size": 276,
+   "notes": [
+    "instructions differ"
+   ]
+  },
+  {
+   "sword": "0x00000071010198b0",
+   "shield": "0x00000071010198e0",
+   "sword_size": 2940,
+   "shield_size": 2940,
+   "notes": [
+    "instructions differ"
+   ]
+  },
+  {
+   "sword": "0x000000710106fa30",
+   "shield": "0x000000710106fa60",
+   "sword_size": 564,
+   "shield_size": 572,
+   "notes": [
+    "instructions differ"
+   ]
+  },
+  {
+   "sword": "0x000000710129ef30",
+   "shield": "0x000000710129ef60",
+   "sword_size": 288,
+   "shield_size": 288,
+   "notes": [
+    "instructions differ"
+   ]
+  },
+  {
+   "sword": "0x000000710136af10",
+   "shield": "0x000000710136af40",
+   "sword_size": 208,
+   "shield_size": 208,
+   "notes": [
+    "instructions differ"
+   ]
+  },
+  {
+   "sword": "0x000000710136b1c0",
+   "shield": "0x000000710136b1f0",
+   "sword_size": 228,
+   "shield_size": 228,
+   "notes": [
+    "instructions differ"
+   ]
+  },
+  {
+   "sword": "0x0000007101426ea0",
+   "shield": "0x0000007101426ed0",
+   "sword_size": 596,
+   "shield_size": 672,
+   "notes": [
+    "instructions differ"
+   ]
+  },
+  {
+   "sword": "0x0000007101427a90",
+   "shield": "0x0000007101427b00",
+   "sword_size": 1504,
+   "shield_size": 1504,
+   "notes": [
+    "instructions differ"
+   ]
+  },
+  {
+   "sword": "0x0000007101444350",
+   "shield": "0x00000071014443c0",
+   "sword_size": 1672,
+   "shield_size": 1708,
+   "notes": [
+    "instructions differ"
+   ]
+  },
+  {
+   "sword": "0x00000071014bdd60",
+   "shield": "0x00000071014bddf0",
+   "sword_size": 1840,
+   "shield_size": 1844,
+   "notes": [
+    "instructions differ"
+   ]
+  },
+  {
+   "sword": "0x000000710151e0e0",
+   "shield": "0x000000710151e180",
+   "sword_size": 4632,
+   "shield_size": 4632,
+   "notes": [
+    "instructions differ"
+   ]
+  },
+  {
+   "sword": "0x000000710153c420",
+   "shield": "0x000000710153c4c0",
+   "sword_size": 2760,
+   "shield_size": 2760,
+   "notes": [
+    "instructions differ"
+   ]
+  }
+ ],
+ "common-data": [
+  {
+   "sword": "0x0000007100e98ab0",
+   "shield": "0x0000007100e98ae0",
+   "sword_size": 496,
+   "shield_size": 496,
+   "notes": [
+    "+0x28: rodata 0x7101b03c60/0x7101aaab2f differs",
+    "+0x40: rodata 0x7101b0dadd/0x7101b03ca1 differs"
+   ]
+  },
+  {
+   "sword": "0x0000007101526710",
+   "shield": "0x00000071015267b0",
+   "sword_size": 872,
+   "shield_size": 872,
+   "notes": [
+    "+0x2bc: rodata 0x7101af6ce1/0x7101ac2e8e differs",
+    "+0x2e0: rodata 0x7101abcb58/0x7101ac9eb1 differs"
+   ]
+  },
+  {
+   "sword": "0x0000007101540930",
+   "shield": "0x00000071015409d0",
+   "sword_size": 2332,
+   "shield_size": 2332,
+   "notes": [
+    "+0x844: rodata 0x7101af6ce1/0x7101ac2e8e differs",
+    "+0x86c: rodata 0x7101abcb58/0x7101ac9eb1 differs"
+   ]
+  }
+ ],
+ "sword": [],
+ "shield": []
+}

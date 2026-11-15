@@ -1,0 +1,31 @@
+# --- Copyrighted game data: NEVER commit ---------------------------------
+# Each contributor supplies their own dump + keys.
+*.xci
+*.nsp
+*.nca
+*.nso
+*.nro
+*.elf
+*.keys
+prod.keys
+title.keys
+/assets/Pokemon Sword/
+/assets/Pokemon Shield/
+/data/original/
+
+# --- Generated / downloaded ----------------------------------------------
+/build/
+/build-*/
+/toolchain/
+/tools/bin/
+__pycache__/
+*.pyc
+.venv/
+compile_commands.json
+.cache/
+
+# --- Editors ----------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+.DS_Store
