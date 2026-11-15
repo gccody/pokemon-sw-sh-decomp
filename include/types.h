@@ -17,5 +17,6 @@ typedef unsigned long uintptr_t;
 
 // Struct layout assertions - use these on every reconstructed type.
 #define PKMN_SIZE_ASSERT(T, size) static_assert(sizeof(T) == (size), "sizeof(" #T ") != " #size)
-#define PKMN_OFFSET_ASSERT(T, field, offset) \
-    static_assert(__builtin_offsetof(T, field) == (offset), "offsetof(" #T "::" #field ") != " #offset)
+#define PKMN_OFFSET_ASSERT(T, field, offset)                \
+    static_assert(__builtin_offsetof(T, field) == (offset), \
+                  "offsetof(" #T "::" #field ") != " #offset)

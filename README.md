@@ -89,7 +89,7 @@ python tools/progress.py
 | `tools/funcs.py name <addr> <mangled>` | Assign a symbol name to a function |
 | `tools/check.py [name] [--diff] [--update]` | Build both games and check against both originals |
 | `tools/progress.py [--json]` | Progress per game, scope and area |
-| `tools/lint.py` | Validate the CSVs (runs in CI) |
+| `tools/lint.py` | Validate the CSVs and that no game data is tracked (runs in CI) |
 | `tools/compiler_sweep.py` | Rank compilers/flags by how much known source matches the original exactly (docs/compiler.md) |
 
 ## Layout
@@ -103,8 +103,22 @@ include/pkmn/version.h  PKMN_VERSION, PKMN_SW_SH(), PKMN_IS_SWORD
 src/                    Game Freak code (by subsystem; src/unsorted/ until placed)
 lib/                    third-party code (lua/, sol/, physx/, ...)
 tools/                  python tooling (tools/nx/ = XCI/NCA/NSO/eh_frame readers)
+tests/                  pytest suite for tools/ (no game files needed)
 cmake/                  NX64 toolchain; CMakePresets.json has sword + shield presets
-docs/                   contributing guide, version notes, compiler identification
+docs/                   version notes, compiler identification
 ```
 
-See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for the workflow.
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for claiming work, the decompile → check
+→ PR workflow, and how to run the tests. In short:
+
+```sh
+.venv/Scripts/pip install -r tools/requirements-dev.txt
+python tools/lint.py && python -m pytest && ruff check .   # what CI runs (plus clang-format + build)
+python tools/check.py                                     # matching, which CI can't check: paste into your PR
+```
+
+Using an AI coding assistant? [AGENTS.md](AGENTS.md) has the project rules and
+commands written for assistants. Claude Code picks it up through
+[CLAUDE.md](CLAUDE.md).

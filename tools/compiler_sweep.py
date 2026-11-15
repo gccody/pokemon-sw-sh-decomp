@@ -34,7 +34,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import BASE, ROOT, load_module  # noqa: E402
+from common import BASE, load_module  # noqa: E402
 from nx.refs import decode  # noqa: E402
 
 from elftools.elf.elffile import ELFFile  # noqa: E402
@@ -161,7 +161,7 @@ def main() -> int:
 
     # ---- consensus name -> address map from unambiguous hits
     votes: dict[str, set[int]] = defaultdict(set)
-    for funcs, hits, _ in results.values():
+    for _funcs, hits, _ in results.values():
         for name, addrs in hits.items():
             if len(addrs) == 1:
                 votes[name].add(addrs[0])

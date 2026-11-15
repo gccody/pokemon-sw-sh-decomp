@@ -1,0 +1,31 @@
+name: Claim work
+description: Reserve a class, source file or address range so two people don't decompile the same code.
+title: "Claim: <area> <class or address range>"
+labels: ["claim"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One claim per person at a time is a good default. A claim expires after
+        **two weeks without activity**. Close it with your PR, or comment if you
+        stop. See [CONTRIBUTING.md](https://github.com/gccody/pokemon-sw-sh-decomp/blob/master/CONTRIBUTING.md#1-claim-something).
+  - type: input
+    id: area
+    attributes:
+      label: Area
+      description: Row from data/areas.csv, or "unknown".
+      placeholder: lua / physx / game
+    validations:
+      required: true
+  - type: input
+    id: range
+    attributes:
+      label: Class or address range (Sword addresses)
+      placeholder: 0x7101540000-0x7101548000, or pkmn::Foo (vtable at 0x71...)
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Approach, upstream source you're matching against, open questions.

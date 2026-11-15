@@ -1,0 +1,19 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # tools/requirements.txt only. clang-format and ruff are pinned on purpose in
+  # requirements-dev.txt and .pre-commit-config.yaml: bump those by hand, together.
+  - package-ecosystem: pip
+    directory: /tools
+    schedule:
+      interval: monthly
+    ignore:
+      - dependency-name: clang-format
+      - dependency-name: ruff

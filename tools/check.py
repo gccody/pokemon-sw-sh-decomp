@@ -198,7 +198,6 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name) 
         ent = sec["sh_entsize"] or min(64, len(blob) - start)
         return blob[start:start + ent]
 
-    got_pages: dict[int, None] = {}
     for off in range(0, n - n % 4, 4):
         cw = struct.unpack_from("<I", cf.code, off)[0]
         ow = struct.unpack_from("<I", o_img, addr + off)[0]
@@ -392,7 +391,7 @@ def main() -> int:
             status_updates[fn.key] = "O"
         elif not ok and fn.status == "O":
             status_updates[fn.key] = "M"
-            print(f"      REGRESSION: was marked O in functions.csv")
+            print("      REGRESSION: was marked O in functions.csv")
 
     print(f"\n{n_ok} matching, {n_bad} not matching")
     if args.update and status_updates:

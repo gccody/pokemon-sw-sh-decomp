@@ -1,0 +1,7 @@
+# Everything needed to run the checks CI runs (pytest, ruff, clang-format).
+-r requirements.txt
+pytest>=8.0
+ruff==0.17.5
+# Pinned: the formatting of src/ depends on the exact clang-format version.
+clang-format==19.1.7
+pre-commit>=3.7

@@ -1,32 +1,84 @@
 name: CI
 
-# No game files are available here - CI only validates the data files and that
-# the source tree compiles for both games. Matching is checked locally with
-# tools/check.py (or on a self-hosted runner that has its own dump).
+# No game files are available here. CI validates the data files, tests the
+# Python tooling, checks formatting, and checks that the source tree compiles
+# for both games. Matching is checked locally with tools/check.py, and the
+# PR template asks for its output.
 on:
   push:
+    branches: [master]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   lint:
+    name: Data lint + ruff
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r tools/requirements.txt
-      - run: python tools/lint.py
+          cache: pip
+          cache-dependency-path: tools/requirements*.txt
+      - run: pip install -r tools/requirements-dev.txt
+      - name: Validate CSVs and tracked files
+        run: python tools/lint.py
+      - name: Ruff
+        run: ruff check --output-format=github .
+
+  test:
+    name: Tests (${{ matrix.os }}, py${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, python: "3.10" }
+          - { os: ubuntu-latest, python: "3.13" }
+          - { os: windows-latest, python: "3.13" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: tools/requirements*.txt
+      - run: pip install -r tools/requirements-dev.txt
+      - run: python -m pytest
+
+  format:
+    name: clang-format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install clang-format==19.1.7
+      - name: Check formatting (fix locally with clang-format -i)
+        run: git ls-files -z '*.c' '*.cpp' '*.h' '*.hpp' | xargs -0 -r clang-format --dry-run --Werror
 
   build:
+    name: Build (${{ matrix.game }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         game: [sword, shield]
     steps:
       - uses: actions/checkout@v4
       - name: Install clang + ninja
         run: sudo apt-get update && sudo apt-get install -y clang ninja-build
+      # The distro clang is newer than the matching compiler (clang 7.0.1), so
+      # this only proves the code compiles; it says nothing about matching.
       - name: Configure
         run: cmake --preset ${{ matrix.game }} -DPKMN_CLANG_ROOT=/usr
       - name: Build

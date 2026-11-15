@@ -23,6 +23,12 @@ __pycache__/
 .venv/
 compile_commands.json
 .cache/
+.pytest_cache/
+.ruff_cache/
+
+# --- Personal assistant / editor settings ---------------------------------
+CLAUDE.local.md
+.claude/settings.local.json
 
 # --- Editors ----------------------------------------------------------------
 .vscode/

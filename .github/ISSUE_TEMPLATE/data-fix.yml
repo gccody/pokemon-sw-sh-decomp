@@ -1,0 +1,30 @@
+name: Data correction
+description: A wrong function boundary, Sword/Shield pairing, scope, area or name.
+labels: ["data"]
+body:
+  - type: input
+    id: where
+    attributes:
+      label: Function / address / area
+      placeholder: 0x7100e337a0, or the areas.csv row
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What's wrong?
+      options:
+        - Function boundary or size
+        - Sword <-> Shield pairing or scope
+        - Area range or library identification
+        - Symbol name
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: tools/funcs.py show output, strings, RTTI, upstream source. No dumped data beyond short asm excerpts.
+    validations:
+      required: true

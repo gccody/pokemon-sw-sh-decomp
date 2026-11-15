@@ -26,7 +26,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import ROOT, VERSIONS, load_module, read_functions_csv, write_functions_csv, Function  # noqa: E402
+from common import ROOT, load_module, read_functions_csv, write_functions_csv, Function  # noqa: E402
 from nx.refs import decode, is_ldr_literal, is_ldst_uimm, ldst_scale  # noqa: E402
 
 
@@ -177,7 +177,7 @@ def main() -> int:
     for i, j in pairs:
         if i is None:
             b, t = sh.funcs[j]
-            scope, notes, sa, ss = "shield", [], None, None
+            scope, notes = "shield", []
             rows.append(Function(sword=None, shield=b, sword_size=None, shield_size=t, scope="shield"))
         elif j is None:
             a, s = sw.funcs[i]
