@@ -25,6 +25,13 @@ your `PATH`.
 A library whose `pkmn_library_settings()` entry has a `COMPILER_VERSION`
 (PhysX: clang 6.0.1) also needs that compiler, which
 `python tools/get_llvm.py --compiler 6.0.1` installs into `toolchain/clang-6.0.1/`.
+`python tools/get_llvm.py --library-compilers` installs every one the build
+needs (CI runs it too).
+
+On macOS, clang 6.0.1 isn't available (LLVM never published a macOS build of it),
+so PhysX code can't be matched there: use Linux or Windows (or WSL, or a Linux
+container), or configure with `-DPKMN_ALLOW_LIBRARY_COMPILER_FALLBACK=ON`
+knowing that those functions won't match.
 
 ## 1. Claim something
 

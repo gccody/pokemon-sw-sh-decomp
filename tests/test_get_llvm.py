@@ -259,3 +259,156 @@ def test_install_unsupported_host(tmp_path, monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "no prebuilt clang 6.0.1" in out and "clang-6.0.1" in out
     assert not (tmp_path / "clang-6.0.1").exists()
+
+
+# --- --library-compilers: COMPILER_VERSION entries in CMakeLists.txt ---
+
+SETTINGS = """\
+include(cmake/LibrarySettings.cmake)
+
+# pkmn_library_settings(lib/commented COMPILER_VERSION 5.0.2)
+#[[ pkmn_library_settings(lib/bracket-commented COMPILER_VERSION 5.0.2) ]]
+pkmn_library_settings(lib/lua
+  EVIDENCE "docs/compiler.md, section Method (a (paren) and \\"quotes\\")"
+  DEFINES LUA_COMPAT_5_2 LUA_USE_POSIX)
+
+PKMN_Library_Settings(lib/physx/  # trailing slash, odd case, comment inside
+  EVIDENCE [=[docs/compiler.md, COMPILER_VERSION 9.9.9 in a bracket]=]
+  COMPILER_VERSION 6.0.1
+  OPTIONS -fexceptions $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++14>)
+my_pkmn_library_settings(lib/other COMPILER_VERSION 5.0.2)
+pkmn_library_settings(src/game COMPILER_VERSION "7.0.1")
+"""
+
+
+def test_cmake_commands_lexer():
+    cmds = get_llvm.cmake_commands('if(A AND (B OR C))\nset(x "a b" [[c d]] e#f\n  g)\n')
+    assert cmds == [("if", ["A", "AND", "(B OR C)"], 1), ("set", ["x", "a b", "c d", "e", "g"], 2)]
+
+
+def test_library_compiler_entries():
+    assert get_llvm.library_compiler_entries(SETTINGS) == [("lib/physx", "6.0.1"), ("src/game", "7.0.1")]
+
+
+def test_library_compiler_entries_none():
+    # master's CMakeLists.txt has no pkmn_library_settings() at all.
+    assert get_llvm.library_compiler_entries("project(x)\nadd_library(pkmn OBJECT ${S})\n") == []
+    assert get_llvm.library_compiler_entries("") == []
+
+
+@pytest.mark.parametrize("text, msg", [
+    ("pkmn_library_settings(lib/x COMPILER_VERSION ${V})", "is not a literal"),
+    ("pkmn_library_settings(lib/x COMPILER_VERSION 6.0)", "is not a literal"),
+    ("pkmn_library_settings(lib/x COMPILER_VERSION)", "is not a literal"),
+    ("set(a b)\npkmn_library_settings(lib/x COMPILER_VERSION 6.0.1", "line 2: unterminated"),
+    ('pkmn_library_settings(lib/x EVIDENCE "open', "unterminated string"),
+])
+def test_library_compiler_entries_errors(text, msg):
+    with pytest.raises(get_llvm.CMakeParseError, match=msg):
+        get_llvm.library_compiler_entries(text)
+
+
+def make_repo(tmp_path, cmakelists: str | None, files=()):
+    root = tmp_path / "repo"
+    root.mkdir()
+    if cmakelists is not None:
+        (root / "CMakeLists.txt").write_text(cmakelists, encoding="utf-8")
+    for f in files:
+        (root / f).parent.mkdir(parents=True, exist_ok=True)
+        (root / f).write_text("", encoding="utf-8")
+    return root
+
+
+def test_needed_library_compilers_only_with_sources(tmp_path):
+    text = ("pkmn_library_settings(lib/physx COMPILER_VERSION 6.0.1)\n"
+            "pkmn_library_settings(lib/lua COMPILER_VERSION 5.0.2)\n"
+            "pkmn_library_settings(lib/main COMPILER_VERSION 7.0.1)\n"
+            "pkmn_library_settings(tools COMPILER_VERSION 4.0.1)\n")
+    # Headers alone, a lookalike directory, or sources outside src/ and lib/ don't count.
+    root = make_repo(tmp_path, text, ["lib/physx/include/Px.h", "lib/physxlike/a.cpp", "tools/x.c",
+                                      "lib/main/m.c"])
+    assert get_llvm.needed_library_compilers(root) == []  # 7.0.1 is the main compiler
+    (root / "lib/physx/source/deep").mkdir(parents=True)
+    (root / "lib/physx/source/deep/Gu.cpp").write_text("", encoding="utf-8")
+    (root / "lib/lua/lapi.c").parent.mkdir(parents=True)
+    (root / "lib/lua/lapi.c").write_text("", encoding="utf-8")
+    assert get_llvm.needed_library_compilers(root) == ["5.0.2", "6.0.1"]
+
+
+def test_needed_library_compilers_no_cmakelists(tmp_path):
+    assert get_llvm.needed_library_compilers(make_repo(tmp_path, None)) == []
+
+
+def test_repo_cmakelists_parses():
+    get_llvm.needed_library_compilers()  # the real CMakeLists.txt must stay parseable
+
+
+def test_install_library_compilers_noop(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(get_llvm, "install_compiler", lambda *a: pytest.fail("must not install"))
+    root = make_repo(tmp_path, "project(x)\n", ["src/a.cpp"])
+    assert get_llvm.install_library_compilers(root, tmp_path / "toolchain", ("Linux", "x86_64")) == 0
+    assert "no library with sources needs" in capsys.readouterr().out
+
+
+def test_install_library_compilers(tmp_path, monkeypatch, capsys):
+    root = make_repo(tmp_path, "pkmn_library_settings(lib/physx COMPILER_VERSION 6.0.1)\n",
+                     ["lib/physx/a.cpp"])
+    calls = []
+    monkeypatch.setattr(get_llvm, "install_compiler", lambda v, t, on: calls.append((v, t, on)) or 0)
+    toolchain = tmp_path / "toolchain"
+    on = ("Linux", "x86_64")
+    assert get_llvm.install_library_compilers(root, toolchain, on) == 0
+    assert calls == [("6.0.1", toolchain, on)]
+
+    # Already installed and reporting the right version: skipped.
+    clang = toolchain / "clang-6.0.1" / "bin" / "clang"
+    clang.parent.mkdir(parents=True)
+    clang.write_bytes(b"")
+    monkeypatch.setattr(get_llvm, "run_version", lambda c: subprocess.CompletedProcess(
+        [str(c)], 0, "clang version 6.0.1 (tags/RELEASE_601/final)\n", ""))
+    calls.clear()
+    assert get_llvm.install_library_compilers(root, toolchain, on) == 0
+    assert calls == [] and "already installed" in capsys.readouterr().out
+
+    # Installed, but the wrong version: reinstalled.
+    monkeypatch.setattr(get_llvm, "run_version", lambda c: subprocess.CompletedProcess(
+        [str(c)], 0, "clang version 7.0.1\n", ""))
+    assert get_llvm.install_library_compilers(root, toolchain, on) == 0
+    assert calls == [("6.0.1", toolchain, on)]
+
+
+def test_install_library_compilers_unknown_version(tmp_path, monkeypatch, capsys):
+    root = make_repo(tmp_path, "pkmn_library_settings(lib/x COMPILER_VERSION 5.0.2)\n", ["lib/x/a.c"])
+    monkeypatch.setattr(get_llvm, "install_compiler", lambda *a: pytest.fail("must not install"))
+    assert get_llvm.install_library_compilers(root, tmp_path, ("Linux", "x86_64")) == 1
+    assert "can't install" in capsys.readouterr().out
+
+
+def test_install_library_compilers_macos_refuses_601(tmp_path, monkeypatch, capsys):
+    root = make_repo(tmp_path, "pkmn_library_settings(lib/physx COMPILER_VERSION 6.0.1)\n",
+                     ["lib/physx/a.cpp"])
+    monkeypatch.setattr(get_llvm, "download", lambda url, dest: pytest.fail("must not download"))
+    assert get_llvm.install_library_compilers(root, tmp_path, ("Darwin", "arm64")) == 1
+    assert "no prebuilt clang 6.0.1" in capsys.readouterr().out
+
+
+def test_parse_args_library_compilers():
+    a = get_llvm.parse_args(["--library-compilers"])
+    assert (a.compiler, a.tools, a.library_compilers) == (None, False, True)
+    a = get_llvm.parse_args(["--compiler", "--library-compilers"])
+    assert (a.compiler, a.tools, a.library_compilers) == ("7.0.1", False, True)
+    a = get_llvm.parse_args(["--list-library-compilers"])
+    assert (a.compiler, a.tools, a.list_library_compilers) == (None, False, True)
+    with pytest.raises(SystemExit):
+        get_llvm.parse_args(["--list-library-compilers", "--compiler"])
+
+
+def test_main_list_library_compilers(tmp_path, monkeypatch, capsys):
+    root = make_repo(tmp_path, "pkmn_library_settings(lib/physx COMPILER_VERSION 6.0.1)\n", [])
+    monkeypatch.setattr(get_llvm, "ROOT", root)
+    assert get_llvm.main(["--list-library-compilers"]) == 0
+    assert capsys.readouterr().out == ""
+    (root / "lib/physx").mkdir(parents=True)
+    (root / "lib/physx/a.cpp").write_text("", encoding="utf-8")
+    assert get_llvm.main(["--list-library-compilers"]) == 0
+    assert capsys.readouterr().out == "6.0.1\n"

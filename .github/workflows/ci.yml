@@ -87,15 +87,29 @@ jobs:
           python-version: "3.12"
       - name: Install ninja + libtinfo5
         run: sudo apt-get update && sudo apt-get install -y ninja-build libtinfo5
-      - name: Cache clang 7.0.1
+      # Libraries built with another clang name it in CMakeLists.txt
+      # (pkmn_library_settings(... COMPILER_VERSION <version>)). get_llvm.py
+      # lists the versions whose library has sources, so they're named only
+      # there. With none, this is just clang 7.0.1 and the key has no suffix.
+      - name: Find library compilers
+        id: compilers
+        shell: bash
+        run: |
+          versions=$(python tools/get_llvm.py --list-library-compilers)
+          echo "library compilers: ${versions:-none}"
+          suffix="" paths="toolchain/clang"
+          for v in $versions; do suffix+="+$v"; paths+=$'\n'"toolchain/clang-$v"; done
+          echo "key-suffix=$suffix" >> "$GITHUB_OUTPUT"
+          { echo "paths<<EOF"; echo "$paths"; echo "EOF"; } >> "$GITHUB_OUTPUT"
+      - name: Cache clang 7.0.1 and the library compilers
         id: cache-clang
         uses: actions/cache@v6
         with:
-          path: toolchain/clang
-          key: clang-7.0.1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/get_llvm.py') }}
-      - name: Install clang 7.0.1
+          path: ${{ steps.compilers.outputs.paths }}
+          key: clang-7.0.1${{ steps.compilers.outputs.key-suffix }}-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/get_llvm.py') }}
+      - name: Install clang 7.0.1 and the library compilers
         if: steps.cache-clang.outputs.cache-hit != 'true'
-        run: python tools/get_llvm.py --compiler
+        run: python tools/get_llvm.py --compiler --library-compilers
       # cmake/toolchain-nx64.cmake picks up toolchain/clang on its own, as it
       # does for contributors. Fail if that isn't clang 7.0.x.
       - name: Check compiler version

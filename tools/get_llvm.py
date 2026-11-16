@@ -5,6 +5,8 @@
     python tools/get_llvm.py --compiler         # toolchain/clang:       clang 7.0.1, the matching compiler
     python tools/get_llvm.py --compiler 6.0.1   # toolchain/clang-6.0.1: clang 6.0.1, for libraries built with it
     python tools/get_llvm.py --tools            # toolchain/llvm-19:     llvm-objdump, llvm-cxxfilt, clang-format, ld.lld
+    python tools/get_llvm.py --library-compilers       # every COMPILER_VERSION clang the build needs
+    python tools/get_llvm.py --list-library-compilers  # print those versions, one per line
 
 The game was built with a clang 7.0-based compiler (NintendoSDK 7.3.2); see
 docs/compiler.md for how that was established. cmake/toolchain-nx64.cmake
@@ -18,6 +20,15 @@ needs `--compiler <version>`, which installs that clang into
 toolchain/clang-<version>/ with the same layout as toolchain/clang (bin/clang,
 bin/clang++ and clang's own headers). Each version has its own directory, so
 installing one never touches another.
+
+`--library-compilers` reads the `pkmn_library_settings()` calls in
+CMakeLists.txt and installs the COMPILER_VERSION clang of every entry whose
+directory has sources (*.c/*.cpp under src/ or lib/, as CMake globs them).
+CMake never looks for the compiler of an entry without sources, so neither
+does this. Versions that are already installed are skipped, and with no such
+entries it does nothing. `--list-library-compilers` prints the versions it
+would install, for CI's cache key, so CMakeLists.txt stays the only place that
+names them.
 
 On Windows, LLVM 6 and 7 ship only as NSIS installers, so 7-Zip (7z/7za/7zz or
 NanaZip) must be on PATH to unpack them. On Linux, clang 7.0.1 needs
@@ -101,6 +112,193 @@ def compiler_arg(value: str) -> str:
         raise argparse.ArgumentTypeError(
             f"unsupported clang version {value!r} (supported: {', '.join(sorted(COMPILERS))})")
     return value
+
+
+# --- COMPILER_VERSION entries in CMakeLists.txt ---
+
+# What CMakeLists.txt's PKMN_SOURCES glob counts as a source.
+SOURCE_DIRS = ("src", "lib")
+SOURCE_SUFFIXES = (".c", ".cpp")
+
+_BRACKET_OPEN = re.compile(r"\[(=*)\[")
+_COMMAND = re.compile(r"[A-Za-z_][A-Za-z0-9_]*[ \t]*\(")
+_VERSION = re.compile(r"\d+\.\d+\.\d+")
+
+
+class CMakeParseError(ValueError):
+    pass
+
+
+def cmake_commands(text: str) -> list[tuple[str, list[str], int]]:
+    """(lowercased name, arguments, line) of every command call in CMake text.
+
+    A small CMake lexer: # and #[[ ]] comments are skipped, "quoted" and
+    [[bracket]] arguments become one argument without their delimiters, and
+    unquoted arguments are split on whitespace. Nested parentheses (as in
+    if(...) conditions) stay part of the arguments. Variable references are not
+    expanded.
+    """
+    commands = []
+    i, n, line = 0, len(text), 1
+
+    def bracket_end(start: int, eq: str) -> int:
+        end = text.find(f"]{eq}]", start)
+        if end < 0:
+            raise CMakeParseError(f"line {line}: unterminated bracket")
+        return end
+
+    while i < n:
+        c = text[i]
+        if c == "#":
+            m = _BRACKET_OPEN.match(text, i + 1)
+            if m:
+                end = bracket_end(m.end(), m.group(1)) + len(m.group(1)) + 2
+            else:
+                end = text.find("\n", i)
+                end = n if end < 0 else end
+            line += text.count("\n", i, end)
+            i = end
+            continue
+        m = re.compile(r"[A-Za-z_][A-Za-z0-9_]*[ \t]*\(").match(text, i)
+        if not m:
+            line += c == "\n"
+            i += 1
+            continue
+        name = m.group(0).rstrip(" \t(").lower()
+        start_line = line
+        i = m.end()
+        args: list[str] = []
+        cur: list[str] | None = None
+        depth = 1
+        while True:
+            if i >= n:
+                raise CMakeParseError(f"line {start_line}: unterminated {name}(")
+            c = text[i]
+            if c == '"':
+                j = i + 1
+                buf = []
+                while j < n and text[j] != '"':
+                    if text[j] == "\\" and j + 1 < n:
+                        buf.append(text[j + 1])
+                        j += 2
+                    else:
+                        buf.append(text[j])
+                        j += 1
+                if j >= n:
+                    raise CMakeParseError(f"line {line}: unterminated string")
+                line += text.count("\n", i, j)
+                cur = (cur or []) + buf
+                i = j + 1
+                continue
+            if c == "[" and (b := _BRACKET_OPEN.match(text, i)):
+                end = bracket_end(b.end(), b.group(1))
+                line += text.count("\n", i, end)
+                cur = (cur or []) + [text[b.end():end]]
+                i = end + len(b.group(1)) + 2
+                continue
+            if c == "#":  # a comment, which also ends an unquoted argument
+                if cur is not None:
+                    args.append("".join(cur))
+                    cur = None
+                b = _BRACKET_OPEN.match(text, i + 1)
+                if b:
+                    end = bracket_end(b.end(), b.group(1)) + len(b.group(1)) + 2
+                else:
+                    end = text.find("\n", i)
+                    end = n if end < 0 else end
+                line += text.count("\n", i, end)
+                i = end
+                continue
+            if c == "(":
+                depth += 1
+            elif c == ")":
+                depth -= 1
+                if depth == 0:
+                    if cur is not None:
+                        args.append("".join(cur))
+                    i += 1
+                    break
+            if c.isspace() and depth == 1:
+                if cur is not None:
+                    args.append("".join(cur))
+                    cur = None
+                line += c == "\n"
+            else:
+                cur = (cur or []) + [c]
+            i += 1
+        commands.append((name, args, start_line))
+    return commands
+
+
+def library_compiler_entries(text: str) -> list[tuple[str, str]]:
+    """(dir, version) of every pkmn_library_settings() call with a COMPILER_VERSION."""
+    entries = []
+    for name, args, line in cmake_commands(text):
+        if name != "pkmn_library_settings" or "COMPILER_VERSION" not in args:
+            continue
+        dir_ = args[0].rstrip("/")
+        k = args.index("COMPILER_VERSION")
+        version = args[k + 1] if k + 1 < len(args) else ""
+        if not _VERSION.fullmatch(version):
+            raise CMakeParseError(f"line {line}: pkmn_library_settings({dir_}): COMPILER_VERSION {version!r} "
+                                  "is not a literal full clang version such as 6.0.1")
+        entries.append((dir_, version))
+    return entries
+
+
+def has_sources(dir_: str, root: Path = ROOT) -> bool:
+    """Whether CMake's PKMN_SOURCES glob finds a source under root/<dir_>/."""
+    base = root / dir_
+    if not base.is_dir() or not any(base == root / d or root / d in base.parents for d in SOURCE_DIRS):
+        return False
+    return any(p.suffix in SOURCE_SUFFIXES and p.is_file() for p in base.rglob("*"))
+
+
+def needed_library_compilers(root: Path = ROOT) -> list[str]:
+    """COMPILER_VERSIONs of the entries in root/CMakeLists.txt that have sources:
+    sorted, once each, without the main compiler (always installed anyway)."""
+    cmakelists = root / "CMakeLists.txt"
+    text = cmakelists.read_text(encoding="utf-8") if cmakelists.exists() else ""
+    versions = {v for d, v in library_compiler_entries(text) if has_sources(d, root)}
+    versions.discard(DEFAULT_COMPILER)
+    return sorted(versions, key=lambda v: tuple(map(int, v.split("."))))
+
+
+def installed_version(clang: Path) -> str | None:
+    """The version an existing clang reports, or None if it doesn't run."""
+    try:
+        r = run_version(clang)
+    except OSError:
+        return None
+    return reported_version(r.stdout) if r.returncode == 0 else None
+
+
+def install_library_compilers(root: Path = ROOT, toolchain: Path = TOOLCHAIN,
+                              on: tuple[str, str] | None = None) -> int:
+    on = on or host()
+    try:
+        versions = needed_library_compilers(root)
+    except CMakeParseError as e:
+        print(f"CMakeLists.txt: {e}")
+        return 1
+    if not versions:
+        print("no library with sources needs a clang other than the main one")
+        return 0
+    rc = 0
+    for version in versions:
+        if version not in COMPILERS:
+            print(f"CMakeLists.txt asks for clang {version}, which get_llvm.py can't install "
+                  f"(supported: {', '.join(sorted(COMPILERS))})")
+            rc = 1
+            continue
+        asset = COMPILERS[version].get(on)
+        out = compiler_dir(version, toolchain)
+        clang = out / "bin" / f"clang{exe_suffix(on)}"
+        if asset and clang.exists() and installed_version(clang) == asset[0]:
+            print(f"ok: clang {version} is already installed in {out}")
+            continue
+        rc |= install_compiler(version, toolchain, on)
+    return rc
 
 
 def download(url: str, dest: Path) -> Path:
@@ -261,17 +459,36 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                     help=f"only install clang VERSION (default {DEFAULT_COMPILER}; "
                          f"supported: {', '.join(sorted(COMPILERS))})")
     ap.add_argument("--tools", action="store_true", help=f"only install the LLVM {TOOLS_VERSION} utilities")
+    ap.add_argument("--library-compilers", action="store_true",
+                    help="install the COMPILER_VERSION clang of every pkmn_library_settings() entry "
+                         "in CMakeLists.txt that has sources")
+    ap.add_argument("--list-library-compilers", action="store_true",
+                    help="print the versions --library-compilers installs, one per line, and exit")
     args = ap.parse_args(argv)
-    if args.compiler is None and not args.tools:  # neither: both, with the matching compiler
+    if args.list_library_compilers:
+        if args.compiler or args.tools or args.library_compilers:
+            ap.error("--list-library-compilers can't be combined with other options")
+    elif args.compiler is None and not args.tools and not args.library_compilers:
+        # nothing chosen: the matching compiler and the tools
         args.compiler, args.tools = DEFAULT_COMPILER, True
     return args
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    if args.list_library_compilers:
+        try:
+            versions = needed_library_compilers(ROOT)
+        except CMakeParseError as e:
+            print(f"CMakeLists.txt: {e}", file=sys.stderr)
+            return 1
+        print("\n".join(versions), end="\n" if versions else "")
+        return 0
     rc = 0
     if args.compiler:
         rc |= install_compiler(args.compiler)
+    if args.library_compilers:
+        rc |= install_library_compilers(ROOT)
     if args.tools:
         rc |= install_tools()
     return rc
