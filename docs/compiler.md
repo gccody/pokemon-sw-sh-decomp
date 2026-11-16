@@ -179,53 +179,72 @@ clang 7.0.1.
 
 ## What's left open
 
-Game Freak's C++ was tested with 23 small decompiled game functions
+Game Freak's C++ was tested with 32 small decompiled game functions
 (all `common`: getters and setters, struct copies, delegate calls and invokers,
-`find_if`-style loops, a float function). 21 match in both games with the
-global flags. Each TU was also recompiled with one flag changed and checked
-against both games:
+`find_if`-style loops, an array remove, small branchy functions, two float
+functions). All 32 match in both games with the global flags. Each TU under
+`src/` was also recompiled with one flag appended and checked against both
+games:
 
-| Variant | OK of 23 | Lost |
+| Variant | OK of 32 | Lost |
 |---|---|---|
-| global flags (`-O3 -g -std=c++17`) | 21 | – |
-| `-g0` or `-gline-tables-only` | 18 | `0x71005e65b0`, `0x7100601110`, `0x7100c864f0` |
-| `-O2` or `-Os` | 20 | `0x71014f7960` |
-| `-O1` | 11 | 10 |
-| `-std=c++11`, `c++14`, `gnu++14`, `gnu++17` | 21 | none |
+| global flags (`-O3 -g -std=c++17`) | 32 | – |
+| `-g0` or `-gline-tables-only` | 28 | `0x71005e65b0`, `0x7100601110`, `0x7100c864f0`, `0x71014f7a50` |
+| `-O2` or `-Os` | 22 | `0x71007f2e90`, `0x7100a6d3c0`, `0x7100ea5d80`, `0x7100f4ac50`, `0x7100ffd350`, `0x71014e6d50`, `0x71014f5fb0`, `0x71014f7960`, `0x71014f79b0`, `0x71014f7a50` |
+| `-O1` | 12 | 20 |
+| `-O2 -mllvm -tail-dup-placement-threshold=4` | 30 | `0x71014f7960`, `0x71014f79b0` |
+| `-O3 -mllvm -tail-dup-placement-aggressive-threshold=2` | 23 | the 9 `-O2` losses other than `0x71014f7960` |
+| `-std=c++11`, `c++14`, `gnu++14`, `gnu++17` | 32 | none |
 
-No function matches only with a changed flag. The two misses (`0x71014f7a50`,
-`0x71014f7fe0`) miss under every variant.
+No function matches only with a changed flag.
 
-- **The `-O` level for Game Freak's C++ code: `-O3`, narrowly.** One function
-  separates it from `-O2` and `-Os`: at those levels a debug value of an
-  inlined iterator survives in `0x71014f7960` and keeps its begin/end loads
-  apart (two `ldr`). At `-O3` they become the original's `ldp`. That is one
-  function, through the same debug-info mechanism as `-g` below. More game
-  functions should confirm it, so if a TU won't match, `-O2` is still worth a
-  try before assuming the source is wrong.
+- **The `-O` level for Game Freak's C++ code: `-O3`.** Ten of the 32
+  functions match at `-O3` and at neither `-O2` nor `-Os`. Eight of them
+  differ by one mechanism: LLVM 7's block placement duplicates a small shared
+  tail (here 3 or 4 instructions ending in `ret`, such as `cmp; csel; ret` or
+  `sub; str; ret`) into each predecessor up to 4 instructions at `-O3`
+  (`tail-dup-placement-aggressive-threshold`), but only up to 2 at `-O2`/`-Os`
+  (`tail-dup-placement-threshold`). The original has those tails duplicated.
+  The two `-mllvm` rows show that this is the cause: raising the `-O2`
+  threshold to 4 makes those 8 match, and lowering the `-O3` one to 2 breaks
+  them. The other two need something else from `-O3`. In `0x71014f7960` a debug
+  value of an inlined iterator survives at `-O2`/`-Os` and keeps its begin/end
+  loads apart (two `ldr` instead of the original's `ldp`), and `0x71014f79b0`
+  still differs at `-O2` with the higher threshold. Seven of the
+  eight were picked for this: a scan for small leaf functions whose `ret`
+  tail of 3-4 instructions appears twice found 59 undecompiled ones of at most
+  0x60 bytes. Of 8 tried from that list, 7 matched and all 7 match only at
+  `-O3`. The eighth (`0x7100ab9960`) wasn't matched (operand order of an
+  `orr`), so it says nothing about `-O`. The other two new functions came
+  from a scan for small functions with loops: `0x71014f79b0` is `-O3`-only,
+  and `0x71008130b0` (an array remove) also matches at `-O2`/`-Os`.
 - **The C++ standard version: not discriminated.** c++11, c++14, c++17,
-  gnu++14 and gnu++17 give identical code for all 23 functions. `-std=c++17`
+  gnu++14 and gnu++17 give identical code for all 32 functions. `-std=c++17`
   stays as the default. Only code using a feature whose codegen differs
   between standards (guaranteed copy elision, aligned `new`, inline
   variables) could tell them apart.
-- **`-g` beyond Lua: confirmed for Game Freak's C++.** Three of the game's
-  adjacent pairable `ldr` pairs whose second destination is the base are in
-  getters that return a 0x20-byte value by copy (`0x71005e65b0`,
-  `0x7100601110`, `0x7100c864f0`; 63 such pairs in game code, 62 with
-  ascending and 1 with descending offsets, against 1,339 `ldp` into the base:
-  `g_ldr_pairs`, `g_ldr_pairs_desc` and `g_ldp_base` in "Codegen
-  fingerprints"; 60 by the earlier count). The value's user-written copy constructor
-  ends with a member whose own copy constructor is inlined. That leaves
-  `DBG_VALUE $x0, "other", DW_OP_plus_uconst 0x18` between
+- **`-g` beyond Lua: confirmed for Game Freak's C++.** Four of the game's
+  adjacent pairable `ldr` pairs whose second destination is the base match
+  only with `-g` (63 such pairs in game code, 62 with ascending and 1 with
+  descending offsets, against 1,339 `ldp` into the base: `g_ldr_pairs`,
+  `g_ldr_pairs_desc` and `g_ldp_base` in "Codegen fingerprints"; 60 by the
+  earlier count). Three are getters that return a 0x20-byte value by copy
+  (`0x71005e65b0`, `0x7100601110`, `0x7100c864f0`). The value's user-written
+  copy constructor ends with a member whose own copy constructor is inlined.
+  That leaves `DBG_VALUE $x0, "other", DW_OP_plus_uconst 0x18` between
   `ldr x9, [x0, #0x18]` and `ldr x0, [x0, #0x20]`, the same `aarch64-ldst-opt`
-  case as Lua's `stackinuse`. All three match only with `-g`. With `-g0` or
-  `-gline-tables-only` they become `ldp x9, x0, [x0, #0x18]`. A fourth,
-  `0x71014f7a50`, reproduces the two `ldr` only with `-g` too (a `DBG_VALUE` of
-  begin in a register between the loads), though its comparison order doesn't
-  match yet. Whether a pair stays unpaired depends on which inlined debug
-  values survive, so it follows the source's inlining structure: the same
-  begin/end loads pair in `0x71014f7960`, where the search is one inline
-  helper deeper. The remaining 59 have not been checked one by one.
+  case as Lua's `stackinuse`. With `-g0` or `-gline-tables-only` they become
+  `ldp x9, x0, [x0, #0x18]`. The fourth, `0x71014f7a50`, is a `find_if` over
+  an iterator class, written as a member function of the range and inlined
+  into the caller. There, two debug values sit between `ldr x9, [x8]` and
+  `ldr x8, [x8, #8]`: the predicate's `slot` argument in the peeled first
+  iteration (the begin pointer, `x9`) and `end()`'s `this` (`x8`). With both
+  destination registers used in between, the pass can merge the pair in
+  neither direction. Whether a pair stays unpaired depends on which inlined
+  debug values survive, so it follows the source's inlining structure: the
+  same search written out in the caller (`0x71014f7960`, `0x71014f79b0`)
+  pairs into an `ldp`, as in the original. The remaining 59 have not been
+  checked one by one.
 - **The remaining Lua misses** are in libraries Game Freak changed or removed:
   `loslib`, `liolib` (`luaopen_io` creates 9 fields, not 11), `loadlib`,
   `lbitlib`, `lutf8lib`, and the `lauxlib` allocator and panic handler.
