@@ -85,6 +85,11 @@ def object_functions(path: Path, source: Path | None = None) -> dict[str, bytes]
     return out
 
 
+def find_sources(patterns: list[str]) -> list[Path]:
+    """Expand --src globs (`**` recurses into subdirectories), sorted and deduplicated."""
+    return sorted({Path(p) for g in patterns for p in glob.glob(g, recursive=True)})
+
+
 def compiler_label(root: Path) -> str:
     return root.name
 
@@ -174,7 +179,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--compiler", nargs="+", required=True, help="compiler root dirs (containing bin/clang)")
     ap.add_argument("--variant", action="append", default=[], help='NAME="flags" (repeatable)')
-    ap.add_argument("--src", action="append", required=True, help="source glob (repeatable)")
+    ap.add_argument("--src", action="append", required=True,
+                    help="source glob, quoted; ** recurses (repeatable)")
     ap.add_argument("--range", help="original address range to search, e.g. 0x7101540000-0x7101570000 (default: all)")
     ap.add_argument("--game", default="sword")
     ap.add_argument("--show", type=int, default=0, help="list up to N mapped functions per config that miss")
@@ -183,7 +189,7 @@ def main() -> int:
     args = ap.parse_args()
     common = [a for a in args.common if a != "--"]
 
-    srcs = sorted({Path(p) for g in args.src for p in glob.glob(g)})
+    srcs = find_sources(args.src)
     if not srcs:
         raise SystemExit("no sources matched")
     roots = []

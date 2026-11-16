@@ -1,8 +1,8 @@
 Start,End,Area,Kind,Confidence,Evidence
-0x7100000000,0x7100011000,startup,game,low,"nnMain at 0x7100000eb0; malloc/free/new/delete overrides exported from main"
-0x7100011000,0x7100300000,physx,library,high,"270 functions reference PhysX_3.4 source paths (assert __FILE__); PhysX 3.4.2 is open source"
-0x7100300000,0x7100400000,physx?,library,low,"no string evidence; sits between PhysX and YEBIS - verify"
-0x7100400000,0x71005a0000,yebis,library,medium,"Silicon Studio YEBIS 3: PPFX::/SiSDK3:: RTTI and strings (210 functions)"
+0x7100000000,0x7100010e30,startup,game,low,"nnMain at 0x7100000eb0; malloc/free/new/delete overrides exported from main. The tail (0x7100010a90-0x7100010e30: one-instruction ret stubs and b thunks into PhysX, referenced from vtables at the start of .data.rel.ro) is unresolved"
+0x7100010e30,0x71003035e0,physx,library,high,"PhysX 3.4 source paths (__FILE__ of PX_ALLOC/error calls) and physx:: names; ends with PxFoundation (PsFoundation.cpp, PsSwitchMutex.cpp) and PxTask (TaskManager.cpp). Holds 1279 of the 1281 zPLR FDEs (first at 0x7100010f10). Built with clang 6.0.1 -O3 -fexceptions -fno-cxx-exceptions -fstrict-aliasing, see docs/compiler.md"
+0x71003035e0,0x710040f550,wwise,library,medium,"Audiokinetic Wwise sound engine: AK::BankManager/AK::EventManager/AK::IOThread/AK::OpusDecodingThread thread names, .bnk loading and Wwise bank-version error strings; starts with static plugin-registration stubs that link into one shared list; zR FDEs only, no edges into PhysX; same boundaries in Shield"
+0x710040f550,0x71005a0000,yebis,library,medium,"Silicon Studio YEBIS 3: PPFX::/SiSDK3:: RTTI and strings (210 functions)"
 0x71005a0000,0x7101540000,game,game,low,"Game Freak code (orion). Contains sol2 + libc++ template instantiations; split into subsystems as they are identified"
 0x7101540000,0x7101570000,lua,library,medium,"Lua core/auxlib strings; luaL_error at 0x7101548870"
 0x7101570000,0x71017ec260,middleware,library,low,"NEX 4.6.8, Pia 5.18, libcurl, NintendoWare, nn SDK static libs, libc++; PLT stubs at the very end"

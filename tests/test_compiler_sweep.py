@@ -1,9 +1,12 @@
-"""compiler_sweep.py --map-out: the consensus name -> address map for both games."""
+"""compiler_sweep.py: the consensus name -> address map for both games
+(--map-out), and the --src globs used for the corpora in docs/compiler.md
+(Lua: one directory, PhysX: a recursive tree)."""
 from __future__ import annotations
 
 import compiler_sweep
 import funcs
 from common import BASE, read_functions_csv
+from compiler_sweep import find_sources
 
 
 def test_consensus_keeps_only_unanimous_unique_hits():
@@ -43,3 +46,18 @@ def test_written_map_is_what_funcs_name_reads(tmp_path):
         ("getfield@lauxlib", 0x1546000 + BASE, 0x15460A0 + BASE),
         ("only_sword", 0x1546300 + BASE, None),
     ]
+
+
+def test_find_sources_recursive_and_dedup(tmp_path):
+    for rel in ("a.cpp", "sub/b.cpp", "sub/deep/c.cpp", "sub/d.h"):
+        p = tmp_path / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text("", encoding="utf-8")
+    flat = find_sources([str(tmp_path / "*.cpp")])
+    assert [p.name for p in flat] == ["a.cpp"]
+    deep = find_sources([str(tmp_path / "**" / "*.cpp"), str(tmp_path / "sub" / "*.cpp")])
+    assert sorted(p.name for p in deep) == ["a.cpp", "b.cpp", "c.cpp"]
+
+
+def test_find_sources_no_match(tmp_path):
+    assert find_sources([str(tmp_path / "*.c")]) == []
