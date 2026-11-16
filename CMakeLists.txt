@@ -172,6 +172,20 @@ pkmn_library_settings(lib/curl
   DEFINES HAVE_CONFIG_H BUILDING_LIBCURL CURL_STATICLIB
   INCLUDES lib/curl/include lib/curl/lib lib/curl/zlib)
 
+# Protocol Buffers 3.0.0, the runtime gflnet3 vendors
+# (gflnet3/external/include/google/protobuf): the game's clang 7.0.x and
+# global flags, with NDEBUG (the DCHECKs are compiled out), protobuf's
+# HAVE_PTHREAD (main imports pthread_mutex_*) and GOOGLE_PROTOBUF_NO_RTTI (the
+# global -fno-rtti). C++11 to C++17 give the same code. libc++ 7.0.1 supplies
+# the standard headers; _GNU_SOURCE makes musl declare the strtof_l/... that
+# libc++'s <locale> uses.
+pkmn_library_settings(lib/protobuf
+  EVIDENCE "docs/compiler.md, section Protocol Buffers 3.0.0"
+  DEFINES NDEBUG HAVE_PTHREAD GOOGLE_PROTOBUF_NO_RTTI _GNU_SOURCE _LIBCPP_HAS_MUSL_LIBC
+    _LIBCPP_HAS_THREAD_API_PTHREAD
+  INCLUDES lib/protobuf
+  SYSTEM_INCLUDES include/libcxx)
+
 # lib/physx's files with PhysX v3.4.2's code (see the entry above) aren't in
 # the repository, because that code isn't BSD-licensed. tools/get_physx.py
 # generates them from NVIDIA's public repository. Stop here until they're all
