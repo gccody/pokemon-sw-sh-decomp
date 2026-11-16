@@ -255,6 +255,67 @@ def test_merge_results_requires_every_copy_to_match():
     assert check.merge_results([(a, good), (b, check.Result(True))]).ok
 
 
+def test_identical_copies_record_every_source(build_dir, capsys):
+    d = build_dir({"a.cpp": [Func("_Z6inlinev", RET, bind="weak")],
+                   "b.cpp": [Func("_Z6inlinev", NOP + RET, bind="weak")],
+                   "c.cpp": [Func("_Z6inlinev", RET, bind="weak")]})
+    cf = check.load_objects(d)["_Z6inlinev"]
+    assert [[Path(s).name for s in c.sources()] for c in cf.copies()] == [["a.cpp", "c.cpp"], ["b.cpp"]]
+    capsys.readouterr()
+
+
+@dataclass
+class _Row:
+    """The part of common.Function that tu_spans and kept_copy use."""
+    addr_: int
+
+    def in_version(self, v):
+        return True
+
+    def addr(self, v):
+        return self.addr_
+
+
+def _weak(source, code=RET):
+    return check.CompiledFunc("w", Path(source + ".o"), code, {}, None, source, mergeable=True)
+
+
+def test_tu_spans_cover_strong_functions_with_rows():
+    strong = [check.CompiledFunc(n, Path("a.o"), RET, {}, None, src) for n, src in
+              (("a1", "a.cpp"), ("a2", "a.cpp"), ("b1", "b.cpp"), ("norow", "c.cpp"))]
+    compiled = {cf.name: cf for cf in strong} | {"w": _weak("a.cpp")}
+    by_name = {"a1": _Row(0x300), "a2": _Row(0x100), "b1": _Row(0x500), "w": _Row(0x900)}
+    assert check.tu_spans(compiled, by_name, "sword") == {"a.cpp": (0x100, 0x300), "b.cpp": (0x500, 0x500)}
+
+
+def test_kept_copy_is_the_one_whose_tu_holds_the_original():
+    first, other = _weak("a.cpp"), _weak("b.cpp", NOP + RET)
+    first.variants.append(other)
+    first.also_in.append("c.cpp")
+    spans = {"a.cpp": (0x100, 0x200), "b.cpp": (0x300, 0x400), "c.cpp": (0x500, 0x600)}
+    assert check.kept_copy(first, 0x380, spans) is other
+    assert check.kept_copy(first, 0x150, spans) is first
+    assert check.kept_copy(first, 0x550, spans) is first  # c.cpp emits the same copy as a.cpp
+    assert check.kept_copy(first, 0x250, spans) is None  # between TUs: no evidence
+    # TUs of both copies around the original (overlapping spans): no evidence either
+    assert check.kept_copy(first, 0x380, spans | {"a.cpp": (0x100, 0x400)}) is None
+    # one copy only: nothing to choose
+    assert check.kept_copy(_weak("a.cpp"), 0x150, spans) is None
+
+
+def test_compare_copies_compares_only_the_kept_copy(monkeypatch):
+    first, other = _weak("a.cpp"), _weak("b.cpp", NOP + RET)
+    first.variants.append(other)
+    monkeypatch.setattr(check, "compare", lambda c, *a: check.Result(c is other))
+    orig = type("O", (), {"version": "sword"})()
+    spans = {"a.cpp": (0x100, 0x200), "b.cpp": (0x300, 0x400)}
+    [(c, res)] = check.compare_copies(first, _Row(0x380), orig, None, str, spans=spans)
+    assert c is other and res.ok and "a.cpp" in res.warnings[0]
+    both = check.compare_copies(first, _Row(0x250), orig, None, str, spans=spans)
+    assert [c for c, _ in both] == [first, other]
+    assert not check.merge_results(both).ok
+
+
 def test_alias_groups():
     # clang emits D1 as an alias of D2 (same section, value and size)
     syms = [("_ZN1AD2Ev", 3, 0, 4), ("_ZN1AD1Ev", 3, 0, 4), ("_ZN1AD0Ev", 4, 0, 4),
