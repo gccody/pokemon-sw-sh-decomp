@@ -2,6 +2,9 @@
 
 # Pokémon Sword & Shield Decomp
 
+[![Sword progress](https://raw.githubusercontent.com/gccody/pokemon-sw-sh-decomp/progress/sword.svg)](#progress)
+[![Shield progress](https://raw.githubusercontent.com/gccody/pokemon-sw-sh-decomp/progress/shield.svg)](#progress)
+
 A matching decompilation of **Pokémon Sword and Shield 1.0.0** (Nintendo Switch).
 Both games are built from **one source tree**, and every function is checked
 against **both** original executables.
@@ -9,6 +12,22 @@ against **both** original executables.
 > This repository contains no game code or assets. You need your own legally
 > dumped cartridges (or NSPs) and console keys. `data/original/`, `*.xci`,
 > `*.nso` and keys are gitignored, so never force-add them.
+
+## Progress
+
+[![Progress treemap: each cell is a run of neighbouring functions, sized by code and coloured by how much of it matches](https://raw.githubusercontent.com/gccody/pokemon-sw-sh-decomp/progress/treemap.svg)](https://raw.githubusercontent.com/gccody/pokemon-sw-sh-decomp/progress/treemap.svg)
+
+Percentages are bytes of code in functions that match exactly (status `O`) in
+that game. The treemap groups the executable by area
+([`data/areas.csv`](data/areas.csv)). Each cell is a run of neighbouring
+functions, sized by code: grey means nothing matches yet, and brighter green
+means more of it matches. Open the image to see each cell's address range and
+counts on hover.
+
+CI regenerates these images from `data/functions.csv` on every push to `master`
+([progress.yml](.github/workflows/progress.yml)) and publishes them to the
+[`progress`](https://github.com/gccody/pokemon-sw-sh-decomp/tree/progress) branch, along with `progress.json`. For local
+numbers, run `python tools/progress.py`.
 
 ## How the work is split
 
@@ -96,7 +115,7 @@ python tools/progress.py
 | `tools/funcs.py show <addr>` | Original assembly, with both games side by side for `diverged` |
 | `tools/funcs.py name <addr> <mangled>` | Assign a symbol name to a function |
 | `tools/check.py [name] [--diff] [--update]` | Build both games and check against both originals |
-| `tools/progress.py [--json]` | Progress per game, scope and area |
+| `tools/progress.py [--json] [--svg DIR]` | Progress per game, scope and area; `--svg` writes the README badges and treemap |
 | `tools/lint.py` | Validate the CSVs and that no game data is tracked (runs in CI) |
 | `tools/compiler_sweep.py` | Rank compilers/flags by how much known source matches the original exactly (docs/compiler.md) |
 
