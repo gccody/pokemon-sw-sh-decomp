@@ -26,10 +26,25 @@ they can't be told apart yet. The toolchain uses 7.0.1. Only an x86-64 build of
 
 `tools/compiler_sweep.py` compiles known source with each candidate compiler
 and flag set. It then counts compiled functions whose instructions equal an
-original function's instructions exactly, with address fields (B/BL, ADRP, the
-lo12 half, ADR, LDR literal) masked out on both sides. This needs no names or
-addresses. Hits from all configurations together give a name → address map, so
-every configuration also gets a similarity score over the same functions.
+original function's instructions exactly, apart from address fields. The
+compiled object's relocations say where those are: every instruction with a
+relocation (calls and tail calls, `adrp`, the lo12 half of `add`/`ldr`/`str`,
+GOT loads, ...) has its immediate field masked, and so does the original's
+instruction at the same offset, by its instruction class. Everything else,
+including struct offsets and branches inside the function, has to be
+identical. This needs no names or addresses. Hits from all configurations
+together give a name → address map, so every configuration also gets a
+similarity score over the same functions.
+
+Earlier versions masked both sides by tracking `adrp` linearly through the
+code. A lo12 load whose `adrp` sat on another path (laid out after it) was then
+compared raw and counted as a miss. The relocation-based masking fixed that.
+It changed no Lua or TLSF hit count, and it added 20 PhysX hits (see "PhysX").
+It also no longer masks branches that need no relocation, so functions that
+differ only in their internal branches stop mapping onto each other.
+Similarity scores move by up to about 0.02. The Wwise and Nintendo SDK tables
+below were measured before the change; their hit counts were re-checked
+(TLSF, zlib) and are the same.
 
 The corpus is **Lua**. It is linked into `main` (`0x7101548410`–`0x7101570900`
 in Sword, `0x71015484b0`–`0x71015709a0` in Shield, 517 functions) and was
@@ -125,8 +140,9 @@ The evidence:
   are exactly 3 adjacent, pairable `ldr` pairs whose second destination is the
   base: the three `stackinuse` loops. Both games are the same.
 - **PhysX too.** On the full PhysX corpus (clang 6.0.1, final PhysX flags,
-  `v3.4.2`, 143 TUs), `-g` raises the hits from 1,137 to 1,224 and the exact
-  matches from 922 to 1,006 of 1,012 mapped (see "PhysX"). clang 6.0.1 also
+  `v3.4.2`, 143 TUs), `-g` raises the hits from 1,151 to 1,244 and the exact
+  matches from 936 to 1,026 of 1,032 mapped. It raises the hits in every other
+  PhysX library but LowLevel too (see "PhysX"). clang 6.0.1 also
   leaves the `stackinuse` loads unpaired with `-g`.
 
 A `volatile` read of `ci->top` also matched all three (a debug use between the
@@ -258,16 +274,22 @@ used for PhysX, doesn't link libtinfo and runs on 24.04.)
 
 **Result: PhysX was *not* built with Game Freak's compiler. It is upstream
 clang 6.0.1 at `-O3` with debug info, C++ exceptions and strict aliasing on,
-builtins and RTTI off, in a release configuration, from the public `v3.4.2`
-source.**
+builtins and RTTI off, in a release configuration (`PX_PROFILE=0`,
+`PX_SUPPORT_PVD=0`), from the public `v3.4.2` source. Every PhysX library in
+the binary was built with the same flags.**
 
-Compiling 143 PhysX 3.4 TUs at `v3.4.2` this way reproduces **1,224 functions
-(1,017 KB of code) byte-for-byte**. Of the 1,012 functions mapped by consensus,
-1,006 match; the other six are mapping artifacts (see "Source revision"). With
-the global toolchain's compiler (clang 7.0.1) and the same PhysX flags, 509
-match. Earlier versions of this section measured the repository HEAD without
-`-fno-builtin` and `-g`: 920 hits, or 928 at `v3.4.2`. HEAD (`5e42a5f`) with the
-final flags gives 1,208.
+Compiling the 386 TUs of the PhysX 3.4 libraries that are in the binary (see
+"The other libraries") this way reproduces **3,893 distinct original
+functions (2,241,856 bytes, 74% of PhysX's code) byte-for-byte**. That's 7,567
+hits counting every compiled copy of an inline or template function, and all
+4,674 functions mapped by consensus match. The first corpus, 143 TUs of
+Foundation, Task, Common and GeomUtils, gives 1,244 hits (1,075 KB). With the
+global toolchain's compiler (clang 7.0.1) and the same PhysX flags, it gives
+510.
+
+The numbers here use `compiler_sweep.py`'s relocation-based masking (see
+"Method"). With the old linear masking the first corpus gave 1,224 hits, and
+before `-fno-builtin` and `-g` were found, 928.
 
 ```
 clang 6.0.1  --target=aarch64-none-elf -mcpu=cortex-a57+fp+simd+crypto+crc
@@ -281,11 +303,11 @@ clang 6.0.1  --target=aarch64-none-elf -mcpu=cortex-a57+fp+simd+crypto+crc
 
 | Setting | Global toolchain | PhysX | Evidence |
 |---|---|---|---|
-| Compiler | clang 7.0.1 | **clang 6.0.1** | Version table below: 1,224 hits against 509 for clang 7 with the same flags. |
-| Builtins | on | **`-fno-builtin`** | 952 hits with builtins on. PhysX calls libm for everything: 664 `bl fabsf` and 433 `bl sqrtf`, and not one `fabs` or `fsqrt` instruction. The rest of `main` has 228 `fabs`, 205 `fsqrt` and no `fabsf` call. `-ffreestanding` (which implies `-fno-builtin`) gives identical code. |
-| Exceptions | `-fno-exceptions` | **`-fexceptions`** (C++ exceptions on) | 953 hits without. 1,279 of the binary's 1,281 `zPLR` FDEs are in PhysX, and noexcept destructors have terminate pads. |
-| Aliasing | `-fno-strict-aliasing` | **`-fstrict-aliasing`** | 1,095 hits without. |
-| Language | `-std=c++17` | **`-std=gnu++14`** | gnu++11/14/17 give identical code. `-std=c++14`/`c++17` (non-GNU) break 16 TUs, because musl then hides `alloca`. `-std=gnu++98` drops to 1,073 hits. |
+| Compiler | clang 7.0.1 | **clang 6.0.1** | Version table below: 1,244 hits against 510 for clang 7 with the same flags. |
+| Builtins | on | **`-fno-builtin`** | 961 hits with builtins on. PhysX calls libm for everything: 664 `bl fabsf` and 433 `bl sqrtf`, and not one `fabs` or `fsqrt` instruction. The rest of `main` has 228 `fabs`, 205 `fsqrt` and no `fabsf` call. `-ffreestanding` (which implies `-fno-builtin`) gives byte-identical objects for all 384 TUs that compile. |
+| Exceptions | `-fno-exceptions` | **`-fexceptions`** (C++ exceptions on) | 966 hits without. 1,280 of the binary's 1,281 `zPLR` FDEs are in PhysX (the other one is after Lua; `tools/fingerprint.py`, both games), and noexcept destructors have terminate pads. |
+| Aliasing | `-fno-strict-aliasing` | **`-fstrict-aliasing`** | 1,109 hits without. |
+| Language | `-std=c++17` | **`-std=gnu++14`** | gnu++11/14/17 give byte-identical objects for all 384 TUs that compile, so the code can't tell them apart. gnu++14 is clang 6's default. `-std=c++14`/`c++17` (non-GNU) break 140 more TUs, because musl then hides `alloca`. `-std=gnu++98` drops to 1,090 hits. |
 | Defines | | **`__NX__`, `NDEBUG`, `PX_PHYSX_STATIC_LIB`, `PX_FOUNDATION_DLL=0`, `PX_SUPPORT_PVD=0`** | See "Build configuration". |
 
 Everything else is the same as the global flags: `-O3`, `-g`, `-fno-rtti`,
@@ -299,20 +321,23 @@ The upstream Linux makefiles (`PhysX_3.4/Source/compiler/linux64`) use
 Switch build differs in three of those, and in `-fno-builtin` and `-g`, so
 don't take flags from them.
 
-### Versions (PhysX flags, `v3.4.2`, 143 TUs, 1,821 compiled functions, 1,024 mapped)
+### Versions (PhysX flags, `v3.4.2`, 143 TUs, 1,821 compiled functions, 1,036 mapped)
+
+The first corpus: PxFoundation's 7 portable TUs, PxTask's `TaskManager.cpp`,
+Common (`Cm*`) and all of GeomUtils.
 
 | Compiler | `-O3` hits | `-O3` bytes | `-O3` avg similarity | `-O2` | `-fno-exceptions` | `-fno-strict-aliasing` | `-fbuiltin` | without `-g` |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| clang 3.9.1 | 400 | 44,516 | 0.737 | 400 | 330 | 408 | 380 | 390 |
-| clang 4.0.1 | 459 | 55,508 | 0.784 | 456 | 371 | 460 | 439 | 444 |
-| clang 5.0.1 / 5.0.2 | 746 | 162,876 | 0.900 | 705 | 603 | 718 | 678 | 726 |
-| clang 6.0.0 | 1,218 | 1,005,320 | 0.994 | 947 | 948 | 1,092 | 948 | 1,134 |
-| **clang 6.0.1** | **1,224** | **1,017,424** | **0.996** | 950 | 953 | 1,095 | 952 | 1,137 |
-| clang 7.0.0 / 7.0.1 / 7.1.0 | 509 | 91,176 | 0.841 | 476 | 476 | 494 | 479 | 492 |
-| clang 8.0.0 / 8.0.1 | 475 | 77,392 | 0.781 | 445 | 442 | 462 | 450 | 459 |
-| clang 9.0.1 | 153 | 15,324 | 0.695 | 146 | 135 | 150 | 142 | 145 |
-| clang 10.0.0 | 37 | 2,408 | 0.588 | 35 | 32 | 34 | 34 | 37 |
-| clang 11.0.0 | 36 | 2,308 | 0.564 | 34 | 31 | 33 | 33 | 36 |
+| clang 3.9.1 | 400 | 44,516 | 0.722 | 400 | 330 | 408 | 380 | 390 |
+| clang 4.0.1 | 459 | 55,508 | 0.769 | 456 | 371 | 460 | 439 | 444 |
+| clang 5.0.1 / 5.0.2 | 748 | 164,164 | 0.891 | 706 | 605 | 719 | 680 | 728 |
+| clang 6.0.0 | 1,238 | 1,063,188 | 0.994 | 952 | 961 | 1,106 | 957 | 1,148 |
+| **clang 6.0.1** | **1,244** | **1,075,292** | **0.996** | 955 | 966 | 1,109 | 961 | 1,151 |
+| clang 7.0.0 / 7.0.1 / 7.1.0 | 510 | 92,100 | 0.827 | 476 | 477 | 494 | 480 | 493 |
+| clang 8.0.0 / 8.0.1 | 475 | 77,392 | 0.768 | 445 | 442 | 462 | 450 | 459 |
+| clang 9.0.1 | 153 | 15,324 | 0.678 | 146 | 135 | 150 | 142 | 145 |
+| clang 10.0.0 | 37 | 2,408 | 0.569 | 35 | 32 | 34 | 34 | 37 |
+| clang 11.0.0 | 36 | 2,308 | 0.544 | 34 | 31 | 33 | 33 | 36 |
 
 The columns after the first three give hits with that one change. clang 10
 and 11 reject 19 and 20 of the TUs, so their rows are lower bounds, but
@@ -323,32 +348,101 @@ they're far behind even on the TUs they do compile. Every function that clang
 `ConvexMeshContactGeneration::generateContacts`. A vendor build based on a
 later 6.0 branch can't be ruled out (there is no upstream 6.0.2).
 
-### Flags (clang 6.0.1 `-O3`, `v3.4.2`, each row changes one thing, 1,012 mapped)
+### Flags (clang 6.0.1 `-O3`, `v3.4.2`, 143 TUs, each row changes one thing, 1,032 mapped)
 
 | Variant | Hits | Bytes | Exact of mapped | What it shows |
 |---|---:|---:|---:|---|
-| **final** | **1,224** | **1,017,424** | **1,006** | |
-| `-fbuiltin` | 952 | 617,040 | 758 | `PxAbs`/`PxSqrt` become `fabs`/`fsqrt` instructions, and `memset`/`memcpy` idioms are formed (see "Source revision" for a case where that changes inlining). |
-| without `-g` (`-g0`) | 1,137 | 881,360 | 922 | Debug instructions change scheduling and register allocation (see "Debug info"). `-gline-tables-only` gives the same as `-g0`. |
-| `-fno-exceptions` | 953 | 746,600 | 787 | Cleanup landing pads are part of the original code. |
-| `-fno-cxx-exceptions` | 1,092 | 946,896 | 908 | Keeps cleanups but drops noexcept enforcement. The original calls a shared terminate helper (`0x7101750e90`) after noexcept destructors (e.g. the `Gu::HeightField` D0 at `0x710014f2f0`), so C++ exceptions are fully on. |
-| `-fno-strict-aliasing` | 1,095 | 823,696 | 899 | |
-| `-O2` | 950 | 506,564 | 769 | |
-| `-Os` | 657 | 162,752 | 538 | |
-| `-mimplicit-float` | 760 | 335,460 | 611 | GPR-only copies, the same as game code. |
+| **final** | **1,244** | **1,075,292** | **1,026** | |
+| `-fbuiltin` | 961 | 632,536 | 764 | `PxAbs`/`PxSqrt` become `fabs`/`fsqrt` instructions, and `memset`/`memcpy` idioms are formed (see "Source revision" for a case where that changes inlining). |
+| without `-g` (`-g0`) | 1,151 | 915,224 | 936 | Debug instructions change scheduling and register allocation (see "Debug info"). `-gline-tables-only` gives the same as `-g0`. |
+| `-fno-exceptions` | 966 | 774,652 | 800 | Cleanup landing pads are part of the original code. |
+| `-fno-cxx-exceptions` | 1,109 | 991,524 | 925 | Keeps cleanups but drops noexcept enforcement. The original calls a shared terminate helper (`0x7101750e90`) after noexcept destructors (e.g. the `Gu::HeightField` D0 at `0x710014f2f0`), so C++ exceptions are fully on. |
+| `-fno-strict-aliasing` | 1,109 | 858,452 | 913 | |
+| `-O2` | 955 | 513,580 | 774 | |
+| `-Os` | 659 | 166,148 | 540 | |
+| `-mimplicit-float` | 767 | 350,400 | 618 | GPR-only copies, the same as game code. |
 | `-mcpu=generic` | 135 | 6,040 | 70 | Cortex-A57 scheduling model. |
-| `-fomit-frame-pointer` | 453 | 156,652 | 366 | |
-| `-fno-pic` | 971 | 724,712 | 817 | |
-| `-fvisibility=hidden` | 1,015 | 835,604 | 861 | Globals go through the GOT, unlike in the Linux build. |
-| `-DPX_CHECKED=1` | 1,148 | 947,668 | 940 | Release, not checked. |
-| `-std=gnu++98` | 1,073 | 951,908 | 896 | |
+| `-fomit-frame-pointer` | 459 | 172,772 | 372 | |
+| `-fno-pic` | 987 | 768,068 | 833 | |
+| `-fvisibility=hidden` | 1,032 | 881,252 | 878 | Globals go through the GOT, unlike in the Linux build. |
+| `-DPX_CHECKED=1` | 1,164 | 991,764 | 956 | Release, not checked. |
+| `-std=gnu++98` | 1,090 | 996,536 | 913 | |
 | `-ffast-math` | 523 | 107,472 | 357 | |
-| `-ffreestanding`, `-frtti`, `-fno-unwind-tables`, `-fno-math-errno`, `-DPX_PROFILE=1`, `-DPX_SUPPORT_PVD=1`, `-std=gnu++11`/`gnu++17` | 1,224 | 1,017,424 | 1,006 | Not distinguishable with this corpus. RTTI is off because no PhysX class has a typeinfo name and PhysX vtables have no typeinfo slot. With `-g` the CFI is emitted anyway, so `-funwind-tables` no longer shows in the code; the binary's `.eh_frame` (an FDE for every function) is the evidence for it. `-fno-math-errno` changes nothing once builtins are off. |
+| `-ffreestanding`, `-frtti`, `-fno-unwind-tables`, `-fno-math-errno`, `-DPX_PROFILE=1`, `-DPX_SUPPORT_PVD=1`, `-std=gnu++11`/`gnu++17` | 1,244 | 1,075,292 | 1,026 | Not distinguishable with this corpus (`PX_PROFILE` and `PX_SUPPORT_PVD` are, with the other libraries: see below). RTTI is off because no PhysX class has a typeinfo name and PhysX vtables have no typeinfo slot. With `-g` the CFI is emitted anyway, so `-funwind-tables` no longer shows in the code; the binary's `.eh_frame` (an FDE for every function) is the evidence for it. `-fno-math-errno` changes nothing once builtins are off. |
 
 The `-std` and `PX_SUPPORT_PVD` rows are real tests now. Before
 `compiler_sweep.py`'s flag order was fixed, common flags after `--` overrode a
 conflicting variant, so runs that passed `-std=gnu++14` or `-DPX_SUPPORT_PVD=0`
 there didn't test those variants at all.
+
+### The other libraries
+
+Every PhysX 3.4 library was swept on its own, with the source list and include
+paths of its upstream `linux64` makefile (release configuration), the final
+flags, and the whole PhysX range (`0x7100010a90`-`0x71003035e0`). One variant per
+column (hits). The first row is the 143-TU corpus above:
+
+| Library | TUs | Compiled | **Hits** | Exact / mapped | `-O2` | `-fno-exceptions` | `-fno-strict-aliasing` | `-fbuiltin` | `-g0` | `PX_PROFILE=1` | `PX_SUPPORT_PVD=1` | `gnu++98` | Distinct originals only it hits |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Foundation, Task, Common, GeomUtils | 143 | 1,821 | **1,244** | 1,026 / 1,032 | 955 | 966 | 1,109 | 961 | 1,151 | 1,244 | 1,244 | 1,090 | ≥ 727 |
+| PhysX (core: `Np*`, `Scb*`, cloth/particle API, ImmediateMode, MetaData) | 42 | 3,040 | **1,655** | 990 / 998 | 1,164 | 1,229 | 1,452 | 1,522 | 1,651 | 1,613 | 1,345 | 1,270 | 857 |
+| SimulationController (`Sc*`) | 43 | 1,681 | **1,286** | 881 / 886 | 924 | 954 | 1,020 | 1,118 | 1,272 | 1,242 | 1,286 | 969 | 766 |
+| LowLevel (`Px*`, `Pxc*`, `Pxv*`) | 21 | 487 | **322** | 219 / 220 | 241 | 238 | 234 | 258 | 322 | 311 | 322 | 245 | 175 |
+| LowLevelAABB (`Bp*`) | 7 | 325 | **220** | 157 / 159 | 164 | 145 | 171 | 177 | 217 | 216 | 220 | 146 | 117 |
+| LowLevelDynamics (`Dy*`) | 24 | 324 | **236** | 160 / 160 | 178 | 191 | 189 | 189 | 227 | 229 | 236 | 197 | 150 |
+| LowLevelCloth (`Sw*`, scalar/NEON) | 13 | 514 | **330** | 268 / 268 | 251 | 281 | 293 | 307 | 323 | 313 | 330 | 289 | 239 |
+| LowLevelParticles (`Pt*`) | 16 | 291 | **207** | 168 / 169 | 146 | 136 | 156 | 164 | 195 | 207 | 207 | 146 | 121 |
+| SceneQuery (`Sq*`) | 13 | 335 | **226** | 176 / 178 | 159 | 160 | 183 | 189 | 224 | 213 | 226 | 160 | 150 |
+| PhysXExtensions (joints, CPU dispatcher, binary and RepX serialization) | 54 | 2,811 | **1,828** | 607 / 635 | 830 | 1,631 | 1,067 | 1,528 | 1,824 | 1,824 | 1,822 | 1,620 | 511 |
+| PhysXVehicle | 18 | 1,244 | 203 | 20 / 24 | 34 | 203 | 109 | 173 | 203 | 203 | 203 | 203 | **0** |
+| PhysXCharacterKinematic | 10 | 293 | 34 | 10 / 12 | 23 | 29 | 25 | 33 | 34 | 34 | 34 | 24 | **0** |
+| PhysXCooking | 19 | 348 | 59 | 17 / 20 | 40 | 48 | 52 | 57 | 59 | 59 | 59 | 45 | **0** |
+| PxPvdSDK | 11 | 776 | 86 | 26 / 32 | 63 | 56 | 73 | 79 | 86 | 86 | 86 | 42 | **0** |
+| PsFastXml | 1 | 9 | 0 | 0 / 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** |
+
+"Distinct originals only it hits" comes from one combined run over all 445 TUs
+(counting hits at a single address only): the original functions that this
+library's TUs, and no other library's, reproduce. For the first row it's the
+sum over its four libraries. `gnu++11` and `gnu++17` equal the final column in
+every row. Every final-config miss in the table is the same mapping artifact
+as in "Source revision": a deleting destructor that a `-O2` hit mapped onto the
+shared D0 helper at `0x7100021330` or `0x71000415d0` (60 vs 64 or 56 vs 60
+bytes).
+
+What this settles:
+
+- **Every library in the binary has the same flags.** In every row that the
+  binary contains, the final configuration scores best, and `-O2`,
+  `-fno-exceptions`, `-fno-strict-aliasing`, `-fbuiltin` and `gnu++98` each
+  lose hits. `-g0` loses hits in every library except LowLevel (no difference
+  there).
+- **`PX_PROFILE=0`.** `PX_PROFILE=1` turns on `PX_PROFILE_ZONE`, and loses hits
+  in every library with profile zones: 1,655 → 1,613 in the core, 1,286 →
+  1,242 in SimulationController, 7,567 → 7,425 over the 386 TUs.
+- **`PX_SUPPORT_PVD=0`.** It only matters in the core (and slightly in
+  Extensions), where `PX_SUPPORT_PVD=1` drops the hits from 1,655 to 1,345
+  (7,567 → 7,251 over the 386 TUs).
+- **`-std` can't be settled from code.** gnu++11, gnu++14 and gnu++17 give
+  byte-identical objects for all 384 TUs that compile (every function
+  compared), as do `-fno-builtin` and `-ffreestanding`.
+- **Cloth and particles are in the binary**, both the low-level solvers and
+  the core and SimulationController front-ends (`NpCloth.cpp`, `SwSolver.cpp`,
+  `PtContextCpu.cpp`, `ScClothSim.cpp` in the `__FILE__` strings, 239 and 121
+  exclusive hits). So is PhysXExtensions: joints, `DefaultCpuDispatcher`,
+  binary deserialization and RepX.
+- **Vehicle, character controller, cooking, the PVD SDK and FastXml are not.**
+  Their few hits are header templates (`Ps::Array`, `Cm::RenderBuffer`, ...)
+  that other libraries reproduce too: not one original function is hit only
+  by them. The binary has no `PxVehicle`, `PxController`, `PxCooking`,
+  `QuickHull`, `PxPvd` or `FastXml` strings, and none of their source paths.
+
+Of the 8,247 original functions in the PhysX range, 4,354 (797 KB) aren't
+reproduced. 1,840 of them are under 16 bytes, which the sweep never counts
+(they match too many places), and 2,380 are under 64 bytes. The largest
+unreproduced stretches are RepX serialization template instances
+(`Sn::RepXVisitorReader`/`Writer`, `readAllProperties`, `PvdPropertyFilter`,
+around `0x7100243a80`-`0x7100279b5c`) and a few large `Scb`/`Np` functions.
+They weren't investigated further.
 
 ### Build configuration
 
@@ -358,9 +452,12 @@ PhysX ships debug, checked, profile and release configurations. The binary is a
 - No `PX_CHECK_*` messages (such as `PxScene::addArticulation: empty
   articulations ...`), so `PX_CHECKED=0`.
 - No `PX_PROFILE_ZONE` event names (`API.addActor`, `Sim.solveQueueTasks`), so
-  `PX_PROFILE=0` (and `PX_DEBUG=0`).
+  `PX_PROFILE=0` (and `PX_DEBUG=0`). The code agrees: `PX_PROFILE=1` loses hits
+  in the core, SimulationController and most other libraries (see "The other
+  libraries").
 - No `PX_ASSERT` expression strings, so asserts are compiled out (`NDEBUG`).
 - No `PxPvd*` strings, so `PX_SUPPORT_PVD=0`, as in the upstream release config.
+  The core's code agrees (1,655 hits, 1,345 with `PX_SUPPORT_PVD=1`).
 - Unconditional errors (`PxScene::addBroadPhaseRegion(): region bounds are
   empty...`) and the `__FILE__` paths of `PX_ALLOC` are present. Allocation-name
   getters return `<allocation names disabled>` or `__PRETTY_FUNCTION__`.
@@ -378,31 +475,33 @@ which upstream clang doesn't define.
 
 **The binary's PhysX is the public `v3.4.2` tag (`b99b378`, "patch release
 @24214033"). The corpus shows no difference from it: every mapped function
-matches, apart from the mapping artifacts listed below.**
+matches, apart from the mapping artifacts listed below. The same holds for the
+other libraries (see "The other libraries").**
 
 Every public revision since 3.4.1 that touches the corpus was swept with the
-final configuration (clang 6.0.1, `-O3`, PhysX flags):
+final configuration (clang 6.0.1, `-O3`, PhysX flags) on the 143-TU corpus:
 
 | Revision | Perforce CL | Hits | Bytes |
 |---|---|---:|---:|
-| `d1c812f` (`v3.4.1`) | 22845541 | 1,143 | 935,012 |
-| `3cc1861` (3.4.1 update) | 23131702 | 1,196 | 980,352 |
-| `57b71f8` (3.4.1 update) | 23173160 | 1,197 | 980,936 |
-| `983c93a` | 23307153 | 1,197 | 980,936 |
-| `b6db9a5` | 23472123 | 1,203 | 985,204 |
-| `52dae55` | 23576764 | 1,210 | 1,000,524 |
-| `238605d` | 23879214 | 1,219 | 1,007,956 |
-| **`b99b378` (`v3.4.2`)** | **24214033** | **1,224** | **1,017,424** |
-| `3f9977d` | 24698370 | 1,214 | 994,480 |
-| `ad993f2` | 24990349 | 1,212 | 994,020 |
-| `78cab22` | 25256367 | 1,210 | 993,988 |
-| `326e240` (= HEAD `5e42a5f` for these files) | 25354359 | 1,208 | 991,100 |
+| `d1c812f` (`v3.4.1`) | 22845541 | 1,162 | 987,656 |
+| `3cc1861` (3.4.1 update) | 23131702 | 1,215 | 1,032,996 |
+| `57b71f8` (3.4.1 update) | 23173160 | 1,217 | 1,038,804 |
+| `983c93a` | 23307153 | 1,217 | 1,038,804 |
+| `b6db9a5` | 23472123 | 1,223 | 1,043,072 |
+| `52dae55` | 23576764 | 1,230 | 1,058,392 |
+| `238605d` | 23879214 | 1,239 | 1,065,824 |
+| **`b99b378` (`v3.4.2`)** | **24214033** | **1,244** | **1,075,292** |
+| `3f9977d` | 24698370 | 1,223 | 1,048,260 |
+| `ad993f2` | 24990349 | 1,221 | 1,047,800 |
+| `78cab22` | 25256367 | 1,219 | 1,047,768 |
+| `326e240` (= HEAD `5e42a5f` for these files) | 25354359 | 1,217 | 1,044,880 |
 
 `5f95687` (@23933511) doesn't touch the corpus. Of the two 3.4.1 updates,
 `57b71f8` changes only `GuCCDSweepConvexMesh.cpp` against `3cc1861` (`matRot`
-becomes `PxMat33(PxIdentity)`, one more hit). `983c93a` changes only two public
+becomes `PxMat33(PxIdentity)`, two more hits). `983c93a` changes only two public
 headers against `57b71f8` and compiles the same. Without `-fno-builtin` and
-`-g` the ranking is the same (`v3.4.2` 928, HEAD 920).
+`-g`, or with the old masking, the ranking is the same (`v3.4.2` 928 and 1,224,
+HEAD 920 and 1,208).
 
 Compared by original address, every revision's hits are a subset of the
 `v3.4.2` hits:
@@ -411,12 +510,18 @@ Compared by original address, every revision's hits are a subset of the
   `PCMContactConvexHeightfield`, `PCMConvexVsMeshContactGeneration::
   generateTriangleFullContactManifold` and `generatePolyDataContactManifold`,
   and the `processHit` of its mesh callback).
-- Over `3f9977d`: `epaPenetration`, `EPA::PenetrationDepth`, `Facet::silhouette`,
-  both `RayRTreeCallback<0, true>::processResults`, `raycast_heightField` and
-  `HFTraceSegmentCallback::faceHit`.
-- Over HEAD: those seven, plus `barycentricCoordinates`, `BV4Tree(PxEMPTY)`,
+- Over `3f9977d` (15): `epaPenetration`, `EPA::PenetrationDepth`,
+  `Facet::silhouette`, both `RayRTreeCallback<0, true>::processResults`,
+  `raycast_heightField`, `HFTraceSegmentCallback::faceHit`,
+  `HeightFieldTraceUtil::traceSegment<TriggerTraceSegmentCallback>`, and the
+  two `Gu::HeightField` constructors, its destructors (D1, D0 and their
+  thunks) and `HeightField::createObject`.
+- Over HEAD (20): those 15, plus `barycentricCoordinates`, `BV4Tree(PxEMPTY)`,
   `HeightField::getTriangleAdjacencyIndices`,
   `SweepConvexMeshHitCallback::processHit` and `ConvexTraceSegmentReport::onEvent`.
+
+(Distinct original addresses with a unique hit, re-measured with the
+relocation-based masking. No revision hits an address that `v3.4.2` doesn't.)
 
 Revisions before 3.4.1 are ruled out by path. They keep the Switch platform
 files under `nx/` (`foundation/nx/PxNXIntrinsics.h`), while the binary's
@@ -444,11 +549,11 @@ live elsewhere:
   `contactHullHeightfield2`, missed before.
 - `-g` then fixes the last floating-point register-allocation and scheduling
   differences, in the constructor and `contactHullMesh2`.
-- `triangleConvexTest` (`0x7100129f50`, 5,612 bytes) is the only function in
-  the TU that the sweep doesn't count. It differs in two `ldr s15, [xN, #lo12]`
-  whose `adrp` is on another path. The sweep tracks `adrp` linearly, so it
-  compares those two lo12 fields raw. That is a masking limitation, not a code
-  difference.
+- `triangleConvexTest` (`0x7100129f50`, 5,612 bytes) matches too. It has two
+  `ldr s15, [xN, #lo12]` whose `adrp` is on another path. The sweep used to
+  track `adrp` linearly, compared those two lo12 fields raw and didn't count
+  it. With the relocation-based masking it's a hit, like 19 other functions
+  that missed for the same reason.
 - The two functions before the TU that had "no counterpart" (`0x7100127250`,
   1,292 bytes, and `0x7100127760`, 1,340 bytes) are `PxcTestFacesSepAxesBackface`
   and `PxcFindSeparatingAxes` from the preceding TU, `GuContactConvexConvex.cpp`.
@@ -478,10 +583,10 @@ These results also corrected `data/areas.csv`. The boundaries are identical in S
 - **PhysX is `0x7100010a90`-`0x71003035e0`.** It ends with PxFoundation
   (`PsFoundation.cpp`: "Foundation object exists already..."), the Switch
   mutex and PxTask (`TaskManager.cpp`: "PxTask dispatched twice"). Its vtables
-  in `.data.rel.ro` run contiguously up to the TaskManager ones. Every unique
-  sweep hit lies in `0x7100021330`-`0x71003032f0` (with the final flags,
-  `0x71000ae470`-`0x71003032f0`). The first `zPLR` FDE is at
-  `0x7100010f10`.
+  in `.data.rel.ro` run contiguously up to the TaskManager ones. With all
+  libraries swept, the 4,743 mapped functions span exactly
+  `0x7100010a90` (`PxvRegisterHeightFields`) to `0x71003032f0`, at the same
+  addresses in both games. The first `zPLR` FDE is at `0x7100010f10`.
 - **It starts with PhysX LowLevel's contact-method glue**
   (`0x7100010a90`-`0x7100010e30`, the same in both games):
   - `px_globals.cpp`: `PxvRegisterHeightFields` (`0x7100010a90`) stores 8
@@ -556,9 +661,10 @@ curl -LO https://releases.llvm.org/7.0.1/libcxx-7.0.1.src.tar.xz
 tar xJf libcxx-7.0.1.src.tar.xz libcxx-7.0.1.src/include && mv libcxx-7.0.1.src libcxx-7.0.1
 ```
 
-The NX platform headers aren't in the public repository. Three stand-ins,
-derived from the Unix versions, are enough for these TUs. The intrinsics are
-the same inline math and builtins.
+The NX platform headers aren't in the public repository. Four stand-ins,
+three derived from the Unix versions, are enough for every library. The
+intrinsics are the same inline math and builtins. `NpMiddlewareInfo.h` is only
+needed by the core's `NpPhysics.cpp`.
 
 ```sh
 P=PhysX-3.4/PxShared; S=physx-nx-shim
@@ -566,6 +672,7 @@ mkdir -p $S/foundation/switch $S/switch
 sed '/#error/d' $P/include/foundation/unix/PxUnixIntrinsics.h > $S/foundation/switch/PxSwitchIntrinsics.h
 sed '/#error/d' $P/src/foundation/include/unix/PsUnixIntrinsics.h > $S/switch/PsSwitchIntrinsics.h
 printf '#include <stdlib.h>\nnamespace { inline void abort(const char*) { ::abort(); } }\n' > $S/switch/PsSwitchAbort.h
+printf '#pragma once\nvoid NpSetMiddlewareInfo();\n' > $S/switch/NpMiddlewareInfo.h
 cd ../../..
 ```
 
@@ -624,36 +731,100 @@ Notes for reproducing:
   through its base flags, as it does `-g`. A hand build needs `-g` too, or the
   code differs (see the flag table).
 - `compiler_sweep.py` leaves its objects in `sweep_*` directories under the
-  system temp directory (about 3 MB per full configuration). Delete them when
-  you're done.
+  system temp directory (about 3 MB per configuration of the 143-TU corpus,
+  25 MB for all libraries). Point `TMP`/`TMPDIR` at a directory of your own and
+  delete them when you're done.
+
+#### The other libraries
+
+Each library's sources, include paths and defines come from its upstream
+makefile, `PhysX_3.4/Source/compiler/linux64/Makefile.<Library>.mk`. This
+script turns those into `compiler_sweep.py` arguments, one per line, for an
+`@FILE` response file (the full list doesn't fit on a Windows command line).
+It skips GPU, Windows, Linux-device and SSE2/AVX sources, and the makefile's
+DLL-export and PVD defines:
+
+```python
+# physx_args.py: python physx_args.py <PhysX-3.4 dir> PhysX[+SceneQuery+...] > lib.rsp
+import os, re, sys
+from pathlib import Path
+
+X, libs = Path(sys.argv[1]), sys.argv[2].split("+")
+mk = X / "PhysX_3.4/Source/compiler/linux64"
+skip = re.compile(r"/(gpu|windows|linux|sse2|avx|PhysXGpu)/|PhysXIndicator|PxGpu|NpPhysicsGpu")
+C = Path("toolchain/candidates")
+inc = [C / "src/physx-nx-shim", X / "PxShared/src/foundation/include/unix", X / "PxShared/src/task/include"]
+srcs, defs = [], []
+for lib in libs:
+    text = (mk / f"Makefile.{lib}.mk").read_text()
+    for kind, v in re.findall(rf"^{lib}_(release_hpaths|release_defines|cppfiles)\s*\+=\s*(\S+)", text, re.M):
+        p = Path(os.path.normpath(mk / v))
+        if kind == "release_hpaths" and p.exists() and p not in inc:
+            inc.append(p)
+        elif kind == "cppfiles" and p.exists() and not skip.search(v):
+            srcs.append(p)
+        elif kind == "release_defines" and not re.search(r"EXPORTS|_DLL|PVD|NDEBUG|STATIC_LIB", v):
+            defs.append(v)
+args = [a for s in srcs for a in ("--src", str(s))]
+args += ["--", "-O3", "-fexceptions", "-fstrict-aliasing", "-fno-rtti", "-fno-builtin", "-std=gnu++14",
+         "-nostdinc++", "-isystem", str(C / "src/libcxx-7.0.1/include"), "-isystem", str(C / "sysroot/include"),
+         "-D__NX__", "-DNDEBUG", "-DPX_PHYSX_STATIC_LIB", "-DPX_FOUNDATION_DLL=0", "-DPX_SUPPORT_PVD=0",
+         "-D_LIBCPP_HAS_MUSL_LIBC", "-D_LIBCPP_HAS_THREAD_API_PTHREAD", *[f"-D{d}" for d in sorted(set(defs))]]
+args += [a for p in inc for a in ("-I", str(p))]
+print("\n".join(args))
+```
+
+Then, for one library and the variants of the table (the response file goes
+last, because it ends with `--` and the common flags):
+
+```sh
+X=toolchain/candidates/src/PhysX-3.4
+python physx_args.py $X SimulationController > lib.rsp
+python tools/compiler_sweep.py --compiler toolchain/candidates/clang-6.0.1 \
+    --range 0x7100010a90-0x71003035e0 \
+    --variant "O3=" --variant "O2=-O2" --variant "noeh=-fno-exceptions" \
+    --variant "nostrict=-fno-strict-aliasing" --variant "builtin=-fbuiltin" --variant "g0=-g0" \
+    --variant "profile=-DPX_PROFILE=1" --variant "pvd=-UPX_SUPPORT_PVD -DPX_SUPPORT_PVD=1" \
+    --variant "std98=-std=gnu++98" --variant "std11=-std=gnu++11" --variant "std17=-std=gnu++17" \
+    @lib.rsp
+```
+
+The libraries are `PhysX`, `SimulationController`, `LowLevel`, `LowLevelAABB`,
+`LowLevelDynamics`, `LowLevelCloth`, `LowLevelParticles`, `SceneQuery`,
+`PhysXExtensions`, `PhysXVehicle`, `PhysXCharacterKinematic`, `PhysXCooking`,
+`PxPvdSDK` and `PsFastXml`, plus `PxFoundation`, `PxTask` and `PhysXCommon`
+for the whole set. The 12 libraries in the binary together
+(`PxFoundation+PxTask+PhysXCommon+PhysX+SimulationController+LowLevel+LowLevelAABB+LowLevelDynamics+LowLevelCloth+LowLevelParticles+SceneQuery+PhysXExtensions`,
+386 TUs) give the headline numbers. Two of those TUs, Foundation's
+`PsUnixThread.cpp` and `PsUnixTime.cpp`, don't compile with the musl headers;
+the binary has the Switch versions instead. A configuration takes 1 to 3
+minutes for a big library.
 
 ### What's left open
 
-- **The other PhysX libraries.** Only Foundation, Task, Common and GeomUtils
-  were compiled. The core (`Np*`, `Sc*`, `Scb*`), LowLevel*, SceneQuery,
-  extensions, cooking and cloth are public too and need only their own include
-  paths, so they can be swept the same way. The flags should carry over,
-  because a single CI build produced the whole library. What can't be
-  reproduced from public material are the NX platform sources and headers
-  (`PsSwitchMutex.cpp`, `PsSwitchPrintString.cpp`, `switch/NpMiddlewareInfo.h`,
-  the real `Px`/`PsSwitchIntrinsics.h`). NVIDIA ships those only to Switch
-  licensees, so those functions have to be decompiled like game code.
-- **`PX_PROFILE`, `PX_SUPPORT_PVD` and `-std`.** Now properly tested (see the
-  flag table): codegen is identical in this corpus, because GeomUtils, Common
-  and Foundation don't use them. The strings say release without PVD, and
-  `gnu++14` is clang 6's default. `PX_SUPPORT_PVD` and `PX_PROFILE` guard code
-  in the core (`NpScene`, `ScScene`), so sweeping the core settles them.
+- **The NX platform code.** Every public library is swept now (see "The
+  other libraries"). What can't be reproduced from public material are the NX
+  platform sources and headers (`PsSwitchMutex.cpp`, `PsSwitchPrintString.cpp`,
+  `NpSetMiddlewareInfo`, the real `Px`/`PsSwitchIntrinsics.h`). NVIDIA ships
+  those only to Switch licensees, so those functions have to be decompiled
+  like game code.
+- **`-std`.** Narrowed but not settled: gnu++11, gnu++14 and gnu++17 give
+  byte-identical objects for every library, and gnu++98 and the non-GNU modes
+  are ruled out. The docs use clang 6's default, `gnu++14`. For decompiling
+  PhysX the choice doesn't matter. (`PX_PROFILE` and `PX_SUPPORT_PVD`, open
+  before, are settled: both 0.)
 - **`-fno-builtin` or `-ffreestanding`.** They produce identical objects for
-  the whole corpus, and nothing in the binary tells them apart
+  every library, and nothing in the binary tells them apart
   (`-ffreestanding` only adds `__STDC_HOSTED__=0`, which this code doesn't
   test). The docs use `-fno-builtin`. For decompiling PhysX, either works.
+- **The 26% of PhysX's code that the sweep doesn't reproduce** (4,354
+  functions, 797 KB). 1,840 are under the sweep's 16-byte minimum. Others are
+  template instances whose copy the linker kept from another TU. The largest
+  stretches are Extensions' RepX serialization templates. They haven't been
+  looked at one by one, so a source difference there can't be ruled out yet.
 - **clang 6.0.1 or a later 6.0 vendor build.** Six functions separate 6.0.1
   from 6.0.0, none separate it from anything later. There is no later public
   6.0 release to test.
-- **The sweep undercounts a little.** Its `adrp` tracking is linear, so a lo12
-  load reached from an `adrp` on another path is compared raw
-  (`triangleConvexTest` is one such case). `tools/check.py` resolves
-  relocations and doesn't have this limitation.
 - **Wwise** is clang 6.0.x too, but with the game's aliasing and exception
   flags (see below).
 
@@ -1074,40 +1245,20 @@ Shield: `--game shield --range 0x71015709a0-0x71017e8f8c`. For the flag table,
 use `--compiler $C/clang-7.0.1` and variants such as `"strict=-O3
 -fstrict-aliasing"`.
 
-`compiler_sweep.py` only reads `main`. To sweep zlib against the `sdk` NSO,
-replace its module loader from a small wrapper (run from the repository
-root):
-
-```python
-# sweep_module.py: python sweep_module.py sdk <compiler_sweep.py arguments>
-import sys
-sys.path.insert(0, "tools")
-import common, compiler_sweep
-from nx.ehframe import functions_from_eh_frame
-from nx.nso import Nso
-
-module = sys.argv.pop(1)
-
-def load(game):
-    nso = Nso((common.ORIGINAL / game / module).read_bytes())
-    img = nso.image()
-    funcs = functions_from_eh_frame(img, nso.mod0.eh_frame_hdr_start)
-    return {"image": img, "functions": sorted(funcs + common._fde_less_functions(img, funcs))}
-
-compiler_sweep.load_module = load
-sys.exit(compiler_sweep.main())
-```
+zlib is in the `sdk` NSO, so pass `--module sdk` (the default is `main`):
 
 ```sh
 Z=toolchain/candidates/src/zlib-1.2.11
-python sweep_module.py sdk --compiler 'toolchain/candidates/clang-*' \
+python tools/compiler_sweep.py --module sdk --compiler 'toolchain/candidates/clang-*' \
     --variant O3=-O3 --variant O2=-O2 --variant Os=-Os --variant O3g0="-O3 -g0" \
     --src "$Z/[a-di-z]*.c" --src "$Z/gz*.c" \
     -- -isystem toolchain/candidates/sysroot/include
 ```
 
 Without `--range` it searches the whole NSO (26,669 functions). Add `--game
-shield` for Shield. Each libcurl configuration takes about 15 seconds, each
+shield` for Shield. `data/functions.csv` only covers `main`, so with
+`--module` use `--map-out` without `--range` (both games are then searched
+whole). Each libcurl configuration takes about 15 seconds, each
 zlib one about 3.
 
 ### What's left open
@@ -1120,7 +1271,6 @@ zlib one about 3.
 - **The rest of libcurl.** Needs Nintendo's configuration (protocols, TLS and
   resolver backends) to compile the same functions.
 - **`-g`.** Neither corpus distinguishes it.
-- **A `--module` option for `compiler_sweep.py`** would replace the wrapper.
 
 ## Codegen fingerprints
 
