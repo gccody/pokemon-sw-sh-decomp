@@ -128,7 +128,8 @@ The evidence:
 
 - **`check.py`, all TUs built with `-g`:** the three functions match in both
   games, and nothing else changes (515 matching, 6 not matching: the
-  `loadlib.c` functions Game Freak changed).
+  `loadlib.c` functions Game Freak changed, matched later by reconstructing
+  its `readable()` change; see "What's left open").
 - **Sweep (Lua 5.3.4, 473 mapped):** clang 7.0.0, 7.0.1 and 7.1.0 with `-g` give
   493 hits and match all 473 mapped functions (avg similarity 1.0000), against
   490 and 470 without it. `-gline-tables-only` emits no `DBG_VALUE`s and changes
@@ -176,6 +177,90 @@ pairs, 3,720 copies, 74,530 FDEs, 1,250 `zPLR`).
 
 The four functions checked by `tools/check.py` still match in both games with
 clang 7.0.1.
+
+### Traps
+
+**Result: the traps are where upstream clang puts them. Only their encoding
+differs: Nintendo's toolchain writes the word `0xe7ffdefe` where upstream
+clang writes `brk #1` (`0xd4200020`). No clang option changes the encoding, so
+the build rewrites it in every object (`tools/fix_traps.py`, run as the
+compiler launcher by `cmake/TrapEncoding.cmake`).** With that, functions
+with a trap match in both games, for example the deleting destructors
+`0x710067b7b0` and `0x710067b7d0`. Compiled without the rewrite, they
+fail on that one word.
+
+**The encoding.** Every trap in every module Nintendo's toolchain built is
+`0xe7ffdefe`, the A32 encoding LLVM's ARM backend uses for `trap` (in A64 it's
+an unallocated encoding, so it raises an undefined-instruction exception).
+None of the modules has a `brk` with any immediate. The counts are the same
+in both games:
+
+| Module | Built by | `0xe7ffdefe` | `brk` |
+|---|---|---:|---:|
+| `main` | Game Freak (clang 7.0.1), PhysX (clang 6.0.1), Wwise, YEBIS, middleware | 650 | 0 |
+| `sdk` | Nintendo | 264 | 0 |
+| `subsdk0` | Nintendo | 309 | 0 |
+| `subsdk1` | Nintendo | 1 | 0 |
+| `rtld` | Nintendo | 0 | 0 |
+
+Code built with two clang versions (7.0.1 for Game Freak's code, 6.0.1 for
+PhysX) has the same word, and so do the SDK modules, which Nintendo builds
+and links separately from `main`. So it comes from the NX toolchain, not from any one
+library's source or build. Upstream clang 6.0.1 and 7.0.1 both lower
+`llvm.trap` to `brk #1` for `aarch64-none-elf`, and their `-mllvm --help-hidden`
+has no option for the encoding. In LLVM 7, `llvm.debugtrap` is `brk #1` too,
+so the originals can't show whether the toolchain also rewrites debug traps
+(the build rewrites every `brk #1`). No public source documents a vendor
+patch, and none mentions `0xe7ffdefe` on AArch64. Whether Nintendo's clang
+emits it directly (a patched AArch64 trap lowering) or an assembler or linker
+step rewrites it can't be told from the binary, and it makes no difference to
+the objects. Confidence: high that it's the toolchain, unknown which stage.
+
+**The placement.** The traps are `llvm.trap` calls that upstream clang and
+LLVM create by themselves, without any option. By context, in both games:
+
+| Context | Count | Game code | What it is |
+|---|---:|---:|---|
+| The whole function is one trap word, referenced from a vtable | 332 | 158 | Deleting destructor (D0) of an abstract class. Clang emits it as `llvm.trap` because it can never be called. The vtable slot before it is the D1. |
+| Last word of a function, after a call | 193 | 186 | Code on a path where a pointer is known to be null: the call (often with `x0 = 0`, e.g. a constructor or `memset`) is kept, and the store through the null pointer after it becomes a trap. |
+| Last word of a function, after anything else | 113 | 100 | The same for a null path that is branched to (`cbz x, <trap>`), typically a pointer converted to a base class at a non-zero offset (null check) and then used for a virtual call. |
+| Inside a function | 12 | 3 | The same, laid out mid-function. |
+| **Total** | **650** | **447** | |
+
+LLVM turns a store through a null pointer into `llvm.trap` (SimplifyCFG,
+`changeToUnreachable` with `UseLLVMTrap`), and InstCombine turns a load from
+null into such a store first. These are all upstream passes at `-O3`.
+
+It isn't LLVM's trap-on-unreachable (`TargetOptions::TrapUnreachable`, which
+some vendor toolchains turn on; LLVM 7 has it as `-mllvm -trap-unreachable`):
+
+- 5,813 game functions end in a call to a function that doesn't return, with
+  no trap after it. PhysX has 1,246 such functions, Lua 96, and none of them
+  has a trap either. With trap-on-unreachable, each would end in one.
+- Lua, built by Game Freak with the global flags, has no trap at all.
+  Compiling `lib/lua` with `-mllvm -trap-unreachable` gives 159 traps.
+- Of the 18 functions called right before a trap, 17 never end a function
+  without one, so they aren't `noreturn`. The trap belongs to the code after
+  the call.
+
+So the global flags stay as they are.
+
+**The rewrite.** `tools/fix_traps.py --run -- <compiler command>` compiles, then
+replaces `brk #1` with `0xe7ffdefe` in the object, in place. It changes only
+4-byte-aligned words in executable sections, inside code regions (`$x`
+mapping symbols, never `$d` data), at offsets without a relocation. Other
+`brk` immediates, data and other sections are left alone, and running it twice
+changes nothing. `cmake/TrapEncoding.cmake` makes it the C and C++ compiler
+launcher, so it applies to every target, including libraries with their own
+`COMPILER_VERSION`, and `compile_commands.json` keeps the plain compiler
+command. `tools/check.py` stops if a build dir doesn't rewrite traps, and it
+names the cause when a compiled `brk #1` meets the original's trap word.
+`tests/test_fix_traps.py` covers the rewrite with hand-built objects.
+
+The PhysX sweep's 31 lone traps (see "What the sweep doesn't reproduce") are
+the same case: deleting destructors of abstract classes, the same code once
+the trap word is rewritten. `compiler_sweep.py` compiles without the build,
+so it still sees `brk #1`.
 
 ## What's left open
 
@@ -245,9 +330,15 @@ No function matches only with a changed flag.
   same search written out in the caller (`0x71014f7960`, `0x71014f79b0`)
   pairs into an `ldp`, as in the original. The remaining 59 have not been
   checked one by one.
-- **The remaining Lua misses** are in libraries Game Freak changed or removed:
-  `loslib`, `liolib` (`luaopen_io` creates 9 fields, not 11), `loadlib`,
-  `lbitlib`, `lutf8lib`, and the `lauxlib` allocator and panic handler.
+- **Lua is done.** Every Lua function in the executable matches in both games
+  (517). What Game Freak changed is reproduced in `lib/lua` under
+  `#if 0 /* not in Pokémon SwSh */`: `loslib` keeps only `os.clock`, `liolib`
+  drops `popen` and `tmpfile` (`luaopen_io` creates 9 fields, not 11), and
+  `loadlib`'s `readable()` always fails, so `require` only finds
+  `package.preload` modules. What isn't in the executable at all (all of
+  `lbitlib`, `luaL_openlibs`, `luaL_newstate` with the `lauxlib` allocator and
+  panic handler, `lua_setallocf` and a few unused API functions) is listed in
+  `data/absent_functions.csv`, which `check.py` skips.
 
 ## Reproducing
 
@@ -298,13 +389,23 @@ builtins and RTTI off, in a release configuration (`PX_PROFILE=0`,
 the binary was built with the same flags.**
 
 Compiling the 386 TUs of the PhysX 3.4 libraries that are in the binary (see
-"The other libraries") this way reproduces **3,893 distinct original
-functions (2,241,856 bytes, 74% of PhysX's code) byte-for-byte**. That's 7,567
-hits counting every compiled copy of an inline or template function, and all
-4,674 functions mapped by consensus match. The first corpus, 143 TUs of
-Foundation, Task, Common and GeomUtils, gives 1,244 hits (1,075 KB). With the
-global toolchain's compiler (clang 7.0.1) and the same PhysX flags, it gives
-510.
+"The other libraries") this way, with stand-ins for the non-public NX headers,
+**reproduces every PhysX function in the binary except 39 NX platform
+functions**. 8,208 of the 8,247 original functions (3,036,832 of 3,039,340
+bytes) have the same code as a compiled function, and 7,796 of those are
+attributed to their compiled name. 31 of them differ only in the trap
+instruction's encoding (see "What the sweep doesn't reproduce"). No function
+shows a source or codegen difference, in either game. Counting
+`compiler_sweep.py`'s way (a compiled function of at least 16 bytes that equals
+exactly one original), that's 3,925 originals (2,294,668 bytes) and 7,600 hits,
+and all 4,707 functions mapped by consensus match. The first corpus, 143 TUs
+of Foundation, Task, Common and GeomUtils, gives 1,244 hits (1,075 KB). With
+the global toolchain's compiler (clang 7.0.1) and the same PhysX flags, it
+gives 510.
+
+The tables below were measured with the first, Unix-derived stand-ins (see
+"Reproducing"), and their counts are for those. The corrected stand-ins add 33
+hits over the 386 TUs (7,567 → 7,600).
 
 The numbers here use `compiler_sweep.py`'s relocation-based masking (see
 "Method"). With the old linear masking the first corpus gave 1,224 hits, and
@@ -455,13 +556,117 @@ What this settles:
   by them. The binary has no `PxVehicle`, `PxController`, `PxCooking`,
   `QuickHull`, `PxPvd` or `FastXml` strings, and none of their source paths.
 
-Of the 8,247 original functions in the PhysX range, 4,354 (797 KB) aren't
-reproduced. 1,840 of them are under 16 bytes, which the sweep never counts
-(they match too many places), and 2,380 are under 64 bytes. The largest
-unreproduced stretches are RepX serialization template instances
-(`Sn::RepXVisitorReader`/`Writer`, `readAllProperties`, `PvdPropertyFilter`,
-around `0x7100243a80`-`0x7100279b5c`) and a few large `Scb`/`Np` functions.
-They weren't investigated further.
+### What the sweep doesn't reproduce
+
+**Every original function in the PhysX range is accounted for. No function
+needs a source difference to explain it.** Earlier versions of this section
+said that 4,354 of the 8,247 functions (797 KB, 26%) weren't reproduced. Most
+of that was counting. The sweep counts a compiled function only when its code
+equals exactly one original, and only from 16 bytes up. The rest came from
+three NX header functions whose stand-ins were wrong.
+
+| Class (both games, same class at every address) | Functions | Bytes | Under 16 bytes |
+|---|---:|---:|---:|
+| Same code, and attributed to the compiled name | 7,765 | 3,027,092 | 1,434 |
+| Same code apart from the trap word (`brk #1` compiled, `0xe7ffdefe` in the binary) | 31 | 124 | 31 |
+| Same code as a compiled function, but not attributable (identical copies) | 412 | 9,616 | 364 |
+| NX platform code (no public source) | 39 | 2,508 | 11 |
+| Source or codegen difference | **0** | 0 | 0 |
+| **Total** | **8,247** | **3,039,340** | **1,840** |
+
+The three causes:
+
+- **Identical instances.** With the final stand-ins, 6,379 originals of at
+  least 16 bytes (3,021,224 bytes) have the same code as a compiled function.
+  2,454 of them have the same code as other originals too, so the sweep
+  doesn't count them. Instances of one template for different types, or a
+  `static` function from a header compiled into every TU that includes it,
+  differ only in their call and data targets, which the masking ignores. The
+  RepX serializers are the extreme case:
+  `Vd::PvdPropertyFilter<Sn::RepXVisitorWriter<T>>::handleAccessor<N,
+  PxRepXPropertyAccessor<N, T, float, float>>` is 248 bytes, and 154 originals
+  have exactly that code, one per float property. All 533 functions of the
+  RepX block at `0x7100243a80`-`0x7100279b5c` are attributed, although only 80
+  of them match a single address.
+- **Small functions.** 1,840 originals are under 16 bytes. With
+  `--min-size 4`, 1,801 of them have the same code as a compiled function.
+  Most are a `ret`, a constant return or a tail call, so a code match alone
+  means little there. 1,465 are attributed by name (31 of those with the trap
+  word). 11 are NX platform code.
+- **The NX headers.** The first stand-ins were the Unix intrinsics headers.
+  The binary's are different in three inline functions:
+  - `shdfnd::lowestSetBitUnsafe` (`PsSwitchIntrinsics.h`) is a De Bruijn
+    multiply, `table[((v & -v) * 0x077CB531) >> 27]`, not `__builtin_ctz`. The
+    table is the standard 32-entry one, loaded through the GOT, which fits a
+    function-local `static` of an inline function. The PhysX range has no
+    `rbit`. This explained 26 functions (45 KB), among them
+    `Dy::partitionContactConstraints` (10,624 bytes),
+    `IG::IslandSim::processLostEdges`, `PxsCCDContext::updateCCD`, three
+    `Sc::Scene` task functions, `PxsContext::fillManagerTouchEvents` and the
+    particle code that seemed to differ.
+  - `shdfnd::highestSetBitUnsafe` is the matching De Bruijn log2 (OR-smear,
+    `* 0x07C4ACDD >> 27`, the standard table) instead of `31 - __builtin_clz`.
+    The 9 `clz` in the PhysX range are all in LowLevelCloth's `SwCollision`,
+    which uses its own builtin. This explained 4 functions (3.8 KB):
+    `TempAllocator::allocate`, `Bp::SimpleAABBManager::updateAABBsAndBP`,
+    `MBP::populateNewRegion` and one `Pt::ParticleData::removeParticlesV`.
+  - `PxIsFinite(float)` (`PxSwitchIntrinsics.h`) calls the SDK:
+    `!nn::cstd::IsNan(a) && !nn::cstd::IsInf(a)`. Both are imports
+    (`_ZN2nn4cstd5IsNanEf`, `_ZN2nn4cstd5IsInfEf`), and PhysX calls them in 15
+    pairs. This explained `Sq::ExtendedBucketPruner::refitMarkedNodes` and
+    `PxsCCDPair::sweepAdvanceToToi` (3.9 KB).
+
+  "Reproducing" has the corrected stand-ins. The headers' other functions,
+  such as `countLeadingZeros`, change no compiled function, so the code can't
+  check them.
+
+**The trap word.** Every trap in `main` is the word `0xe7ffdefe`, the A32
+encoding of LLVM's ARM `trap` (650 in both games: 447 in game code, 71 in
+Wwise, 31 in PhysX). `main` has no `brk` at all. Upstream clang lowers
+`llvm.trap` to `brk #1` on AArch64. In PhysX the 31 are deleting destructors
+that compile to a lone trap, and they match once `brk #1` is read as
+`0xe7ffdefe`. So the trap encoding is a property of the toolchain, not of
+PhysX's compiler alone. The build rewrites it in every object (see "Traps").
+
+**The NX platform code** is 39 functions (2,508 bytes):
+
+- 37 in Foundation's Switch TUs at `0x71002ff460`-`0x710030000c`:
+  `FPUGuard`, `MutexImpl`, `ReadWriteLock`, `printString`, `SyncImpl`,
+  `ThreadImpl` and the `Tls*` functions. 27 of them call `nn::os` imports
+  (`InitializeMutex`, `CreateThread`, `AllocateTlsSlot`, ...) or
+  `nn::diag::detail::LogImpl`. The sweep compiles the Unix versions, and those
+  differ. The rest of the block matches the Unix code: `SListImpl` (6
+  functions), `FPUGuard`'s destructor, and one 8-byte `getSize` that several
+  `*Impl` classes share.
+- `NpSetMiddlewareInfo` (`0x71000b4db0`, calls `nn::util::ReferSymbol`) and
+  `Ext::DefaultCpuDispatcher::getAffinityMasks` (`0x71001f4470`, calls
+  `nn::os::GetThreadAvailableCoreMask`), whose Switch sources aren't public
+  either.
+
+**How attribution works** (`tools/sweep_attribute.py`). It reads one
+configuration's objects and uses the relocation targets that the masking
+ignores:
+
+- A call that reaches a PLT stub in the original must call that import by name
+  in the compiled code. Otherwise the code isn't the same. That removes 1,257
+  coincidental matches, for example a compiled `b pthread_self` against the
+  original `b nn::os::GetCurrentThread`.
+- A compiled name whose code equals exactly one original is pinned there.
+- Once a name is pinned to an original with the same code, each of its calls
+  pins the callee's name to the original's branch target. Each vtable it
+  references (`adrp`/lo12 or a GOT load) pins the virtual functions to the
+  original vtable's slots. This repeats until nothing changes.
+- An original is *attributed* when a name with the same code is pinned to it.
+  If only the code matches, it is *not attributable*: 412 identical copies,
+  such as the per-TU `static` `Gu::unsupportedMidphase`/
+  `unsupportedConvexSweepMidphase` from a header, which are reached only
+  through function-pointer tables in data. If a pinned name's code differs, it
+  *differs*. Only the platform functions are left in that class.
+
+11 names get pinned to two addresses and are left out, mostly
+`RayRTreeCallback<0, false>` members (two originals each), whose callers have
+identical code. The pinning is a heuristic. A wrong pin would show up as a
+conflict like these, but it can't be ruled out.
 
 ### Build configuration
 
@@ -680,19 +885,75 @@ curl -LO https://releases.llvm.org/7.0.1/libcxx-7.0.1.src.tar.xz
 tar xJf libcxx-7.0.1.src.tar.xz libcxx-7.0.1.src/include && mv libcxx-7.0.1.src libcxx-7.0.1
 ```
 
-The NX platform headers aren't in the public repository. Four stand-ins,
-three derived from the Unix versions, are enough for every library. The
-intrinsics are the same inline math and builtins. `NpMiddlewareInfo.h` is only
-needed by the core's `NpPhysics.cpp`.
+The NX platform headers aren't in the public repository. This script writes
+stand-ins for them into `toolchain/candidates/src/physx-nx-shim`. Run it from
+the repository root as `python physx_shim.py toolchain/candidates/src/PhysX-3.4`.
+The two intrinsics headers are the Unix ones, except that `PxIsFinite(float)`,
+`lowestSetBitUnsafe` and `highestSetBitUnsafe` are written the way the binary
+has them (see "What the sweep doesn't reproduce"). The version, flag and library tables were
+measured with the plain Unix copies (the first two `write` calls without their
+edits). `NpMiddlewareInfo.h` is only needed by the core's `NpPhysics.cpp`. The
+last four files make Foundation's `PsUnixThread.cpp` and `PsUnixTime.cpp`
+compile against musl. `unix/PsUnixTime.cpp` is a stand-in TU that compiles the
+real one with the Unix member layout of `shdfnd::Time`. The binary has the
+Switch versions of both instead.
 
-```sh
-P=PhysX-3.4/PxShared; S=physx-nx-shim
-mkdir -p $S/foundation/switch $S/switch
-sed '/#error/d' $P/include/foundation/unix/PxUnixIntrinsics.h > $S/foundation/switch/PxSwitchIntrinsics.h
-sed '/#error/d' $P/src/foundation/include/unix/PsUnixIntrinsics.h > $S/switch/PsSwitchIntrinsics.h
-printf '#include <stdlib.h>\nnamespace { inline void abort(const char*) { ::abort(); } }\n' > $S/switch/PsSwitchAbort.h
-printf '#pragma once\nvoid NpSetMiddlewareInfo();\n' > $S/switch/NpMiddlewareInfo.h
-cd ../../..
+```python
+# physx_shim.py: python physx_shim.py <PhysX-3.4 dir>   (writes toolchain/candidates/src/physx-nx-shim)
+import re, sys
+from pathlib import Path
+
+X = Path(sys.argv[1]).resolve()
+S = Path("toolchain/candidates/src/physx-nx-shim")
+PX, PS = X / "PxShared/include/foundation", X / "PxShared/src/foundation"
+
+
+def write(rel, text):
+    (S / rel).parent.mkdir(parents=True, exist_ok=True)
+    (S / rel).write_text(text, newline="\n")
+
+
+def sub(text, old, new):
+    assert text.count(old) == 1, old
+    return text.replace(old, new)
+
+
+def unix(path):  # the Unix header without its platform #error
+    return "".join(l for l in path.read_text().splitlines(True) if "#error" not in l)
+
+
+# isFinite(float) calls the SDK's nn::cstd::IsNan and IsInf
+px = unix(PX / "unix/PxUnixIntrinsics.h")
+px = re.sub(r"(bool isFinite\(float a\)\n\{\n).*?\n\}", r"\1\treturn !nn::cstd::IsNan(a) && !nn::cstd::IsInf(a);\n}",
+            px, count=1, flags=re.S)
+px = sub(px, "namespace physx\n{\nnamespace intrinsics",
+         "namespace nn\n{\nnamespace cstd\n{\nbool IsNan(float);\nbool IsInf(float);\n}\n}\n\n"
+         "namespace physx\n{\nnamespace intrinsics")
+write("foundation/switch/PxSwitchIntrinsics.h", px)
+
+# highestSetBitUnsafe and lowestSetBitUnsafe are De Bruijn multiplies with a table
+ps = unix(PS / "include/unix/PsUnixIntrinsics.h")
+ps = sub(ps, "\treturn 31 - __builtin_clz(v);",
+         "\tstatic const uint32_t table[32] = { 0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30,\n"
+         "\t                                    8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31 };\n"
+         "\tv |= v >> 1;\n\tv |= v >> 2;\n\tv |= v >> 4;\n\tv |= v >> 8;\n\tv |= v >> 16;\n"
+         "\treturn table[(v * 0x07C4ACDDu) >> 27];")
+ps = sub(ps, "\treturn __builtin_ctz(v);",
+         "\tstatic const uint32_t table[32] = { 0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8,\n"
+         "\t                                    31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9 };\n"
+         "\treturn int32_t(table[((v & (0 - v)) * 0x077CB531u) >> 27]);")
+write("switch/PsSwitchIntrinsics.h", ps)
+write("switch/PsSwitchAbort.h", "#include <stdlib.h>\nnamespace { inline void abort(const char*) { ::abort(); } }\n")
+write("switch/NpMiddlewareInfo.h", "#pragma once\nvoid NpSetMiddlewareInfo();\n")
+
+# Foundation's two Unix TUs that need more than musl has (the binary has the Switch ones instead)
+write("bits/local_lim.h", "#pragma once\n#include <limits.h>\n")
+write("asm/unistd.h", "#pragma once\n#include <sys/syscall.h>\n#define __NR_gettid SYS_gettid\n"
+      "#define __NR_sched_getaffinity SYS_sched_getaffinity\n#define __NR_sched_setaffinity SYS_sched_setaffinity\n")
+write("unix/PsTime.h", sub((PS / "include/PsTime.h").read_text(),
+                           "#if PX_LINUX || PX_ANDROID || PX_APPLE_FAMILY || PX_PS4\n\tSecond mLastTime;",
+                           "#if 1\n\tSecond mLastTime;"))
+write("unix/PsUnixTime.cpp", f'#include "PsTime.h"\n#include "{(PS / "src/unix/PsUnixTime.cpp").as_posix()}"\n')
 ```
 
 Then run the sweep. Quote the globs so the shell doesn't expand them (`**` recurses).
@@ -781,7 +1042,8 @@ for lib in libs:
         if kind == "release_hpaths" and p.exists() and p not in inc:
             inc.append(p)
         elif kind == "cppfiles" and p.exists() and not skip.search(v):
-            srcs.append(p)
+            alt = C / "src/physx-nx-shim/unix" / p.name  # stand-in TU (physx_shim.py)
+            srcs.append(alt if alt.exists() else p)
         elif kind == "release_defines" and not re.search(r"EXPORTS|_DLL|PVD|NDEBUG|STATIC_LIB", v):
             defs.append(v)
 args = [a for s in srcs for a in ("--src", str(s))]
@@ -814,19 +1076,54 @@ The libraries are `PhysX`, `SimulationController`, `LowLevel`, `LowLevelAABB`,
 `PxPvdSDK` and `PsFastXml`, plus `PxFoundation`, `PxTask` and `PhysXCommon`
 for the whole set. The 12 libraries in the binary together
 (`PxFoundation+PxTask+PhysXCommon+PhysX+SimulationController+LowLevel+LowLevelAABB+LowLevelDynamics+LowLevelCloth+LowLevelParticles+SceneQuery+PhysXExtensions`,
-386 TUs) give the headline numbers. Two of those TUs, Foundation's
-`PsUnixThread.cpp` and `PsUnixTime.cpp`, don't compile with the musl headers;
-the binary has the Switch versions instead. A configuration takes 1 to 3
-minutes for a big library.
+386 TUs) give the headline numbers. All 386 compile with the stand-ins above.
+(Without the last four, `PsUnixThread.cpp` and `PsUnixTime.cpp` don't, and the
+other numbers stay the same.) A configuration takes 1 to 3 minutes for a big
+library.
+
+The classification in "What the sweep doesn't reproduce" comes from the final
+configuration's objects. `--obj-dir` keeps them, and `--min-size 4` counts the
+small functions too. A sweep takes about a minute, and `sweep_attribute.py`
+takes about two per game:
+
+```sh
+L=PxFoundation+PxTask+PhysXCommon+PhysX+SimulationController+LowLevel+LowLevelAABB+LowLevelDynamics+LowLevelCloth+LowLevelParticles+SceneQuery+PhysXExtensions
+R=0x7100010a90-0x71003035e0
+python physx_args.py toolchain/candidates/src/PhysX-3.4 $L > all.rsp
+python tools/compiler_sweep.py --compiler toolchain/candidates/clang-6.0.1 --range $R \
+    --variant "O3=" --obj-dir build/physx-sweep @all.rsp                  # 7,600 hits, 4,707 mapped
+python tools/compiler_sweep.py --compiler toolchain/candidates/clang-6.0.1 --range $R \
+    --variant "O3=" --min-size 4 --hits-out hits4.csv @all.rsp             # small functions
+python tools/sweep_attribute.py build/physx-sweep/clang-6.0.1_O3 --range $R --game sword --out attr_sword.csv
+python tools/sweep_attribute.py build/physx-sweep/clang-6.0.1_O3 --range $R --game shield --out attr_shield.csv
+```
+
+`sweep_attribute.py` prints the class table, and `--out` lists every original
+with its class and names. `build/` is gitignored. The `--min-size 4` run
+writes its objects to a `sweep_*` temp directory: delete it afterwards.
 
 ### What's left open
 
 - **The NX platform code.** Every public library is swept now (see "The
-  other libraries"). What can't be reproduced from public material are the NX
-  platform sources and headers (`PsSwitchMutex.cpp`, `PsSwitchPrintString.cpp`,
-  `NpSetMiddlewareInfo`, the real `Px`/`PsSwitchIntrinsics.h`). NVIDIA ships
-  those only to Switch licensees, so those functions have to be decompiled
-  like game code.
+  other libraries"), and everything else in the range is accounted for (see
+  "What the sweep doesn't reproduce"). What's left are 39 functions (2,508
+  bytes) from the NX platform sources: Foundation's Switch mutex, read-write
+  lock, sync, thread, TLS, FPU guard and `printString`, plus
+  `NpSetMiddlewareInfo` and `DefaultCpuDispatcher::getAffinityMasks`. NVIDIA
+  ships those only to Switch licensees, so they have to be decompiled like
+  game code.
+- **The rest of the NX intrinsics headers.** Three of their inline functions
+  are recovered from the code (De Bruijn `lowestSetBitUnsafe` and
+  `highestSetBitUnsafe`, `PxIsFinite` through `nn::cstd`). The others change no
+  compiled function, so the stand-ins keep the Unix versions, which may not
+  be the real ones.
+- **The trap word** is settled for matching: it's the NX toolchain's encoding
+  of `llvm.trap`, and the build rewrites `brk #1` to it (see "Traps"). Which
+  stage of the toolchain writes it is still unknown.
+- **Attribution limits.** 412 originals have the same code as some compiled
+  function, but nothing pins a name to them (identical per-TU copies reached
+  only through data). 11 names pin to two addresses and are left out. Their
+  code is reproduced, but which compiled copy is which is a guess.
 - **`-std`.** Narrowed but not settled: gnu++11, gnu++14 and gnu++17 give
   byte-identical objects for every library, and gnu++98 and the non-GNU modes
   are ruled out. The docs use clang 6's default, `gnu++14`. For decompiling
@@ -836,11 +1133,6 @@ minutes for a big library.
   every library, and nothing in the binary tells them apart
   (`-ffreestanding` only adds `__STDC_HOSTED__=0`, which this code doesn't
   test). The docs use `-fno-builtin`. For decompiling PhysX, either works.
-- **The 26% of PhysX's code that the sweep doesn't reproduce** (4,354
-  functions, 797 KB). 1,840 are under the sweep's 16-byte minimum. Others are
-  template instances whose copy the linker kept from another TU. The largest
-  stretches are Extensions' RepX serialization templates. They haven't been
-  looked at one by one, so a source difference there can't be ruled out yet.
 - **clang 6.0.1 or a later 6.0 vendor build.** Six functions separate 6.0.1
   from 6.0.0, none separate it from anything later. There is no later public
   6.0 release to test.

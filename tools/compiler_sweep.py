@@ -43,6 +43,10 @@ addresses; the other game's range comes from the paired rows of
 data/functions.csv. Apply the map with `tools/funcs.py name --from-file`.
 
 `@FILE` reads arguments from FILE, one per line (for long --src lists).
+`--min-size N` changes the smallest compiled function counted (default 16
+bytes). `--hits-out FILE` writes every exact hit (Address,Size,Config,Name), and
+`--obj-dir DIR` keeps the objects in DIR/<compiler>_<variant>, for
+tools/sweep_attribute.py.
 `--module sdk` (or any other NSO of the game) searches that module instead of
 `main`. functions.csv only covers `main`, so the other game's range can't be
 derived there: use --map-out without --range.
@@ -86,7 +90,7 @@ BASE_FLAGS = [
     "-fno-strict-aliasing", "-ffunction-sections", "-fdata-sections", "-fno-common",
     "-fno-short-enums", "-nostdlibinc",
 ]
-MIN_SIZE = 16  # smaller functions match too many places to be evidence
+MIN_SIZE = 16  # default --min-size: smaller functions match too many places to be evidence
 
 
 class Func(NamedTuple):
@@ -206,6 +210,7 @@ def compile_all(cc: Path, variant_flags: list[str], common: list[str], srcs: lis
     def one(src: Path):
         obj = outdir / (hashlib.md5(str(src).encode()).hexdigest()[:8] + "_" + src.stem + ".o")
         cmd = compile_command(cc, variant_flags, common, src, obj)
+        obj.unlink(missing_ok=True)  # a TU that fails now mustn't leave an old object (--obj-dir)
         p = subprocess.run(cmd, capture_output=True, text=True)
         if p.returncode != 0:
             return src, None, p.stderr.strip().splitlines()[:3]
@@ -256,11 +261,13 @@ def original_index(game: str, lo: int, hi: int, module: str = "main"):
     return index, orig_words
 
 
-def find_hits(funcs: dict[str, Func], index, orig_words) -> dict[str, list[int]]:
-    """name -> original addresses whose code is the same (same_code), for every name with any."""
+def find_hits(funcs: dict[str, Func], index, orig_words, min_size: int = MIN_SIZE) -> dict[str, list[int]]:
+    """name -> original addresses whose code is the same (same_code), for every name with any.
+
+    Compiled functions under `min_size` bytes are skipped."""
     hits = {}
     for name, f in funcs.items():
-        if len(f.code) < MIN_SIZE:
+        if len(f.code) < min_size:
             continue
         ws = words(f.code)
         addrs = [a for a in index.get(coarse_key(ws), ()) if same_code(ws, f.relocs, orig_words[a])]
@@ -300,6 +307,22 @@ def write_map(path: Path, maps: dict[str, dict[str, int]]) -> int:
     return len(names)
 
 
+def write_hits(path: Path, results, orig_words) -> int:
+    """Write `Address,Size,Config,Name` for every exact hit of every configuration.
+
+    One row per (original address, configuration, compiled name): an original
+    that several compiled copies reproduce has several rows. Returns the number
+    of distinct original addresses hit."""
+    rows = sorted((a, cfg, name) for cfg, (_f, hits, _e) in results.items()
+                  for name, addrs in hits.items() for a in addrs)
+    with open(path, "w", newline="", encoding="utf-8") as fh:
+        w = csv.writer(fh, lineterminator="\n")
+        w.writerow(["Address", "Size", "Config", "Name"])
+        for a, (cname, vname), name in rows:
+            w.writerow([f"{a + BASE:#x}", len(orig_words[a]) * 4, f"{cname}/{vname}", name])
+    return len({a for a, _, _ in rows})
+
+
 def arg_parser() -> argparse.ArgumentParser:
     # @FILE reads more arguments from FILE, one per line: a big corpus's --src
     # list doesn't fit on a Windows command line (32,767 characters).
@@ -316,6 +339,14 @@ def arg_parser() -> argparse.ArgumentParser:
                     help="NSO to search: main (default), sdk, subsdk0, ... Addresses are then that module's. "
                          "functions.csv covers main only, so for other modules --map-out needs no --range "
                          "(both games are searched whole), and its rows aren't for funcs.py name")
+    ap.add_argument("--min-size", type=int, default=MIN_SIZE,
+                    help=f"skip compiled functions under this many bytes (default {MIN_SIZE}; "
+                         "smaller ones often match many originals)")
+    ap.add_argument("--hits-out", type=Path,
+                    help="write every exact hit in --game as Address,Size,Config,Name (CSV)")
+    ap.add_argument("--obj-dir", type=Path,
+                    help="keep the objects in DIR/<compiler>_<variant> (default: a new sweep_* temp dir), "
+                         "e.g. for tools/sweep_attribute.py")
     ap.add_argument("--show", type=int, default=0, help="list up to N mapped functions per config that miss")
     ap.add_argument("--map-out", type=Path, help="write the consensus name -> address map for both games (CSV)")
     ap.add_argument("common", nargs=argparse.REMAINDER, help="-- flags for every compile (before each variant's flags)")
@@ -349,14 +380,15 @@ def main() -> int:
 
     # ---- compile + exact hits
     results = {}
-    tmp = Path(tempfile.mkdtemp(prefix="sweep_"))
+    tmp = args.obj_dir or Path(tempfile.mkdtemp(prefix="sweep_"))
+    print(f"objects in {tmp}")
     for root in roots:
         cc = root / "bin" / f"clang{exe}"
         for vname, vflags in variants:
             out = tmp / f"{root.name}_{vname}"
-            out.mkdir()
+            out.mkdir(parents=True, exist_ok=args.obj_dir is not None)
             funcs, errors = compile_all(cc, shlex.split(vflags), common, srcs, out)
-            hits = find_hits(funcs, index, orig_words)
+            hits = find_hits(funcs, index, orig_words, args.min_size)
             results[(root.name, vname)] = (funcs, hits, errors)
 
     # ---- consensus name -> address map from unambiguous hits
@@ -385,6 +417,9 @@ def main() -> int:
                 print(f"      miss {n} ({len(funcs[n].code)} vs {len(orig_words[mapping[n]]) * 4} bytes) "
                       f"@ {mapping[n] + BASE:#x}")
     print(f"\n{len(mapping)} functions mapped by consensus")
+    if args.hits_out:
+        n = write_hits(args.hits_out, results, orig_words)
+        print(f"wrote the hits on {n} distinct original functions to {args.hits_out}")
 
     if args.map_out:
         from common import read_functions_csv
@@ -395,7 +430,7 @@ def main() -> int:
             else:
                 vlo, vhi = other_game_range(args.game, v, lo, hi, read_functions_csv()) if args.range else (lo, hi)
                 vindex, vwords = original_index(v, vlo, vhi, args.module)
-            maps[v] = consensus(find_hits(f, vindex, vwords) for f, _, _ in results.values())
+            maps[v] = consensus(find_hits(f, vindex, vwords, args.min_size) for f, _, _ in results.values())
         n = write_map(args.map_out, maps)
         print(f"wrote {n} names to {args.map_out} "
               f"({', '.join(f'{v}: {len(m)}' for v, m in maps.items())})")

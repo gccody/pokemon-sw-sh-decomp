@@ -28,6 +28,24 @@ def test_find_hits_ignores_tiny_functions():
     index = {compiler_sweep.coarse_key(w): [a] for a, w in ws.items()}
     funcs_ = {n: compiler_sweep.Func(c) for n, c in (("big", big), ("tiny", ret), ("miss", nop * 4))}
     assert compiler_sweep.find_hits(funcs_, index, ws) == {"big": [0x100]}
+    # --min-size 4 counts the 4-byte `ret` too
+    assert compiler_sweep.find_hits(funcs_, index, ws, min_size=4) == {"big": [0x100], "tiny": [0x200]}
+
+
+def test_min_size_option_and_hits_csv(tmp_path):
+    args = compiler_sweep.arg_parser().parse_args(["--compiler", "cc", "--src", "a.cpp", "--min-size", "4"])
+    assert args.min_size == 4
+    assert compiler_sweep.arg_parser().parse_args(["--compiler", "cc", "--src", "a.cpp"]).min_size == 16
+    orig = {0x100: (NOP, RET), 0x200: (RET,)}
+    results = {("clang-6.0.1", "O3"): ({}, {"f": [0x100], "r": [0x200, 0x100]}, [])}
+    path = tmp_path / "hits.csv"
+    assert compiler_sweep.write_hits(path, results, orig) == 2
+    assert path.read_text(encoding="utf-8").splitlines() == [
+        "Address,Size,Config,Name",
+        f"{0x100 + BASE:#x},8,clang-6.0.1/O3,f",
+        f"{0x100 + BASE:#x},8,clang-6.0.1/O3,r",
+        f"{0x200 + BASE:#x},4,clang-6.0.1/O3,r",
+    ]
 
 
 # Hand-encoded words for the relocation-masking tests.
