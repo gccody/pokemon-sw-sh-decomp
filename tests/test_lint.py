@@ -293,3 +293,17 @@ def test_repository_foreign_copies_are_clean():
     names = {f.name for f in lint.read_functions_csv(ROOT / "data" / "functions.csv") if f.name}
     assert lint.lint_foreign(ROOT / "data" / "foreign_copies.csv", names,
                              lint._names(ROOT / "data" / "absent_functions.csv")) == []
+
+
+def test_physx_v342_list(tmp_path, write_csv):
+    h = "0" * 64
+    ignore = tmp_path / ".gitignore"
+    ignore.write_text("# generated\n/A/x.h\n/B/y.h\n", encoding="utf-8")
+    ok = write_csv("physx_v342.csv", f"Path,SHA256\nA/x.h,{h}\nB/y.h,{h}\n")
+    assert lint.lint_physx_v342(ok, ignore, ["lib/physx/C/other.h"]) == []
+    bad = write_csv("physx_v342.csv", f"Path,SHA256\nB/y.h,{h}\nA/x.h,XYZ\nC/z.h,{h}\n")
+    errors = lint.lint_physx_v342(bad, ignore, ["lib/physx/B/y.h"])
+    assert any("sorted" in e for e in errors)
+    assert any("64 lowercase hex" in e for e in errors)
+    assert any("add /C/z.h to lib/physx/.gitignore" in e for e in errors)
+    assert any("lib/physx/B/y.h: has PhysX v3.4.2's code" in e for e in errors)

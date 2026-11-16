@@ -73,11 +73,99 @@ pkmn_library_settings(lib/lua
 # gnu++14 (gnu++11/14/17 give identical code; strict c++17 breaks musl's
 # alloca), and NVIDIA's static-library defines. The other codegen flags,
 # including -g, are the global ones. PhysX was built with clang 6.0.1 (1,224
-# functions match, 509 with clang 7.0.1), so once lib/physx has sources they
-# are compiled with toolchain/clang-6.0.1 (`python tools/get_llvm.py --compiler
-# 6.0.1`) or -DPKMN_CLANG_ROOT_6_0_1.
+# functions match, 509 with clang 7.0.1), so lib/physx is compiled with
+# toolchain/clang-6.0.1 (`python tools/get_llvm.py --compiler 6.0.1`) or
+# -DPKMN_CLANG_ROOT_6_0_1. The include directories are the release_hpaths of
+# v3.4.2's linux64 makefiles of the 12 libraries in the binary, in makefile
+# order (the ones no TU reads are left out), and PX_BUILD_NUMBER is
+# PhysXExtensions' release define there. libc++ 7.0.1 supplies <new>.
 pkmn_library_settings(lib/physx
   EVIDENCE "docs/compiler.md, section PhysX"
   COMPILER_VERSION 6.0.1
   DEFINES __NX__ NDEBUG PX_PHYSX_STATIC_LIB PX_FOUNDATION_DLL=0 PX_SUPPORT_PVD=0
-  OPTIONS -fexceptions -fstrict-aliasing -fno-builtin $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++14>)
+    PX_BUILD_NUMBER=24171494 _LIBCPP_HAS_MUSL_LIBC _LIBCPP_HAS_THREAD_API_PTHREAD
+  OPTIONS -fexceptions -fstrict-aliasing -fno-builtin $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++14>
+  INCLUDES
+    lib/physx/PxShared/src/foundation/include/unix
+    lib/physx/PxShared/include
+    lib/physx/PxShared/src/foundation/include
+    lib/physx/PxShared/src/fastxml/include
+    lib/physx/PxShared/src/pvd/include
+    lib/physx/PhysX_3.4/Include/common
+    lib/physx/PhysX_3.4/Include
+    lib/physx/PhysX_3.4/Source/Common/src
+    lib/physx/PhysX_3.4/Include/geometry
+    lib/physx/PhysX_3.4/Source/GeomUtils/headers
+    lib/physx/PhysX_3.4/Source/GeomUtils/src
+    lib/physx/PhysX_3.4/Source/GeomUtils/src/contact
+    lib/physx/PhysX_3.4/Source/GeomUtils/src/common
+    lib/physx/PhysX_3.4/Source/GeomUtils/src/convex
+    lib/physx/PhysX_3.4/Source/GeomUtils/src/distance
+    lib/physx/PhysX_3.4/Source/GeomUtils/src/sweep
+    lib/physx/PhysX_3.4/Source/GeomUtils/src/gjk
+    lib/physx/PhysX_3.4/Source/GeomUtils/src/intersection
+    lib/physx/PhysX_3.4/Source/GeomUtils/src/mesh
+    lib/physx/PhysX_3.4/Source/GeomUtils/src/hf
+    lib/physx/PhysX_3.4/Source/GeomUtils/src/pcm
+    lib/physx/PhysX_3.4/Source/GeomUtils/src/ccd
+    lib/physx/PhysX_3.4/Include/GeomUtils
+    lib/physx/PhysX_3.4/Include/pvd
+    lib/physx/PhysX_3.4/Include/particles
+    lib/physx/PhysX_3.4/Include/cloth
+    lib/physx/PhysX_3.4/Source/LowLevel/API/include
+    lib/physx/PhysX_3.4/Source/LowLevel/software/include
+    lib/physx/PhysX_3.4/Source/LowLevel/common/include/pipeline
+    lib/physx/PhysX_3.4/Source/LowLevelAABB/include
+    lib/physx/PhysX_3.4/Source/LowLevelDynamics/include
+    lib/physx/PhysX_3.4/Source/LowLevelDynamics/src
+    lib/physx/PhysX_3.4/Source/LowLevelParticles/include
+    lib/physx/PhysX_3.4/Source/PhysX/src
+    lib/physx/PhysX_3.4/Source/PhysX/src/buffering
+    lib/physx/PhysX_3.4/Source/PhysX/src/particles
+    lib/physx/PhysX_3.4/Source/PhysX/src/cloth
+    lib/physx/PhysX_3.4/Source/SimulationController/include
+    lib/physx/PhysX_3.4/Source/SimulationController/src
+    lib/physx/PhysX_3.4/Source/SimulationController/src/particles
+    lib/physx/PhysX_3.4/Source/SceneQuery/include
+    lib/physx/PhysX_3.4/Source/PhysXMetaData/core/include
+    lib/physx/PhysX_3.4/Source/SimulationController/src/cloth
+    lib/physx/PhysX_3.4/Source/LowLevel/common/include/utils
+    lib/physx/PhysX_3.4/Source/LowLevel/common/include/collision
+    lib/physx/PhysX_3.4/Source/LowLevelCloth/include
+    lib/physx/PhysX_3.4/Source/LowLevel/common/include
+    lib/physx/PhysX_3.4/Source/LowLevelAABB/src
+    lib/physx/PhysX_3.4/Source/LowLevelCloth/src
+    lib/physx/PhysX_3.4/Source/LowLevelParticles/src
+    lib/physx/PhysX_3.4/Include/cooking
+    lib/physx/PhysX_3.4/Include/extensions
+    lib/physx/PhysX_3.4/Include/vehicle
+    lib/physx/PhysX_3.4/Source/PhysXMetaData/extensions/include
+    lib/physx/PhysX_3.4/Source/PhysXExtensions/src
+    lib/physx/PhysX_3.4/Source/PhysXExtensions/src/serialization/Xml
+    lib/physx/PhysX_3.4/Source/PhysXExtensions/src/serialization/Binary
+    lib/physx/PhysX_3.4/Source/PhysXExtensions/src/serialization/File
+  SYSTEM_INCLUDES include/libcxx)
+
+# lib/physx's files with PhysX v3.4.2's code (see the entry above) aren't in
+# the repository, because that code isn't BSD-licensed. tools/get_physx.py
+# generates them from NVIDIA's public repository. Stop here until they're all
+# there with the SHA-256 that data/physx_v342.csv lists.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS data/physx_v342.csv)
+file(STRINGS data/physx_v342.csv _pkmn_physx_v342 REGEX "^[^,]+,[0-9a-f]+$")
+set(_pkmn_physx_stale 0)
+foreach(_row IN LISTS _pkmn_physx_v342)
+  string(REPLACE "," ";" _row "${_row}")
+  list(GET _row 0 _path)
+  list(GET _row 1 _hash)
+  set(_have "")
+  if(EXISTS "${CMAKE_SOURCE_DIR}/lib/physx/${_path}")
+    file(SHA256 "${CMAKE_SOURCE_DIR}/lib/physx/${_path}" _have)
+  endif()
+  if(NOT _have STREQUAL _hash)
+    math(EXPR _pkmn_physx_stale "${_pkmn_physx_stale} + 1")
+  endif()
+endforeach()
+if(_pkmn_physx_stale)
+  message(FATAL_ERROR "lib/physx: ${_pkmn_physx_stale} of the files with PhysX v3.4.2's code are missing "
+    "or out of date. Run `python tools/get_physx.py` (see lib/physx/README.md).")
+endif()

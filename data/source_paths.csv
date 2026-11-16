@@ -1,0 +1,3 @@
+Source,Root,Original,WorkDir,Evidence
+lib/physx/PhysX_3.4/,lib/physx/,C:/gitlab-runner/builds/ba119cc0/0/research_and_development/physx/PhysX/,PhysX_3.4/Source/compiler/nx/,"__FILE__ of PhysX TUs (PhysX_3.4/Source/...) and headers spelled ./../../<Source dir> or ./../../../../PxShared/... (docs/compiler.md, PhysX: Source paths); the last WorkDir directory's name isn't in the binary"
+lib/physx/PxShared/,lib/physx/,C:/gitlab-runner/builds/ba119cc0/0/research_and_development/physx/PhysX/,PxShared/src/compiler/nx/,"__FILE__ of PxFoundation/PxTask TUs (PxShared/src/...) and headers spelled ./../../foundation/include/... (docs/compiler.md, PhysX: Source paths); the last WorkDir directory's name isn't in the binary"

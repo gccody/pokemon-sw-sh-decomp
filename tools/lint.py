@@ -17,6 +17,9 @@ valid unique names with a reason, none of them also a row of functions.csv.
 data/foreign_copies.csv: weak/COMDAT functions whose copy in the executable
 comes from a library this repository doesn't build; valid unique names with a
 reason, each a row of functions.csv and not also absent.
+data/physx_v342.csv: the lib/physx files that tools/get_physx.py generates
+(they have PhysX v3.4.2's code): header, sorted unique paths, SHA-256 hashes,
+each path in lib/physx/.gitignore and none of them tracked.
 data/areas.csv: header, valid kind/confidence, unique area names; per game
 (SwordStart/SwordEnd, ShieldStart/ShieldEnd): start < end, rows sorted and
 non-overlapping, so areas in both games are in the same order. A game's pair is
@@ -276,6 +279,41 @@ def lint_tracked_files(paths: list[str], root: Path = ROOT) -> list[str]:
     return errors
 
 
+PHYSX_V342_HEADER = ["Path", "SHA256"]
+
+
+def lint_physx_v342(path: Path, gitignore: Path, tracked: list[str] | None = None) -> list[str]:
+    """data/physx_v342.csv against lib/physx/.gitignore (and the tracked files)."""
+    if not path.exists():
+        return []
+    header = _read_header(path)
+    if header != PHYSX_V342_HEADER:
+        return [f"{path.name} header is {header}, expected {PHYSX_V342_HEADER}"]
+    ignored = set()
+    if gitignore.exists():
+        ignored = {line.strip() for line in gitignore.read_text(encoding="utf-8").splitlines()
+                   if line.strip() and not line.startswith("#")}
+    errors: list[str] = []
+    prev = ""
+    rows = []
+    with open(path, newline="", encoding="utf-8") as f:
+        for i, r in enumerate(csv.DictReader(f), start=2):
+            where, rel, h = f"{path.name}:{i}", r["Path"], r["SHA256"]
+            rows.append(rel)
+            if not rel or rel.startswith("/") or "\\" in rel or ".." in rel.split("/"):
+                errors.append(f"{where}: bad path {rel!r} (relative to lib/physx, with /)")
+            if len(h) != 64 or any(c not in "0123456789abcdef" for c in h):
+                errors.append(f"{where}: SHA256 must be 64 lowercase hex digits")
+            if rel <= prev:
+                errors.append(f"{where}: rows must be sorted by path, without duplicates")
+            if f"/{rel}" not in ignored:
+                errors.append(f"{where}: add /{rel} to lib/physx/.gitignore (tools/get_physx.py generates it)")
+            prev = rel
+    for p in sorted(set(tracked or ()) & {f"lib/physx/{r}" for r in rows}):
+        errors.append(f"{p}: has PhysX v3.4.2's code, so it must not be committed (tools/get_physx.py generates it)")
+    return errors
+
+
 def git_tracked_files(root: Path = ROOT) -> list[str] | None:
     try:
         out = subprocess.run(["git", "ls-files", "-z"], cwd=root, capture_output=True, check=True)
@@ -298,12 +336,15 @@ def main(argv: list[str] | None = None) -> int:
     errors += lint_foreign(args.data / "foreign_copies.csv", names, _names(args.data / "absent_functions.csv"))
     errors += lint_areas(args.data / "areas.csv", functions)
     errors += lint_source_paths(args.data / "source_paths.csv", ROOT)
+    if args.no_git:
+        errors += lint_physx_v342(args.data / "physx_v342.csv", ROOT / "lib/physx/.gitignore")
     if not args.no_git:
         tracked = git_tracked_files()
         if tracked is None:
             print("warning: not a git checkout, skipping the tracked-files check")
         else:
             errors += lint_tracked_files(tracked)
+            errors += lint_physx_v342(args.data / "physx_v342.csv", ROOT / "lib/physx/.gitignore", tracked)
 
     for e in errors[:200]:
         print(e)

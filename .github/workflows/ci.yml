@@ -119,6 +119,16 @@ jobs:
           echo "$ver"
           [[ "$ver" =~ ^clang\ version\ 7\.0\.[0-9]+ ]] \
             || { echo "::error::toolchain/clang is not clang 7.0.x"; exit 1; }
+      # lib/physx's files with v3.4.2's code aren't in the repository (they
+      # aren't BSD-licensed). get_physx.py rebuilds them from NVIDIA's public
+      # PhysX-3.4 repository and checks their SHA-256 (data/physx_v342.csv).
+      - name: Cache the PhysX downloads
+        uses: actions/cache@v6
+        with:
+          path: toolchain/physx
+          key: physx-${{ hashFiles('data/physx_v342.csv', 'tools/get_physx.py') }}
+      - name: Generate lib/physx's v3.4.2 files
+        run: python tools/get_physx.py
       - name: Configure
         shell: bash  # -eo pipefail, so a failing cmake isn't hidden by tee
         run: |

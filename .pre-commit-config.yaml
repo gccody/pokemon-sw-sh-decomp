@@ -12,10 +12,11 @@ repos:
       - id: check-merge-conflict
       - id: check-yaml
       - id: check-json
+      # vendored code (lib/physx, the libc/libc++ headers) keeps its upstream bytes
       - id: end-of-file-fixer
-        exclude: ^data/
+        exclude: ^(data/|lib/physx/|include/libcx?x?/)
       - id: trailing-whitespace
-        exclude: ^data/
+        exclude: ^(data/|lib/physx/|include/libcx?x?/)
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.17.5
