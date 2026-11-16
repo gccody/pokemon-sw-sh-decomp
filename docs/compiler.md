@@ -27,8 +27,11 @@ lo12 half, ADR, LDR literal) masked out on both sides. This needs no names or
 addresses. Hits from all configurations together give a name → address map, so
 every configuration also gets a similarity score over the same functions.
 
-The corpus is **Lua**. It is linked into `main` (`0x7101540000`–`0x7101570000`,
-692 functions) and was compiled by Game Freak, not shipped prebuilt by a vendor.
+The corpus is **Lua**. It is linked into `main` (`0x7101548410`–`0x7101570900`
+in Sword, `0x71015484b0`–`0x71015709a0` in Shield, 517 functions) and was
+compiled by Game Freak, not shipped prebuilt by a vendor. The sweeps below
+searched `0x7101540000`–`0x7101570000`, the first estimate of the range. The
+Pokédex app sits below Lua and NEX follows it (see `data/areas.csv`).
 It is plain C, built with `_setjmp`/`_longjmp` (both imported). Nintendo's libc
 is musl-based (`__nnmusl_init_dso` is imported), so musl 1.1.24 headers serve
 as the sysroot.
@@ -90,11 +93,35 @@ clang 7.0.1.
   defaults to that. Confirm it once the first real game functions are
   decompiled. If a TU won't match, try `-O2` before assuming the source is wrong.
 - **The C++ standard version.** It's `-std=c++17` for now (clang 7 supports it).
-- **A possible vendor patch.** Nintendo ships its own clang build. One deviation
-  from upstream 7.0 has been seen: in `luaD_shrinkstack` (`0x7101550ab0`) the
-  original loads `ci->top` and `ci->previous` with two `ldr`s where upstream
-  emits one `ldp`. It may be a small source edit instead. Note any similar
-  load/store-pairing differences you find.
+- **A possible vendor patch or source edit in `ldo.c`.** With the final flags,
+  three Lua functions miss, and only because of one load pair. They are
+  `luaD_shrinkstack` (`0x7101550ab0`), `lua_resume` (`0x71015516b0`) and
+  `luaD_pcall` (`0x7101551cd0`), all `M` in `data/functions.csv`. Each inlines
+  `stackinuse()`, whose loop reads `ci->top` and `ci->previous`:
+
+  ```
+  original (both games)        clang 7.0.1
+  ldr  x10, [x9, #8]           ldp  x10, x9, [x9, #8]
+  ldr  x9, [x9, #0x10]         cmp  x8, x10
+  cmp  x8, x10                 csel x8, x10, x8, lo
+  csel x8, x10, x8, lo
+  ```
+
+  This isn't a blanket rule of Nintendo's compiler. The same form, with the
+  second destination being the base register, appears 40 times in the
+  original's Lua code. `lua_pushvalue`, which matches, has `ldp x10, x9, [x9]`.
+  Hypotheses tested on `ldo.c`:
+  - Every upstream clang from 5.0.2 to 9.0.1 (including 7.0.0 and 7.1.0)
+    emits the `ldp`.
+  - `-mllvm -aarch64-enable-ldst-opt=false` fixes `luaD_shrinkstack` but breaks
+    the other two, which need pairing elsewhere.
+  - Reading `ci->top` through a `volatile` lvalue in `stackinuse` makes all
+    three match exactly in both games. The original therefore behaves as if
+    that load can't be paired (volatile and atomic loads never are). Whether
+    that comes from a compiler patch or from a source change in Game Freak's
+    Lua is open. The trick isn't used in `lib/lua` (see rule 7 in AGENTS.md).
+
+  Note any similar load/store-pairing differences you find.
 - **The remaining Lua misses** are in libraries Game Freak changed or removed:
   `loslib`, `liolib` (`luaopen_io` creates 9 fields, not 11), `loadlib`,
   `lbitlib`, `lutf8lib`, and the `lauxlib` allocator and panic handler.
@@ -138,6 +165,9 @@ in a release configuration.**
 Compiling 143 PhysX 3.4 TUs this way reproduces **920 functions (584 KB of code)
 byte-for-byte**, and 726 of the 732 functions mapped by consensus match. With
 the global toolchain's compiler (clang 7.0.1) and the same PhysX flags, 463 match.
+These numbers and the tables below come from the repository HEAD. The binary
+is closest to the `v3.4.2` tag, which gives **928 functions (596 KB)** with the
+same compiler and flags (see "Source revision").
 
 ```
 clang 6.0.1  --target=aarch64-none-elf -mcpu=cortex-a57+fp+simd+crypto+crc
@@ -231,32 +261,106 @@ older than the game's. The Switch platform sources are referenced
 `PsSwitchPrintString.cpp`). PhysX selects them from `__NX__` (`PX_SWITCH`),
 which upstream clang doesn't define.
 
-The binary is a slightly different 3.4 revision from the public repository's
-HEAD (`5e42a5f`, "PhysX 3.4, APEX 1.4 patch release @25354359"). Two of the six
-mapped misses are source differences: in the original, `Gu::contactBoxHeightfield`
-and `contactConvexHeightfield` pass one more argument to `contactHullHeightfield`.
-The other misses are `Array<PxDebugLine>::recreate` and three deleting destructors.
-Masking addresses makes those three look like one PhysX core destructor outside
-the corpus (`0x7100021330`), so consensus mapped them onto it.
+### Source revision
+
+**The binary's PhysX is the public `v3.4.2` tag (`b99b378`, "patch release
+@24214033"), except for at least `GuContactConvexMesh.cpp`, which matches no
+public revision.**
+
+The public revisions since 3.4.1 that touch the corpus were swept with the
+final configuration (clang 6.0.1, `-O3`, PhysX flags). The two 3.4.1 updates
+`3cc1861` and `57b71f8` were only checked on `GuContactConvexMesh.cpp`.
+
+| Revision | Perforce CL | Hits | Bytes |
+|---|---|---:|---:|
+| `d1c812f` (`v3.4.1`) | 22845541 | 875 | 560,240 |
+| `983c93a` | 23307153 | 910 | 584,248 |
+| `b6db9a5` | 23472123 | 916 | 588,516 |
+| `52dae55` | 23576764 | 917 | 588,568 |
+| `238605d` | 23879214 | 925 | 591,924 |
+| **`b99b378` (`v3.4.2`)** | **24214033** | **928** | **596,024** |
+| `3f9977d` | 24698370 | 925 | 585,960 |
+| `ad993f2` | 24990349 | 923 | 585,500 |
+| `78cab22` | 25256367 | 921 | 585,468 |
+| `326e240` (= HEAD `5e42a5f` for these files) | 25354359 | 920 | 584,120 |
+
+The `v3.4.2` hits are a strict superset of those of its neighbours and of HEAD:
+
+- Over `238605d`: three `PCMConvexVsMeshContactGeneration` functions.
+- Over `3f9977d`: `epaPenetration`, `EPA::PenetrationDepth` and `Facet::silhouette`.
+- Over HEAD: those three, plus `barycentricCoordinates`, both
+  `BV4Tree(PxEMPTY)` constructors, `HeightField::getTriangleAdjacencyIndices`
+  and `ConvexTraceSegmentReport::onEvent`.
+
+Revisions before 3.4.1 are ruled out by path. They keep the Switch platform
+files under `nx/` (`foundation/nx/PxNXIntrinsics.h`), while the binary's
+`__FILE__` strings use the `switch/` names that 3.4.1 introduced (they don't
+build with the stand-ins below either).
+
+The heightfield code of `GuContactConvexMesh.cpp` compiles the same in every
+revision from 3.4.1 to HEAD, and it doesn't match the binary:
+
+- `Gu::contactBoxHeightfield` and `contactConvexHeightfield` are where the
+  "one more argument" difference shows up. It isn't a change to their source.
+  Both callers match exactly when the TU is built at `-O2` or with
+  `-DPX_CHECKED=1`. The difference therefore comes from the static
+  `contactHullHeightfield2`. Its body decides how `-O3` interprocedural
+  passes (probably argument promotion) rewrite its parameters.
+- The original `contactHullHeightfield2` (`0x71001285c0`) is 1,352 bytes. No
+  variant reproduces it (1,948 at `-O3`, 1,252 at `-O2`, 2,068 checked). It
+  calls an out-of-line 680-byte function (`0x7100129340`), roughly where `-O2`
+  outlines the `ConvexMeshContactGeneration` constructor (792 bytes).
+- The original TU also has two functions with no counterpart in the compiled
+  TU (`0x7100127250`, 1,292 bytes, and `0x7100127760`, 1,340 bytes).
+  `contactHullMesh2`, `generateLastContacts` and `generateContacts` differ as well.
+
+So the library was built from `v3.4.2` with changes to the convex-vs-mesh and
+heightfield contact code. That could be an NVIDIA platform drop or a local
+patch; nothing in the binary tells them apart. Expect more TUs outside the
+corpus to differ the same way.
+
+The other misses at HEAD are `Array<PxDebugLine>::recreate` and three deleting
+destructors. Masking addresses makes those three look like one PhysX core
+destructor outside the corpus (`0x7100021330`), so consensus mapped them onto it.
 
 ### Area boundaries
 
 These results also corrected `data/areas.csv`. The boundaries are identical in Shield.
 
-- **PhysX is `0x7100010e30`-`0x71003035e0`.** It ends with PxFoundation
+- **PhysX is `0x7100010a90`-`0x71003035e0`.** It ends with PxFoundation
   (`PsFoundation.cpp`: "Foundation object exists already..."), the Switch
   mutex and PxTask (`TaskManager.cpp`: "PxTask dispatched twice"). Its vtables
   in `.data.rel.ro` run contiguously up to the TaskManager ones. Every unique
   sweep hit lies in `0x7100021330`-`0x7100302f50`. The first `zPLR` FDE is at
-  `0x7100010f10`. Below `0x7100010e30` sits a block of one-instruction
-  `ret`/`b` thunks into PhysX that is still unresolved.
+  `0x7100010f10`.
+- **It starts with PhysX LowLevel's contact-method glue**
+  (`0x7100010a90`-`0x7100010e30`, the same in both games):
+  - `px_globals.cpp`: `PxvRegisterHeightFields` (`0x7100010a90`) stores 8
+    function pointers at offsets `0x30`/`0xa0`/`0xd8`/`0x110` of two tables. Those
+    are `[eSPHERE/eCAPSULE/eBOX/eCONVEXMESH][eHEIGHTFIELD]` of the two 7×7
+    tables `g_ContactMethodTable` and `g_PCMContactMethodTable`. It then sets
+    `gUnifiedHeightfieldCollision`. `PxvInit` (`0x7100010b20`) copies the
+    24-byte offset table, and `PxvTerm` (`0x7100010b50`) is a bare `ret` (no GPU
+    support).
+  - `PxcContactMethodImpl.cpp`: `PxcInvalidContactPair` (`0x7100010b60`,
+    `mov w0, wzr; ret`) appears in many table slots.
+  - `PxcContact.cpp`: 44 one-instruction wrappers (`b Gu::contact*`), each
+    referenced from one `R_AARCH64_RELATIVE` table slot or GOT entry. The
+    targets are the Gu functions (e.g. `0x7100010c80` → `contactBoxHeightfield`).
+    The source has 48 wrappers. The 4 missing ones are the `PxcLegacy*`
+    heightfield wrappers, which are reachable only from
+    `PxvRegisterLegacyHeightFields`, also absent (presumably dropped by the
+    linker's `--gc-sections`).
+
+  None of them need unwind personality data, so they have `zR` FDEs. That's
+  why the first `zPLR` FDE comes later.
 - **`0x71003035e0`-`0x710040f550` is Audiokinetic Wwise**, not PhysX. It has the
   thread names `AK::BankManager`, `AK::EventManager`, `AK::IOThread` and
   `AK::OpusDecodingThread`, `.bnk` loading, and "Load bank failed :
   incompatible bank version ... Wwise". It starts with static plugin-registration
   stubs (`0x71003035e0`, `0x71003f5170`) that link records into one shared list.
-  Its FDEs are all `zR`, and it has no call edges into PhysX. Its compiler
-  hasn't been identified.
+  Its FDEs are all `zR`, and it has no call edges into PhysX. See "Wwise" below
+  for what the binary says about its compiler.
 - **YEBIS starts at `0x710040f550`**, the first function that references the
   `sisdk/3.0/SDK/Core` source path. The functions after it are called only
   from YEBIS.
@@ -271,8 +375,9 @@ cd toolchain/candidates
 7z x -oclang-6.0.0 LLVM-6.0.0-win64.exe bin/clang.exe 'lib/clang/*/include'   # likewise 5.0.1
 
 cd src
-git clone --depth 1 --filter=blob:none --sparse https://github.com/NVIDIAGameWorks/PhysX-3.4.git
+git clone --filter=blob:none --sparse https://github.com/NVIDIAGameWorks/PhysX-3.4.git
 git -C PhysX-3.4 sparse-checkout set PhysX_3.4/Source PhysX_3.4/Include PxShared/src PxShared/include
+git -C PhysX-3.4 checkout v3.4.2      # the revision the binary is closest to
 # libc++ 7.0.1 headers, needed only for <new>
 curl -LO https://releases.llvm.org/7.0.1/libcxx-7.0.1.src.tar.xz
 tar xJf libcxx-7.0.1.src.tar.xz libcxx-7.0.1.src/include && mv libcxx-7.0.1.src libcxx-7.0.1
@@ -322,6 +427,28 @@ The corpus is PxFoundation's 7 portable TUs, PxTask's `TaskManager.cpp`, Common
 `Common/src/windows` aren't matched by `Common/src/*.cpp`. Each configuration
 takes about 10 seconds.
 
+Notes for reproducing:
+
+- **Keep the full history** (no `--depth 1`; `--filter=blob:none` keeps it
+  small), or fetch the tags (`git fetch --unshallow --tags`). The source
+  revision table needs it. To sweep another revision without touching the
+  checkout, extract it with
+  `git -C PhysX-3.4 archive <rev> PhysX_3.4/Source PhysX_3.4/Include PxShared/src PxShared/include | tar x -C <dir>`
+  and point `X` at `<dir>`. The first extraction of a revision downloads its
+  blobs, which takes about a minute.
+- The stand-ins only cover the `switch/` header names, so revisions before
+  3.4.1 (`nx/`) don't build with them. They're ruled out anyway (see "Source
+  revision").
+- A sweep with one compiler and one variant only maps its own hits, so `--show`
+  lists nothing. To see the misses, add a second configuration (for example
+  `-O2`) whose hits map them.
+- Compiling a PhysX TU by hand needs `-D__ELF__`. Without it the libc++ 7
+  `<__config>` stops with "Unknown object file format". The sweep adds it
+  through its base flags.
+- `compiler_sweep.py` leaves its objects in `sweep_*` directories under the
+  system temp directory (about 3 MB per full configuration). Delete them when
+  you're done.
+
 ### What's left open
 
 - **The other PhysX libraries.** Only Foundation, Task, Common and GeomUtils
@@ -329,10 +456,33 @@ takes about 10 seconds.
   extensions, cooking and cloth need their own include paths and probably more
   NX stand-ins (`switch/NpMiddlewareInfo.h`, the `PsSwitch*.cpp` sources). The
   flags should carry over, because a single CI build produced the whole library.
-- **The exact PhysX revision.** The binary differs from the repository HEAD in
-  at least the heightfield contact functions. Look for a matching 3.4.x
-  revision before treating a non-matching function as a decompilation problem.
+- **PhysX's local changes.** The base revision is `v3.4.2` (see "Source
+  revision"), but `GuContactConvexMesh.cpp` matches no public revision. Expect
+  that in other TUs too. When a PhysX function won't match, diff it against
+  the `v3.4.2` source before treating it as a decompilation problem.
 - **`PX_PROFILE`, `PX_SUPPORT_PVD` and `-std`.** Codegen doesn't tell them apart
   in this corpus. The strings say release without PVD, and `gnu++14` is clang 6's
   default.
-- **Wwise's compiler and flags**, and the thunk block at `0x7100010a90`-`0x7100010e30`.
+- **Wwise's compiler and flags** (see below).
+
+## Wwise
+
+Audiokinetic Wwise (`0x71003035e0`-`0x710040f550`, 4,179 functions) is
+proprietary, so there's no source to sweep. **Its compiler can't be identified
+without source.** What the binary shows cheaply (Sword, same in Shield):
+
+| Check | Wwise | Game code (`0x71005a0000`-`0x7100700000`) | PhysX |
+|---|---|---|---|
+| Small constants as `orr wN, wzr, #imm` / as `movz` | 5,681 / 28 | 6,383 / 20 | 11,601 / 28 |
+| Non-leaf functions with a `stp x29, x30` frame record | 2,343 of 2,609 | 3,445 of 3,879 | 4,242 of 4,974 |
+| `movi v.2d, #0` / `stp xzr, xzr` | 8 / 1,044 | 97 / 3,057 | 432 / 1,645 |
+| FDE CIEs | `zR` only | `zR` only | `zPLR` and `zR` |
+| Mangled typeinfo names in `.rodata` | none with `AK`/`Ak` | | none (`-fno-rtti`) |
+
+So Wwise was built with clang older than 9. Small constants use the `orr` form,
+and clang 9+ and GCC both emit `movz`. Frame pointers are kept, zeroing is
+GPR-only (as with `-mno-implicit-float`), and there are no exception tables and
+no RTTI. Those flags look like the game's configuration rather than PhysX's
+(`-fexceptions`), but the clang version (anything up to 8) and the `-O` level
+stay open. For comparison, YEBIS has 47 `PPFX` typeinfo names, so it was built
+with RTTI.
