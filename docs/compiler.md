@@ -128,7 +128,8 @@ The evidence:
 
 - **`check.py`, all TUs built with `-g`:** the three functions match in both
   games, and nothing else changes (515 matching, 6 not matching: the
-  `loadlib.c` functions Game Freak changed).
+  `loadlib.c` functions Game Freak changed, matched later by reconstructing
+  its `readable()` change; see "What's left open").
 - **Sweep (Lua 5.3.4, 473 mapped):** clang 7.0.0, 7.0.1 and 7.1.0 with `-g` give
   493 hits and match all 473 mapped functions (avg similarity 1.0000), against
   490 and 470 without it. `-gline-tables-only` emits no `DBG_VALUE`s and changes
@@ -329,9 +330,15 @@ No function matches only with a changed flag.
   same search written out in the caller (`0x71014f7960`, `0x71014f79b0`)
   pairs into an `ldp`, as in the original. The remaining 59 have not been
   checked one by one.
-- **The remaining Lua misses** are in libraries Game Freak changed or removed:
-  `loslib`, `liolib` (`luaopen_io` creates 9 fields, not 11), `loadlib`,
-  `lbitlib`, `lutf8lib`, and the `lauxlib` allocator and panic handler.
+- **Lua is done.** Every Lua function in the executable matches in both games
+  (517). What Game Freak changed is reproduced in `lib/lua` under
+  `#if 0 /* not in Pokémon SwSh */`: `loslib` keeps only `os.clock`, `liolib`
+  drops `popen` and `tmpfile` (`luaopen_io` creates 9 fields, not 11), and
+  `loadlib`'s `readable()` always fails, so `require` only finds
+  `package.preload` modules. What isn't in the executable at all (all of
+  `lbitlib`, `luaL_openlibs`, `luaL_newstate` with the `lauxlib` allocator and
+  panic handler, `lua_setallocf` and a few unused API functions) is listed in
+  `data/absent_functions.csv`, which `check.py` skips.
 
 ## Reproducing
 
