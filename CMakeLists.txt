@@ -13,6 +13,9 @@ project(pkmn_swsh LANGUAGES C CXX)
 
 # The global codegen flags of the toolchain file, applied on every configure.
 include(cmake/CodegenFlags.cmake)
+# Traps get the NX encoding (0xe7ffdefe, not brk #1): every object is rewritten
+# by tools/fix_traps.py after it is compiled.
+include(cmake/TrapEncoding.cmake)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
