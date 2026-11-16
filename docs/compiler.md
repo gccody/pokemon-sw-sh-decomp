@@ -145,13 +145,18 @@ a toolchain flag change.
 Two checks over the whole executable show these flags hold everywhere, not
 only in Lua:
 
-- **No implicit float.** Game code has 17,869 adjacent `stp xzr, xzr` pairs
-  against 84 `movi v.2d, #0` + `stp q`, and 3,720 `ldp x`/`stp x` 16-byte copies
-  against 155 `ldr q`/`str q` (those are explicit vector types). YEBIS and the
-  middleware show the same pattern.
-- **No exceptions in Game Freak code.** All 74,530 game FDEs use a `zR` CIE (no
-  personality, no LSDA). PhysX has 1,250 `zPLR` FDEs: NVIDIA built it with
+- **No implicit float.** Game code (`0x7100596d20`-`0x7101548410`) has 37,688
+  `stp xzr, xzr` (17,946 contiguous pairs) against 703 `movi v.2d, #0`, and
+  3,748 `ldp x`/`stp x` 16-byte copies against 155 `ldr q`/`str q` (those are
+  explicit vector types). YEBIS and the middleware show the same pattern.
+- **No exceptions in Game Freak code.** All 74,892 game FDEs use a `zR` CIE (no
+  personality, no LSDA). PhysX has 1,280 `zPLR` FDEs: NVIDIA built it with
   exceptions, so check vendor libraries separately.
+
+These counts come from `tools/fingerprint.py` (see "Codegen fingerprints" at
+the end for the definitions and the full table). Earlier versions of this
+section measured older, narrower game-code ranges with ad-hoc scripts (17,869
+pairs, 3,720 copies, 74,530 FDEs, 1,250 `zPLR`).
 
 The four functions checked by `tools/check.py` still match in both games with
 clang 7.0.1.
@@ -190,8 +195,10 @@ No function matches only with a changed flag. The two misses (`0x71014f7a50`,
 - **`-g` beyond Lua: confirmed for Game Freak's C++.** Three of the game's
   adjacent pairable `ldr` pairs whose second destination is the base are in
   getters that return a 0x20-byte value by copy (`0x71005e65b0`,
-  `0x7100601110`, `0x7100c864f0`; 63 such pairs by the scan's definition,
-  60 by the earlier count). The value's user-written copy constructor
+  `0x7100601110`, `0x7100c864f0`; 63 such pairs in game code, 62 with
+  ascending and 1 with descending offsets, against 1,339 `ldp` into the base:
+  `g_ldr_pairs`, `g_ldr_pairs_desc` and `g_ldp_base` in "Codegen
+  fingerprints"; 60 by the earlier count). The value's user-written copy constructor
   ends with a member whose own copy constructor is inlined. That leaves
   `DBG_VALUE $x0, "other", DW_OP_plus_uconst 0x18` between
   `ldr x9, [x0, #0x18]` and `ldr x0, [x0, #0x20]`, the same `aarch64-ldst-opt`
@@ -772,24 +779,45 @@ The binary decides what TLSF can't:
 
 ### Fingerprints over the whole block
 
-Sword. Shield's Wwise has the same layout.
+From `tools/fingerprint.py` (metric names in backticks, defined in "Codegen
+fingerprints"). Every figure is the same in Shield.
 
-| Check | Wwise | Game code (`0x71005a0000`-`0x7100700000`) | PhysX |
+| Check | Wwise | Game code | PhysX |
 |---|---|---|---|
-| Small constants as `orr wN, wzr, #imm` / as `movz` | 5,681 / 28 | 6,383 / 20 | 11,601 / 28 |
-| Non-leaf functions with a `stp x29, x30` frame record | 2,343 of 2,609 | 3,445 of 3,879 | 4,242 of 4,974 |
-| `movi v.2d, #0` / `stp xzr, xzr` | 8 / 1,044 | 97 / 3,057 | 432 / 1,645 |
-| FDE CIEs | `zR` only | `zR` only | `zPLR` and `zR` |
-| Mangled typeinfo names in `.rodata` | none with `AK`/`Ak` | | none (`-fno-rtti`) |
-| Adjacent pairable `ldr` pairs whose second destination is the base / `ldp` with that form | **0 / 40** | 11 / 162 | 5 / 157 |
-| `and xN, xM, #0xffffffff` feeding a 32-bit variable shift within 4 instructions | 11 in 7 functions | 0 | 1 |
+| Small constants: `orr wN, wzr, #imm` / `movz` of a logical immediate (`orr_wzr` / `movz_logical`) | 5,681 / 28 | 90,457 / 161 | 11,601 / 28 |
+| Calling functions that set up `x29` (`frame_pointer` of `calling`) | 2,609 of 2,609 | 43,978 of 43,978 | 4,974 of 4,974 |
+| `movi v.2d, #0` / `stp xzr, xzr` (`movi_zero` / `stp_xzr`) | 8 / 1,044 | 703 / 37,688 | 432 / 1,645 |
+| FDE CIEs (`fde_*`) | 4,179 `zR` | 74,892 `zR` | 6,967 `zR`, 1,280 `zPLR` |
+| Mangled typeinfo names in `.rodata` (`--typeinfo AK --typeinfo Ak`) | none | | none (`-fno-rtti`) |
+| Unpaired `ldr` pairs into the base, ascending / descending offsets / `ldp` into the base (`g_ldr_pairs` / `g_ldr_pairs_desc` / `g_ldp_base`) | **0 / 11 / 40** | 62 / 1 / 1,339 | 5 / 0 / 158 |
+| `and xD, xS, #0xffffffff` feeding a 32-bit variable shift within 4 instructions (`and_shift`, `and_shift_funcs`) | 11 in 7 functions | 0 | 1 in 1 |
 
-- **The `ldr` pair row is the `-g` fingerprint** (see "Debug info"). Both
-  `-g` builds have it: game code 11 against 162, Lua 3 against 40. Wwise has
-  none against 40. With the game's rate about 3 would be expected, so **Wwise
-  was probably built without `-g`**. That's low confidence: it's a small
-  count, and the pattern depends on the source. TLSF itself compiles the same
-  with or without `-g`.
+```sh
+python tools/fingerprint.py wwise physx \
+    game=0x7100596d20-0x7101548410,0x7100596d20-0x71015484b0 --typeinfo AK --typeinfo Ak
+```
+
+Corrections against the first version of this table, which ad-hoc scripts
+computed: the game column was a sample (`0x71005a0000`-`0x7100700000`: 6,383 /
+20, 3,445 of 3,879, 97 / 3,057, 11 / 162, 0) and is now all of game code. The
+frame-record row counted functions with a `bl` or `blr` that had `stp x29,
+x30` among their first 6 instructions (2,343 of 2,609, 3,445 of 3,879, 4,242
+of 4,974). That measured prologue scheduling, not frame pointers: every
+calling function in every region sets up `x29`. PhysX's `ldp` figure was 157.
+The other figures reproduce exactly.
+
+- **The `ldr` pair row is the `-g` fingerprint** (see "Debug info"), and it
+  doesn't settle Wwise. In the `stackinuse` order (ascending offsets) the `-g`
+  builds have it: game code 62 against 1,339 `ldp`, Lua 3 against 40. Wwise
+  has none against 40 (about 2 expected at the game's rate). But Wwise has 11
+  unpaired loads into the base in the other order, 10 of them the same inlined
+  idiom (`ldr x8, [x9, #0x80]` / `ldr x9, [x9, #0x78]`), against 1 in all of
+  game code and none in Lua, PhysX or YEBIS. clang 6.0.1 and 7.0.1 pair that
+  order in a small loop, with or without `-g` (`ldp x0, x9, [x0, #120]`), so
+  something blocks it in Wwise, and debug info is one candidate. An earlier
+  version of this section counted the ascending order only and concluded
+  "probably without `-g`". **`-g` for Wwise is undetermined.** TLSF itself
+  compiles the same with or without `-g`.
 - **The `and` row** is the clang 6 idiom TLSF shows. 3 of the 7 functions are
   TLSF. The other 4 are elsewhere in Wwise (`0x71003a9300`, `0x71003ad140`,
   `0x7100408370`, `0x710040b1b0`). It never appears in the clang 7.0.1 regions
@@ -834,7 +862,8 @@ check Shield. Each configuration takes about a second.
 
 - **6.0.0 vs 6.0.1, `-O2` vs `-O3`.** TLSF is too small to tell them apart,
   and no other public code in Wwise compiles to the same instructions.
-- **`-g`.** Probably off (fingerprint above), not proven.
+- **`-g`.** Undetermined: no `ldr` pair in the `stackinuse` order, but 11
+  unexplained unpaired loads in the other order (fingerprint above).
 - **Whether every Wwise library used the same configuration.** Only the
   memory manager's TLSF was compiled. The plugin-registration stubs and the
   codecs are separate libraries in the Wwise SDK.
@@ -843,33 +872,37 @@ check Shield. Each configuration takes about a second.
 
 ## Other middleware
 
-Fingerprints with the same definitions as above (Sword):
+The same `tools/fingerprint.py` metrics as the Wwise table. Every figure is
+the same in Shield.
 
-| Region | Small consts `movz` / `orr` | Frame records (calling functions) | `movi #0` / `stp xzr, xzr` | FDEs `zR` / `zPLR` | `-g` `ldr` pairs / `ldp` |
+| Region | `movz_logical` / `orr_wzr` | `frame_pointer` of `calling` | `movi_zero` / `stp_xzr` | `fde_zR` / `fde_zPLR` | `g_ldr_pairs` / `g_ldr_pairs_desc` / `g_ldp_base` |
 |---|---|---|---|---|---|
-| YEBIS (`0x710040f550`-`0x7100596d20`) | 78 / 9,677 | 2,380 of 2,399 | 2 / (1,059)* | 5,002 / 0 | **0 / 250** |
-| After Lua (`0x7101570900`-`0x71017ec260`) | 380 / 15,358 | 6,329 of 6,344 | 116 / 1,123 | 10,846 / 1 | 1 / 868 |
+| YEBIS (`0x710040f550`-`0x7100596d20`) | 78 / 9,677 | 3,014 of 3,014 | 2 / 4,931 | 5,002 / 0 | **0 / 0 / 250** |
+| After Lua (`0x7101570900`-`0x71017ec260`) | 380 / 15,358 | 6,758 of 6,758 | 116 / 2,855 | 10,846 / 1 | 1 / 0 / 868 |
 
-In this table, "small constants" counts only 32-bit immediates that `orr`
-can encode, "frame records" counts functions with a `bl` whose first 12
-instructions hold `stp x29, x30`, and `stp xzr, xzr` counts single
-instructions. That's why the numbers differ from the Wwise table above.
-Shield gives the same YEBIS row.
+```sh
+python tools/fingerprint.py yebis=0x710040f550-0x7100596d20 middleware --typeinfo PPFX
+```
 
-\* The YEBIS row was first measured over `0x710040f550`-`0x71005a0000`,
-which included 181 game functions (see "Area boundaries" under PhysX). The
-other columns were measured again over the corrected range. The old numbers
-were 78 / 9,819, 2,455 of 2,474, 3 `movi`, 5,183 FDEs and 5 / 255 `-g` pairs,
-and all of them reproduce over the old range. The `stp xzr, xzr` count
-doesn't reproduce from the definition above, so 1,059 is the old figure and
-wasn't measured again.
+Corrections against the first version of this table: its frame-record column
+counted functions with a `bl` whose first 12 instructions hold `stp x29, x30`
+(2,380 of 2,399 and 6,329 of 6,344); every calling function sets up `x29`.
+Its `stp xzr, xzr` column (1,059 for YEBIS, 1,123 after Lua) matched no
+definition that could be found; with the Wwise table's definition the counts
+are 4,931 and 2,855. The other figures reproduce exactly. Over the first,
+wrong YEBIS range (`0x710040f550`-`0x71005a0000`, 181 game functions more)
+the tool gives the old figures too: 78 / 9,819, 3 `movi`, 5,183 FDEs and 5 /
+255 `-g` pairs.
 
-- **YEBIS has no `-g` `ldr` pair.** All 5 counted over the old range are in
-  the game functions after `0x7100596d20`. At the game's rate (11 against
-  162) about 17 would be expected against 250 `ldp`, so **YEBIS was probably
-  built without `-g`**, like Wwise and the libraries after Lua. The
-  confidence is low for the same reasons as for Wwise. zlib compiles the same
-  with or without `-g`, so it doesn't settle the question.
+- **YEBIS has no `-g` `ldr` pair**, in either order. All 5 counted over the
+  old range are in the game functions after `0x7100596d20`. At the game's rate
+  (62 against 1,339) about 12 would be expected against 250 `ldp`, so **YEBIS
+  was probably built without `-g`**, like the libraries after Lua (1 against
+  868, about 40 expected). The confidence is low: the pattern depends on the
+  source. zlib compiles the same with or without `-g`, so it doesn't settle
+  the question. YEBIS keeps RTTI: 47 typeinfo names have a `PPFX` component
+  (`--typeinfo PPFX`; 46 start with it, one is an `SiSDK3::SiArray` of a
+  `PPFX` type).
 
 - **YEBIS embeds zlib 1.2.5**: the `"1.2.5"` version string and inflate's
   `header crc mismatch`, used by SiIO's `SiIO_Codec_ZLib_Impl.h` (the code is
@@ -883,7 +916,7 @@ wasn't measured again.
   least YEBIS's zlib was built with the game's toolchain, unlike Wwise and
   PhysX. Silicon Studio may have used the same compiler, or Game Freak may have
   built YEBIS from source. Nothing here tells those apart. YEBIS also keeps RTTI
-  (47 `PPFX` typeinfo names) and has no exception tables.
+  (47 `PPFX` typeinfo names, see above) and has no exception tables.
 
   ```sh
   cd toolchain/candidates/src && curl -LO https://zlib.net/fossils/zlib-1.2.5.tar.gz && tar xzf zlib-1.2.5.tar.gz && cd ../../..
@@ -901,8 +934,249 @@ wasn't measured again.
   `orr`-form constants (clang older than 9), frame pointers, GPR-only zeroing
   and no exception tables (1 `zPLR` FDE). Only 1 `-g` `ldr` pair against 868
   `ldp`, so these libraries probably weren't built with `-g`. NEX's source isn't
-  public. The block does contain public code that could identify Nintendo's
-  SDK compiler later: libcurl 7.55.1 (`libcurl/7.55.1`,
-  `NintendoSDK_libcurl-7_3_2-Release`), a zlib 1.2.11 build
-  (`1.2.11.f-NINTENDO-SDK-v1`) and LZ4 (`nlib_LZ4-19_0226`). Those weren't
-  swept here.
+  public. Its libcurl 7.55.1 identifies the SDK's compiler, see "Nintendo SDK
+  middleware".
+
+## Nintendo SDK middleware
+
+**Result: Nintendo's SDK 7.3.2 libraries were built with clang 7.0.x at `-O3`
+and the game's codegen flags, the same compiler as Game Freak's code (unlike
+PhysX and Wwise).** Two public libraries show it, and they agree:
+
+| Library | Where | Best | Hits | Bytes | Exact of mapped |
+|---|---|---|---:|---:|---:|
+| libcurl 7.55.1 (`NintendoSDK_libcurl-7_3_2-Release`) | `main`, after Lua | clang 7.0.0 / 7.0.1 / 7.1.0 `-O3` | 76 | 18,828 | 71 of 72 (Shield 71 of 71) |
+| zlib 1.2.11 (`NintendoSDK_libz-7_3_2-Release`) | the `sdk` NSO, not `main` | clang 7.0.0 / 7.0.1 / 7.1.0 `-O3` | 58 | 35,604 | 55 of 55 (Shield the same) |
+
+Confidence: **high** for the compiler major version and `-O3` (both libraries,
+every mapped zlib function, two independent SDK components, both games).
+7.0.0, 7.0.1 and 7.1.0 can't be told apart here either. Nintendo's own NX clang
+is presumably a vendor build of 7.0; these corpora show no difference from
+upstream. `-g` is **not determined**: both corpora compile the same with or
+without it. The fingerprints (1 `-g` `ldr` pair against 868 `ldp` after Lua)
+suggest no debug info, at low confidence.
+
+### What is in the block
+
+The `SDK MW+<vendor>+<library>` strings in `main` list the middleware linked
+in (`nlib_LZ4-19_0226`, `PhysX-3_4_2-release`, `NEX-4_6_8`, ...). Of the
+public libraries named in the post-Lua block:
+
+- **libcurl 7.55.1** is in `main` (`libcurl/7.55.1` is referenced from
+  `0x7101776e40`, the version string's builder; its neighbours reference the
+  other curl strings). It is the corpus for the table below.
+- **zlib 1.2.11 is not in `main`.** `main` only holds `1.2.11.f-NINTENDO-SDK-v1`,
+  the `ZLIB_VERSION` that its callers pass to `inflateInit2_`/`deflateInit2_`
+  (`0x710165dbb0`, `0x71016615f0`, `0x7101763df0`, ...): upstream zlib has
+  no counterpart there (best similarity below 0.62, mostly below 0.3). The
+  library itself, with its `deflate 1.2.11 Copyright` and `inflate 1.2.11
+  Copyright` strings, is in the `sdk` NSO (`nnSdk-7_3_2-Release`). The zlib
+  in `main` (`incorrect header check`) is YEBIS's 1.2.5.
+- **LZ4 code isn't found in `main`.** Nothing in `main` builds LZ4's hash
+  prime (`0x9E3779B1`, also xxHash's), and no `lz4.c` 1.8.3 function, the
+  decompressors included, has a counterpart above similarity 0.36. Only the
+  `nlib_LZ4` tag is there. It isn't in the `sdk` NSO's strings either, so its
+  version wasn't identified and it wasn't swept.
+
+### libcurl 7.55.1 (`main`, `0x7101570900`-`0x71017ec260`)
+
+103 TUs of `lib/`, built with a minimal `curl_config.h` (a POSIX target with
+musl headers). 510 compiled functions, 72 mapped. Only 76 reproduce, because
+most of libcurl depends on the configuration (which protocols, TLS backend,
+resolver), and Nintendo's isn't public. The functions that don't depend on it
+match exactly, and the version separation is clear:
+
+| Compiler | `-O3` hits | `-O3` bytes | `-O3` avg similarity | `-O2` hits | `-Os` hits | `-O3 -g0` hits |
+|---|---:|---:|---:|---:|---:|---:|
+| clang 3.9.1 | 17 | 624 | 0.765 | 17 | 17 | 16 |
+| clang 4.0.1 | 16 | 496 | 0.764 | 16 | 16 | 15 |
+| clang 5.0.1 / 5.0.2 | 21 | 896 | 0.807 | 19 | 17 | 20 |
+| clang 6.0.0 / 6.0.1 | 25 | 1,536 | 0.872 | 22 | 20 | 24 |
+| **clang 7.0.0 / 7.0.1 / 7.1.0** | **76** | **18,828** | **0.990** | 56 | 42 | 76 |
+| clang 8.0.0 / 8.0.1 | 59 | 8,512 | 0.944 | 47 | 37 | 58 |
+| clang 9.0.1 | 28 | 1,880 | 0.850 | 25 | 20 | 28 |
+| clang 10.0.0 | 22 | 1,248 | 0.754 | 20 | 17 | 21 |
+| clang 11.0.0 | 21 | 1,192 | 0.741 | 19 | 16 | 20 |
+
+(6.0.0 and 6.0.1 differ only in average similarity, 0.8716 and 0.8731.) The
+one mapped miss, `Curl_rand_hex` (512 bytes), was mapped by another
+configuration to a 168-byte function at `0x7101766680`. It's a mapping
+artifact. In Shield all 71 mapped functions match.
+
+Flags (clang 7.0.1, each row changes one thing):
+
+| Variant | libcurl hits | zlib hits | What it shows |
+|---|---:|---:|---|
+| **`-O3`, the game's flags** | **76** | **58** | |
+| `-O2` / `-Os` | 56 / 42 | 30 / 7 | `-O3`. |
+| `-fstrict-aliasing` | 70 | 40 | Strict aliasing off, as in the game. |
+| `-fno-builtin` | 64 | 52 | Builtins on. |
+| `-fstrict-aliasing -fno-builtin` (PhysX's differences) | 60 | 36 | Not PhysX's configuration. |
+| `-fomit-frame-pointer` | 35 | 32 | |
+| `-mimplicit-float` | 65 | 41 | |
+| `-fno-pic` | 67 | 49 | |
+| `-mcpu=generic` | 28 | 14 | Cortex-A57 model. |
+| `-fvisibility=hidden` | 76 | 55 | zlib: default visibility. |
+| `-g0`, `-fno-unwind-tables`, `-U__ELF__`, `-DNDEBUG` | 76 | 58 | Not distinguishable (with `-g` the CFI is emitted anyway). |
+
+### zlib 1.2.11 (the `sdk` NSO)
+
+Unmodified upstream 1.2.11, 15 TUs (114 compiled functions, 55 mapped). Every
+mapped function matches with clang 7.0.x `-O3`, with or without `-g`:
+
+| Compiler | `-O3` hits | `-O3` bytes | `-O3` avg similarity | `-O2` hits | `-Os` hits |
+|---|---:|---:|---:|---:|---:|
+| clang 3.9.1 | 0 | 0 | 0.564 | 0 | 0 |
+| clang 4.0.1 | 2 | 396 | 0.651 | 2 | 1 |
+| clang 5.0.1 / 5.0.2 | 13 | 2,668 | 0.831 | 12 | 3 |
+| clang 6.0.0 / 6.0.1 | 17 | 4,020 | 0.886 | 15 | 4 |
+| **clang 7.0.0 / 7.0.1 / 7.1.0** | **58** | **35,604** | **1.000** | 30 | 7 |
+| clang 8.0.0 / 8.0.1 | 41 | 13,436 | 0.915 | 27 | 6 |
+| clang 9.0.1 | 1 | 72 | 0.645 | 1 | 1 |
+| clang 10.0.0 / 11.0.0 | 1 | 72 | 0.576 / 0.564 | 1 | 1 |
+
+`-g0` gives the same hits for every version except clang 6.0.x (16).
+
+### Reproducing
+
+```sh
+cd toolchain/candidates/src
+curl -LO https://curl.se/download/curl-7.55.1.tar.xz && tar xJf curl-7.55.1.tar.xz curl-7.55.1/lib curl-7.55.1/include
+curl -LO https://zlib.net/fossils/zlib-1.2.11.tar.gz && tar xzf zlib-1.2.11.tar.gz
+cd ../../..
+```
+
+libcurl needs a `curl_config.h`. Put this one in
+`toolchain/candidates/src/curl-nx-config/curl_config.h`: the usual
+`HAVE_*_H` headers (`ASSERT ERRNO FCNTL INTTYPES LIMITS LOCALE STDBOOL STDINT
+STDLIB STRING STRINGS SYS_SOCKET SYS_STAT SYS_TIME SYS_TYPES SYS_SELECT TIME
+UNISTD NETINET_IN NETDB ARPA_INET POLL`), `STDC_HEADERS`, `HAVE_BOOL_T`,
+`HAVE_STRUCT_TIMEVAL`, `HAVE_LONGLONG`, `HAVE_VARIADIC_MACROS_C99`/`_GCC`,
+`HAVE_SOCKET SELECT RECV SEND STRDUP STRTOLL GETTIMEOFDAY SIGNAL
+FCNTL_O_NONBLOCK INET_PTON SOCKADDR_IN6_SIN6_SCOPE_ID
+STRUCT_SOCKADDR_STORAGE`, `ENABLE_IPV6`, `SIZEOF_INT 4`, `SIZEOF_SHORT 2`,
+`SIZEOF_LONG`/`SIZE_T`/`TIME_T`/`OFF_T 8` (not `SIZEOF_CURL_OFF_T`, which
+`curl_setup.h` rejects), the `RECV_TYPE_*`/`SEND_TYPE_*` of POSIX
+`recv`/`send` (`int`, `void *`, `size_t`, `int`, returning `ssize_t`;
+`SEND_QUAL_ARG2 const`), `RETSIGTYPE void`, `OS "aarch64-nintendo-switch"`
+and `CURL_DISABLE_LDAP`.
+
+```sh
+C=toolchain/candidates; U=$C/src/curl-7.55.1
+python tools/compiler_sweep.py --compiler "$C/clang-*" \
+    --variant O3=-O3 --variant O2=-O2 --variant Os=-Os --variant O3g0="-O3 -g0" \
+    --src "$U/lib/*.c" --range 0x7101570900-0x71017ec260 \
+    -- -isystem $C/sysroot/include -DHAVE_CONFIG_H -DBUILDING_LIBCURL -DCURL_STATICLIB \
+       -I $C/src/curl-nx-config -I $U/include -I $U/lib
+```
+
+Shield: `--game shield --range 0x71015709a0-0x71017e8f8c`. For the flag table,
+use `--compiler $C/clang-7.0.1` and variants such as `"strict=-O3
+-fstrict-aliasing"`.
+
+`compiler_sweep.py` only reads `main`. To sweep zlib against the `sdk` NSO,
+replace its module loader from a small wrapper (run from the repository
+root):
+
+```python
+# sweep_module.py: python sweep_module.py sdk <compiler_sweep.py arguments>
+import sys
+sys.path.insert(0, "tools")
+import common, compiler_sweep
+from nx.ehframe import functions_from_eh_frame
+from nx.nso import Nso
+
+module = sys.argv.pop(1)
+
+def load(game):
+    nso = Nso((common.ORIGINAL / game / module).read_bytes())
+    img = nso.image()
+    funcs = functions_from_eh_frame(img, nso.mod0.eh_frame_hdr_start)
+    return {"image": img, "functions": sorted(funcs + common._fde_less_functions(img, funcs))}
+
+compiler_sweep.load_module = load
+sys.exit(compiler_sweep.main())
+```
+
+```sh
+Z=toolchain/candidates/src/zlib-1.2.11
+python sweep_module.py sdk --compiler 'toolchain/candidates/clang-*' \
+    --variant O3=-O3 --variant O2=-O2 --variant Os=-Os --variant O3g0="-O3 -g0" \
+    --src "$Z/[a-di-z]*.c" --src "$Z/gz*.c" \
+    -- -isystem toolchain/candidates/sysroot/include
+```
+
+Without `--range` it searches the whole NSO (26,669 functions). Add `--game
+shield` for Shield. Each libcurl configuration takes about 15 seconds, each
+zlib one about 3.
+
+### What's left open
+
+- **NEX, Pia and the nn SDK code itself.** They aren't public. The SDK's
+  libraries share one build system, so clang 7.0 `-O3` with the game's flags
+  is the working assumption for all of them, but only libcurl and zlib were
+  measured.
+- **LZ4 (`nlib_LZ4-19_0226`).** No LZ4 code was found in `main` (see above).
+- **The rest of libcurl.** Needs Nintendo's configuration (protocols, TLS and
+  resolver backends) to compile the same functions.
+- **`-g`.** Neither corpus distinguishes it.
+- **A `--module` option for `compiler_sweep.py`** would replace the wrapper.
+
+## Codegen fingerprints
+
+`tools/fingerprint.py` counts compiler idioms over an address range, per game,
+without any source code. Its docstring defines every metric exactly. A
+function belongs to a range when its start address is in it, and only its own
+instructions are scanned. Targets are `data/areas.csv` names or
+`label=LO-HI[,SHLO-SHHI]` (Sword, then optionally Shield). Without a Shield
+range, the tool reads the area's Shield columns (when `areas.csv` has them) or
+pairs the Sword range with Shield through `data/functions.csv`.
+
+```sh
+python tools/fingerprint.py --game sword physx wwise yebis=0x710040f550-0x7100596d20 \
+    game=0x7100596d20-0x7101548410 lua=0x7101548410-0x7101570900 middleware --typeinfo PPFX
+```
+
+(`yebis` and `game` are explicit because `data/areas.csv` still has the old
+boundary `0x71005a0000`.) Sword:
+
+| Metric | PhysX | Wwise | YEBIS | Game code | Lua | After Lua |
+|---|---:|---:|---:|---:|---:|---:|
+| `functions` | 8,247 | 4,179 | 5,002 | 74,892 | 517 | 10,848 |
+| `calling` | 4,974 | 2,609 | 3,014 | 43,978 | 432 | 6,758 |
+| `frame_pointer` | 4,974 | 2,609 | 3,014 | 43,978 | 432 | 6,758 |
+| `orr_wzr` | 11,601 | 5,681 | 9,677 | 90,457 | 1,559 | 15,358 |
+| `movz_logical` | 28 | 28 | 78 | 161 | 12 | 380 |
+| `movi_zero` | 432 | 8 | 2 | 703 | 0 | 116 |
+| `stp_xzr` | 1,645 | 1,044 | 4,931 | 37,688 | 27 | 2,855 |
+| `stp_xzr_pairs` | 198 | 89 | 1,160 | 17,946 | 12 | 1,120 |
+| `stp_q` | 1,286 | 163 | 52 | 804 | 12 | 242 |
+| `ldp_stp_x` | 13 | 343 | 364 | 3,748 | 78 | 405 |
+| `ldr_str_q` | 56 | 9 | 0 | 155 | 0 | 27 |
+| `g_ldr_pairs` | 5 | 0 | 0 | 62 | 3 | 1 |
+| `g_ldr_pairs_desc` | 0 | 11 | 0 | 1 | 0 | 0 |
+| `g_ldp_base` | 158 | 40 | 250 | 1,339 | 40 | 868 |
+| `and_shift` | 1 | 11 | 0 | 0 | 0 | 0 |
+| `and_shift_funcs` | 1 | 7 | 0 | 0 | 0 | 0 |
+| `fde_zPLR` | 1,280 | 0 | 0 | 0 | 0 | 1 |
+| `fde_zR` | 6,967 | 4,179 | 5,002 | 74,892 | 517 | 10,846 |
+| `typeinfo_PPFX` (module-wide) | 47 | | | | | |
+
+Without `--game sword` (both games), Shield gives the same figures except
+`orr_wzr` in game code (90,461). The Shield ranges are
+`0x7100596d20`-`0x71015484b0` (game code) and `0x71015484b0`-`0x71015709a0`
+(Lua); add them after a comma. The rest pair through `functions.csv`.
+
+What separates the regions:
+
+- **clang ≤ 8 vs ≥ 9:** `orr_wzr` against `movz_logical`. Every region is
+  overwhelmingly `orr`, so nothing here was built with clang 9 or later.
+- **clang 6 vs 7:** `and_shift` (only Wwise and one PhysX function), and the
+  sweeps above. It depends on the source, so its absence proves nothing.
+- **`-fexceptions`:** `fde_zPLR` (PhysX only, plus one FDE after Lua).
+- **Frame pointers:** `frame_pointer` equals `calling` everywhere.
+- **Implicit float:** `movi_zero` and `ldr_str_q` stay small next to
+  `stp_xzr` and `ldp_stp_x`. PhysX's 432 `movi` and 1,286 `stp q` are its
+  explicit SIMD math.
+- **`-g`:** `g_ldr_pairs` against `g_ldp_base` (low confidence, see "Debug
+  info" and Wwise).
