@@ -256,6 +256,10 @@ from `tests/conftest.py`. Anything that needs the real executables belongs in
   `check.py: resolve GOT loads through the PLT`), with a body when the reason
   isn't obvious.
 - CI must be green before merge.
+- By opening a PR, you agree that your contribution is released under the
+  project's [MIT License](LICENSE). Code under `lib/` is the exception: it
+  keeps its upstream license. When you add upstream source there, add the
+  library's license file next to it (for example `lib/physx/LICENSE.md`).
 
 ## Using an AI assistant
 

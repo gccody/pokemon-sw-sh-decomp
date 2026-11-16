@@ -153,3 +153,14 @@ python tools/check.py                                     # matching, which CI c
 Using an AI coding assistant? [AGENTS.md](AGENTS.md) has the project rules and
 commands written for assistants. Claude Code picks it up through
 [CLAUDE.md](CLAUDE.md).
+
+## License
+
+The code, tooling and documentation in this repository are released under the
+[MIT License](LICENSE).
+
+That covers only this project's own work. It grants no rights to Pokémon Sword
+and Shield or any other Nintendo, Game Freak or The Pokémon Company game,
+asset or trademark. You still need your own legally obtained copy of the game.
+Third-party code under `lib/` (Lua, sol2, PhysX ...) stays under its upstream
+license.

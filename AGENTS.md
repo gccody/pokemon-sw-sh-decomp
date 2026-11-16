@@ -49,7 +49,10 @@ count. A function is done only when `tools/check.py` reports `OK`.
    `cmake/LibrarySettings.cmake`. A missing library clang (e.g. PhysX's 6.0.1)
    fails the configure: install it with `tools/get_llvm.py --compiler <ver>`,
    don't switch on `PKMN_ALLOW_LIBRARY_COMPILER_FALLBACK` to get past it.
-7. Don't force matches with `volatile`, inline asm or meaningless temporaries.
+7. The project is MIT-licensed (`LICENSE`). Code under `lib/` keeps its
+   upstream license. Don't copy code from sources whose license isn't
+   MIT-compatible, and don't copy from leaked material at all.
+8. Don't force matches with `volatile`, inline asm or meaningless temporaries.
    If it won't match with natural code, submit it as `M`/`m` with
    `// NON_MATCHING: <reason>`.
 
@@ -89,7 +92,7 @@ cmake/                 toolchain (global flags) + LibrarySettings.cmake (per-lib
 include/types.h        u8..u64, f32, PKMN_SIZE_ASSERT, PKMN_OFFSET_ASSERT
 include/pkmn/version.h PKMN_SW_SH, PKMN_IS_SWORD, PKMN_IS_SHIELD
 src/                   Game Freak code (src/unsorted/ until a subsystem is known)
-lib/                   third-party code (lua, sol2, physx...): upstream formatting, not clang-formatted
+lib/                   third-party code (lua, sol2, physx...): upstream formatting and license, not clang-formatted
 tools/                 Python tooling; tools/nx/ = XCI/NCA/NSO/eh_frame/AArch64 helpers
 tests/                 pytest suite for tools/ (must not need game files)
 docs/                  compiler identification, Sword/Shield version notes
