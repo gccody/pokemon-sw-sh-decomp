@@ -158,18 +158,51 @@ clang 7.0.1.
 
 ## What's left open
 
-- **The `-O` level for Game Freak's C++ code.** Lua is `-O3`, and the toolchain
-  defaults to that. Confirm it once the first real game functions are
-  decompiled. If a TU won't match, try `-O2` before assuming the source is wrong.
-- **The C++ standard version.** It's `-std=c++17` for now (clang 7 supports it).
-- **`-g` beyond Lua.** It's in the global flags because of the evidence in
-  "Debug info". Game Freak's C++ hasn't been tested with it yet (the four C++
-  functions checked so far match either way). If a game function misses only
-  in load/store pairing or in scheduling around a variable's last use, check
-  that the build really has `-g` before changing the source. The game code has
-  60 adjacent pairable `ldr` pairs whose second destination is the base,
-  against 1,334 such `ldp`. Debug info may explain some of those 60, but they
-  haven't been checked one by one.
+Game Freak's C++ was tested with 23 small decompiled game functions
+(all `common`: getters and setters, struct copies, delegate calls and invokers,
+`find_if`-style loops, a float function). 21 match in both games with the
+global flags. Each TU was also recompiled with one flag changed and checked
+against both games:
+
+| Variant | OK of 23 | Lost |
+|---|---|---|
+| global flags (`-O3 -g -std=c++17`) | 21 | – |
+| `-g0` or `-gline-tables-only` | 18 | `0x71005e65b0`, `0x7100601110`, `0x7100c864f0` |
+| `-O2` or `-Os` | 20 | `0x71014f7960` |
+| `-O1` | 11 | 10 |
+| `-std=c++11`, `c++14`, `gnu++14`, `gnu++17` | 21 | none |
+
+No function matches only with a changed flag. The two misses (`0x71014f7a50`,
+`0x71014f7fe0`) miss under every variant.
+
+- **The `-O` level for Game Freak's C++ code: `-O3`, narrowly.** One function
+  separates it from `-O2` and `-Os`: at those levels a debug value of an
+  inlined iterator survives in `0x71014f7960` and keeps its begin/end loads
+  apart (two `ldr`). At `-O3` they become the original's `ldp`. That is one
+  function, through the same debug-info mechanism as `-g` below. More game
+  functions should confirm it, so if a TU won't match, `-O2` is still worth a
+  try before assuming the source is wrong.
+- **The C++ standard version: not discriminated.** c++11, c++14, c++17,
+  gnu++14 and gnu++17 give identical code for all 23 functions. `-std=c++17`
+  stays as the default. Only code using a feature whose codegen differs
+  between standards (guaranteed copy elision, aligned `new`, inline
+  variables) could tell them apart.
+- **`-g` beyond Lua: confirmed for Game Freak's C++.** Three of the game's
+  adjacent pairable `ldr` pairs whose second destination is the base are in
+  getters that return a 0x20-byte value by copy (`0x71005e65b0`,
+  `0x7100601110`, `0x7100c864f0`; 63 such pairs by the scan's definition,
+  60 by the earlier count). The value's user-written copy constructor
+  ends with a member whose own copy constructor is inlined. That leaves
+  `DBG_VALUE $x0, "other", DW_OP_plus_uconst 0x18` between
+  `ldr x9, [x0, #0x18]` and `ldr x0, [x0, #0x20]`, the same `aarch64-ldst-opt`
+  case as Lua's `stackinuse`. All three match only with `-g`. With `-g0` or
+  `-gline-tables-only` they become `ldp x9, x0, [x0, #0x18]`. A fourth,
+  `0x71014f7a50`, reproduces the two `ldr` only with `-g` too (a `DBG_VALUE` of
+  begin in a register between the loads), though its comparison order doesn't
+  match yet. Whether a pair stays unpaired depends on which inlined debug
+  values survive, so it follows the source's inlining structure: the same
+  begin/end loads pair in `0x71014f7960`, where the search is one inline
+  helper deeper. The remaining 59 have not been checked one by one.
 - **The remaining Lua misses** are in libraries Game Freak changed or removed:
   `loslib`, `liolib` (`luaopen_io` creates 9 fields, not 11), `loadlib`,
   `lbitlib`, `lutf8lib`, and the `lauxlib` allocator and panic handler.
