@@ -105,7 +105,11 @@ Look at `src/pkmn/Version.cpp`, `src/unsorted/Unk_7eef40.*` and
 Every TU is built with the same global flags (`cmake/toolchain-nx64.cmake`),
 and the reasons for each one are in [docs/compiler.md](docs/compiler.md).
 **Those flags never change to make one function match.** If something won't
-match, look at the source first.
+match, look at the source first. When the list does change (with evidence), the
+next build picks it up: the toolchain file is a configure dependency, so
+`cmake --build`, `ninja` and `check.py` reconfigure and recompile every TU
+without `--fresh`, and `check.py` stops if a build dir isn't using the current
+flags.
 
 Some vendored libraries were built with a different configuration, such as
 Lua's `LUA_COMPAT_5_2` or PhysX's `-fexceptions`. Their settings are per

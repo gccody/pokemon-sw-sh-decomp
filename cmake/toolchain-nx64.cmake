@@ -51,8 +51,8 @@ set(PKMN_CODEGEN_FLAGS
   -O3
   -g                                    # debug info changes LLVM 7 codegen: DBG_VALUEs block some ldp pairing
 )
-string(REPLACE ";" " " _flags "${PKMN_CODEGEN_FLAGS}")
-set(CMAKE_C_FLAGS_INIT   "${_flags}")
-set(CMAKE_CXX_FLAGS_INIT "${_flags}")
+# cmake/CodegenFlags.cmake puts them at the front of CMAKE_<LANG>_FLAGS on
+# every configure, so editing this list takes effect on the next build (this
+# file is a configure dependency), without a fresh build dir.
 set(CMAKE_C_OUTPUT_EXTENSION   .o)
 set(CMAKE_CXX_OUTPUT_EXTENSION .o)

@@ -11,6 +11,9 @@ endif()
 
 project(pkmn_swsh LANGUAGES C CXX)
 
+# The global codegen flags of the toolchain file, applied on every configure.
+include(cmake/CodegenFlags.cmake)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)

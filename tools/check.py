@@ -25,11 +25,18 @@ emitted by several translation units, and the linker keeps one of them.
 check.py keeps one copy for each distinct code+relocations, and a function
 matches only if every distinct copy matches the original (see add_definition).
 Two strong definitions of one symbol are an error.
+
+Before checking, each build dir must use the global codegen flags of
+cmake/toolchain-nx64.cmake (PKMN_CODEGEN_FLAGS): its last configure recorded
+the same list, and every command in its compile_commands.json contains it, in
+order. Otherwise the objects were built with other flags and check.py stops.
 """
 from __future__ import annotations
 
 import argparse
 import csv
+import json
+import re
 import shutil
 import struct
 import subprocess
@@ -61,6 +68,7 @@ SHF_STRINGS, SHF_EXECINSTR = 0x20, 0x4
 GRP_COMDAT = 1
 
 ABSENT_CSV = ROOT / "data" / "absent_functions.csv"
+TOOLCHAIN_FILE = ROOT / "cmake" / "toolchain-nx64.cmake"
 
 
 def read_absent(path: Path = ABSENT_CSV) -> dict[str, str]:
@@ -202,11 +210,65 @@ def _symbol_name(s, source: str) -> str:
     return symbols.qualify(s.name, source, local and bool(s.name))
 
 
+def codegen_flags(toolchain: Path = TOOLCHAIN_FILE) -> list[str]:
+    """PKMN_CODEGEN_FLAGS of the toolchain file, in order."""
+    m = re.search(r"^set\(PKMN_CODEGEN_FLAGS\s(.*?)^\)", toolchain.read_text(encoding="utf-8"), re.S | re.M)
+    if not m:
+        raise SystemExit(f"error: no set(PKMN_CODEGEN_FLAGS ...) in {toolchain}")
+    flags = [w for line in m.group(1).splitlines() for w in line.split("#", 1)[0].split()]
+    if not flags or any(c in w for w in flags for c in "\"'$;()"):
+        raise SystemExit(f"error: can't read PKMN_CODEGEN_FLAGS in {toolchain} (plain flags only: no quotes, variables or generator expressions)")
+    return flags
+
+
+def _has_run(words: list[str], run: list[str]) -> bool:
+    n = len(run)
+    return any(words[i:i + n] == run for i in range(len(words) - n + 1))
+
+
+def stale_flag_sources(compile_commands: list[dict], flags: list[str]) -> list[str]:
+    """Sources whose compile command lacks `flags` as one contiguous run."""
+    stale = []
+    for e in compile_commands:
+        words = e["arguments"] if "arguments" in e else e["command"].split()
+        if not _has_run(words, flags):
+            stale.append(e["file"])
+    return stale
+
+
+def configured_codegen_flags(cache: Path) -> list[str] | None:
+    """PKMN_CODEGEN_FLAGS a build dir was last configured with (cmake/CodegenFlags.cmake
+    records them in CMakeCache.txt), or None if it has no record."""
+    prefix = "PKMN_CODEGEN_FLAGS_CONFIGURED:INTERNAL="
+    for line in cache.read_text(encoding="utf-8", errors="replace").splitlines():
+        if line.startswith(prefix):
+            return line[len(prefix):].split(";")
+    return None
+
+
+def check_codegen_flags(build_dir: Path, flags: list[str]) -> str | None:
+    """Error message if build_dir isn't configured and compiled with `flags`, else None."""
+    cc, cache = build_dir / "compile_commands.json", build_dir / "CMakeCache.txt"
+    if not cc.exists() or not cache.exists():
+        return f"{build_dir} isn't configured: build first (cmake --preset {build_dir.name})"
+    fix = (f"Rebuild (`cmake --build --preset {build_dir.name}`, or check.py without --no-build); "
+           f"if that doesn't help, reconfigure with `cmake --preset {build_dir.name} --fresh`.")
+    configured = configured_codegen_flags(cache)
+    if configured != flags:
+        was = "no record of them" if configured is None else " ".join(configured)
+        return (f"{build_dir} is configured with other codegen flags than the toolchain file "
+                f"(PKMN_CODEGEN_FLAGS):\n    configured: {was}\n    toolchain:  {' '.join(flags)}\n{fix}")
+    stale = stale_flag_sources(json.loads(cc.read_text()), flags)
+    if stale:
+        return (f"{len(stale)} of the sources in {build_dir} (e.g. {stale[0]}) are not compiled with the "
+                f"codegen flags of the toolchain file (PKMN_CODEGEN_FLAGS):\n    {' '.join(flags)}\n{fix}")
+    return None
+
+
 def load_objects(build_dir: Path) -> dict[str, CompiledFunc]:
     out: dict[str, CompiledFunc] = {}
     # Only objects of sources that currently exist (stale .o files of deleted
     # sources linger in the build dir), taken from compile_commands.json.
-    import json
     cc = json.loads((build_dir / "compile_commands.json").read_text())
     sources = {(Path(e["directory"]) / e["output"]).resolve(): e["file"] for e in cc if "output" in e}
     for obj in sorted(sources):
@@ -528,6 +590,12 @@ def main() -> int:
 
     if not args.no_build:
         build(list(VERSIONS))
+    flags = codegen_flags()
+    for v in VERSIONS:
+        err = check_codegen_flags(ROOT / "build" / v, flags)
+        if err:
+            print(f"error: {err}", file=sys.stderr)
+            return 2
 
     funcs = read_functions_csv()
     syms = load_symbol_tables(funcs)
