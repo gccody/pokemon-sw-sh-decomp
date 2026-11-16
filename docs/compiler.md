@@ -1609,7 +1609,7 @@ PhysX and Wwise).** Two public libraries show it, and they agree:
 
 | Library | Where | Best | Hits | Bytes | Exact of mapped |
 |---|---|---|---:|---:|---:|
-| libcurl 7.55.1 (`NintendoSDK_libcurl-7_3_2-Release`) | `main`, after Lua | clang 7.0.0 / 7.0.1 / 7.1.0 `-O3` | 76 | 18,828 | 71 of 72 (Shield 71 of 71) |
+| libcurl 7.55.1 (`NintendoSDK_libcurl-7_3_2-Release`) | `main`, after Lua | clang 7.0.0 / 7.0.1 / 7.1.0 `-O3` | 84 | 20,824 | 82 of 83 (Shield: 84 hits, the same) |
 | zlib 1.2.11 (`NintendoSDK_libz-7_3_2-Release`) | the `sdk` NSO, not `main` | clang 7.0.0 / 7.0.1 / 7.1.0 `-O3` | 58 | 35,604 | 55 of 55 (Shield the same) |
 
 Confidence: **high** for the compiler major version and `-O3` (both libraries,
@@ -1626,9 +1626,10 @@ The `SDK MW+<vendor>+<library>` strings in `main` list the middleware linked
 in (`nlib_LZ4-19_0226`, `PhysX-3_4_2-release`, `NEX-4_6_8`, ...). Of the
 public libraries named in the post-Lua block:
 
-- **libcurl 7.55.1** is in `main` (`libcurl/7.55.1` is referenced from
-  `0x7101776e40`, the version string's builder; its neighbours reference the
-  other curl strings). It is the corpus for the table below.
+- **libcurl 7.55.1** is in `main`, in its own area (Sword
+  `0x7101750ea0`-`0x7101779270`, see below). `libcurl/7.55.1` is referenced
+  from `0x7101776e40`, the version string's builder. It is the corpus for the
+  table below, and it's vendored in `lib/curl`.
 - **zlib 1.2.11 is not in `main`.** `main` only holds `1.2.11.f-NINTENDO-SDK-v1`,
   the `ZLIB_VERSION` that its callers pass to `inflateInit2_`/`deflateInit2_`
   (`0x710165dbb0`, `0x71016615f0`, `0x7101763df0`, ...): upstream zlib has
@@ -1642,46 +1643,217 @@ public libraries named in the post-Lua block:
   `nlib_LZ4` tag is there. It isn't in the `sdk` NSO's strings either, so its
   version wasn't identified and it wasn't swept.
 
-### libcurl 7.55.1 (`main`, `0x7101570900`-`0x71017ec260`)
+### libcurl 7.55.1 (`main`, Sword `0x7101750ea0`-`0x7101779270`)
 
-103 TUs of `lib/`, built with a minimal `curl_config.h` (a POSIX target with
-musl headers). 510 compiled functions, 72 mapped. Only 76 reproduce, because
-most of libcurl depends on the configuration (which protocols, TLS backend,
-resolver), and Nintendo's isn't public. The functions that don't depend on it
-match exactly, and the version separation is clear:
+Nintendo's libcurl is vendored in `lib/curl` (`lib/curl/README.md`): 55 TUs of
+upstream 7.55.1, unchanged, and a `curl_config.h` reconstructed from the
+binary. `CMakeLists.txt` builds them with the global flags and curl's defines
+for a static library (`pkmn_library_settings(lib/curl ...)`, this section is
+its evidence). With that configuration, 391 compiled functions, **84 reproduce
+byte for byte (20,824 bytes) in both games**. The rest depends on changes
+Nintendo made to curl's own files, which aren't public (see "What doesn't
+match").
+
+The compiler and flags (the vendored corpus over the libcurl area, Sword):
 
 | Compiler | `-O3` hits | `-O3` bytes | `-O3` avg similarity | `-O2` hits | `-Os` hits | `-O3 -g0` hits |
 |---|---:|---:|---:|---:|---:|---:|
-| clang 3.9.1 | 17 | 624 | 0.765 | 17 | 17 | 16 |
-| clang 4.0.1 | 16 | 496 | 0.764 | 16 | 16 | 15 |
-| clang 5.0.1 / 5.0.2 | 21 | 896 | 0.807 | 19 | 17 | 20 |
-| clang 6.0.0 / 6.0.1 | 25 | 1,536 | 0.872 | 22 | 20 | 24 |
-| **clang 7.0.0 / 7.0.1 / 7.1.0** | **76** | **18,828** | **0.990** | 56 | 42 | 76 |
-| clang 8.0.0 / 8.0.1 | 59 | 8,512 | 0.944 | 47 | 37 | 58 |
-| clang 9.0.1 | 28 | 1,880 | 0.850 | 25 | 20 | 28 |
-| clang 10.0.0 | 22 | 1,248 | 0.754 | 20 | 17 | 21 |
-| clang 11.0.0 | 21 | 1,192 | 0.741 | 19 | 16 | 20 |
+| clang 3.9.1 | 18 | 676 | 0.747 | 18 | 18 | 17 |
+| clang 4.0.1 | 17 | 548 | 0.759 | 17 | 17 | 16 |
+| clang 5.0.1 / 5.0.2 | 24 | 1,064 | 0.811 | 22 | 20 | 23 |
+| clang 6.0.0 / 6.0.1 | 28 | 1,704 | 0.868 / 0.869 | 25 | 23 | 27 |
+| **clang 7.0.0 / 7.0.1 / 7.1.0** | **84** | **20,824** | **0.991** | 62 | 45 | 84 |
+| clang 8.0.0 / 8.0.1 | 66 | 9,848 | 0.939 | 53 | 41 | 65 |
+| clang 9.0.1 | 28 | 1,912 | 0.836 | 25 | 20 | 28 |
+| clang 10.0.0 | 21 | 1,232 | 0.735 | 19 | 16 | 20 |
+| clang 11.0.0 | 20 | 1,176 | 0.723 | 18 | 15 | 19 |
 
-(6.0.0 and 6.0.1 differ only in average similarity, 0.8716 and 0.8731.) The
-one mapped miss, `Curl_rand_hex` (512 bytes), was mapped by another
-configuration to a 168-byte function at `0x7101766680`. It's a mapping
-artifact. In Shield all 71 mapped functions match.
+83 functions are mapped over all configurations. clang 7.0.x reproduces 82 of
+them, and every one of the 82 that clang 7.0.1 maps by itself, in both games.
+Shield gives the same 84 hits and 20,824 bytes. The first version of this table
+(all 103 TUs of upstream's `lib/` with a minimal POSIX `curl_config.h`, over
+the whole block) separated the versions the same way: 76 hits (18,828 bytes)
+for clang 7.0.x, 59 for 8.0.x, 25 for 6.0.x.
 
-Flags (clang 7.0.1, each row changes one thing):
+Flags (clang 7.0.1, each row changes one thing; the zlib column is the `sdk`
+NSO's zlib 1.2.11, see below):
 
 | Variant | libcurl hits | zlib hits | What it shows |
 |---|---:|---:|---|
-| **`-O3`, the game's flags** | **76** | **58** | |
-| `-O2` / `-Os` | 56 / 42 | 30 / 7 | `-O3`. |
-| `-fstrict-aliasing` | 70 | 40 | Strict aliasing off, as in the game. |
-| `-fno-builtin` | 64 | 52 | Builtins on. |
-| `-fstrict-aliasing -fno-builtin` (PhysX's differences) | 60 | 36 | Not PhysX's configuration. |
-| `-fomit-frame-pointer` | 35 | 32 | |
-| `-mimplicit-float` | 65 | 41 | |
-| `-fno-pic` | 67 | 49 | |
-| `-mcpu=generic` | 28 | 14 | Cortex-A57 model. |
-| `-fvisibility=hidden` | 76 | 55 | zlib: default visibility. |
-| `-g0`, `-fno-unwind-tables`, `-U__ELF__`, `-DNDEBUG` | 76 | 58 | Not distinguishable (with `-g` the CFI is emitted anyway). |
+| **`-O3`, the game's flags** | **84** | **58** | |
+| `-O2` / `-Os` | 62 / 45 | 30 / 7 | `-O3`. |
+| `-fstrict-aliasing` | 78 | 40 | Strict aliasing off, as in the game. |
+| `-fno-builtin` | 70 | 52 | Builtins on. |
+| `-fstrict-aliasing -fno-builtin` (PhysX's differences) | 66 | 36 | Not PhysX's configuration. |
+| `-fomit-frame-pointer` | 38 | 32 | |
+| `-mimplicit-float` | 73 | 41 | |
+| `-fno-pic` | 75 | 49 | |
+| `-mcpu=generic` | 29 | 14 | Cortex-A57 model. |
+| `-fvisibility=hidden` | 84 | 55 | zlib: default visibility. |
+| `-g0`, `-fno-unwind-tables`, `-U__ELF__`, `-DNDEBUG` | 84 | 58 | Not distinguishable (with `-g` the CFI is emitted anyway). |
+
+#### Area boundaries
+
+The libcurl area is Sword `0x7101750ea0`-`0x7101779270`, Shield
+`0x7101750f40`-`0x7101779310` (395 functions, the same in both games, `data/areas.csv`):
+
+- **Start.** `0x7101750ea0` is `curl_global_init_mem`. It null-checks five
+  callbacks (`CURLE_FAILED_INIT`), counts the init calls, stores the callbacks
+  through Nintendo's allocator setup and runs `global_init` inlined:
+  `Curl_ssl_init` when `flags & CURL_GLOBAL_SSL`, the resolver's global init,
+  and the `SDK MW+Nintendo+NintendoSDK_libcurl-7_3_2-Release` tag function
+  (`0x7101778420`). Before it are the `nlib_LZ4-19_0226` tag (`0x7101750e80`)
+  and `__clang_call_terminate` (`0x7101750e90`, called from the code before it).
+- **Inside.** Upstream code comes first, though not in upstream's
+  `Makefile.inc` order (`easy`, `cookie`, `connect`, `conncache`,
+  `asyn-thread`, `hash`, `hostip`, ..., `md5`, `version`, `vtls`,
+  `wildcard`). Then the tag function, then Nintendo's glue: `nn::nsd::ResolveEx`
+  (called from `Curl_setopt`), `nn::nifm::GetCurrentProxySetting` (called
+  from url.c's connection setup, `0x71017703c0`), `fopen`/`fread`/`fclose` stubs that abort, and
+  the resolver thread (`nnosCreateThread`, named `LibcurlResolver`). The
+  `nn::ssl` backend (`nnssl*` imports, the `"nn::ssl"` version string,
+  referenced from `0x7101777ed0`) sits between `vtls.c`'s code and
+  `wildcard.c`'s.
+- **End.** `0x7101779250` is the last function called from `asyn-thread.c`'s
+  code. `0x7101779270` and everything after it is called only from NintendoWare
+  (Font, `0x7101782330` on), whose `SDK MW+Nintendo+NintendoWare_Font` tag
+  function is at `0x710177b2a0`.
+
+#### The configuration
+
+Nintendo's `curl_config.h` isn't public. `lib/curl/lib/curl_config.h`
+reconstructs it from these observations (each one is also a comment there):
+
+- **Protocols: HTTP and HTTPS only.** `curl_version_info()`'s static data
+  (Sword `0x7102461568`, resolved through the relocations) has the protocol
+  list `{"http", "https", NULL}`. The only `Curl_handler` tables are HTTP and
+  HTTPS (`0x7102461218`, `0x71024612a0`; HTTPS has `connect_it` and `getsock`).
+  No FTP, FILE, DICT, TELNET, TFTP, RTSP, IMAP, POP3, SMTP, SMB, GOPHER or LDAP
+  code or string is in the binary. So all of them are `CURL_DISABLE_*`.
+  Cookies, proxies (HTTP CONNECT, SOCKS4/5), digest and basic auth, `.netrc`
+  and the verbose strings are in, so those aren't disabled.
+- **Features `0x8c`** (`curl_version_info()`'s `features`): `SSL | LIBZ |
+  ASYNCHDNS`. Without `CURL_VERSION_IPV6`, `ENABLE_IPV6` isn't defined. Without
+  `LARGEFILE`, `SIZEOF_OFF_T` isn't defined, and without `UNIX_SOCKETS`,
+  `USE_UNIX_SOCKETS` isn't either. `host` is `"Nintendo"` (`OS`), `age` is 3
+  and `version_num` is `0x073701`.
+- **TLS: Nintendo's `nn::ssl` backend.** Upstream 7.55.1 has no such backend.
+  `USE_SSL` needs a backend's fields in `urldata.h`'s `struct
+  ssl_connect_data` (otherwise `#error`), so it can't be defined here, and
+  `vtls/` isn't vendored.
+- **libz.** `curl_version()` appends `" zlib/%s"` and `content_encoding.c`'s
+  strings are there, so `HAVE_LIBZ`/`HAVE_ZLIB_H`. zlib 1.2.11's headers are in
+  `lib/curl/zlib`. That matters even for code that never calls zlib:
+  `struct SingleRequest` holds a `z_stream`, and `struct Curl_easy`'s offsets
+  depend on it.
+- **Resolver: threaded.** ASYNCHDNS without c-ares (no `" c-ares/"` in
+  `curl_version()`) is `asyn-thread.c` (`"Could not resolve %s: %s"`), so
+  `USE_THREADS_POSIX`/`HAVE_PTHREAD_H`. The thread itself is Nintendo's
+  (`nn::os`, `"LibcurlResolver"`). There are no `pthread_*` imports, so
+  `curl_threads.c` isn't vendored.
+- **`SIZEOF_TIME_T` undefined** (`curl_setup.h` then assumes 4).
+  `curlx_tvdiff` has the `SIZEOF_TIME_T < 8` overflow check: it returns
+  `0x7fffffff` when the difference is at least `0x7fffffff/1000` seconds.
+  It matches only that way.
+- **`bool` is one byte** (`HAVE_STDBOOL_H`, `HAVE_BOOL_T`). `Curl_open` sets
+  `ssl.primary.verifypeer` and `verifyhost` with one `strh` of `0x101`. curl's
+  own 4-byte `enum bool` gives other offsets.
+- **curl's own `inet_pton`, `inet_ntop`, `strtok_r`, `memrchr`.** No libc
+  import for any of them, and `Curl_inet_pton` (with `inet_pton4` inlined,
+  `0x7101757690`), `Curl_inet_ntop`, `Curl_strtok_r` and `Curl_memrchr`
+  match. So `HAVE_INET_PTON` and the others aren't defined. Neither are
+  `HAVE_GMTIME_R` (`gmtime` is imported, `gmtime_r` isn't), `HAVE_GETADDRINFO`,
+  `HAVE_SIGNAL` or `HAVE_GETTIMEOFDAY` (none of them is imported).
+  `HAVE_STRDUP` is defined: the default `strdup` callback is a GOT load of
+  `strdup`. `HAVE_POLL_FINE` is defined, because `nnsocketPoll` is imported and
+  `select` isn't. `HAVE_FCNTL_O_NONBLOCK` is defined because `nnsocketFcntl`
+  is imported.
+
+How the hits grew, over the libcurl area, Sword (Shield the same):
+
+| Configuration | Hits | Bytes |
+|---|---:|---:|
+| The minimal `curl_config.h`, upstream's 103 TUs | 75 | 18,812 |
+| `OS "Nintendo"`, HTTP/HTTPS only, no IPv6 and no `SIZEOF_OFF_T`, libz, threaded resolver | 79 | 19,580 |
+| `SIZEOF_TIME_T` undefined | 81 | 19,696 |
+| `vauth/*.c` added (`vauth/digest.c`) | 83 | 20,488 |
+| `HAVE_INET_PTON` undefined (final; `lib/curl`'s 55 TUs give the same) | **84** | **20,824** |
+
+`HAVE_POLL_FINE`, `HAVE_SIGNAL` and `HAVE_STRUCT_SOCKADDR_STORAGE` don't
+change the hits. They follow the imports, or musl where there's no evidence.
+`SIZEOF_TIME_T 8` loses 2.
+
+#### What doesn't match
+
+A function matches only where Nintendo's changes don't reach it. The
+differences, from the near misses (struct offsets and calls compared by hand):
+
+- **Allocation.** curl's `malloc()`, `free()`, `realloc()`, `strdup()` and
+  `calloc()` call Nintendo's wrappers directly (Sword `0x7101778330`,
+  `...340`, `...350`, `...360`, `...370`). Each one tail-calls through a table
+  of five pointers that `curl_global_init_mem` fills (`0x71017782f0`;
+  `0x71017782a0` sets the defaults, `main`'s allocator and `strdup`).
+  Upstream's `curl_memory.h` calls through the `Curl_cmalloc`, ... variables
+  instead. So no function that allocates matches. `0x7101778330`'s code equals
+  upstream's `sh_freeentry`, and `curl_free`'s too (a tail call through a GOT
+  pointer), but it's the `malloc` wrapper, so it isn't named.
+- **`struct Curl_easy`.** Nintendo's `struct UserDefined` is 0x68 bytes larger.
+  `Curl_open` initialises three new byte fields right after `proxyauth` (`set`
+  + `0x58`: 1, 0, 0). So `set.fdebug` is 8 bytes further on than upstream's.
+  `set.dns_cache_timeout` and `set.verbose` (`0x6c8`, upstream `0x660`) are
+  0x68 bytes further on, and so is every field after `set` (`state.*`,
+  `info.*` ...). `sizeof(struct Curl_easy)` is `0x5140`.
+- **`struct connectdata`.** It holds four `ssl_connect_data`s with the `nn::ssl`
+  backend's fields, which aren't known.
+- **Sockets, time, files and zlib.** Sockets go through `nnsocket*`, and
+  `SOCKERRNO` through `nnsocketGetLastErrno`. `send` gets flags 0 (no
+  `MSG_NOSIGNAL`) and there's no `MSG_FASTOPEN` path, unlike with musl's
+  headers. The errno values are Linux's. Time comes from
+  `nnosGetSystemTick`, the resolver from `nnsocketGetHostByNameWithOptions`
+  and `nn::nsd::ResolveEx`. `fopen`/`fread`/`fclose` are stubs that abort.
+  `ZLIB_VERSION` is `"1.2.11.f-NINTENDO-SDK-v1"`, and the zlib calls go to
+  YEBIS's zlib in `main` (`inflateInit_` `0x71005918f0`, `inflateEnd`
+  `0x7100593530`).
+
+#### Names and `check.py`
+
+The names come from `sweep_attribute.py` over the build (`build/sword` and
+`build/shield`, `--source-prefix lib/curl/`), the same in both games:
+
+- 97 functions with the same code and a pinned name, and 6 more placed by link
+  order (`multi_freeamsg`, `llist_dtor`, `curl_strnequal`, ...). Of these 103,
+  `check.py` confirms 100. `Curl_FormReader` calls the abort stubs,
+  `Curl_unencode_deflate_write` passes the SDK's `ZLIB_VERSION`, and
+  `Curl_unencode_cleanup` and `Curl_unencode_deflate_write` call YEBIS's zlib,
+  whose functions aren't named yet.
+- 22 pinned by the call graph (callers or callees with the same code) whose code
+  differs: `Curl_hash_init`, `Curl_infof`, `Curl_setopt`, `Curl_close`, ...
+- 53 identified by their string literals: a compiled function and an original
+  with the same set of strings (8 characters or longer), unique on both sides.
+  Examples are `Curl_http`, `Curl_SOCKS5` and `Curl_readwrite`.
+- 4 identified by hand: `curl_global_init_mem`, `curl_global_cleanup`,
+  `curl_easy_init` (it calls `Curl_open` and inlines `global_init`) and
+  `Curl_open` (`calloc(1, 0x5140)` and the `0xc0dedbad` magic).
+
+The 82 named functions that don't match have status `M`. The other 209 compiled
+functions have no original identified (inlined, dropped by the linker, or
+changed by Nintendo too far to recognise). They're in
+`data/unidentified_functions.csv`, which `check.py` skips and counts apart
+from the functions known to be absent. Nintendo's glue (the allocator wrappers and
+table, the `nn::ssl` backend, the `nsd`/`nifm` code, the resolver thread, the
+stubs) isn't public and stays unnamed.
+
+`check.py --update` (both games), with everything before. The 100 new
+matches are libcurl's (Lua, PhysX and the rest give 8,804, as before), and the
+82 that don't match are libcurl's `M` functions:
+
+```
+8904 matching, 82 not matching
+(1848 compiled functions skipped as not in the executable: data/absent_functions.csv)
+(209 compiled functions skipped, their original not identified yet: data/unidentified_functions.csv)
+(1 weak/COMDAT functions skipped: the executable keeps another library's copy, data/foreign_copies.csv)
+(311 compiled aliases of checked functions skipped, e.g. D1 = D2 destructors)
+```
 
 ### zlib 1.2.11 (the `sdk` NSO)
 
@@ -1710,33 +1882,35 @@ curl -LO https://zlib.net/fossils/zlib-1.2.11.tar.gz && tar xzf zlib-1.2.11.tar.
 cd ../../..
 ```
 
-libcurl needs a `curl_config.h`. Put this one in
-`toolchain/candidates/src/curl-nx-config/curl_config.h`: the usual
-`HAVE_*_H` headers (`ASSERT ERRNO FCNTL INTTYPES LIMITS LOCALE STDBOOL STDINT
-STDLIB STRING STRINGS SYS_SOCKET SYS_STAT SYS_TIME SYS_TYPES SYS_SELECT TIME
-UNISTD NETINET_IN NETDB ARPA_INET POLL`), `STDC_HEADERS`, `HAVE_BOOL_T`,
-`HAVE_STRUCT_TIMEVAL`, `HAVE_LONGLONG`, `HAVE_VARIADIC_MACROS_C99`/`_GCC`,
-`HAVE_SOCKET SELECT RECV SEND STRDUP STRTOLL GETTIMEOFDAY SIGNAL
-FCNTL_O_NONBLOCK INET_PTON SOCKADDR_IN6_SIN6_SCOPE_ID
-STRUCT_SOCKADDR_STORAGE`, `ENABLE_IPV6`, `SIZEOF_INT 4`, `SIZEOF_SHORT 2`,
-`SIZEOF_LONG`/`SIZE_T`/`TIME_T`/`OFF_T 8` (not `SIZEOF_CURL_OFF_T`, which
-`curl_setup.h` rejects), the `RECV_TYPE_*`/`SEND_TYPE_*` of POSIX
-`recv`/`send` (`int`, `void *`, `size_t`, `int`, returning `ssize_t`;
-`SEND_QUAL_ARG2 const`), `RETSIGTYPE void`, `OS "aarch64-nintendo-switch"`
-and `CURL_DISABLE_LDAP`.
+libcurl: `lib/curl` is the corpus (the vendored TUs, with the reconstructed
+`lib/curl/lib/curl_config.h`):
 
 ```sh
-C=toolchain/candidates; U=$C/src/curl-7.55.1
-python tools/compiler_sweep.py --compiler "$C/clang-*" \
-    --variant O3=-O3 --variant O2=-O2 --variant Os=-Os --variant O3g0="-O3 -g0" \
-    --src "$U/lib/*.c" --range 0x7101570900-0x71017ec260 \
-    -- -isystem $C/sysroot/include -DHAVE_CONFIG_H -DBUILDING_LIBCURL -DCURL_STATICLIB \
-       -I $C/src/curl-nx-config -I $U/include -I $U/lib
+C=toolchain/candidates; L=lib/curl
+python tools/compiler_sweep.py --compiler "$C/clang-*"     --variant O3=-O3 --variant O2=-O2 --variant Os=-Os --variant O3g0="-O3 -g0"     --src "$L/lib/*.c" --src "$L/lib/vauth/*.c" --range 0x7101750ea0-0x7101779270     -- -isystem $C/sysroot/include -DHAVE_CONFIG_H -DBUILDING_LIBCURL -DCURL_STATICLIB        -I $L/include -I $L/lib -I $L/zlib
 ```
 
-Shield: `--game shield --range 0x71015709a0-0x71017e8f8c`. For the flag table,
+Shield: `--game shield --range 0x7101750f40-0x7101779310`. For the flag table,
 use `--compiler $C/clang-7.0.1` and variants such as `"strict=-O3
--fstrict-aliasing"`.
+-fstrict-aliasing"`. For the progression table, compile upstream's
+`curl-7.55.1/lib/*.c` (and `lib/vauth/*.c`) against each step's
+`curl_config.h`, with `-I toolchain/candidates/src/zlib-1.2.11` for `zlib.h`.
+The first, minimal `curl_config.h` is the usual `HAVE_*_H` headers,
+`HAVE_BOOL_T`, `HAVE_SOCKET SELECT RECV SEND STRDUP STRTOLL GETTIMEOFDAY SIGNAL
+FCNTL_O_NONBLOCK INET_PTON SOCKADDR_IN6_SIN6_SCOPE_ID
+STRUCT_SOCKADDR_STORAGE`, `ENABLE_IPV6`, `SIZEOF_INT 4`, `SIZEOF_SHORT 2`,
+`SIZEOF_LONG`/`SIZE_T`/`TIME_T`/`OFF_T 8`, POSIX `recv`/`send` types,
+`OS "aarch64-nintendo-switch"` and `CURL_DISABLE_LDAP`.
+
+The names: build both games, then
+
+```sh
+python tools/sweep_attribute.py build/sword --source-prefix lib/curl/     --range 0x7101750ea0-0x7101779270 --game sword --out attr_sword.csv
+python tools/sweep_attribute.py build/shield --source-prefix lib/curl/     --range 0x7101750f40-0x7101779310 --game shield --out attr_shield.csv
+```
+
+and take the `Name` (or the single `differs` name) that both games agree on,
+except `sh_freeentry@multi` (see above).
 
 zlib is in the `sdk` NSO, so pass `--module sdk` (the default is `main`):
 
@@ -1761,8 +1935,11 @@ zlib one about 3.
   is the working assumption for all of them, but only libcurl and zlib were
   measured.
 - **LZ4 (`nlib_LZ4-19_0226`).** No LZ4 code was found in `main` (see above).
-- **The rest of libcurl.** Needs Nintendo's configuration (protocols, TLS and
-  resolver backends) to compile the same functions.
+- **The rest of libcurl.** The configuration is reconstructed (see
+  "libcurl 7.55.1"). What's left needs Nintendo's changes to curl's own
+  files (`urldata.h`, `curl_memory.h`, the `nn::ssl` backend, the socket,
+  time and resolver glue), which aren't public. `Curl_unencode_cleanup` only
+  needs YEBIS's zlib named (`inflateEnd`, `0x7100593530`).
 - **`-g`.** Neither corpus distinguishes it.
 
 ## Codegen fingerprints

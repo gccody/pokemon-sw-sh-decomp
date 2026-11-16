@@ -146,6 +146,18 @@ pkmn_library_settings(lib/physx
     lib/physx/PhysX_3.4/Source/PhysXExtensions/src/serialization/File
   SYSTEM_INCLUDES include/libcxx)
 
+# libcurl 7.55.1, Nintendo's SDK build (NintendoSDK_libcurl-7_3_2-Release in
+# the middleware block): clang 7.0.x -O3 with the game's global flags, like
+# Game Freak's code (84 functions byte for byte). The defines are curl's own
+# for a static library built with a curl_config.h; lib/curl/lib/curl_config.h
+# is the configuration reconstructed from the binary (HTTP/HTTPS only, no IPv6,
+# threaded resolver, libz). lib/curl/zlib holds zlib 1.2.11's headers, the
+# SDK's zlib version: HAVE_LIBZ puts a z_stream in curl's structs.
+pkmn_library_settings(lib/curl
+  EVIDENCE "docs/compiler.md, section Nintendo SDK middleware (libcurl 7.55.1)"
+  DEFINES HAVE_CONFIG_H BUILDING_LIBCURL CURL_STATICLIB
+  INCLUDES lib/curl/include lib/curl/lib lib/curl/zlib)
+
 # lib/physx's files with PhysX v3.4.2's code (see the entry above) aren't in
 # the repository, because that code isn't BSD-licensed. tools/get_physx.py
 # generates them from NVIDIA's public repository. Stop here until they're all
