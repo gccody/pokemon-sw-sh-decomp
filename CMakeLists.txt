@@ -68,6 +68,20 @@ pkmn_library_settings(lib/lua
   EVIDENCE "docs/compiler.md, section Method (Lua version and defines)"
   DEFINES LUA_COMPAT_5_2 LUA_USE_POSIX)
 
+# The Lua glue of field::content (symbol_encount's ai.blua) is Game Freak code
+# that binds its types with sol2 v2.20.4 (lib/sol, header-only): 1,041 of its
+# functions match. Its TU was built as C++14 (C++17 makes sol2 use
+# std::string_view, and the binary has sol2's own basic_string_view instances)
+# and with NDEBUG (sol2's asserts are compiled out). libc++ 7.0.1 supplies the
+# standard headers; lib/lua is for sol2's <lua.hpp>, and _GNU_SOURCE makes musl
+# declare the strtof_l/... that libc++'s <locale> uses.
+pkmn_library_settings(src/field/content
+  EVIDENCE "docs/compiler.md, section sol2"
+  DEFINES NDEBUG _GNU_SOURCE _LIBCPP_HAS_MUSL_LIBC _LIBCPP_HAS_THREAD_API_PTHREAD
+  OPTIONS $<$<COMPILE_LANGUAGE:CXX>:-std=c++14>
+  INCLUDES lib/lua
+  SYSTEM_INCLUDES include/libcxx)
+
 # PhysX 3.4.2, built by NVIDIA: full C++ exceptions (its FDEs have personality
 # and LSDA), strict aliasing, -fno-builtin (fabsf/sqrtf stay library calls),
 # gnu++14 (gnu++11/14/17 give identical code; strict c++17 breaks musl's

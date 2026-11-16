@@ -107,8 +107,10 @@ python tools/progress.py
 4. Add `PKMN_SIZE_ASSERT` / `PKMN_OFFSET_ASSERT` (from `types.h`) for every
    reconstructed struct.
 
-Look at `src/pkmn/Version.cpp`, `src/unsorted/Unk_7eef40.*` and
-`lib/sol/enum_newindex.cpp` for small, complete examples.
+Look at `src/pkmn/Version.cpp` and `src/unsorted/Unk_7eef40.*` for small,
+complete examples, `lib/lua/lauxlib.c` for a vendored library, and
+`src/field/content/Unk_df22f0.cpp` for game code that instantiates a header-only
+library (`lib/sol`).
 
 ### Code style
 
@@ -156,8 +158,8 @@ pkmn_library_settings(lib/lua
   `-isystem` in `OPTIONS` it comes after musl, and `<cstddef>` fails with a
   `max_align_t` redefinition.) Paths are relative to the repo root and may
   point into `toolchain/`. They must exist once the directory has sources.
-  libc++ 7.0.1's headers will be vendored unchanged in `include/libcxx/` with
-  the first PhysX sources, the way musl's are in `include/libc/`. It works the
+  libc++ 7.0.1's headers are vendored unchanged in `include/libcxx/` (the ones
+  PhysX and sol2 read), the way musl's are in `include/libc/`. It works the
   same for sources built with the main clang and for `COMPILER_VERSION`
   libraries.
 - Don't set flags anywhere else: no per-file properties, no
