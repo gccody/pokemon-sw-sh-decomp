@@ -19,6 +19,12 @@ data/data_symbols.csv; string/constant literals are compared by content.
 Local (static) symbols are looked up by their file-qualified name,
 `<symbol>@<file stem>` (see tools/symbols.py). Compiled functions listed in
 data/absent_functions.csv are not in the executable and are skipped.
+
+Weak and COMDAT definitions (inline functions, template instantiations) may be
+emitted by several translation units, and the linker keeps one of them.
+check.py keeps one copy for each distinct code+relocations, and a function
+matches only if every distinct copy matches the original (see add_definition).
+Two strong definitions of one symbol are an error.
 """
 from __future__ import annotations
 
@@ -52,6 +58,7 @@ ADR_GOT_PAGE, LD64_GOT_LO12_NC = 311, 312
 ABS64, PREL32 = 257, 261  # in data: address tables, jump tables
 MAX_LITERAL = 1024  # bytes compared for a reference into a data section without entsize
 SHF_STRINGS, SHF_EXECINSTR = 0x20, 0x4
+GRP_COMDAT = 1
 
 ABSENT_CSV = ROOT / "data" / "absent_functions.csv"
 
@@ -115,6 +122,78 @@ class CompiledFunc:
     source: str = ""
     # relocations of every section of the object: section index -> offset -> Reloc
     obj_relocs: dict[int, dict[int, Reloc]] = field(default_factory=dict, repr=False)
+    # weak or COMDAT definition: other translation units may define it too
+    mergeable: bool = False
+    # code and relocations in a form comparable across objects (see _fingerprint)
+    fingerprint: tuple = ()
+    # copies of this (mergeable) function from other TUs whose fingerprint differs
+    variants: list[CompiledFunc] = field(default_factory=list, repr=False)
+
+    def copies(self) -> list[CompiledFunc]:
+        return [self, *self.variants]
+
+
+def add_definition(out: dict[str, CompiledFunc], cf: CompiledFunc) -> str | None:
+    """Record compiled function `cf` in `out`, resolving duplicate definitions
+    of one name the way the linker does. Returns a warning, or None.
+
+    - Two strong definitions: error (SystemExit), as at link time.
+    - Strong and weak/COMDAT: the strong one is kept, the other is dropped.
+    - Two weak/COMDAT definitions: the first one is kept (load_objects reads
+      objects in sorted path order). A copy whose code or relocations differ
+      from every copy seen so far is kept as a variant and reported. Which
+      copy the linker keeps depends on link order, so the function counts as
+      matching only if every distinct copy matches the original.
+    """
+    prev = out.get(cf.name)
+    if prev is None:
+        out[cf.name] = cf
+        return None
+    if not prev.mergeable and not cf.mergeable:
+        hint = ("local symbols are qualified by file stem (tools/symbols.py), so rename one file"
+                if symbols.split(cf.name)[1] is not None else "two strong definitions; remove one")
+        raise SystemExit(f"{cf.name} is defined in both {prev.source} and {cf.source}: {hint}")
+    if not prev.mergeable:
+        return None
+    if not cf.mergeable:
+        out[cf.name] = cf
+        return None
+    if any(c.fingerprint == cf.fingerprint for c in prev.copies()):
+        return None
+    prev.variants.append(cf)
+    return (f"weak/COMDAT {cf.name} differs between {prev.source} and {cf.source} "
+            f"(different flags or compiler?): every copy is checked against the original")
+
+
+def _comdat_sections(elf: ELFFile) -> set[int]:
+    """Indices of the sections that are members of a COMDAT group."""
+    out: set[int] = set()
+    for sec in elf.iter_sections():
+        if sec["sh_type"] == "SHT_GROUP":
+            words = struct.unpack(f"<{sec['sh_size'] // 4}I", sec.data())
+            if words and words[0] & GRP_COMDAT:
+                out.update(words[1:])
+    return out
+
+
+def _fingerprint(code: bytes, relocs: dict[int, Reloc], elf: ELFFile | None) -> tuple:
+    """Code bytes plus relocations, with section-relative targets described
+    independently of the object's layout: the string itself for a merged-string
+    section, otherwise the section name and offset."""
+    rs = []
+    for off, r in sorted(relocs.items()):
+        target: tuple = (r.sym, r.addend)
+        if elf is not None and r.sym_type == "STT_SECTION" and isinstance(r.sym_shndx, int):
+            sec = elf.get_section(r.sym_shndx)
+            start = r.sym_value + r.addend
+            if sec["sh_flags"] & SHF_STRINGS and sec["sh_type"] != "SHT_NOBITS":
+                blob = sec.data()
+                end = blob.find(b"\0", start)
+                target = ("string", blob[start:end if end >= 0 else len(blob)])
+            else:
+                target = (sec.name, start)
+        rs.append((off, r.type, target))
+    return code, tuple(rs)
 
 
 def _symbol_name(s, source: str) -> str:
@@ -139,6 +218,7 @@ def load_objects(build_dir: Path) -> dict[str, CompiledFunc]:
         symtab = elf.get_section_by_name(".symtab")
         if not isinstance(symtab, SymbolTableSection):
             continue
+        comdat = _comdat_sections(elf)
         rel_by_sec: dict[int, dict[int, Reloc]] = {}
         for sec in elf.iter_sections():
             if isinstance(sec, RelocationSection) and sec.is_RELA():
@@ -154,10 +234,13 @@ def load_objects(build_dir: Path) -> dict[str, CompiledFunc]:
             v, n = s["st_value"], s["st_size"]
             relocs = {off - v: r for off, r in rel_by_sec.get(s["st_shndx"], {}).items() if v <= off < v + n}
             name = _symbol_name(s, source)
-            if name in out:
-                raise SystemExit(f"{name} is defined in both {out[name].source} and {source}: local "
-                                 f"symbols are qualified by file stem (tools/symbols.py), so rename one file")
-            out[name] = CompiledFunc(name, obj, sec.data()[v:v + n], relocs, elf, source, rel_by_sec)
+            code = sec.data()[v:v + n]
+            bind = s["st_info"]["bind"]
+            mergeable = bind == "STB_WEAK" or (bind == "STB_GLOBAL" and s["st_shndx"] in comdat)
+            w = add_definition(out, CompiledFunc(name, obj, code, relocs, elf, source, rel_by_sec,
+                                                 mergeable, _fingerprint(code, relocs, elf)))
+            if w:
+                print(f"warning ({build_dir.name}): {w}")
     return out
 
 
@@ -369,6 +452,25 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name) 
     return res
 
 
+def compare_copies(cf: CompiledFunc, fn: Function, orig: Original, syms,
+                   verbose_name) -> list[tuple[CompiledFunc, Result]]:
+    """compare() for every distinct copy of a function (one unless weak/COMDAT copies differ)."""
+    return [(c, compare(c, fn, orig, syms, verbose_name)) for c in cf.copies()]
+
+
+def merge_results(per_copy: list[tuple[CompiledFunc, Result]]) -> Result:
+    """One Result for all copies: OK only if every copy matches; messages name the copy's TU."""
+    if len(per_copy) == 1:
+        return per_copy[0][1]
+    out = Result(all(r.ok for _, r in per_copy))
+    for c, r in per_copy:
+        out.errors += [f"[copy from {c.source}] {e}" for e in r.errors]
+        out.warnings += [f"[copy from {c.source}] {w}" for w in r.warnings]
+        if out.first_bad is None:
+            out.first_bad = r.first_bad
+    return out
+
+
 # --------------------------------------------------------------------------- output
 def side_by_side(cf: CompiledFunc, fn: Function, orig: Original, res: Result) -> str:
     import capstone
@@ -459,6 +561,7 @@ def main() -> int:
         if wanted is not None and fn.key not in wanted:
             continue
         results = {}
+        per_copy: dict[str, list[tuple[CompiledFunc, Result]]] = {}
         for v in VERSIONS:
             cf = compiled[v].get(name)
             if not fn.in_version(v):
@@ -469,7 +572,8 @@ def main() -> int:
             if cf is None:
                 results[v] = Result(False, [f"not compiled in the {v} build (missing #if branch?)"])
                 continue
-            results[v] = compare(cf, fn, origs[v], syms, dm)
+            per_copy[v] = compare_copies(cf, fn, origs[v], syms, dm)
+            results[v] = merge_results(per_copy[v])
         ok = all(r.ok for r in results.values())
         tag = "OK " if ok else "BAD"
         print(f"{tag} {fn.scope:11} {dm(name)}  [{', '.join(f'{v}:{fn.addr(v) + BASE:#x}' for v in VERSIONS if fn.in_version(v))}]")
@@ -479,8 +583,12 @@ def main() -> int:
             if args.verbose or not ok:
                 for w in r.warnings:
                     print(f"      {v}: warning: {w}")
-            if args.diff and not r.ok and v in compiled and name in compiled[v]:
-                print(side_by_side(compiled[v][name], fn, origs[v], r))
+            if args.diff and not r.ok:
+                for c, cr in per_copy.get(v, []):
+                    if not cr.ok:
+                        if len(per_copy[v]) > 1:
+                            print(f"      {v}: copy from {c.source}:")
+                        print(side_by_side(c, fn, origs[v], cr))
         n_ok += ok
         n_bad += not ok
         if ok and fn.status != "O":

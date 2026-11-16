@@ -65,6 +65,10 @@ python tools/progress.py
    (`tools/symbols.py`). Moving a file to another directory keeps the names.
    Renaming the file renames its local symbols, and two files with the same
    stem can't both define the same local symbol (`check.py` stops with an error).
+   Weak and COMDAT definitions (inline functions, template instantiations) may
+   come from several files: `check.py` checks every distinct copy and warns when
+   copies differ, and the function matches only if all of them do. Two strong
+   definitions of one global symbol are an error, as they are for the linker.
 
    Bulk naming: `tools/funcs.py name --from-file map.csv` applies a
    `Name,Sword,Shield` CSV, such as the one
