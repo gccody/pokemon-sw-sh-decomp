@@ -68,18 +68,48 @@ jobs:
 
   build:
     name: Build (${{ matrix.game }})
-    runs-on: ubuntu-latest
+    # ubuntu-22.04, not ubuntu-latest: the only Linux x86-64 build of the
+    # matching compiler (LLVM 7.0.1, built on Ubuntu 18.04) links against
+    # libtinfo.so.5. 22.04 still packages it (libtinfo5); 24.04 dropped it, and
+    # a libtinfo.so.5 -> libtinfo.so.6 symlink doesn't load: clang-7 needs
+    # symbol version NCURSES_TINFO_5.0.19991023, which .so.6 only defines as
+    # NCURSES6_TINFO_*. When GitHub retires 22.04, run this job in an
+    # ubuntu:22.04 (or older) container instead.
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
         game: [sword, shield]
     steps:
       - uses: actions/checkout@v4
-      - name: Install clang + ninja
-        run: sudo apt-get update && sudo apt-get install -y clang ninja-build
-      # The distro clang is newer than the matching compiler (clang 7.0.1), so
-      # this only proves the code compiles; it says nothing about matching.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ninja + libtinfo5
+        run: sudo apt-get update && sudo apt-get install -y ninja-build libtinfo5
+      - name: Cache clang 7.0.1
+        id: cache-clang
+        uses: actions/cache@v4
+        with:
+          path: toolchain/clang
+          key: clang-7.0.1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/get_llvm.py') }}
+      - name: Install clang 7.0.1
+        if: steps.cache-clang.outputs.cache-hit != 'true'
+        run: python tools/get_llvm.py --compiler
+      # cmake/toolchain-nx64.cmake picks up toolchain/clang on its own, as it
+      # does for contributors. Fail if that isn't clang 7.0.x.
+      - name: Check compiler version
+        shell: bash
+        run: |
+          ver=$(toolchain/clang/bin/clang++ --version)
+          echo "$ver"
+          [[ "$ver" =~ ^clang\ version\ 7\.0\.[0-9]+ ]] \
+            || { echo "::error::toolchain/clang is not clang 7.0.x"; exit 1; }
       - name: Configure
-        run: cmake --preset ${{ matrix.game }} -DPKMN_CLANG_ROOT=/usr
+        shell: bash  # -eo pipefail, so a failing cmake isn't hidden by tee
+        run: |
+          cmake --preset ${{ matrix.game }} | tee "$RUNNER_TEMP/configure.log"
+          grep -Eq 'The CXX compiler identification is Clang 7\.0\.[0-9]+' "$RUNNER_TEMP/configure.log" \
+            || { echo "::error::CMake did not pick clang 7.0.x"; exit 1; }
       - name: Build
         run: cmake --build --preset ${{ matrix.game }}

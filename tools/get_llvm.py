@@ -11,7 +11,8 @@ picks up toolchain/clang automatically. The newer LLVM utilities are only
 used by the tooling (disassembly, demangling, formatting), never to compile.
 
 On Windows, LLVM 7 ships only as an NSIS installer, so 7-Zip (7z/7za/7zz or
-NanaZip) must be on PATH to unpack it. Nothing is installed system-wide.
+NanaZip) must be on PATH to unpack it. On Linux it needs libtinfo.so.5
+(`libtinfo5` on Debian and Ubuntu up to 22.04). Nothing is installed system-wide.
 """
 from __future__ import annotations
 
@@ -76,6 +77,52 @@ def extract_tar(tarball: Path, out: Path, keep) -> None:
                 t.extract(m, out, filter="data")
 
 
+def keep_compiler(rel: str) -> bool:
+    """Members of a Linux/macOS LLVM 7 tarball that the compiler needs."""
+    return rel in ("bin/clang", "bin/clang-7") or (rel.startswith("lib/clang/") and "/include/" in rel)
+
+
+def finish_layout(out: Path, exe: str = EXE) -> Path:
+    """Make sure out/bin has clang and clang++, and return the clang path.
+
+    In the LLVM 7 tarballs bin/clang-7 is the binary and bin/clang is a
+    symlink to it (a plain clang-7 is renamed). clang++ is only a name: clang
+    picks the C++ driver from argv[0]. It becomes a symlink to clang, saving
+    a second ~80 MB binary, except on Windows (exe=".exe"), where it is a
+    copy as before, and wherever a symlink can't be created.
+    """
+    bindir = out / "bin"
+    clang = bindir / f"clang{exe}"
+    clang7 = bindir / f"clang-7{exe}"
+    if not clang.exists() and clang7.exists():
+        if clang.is_symlink():  # dangling
+            clang.unlink()
+        clang7.rename(clang)
+    clangxx = bindir / f"clang++{exe}"
+    if not clangxx.exists():
+        if clangxx.is_symlink():
+            clangxx.unlink()
+        linked = False
+        if not exe:
+            try:
+                clangxx.symlink_to(clang.name)
+                linked = True
+            except OSError:
+                pass
+        if not linked:
+            shutil.copy2(clang, clangxx)
+    return clang
+
+
+def run_failure_hint(stderr: str) -> str | None:
+    """Explain the usual reason a freshly unpacked LLVM 7 doesn't start."""
+    if "libtinfo.so.5" in stderr:
+        return ("the Linux builds of LLVM 7 need libtinfo.so.5: install libtinfo5 (Debian, Ubuntu <= 22.04) "
+                "or ncurses5-compat-libs. Ubuntu 24.04 no longer ships it, and on Debian/Ubuntu a symlink to "
+                "libtinfo.so.6 is not enough (its symbols carry different version tags)")
+    return None
+
+
 def install_compiler() -> int:
     url = COMPILER_ASSETS.get(host())
     if url is None:
@@ -94,20 +141,22 @@ def install_compiler() -> int:
         subprocess.run([sevenzip, "x", "-y", f"-o{out}", str(archive), f"bin/clang{EXE}", "lib/clang/*/include"],
                        check=True, stdout=subprocess.DEVNULL)
     else:
-        extract_tar(archive, out, lambda rel: rel in ("bin/clang", "bin/clang-7") or
-                    (rel.startswith("lib/clang/") and "/include/" in rel))
-        clang7 = out / "bin" / "clang-7"
-        if clang7.exists() and not (out / "bin" / "clang").exists():
-            clang7.rename(out / "bin" / "clang")
-    clang = out / "bin" / f"clang{EXE}"
-    clangxx = out / "bin" / f"clang++{EXE}"
-    if not clangxx.exists():
-        shutil.copy2(clang, clangxx)
+        extract_tar(archive, out, keep_compiler)
+    clang = finish_layout(out)
     try:
-        ver = subprocess.run([str(clang), "--version"], capture_output=True, text=True, check=True).stdout.splitlines()[0]
-    except (OSError, subprocess.CalledProcessError) as e:
-        # Linux builds of LLVM 7 need libtinfo.so.5 (Debian/Ubuntu: libtinfo5 / libncurses5)
+        r = subprocess.run([str(clang), "--version"], capture_output=True, text=True)
+    except OSError as e:
         print(f"installed, but {clang} does not run: {e}")
+        return 1
+    if r.returncode != 0:
+        print(f"installed, but {clang} does not run (exit {r.returncode}):\n{r.stderr.strip()}")
+        hint = run_failure_hint(r.stderr)
+        if hint:
+            print(hint)
+        return 1
+    ver = r.stdout.splitlines()[0] if r.stdout else ""
+    if "version 7.0." not in ver:
+        print(f"installed, but {clang} is not clang 7.0.x: {ver!r}")
         return 1
     archive.unlink()
     print(f"ok: {ver}")
