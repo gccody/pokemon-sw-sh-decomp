@@ -33,7 +33,11 @@ Weak and COMDAT definitions (inline functions, template instantiations) may be
 emitted by several translation units, and the linker keeps one of them.
 check.py keeps one copy for each distinct code+relocations, and a function
 matches only if every distinct copy matches the original (see add_definition).
-Two strong definitions of one symbol are an error.
+The exception is a copy the executable shows the linker kept: the linker
+places the kept copy among the code of the TU it took it from, so when the
+original lies inside the code of exactly one TU that emits a copy (between
+that TU's first and last strong functions in functions.csv), only that copy
+is compared (see kept_copy). Two strong definitions of one symbol are an error.
 
 Symbols at the same address of one object are aliases (clang emits a complete
 destructor or constructor, D1/C1, as an alias of the base one, D2/C2, when they
@@ -161,11 +165,17 @@ class CompiledFunc:
     fingerprint: tuple = ()
     # copies of this (mergeable) function from other TUs whose fingerprint differs
     variants: list[CompiledFunc] = field(default_factory=list, repr=False)
+    # the other TUs that emit this same copy (same fingerprint), after `source`
+    also_in: list[str] = field(default_factory=list, repr=False)
     # other function symbols of the object at the same address (see alias_groups)
     aliases: tuple[str, ...] = ()
 
     def copies(self) -> list[CompiledFunc]:
         return [self, *self.variants]
+
+    def sources(self) -> list[str]:
+        """Every TU that emits this copy."""
+        return [self.source, *self.also_in]
 
 
 def add_definition(out: dict[str, CompiledFunc], cf: CompiledFunc) -> str | None:
@@ -178,7 +188,8 @@ def add_definition(out: dict[str, CompiledFunc], cf: CompiledFunc) -> str | None
       objects in sorted path order). A copy whose code or relocations differ
       from every copy seen so far is kept as a variant and reported. Which
       copy the linker keeps depends on link order, so the function counts as
-      matching only if every distinct copy matches the original.
+      matching only if every distinct copy matches the original, unless the
+      executable shows which one it kept (see kept_copy).
     """
     prev = out.get(cf.name)
     if prev is None:
@@ -193,7 +204,9 @@ def add_definition(out: dict[str, CompiledFunc], cf: CompiledFunc) -> str | None
     if not cf.mergeable:
         out[cf.name] = cf
         return None
-    if any(c.fingerprint == cf.fingerprint for c in prev.copies()):
+    same = next((c for c in prev.copies() if c.fingerprint == cf.fingerprint), None)
+    if same is not None:
+        same.also_in.append(cf.source)
         return None
     prev.variants.append(cf)
     return (f"weak/COMDAT {cf.name} differs between {prev.source} and {cf.source} "
@@ -663,9 +676,47 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name,
     return res
 
 
+def tu_spans(compiled: dict[str, CompiledFunc], by_name: dict[str, Function],
+             version: str) -> dict[str, tuple[int, int]]:
+    """Source -> (lowest, highest) address in `version` of the TU's strong
+    functions that have a row: the part of the executable that holds its code."""
+    spans: dict[str, tuple[int, int]] = {}
+    for name, cf in compiled.items():
+        fn = by_name.get(name)
+        if cf.mergeable or fn is None or not fn.in_version(version):
+            continue
+        a = fn.addr(version)
+        lo, hi = spans.get(cf.source, (a, a))
+        spans[cf.source] = (min(lo, a), max(hi, a))
+    return spans
+
+
+def kept_copy(cf: CompiledFunc, addr: int, spans: dict[str, tuple[int, int]]) -> CompiledFunc | None:
+    """The copy of a weak/COMDAT function with differing copies that the
+    executable shows the linker kept, or None if it doesn't show it.
+
+    The linker keeps one copy and places it among the code of the TU it took
+    it from. So when the original at `addr` lies inside the span (tu_spans) of
+    TUs that emit only one of the copies, that's the copy in the executable."""
+    if not cf.variants:
+        return None
+    holders = [c for c in cf.copies()
+               if any(s in spans and spans[s][0] <= addr <= spans[s][1] for s in c.sources())]
+    return holders[0] if len(holders) == 1 else None
+
+
 def compare_copies(cf: CompiledFunc, fn: Function, orig: Original, syms,
-                   verbose_name, paths: SourcePaths | None = None) -> list[tuple[CompiledFunc, Result]]:
-    """compare() for every distinct copy of a function (one unless weak/COMDAT copies differ)."""
+                   verbose_name, paths: SourcePaths | None = None,
+                   spans: dict[str, tuple[int, int]] | None = None) -> list[tuple[CompiledFunc, Result]]:
+    """compare() for every distinct copy of a function (one unless weak/COMDAT
+    copies differ), or only for the one the linker kept if `spans` show it."""
+    kept = kept_copy(cf, fn.addr(orig.version), spans) if spans else None
+    if kept is not None:
+        res = compare(kept, fn, orig, syms, verbose_name, paths)
+        others = ", ".join(c.source for c in cf.copies() if c is not kept)
+        res.warnings.append(f"the original is inside {kept.source}'s code, so the linker kept its "
+                            f"copy; the differing copies of {others} aren't compared")
+        return [(kept, res)]
     return [(c, compare(c, fn, orig, syms, verbose_name, paths)) for c in cf.copies()]
 
 
@@ -756,6 +807,7 @@ def main() -> int:
     # References resolve through aliases too: a call to a complete constructor
     # or destructor (C1/D1) reaches the row of the base one (C2/D2) it aliases.
     syms = (with_aliases(by_name, compiled.values()), *syms[1:])
+    spans = {v: tu_spans(compiled[v], by_name, v) for v in VERSIONS}
 
     wanted = None
     if args.names:
@@ -810,7 +862,7 @@ def main() -> int:
             if cf is None:
                 results[v] = Result(False, [f"not compiled in the {v} build (missing #if branch?)"])
                 continue
-            per_copy[v] = compare_copies(cf, fn, origs[v], syms, dm, paths)
+            per_copy[v] = compare_copies(cf, fn, origs[v], syms, dm, paths, spans[v])
             results[v] = merge_results(per_copy[v])
         ok = all(r.ok for r in results.values())
         tag = "OK " if ok else "BAD"
