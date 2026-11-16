@@ -68,7 +68,7 @@ game files.
 ```
 data/functions.csv     104k rows, ~6 MB: Sword/Shield address+size, Scope, Status, Name
 data/data_symbols.csv  named globals/rodata (check.py resolves data references through it)
-data/areas.csv         Sword/Shield address ranges -> library/subsystem
+data/areas.csv         address range -> library/subsystem
 include/types.h        u8..u64, f32, PKMN_SIZE_ASSERT, PKMN_OFFSET_ASSERT
 include/pkmn/version.h PKMN_SW_SH, PKMN_IS_SWORD, PKMN_IS_SHIELD
 src/                   Game Freak code (src/unsorted/ until a subsystem is known)
@@ -82,6 +82,10 @@ docs/                  compiler identification, Sword/Shield version notes
 `tools/funcs.py list`/`show` or a targeted grep for an address or name.
 Write it only through the tools (`funcs.py`, `check.py --update`,
 `versiondiff.py --update-csv`). They keep it sorted with LF line endings.
+
+`data/areas.csv` is small and edited by hand. Each row has a range per game
+(`SwordStart,SwordEnd,ShieldStart,ShieldEnd`), with boundaries at function
+starts. Move a boundary in both games, then run `tools/lint.py`.
 
 ## Workflow for decompiling a function
 
