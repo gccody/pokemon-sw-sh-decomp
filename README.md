@@ -22,7 +22,9 @@ that game. The treemap groups the executable by area
 ([`data/areas.csv`](data/areas.csv)). Each cell is a run of neighbouring
 functions, sized by code: grey means nothing matches yet, and brighter green
 means more of it matches. Open the image to see each cell's address range and
-counts on hover.
+counts on hover. One treemap covers both games: a function is in the same
+area in both, so it's drawn once, at its Sword address (Shield's for
+Shield-only functions).
 
 CI regenerates these images from `data/functions.csv` on every push to `master`
 ([progress.yml](.github/workflows/progress.yml)) and publishes them to the
@@ -72,6 +74,14 @@ subsystems. That lets work be split further, and keeps third-party code (PhysX
 code. The map is a first approximation built from string evidence, so refine it
 as areas are identified.
 
+Like `functions.csv`, each row has one range per game: `SwordStart,SwordEnd`
+and `ShieldStart,ShieldEnd` (end exclusive; leave a game's pair empty for an
+area that isn't in that game), then `Area,Kind,Confidence,Evidence`. Put
+boundaries at function starts and take the other game's value from the same
+row of `functions.csv`; `tools/lint.py` checks that they pair up and that every
+function lands in the same area in both games. `tools/progress.py` reports
+areas per game, and `tools/funcs.py list --area <name>` lists an area's rows.
+
 ## Getting started
 
 Requirements: Python 3.10+, CMake 3.20+, Ninja, and your own dumps plus `prod.keys`.
@@ -103,7 +113,7 @@ python tools/progress.py
 |---|---|
 | `tools/setup.py` | Extract `main` (+ sdk modules) from each XCI and verify the build |
 | `tools/versiondiff.py --update-csv` | Re-pair Sword ↔ Shield and regenerate scopes (keeps names and status) |
-| `tools/funcs.py list --status U --max 64 --range 0x71005a0000-0x7101540000` | Find work |
+| `tools/funcs.py list --status U --max 64 --area game` | Find work |
 | `tools/funcs.py show <addr>` | Original assembly, with both games side by side for `diverged` |
 | `tools/funcs.py name <addr> <mangled>` | Assign a symbol name to a function |
 | `tools/check.py [name] [--diff] [--update]` | Build both games and check against both originals |
@@ -116,7 +126,7 @@ python tools/progress.py
 ```
 data/functions.csv      every function, both games: scope, status, name
 data/data_symbols.csv   named globals/rodata (used by check.py to verify data refs)
-data/areas.csv          address range -> library/subsystem
+data/areas.csv          Sword/Shield address ranges -> library/subsystem
 data/version_diff.json  details for every non-common function
 include/pkmn/version.h  PKMN_VERSION, PKMN_SW_SH(), PKMN_IS_SWORD
 src/                    Game Freak code (by subsystem; src/unsorted/ until placed)

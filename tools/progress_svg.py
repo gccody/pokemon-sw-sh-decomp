@@ -4,6 +4,12 @@ Written by `tools/progress.py --svg DIR`. CI runs that on every push to master
 and publishes the files to the `progress` branch (.github/workflows/progress.yml),
 so nobody commits generated images and PRs never conflict over them.
 
+One treemap covers both games. Each function is drawn once, at its own game's
+address, size and area: Sword's for every function in Sword, Shield's for
+Shield-only ones, each looked up in that game's columns of data/areas.csv.
+tools/lint.py makes every function land in the same area in both games, and
+the status column is shared, so a per-game map would look the same.
+
 Standard library only: the progress workflow doesn't install anything.
 """
 from __future__ import annotations
@@ -11,7 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from xml.sax.saxutils import escape
 
-from common import BASE, Function
+from common import BASE, VERSIONS, Area, AreaMap, Function
 
 # --------------------------------------------------------------------------- formatting
 
@@ -142,8 +148,9 @@ def _place_row(row, x, y, w, h, out, last=False):
 
 @dataclass
 class Cell:
-    """A run of consecutive functions inside one area: one rectangle on the map."""
+    """A run of consecutive functions of one game inside one area: one rectangle on the map."""
     area: str
+    game: str  # whose addresses start/end are: "sword", or "shield" for Shield-only functions
     start: int  # address of the first function (relative to BASE)
     end: int  # end of the last function
     functions: int = 0
@@ -156,26 +163,43 @@ class Cell:
         return self.matching_bytes / self.bytes if self.bytes else 0.0
 
 
-def build_cells(funcs: list[Function], area_of, area_order: list[str], target_bytes: int) -> dict[str, list[Cell]]:
+def place(funcs: list[Function], areas: list[Area]) -> list[tuple[str, str, int, int, str]]:
+    """(area, game, address, size, status) of each function, in the first game it exists in.
+
+    The address is relative to BASE and the area comes from that game's columns
+    of data/areas.csv ("unassigned" outside every area)."""
+    maps = {v: AreaMap(areas, v) for v in VERSIONS}
+    out = []
+    for f in funcs:
+        v = next((v for v in VERSIONS if f.in_version(v)), None)
+        if v is None:
+            continue
+        addr = f.addr(v)
+        out.append((maps[v].area_of(addr) or "unassigned", v, addr, f.size(v) or 0, f.status))
+    return out
+
+
+def build_cells(funcs: list[Function], areas: list[Area], target_bytes: int) -> dict[str, list[Cell]]:
     """Group functions, in address order, into cells of about `target_bytes` each.
 
-    A cell never spans two areas. A function larger than the target is a cell of its own."""
-    by_area: dict[str, list[tuple[int, int, str]]] = {}
-    for f in funcs:
-        addr = f.sword if f.sword is not None else f.shield
-        size = f.sword_size if f.sword_size is not None else f.shield_size
-        if not size:
-            continue
-        by_area.setdefault(area_of(addr), []).append((addr, size, f.status))
+    Areas come in data/areas.csv order, then "unassigned". A cell never spans
+    two areas or mixes Sword and Shield addresses. A function larger than the
+    target is a cell of its own."""
+    by_area: dict[str, list[tuple[int, str, int, str]]] = {}
+    for area, game, addr, size, status in place(funcs, areas):
+        if size:
+            by_area.setdefault(area, []).append((addr, game, size, status))
+    area_order = [a.name for a in areas]
     order = list(dict.fromkeys(area_order + sorted(set(by_area) - set(area_order))))
     out: dict[str, list[Cell]] = {}
     for area in order:
         items = sorted(by_area.get(area, ()))
         cells: list[Cell] = []
         cur: Cell | None = None
-        for addr, size, status in items:
-            if cur is None or cur.bytes >= target_bytes or (cur.bytes and cur.bytes + size > 2 * target_bytes):
-                cur = Cell(area, addr, addr)
+        for addr, game, size, status in items:
+            if (cur is None or cur.game != game or cur.bytes >= target_bytes
+                    or (cur.bytes and cur.bytes + size > 2 * target_bytes)):
+                cur = Cell(area, game, addr, addr)
                 cells.append(cur)
             cur.end = addr + size
             cur.functions += 1
@@ -217,25 +241,26 @@ def _n(v: float) -> str:
     return f"{v:.1f}".rstrip("0").rstrip(".")
 
 
-def treemap(funcs: list[Function], area_of, area_order: list[str], *,
+def treemap(funcs: list[Function], areas: list[Area], *,
             width: int = 1000, height: int = 500, cells: int = 1500) -> str:
     """Treemap of the whole executable: areas, then runs of functions, sized by code bytes."""
-    total = sum((f.sword_size if f.sword_size is not None else f.shield_size) or 0 for f in funcs)
+    total = sum(size for _, _, _, size, _ in place(funcs, areas))
     target = max(1, total // max(1, cells))
-    groups = build_cells(funcs, area_of, area_order, target)
+    groups = build_cells(funcs, areas, target)
     # Squarify lays out big items first. Sorting by size class (stable) puts the
     # few oversized functions first and keeps ordinary cells in address order.
     groups = {a: sorted(cs, key=lambda c: -round(c.bytes / target)) for a, cs in groups.items()}
     pad, legend_h = 8, 28
     mx, my, mw, mh = pad, pad, width - 2 * pad, height - 2 * pad - legend_h
-    areas = list(groups)
-    area_rects = squarify([sum(c.bytes for c in groups[a]) for a in areas], mx, my, mw, mh)
+    names = list(groups)
+    area_rects = squarify([sum(c.bytes for c in groups[a]) for a in names], mx, my, mw, mh)
 
     body, outlines, labels = [], [], []
-    for area, (ax, ay, aw, ah) in zip(areas, area_rects):
+    for area, (ax, ay, aw, ah) in zip(names, area_rects):
         cs = groups[area]
         for c, (x, y, w, h) in zip(cs, squarify([c.bytes for c in cs], ax, ay, aw, ah)):
-            tip = (f"{area} · 0x{c.start + BASE:x}–0x{c.end + BASE:x} · {fmt_kb(c.bytes)}\n"
+            where = "" if c.game == VERSIONS[0] else f"{c.game.capitalize()} only, "
+            tip = (f"{area} · {where}0x{c.start + BASE:x}–0x{c.end + BASE:x} · {fmt_kb(c.bytes)}\n"
                    f"{c.matching} / {c.functions:,} functions matching · {fmt_pct(100 * c.fraction)} of code")
             body.append(f'<rect x="{_n(x)}" y="{_n(y)}" width="{_n(w)}" height="{_n(h)}" '
                         f'fill="{cell_color(c.fraction)}"><title>{escape(tip)}</title></rect>')

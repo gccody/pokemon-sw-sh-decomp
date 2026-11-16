@@ -91,6 +91,10 @@ docs/                  compiler identification, Sword/Shield version notes
 Write it only through the tools (`funcs.py`, `check.py --update`,
 `versiondiff.py --update-csv`). They keep it sorted with LF line endings.
 
+`data/areas.csv` is small and edited by hand. Each row has a range per game
+(`SwordStart,SwordEnd,ShieldStart,ShieldEnd`), with boundaries at function
+starts. Move a boundary in both games, then run `tools/lint.py`.
+
 ## Workflow for decompiling a function
 
 1. `tools/funcs.py show <addr>` to read the original. For `diverged`, compare both columns.

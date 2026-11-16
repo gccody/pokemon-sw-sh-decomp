@@ -11,6 +11,7 @@ on:
       - data/functions.csv
       - data/areas.csv
       - tools/common.py
+      - tools/versions.json  # read by common.py at import
       - tools/progress.py
       - tools/progress_svg.py
       - .github/workflows/progress.yml

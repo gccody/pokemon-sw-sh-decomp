@@ -1,6 +1,7 @@
-"""Shared paths, version metadata and the functions.csv format."""
+"""Shared paths, version metadata and the functions.csv / areas.csv formats."""
 from __future__ import annotations
 
+import bisect
 import csv
 import json
 import pickle
@@ -143,3 +144,53 @@ def write_functions_csv(path: Path, rows: list[Function]) -> None:
             w.writerow([r.sword_str, r.sword_size if r.sword_size is not None else "",
                         r.shield_str, r.shield_size if r.shield_size is not None else "",
                         r.scope, r.status, r.name])
+
+
+# --------------------------------------------------------------------------- areas.csv
+# Address ranges -> library/subsystem. Like functions.csv, every row carries one
+# [start, end) pair per game (<Game>Start/<Game>End); both are empty for an area
+# that does not exist in that game. Rows are sorted by address in each game.
+AREAS_HEADER = ["SwordStart", "SwordEnd", "ShieldStart", "ShieldEnd", "Area", "Kind", "Confidence", "Evidence"]
+AREA_COLUMNS = {"sword": ("SwordStart", "SwordEnd"), "shield": ("ShieldStart", "ShieldEnd")}
+
+
+@dataclass
+class Area:
+    name: str
+    kind: str
+    confidence: str
+    evidence: str
+    sword: tuple[int, int] | None    # [start, end) relative to BASE, None if not in Sword
+    shield: tuple[int, int] | None
+
+    def range(self, version: str) -> tuple[int, int] | None:
+        return self.sword if version == "sword" else self.shield
+
+    def in_version(self, version: str) -> bool:
+        return self.range(version) is not None
+
+
+def read_areas_csv(path: Path | None = None) -> list[Area]:
+    path = path or ROOT / "data" / "areas.csv"
+    out = []
+    with open(path, newline="", encoding="utf-8") as f:
+        for r in csv.DictReader(f):
+            ranges = {}
+            for v, (s, e) in AREA_COLUMNS.items():
+                ranges[v] = (_addr(r[s]), _addr(r[e])) if r[s] or r[e] else None
+            out.append(Area(name=r["Area"], kind=r["Kind"], confidence=r["Confidence"],
+                            evidence=r["Evidence"], **ranges))
+    return out
+
+
+class AreaMap:
+    """Look up which area of one game an address (relative to BASE) falls in."""
+
+    def __init__(self, areas: list[Area], version: str):
+        self.ranges = sorted((a.range(version)[0], a.range(version)[1], a.name)
+                             for a in areas if a.in_version(version))
+        self.starts = [s for s, _, _ in self.ranges]
+
+    def area_of(self, addr: int) -> str | None:
+        i = bisect.bisect_right(self.starts, addr) - 1
+        return self.ranges[i][2] if i >= 0 and addr < self.ranges[i][1] else None

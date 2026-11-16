@@ -92,3 +92,31 @@ def test_read_name_map(write_csv):
     ]
     with pytest.raises(SystemExit):
         funcs.read_name_map(write_csv("bad.csv", "Name,Addr\nx,0x1\n"))
+
+
+def list_args(**kw):
+    import argparse
+    base = dict(scope=None, status=None, min=None, max=None, range=None, area=None, unnamed=False, n=0)
+    return argparse.Namespace(**{**base, **kw})
+
+
+def test_list_by_area_uses_each_games_columns(write_csv, functions_csv, capsys):
+    path = write_csv("areas.csv", (
+        "SwordStart,SwordEnd,ShieldStart,ShieldEnd,Area,Kind,Confidence,Evidence\n"
+        "0x7100000000,0x7100001000,0x7100000000,0x71000010a0,a,game,low,x\n"
+        "0x7100001000,0x7100002000,0x71000010a0,0x71000020a0,b,library,high,y\n"
+    ))
+    rows = read_functions_csv(functions_csv(
+        "0x0000007100000100,8,0x0000007100000100,8,common,U,",
+        "0x0000007100001000,8,0x00000071000010a0,8,common,U,",
+        ",,0x0000007100001040,8,shield,U,",
+    ))
+    funcs.cmd_list(list_args(area="b", areas_csv=path), rows)
+    out = capsys.readouterr().out.splitlines()
+    assert [line.split()[0] for line in out] == ["0x0000007100001000"]
+    funcs.cmd_list(list_args(area="a", areas_csv=path), rows)
+    out = capsys.readouterr().out.splitlines()
+    assert [line.split()[:2] for line in out] == [["0x0000007100000100", "0x0000007100000100"],
+                                                  ["-", "0x0000007100001040"]]
+    with pytest.raises(SystemExit, match="no area 'c'"):
+        funcs.cmd_list(list_args(area="c", areas_csv=path), rows)

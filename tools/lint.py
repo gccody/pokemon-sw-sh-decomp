@@ -12,7 +12,12 @@ in Sword ...), unique symbol names (local symbols file-qualified as
 data/data_symbols.csv: header, hex addresses, unique symbol names.
 data/absent_functions.csv: compiled functions that are not in the executable;
 valid unique names with a reason, none of them also a row of functions.csv.
-data/areas.csv: header, valid kind/confidence, sorted and non-overlapping ranges.
+data/areas.csv: header, valid kind/confidence, unique area names; per game
+(SwordStart/SwordEnd, ShieldStart/ShieldEnd): start < end, rows sorted and
+non-overlapping, so areas in both games are in the same order. A game's pair is
+empty when the area is not in that game. Against functions.csv: a boundary at
+a function start in one game must be that function's address in the other, and
+every function present in both games must fall in the same area in each.
 
 Tracked files: nothing extracted from the game (NSO/XCI/NCA/keys ...) and no
 large binaries may be committed.
@@ -26,12 +31,14 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import BASE, HEADER, ROOT, SCOPES, STATUSES, read_functions_csv  # noqa: E402
+from common import (  # noqa: E402
+    AREA_COLUMNS, AREAS_HEADER, BASE, HEADER, ROOT, SCOPES, STATUSES, VERSIONS, AreaMap, Function, read_areas_csv,
+    read_functions_csv,
+)
 import symbols  # noqa: E402
 
 DATA_SYMBOLS_HEADER = ["Sword", "Shield", "Size", "Name"]
 ABSENT_HEADER = ["Name", "Reason"]
-AREAS_HEADER = ["Start", "End", "Area", "Kind", "Confidence", "Evidence"]
 AREA_KINDS = ("game", "library")
 AREA_CONFIDENCE = ("low", "medium", "high")
 
@@ -151,30 +158,78 @@ def lint_absent(path: Path, function_names: set[str] = frozenset()) -> list[str]
     return errors
 
 
-def lint_areas(path: Path) -> list[str]:
+def lint_areas(path: Path, functions: list[Function] | None = None) -> list[str]:
     if not path.exists():
         return []
     header = _read_header(path)
     if header != AREAS_HEADER:
         return [f"{path.name} header is {header}, expected {AREAS_HEADER}"]
     errors: list[str] = []
-    prev_end = -1
+    prev_end = {v: -1 for v in VERSIONS}
+    names: dict[str, int] = {}
     with open(path, newline="", encoding="utf-8") as f:
         for i, r in enumerate(csv.DictReader(f), start=2):
             where = f"{path.name}:{i}"
-            start, end = _hex(r["Start"]), _hex(r["End"])
-            if start is None or end is None or start >= end:
-                errors.append(f"{where}: bad range {r['Start']}-{r['End']}")
-                continue
-            if start < prev_end:
-                errors.append(f"{where}: range overlaps the previous row or is out of order")
-            prev_end = end
+            present = []
+            for v, (scol, ecol) in AREA_COLUMNS.items():
+                if not r[scol] and not r[ecol]:
+                    continue
+                present.append(v)
+                start, end = _hex(r[scol]), _hex(r[ecol])
+                if start is None or end is None or start < BASE or start >= end:
+                    errors.append(f"{where}: bad {v} range {r[scol]!r}-{r[ecol]!r}")
+                    continue
+                if start < prev_end[v]:
+                    errors.append(f"{where}: {v} range overlaps the previous row or is out of order")
+                prev_end[v] = end
+            if not present:
+                errors.append(f"{where}: needs a range for at least one game")
             if r["Kind"] not in AREA_KINDS:
                 errors.append(f"{where}: Kind must be one of {AREA_KINDS}, not {r['Kind']!r}")
             if r["Confidence"] not in AREA_CONFIDENCE:
                 errors.append(f"{where}: Confidence must be one of {AREA_CONFIDENCE}, not {r['Confidence']!r}")
             if not r["Area"]:
                 errors.append(f"{where}: empty Area")
+            elif r["Area"] in names:
+                errors.append(f"{where}: duplicate Area {r['Area']} (also line {names[r['Area']]})")
+            names[r["Area"]] = i
+    if functions and not errors:
+        errors += lint_areas_against_functions(path, functions)
+    return errors
+
+
+def lint_areas_against_functions(path: Path, functions: list[Function]) -> list[str]:
+    """Areas against functions.csv.
+
+    A boundary that is a function start in one game must be that function's
+    address in the other game (when the function exists there). Boundaries that
+    are not function starts (segment ends, rough round addresses) are covered by
+    the second check: a function present in both games must be in the same area
+    in each."""
+    areas = read_areas_csv(path)
+    errors = []
+    starts = {v: {fn.addr(v): fn for fn in functions if fn.in_version(v)} for v in VERSIONS}
+    for a in areas:
+        if not (a.sword and a.shield):
+            continue
+        for i, what in ((0, "start"), (1, "end")):
+            for v, other in (("sword", "shield"), ("shield", "sword")):
+                fn = starts[v].get(a.range(v)[i])
+                if fn is None or not fn.in_version(other):
+                    continue
+                if fn.addr(other) != a.range(other)[i]:
+                    errors.append(f"{path.name}: {a.name} {v} {what} is the function {fn.sword_str} / "
+                                  f"{fn.shield_str}, so its {other} {what} must be 0x{fn.addr(other) + BASE:x}, "
+                                  f"not 0x{a.range(other)[i] + BASE:x}")
+                break
+    maps = {v: AreaMap(areas, v) for v in VERSIONS}
+    for fn in functions:
+        if fn.sword is None or fn.shield is None:
+            continue
+        sw, sh = maps["sword"].area_of(fn.sword), maps["shield"].area_of(fn.shield)
+        if sw != sh:
+            errors.append(f"{path.name}: function {fn.sword_str} / {fn.shield_str} is in area "
+                          f"{sw or '(none)'} in sword but {sh or '(none)'} in shield")
     return errors
 
 
@@ -207,9 +262,9 @@ def main(argv: list[str] | None = None) -> int:
 
     errors, n_funcs, n_named = lint_functions(args.data / "functions.csv")
     errors += lint_data_symbols(args.data / "data_symbols.csv")
-    function_names = {f.name for f in read_functions_csv(args.data / "functions.csv") if f.name} if n_funcs else set()
-    errors += lint_absent(args.data / "absent_functions.csv", function_names)
-    errors += lint_areas(args.data / "areas.csv")
+    functions = read_functions_csv(args.data / "functions.csv") if n_funcs else []
+    errors += lint_absent(args.data / "absent_functions.csv", {f.name for f in functions if f.name})
+    errors += lint_areas(args.data / "areas.csv", functions)
     if not args.no_git:
         tracked = git_tracked_files()
         if tracked is None:

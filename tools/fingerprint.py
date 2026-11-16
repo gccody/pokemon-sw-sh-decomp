@@ -9,11 +9,12 @@ source code, for a region of `main`:
     python tools/fingerprint.py 0x7100596d20-0x7101548410,0x7100596d20-0x71015484b0
 
 A target is an area name from data/areas.csv or `[label=]LO-HI[,SHLO-SHHI]`
-(end exclusive). Addresses without a Shield range are Sword addresses; the
-Shield range then comes from the area's ShieldStart/ShieldEnd columns if
-data/areas.csv has them, else from the paired rows of data/functions.csv
-(the lowest Shield start and highest Shield end of the functions whose Sword
-start is in the range). `--game both` (the default) prints both games.
+(end exclusive). An area name uses that area's range in each game
+(data/areas.csv's SwordStart/SwordEnd and ShieldStart/ShieldEnd columns).
+Addresses without a Shield range are Sword addresses; the Shield range then
+comes from the paired rows of data/functions.csv (the lowest Shield start and
+highest Shield end of the functions whose Sword start is in the range).
+`--game both` (the default) prints both games.
 
 The unit is the function: a function belongs to a range when its start
 address is in it, and only its own instructions (the FDE-derived boundaries of
@@ -74,7 +75,6 @@ PREFIX. It is module-wide, not per range.
 from __future__ import annotations
 
 import argparse
-import csv
 import re
 import struct
 import sys
@@ -82,7 +82,7 @@ from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import BASE, ROOT, VERSIONS  # noqa: E402
+from common import BASE, ROOT, VERSIONS, read_areas_csv  # noqa: E402
 
 AREAS = ROOT / "data" / "areas.csv"
 SHIFT_WINDOW = 4
@@ -367,15 +367,11 @@ def fingerprint(mod: dict, lo: int, hi: int) -> Counter:
 
 
 def read_areas(path: Path = AREAS) -> dict[str, dict[str, tuple[int, int]]]:
-    """area -> {game: (lo, hi)} from areas.csv (Start/End or SwordStart/.../ShieldEnd)."""
+    """area -> {game: (lo, hi)} (absolute addresses) for the games the area is in."""
     out: dict[str, dict[str, tuple[int, int]]] = {}
-    with open(path, newline="", encoding="utf-8") as fh:
-        for r in csv.DictReader(fh):
-            sw = (r.get("SwordStart") or r.get("Start"), r.get("SwordEnd") or r.get("End"))
-            ranges = {"sword": (int(sw[0], 16), int(sw[1], 16))}
-            if r.get("ShieldStart") and r.get("ShieldEnd"):
-                ranges["shield"] = (int(r["ShieldStart"], 16), int(r["ShieldEnd"], 16))
-            out.setdefault(r["Area"], ranges)  # first row of a split area wins
+    for a in read_areas_csv(path):
+        ranges = {v: (a.range(v)[0] + BASE, a.range(v)[1] + BASE) for v in VERSIONS if a.in_version(v)}
+        out.setdefault(a.name, ranges)  # lint keeps area names unique
     return out
 
 
