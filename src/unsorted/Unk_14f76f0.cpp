@@ -50,9 +50,10 @@ static inline Iter findIf(Iter first, Iter last, Pred pred) {
 }
 
 // Inlined into 0x71014f7a50. As a member of the range (rather than written out
-// in the caller like findFree below), the debug value of the inlined begin()
-// survives as a DBG_VALUE between the two loads, so with -g they stay two ldr
-// (one ldp with -g0). The exits' `cmp; csel; ret` tail is duplicated only at -O3.
+// in the caller like findFree below), debug values of both loaded registers
+// (the predicate's `slot` in the peeled first iteration and end()'s `this`) sit
+// between the two loads, so with -g they stay two ldr (one ldp with -g0). The
+// exits' `cmp; csel; ret` tail is duplicated only at -O3.
 inline Unk_14f76f0* Unk_14f76f0_Range::find(const u64& key) {
     Unk_14f76f0_Iter it =
         findIf(begin(), end(), [&](const Unk_14f76f0& slot) { return slot.field_0 == key; });
