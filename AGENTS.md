@@ -64,6 +64,7 @@ elsewhere. `ninja` must be on `PATH` for builds.
 ```sh
 python tools/get_physx.py                                # once: lib/physx's v3.4.2 files (not in git)
 python tools/funcs.py list --status U --max 64 -n 20     # find small undecompiled functions
+python tools/funcs.py patterns --area game --status U --max 8   # group by pattern + how reached (docs/game_code.md)
 python tools/funcs.py show 0x7100bc0b00                  # original asm (both games if diverged)
 python tools/funcs.py name 0x7100bc0b00 _ZN4pkmn3FooEv   # assign a mangled name
 python tools/check.py _ZN4pkmn3FooEv --diff              # build both games, compare, show diff
@@ -96,7 +97,7 @@ src/                   Game Freak code (src/unsorted/ until a subsystem is known
 lib/                   third-party code (lua, sol2, physx, zlib...): upstream formatting and license, not clang-formatted
 tools/                 Python tooling; tools/nx/ = XCI/NCA/NSO/eh_frame/AArch64 helpers
 tests/                 pytest suite for tools/ (must not need game files)
-docs/                  compiler identification, Sword/Shield version notes
+docs/                  compiler identification, Sword/Shield version notes, Game Freak code areas + triage
 ```
 
 `data/functions.csv` is too large to read whole. Query it with

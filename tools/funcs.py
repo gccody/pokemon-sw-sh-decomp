@@ -3,6 +3,7 @@
 
     tools/funcs.py list [--scope diverged] [--status U] [--min 0 --max 64] [--range 0x7100800000-0x7100900000] [-n 50]
     tools/funcs.py list --area lua            # rows in a data/areas.csv area (each game's own columns)
+    tools/funcs.py patterns --area game --status U --max 8   # group by instruction pattern + how it's reached
     tools/funcs.py show 0x71007c2d80          # original asm (both games side-by-side if they differ)
     tools/funcs.py name 0x71007c2d80 _ZN4pkmn10GetVersionEv
     tools/funcs.py name 0x710154fb60 GCTM@lgc              # static: <symbol>@<file stem>
@@ -16,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import re
 import sys
 from pathlib import Path
 
@@ -44,7 +46,8 @@ def find(funcs, q: str):
     raise SystemExit(f"no function matching {q!r}")
 
 
-def cmd_list(args, funcs):
+def select(args, funcs):
+    """The rows `list` and `patterns` filter with --scope/--status/--min/--max/--range/--area/--unnamed."""
     lo, hi = (None, None)
     if args.range:
         lo, hi = (int(x, 16) - BASE for x in args.range.split("-"))
@@ -54,7 +57,6 @@ def cmd_list(args, funcs):
         if args.area not in {a.name for a in areas}:
             raise SystemExit(f"no area {args.area!r} in {args.areas_csv.name}: {', '.join(a.name for a in areas)}")
         area_maps = {v: AreaMap(areas, v) for v in VERSIONS}
-    n = 0
     for f in funcs:
         size = f.sword_size if f.sword_size is not None else f.shield_size
         if args.scope and f.scope != args.scope:
@@ -71,10 +73,98 @@ def cmd_list(args, funcs):
             continue
         if args.unnamed and f.name:
             continue
+        yield f
+
+
+def cmd_list(args, funcs):
+    n = 0
+    for f in select(args, funcs):
+        size = f.sword_size if f.sword_size is not None else f.shield_size
         print(f"{f.sword_str or '-':18} {f.shield_str or '-':18} {size:6} {f.scope:11} {f.status} {f.display_name}")
         n += 1
         if args.n and n >= args.n:
             break
+
+
+# --------------------------------------------------------------------------- patterns
+_IMM = re.compile(r"#-?(?:0x[0-9a-f]+|\d+)")
+NX_TRAP = 0xE7FFDEFE  # same word as tools/fix_traps.py
+
+
+def pattern_of(code: bytes, addr: int = 0) -> str:
+    """A function's instructions with immediates as #N and branch targets as T.
+
+    Functions with the same pattern can usually be written the same way, e.g.
+    `ldr x0, [x0, #N] ; ret` is a getter and `sub x0, x0, #N ; b T` a thunk
+    that adjusts `this` for a secondary base."""
+    import struct
+
+    import capstone
+    md = capstone.Cs(capstone.CS_ARCH_ARM64, capstone.CS_MODE_ARM)
+    out = []
+    for off in range(0, len(code) - len(code) % 4, 4):
+        if struct.unpack_from("<I", code, off)[0] == NX_TRAP:
+            out.append("trap")  # __builtin_trap(): the A32 encoding the NX toolchain emits
+            continue
+        i = next(md.disasm(code[off:off + 4], addr + off), None)
+        if i is None:
+            out.append(".word")
+            continue
+        op = "T" if i.mnemonic in ("b", "bl") else _IMM.sub("#N", i.op_str)
+        out.append(f"{i.mnemonic} {op}".rstrip())
+    return " ; ".join(out)
+
+
+def branch_targets(img: bytes, start: int, end: int) -> set[int]:
+    """Targets of every B/BL word in img[start:end] (offsets into img)."""
+    import struct
+    out = set()
+    for i, w in enumerate(struct.unpack_from(f"<{(end - start) // 4}I", img, start)):
+        if (w & 0x7C000000) == 0x14000000:
+            imm = w & 0x3FFFFFF
+            if imm & (1 << 25):
+                imm -= 1 << 26
+            out.add(start + i * 4 + imm * 4)
+    return out
+
+
+def reference_kind(addr: int, called: set[int], in_data: set[int]) -> str:
+    """How a function is reached: `data` (a pointer to it in .data: a vtable or a
+    function table, so usually a virtual function), `call` (B/BL only), `both` or `none`
+    (neither: its address is only taken in code, or it's unused)."""
+    d, c = addr in in_data, addr in called
+    return "both" if d and c else "data" if d else "call" if c else "none"
+
+
+def cmd_patterns(args, funcs):
+    from collections import Counter, defaultdict
+
+    from nx.module import DynInfo
+    from nx.nso import Nso
+    from common import nso_path
+
+    rows = [f for f in select(args, funcs) if f.in_version("sword")]
+    mod = load_module("sword")
+    img = mod["image"]
+    dyn = DynInfo(Nso(nso_path("sword").read_bytes()), img, mod["text_end"])
+    in_data = {v for v in dyn.slots.values() if isinstance(v, int)}
+    called = branch_targets(img, 0, mod["text_end"] & ~3)
+    count: Counter = Counter()
+    kinds: dict[str, Counter] = defaultdict(Counter)
+    examples: dict[str, list[int]] = defaultdict(list)
+    for f in rows:
+        a = f.addr("sword")
+        p = pattern_of(img[a:a + f.size("sword")], a + BASE)
+        count[p] += 1
+        kinds[p][reference_kind(a, called, in_data)] += 1
+        if len(examples[p]) < 2:
+            examples[p].append(a + BASE)
+    print(f"{len(rows)} functions, {len(count)} patterns (Sword; reached via data = vtable/table entry, "
+          "call = B/BL, both, none)")
+    for p, c in count.most_common(args.n or None):
+        k = " ".join(f"{x}={kinds[p][x]}" for x in ("data", "call", "both", "none") if kinds[p][x])
+        ex = " ".join(f"{e:#x}" for e in examples[p])
+        print(f"{c:7}  {p[:70]:70}  {k:34} {ex}")
 
 
 def cmd_show(args, funcs):
@@ -208,6 +298,16 @@ def main() -> int:
     p.add_argument("--areas-csv", type=Path, default=ROOT / "data" / "areas.csv", help=argparse.SUPPRESS)
     p.add_argument("--unnamed", action="store_true")
     p.add_argument("-n", type=int, default=100, help="max rows (0 = all)")
+    p = sub.add_parser("patterns", help="group functions by instruction pattern (Sword) and how they're reached")
+    p.add_argument("--scope", choices=SCOPES)
+    p.add_argument("--status", help="one or more status letters, e.g. U")
+    p.add_argument("--min", type=int)
+    p.add_argument("--max", type=int)
+    p.add_argument("--range")
+    p.add_argument("--area")
+    p.add_argument("--areas-csv", type=Path, default=ROOT / "data" / "areas.csv", help=argparse.SUPPRESS)
+    p.add_argument("--unnamed", action="store_true")
+    p.add_argument("-n", type=int, default=40, help="max patterns (0 = all)")
     p = sub.add_parser("show")
     p.add_argument("func")
     p.add_argument("--both", action="store_true", help="show both games even if the code is common")
@@ -221,7 +321,7 @@ def main() -> int:
     p.add_argument("status", choices=STATUSES)
     args = ap.parse_args()
     funcs = read_functions_csv(CSV)
-    return {"list": cmd_list, "show": cmd_show, "name": cmd_name, "status": cmd_status}[args.cmd](args, funcs) or 0
+    return {"list": cmd_list, "patterns": cmd_patterns, "show": cmd_show, "name": cmd_name, "status": cmd_status}[args.cmd](args, funcs) or 0
 
 
 if __name__ == "__main__":

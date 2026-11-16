@@ -120,3 +120,49 @@ def test_list_by_area_uses_each_games_columns(write_csv, functions_csv, capsys):
                                                   ["-", "0x0000007100001040"]]
     with pytest.raises(SystemExit, match="no area 'c'"):
         funcs.cmd_list(list_args(area="c", areas_csv=path), rows)
+
+
+def words(*w: int) -> bytes:
+    import struct
+    return struct.pack(f"<{len(w)}I", *w)
+
+
+RET = 0xD65F03C0
+
+
+@pytest.mark.parametrize("code, pattern", [
+    (words(RET), "ret"),
+    (words(0xD1002000, 0x14000040), "sub x0, x0, #N ; b T"),  # sub x0, x0, #8 ; b +0x100: a this-adjusting thunk
+    (words(0xF9400800, RET), "ldr x0, [x0, #N] ; ret"),       # ldr x0, [x0, #0x10]
+    (words(0x52800020, RET), "mov w0, #N ; ret"),             # mov w0, #1
+    (words(0xE7FFDEFE), "trap"),                              # the NX trap word
+    (words(0xFFFFFFFF, RET), ".word ; ret"),                  # undecodable words don't hide the rest
+])
+def test_pattern_of(code, pattern):
+    assert funcs.pattern_of(code, 0x7100001000) == pattern
+
+
+def test_pattern_of_ignores_the_address():
+    code = words(0x94000010, RET)  # bl +0x40
+    assert funcs.pattern_of(code, 0x7100001000) == funcs.pattern_of(code, 0x7100abc000) == "bl T ; ret"
+
+
+def test_branch_targets():
+    img = words(RET, 0x14000040, 0x97FFFFFF, 0x94000001, 0xF9400800)  # ret, b +0x100, bl -4, bl +4, ldr
+    assert funcs.branch_targets(img, 0, len(img)) == {4 + 0x100, 8 - 4, 12 + 4}
+    assert funcs.branch_targets(img, 8, 12) == {4}
+
+
+@pytest.mark.parametrize("addr, kind", [(0x10, "data"), (0x20, "call"), (0x30, "both"), (0x40, "none")])
+def test_reference_kind(addr, kind):
+    assert funcs.reference_kind(addr, called={0x20, 0x30}, in_data={0x10, 0x30}) == kind
+
+
+def test_select_is_shared_by_list_and_patterns(functions_csv):
+    rows = read_functions_csv(functions_csv(
+        "0x0000007100000100,8,0x0000007100000100,8,common,U,",
+        "0x0000007100000200,64,0x0000007100000200,64,common,U,",
+        "0x0000007100000300,8,0x0000007100000300,8,common,O,_Z1fv",
+    ))
+    picked = list(funcs.select(list_args(status="U", max=8), rows))
+    assert [f.sword_str for f in picked] == ["0x0000007100000100"]
