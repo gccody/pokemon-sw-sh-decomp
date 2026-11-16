@@ -22,6 +22,17 @@ both executables and install the toolchain. Then install the dev tools:
 `tools/check.py` drives CMake with the Ninja generator, so `ninja` must be on
 your `PATH`.
 
+A library whose `pkmn_library_settings()` entry has a `COMPILER_VERSION`
+(PhysX: clang 6.0.1) also needs that compiler, which
+`python tools/get_llvm.py --compiler 6.0.1` installs into `toolchain/clang-6.0.1/`.
+`python tools/get_llvm.py --library-compilers` installs every one the build
+needs (CI runs it too).
+
+On macOS, clang 6.0.1 isn't available (LLVM never published a macOS build of it),
+so PhysX code can't be matched there: use Linux or Windows (or WSL, or a Linux
+container), or configure with `-DPKMN_ALLOW_LIBRARY_COMPILER_FALLBACK=ON`
+knowing that those functions won't match.
+
 ## 1. Claim something
 
 The **unit of tracking** is a function (`data/functions.csv`), but **claim a
@@ -108,7 +119,7 @@ a `// NON_MATCHING: <reason>` comment above it.
 | Tooling unit tests | `python -m pytest` | no | yes (Linux + Windows) |
 | Python lint | `ruff check .` | no | yes |
 | C/C++ formatting | `clang-format --dry-run --Werror <files>` | no | yes |
-| Compiles for both games | `cmake --preset sword && cmake --build --preset sword` (and `shield`) | no | yes, with distro clang |
+| Compiles for both games | `cmake --preset sword && cmake --build --preset sword` (and `shield`) | no | yes, with clang 7.0.1 (`get_llvm.py --compiler`) |
 | **Matching** | `python tools/check.py` | **yes** | **no**, paste the output into your PR |
 
 `pre-commit run --all-files` runs everything in the table except the build and
