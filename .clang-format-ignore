@@ -1,0 +1,12 @@
+# Third-party code keeps its upstream formatting: the vendored libraries in
+# lib/ (lib/.clang-format also disables formatting there) and the musl libc
+# headers. clang-format skips these files even when they are passed on the
+# command line (as CI does). "**" is not recursive in clang-format 19, so
+# every directory depth is listed.
+lib/*
+lib/*/*
+lib/*/*/*
+lib/*/*/*/*
+include/libc/*
+include/libc/*/*
+include/libc/*/*/*
