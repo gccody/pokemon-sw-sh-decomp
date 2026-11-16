@@ -122,10 +122,21 @@ pkmn_library_settings(lib/lua
   overrides the global `-fno-exceptions`.
 - Don't set flags anywhere else: no per-file properties, no
   `target_compile_options` for one library.
-- The compiler is the same for the whole build. A library built with another
-  clang version (PhysX: clang 6.0.1) can't be matched by flags. Its entry
-  records the version (`COMPILER_VERSION`), and configuring warns while the
-  build's clang differs.
+- A library built with another clang version gets `COMPILER_VERSION`. PhysX
+  was built with clang 6.0.1 (920 functions match, against 463 with 7.0.1), so
+  its sources are compiled with clang 6.0.1 in the same build. Only the
+  compiler changes: the global flags, includes and the entry's `DEFINES` and
+  `OPTIONS` stay the same, and `compile_commands.json` shows which clang
+  compiled each file.
+- That clang is found in `toolchain/clang-<version>/` (with `bin/clang` and
+  `bin/clang++`), which `python tools/get_llvm.py --compiler <version>`
+  installs. Use `-DPKMN_CLANG_ROOT_6_0_1=<dir>` (or the environment variable
+  of the same name) to point at another install. Configuring checks that it
+  reports the right version. If it's missing, configuring fails and tells you
+  what to run. `-DPKMN_ALLOW_LIBRARY_COMPILER_FALLBACK=ON` builds the library
+  with the main clang instead, with a warning that it won't match. A library
+  directory with no sources needs no compiler.
+- Once PhysX sources land, CI needs `tools/get_llvm.py --compiler 6.0.1` too.
 
 `cmake/LibrarySettings.cmake` documents the details.
 

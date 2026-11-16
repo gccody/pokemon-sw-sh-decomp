@@ -38,10 +38,13 @@ count. A function is done only when `tools/check.py` reports `OK`.
 6. **Don't change the global codegen flags** in `cmake/toolchain-nx64.cmake`
    (or add flags anywhere else) to make one function match. They're fixed by
    evidence (`docs/compiler.md`) and apply to every TU. A library that was
-   built differently (other defines, `-fexceptions`, ...) gets a
-   `pkmn_library_settings(<dir> ...)` entry in `CMakeLists.txt`, and only
-   there. It needs a `docs/compiler.md` section with the evidence, named in
-   the entry's `EVIDENCE`. See `cmake/LibrarySettings.cmake`.
+   built differently (other defines, `-fexceptions`, another clang version
+   via `COMPILER_VERSION`, ...) gets a `pkmn_library_settings(<dir> ...)`
+   entry in `CMakeLists.txt`, and only there. It needs a `docs/compiler.md`
+   section with the evidence, named in the entry's `EVIDENCE`. See
+   `cmake/LibrarySettings.cmake`. A missing library clang (e.g. PhysX's 6.0.1)
+   fails the configure: install it with `tools/get_llvm.py --compiler <ver>`,
+   don't switch on `PKMN_ALLOW_LIBRARY_COMPILER_FALLBACK` to get past it.
 7. Don't force matches with `volatile`, inline asm or meaningless temporaries.
    If it won't match with natural code, submit it as `M`/`m` with
    `// NON_MATCHING: <reason>`.
