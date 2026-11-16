@@ -38,14 +38,18 @@ How the boundaries were placed:
   protobuf function. `0x7100761f70` is a game size check, and the pml
   accessors that follow are called from all over the game.
 - **Layering.** gflib3 calls nothing in gflnet3 or protobuf, and protobuf
-  calls nothing after itself. Protobuf's only calls back into gflnet3 go to
-  `0x71006a54a0`, `std::__tree_balance_after_insert`: a linkonce libc++
-  instantiation that the linker kept from a gflnet3 TU. gflib3's 70 calls
-  into later code all go to instantiations like that (libc++, sol2).
+  calls nothing after itself. Protobuf's calls back into gflnet3 all go to
+  linkonce functions that the linker kept from a gflnet3 TU:
+  `std::__tree_balance_after_insert` (`0x71006a54a0`, libc++) and
+  protobuf's own inline
+  `InternalMetadataWithArena::mutable_unknown_fields_slow` (`0x71006bd410`,
+  66 calls, from the generated messages' Merge functions). gflnet3's own
+  generated messages emit them first. gflib3's 70 calls into later code all
+  go to instantiations like that (libc++, sol2).
 - **Protobuf's version.** Each generated message's `AddDescriptors` calls
-  `VerifyVersion` (`0x71006ff450`) with `3000000`, i.e. 3.0.0. Protobuf is
-  BSD-3-Clause, so it could be vendored and matched the way sol2 was (1,622
-  functions, 515 KB).
+  `VerifyVersion` (`0x71006ff450`) with `3000000`, i.e. 3.0.0. It's vendored
+  in `lib/protobuf`, and 1,618 of the area's 1,622 functions match
+  (docs/compiler.md, "Protocol Buffers 3.0.0").
 
 **Game Freak code has no RTTI.** The 1,264 typeinfo objects in `main` all
 belong to the nn SDK (829), YEBIS (`SiSDK3` 349, `PPFX` 46), `pead` (34) and a
