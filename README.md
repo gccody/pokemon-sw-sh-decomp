@@ -69,9 +69,11 @@ source matches **both** games. Details are in [docs/versions.md](docs/versions.m
 ### Areas
 
 [`data/areas.csv`](data/areas.csv) maps address ranges to libraries and
-subsystems. That lets work be split further, and keeps third-party code (PhysX
-3.4.2, YEBIS 3, Lua, sol2, NEX, Pia, NintendoWare, nn SDK) apart from Game Freak
-code. The map is a first approximation built from string evidence, so refine it
+subsystems. That lets work be split further. It keeps third-party code (PhysX
+3.4.2, YEBIS 3, Wwise, Protocol Buffers 3.0.0, Lua, sol2, NEX, Pia,
+NintendoWare, nn SDK) apart from Game Freak code, and Game Freak's own
+libraries (gflib3, gflnet3) apart from the game ([docs/game_code.md](docs/game_code.md)).
+The map is a first approximation built from string evidence, so refine it
 as areas are identified.
 
 Like `functions.csv`, each row has one range per game: `SwordStart,SwordEnd`
@@ -116,6 +118,7 @@ python tools/progress.py
 | `tools/setup.py` | Extract `main` (+ sdk modules) from each XCI and verify the build |
 | `tools/versiondiff.py --update-csv` | Re-pair Sword ↔ Shield and regenerate scopes (keeps names and status) |
 | `tools/funcs.py list --status U --max 64 --area game` | Find work |
+| `tools/funcs.py patterns --area game --status U --max 8` | Group functions by instruction pattern and how they're reached (vtable, call, neither), to find batches ([docs/game_code.md](docs/game_code.md)) |
 | `tools/funcs.py show <addr>` | Original assembly, with both games side by side for `diverged` |
 | `tools/funcs.py name <addr> <mangled>` | Assign a symbol name to a function |
 | `tools/check.py [name] [--diff] [--update]` | Build both games and check against both originals |
@@ -136,7 +139,7 @@ lib/                    third-party code (lua/, sol/, physx/, zlib/, ...)
 tools/                  python tooling (tools/nx/ = XCI/NCA/NSO/eh_frame readers)
 tests/                  pytest suite for tools/ (no game files needed)
 cmake/                  NX64 toolchain; CMakePresets.json has sword + shield presets
-docs/                   version notes, compiler identification
+docs/                   version notes, compiler identification, Game Freak code areas
 ```
 
 ## Contributing
