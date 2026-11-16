@@ -98,6 +98,8 @@ python tools/setup.py [--sword X.xci] [--shield Y.xci] [--keys ~/.switch/prod.ke
 
 # 3. Compiler: clang 7.0.1, identified in docs/compiler.md (+ LLVM 19 utilities for the tools)
 python tools/get_llvm.py        # -> toolchain/clang, toolchain/llvm-19
+python tools/get_llvm.py --library-compilers   # clang 6.0.1, for PhysX
+python tools/get_physx.py       # lib/physx's files with v3.4.2 code (not in git; lib/physx/README.md)
 
 # 4. Build both games and check every decompiled function against both originals
 python tools/check.py

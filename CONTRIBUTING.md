@@ -28,6 +28,13 @@ A library whose `pkmn_library_settings()` entry has a `COMPILER_VERSION`
 `python tools/get_llvm.py --library-compilers` installs every one the build
 needs (CI runs it too).
 
+PhysX also needs `python tools/get_physx.py`, once. 83 of `lib/physx`'s files
+need PhysX v3.4.2's code, which isn't BSD-licensed, so they aren't in the
+repository. The tool rebuilds them from NVIDIA's public repository and checks
+each one's SHA-256 (`data/physx_v342.csv`). CMake won't configure without
+them. Never commit them: `lib/physx/.gitignore` and `tools/lint.py` keep them
+out (see `lib/physx/README.md`).
+
 On macOS, clang 6.0.1 isn't available (LLVM never published a macOS build of it),
 so PhysX code can't be matched there: use Linux or Windows (or WSL, or a Linux
 container), or configure with `-DPKMN_ALLOW_LIBRARY_COMPILER_FALLBACK=ON`
@@ -201,6 +208,15 @@ clearly changed the source. For example, Game Freak's `os` library only
 registers `os.clock`, so `luaopen_os` creates a table with 1 field and the other
 `os_*` functions don't exist. Lint rejects an absent function that is also a
 row of `functions.csv`.
+
+**Another library's copy.** An inline function or template instance can be
+compiled into several libraries, and the linker keeps one copy. Sometimes the
+kept copy belongs to a library this repository doesn't build (an SDK library
+built by another compiler), and the copies compiled here can never match it.
+List such a function in `data/foreign_copies.csv` (`Name,Reason`, sorted by
+name), with the evidence. `check.py` then skips it. It must be a row of
+`functions.csv`, because the executable has it, and only weak/COMDAT copies may
+be compiled here. `__clang_call_terminate` is the example.
 
 A function is `O` only when it matches in every game it exists in. **Statuses
 come from `check.py --update`, never from editing the CSV by hand.** If a

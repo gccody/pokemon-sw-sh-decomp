@@ -20,6 +20,10 @@ count. A function is done only when `tools/check.py` reports `OK`.
    gitignored. Never `cat`/`Read` `prod.keys` or `title.keys`, and never echo
    key values. Short asm excerpts from `tools/funcs.py show` are fine in code
    comments and PR text. Bulk dumps of data or rodata are not.
+   Don't commit the 83 `lib/physx` files listed in `data/physx_v342.csv`
+   either: they hold PhysX v3.4.2 code, which isn't BSD-licensed.
+   `tools/get_physx.py` generates them, and `lib/physx/.gitignore` and lint
+   keep them out.
 2. **Never hand-edit the `Status` column of `data/functions.csv`.** `O` comes
    only from `python tools/check.py --update`. Use `tools/funcs.py status <addr> m|M`
    for non-matching submissions.
@@ -55,6 +59,7 @@ Use the venv's Python: `.venv/Scripts/python` on Windows, `.venv/bin/python`
 elsewhere. `ninja` must be on `PATH` for builds.
 
 ```sh
+python tools/get_physx.py                                # once: lib/physx's v3.4.2 files (not in git)
 python tools/funcs.py list --status U --max 64 -n 20     # find small undecompiled functions
 python tools/funcs.py show 0x7100bc0b00                  # original asm (both games if diverged)
 python tools/funcs.py name 0x7100bc0b00 _ZN4pkmn3FooEv   # assign a mangled name
@@ -76,6 +81,10 @@ game files.
 data/functions.csv     104k rows, ~6 MB: Sword/Shield address+size, Scope, Status, Name
 data/data_symbols.csv  named globals/rodata (check.py resolves data references through it)
 data/areas.csv         address range -> library/subsystem
+data/absent_functions.csv, data/foreign_copies.csv
+                       compiled functions check.py skips (not in the executable / another library's copy kept)
+data/source_paths.csv  vendored dirs whose __FILE__ literals check.py compares by the file they name
+data/physx_v342.csv    lib/physx files tools/get_physx.py generates (v3.4.2 code, never committed) + SHA-256
 cmake/                 toolchain (global flags) + LibrarySettings.cmake (per-library flags)
 include/types.h        u8..u64, f32, PKMN_SIZE_ASSERT, PKMN_OFFSET_ASSERT
 include/pkmn/version.h PKMN_SW_SH, PKMN_IS_SWORD, PKMN_IS_SHIELD

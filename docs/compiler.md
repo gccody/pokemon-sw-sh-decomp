@@ -386,7 +386,9 @@ used for PhysX, doesn't link libtinfo and runs on 24.04.)
 clang 6.0.1 at `-O3` with debug info, C++ exceptions and strict aliasing on,
 builtins and RTTI off, in a release configuration (`PX_PROFILE=0`,
 `PX_SUPPORT_PVD=0`), from the public `v3.4.2` source. Every PhysX library in
-the binary was built with the same flags.**
+the binary was built with the same flags.** `lib/physx` now builds all of it,
+and all 8,247 functions match in both games (see "`lib/physx`"). The sweep
+results below are how that was established.
 
 Compiling the 386 TUs of the PhysX 3.4 libraries that are in the binary (see
 "The other libraries") this way, with stand-ins for the non-public NX headers,
@@ -643,6 +645,8 @@ PhysX's compiler alone. The build rewrites it in every object (see "Traps").
   `nn::os::GetThreadAvailableCoreMask`), whose Switch sources aren't public
   either.
 
+All 39 are reconstructed in `lib/physx` now (see "`lib/physx`").
+
 **How attribution works** (`tools/sweep_attribute.py`). It reads one
 configuration's objects and uses the relocation targets that the masking
 ignores:
@@ -667,6 +671,150 @@ ignores:
 `RayRTreeCallback<0, false>` members (two originals each), whose callers have
 identical code. The pinning is a heuristic. A wrong pin would show up as a
 conflict like these, but it can't be ruled out.
+
+These counts are for the sweep's objects. With the build's own objects
+(`sweep_attribute.py build/sword --source-prefix lib/physx/`) and these
+additions, every original gets exactly one name. See "`lib/physx`" below.
+
+- **Taken addresses.** A pinned function's `adrp`/lo12 or GOT reference to a
+  compiled function pins that function to the address. That's how the `Dy`
+  solver tables are filled: `DYNAMIC_ARTICULATION_REGISTRATION(x)` is `0` in
+  the initialisers, and `SolverCoreRegisterArticulationFns` stores
+  `solveExt1DBlock` and the others at run time.
+- **Local tables.** The assembler writes a reference to a `static` object as
+  its section symbol plus an offset. So each local pointer table is also found
+  by its section, which pins the `Gu::unsupportedMidphase` copies through
+  `gMidphaseRaycastTable` and the others.
+- **One function per original.** A call whose original target is pinned to
+  another function disagrees. A name whose code differs from its original
+  gives way to one whose code is the same. Names pinned by unique code before
+  their callees were pinned are checked again at the end. This settled
+  `0x71000b4000`: it calls `PxvRegisterHeightFields`, so it is
+  `PxRegisterHeightFields`, not the identical `PxRegisterLegacyHeightFields`,
+  which calls the absent `PxvRegisterLegacyHeightFields`.
+- **Link order.** With `-ffunction-sections`, the linker keeps each object's
+  functions in section order, one object after another. An original without a
+  pin, between two pinned functions of one TU, gets the name of the one
+  candidate in that TU that fits there. Where two names are left on one
+  address, the one that something references wins: `--gc-sections` drops
+  functions that nothing references. Complete and base structors (C1/C2,
+  D1/D2) count as one name, recorded as the base one, as in `functions.csv`.
+
+### `lib/physx`
+
+The sweep's results carry over to the build: `lib/physx` holds the 385 TUs in
+the binary, compiled by the `pkmn_library_settings(lib/physx ...)` entry with
+the flags above. **All 8,247 functions of the PhysX range match `check.py` in
+both games and are `O` in `functions.csv`,** the 39 NX platform functions
+included.
+
+**Sources.** The text is the BSD-3 HEAD revision (@25354359). Where HEAD's code
+differs from `v3.4.2`'s, the file has `v3.4.2`'s code, hunk by hunk: 83 files.
+HEAD's text is kept wherever only comments differ, and every line keeps its
+`v3.4.2` line number, because `__LINE__` is in the code (`PX_ALLOC`,
+`getFoundation().error`). Before that restore, the HEAD build lost about 1,050
+attributions to header and layout changes and shifted line numbers. Line 1 of
+each restored file lists its `v3.4.2` lines. `v3.4.2` isn't BSD-licensed, so
+the 83 files aren't in the repository. `tools/get_physx.py` rebuilds them from
+NVIDIA's public repository: HEAD's file, `v3.4.2`'s file and the same
+hunk-by-hunk rule. It checks each result against the SHA-256 in
+`data/physx_v342.csv`, and CMake won't configure until they all match
+(`lib/physx/README.md`). The TU
+list, the include directories (in makefile order) and `PX_BUILD_NUMBER` come
+from `v3.4.2`'s `linux64` makefiles. The 22 libc++ 7.0.1 headers that PhysX
+reads are vendored, unchanged, in `include/libcxx`.
+
+**`__FILE__`.** The vendor built from
+`C:/gitlab-runner/builds/ba119cc0/0/research_and_development/physx/PhysX/`.
+TUs appear under that absolute path. Headers appear relative to the
+makefile's directory, `PhysX_3.4/Source/compiler/nx/` for the PhysX libraries
+and `PxShared/src/compiler/nx/` for PxShared's (`./../../../../PxShared/src/foundation/include\PsArray.h`,
+`./../../foundation/include/PsArray.h`). clang joins an `-I` directory and a
+name with `\` on Windows, so one header can be spelled both ways.
+`data/source_paths.csv` records the two build directories, and `check.py`
+compares a literal that names a file under `lib/physx` by the file it names,
+not byte for byte (`tools/source_paths.py`). The fingerprint that compares
+weak copies across TUs folds the separators of this checkout's paths. It also
+compares merged constants (`.rodata.cst16`) by value, so identical template
+copies no longer look different.
+
+**Attribution in the build.** `sweep_attribute.py` reads a CMake build
+directory too. With the additions in "How attribution works", all 8,247
+originals get one name, the same in both games: 8,174 pinned, 73 placed by link
+order. `funcs.py name --from-file` applied them. The 1,848 compiled functions
+that aren't in the binary (inlined everywhere, or dropped by `--gc-sections`,
+such as `PxvRegisterLegacyHeightFields`, `BitArray()` and
+`MutexImpl::trylock`) are in `data/absent_functions.csv`.
+
+**Data.** `data/data_symbols.csv` has 566 PhysX data objects: 383 vtables,
+dispatch tables, globals, guard variables and function-local statics. Each was
+placed by decoding the original's `adrp`/lo12 or GOT reference in every
+attributed function that refers to it. Only objects on which every reference
+agrees, in both games, are kept, and none of them overlap. `check.py` needs
+them where a function loads a vtable or global through the GOT. (Doing this
+found a bug in `sweep_attribute.lo12`: it multiplied a load's offset by
+`ldst_scale`, which is a shift, so byte loads decoded as offset 0. The fix
+changes no function name.) Four of those loads also needed a fix in
+`check.py`. Its linear decode of the original drops an `adrp`'s page at any
+instruction whose destination field has that register's number, so
+`fmul v9.4s` ends `x9`'s page 53 instructions before the GOT load that uses
+it. `check.py` now pairs such a load with its `adrp` through the compiled
+relocations (`adrp_pairs`), which hold wherever the instructions are the same.
+
+**`__clang_call_terminate`** is called from PhysX's noexcept landing pads, but
+the executable's copy (Sword `0x7101750e90`, Shield `0x7101750f30`) is in the
+SDK middleware block. It has a frame record (`stp x29, x30, [sp, #-0x10]!;
+mov x29, sp`). Upstream clang 6.0.1, 7.0.1, 8.0.1, 9.0.1, 10.0.0 and 11.0.0 all
+emit this helper without one (`str x30, [sp, #-0x10]!`), even with
+`-fno-omit-frame-pointer`. clang 19 emits the binary's form. So the linker kept
+a copy from a middleware library built by a much newer clang, and discarded
+`lib/physx`'s. It's listed in `data/foreign_copies.csv`, which `check.py`
+skips.
+
+`check.py --update` (both games), with Lua and the earlier functions:
+
+```
+8804 matching, 0 not matching
+(1848 compiled functions skipped as not in the executable: data/absent_functions.csv)
+(1 weak/COMDAT functions skipped: the executable keeps another library's copy, data/foreign_copies.csv)
+(311 compiled aliases of checked functions skipped, e.g. D1 = D2 destructors)
+```
+
+**The NX platform code** is reconstructed from the binary in
+`PxShared/src/foundation/src/switch/` and two more `switch/` TUs. The calls go
+through `include/nn/os.h`, declared from the imports' mangled names. Every SDK
+function is `noexcept`: the callers have no landing pads for them. What the
+code shows:
+
+- **Mutex** (`PsSwitchMutex.cpp`, named by `__FILE__`). It's the Unix one over
+  `nn::os::MutexType` (recursive, `InitializeMutex(m, true, 0)`), plus the owner
+  `Thread::Id`. `unlock()` always checks the owner and reports
+  `eINVALID_OPERATION` "Mutex must be unlocked only by thread that has already
+  acquired lock" on line 98. `trylock` isn't in the binary.
+- **ReadWriteLock.** `PX_ALLOC` is on line 124. The impl's constructor zeroes
+  the reader count (the original stores it through the new pointer, not
+  through `mImpl`). The writer waits with `SleepThread(TimeSpan{1})`, not a
+  bare spin.
+- **Sync.** A condition variable, a non-recursive mutex, `setCounter` and
+  `is_set` (0x30 bytes). The timed `wait` counts system ticks:
+  `timeout = frequency * ms / 1000`, `TimedWaitConditionVariable(...,
+  ConvertToTimeSpan(timeout))`, while `GetSystemTick() <= end + 1 - (end >> 4)`
+  with `end = start + timeout`. The source of that limit is a guess. It's
+  written as the binary computes it.
+- **Thread.** `nn::os::ThreadType` comes first (0x1a8 bytes), then the name,
+  the stack (allocated by a 4 KiB `AlignedAllocator`, default 512 KiB), the
+  core mask (`-1`, meaning all available cores, until set), `quitNow`, the
+  state and the entry function. `start()` creates the thread at the stored
+  priority (default 16), then sets the core mask and name and starts it. TLS is
+  `AllocateTlsSlot` and friends, with `-1` returned on failure.
+- **printString** (`PsSwitchPrintString.cpp`, named by `__FILE__`). It logs the
+  string, then `"\n"`, through `nn::diag::detail::LogImpl`, on lines 44 and
+  45. The metadata is assigned member by member, like the SDK's log macro.
+- **FPUGuard.** The Unix code plus `fesetround(0x1000000)` (FPCR's
+  flush-to-zero bit). **Atomics** and **SList** are the Unix code.
+- `NpSetMiddlewareInfo` refers to the string `"SDK MW+NVIDIA+PhysX-3_4_2-release"`
+  through `nn::util::ReferSymbol`. `getAffinityMasks` fills every entry with
+  `GetThreadAvailableCoreMask()`. Their file names are guesses.
 
 ### Build configuration
 
@@ -1102,40 +1250,74 @@ python tools/sweep_attribute.py build/physx-sweep/clang-6.0.1_O3 --range $R --ga
 with its class and names. `build/` is gitignored. The `--min-size 4` run
 writes its objects to a `sweep_*` temp directory: delete it afterwards.
 
+#### Reproducing `lib/physx`
+
+The scripts are in `docs/physx/`. Run them from the repository root. `V342`
+and `HEAD` are `git archive` extractions of `v3.4.2` and of the HEAD revision,
+as above.
+
+```sh
+# 1. HEAD's text for the TUs in the binary and the headers they read, plus the
+#    libc++ headers. NX stand-ins come from lib/physx (its PxSwitchIntrinsics.h,
+#    PsSwitchIntrinsics.h, PsSwitchAbort.h, NpMiddlewareInfo.h, at their paths).
+python docs/physx/vendor_physx.py $V342 $HEAD <nx-headers> <stage> <out>
+# 2. v3.4.2's code wherever HEAD's differs (comment-only hunks keep HEAD's text),
+#    with the note on line 1: the files of data/physx_v342.csv (not committed)
+python tools/get_physx.py [--clone toolchain/candidates/src/PhysX-3.4]
+# 3. Names: attribute each game, then apply the Name column
+#    (Name,Sword,Shield; tools/funcs.py name --from-file)
+python tools/sweep_attribute.py build/sword --source-prefix lib/physx/ \
+    --range 0x7100010a90-0x71003035e0 --game sword --out attr_sword.csv   # likewise shield
+# 4. The data objects for data/data_symbols.csv
+python docs/physx/physx_data_symbols.py physx_data.csv
+```
+
+On the current tree, steps 2 and 3 reproduce `lib/physx` and its names byte for
+byte: the same 83 files (their SHA-256 is checked), and the same 8,247 names
+in both games. The
+Switch TUs, the stand-in headers, `lib/physx/README.md` and `LICENSE.md` are
+kept in the tree, not generated. The compiled functions that are missing from
+the executable go in `data/absent_functions.csv`: every `lib/physx` function
+that isn't named, an alias of a named one, or in `foreign_copies.csv`.
+
 ### What's left open
 
-- **The NX platform code.** Every public library is swept now (see "The
-  other libraries"), and everything else in the range is accounted for (see
-  "What the sweep doesn't reproduce"). What's left are 39 functions (2,508
-  bytes) from the NX platform sources: Foundation's Switch mutex, read-write
-  lock, sync, thread, TLS, FPU guard and `printString`, plus
-  `NpSetMiddlewareInfo` and `DefaultCpuDispatcher::getAffinityMasks`. NVIDIA
-  ships those only to Switch licensees, so they have to be decompiled like
-  game code.
-- **The rest of the NX intrinsics headers.** Three of their inline functions
-  are recovered from the code (De Bruijn `lowestSetBitUnsafe` and
-  `highestSetBitUnsafe`, `PxIsFinite` through `nn::cstd`). The others change no
-  compiled function, so the stand-ins keep the Unix versions, which may not
-  be the real ones.
-- **The trap word** is settled for matching: it's the NX toolchain's encoding
-  of `llvm.trap`, and the build rewrites `brk #1` to it (see "Traps"). Which
-  stage of the toolchain writes it is still unknown.
-- **Attribution limits.** 412 originals have the same code as some compiled
-  function, but nothing pins a name to them (identical per-TU copies reached
-  only through data). 11 names pin to two addresses and are left out. Their
-  code is reproduced, but which compiled copy is which is a guess.
-- **`-std`.** Narrowed but not settled: gnu++11, gnu++14 and gnu++17 give
-  byte-identical objects for every library, and gnu++98 and the non-GNU modes
-  are ruled out. The docs use clang 6's default, `gnu++14`. For decompiling
-  PhysX the choice doesn't matter. (`PX_PROFILE` and `PX_SUPPORT_PVD`, open
-  before, are settled: both 0.)
+Settled since the first version of this list:
+
+- **The NX platform code.** Reconstructed in `lib/physx`, and all 39
+  functions match in both games (see "`lib/physx`").
+- **Attribution limits.** Every original has one name now, through taken
+  addresses, local tables, the one-function-per-original check and link order
+  (see "How attribution works"). The 412 unattributable copies and the
+  ambiguous pairs are gone, and `check.py` confirms each name's code and
+  references.
+
+Left, and not decidable from the binary. None of these change what the build
+must do to match:
+
+- **The rest of the NX headers.** The code fixes three inline functions of
+  the intrinsics headers (`lowestSetBitUnsafe`, `highestSetBitUnsafe`,
+  `PxIsFinite`) and every function in the Switch TUs. The headers' other
+  inline functions (`countLeadingZeros`, `PxSqrt`, ...) aren't used in a way
+  that changes any compiled function, so nothing can test them. The stand-ins
+  keep the Unix versions. The Switch TUs' file names are evidenced only for
+  `PsSwitchMutex.cpp` and `PsSwitchPrintString.cpp` (`__FILE__`). The others
+  follow upstream's naming, and their line numbers aren't in the code.
+- **Which stage writes the trap word.** For matching it's settled: the NX
+  toolchain encodes `llvm.trap` as `0xe7ffdefe`, and the build rewrites
+  `brk #1` (see "Traps"). The word is the same in game code, Wwise and PhysX,
+  three compilers. That points at something they share (the SDK's clang
+  driver or its linker), not at any one compiler. The binary doesn't say which.
+- **`-std`.** gnu++11, gnu++14 and gnu++17 give byte-identical objects for
+  every library, and gnu++98 and the non-GNU modes are ruled out. The build
+  uses clang 6's default, `gnu++14`. (`PX_PROFILE` and `PX_SUPPORT_PVD` are
+  settled: both 0.)
 - **`-fno-builtin` or `-ffreestanding`.** They produce identical objects for
-  every library, and nothing in the binary tells them apart
-  (`-ffreestanding` only adds `__STDC_HOSTED__=0`, which this code doesn't
-  test). The docs use `-fno-builtin`. For decompiling PhysX, either works.
+  every library. `-ffreestanding` only adds `__STDC_HOSTED__=0`, which this
+  code doesn't test. The build uses `-fno-builtin`.
 - **clang 6.0.1 or a later 6.0 vendor build.** Six functions separate 6.0.1
-  from 6.0.0, none separate it from anything later. There is no later public
-  6.0 release to test.
+  from 6.0.0, and with 6.0.1 all 8,247 match. No public 6.0 release is later
+  than 6.0.1, so nothing later can be tested.
 - **Wwise** is clang 6.0.x too, but with the game's aliasing and exception
   flags (see below).
 
