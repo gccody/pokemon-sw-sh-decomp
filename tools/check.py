@@ -15,6 +15,10 @@ sword/shield-only functions against their game.
 Relocation-aware: calls, ADRP/lo12 pairs, GOT loads and SDK imports (via PLT)
 are resolved by symbol name through data/functions.csv and
 data/data_symbols.csv; string/constant literals are compared by content.
+
+Local (static) symbols are looked up by their file-qualified name,
+`<symbol>@<file stem>` (see tools/symbols.py). Compiled functions listed in
+data/absent_functions.csv are not in the executable and are skipped.
 """
 from __future__ import annotations
 
@@ -24,7 +28,7 @@ import shutil
 import struct
 import subprocess
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -32,6 +36,7 @@ from common import BASE, ROOT, VERSIONS, Function, load_module, nso_path, read_f
 from nx.module import DynInfo  # noqa: E402
 from nx.nso import Nso  # noqa: E402
 from nx.refs import decode, ldst_scale  # noqa: E402
+import symbols  # noqa: E402
 
 from elftools.elf.elffile import ELFFile  # noqa: E402
 from elftools.elf.sections import SymbolTableSection  # noqa: E402
@@ -44,7 +49,19 @@ ADR_PREL_LO21, LD_PREL_LO19 = 274, 273
 ADD_ABS_LO12_NC = 277
 LDST_LO12 = {278, 284, 285, 286, 299}
 ADR_GOT_PAGE, LD64_GOT_LO12_NC = 311, 312
+ABS64, PREL32 = 257, 261  # in data: address tables, jump tables
+MAX_LITERAL = 1024  # bytes compared for a reference into a data section without entsize
 SHF_STRINGS, SHF_EXECINSTR = 0x20, 0x4
+
+ABSENT_CSV = ROOT / "data" / "absent_functions.csv"
+
+
+def read_absent(path: Path = ABSENT_CSV) -> dict[str, str]:
+    """Compiled functions that are not in the executable: name -> reason."""
+    if not path.exists():
+        return {}
+    with open(path, newline="", encoding="utf-8") as fh:
+        return {r["Name"]: r["Reason"] for r in csv.DictReader(fh)}
 
 
 # --------------------------------------------------------------------------- originals
@@ -81,7 +98,7 @@ def load_symbol_tables(funcs: list[Function]):
 @dataclass
 class Reloc:
     type: int
-    sym: str
+    sym: str          # CSV name: file-qualified for local symbols
     sym_type: str
     sym_shndx: int | str
     sym_value: int
@@ -95,6 +112,15 @@ class CompiledFunc:
     code: bytes
     relocs: dict[int, Reloc]
     elf: ELFFile = field(repr=False)
+    source: str = ""
+    # relocations of every section of the object: section index -> offset -> Reloc
+    obj_relocs: dict[int, dict[int, Reloc]] = field(default_factory=dict, repr=False)
+
+
+def _symbol_name(s, source: str) -> str:
+    """CSV name of an ELF symbol of the object compiled from `source`."""
+    local = s["st_info"]["bind"] == "STB_LOCAL" and s["st_info"]["type"] in ("STT_FUNC", "STT_OBJECT")
+    return symbols.qualify(s.name, source, local and bool(s.name))
 
 
 def load_objects(build_dir: Path) -> dict[str, CompiledFunc]:
@@ -103,8 +129,9 @@ def load_objects(build_dir: Path) -> dict[str, CompiledFunc]:
     # sources linger in the build dir), taken from compile_commands.json.
     import json
     cc = json.loads((build_dir / "compile_commands.json").read_text())
-    objs = sorted({(Path(e["directory"]) / e["output"]).resolve() for e in cc if "output" in e})
-    for obj in objs:
+    sources = {(Path(e["directory"]) / e["output"]).resolve(): e["file"] for e in cc if "output" in e}
+    for obj in sorted(sources):
+        source = sources[obj]
         if not obj.exists():
             continue
         fh = open(obj, "rb")
@@ -118,7 +145,7 @@ def load_objects(build_dir: Path) -> dict[str, CompiledFunc]:
                 rs = rel_by_sec.setdefault(sec["sh_info"], {})
                 for r in sec.iter_relocations():
                     s = symtab.get_symbol(r["r_info_sym"])
-                    rs[r["r_offset"]] = Reloc(r["r_info_type"], s.name, s["st_info"]["type"],
+                    rs[r["r_offset"]] = Reloc(r["r_info_type"], _symbol_name(s, source), s["st_info"]["type"],
                                               s["st_shndx"], s["st_value"], r["r_addend"])
         for s in symtab.iter_symbols():
             if s["st_info"]["type"] != "STT_FUNC" or s["st_shndx"] in ("SHN_UNDEF", "SHN_ABS"):
@@ -126,7 +153,11 @@ def load_objects(build_dir: Path) -> dict[str, CompiledFunc]:
             sec = elf.get_section(s["st_shndx"])
             v, n = s["st_value"], s["st_size"]
             relocs = {off - v: r for off, r in rel_by_sec.get(s["st_shndx"], {}).items() if v <= off < v + n}
-            out[s.name] = CompiledFunc(s.name, obj, sec.data()[v:v + n], relocs, elf)
+            name = _symbol_name(s, source)
+            if name in out:
+                raise SystemExit(f"{name} is defined in both {out[name].source} and {source}: local "
+                                 f"symbols are qualified by file stem (tools/symbols.py), so rename one file")
+            out[name] = CompiledFunc(name, obj, sec.data()[v:v + n], relocs, elf, source, rel_by_sec)
     return out
 
 
@@ -166,16 +197,22 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name) 
         name = r.sym
         if r.sym_type == "STT_SECTION" or (not name or name.startswith(".L")):
             sec = cf.elf.get_section(r.sym_shndx) if isinstance(r.sym_shndx, int) else None
-            if sec is not None and sec["sh_flags"] & SHF_EXECINSTR:
-                # reference to code in the same object: find the function symbol there
+            if sec is not None and not sec["sh_flags"] & SHF_STRINGS:
+                # reference into a section of the same object: find the function
+                # (code) or object (data) symbol covering the target there
+                want = "STT_FUNC" if sec["sh_flags"] & SHF_EXECINSTR else "STT_OBJECT"
                 symtab = cf.elf.get_section_by_name(".symtab")
                 for s in symtab.iter_symbols():
-                    if s["st_shndx"] == r.sym_shndx and s["st_info"]["type"] == "STT_FUNC" \
+                    if s["st_shndx"] == r.sym_shndx and s["st_info"]["type"] == want \
                             and s["st_value"] <= r.addend + r.sym_value < s["st_value"] + max(1, s["st_size"]):
-                        f = by_name.get(s.name)
+                        sname = _symbol_name(s, cf.source)
+                        delta = r.addend + r.sym_value - s["st_value"]
+                        f = by_name.get(sname)
                         if f is not None and f.addr(v) is not None:
-                            return f.addr(v) + r.addend + r.sym_value - s["st_value"], s.name
-                        return None, s.name
+                            return f.addr(v) + delta, sname
+                        if sname in data_syms[v]:
+                            return data_syms[v][sname] + delta, sname
+                        return None, sname
             return None, name or (sec.name if sec is not None else "<section>")
         f = by_name.get(name)
         if f is not None:
@@ -184,19 +221,63 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name) 
             return data_syms[v][name] + r.addend, name
         return None, name
 
-    def literal_bytes(r: Reloc) -> bytes | None:
+    def data_relocs(shndx: int) -> dict[int, Reloc]:
+        return cf.obj_relocs.get(shndx, {})
+
+    def literal_error(r: Reloc, otgt: int) -> str | None:
+        """Compare the literal `r` points at with the original at `otgt`.
+
+        Returns None if equal, else an error. Pointers inside the literal (jump
+        table entries, address tables) are compared by what they point at.
+        Raises LookupError if the literal can't be verified."""
         if not isinstance(r.sym_shndx, int):
-            return None
+            raise LookupError
         sec = cf.elf.get_section(r.sym_shndx)
         if sec["sh_type"] == "SHT_NOBITS":
-            return None
+            raise LookupError
         blob = sec.data()
         start = r.sym_value + r.addend
         if sec["sh_flags"] & SHF_STRINGS:
             end = blob.find(b"\0", start)
-            return blob[start:end + 1 if end >= 0 else len(blob)]
-        ent = sec["sh_entsize"] or min(64, len(blob) - start)
-        return blob[start:start + ent]
+            end = end + 1 if end >= 0 else len(blob)
+        else:
+            end = start + (sec["sh_entsize"] or min(MAX_LITERAL, len(blob) - start))
+        ptrs = data_relocs(r.sym_shndx)
+        label = verbose_name(r.sym) if r.sym else sec.name
+        i = start
+        while i < end:
+            dr = ptrs.get(i)
+            if dr is None:
+                if blob[i] != o_img[otgt + i - start]:
+                    return f"literal {label} contents differ at +{i - start:#x} ({blob[start:end][:24]!r})"
+                i += 1
+                continue
+            at = otgt + i - start
+            if dr.type == PREL32:
+                # jump tables: `.word .LBB - .LJTI`, relative to the table start (the
+                # referenced address), so the reloc addend includes the entry offset
+                exp, desc = expected_addr(replace(dr, addend=dr.addend - (i - start)))
+                target, i = otgt + struct.unpack_from("<i", o_img, at)[0], i + 4
+            elif dr.type == ABS64:
+                exp, desc = expected_addr(dr)
+                target, i = orig.dyn.slots.get(at), i + 8
+            else:
+                raise LookupError
+            where = f"literal {label} +{at - otgt:#x}"
+            if isinstance(target, str):  # imported symbol
+                if target != dr.sym:
+                    return f"{where}: pointer to {target}, expected {verbose_name(desc)}"
+            elif exp is not None:
+                if target != exp:
+                    return f"{where}: pointer to {verbose_name(desc)} differs"
+            elif target is not None and isinstance(dr.sym_shndx, int) \
+                    and cf.elf.get_section(dr.sym_shndx)["sh_flags"] & SHF_STRINGS:
+                err = literal_error(dr, target)  # pointer to a string: compare the string
+                if err:
+                    return f"{where}: {err}"
+            else:
+                raise LookupError  # pointer to something unnamed
+        return None
 
     for off in range(0, n - n % 4, 4):
         cw = struct.unpack_from("<I", cf.code, off)[0]
@@ -266,11 +347,21 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name) 
                 if not good:
                     bad(off, f"low bits of {verbose_name(desc)} differ")
                 continue
-            lit = literal_bytes(r)
-            if lit is None or otgt is None:
+            sec = cf.elf.get_section(r.sym_shndx) if isinstance(r.sym_shndx, int) else None
+            if otgt is not None and (r.sym_type == "STT_FUNC" or sec is not None and sec["sh_flags"] & SHF_EXECINSTR):
+                hint = by_addr[v].get(otgt)
+                bad(off, f"address of unknown function {verbose_name(desc)} - original uses {otgt + BASE:#x} "
+                         f"({hint.display_name if hint else '?'}); name it with tools/funcs.py name")
+                continue
+            try:
+                if otgt is None:
+                    raise LookupError
+                err = literal_error(r, otgt)
+            except LookupError:
                 res.warnings.append(f"+{off:#05x}: unverified ref to {verbose_name(desc)}")
-            elif o_img[otgt:otgt + len(lit)] != lit:
-                bad(off, f"literal {verbose_name(desc)} contents differ ({lit[:24]!r})")
+            else:
+                if err:
+                    bad(off, err)
         else:
             res.warnings.append(f"+{off:#05x}: unhandled relocation type {t} ({r.sym})")
             if cw != ow:
@@ -303,14 +394,15 @@ def demangler():
     cache: dict[str, str] = {}
 
     def dm(name: str) -> str:
-        if not exe or not name.startswith("_Z"):
+        sym, stem = symbols.split(name)
+        if not exe or not sym.startswith("_Z"):
             return name
-        if name not in cache:
+        if sym not in cache:
             try:
-                cache[name] = subprocess.run([exe, name], capture_output=True, text=True).stdout.strip() or name
+                cache[sym] = subprocess.run([exe, sym], capture_output=True, text=True).stdout.strip() or sym
             except OSError:
-                cache[name] = name
-        return cache[name]
+                cache[sym] = sym
+        return cache[sym] if stem is None else f"{cache[sym]}{symbols.LOCAL_SEP}{stem}"
     return dm
 
 
@@ -351,10 +443,14 @@ def main() -> int:
                     wanted.add(f.key)
 
     all_names = sorted(set().union(*(c.keys() for c in compiled.values())))
-    n_ok = n_bad = 0
+    absent = read_absent()
+    n_ok = n_bad = n_absent = 0
     status_updates: dict[str, str] = {}
     for name in all_names:
         fn = by_name.get(name)
+        if fn is None and name in absent:
+            n_absent += 1
+            continue
         if fn is None:
             if wanted is None:
                 print(f"?? {dm(name)}  [{name}] is not in data/functions.csv - assign it: "
@@ -394,6 +490,8 @@ def main() -> int:
             print("      REGRESSION: was marked O in functions.csv")
 
     print(f"\n{n_ok} matching, {n_bad} not matching")
+    if n_absent:
+        print(f"({n_absent} compiled functions skipped as not in the executable: data/absent_functions.csv)")
     if args.update and status_updates:
         for f in funcs:
             if f.key in status_updates:

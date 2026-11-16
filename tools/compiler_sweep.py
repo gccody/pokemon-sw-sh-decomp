@@ -18,10 +18,18 @@ function whose masked words equal an original function's masked words.
 Hits from all configurations together give a name -> address map. For every
 mapped function, each configuration also gets a similarity score, so near
 misses still rank the candidates.
+
+    --map-out lua_map.csv
+
+also writes the consensus map for both games as `Name,Sword,Shield` (local
+symbols file-qualified as in tools/symbols.py). `--range` is in --game's
+addresses; the other game's range comes from the paired rows of
+data/functions.csv. Apply the map with `tools/funcs.py name --from-file`.
 """
 from __future__ import annotations
 
 import argparse
+import csv
 import difflib
 import glob
 import hashlib
@@ -34,8 +42,9 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import BASE, load_module  # noqa: E402
+from common import BASE, VERSIONS, load_module  # noqa: E402
 from nx.refs import decode  # noqa: E402
+import symbols  # noqa: E402
 
 from elftools.elf.elffile import ELFFile  # noqa: E402
 from elftools.elf.sections import SymbolTableSection  # noqa: E402
@@ -59,7 +68,8 @@ def masked(buf: bytes, start: int = 0, size: int | None = None) -> tuple[int, ..
     return tuple(m for _, _, m, _ in decode(buf, start, size - size % 4))
 
 
-def object_functions(path: Path) -> dict[str, bytes]:
+def object_functions(path: Path, source: Path | None = None) -> dict[str, bytes]:
+    """Functions of an object file. With `source`, local symbols are file-qualified."""
     out = {}
     with open(path, "rb") as fh:
         elf = ELFFile(fh)
@@ -70,7 +80,8 @@ def object_functions(path: Path) -> dict[str, bytes]:
             if s["st_info"]["type"] != "STT_FUNC" or s["st_shndx"] in ("SHN_UNDEF", "SHN_ABS"):
                 continue
             sec = elf.get_section(s["st_shndx"])
-            out[s.name] = sec.data()[s["st_value"]:s["st_value"] + s["st_size"]]
+            name = symbols.qualify(s.name, source, s["st_info"]["bind"] == "STB_LOCAL")
+            out[name] = sec.data()[s["st_value"]:s["st_value"] + s["st_size"]]
     return out
 
 
@@ -96,11 +107,67 @@ def compile_all(cc: Path, flags: list[str], srcs: list[Path], outdir: Path) -> t
             if obj is None:
                 errors.append(f"{src.name}: {' | '.join(err or [])}")
                 continue
-            for name, code in object_functions(obj).items():
-                # static functions may repeat across TUs; keep them distinct
-                key = name if name not in funcs else f"{name}@{src.stem}"
+            for name, code in object_functions(obj, src).items():
+                # local symbols are already qualified; this only guards two TUs with one stem
+                key = name if name not in funcs else f"{name}#{src}"
                 funcs[key] = code
     return funcs, errors
+
+
+def original_index(game: str, lo: int, hi: int):
+    """masked words -> addresses, and address -> masked words, for originals in [lo, hi)."""
+    mod = load_module(game)
+    img = mod["image"]
+    index: dict[tuple[int, ...], list[int]] = defaultdict(list)
+    orig_masked: dict[int, tuple[int, ...]] = {}
+    for a, s in mod["functions"]:
+        if lo <= a < hi and s >= 4:
+            m = masked(img, a, s)
+            orig_masked[a] = m
+            index[m].append(a)
+    return index, orig_masked
+
+
+def find_hits(funcs: dict[str, bytes], index) -> dict[str, list[int]]:
+    hits = {}
+    for name, code in funcs.items():
+        if len(code) < MIN_SIZE:
+            continue
+        addrs = index.get(masked(code))
+        if addrs:
+            hits[name] = addrs
+    return hits
+
+
+def consensus(all_hits) -> dict[str, int]:
+    """name -> address for names that every configuration hit at the same single address."""
+    votes: dict[str, set[int]] = defaultdict(set)
+    for hits in all_hits:
+        for name, addrs in hits.items():
+            if len(addrs) == 1:
+                votes[name].add(addrs[0])
+            else:
+                votes[name].add(-1)  # ambiguous somewhere: never map it
+    return {n: next(iter(a)) for n, a in votes.items() if len(a) == 1 and -1 not in a}
+
+
+def other_game_range(game: str, other: str, lo: int, hi: int, funcs) -> tuple[int, int]:
+    """[lo, hi) in `game` translated to `other` through the paired functions.csv rows."""
+    rows = [f for f in funcs if f.addr(game) is not None and lo <= f.addr(game) < hi and f.in_version(other)]
+    if not rows:
+        raise SystemExit(f"no {other} functions pair with the {game} range")
+    return min(f.addr(other) for f in rows), max(f.addr(other) + f.size(other) for f in rows)
+
+
+def write_map(path: Path, maps: dict[str, dict[str, int]]) -> int:
+    """Write `Name,Sword,Shield` for every name mapped in at least one game."""
+    names = sorted(set().union(*(m.keys() for m in maps.values())))
+    with open(path, "w", newline="", encoding="utf-8") as fh:
+        w = csv.writer(fh, lineterminator="\n")
+        w.writerow(["Name", "Sword", "Shield"])
+        for n in names:
+            w.writerow([n] + [f"{maps[v][n] + BASE:#x}" if n in maps.get(v, {}) else "" for v in VERSIONS])
+    return len(names)
 
 
 def main() -> int:
@@ -111,6 +178,7 @@ def main() -> int:
     ap.add_argument("--range", help="original address range to search, e.g. 0x7101540000-0x7101570000 (default: all)")
     ap.add_argument("--game", default="sword")
     ap.add_argument("--show", type=int, default=0, help="list up to N mapped functions per config that miss")
+    ap.add_argument("--map-out", type=Path, help="write the consensus name -> address map for both games (CSV)")
     ap.add_argument("common", nargs=argparse.REMAINDER, help="-- extra flags for every compile")
     args = ap.parse_args()
     common = [a for a in args.common if a != "--"]
@@ -126,18 +194,10 @@ def main() -> int:
     variants = [v.split("=", 1) for v in args.variant] or [["O2", "-O2"]]
 
     # ---- original index: masked words -> addresses
-    mod = load_module(args.game)
-    img = mod["image"]
     lo, hi = 0, 1 << 62
     if args.range:
         lo, hi = (int(x, 16) - BASE for x in args.range.split("-"))
-    index: dict[tuple[int, ...], list[int]] = defaultdict(list)
-    orig_masked: dict[int, tuple[int, ...]] = {}
-    for a, s in mod["functions"]:
-        if lo <= a < hi and s >= 4:
-            m = masked(img, a, s)
-            orig_masked[a] = m
-            index[m].append(a)
+    index, orig_masked = original_index(args.game, lo, hi)
     print(f"{len(orig_masked)} original functions in range, {len(srcs)} sources, "
           f"{len(roots)} compilers x {len(variants)} variants\n")
 
@@ -150,13 +210,7 @@ def main() -> int:
             out = tmp / f"{root.name}_{vname}"
             out.mkdir()
             funcs, errors = compile_all(cc, shlex.split(vflags) + common, srcs, out)
-            hits = {}
-            for name, code in funcs.items():
-                if len(code) < MIN_SIZE:
-                    continue
-                addrs = index.get(masked(code))
-                if addrs:
-                    hits[name] = addrs
+            hits = find_hits(funcs, index)
             results[(root.name, vname)] = (funcs, hits, errors)
 
     # ---- consensus name -> address map from unambiguous hits
@@ -193,6 +247,20 @@ def main() -> int:
                 print(f"      miss {n} ({len(funcs[n])} vs {len(orig_masked[mapping[n]]) * 4} bytes) "
                       f"@ {mapping[n] + BASE:#x}")
     print(f"\n{len(mapping)} functions mapped by consensus")
+
+    if args.map_out:
+        from common import read_functions_csv
+        maps: dict[str, dict[str, int]] = {}
+        for v in VERSIONS:
+            if v == args.game:
+                vlo, vhi, vindex = lo, hi, index
+            else:
+                vlo, vhi = other_game_range(args.game, v, lo, hi, read_functions_csv()) if args.range else (lo, hi)
+                vindex, _ = original_index(v, vlo, vhi)
+            maps[v] = consensus(find_hits(f, vindex) for f, _, _ in results.values())
+        n = write_map(args.map_out, maps)
+        print(f"wrote {n} names to {args.map_out} "
+              f"({', '.join(f'{v}: {len(m)}' for v, m in maps.items())})")
     return 0
 
 

@@ -1,0 +1,27 @@
+Name,Reason
+b_and@lbitlib,no function of lbitlib.c (bit32) is in the executable
+b_arshift@lbitlib,no function of lbitlib.c (bit32) is in the executable
+b_extract@lbitlib,no function of lbitlib.c (bit32) is in the executable
+b_lrot@lbitlib,no function of lbitlib.c (bit32) is in the executable
+b_lshift@lbitlib,no function of lbitlib.c (bit32) is in the executable
+b_not@lbitlib,no function of lbitlib.c (bit32) is in the executable
+b_or@lbitlib,no function of lbitlib.c (bit32) is in the executable
+b_replace@lbitlib,no function of lbitlib.c (bit32) is in the executable
+b_rrot@lbitlib,no function of lbitlib.c (bit32) is in the executable
+b_rshift@lbitlib,no function of lbitlib.c (bit32) is in the executable
+b_test@lbitlib,no function of lbitlib.c (bit32) is in the executable
+b_xor@lbitlib,no function of lbitlib.c (bit32) is in the executable
+l_alloc@lauxlib,"not in the executable, like luaL_newstate"
+loadfunc@loadlib,no counterpart in Game Freak's changed C-module loading (loadlib.c)
+lookforfunc@loadlib,no counterpart in Game Freak's changed C-module loading (loadlib.c)
+luaC_runtilstate,"not in the executable: inlined into all its callers (all in lgc.c), so the out-of-line copy is dropped"
+luaL_execresult,"not in the executable: its only callers (io_pclose, os_execute) were removed"
+luaL_loadstring,"not in the executable: unreferenced, so dropped by the linker"
+luaL_newstate,"not in the executable: the game creates its lua_State without it"
+luaL_openlibs,linit.c is not in the executable
+lua_arith,"not in the executable: unreferenced, so dropped by the linker"
+lua_isuserdata,"not in the executable: unreferenced, so dropped by the linker"
+lua_setallocf,"not in the executable: unreferenced, so dropped by the linker"
+lua_tocfunction,"not in the executable: unreferenced, so dropped by the linker"
+luaopen_bit32,no function of lbitlib.c (bit32) is in the executable
+panic@lauxlib,"not in the executable, like luaL_newstate"

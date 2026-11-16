@@ -1,7 +1,7 @@
 // sol2 (https://github.com/ThePhD/sol2) - open source Lua binding.
 // Scope: common - at different addresses in each game (Sword 0x7100e337a0,
 // Shield 0x7100e337d0): exercises a string literal + a named callee.
-#include <lua/lauxlib.h>
+#include <lua/lua.hpp>
 
 namespace sol {
 namespace detail {

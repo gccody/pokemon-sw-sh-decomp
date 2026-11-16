@@ -118,3 +118,38 @@ def test_repository_tracks_no_game_data():
     if tracked is None:
         pytest.skip("not a git checkout")
     assert lint.lint_tracked_files(tracked) == []
+
+
+def test_file_qualified_local_names_pass(functions_csv):
+    errors = errors_for(
+        functions_csv,
+        "0x0000007100000100,8,0x0000007100000100,8,common,O,getfield@lauxlib",
+        "0x0000007100000200,8,0x0000007100000200,8,common,O,getfield@loslib",
+    )
+    assert errors == []
+    errors = errors_for(functions_csv, "0x0000007100000100,8,0x0000007100000100,8,common,O,getfield@")
+    assert any("must be a symbol name" in e for e in errors)
+
+
+ABSENT_HEADER = "Name,Reason\n"
+
+
+def test_absent_functions(write_csv):
+    ok = write_csv("absent_functions.csv", ABSENT_HEADER + "b@x,unreferenced\nlua_setallocf,unreferenced\n")
+    assert lint.lint_absent(ok, {"luaL_error"}) == []
+    bad = write_csv(
+        "absent_functions.csv",
+        ABSENT_HEADER + "luaL_error,x\nz,\nz,dup\na b,x\n",
+    )
+    errors = lint.lint_absent(bad, {"luaL_error"})
+    assert any("is in functions.csv" in e for e in errors)
+    assert any("give a reason" in e for e in errors)
+    assert any("duplicate name z" in e for e in errors)
+    assert any("bad name 'a b'" in e for e in errors)
+    assert any("sorted" in e for e in errors)
+    assert "header" in lint.lint_absent(write_csv("absent_functions.csv", "Name\nx\n"))[0]
+
+
+def test_repository_absent_functions_are_clean():
+    names = {f.name for f in lint.read_functions_csv(ROOT / "data" / "functions.csv") if f.name}
+    assert lint.lint_absent(ROOT / "data" / "absent_functions.csv", names) == []

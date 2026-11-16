@@ -38,5 +38,15 @@ target_include_directories(pkmn PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
   "${CMAKE_CURRENT_SOURCE_DIR}/src"
   "${CMAKE_CURRENT_SOURCE_DIR}/lib")
+# Nintendo's libc is musl-based: musl 1.1.24 headers stand in for it (<stdio.h> ...).
+target_include_directories(pkmn SYSTEM PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/libc")
 target_compile_definitions(pkmn PRIVATE PKMN_VERSION=${_ver})
 target_compile_options(pkmn PRIVATE -Wall -Wno-unused-private-field)
+
+# --- Per-library settings ----------------------------------------------------
+# Lua 5.3.4 (lib/lua): built as C with the configuration identified in
+# docs/compiler.md. Kept to lib/lua's sources only; a later change will turn
+# this into a general per-library settings mechanism.
+file(GLOB PKMN_LUA_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/lib/lua/*.c")
+set_source_files_properties(${PKMN_LUA_SOURCES} PROPERTIES
+  COMPILE_DEFINITIONS "LUA_COMPAT_5_2;LUA_USE_POSIX")

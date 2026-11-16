@@ -6,9 +6,12 @@
 
 data/functions.csv: header/columns, valid scope/status letters, address & size
 sanity, scope consistency (common rows exist in both games, sword-only rows only
-in Sword ...), unique names, and that rows stay sorted by address.
+in Sword ...), unique symbol names (local symbols file-qualified as
+<symbol>@<file stem>, see tools/symbols.py), and that rows stay sorted by address.
 
-data/data_symbols.csv: header, hex addresses, unique names.
+data/data_symbols.csv: header, hex addresses, unique symbol names.
+data/absent_functions.csv: compiled functions that are not in the executable;
+valid unique names with a reason, none of them also a row of functions.csv.
 data/areas.csv: header, valid kind/confidence, sorted and non-overlapping ranges.
 
 Tracked files: nothing extracted from the game (NSO/XCI/NCA/keys ...) and no
@@ -24,8 +27,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import BASE, HEADER, ROOT, SCOPES, STATUSES, read_functions_csv  # noqa: E402
+import symbols  # noqa: E402
 
 DATA_SYMBOLS_HEADER = ["Sword", "Shield", "Size", "Name"]
+ABSENT_HEADER = ["Name", "Reason"]
 AREAS_HEADER = ["Start", "End", "Area", "Kind", "Confidence", "Evidence"]
 AREA_KINDS = ("game", "library")
 AREA_CONFIDENCE = ("low", "medium", "high")
@@ -75,8 +80,9 @@ def lint_functions(path: Path) -> tuple[list[str], int, int]:
             errors.append(f"{where}: rows must be sorted by address")
         prev = key
         if fn.name:
-            if " " in fn.name or "(" in fn.name:
-                errors.append(f"{where}: name must be a symbol name (mangled), not {fn.name!r}")
+            if not symbols.is_valid_name(fn.name):
+                errors.append(f"{where}: name must be a symbol name (mangled, locals as <symbol>@<file stem>), "
+                              f"not {fn.name!r}")
             if fn.name in names:
                 errors.append(f"{where}: duplicate name {fn.name} (also line {names[fn.name]})")
             names[fn.name] = i
@@ -109,10 +115,38 @@ def lint_data_symbols(path: Path) -> list[str]:
             if r["Size"] and not r["Size"].isdigit():
                 errors.append(f"{where}: Size must be a decimal byte count, not {r['Size']!r}")
             name = r["Name"]
-            if not name or " " in name:
+            if not symbols.is_valid_name(name):
                 errors.append(f"{where}: bad name {name!r}")
             elif name in names:
                 errors.append(f"{where}: duplicate name {name} (also line {names[name]})")
+            names[name] = i
+    return errors
+
+
+def lint_absent(path: Path, function_names: set[str] = frozenset()) -> list[str]:
+    if not path.exists():
+        return []
+    header = _read_header(path)
+    if header != ABSENT_HEADER:
+        return [f"{path.name} header is {header}, expected {ABSENT_HEADER}"]
+    errors: list[str] = []
+    names: dict[str, int] = {}
+    prev = ""
+    with open(path, newline="", encoding="utf-8") as f:
+        for i, r in enumerate(csv.DictReader(f), start=2):
+            where = f"{path.name}:{i}"
+            name = r["Name"]
+            if not symbols.is_valid_name(name):
+                errors.append(f"{where}: bad name {name!r}")
+            elif name in names:
+                errors.append(f"{where}: duplicate name {name} (also line {names[name]})")
+            elif name in function_names:
+                errors.append(f"{where}: {name} is in functions.csv, so it is in the executable")
+            if not (r["Reason"] or "").strip():
+                errors.append(f"{where}: give a reason")
+            if name < prev:
+                errors.append(f"{where}: rows must be sorted by name")
+            prev = name
             names[name] = i
     return errors
 
@@ -173,6 +207,8 @@ def main(argv: list[str] | None = None) -> int:
 
     errors, n_funcs, n_named = lint_functions(args.data / "functions.csv")
     errors += lint_data_symbols(args.data / "data_symbols.csv")
+    function_names = {f.name for f in read_functions_csv(args.data / "functions.csv") if f.name} if n_funcs else set()
+    errors += lint_absent(args.data / "absent_functions.csv", function_names)
     errors += lint_areas(args.data / "areas.csv")
     if not args.no_git:
         tracked = git_tracked_files()

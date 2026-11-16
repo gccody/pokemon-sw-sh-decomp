@@ -53,6 +53,22 @@ python tools/progress.py
    names where there's evidence for them (library code, strings, RTTI, asserts).
    Otherwise use placeholders like `Unk_<addr>` for types and keep the address
    in a comment. A wrong confident name is worse than a placeholder.
+
+   **Local symbols are file-qualified.** A `static` function or variable (or a
+   C++ internal-linkage / anonymous-namespace symbol) is named
+   `<symbol>@<file stem>`, where the stem is the compiled file's name without
+   its extension: `getfield` in `lauxlib.c` is `getfield@lauxlib`, the one in
+   `loslib.c` is `getfield@loslib`, and a function-local `static` is
+   `utf8_decode.limits@lutf8lib`. Every local symbol is qualified, even if
+   its name is unique today, and global symbols never are. `check.py`,
+   `funcs.py`, `lint.py` and `compiler_sweep.py` all use this rule
+   (`tools/symbols.py`). Moving a file to another directory keeps the names.
+   Renaming the file renames its local symbols, and two files with the same
+   stem can't both define the same local symbol (`check.py` stops with an error).
+
+   Bulk naming: `tools/funcs.py name --from-file map.csv` applies a
+   `Name,Sword,Shield` CSV, such as the one
+   `tools/compiler_sweep.py ... --map-out map.csv` writes for library code.
 2. Write the code under `src/<subsystem>/` (or `src/unsorted/`), or `lib/<library>/`.
    Put a comment with the Sword address (and the Shield address if it differs)
    above each function, and a `// Scope: <scope>` line at the top of the file.
@@ -93,6 +109,19 @@ The checker compares instructions exactly. Addresses are checked by
 and string/constant literals are compared by content. If your code calls a
 function that has no name yet, the checker prints the address the original
 calls, so you can name it.
+
+**Functions that aren't in the executable.** Library code (Lua, ...) is
+vendored unchanged, so it can contain functions that aren't in the game: the
+linker dropped them as unreferenced (`lua_setallocf`), or a whole file isn't
+used (`lbitlib.c`). Keep upstream code as it is and list such functions in
+`data/absent_functions.csv` (`Name,Reason`, sorted by name). `check.py` then
+skips them instead of printing `??`. Removing them from the source could change
+how the compiler inlines the functions around them. Use
+`#if 0  /* not in Pokémon SwSh: <reason> */` ... `#endif` only where the game
+clearly changed the source. For example, Game Freak's `os` library only
+registers `os.clock`, so `luaopen_os` creates a table with 1 field and the other
+`os_*` functions don't exist. Lint rejects an absent function that is also a
+row of `functions.csv`.
 
 A function is `O` only when it matches in every game it exists in. **Statuses
 come from `check.py --update`, never from editing the CSV by hand.** If a
