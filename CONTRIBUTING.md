@@ -267,6 +267,10 @@ from `tests/conftest.py`. Anything that needs the real executables belongs in
   `check.py: resolve GOT loads through the PLT`), with a body when the reason
   isn't obvious.
 - CI must be green before merge.
+- PRs are merged with **rebase and merge**, the only method the repository
+  allows. Every commit lands on `master` as it is, so keep each one
+  self-contained and give it a real message, and don't add merge commits to
+  the branch: rebase it on `master` instead.
 - By opening a PR, you agree that your contribution is released under the
   project's [MIT License](LICENSE). Code under `lib/` is the exception: it
   keeps its upstream license. When you add upstream source there, add the

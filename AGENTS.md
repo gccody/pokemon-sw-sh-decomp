@@ -149,3 +149,6 @@ cross-TU call), `lib/lua/lauxlib.c` (vendored library, string literals),
 - No game data, keys or build output are staged (`git status` before committing).
 - Commit or open a PR only when the user asks. Fill in the PR template,
   including the AI-assistance section.
+- PRs land with rebase and merge (`gh pr merge --rebase`), the only method
+  the repository allows. Every commit reaches `master` unchanged, so each
+  one needs a real message. Rebase on `master`; don't merge it in.
