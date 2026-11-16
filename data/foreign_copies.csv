@@ -1,0 +1,2 @@
+Name,Reason
+__clang_call_terminate,"The executable's copy (Sword 0x7101750e90) is in the SDK middleware block and has a frame record (stp x29, x30; mov x29, sp), as clang 19 emits it. Upstream clang 6.0.1 to 11.0.0 emit it without one (str x30), so lib/physx's copies were discarded by the linker. See docs/compiler.md, PhysX: lib/physx"
