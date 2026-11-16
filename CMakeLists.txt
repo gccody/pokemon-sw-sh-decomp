@@ -31,12 +31,14 @@ else()
 endif()
 message(STATUS "Building for Pokemon ${PKMN_GAME} with ${CMAKE_CXX_COMPILER}")
 
-# Every .cpp/.c under src/ and lib/ is compiled for both games. Version-specific
+# Every .cpp/.cc/.c under src/ and lib/ is compiled for both games. Version-specific
 # code uses PKMN_SW_SH(...) / PKMN_IS_SWORD from include/pkmn/version.h.
 file(GLOB_RECURSE PKMN_SOURCES CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/lib/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/lib/*.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/lib/*.c")
 
 # Settings every TU shares go on pkmn_common, not on pkmn: a library with its

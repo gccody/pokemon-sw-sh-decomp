@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import os
+import re
 import subprocess
 import tarfile
 
@@ -333,6 +334,22 @@ def test_needed_library_compilers_only_with_sources(tmp_path):
     (root / "lib/lua/lapi.c").parent.mkdir(parents=True)
     (root / "lib/lua/lapi.c").write_text("", encoding="utf-8")
     assert get_llvm.needed_library_compilers(root) == ["5.0.2", "6.0.1"]
+
+
+def test_cc_sources_count(tmp_path):
+    # lib/protobuf's TUs are .cc files, which the PKMN_SOURCES glob includes.
+    root = make_repo(tmp_path, "pkmn_library_settings(lib/pb COMPILER_VERSION 6.0.1)\n",
+                     ["lib/pb/google/protobuf/descriptor.cc"])
+    assert get_llvm.has_sources("lib/pb", root)
+    assert get_llvm.needed_library_compilers(root) == ["6.0.1"]
+
+
+def test_source_suffixes_match_cmake_glob():
+    # SOURCE_DIRS x SOURCE_SUFFIXES must be exactly what CMakeLists.txt's PKMN_SOURCES globs.
+    text = (get_llvm.ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
+    glob = re.search(r"file\(GLOB_RECURSE PKMN_SOURCES CONFIGURE_DEPENDS(.*?)\)", text, re.S).group(1)
+    patterns = set(re.findall(r'"\$\{CMAKE_CURRENT_SOURCE_DIR\}/([^"]+)"', glob))
+    assert patterns == {f"{d}/*{s}" for d in get_llvm.SOURCE_DIRS for s in get_llvm.SOURCE_SUFFIXES}
 
 
 def test_needed_library_compilers_no_cmakelists(tmp_path):
