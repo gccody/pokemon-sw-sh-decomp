@@ -1,0 +1,49 @@
+name: Progress
+
+# Regenerates the README progress badges and treemap from data/functions.csv
+# (no game files needed) and publishes them to the `progress` branch. The
+# README links to the files there, so they're always current and nobody has to
+# commit generated images or resolve conflicts in them.
+on:
+  push:
+    branches: [master]
+    paths:
+      - data/functions.csv
+      - data/areas.csv
+      - tools/common.py
+      - tools/progress.py
+      - tools/progress_svg.py
+      - .github/workflows/progress.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: progress
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Publish progress images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Standard library only: nothing to install.
+      - name: Generate images
+        run: python tools/progress.py --svg out
+      - name: Push to the progress branch
+        working-directory: out
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # A single orphan commit, force-pushed: the branch stays tiny.
+          git init -q -b progress
+          git add -A
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -q -m "Progress for ${GITHUB_SHA::12}"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" progress
