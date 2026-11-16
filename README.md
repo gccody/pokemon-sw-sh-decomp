@@ -92,7 +92,7 @@ python tools/progress.py
 |---|---|
 | `tools/setup.py` | Extract `main` (+ sdk modules) from each XCI and verify the build |
 | `tools/versiondiff.py --update-csv` | Re-pair Sword ↔ Shield and regenerate scopes (keeps names and status) |
-| `tools/funcs.py list --status U --max 64 --range 0x71005a0000-0x7101540000` | Find work |
+| `tools/funcs.py list --status U --max 64 --area game` | Find work |
 | `tools/funcs.py show <addr>` | Original assembly, with both games side by side for `diverged` |
 | `tools/funcs.py name <addr> <mangled>` | Assign a symbol name to a function |
 | `tools/check.py [name] [--diff] [--update]` | Build both games and check against both originals |
