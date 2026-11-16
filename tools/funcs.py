@@ -2,6 +2,7 @@
 """Query and edit data/functions.csv.
 
     tools/funcs.py list [--scope diverged] [--status U] [--min 0 --max 64] [--range 0x7100800000-0x7100900000] [-n 50]
+    tools/funcs.py list --area lua            # rows in a data/areas.csv area (each game's own columns)
     tools/funcs.py show 0x71007c2d80          # original asm (both games side-by-side if they differ)
     tools/funcs.py name 0x71007c2d80 _ZN4pkmn10GetVersionEv
     tools/funcs.py name 0x710154fb60 GCTM@lgc              # static: <symbol>@<file stem>
@@ -19,7 +20,10 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import BASE, ROOT, SCOPES, STATUSES, VERSIONS, load_module, read_functions_csv, write_functions_csv  # noqa: E402
+from common import (  # noqa: E402
+    BASE, ROOT, SCOPES, STATUSES, VERSIONS, AreaMap, load_module, read_areas_csv, read_functions_csv,
+    write_functions_csv,
+)
 import symbols  # noqa: E402
 
 CSV = ROOT / "data" / "functions.csv"
@@ -44,6 +48,12 @@ def cmd_list(args, funcs):
     lo, hi = (None, None)
     if args.range:
         lo, hi = (int(x, 16) - BASE for x in args.range.split("-"))
+    area_maps = None
+    if args.area:
+        areas = read_areas_csv(args.areas_csv)
+        if args.area not in {a.name for a in areas}:
+            raise SystemExit(f"no area {args.area!r} in {args.areas_csv.name}: {', '.join(a.name for a in areas)}")
+        area_maps = {v: AreaMap(areas, v) for v in VERSIONS}
     n = 0
     for f in funcs:
         size = f.sword_size if f.sword_size is not None else f.shield_size
@@ -56,6 +66,8 @@ def cmd_list(args, funcs):
         if args.max is not None and size > args.max:
             continue
         if lo is not None and not (lo <= (f.sword if f.sword is not None else f.shield) < hi):
+            continue
+        if area_maps and not any(f.in_version(v) and area_maps[v].area_of(f.addr(v)) == args.area for v in VERSIONS):
             continue
         if args.unnamed and f.name:
             continue
@@ -192,6 +204,8 @@ def main() -> int:
     p.add_argument("--min", type=int)
     p.add_argument("--max", type=int)
     p.add_argument("--range", help="address range, e.g. 0x7100800000-0x7100900000")
+    p.add_argument("--area", help="area name from data/areas.csv, e.g. lua (each game's addresses use its own columns)")
+    p.add_argument("--areas-csv", type=Path, default=ROOT / "data" / "areas.csv", help=argparse.SUPPRESS)
     p.add_argument("--unnamed", action="store_true")
     p.add_argument("-n", type=int, default=100, help="max rows (0 = all)")
     p = sub.add_parser("show")

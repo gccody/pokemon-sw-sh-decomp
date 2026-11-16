@@ -53,6 +53,14 @@ subsystems. That lets work be split further, and keeps third-party code (PhysX
 code. The map is a first approximation built from string evidence, so refine it
 as areas are identified.
 
+Like `functions.csv`, each row has one range per game: `SwordStart,SwordEnd`
+and `ShieldStart,ShieldEnd` (end exclusive; leave a game's pair empty for an
+area that isn't in that game), then `Area,Kind,Confidence,Evidence`. Put
+boundaries at function starts and take the other game's value from the same
+row of `functions.csv`; `tools/lint.py` checks that they pair up and that every
+function lands in the same area in both games. `tools/progress.py` reports
+areas per game, and `tools/funcs.py list --area <name>` lists an area's rows.
+
 ## Getting started
 
 Requirements: Python 3.10+, CMake 3.20+, Ninja, and your own dumps plus `prod.keys`.
@@ -97,7 +105,7 @@ python tools/progress.py
 ```
 data/functions.csv      every function, both games: scope, status, name
 data/data_symbols.csv   named globals/rodata (used by check.py to verify data refs)
-data/areas.csv          address range -> library/subsystem
+data/areas.csv          Sword/Shield address ranges -> library/subsystem
 data/version_diff.json  details for every non-common function
 include/pkmn/version.h  PKMN_VERSION, PKMN_SW_SH(), PKMN_IS_SWORD
 src/                    Game Freak code (by subsystem; src/unsorted/ until placed)

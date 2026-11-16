@@ -68,7 +68,7 @@ game files.
 ```
 data/functions.csv     104k rows, ~6 MB: Sword/Shield address+size, Scope, Status, Name
 data/data_symbols.csv  named globals/rodata (check.py resolves data references through it)
-data/areas.csv         address range -> library/subsystem
+data/areas.csv         Sword/Shield address ranges -> library/subsystem
 include/types.h        u8..u64, f32, PKMN_SIZE_ASSERT, PKMN_OFFSET_ASSERT
 include/pkmn/version.h PKMN_SW_SH, PKMN_IS_SWORD, PKMN_IS_SHIELD
 src/                   Game Freak code (src/unsorted/ until a subsystem is known)

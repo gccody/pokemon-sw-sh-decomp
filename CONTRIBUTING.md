@@ -37,11 +37,14 @@ a class, so splitting one class between people causes conflicts.
 - Third-party code (`data/areas.csv` rows of kind `library`) comes first or
   separately. PhysX 3.4.2, Lua and sol2 are open source, so their functions can
   be matched largely by compiling upstream source.
+- Each `areas.csv` row has a range per game (`SwordStart`/`SwordEnd`,
+  `ShieldStart`/`ShieldEnd`). When you move a boundary, move it in both games
+  (the README's "Areas" section says how).
 
 Finding work:
 
 ```sh
-python tools/funcs.py list --status U --max 64 --range 0x71005a0000-0x7101540000
+python tools/funcs.py list --status U --max 64 --area game
 python tools/funcs.py list --scope diverged
 python tools/funcs.py show 0x7100bc0b00
 python tools/progress.py

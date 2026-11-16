@@ -11,7 +11,7 @@ GOOD = (
     "0x0000007100000300,4,,,sword,U,",
     ",,0x0000007100000400,4,shield,U,",
 )
-AREAS_HEADER = "Start,End,Area,Kind,Confidence,Evidence\n"
+AREAS_HEADER = "SwordStart,SwordEnd,ShieldStart,ShieldEnd,Area,Kind,Confidence,Evidence\n"
 
 
 def errors_for(functions_csv, *rows):
@@ -82,20 +82,143 @@ def test_data_symbols(write_csv):
     assert any("duplicate name gFoo" in e for e in errors)
 
 
+def areas_csv(write_csv, *rows):
+    return write_csv("areas.csv", AREAS_HEADER + "".join(r + "\n" for r in rows))
+
+
 def test_areas(write_csv):
-    ok = write_csv(
-        "areas.csv",
-        AREAS_HEADER + "0x7100000000,0x7100001000,a,game,low,x\n0x7100001000,0x7100002000,b,library,high,y\n",
+    ok = areas_csv(
+        write_csv,
+        "0x7100000000,0x7100001000,0x7100000000,0x7100001000,a,game,low,x",
+        "0x7100001000,0x7100002000,0x7100001000,0x71000020a0,b,library,high,y",
     )
     assert lint.lint_areas(ok) == []
-    bad = write_csv(
-        "areas.csv",
-        AREAS_HEADER + "0x7100000000,0x7100002000,a,game,low,x\n0x7100001000,0x7100003000,b,lib,sure,y\n",
+    bad = areas_csv(
+        write_csv,
+        "0x7100000000,0x7100002000,0x7100000000,0x7100002000,a,game,low,x",
+        "0x7100001000,0x7100003000,0x7100002000,0x7100003000,b,lib,sure,y",
     )
     errors = lint.lint_areas(bad)
-    assert any("overlaps" in e for e in errors)
+    assert any("sword range overlaps" in e for e in errors)
+    assert not any("shield range overlaps" in e for e in errors)
     assert any("Kind" in e for e in errors)
     assert any("Confidence" in e for e in errors)
+
+
+def test_areas_are_checked_per_game(write_csv):
+    # Sword is fine, Shield's second area starts before the first one ends.
+    errors = lint.lint_areas(areas_csv(
+        write_csv,
+        "0x7100000000,0x7100001000,0x7100000000,0x7100001010,a,game,low,x",
+        "0x7100001000,0x7100002000,0x7100001000,0x7100002000,b,game,low,y",
+    ))
+    assert any("shield range overlaps" in e for e in errors), errors
+    assert not any("sword range" in e for e in errors), errors
+    # The same areas in a different order in Shield.
+    errors = lint.lint_areas(areas_csv(
+        write_csv,
+        "0x7100000000,0x7100001000,0x7100001000,0x7100002000,a,game,low,x",
+        "0x7100001000,0x7100002000,0x7100000000,0x7100001000,b,game,low,y",
+    ))
+    assert any("shield range overlaps the previous row or is out of order" in e for e in errors), errors
+
+
+@pytest.mark.parametrize(
+    "row, message",
+    [
+        ("0x7100001000,0x7100001000,0x7100000000,0x7100001000,a,game,low,x", "bad sword range"),
+        ("0x7100000000,0x7100001000,0x7100000000,,a,game,low,x", "bad shield range"),
+        ("0x7100000000,0x7100001000,7100000000,0x7100001000,a,game,low,x", "bad shield range"),
+        ("0x0000000000,0x7100001000,0x7100000000,0x7100001000,a,game,low,x", "bad sword range"),
+        (",,,,a,game,low,x", "needs a range for at least one game"),
+        ("0x7100000000,0x7100001000,0x7100000000,0x7100001000,,game,low,x", "empty Area"),
+    ],
+)
+def test_bad_area_rows(write_csv, row, message):
+    errors = lint.lint_areas(areas_csv(write_csv, row))
+    assert any(message in e for e in errors), errors
+
+
+def test_area_in_one_game_only(write_csv):
+    path = areas_csv(
+        write_csv,
+        "0x7100000000,0x7100001000,0x7100000000,0x7100001000,a,game,low,x",
+        "0x7100001000,0x7100001100,,,sword_only,game,low,y",
+        "0x7100001100,0x7100002000,0x7100001000,0x7100002000,b,game,low,z",
+    )
+    assert lint.lint_areas(path) == []
+
+
+def test_duplicate_area_names(write_csv):
+    errors = lint.lint_areas(areas_csv(
+        write_csv,
+        "0x7100000000,0x7100001000,0x7100000000,0x7100001000,a,game,low,x",
+        "0x7100001000,0x7100002000,0x7100001000,0x7100002000,a,game,low,y",
+    ))
+    assert any("duplicate Area a" in e for e in errors), errors
+
+
+def test_old_single_game_header_is_rejected(write_csv):
+    path = write_csv("areas.csv", "Start,End,Area,Kind,Confidence,Evidence\n0x7100000000,0x7100001000,a,game,low,x\n")
+    assert "header" in lint.lint_areas(path)[0]
+
+
+def test_functions_must_be_in_the_same_area_in_both_games(write_csv, functions_csv):
+    funcs = lint.read_functions_csv(functions_csv(
+        "0x0000007100000100,8,0x0000007100000100,8,common,U,",
+        "0x0000007100001000,8,0x00000071000010a0,8,common,U,",
+        "0x0000007100001800,8,,,sword,U,",
+    ))
+    # Shield's boundary moves with the functions: no error.
+    ok = areas_csv(
+        write_csv,
+        "0x7100000000,0x7100001000,0x7100000000,0x71000010a0,a,game,low,x",
+        "0x7100001000,0x7100002000,0x71000010a0,0x7100002000,b,game,low,y",
+    )
+    assert lint.lint_areas(ok, funcs) == []
+    # Shield's boundary too far up: the second function changes area.
+    bad = areas_csv(
+        write_csv,
+        "0x7100000000,0x7100001000,0x7100000000,0x7100001100,a,game,low,x",
+        "0x7100001000,0x7100002000,0x7100001100,0x7100002000,b,game,low,y",
+    )
+    assert lint.lint_areas(bad, funcs) == [
+        "areas.csv: a sword end is the function 0x0000007100001000 / 0x00000071000010a0, "
+        "so its shield end must be 0x71000010a0, not 0x7100001100",
+        "areas.csv: b sword start is the function 0x0000007100001000 / 0x00000071000010a0, "
+        "so its shield start must be 0x71000010a0, not 0x7100001100",
+        "areas.csv: function 0x0000007100001000 / 0x00000071000010a0 is in area b in sword but a in shield",
+    ]
+    # A Shield boundary copied from Sword: each function still lands in the same area
+    # (the shift is smaller than the functions around it), but the boundary does not pair up.
+    copied = areas_csv(
+        write_csv,
+        "0x7100000000,0x7100001000,0x7100000000,0x7100001000,a,game,low,x",
+        "0x7100001000,0x7100002000,0x7100001000,0x7100002000,b,game,low,y",
+    )
+    errors = lint.lint_areas(copied, funcs)
+    assert len(errors) == 2 and all("must be 0x71000010a0, not 0x7100001000" in e for e in errors), errors
+    # A boundary that is a function start only in Shield is paired the other way round.
+    funcs.append(lint.Function(sword=0x1F00, shield=0x1F80, sword_size=4, shield_size=4, scope="common"))
+    shield_side = areas_csv(
+        write_csv,
+        "0x7100000000,0x7100001000,0x7100000000,0x71000010a0,a,game,low,x",
+        "0x7100001000,0x7100001f40,0x71000010a0,0x7100001f80,b,game,low,y",
+    )
+    errors = lint.lint_areas(shield_side, funcs)
+    assert any("b shield end is the function" in e and "sword end must be 0x7100001f00" in e for e in errors), errors
+    # Not covered in Shield at all.
+    short = areas_csv(
+        write_csv,
+        "0x7100000000,0x7100001000,0x7100000000,0x7100000100,a,game,low,x",
+        "0x7100001000,0x7100002000,0x71000010a0,0x7100002000,b,game,low,y",
+    )
+    assert any("in area a in sword but (none) in shield" in e for e in lint.lint_areas(short, funcs))
+
+
+def test_repository_areas_match_functions():
+    funcs = lint.read_functions_csv(ROOT / "data" / "functions.csv")
+    assert lint.lint_areas(ROOT / "data" / "areas.csv", funcs) == []
 
 
 @pytest.mark.parametrize(
