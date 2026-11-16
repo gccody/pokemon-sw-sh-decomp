@@ -23,7 +23,7 @@ installing one never touches another.
 
 `--library-compilers` reads the `pkmn_library_settings()` calls in
 CMakeLists.txt and installs the COMPILER_VERSION clang of every entry whose
-directory has sources (*.c/*.cpp under src/ or lib/, as CMake globs them).
+directory has sources (*.c/*.cpp/*.cc under src/ or lib/, as CMake globs them).
 CMake never looks for the compiler of an entry without sources, so neither
 does this. Versions that are already installed are skipped, and with no such
 entries it does nothing. `--list-library-compilers` prints the versions it
@@ -118,7 +118,7 @@ def compiler_arg(value: str) -> str:
 
 # What CMakeLists.txt's PKMN_SOURCES glob counts as a source.
 SOURCE_DIRS = ("src", "lib")
-SOURCE_SUFFIXES = (".c", ".cpp")
+SOURCE_SUFFIXES = (".c", ".cpp", ".cc")
 
 _BRACKET_OPEN = re.compile(r"\[(=*)\[")
 _COMMAND = re.compile(r"[A-Za-z_][A-Za-z0-9_]*[ \t]*\(")
