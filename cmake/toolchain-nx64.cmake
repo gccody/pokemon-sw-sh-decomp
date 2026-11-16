@@ -49,6 +49,7 @@ set(PKMN_CODEGEN_FLAGS
   -fno-short-enums
   -nostdinc++
   -O3
+  -g                                    # debug info changes LLVM 7 codegen: DBG_VALUEs block some ldp pairing
 )
 string(REPLACE ";" " " _flags "${PKMN_CODEGEN_FLAGS}")
 set(CMAKE_C_FLAGS_INIT   "${_flags}")
