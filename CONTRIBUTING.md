@@ -119,7 +119,7 @@ a `// NON_MATCHING: <reason>` comment above it.
 | Tooling unit tests | `python -m pytest` | no | yes (Linux + Windows) |
 | Python lint | `ruff check .` | no | yes |
 | C/C++ formatting | `clang-format --dry-run --Werror <files>` | no | yes |
-| Compiles for both games | `cmake --preset sword && cmake --build --preset sword` (and `shield`) | no | yes, with distro clang |
+| Compiles for both games | `cmake --preset sword && cmake --build --preset sword` (and `shield`) | no | yes, with clang 7.0.1 (`get_llvm.py --compiler`) |
 | **Matching** | `python tools/check.py` | **yes** | **no**, paste the output into your PR |
 
 `pre-commit run --all-files` runs everything in the table except the build and
