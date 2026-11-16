@@ -125,7 +125,9 @@ starts. Move a boundary in both games, then run `tools/lint.py`.
 
 Small complete examples: `src/pkmn/Version.cpp` (diverged),
 `src/unsorted/Unk_7eef40.*` and `src/unsorted/Unk_7cc390.cpp` (common,
-cross-TU call), `lib/sol/enum_newindex.cpp` (library, string literal).
+cross-TU call), `lib/lua/lauxlib.c` (vendored library, string literals),
+`src/field/content/Unk_df22f0.cpp` (game code instantiating the header-only
+`lib/sol`, with its own `pkmn_library_settings` entry).
 
 ## Changing the tooling
 

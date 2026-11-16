@@ -307,7 +307,9 @@ No function matches only with a changed flag.
   gnu++14 and gnu++17 give identical code for all 32 functions. `-std=c++17`
   stays as the default. Only code using a feature whose codegen differs
   between standards (guaranteed copy elision, aligned `new`, inline
-  variables) could tell them apart.
+  variables) could tell them apart. The sol2 glue is built as C++14 (see
+  "sol2"), but only because sol2 switches on `__cplusplus` itself, so it
+  says nothing about the rest of the game.
 - **`-g` beyond Lua: confirmed for Game Freak's C++.** Four of the game's
   adjacent pairable `ldr` pairs whose second destination is the base match
   only with `-g` (63 such pairs in game code, 62 with ascending and 1 with
@@ -1320,6 +1322,260 @@ must do to match:
   than 6.0.1, so nothing later can be tested.
 - **Wwise** is clang 6.0.x too, but with the game's aliasing and exception
   flags (see below).
+
+## sol2
+
+**Result: sol2 v2.20.4 (the tag's `single/sol/sol.hpp`), instantiated by one
+Game Freak TU built with the game's clang 7.0.1 and global flags plus
+`-std=c++14` and `-DNDEBUG`.** That TU is the Lua glue of the symbol-encounter
+AI: it loads `bin/field/param/symbol_encount/ai.blua` and binds
+`field::content`'s Haxe types into a global table `fromcpp`. sol2 is vendored
+unchanged as `lib/sol/sol.hpp` (MIT, with its `LICENSE.txt`). The TU is
+`src/field/content/Unk_df22f0.cpp`, and its build settings are the
+`pkmn_library_settings(src/field/content ...)` entry. **`check.py` reports
+1,041 functions of this block (280,484 bytes) `OK` in both games**: all of
+its sol2 and libc++ instances and the three empty Log functions. With them
+the other sol2 TU's `move_assign<false>`, which five of them call, matches
+too. The registration and
+one helper are `M`.
+
+### Where it is
+
+One TU, Sword `0x7100dedfa0`-`0x7100e366b0`. Shield is the same code
+`0x30` higher: every `functions.csv` row from `0x7100deb970` (the
+PokemonObject constructor) to `0x7100e36ec0` has the same size in both games
+and sits at Sword + `0x30`, so the TU is `0x7100dedfd0`-`0x7100e366e0` there.
+
+In Sword:
+
+| Range | What |
+|---|---|
+| `0x7100dedfa0`-`0x7100dee930` | Game code: a class whose vtable is at GOT slot `0x71024a6390`, the loader `0x7100dee1b0` (it loads `ai.blua` and hands over five function pointers, the first being the registration), the first of three callables that call a script function (`0x7100dee870`) |
+| `0x7100dee930`-`0x7100df20e0` | sol2 instances, starting with the two that the callable calls |
+| `0x7100df20e0`-`0x7100df22f0` | Game code: the other two callables, the three empty `fromcpp.Log` functions |
+| `0x7100df22f0`-`0x7100df5a20` | The registration (8,308 bytes), `0x7100df4370` (creates `fromcpp`), and one `new_usertype` helper per type (`0x7100df4440`, a template) |
+| `0x7100df5a20`-`0x7100e366b0` | sol2 instances, up to the last `new_enum` `tuple_set` (`0x7100e36570`, 312 bytes) |
+
+The compiled TU's sections come in the same order, except for the callable's
+two instances (they come last; the original callables are callables of some
+type-erased wrapper, see "What's left open") and the missing
+`0x7100df4370`.
+
+- **The bound types live in the neighbouring code**: HaxeSymbolPokemonObject's
+  constructor `0x7100deb970` and methods `0x7100debaa0`-`0x7100ded8a0`,
+  HaxeVector3's `0x7100ded9e0`-`0x7100dedc60`, then after the block
+  HaxeVector2's (`0x7100e366b0`, `HaxeVector2::Create`, a `ret`) and
+  HaxeFieldFunc's, up to `0x7100e36ec0`. They are named (see "Names") and
+  still `U`. They're out-of-line functions of types the glue only uses, so
+  the TU most likely ends at `0x7100e366b0`.
+- The start is less certain. `0x7100dedc60` and `0x7100deddd0` (the latter
+  references the skybox and `unit_obj_door` gfpak paths, and calls the
+  former) look unrelated to Lua, so `0x7100dedfa0` is the first function that
+  clearly belongs to the glue.
+- **Almost no sol2 code outside it.** No other function in `main` references
+  a sol2 string (`sol:`, `usertype`, `metatable`, ...; the other hits are
+  Lua's own). One other TU uses sol2: around `0x710065b6a0`-`0x710065c034`,
+  next to code that opens the Lua standard libraries (`0x710065ba20`
+  references `"debug"`, `"io"`, `"base"`, ...), probably the owner of the
+  `sol::state`. The linker kept its copy of
+  `sol::basic_reference<false>::move_assign<false>` (`0x710065bf00`, 308
+  bytes), which five instances of this block call. It's named, and matches
+  with the same source.
+
+`data/areas.csv` gets no row for it: it is template code inside one Game
+Freak TU, not a separately built library, and the `game` row already says
+that it holds sol2 instances. The start boundary also isn't certain enough.
+
+### Version
+
+Strings narrow it to v2.18.5 or later: `"value is not a valid userdata"`,
+`"value at this index does not properly reflect the desired type"`,
+`"cannot properly align memory for '%s'"` and `"aligned allocation of userdata
+block (pointer section) for '%s' failed"` first appear in v2.18.5's single
+header. `ctti_get_type_name`'s `__PRETTY_FUNCTION__` strings (20 in the
+block) name every bound type and give the exact member pointer types, so the
+binding could be written out exactly (see "The TU"). The `ctti` function itself
+compiles the same for every version from v2.18.7, so the instances
+decide. Every tag's single header, compiled as the final TU (clang 7.0.1, the
+final flags; hits and bytes as in "Method", over `0x7100dedf00`-`0x7100e366b0`,
+1,069 original functions):
+
+| sol2 | `-std` | Compiled | **Hits** | Hit bytes |
+|---|---|---|---|---|
+| v2.18.6, v2.18.7, v2.19.0 | c++17 | 1,028 | 673 | 111,644 |
+| v2.19.4 | c++17 | 1,023 | 823 | 196,808 |
+| v2.19.4, v2.19.5 | c++14 | 1,024 | 971 | 257,788 |
+| v2.20.0, v2.20.1, v2.20.2 | c++14 | 1,028 | 988 | 264,616 |
+| v2.20.3 (`-include array`) | c++14 | 1,032 | 996 | 265,864 |
+| **v2.20.4** | **c++14** | 1,044 | **1,004** | **280,264** |
+| v2.20.4 | c++17 | 1,043 | 840 | 212,372 |
+| v2.20.5, v2.20.6 | c++14 | 1,044 | 978 | 269,712 |
+
+The sweep counts functions of 16 bytes or more; `check.py`, which also
+checks the smaller ones, gets more (see the top of this section).
+
+- **v2.20.4 is the unique best**, with every mapped function exact. Only
+  v2.20.4 has `usertype_metatable::core_indexing_call` (`0x7100e01000` and
+  `0x7100e01230` in Sword); v2.20.5 changed `runtime_object_call` and
+  `runtime_new_index` to four arguments, and v2.20.2 and earlier also have a
+  different `unique_destruct`.
+- The v2.20.4 tag's single header says "generated with sol v2.20.3 (revision
+  daa9993)", dated 2018-08-04. It isn't v2.20.3's (2018-06-16, revision
+  968989b): it adds `#include <array>` (v2.20.3's single header doesn't compile
+  without it) and differs in code. Either way, it is what the tag ships and
+  what matches.
+- v2.18.6, v2.18.7 and v2.19.0 don't compile as C++14
+  (`static_trampoline_noexcept` is only declared for C++17), so they appear
+  with `-std=c++17` only. v2.18.5 doesn't compile without exceptions.
+
+### Build settings
+
+Each row changes one thing against the final configuration (v2.20.4, clang
+7.0.1, global flags, `-std=c++14 -DNDEBUG`):
+
+| Variant | Compiled | **Hits** | Hit bytes |
+|---|---|---|---|
+| **final** | 1,044 | **1,004** | **280,264** |
+| `-std=gnu++14` | 1,044 | 1,004 | 280,264 |
+| `-g0` | 1,044 | 1,003 | 279,124 |
+| `-UNDEBUG` | 1,044 | 864 | 225,400 |
+| `-std=c++17` | 1,043 | 840 | 212,372 |
+| `-std=c++17 -UNDEBUG` | 1,043 | 836 | 211,908 |
+| `-std=c++11` | doesn't compile (`std::make_index_sequence`) | | |
+| `-DSOL_SAFE_REFERENCES=1` | 1,048 | 992 | 273,396 |
+| `-DSOL_SAFE_FUNCTION_CALLS=1` | 1,106 | 936 | 268,060 |
+| `-DSOL_NO_MEMORY_ALIGNMENT=1` | 1,041 | 831 | 237,280 |
+| `-DSOL_SAFE_USERTYPE=1` | 1,119 | 788 | 260,456 |
+| `-DSOL_SAFE_GETTER=1` | 1,030 | 635 | 232,808 |
+| `-DSOL_CHECK_ARGUMENTS=1` | 1,214 | 609 | 222,936 |
+| `-O2` | 1,043 | 913 | 175,920 |
+| `-Os` | 1,151 | 604 | 51,980 |
+| clang 7.0.0, 7.1.0 | 1,044 | 1,004 | 280,264 |
+| clang 6.0.1 | 1,043 | 720 | 77,620 |
+| clang 8.0.0 | 1,044 | 447 | 85,324 |
+
+clang 7.0.0, 7.0.1 and 7.1.0 give the same code, as for Lua, so this TU was
+built with the game's compiler. `-g0` loses one function, so `-g` stays on,
+as for the rest of the game.
+
+- **C++14.** sol2 tests `__cplusplus` itself (`SOL_CXX17_FEATURES`): with
+  C++17 it uses `std::string_view` and C++17 `noexcept` function types, and
+  the executable has sol2's own `basic_string_view` instances instead
+  (`is_indexer`, `core_indexing_call` and the `tuple_set`s differ). c++11
+  doesn't compile sol2 v2.20.4. gnu++14 gives the same code as c++14, so the
+  entry uses c++14. This says nothing about the rest of the game, where the
+  standard isn't visible (see "What's left open").
+- **`NDEBUG`.** sol2's `assert`s (in `sol::optional`, and the
+  `assert(false && ...)` paths) are compiled out: none of their expression
+  strings is in rodata. `__assert_fail` is imported by `main`, so other code
+  keeps its asserts, and `NDEBUG` can't be global.
+- **No sol2 safety defines.** `SOL_CHECK_ARGUMENTS`, `SOL_SAFE_USERTYPE`,
+  `SOL_SAFE_FUNCTION_CALLS`, `SOL_SAFE_REFERENCES`, `SOL_SAFE_GETTER` and
+  `SOL_NO_MEMORY_ALIGNMENT` each lose functions. `-O3` defines
+  `__OPTIMIZE__`, which keeps sol2's debug-mode default from turning them on.
+- `_GNU_SOURCE`, `_LIBCPP_HAS_MUSL_LIBC` and `_LIBCPP_HAS_THREAD_API_PTHREAD`
+  only make libc++ 7.0.1 compile against musl (`<locale>` needs `strtof_l`
+  and the other `_l` functions). The libc++ headers the TU reads are vendored
+  in `include/libcxx` like PhysX's (`SYSTEM_INCLUDES`). `lib/lua` is on the
+  include path for sol2's `<lua.hpp>`.
+
+### The TU
+
+`ctti_get_type_name`'s strings give the class names (`field::content::
+HaxeVector2`, `HaxeVector3`, `HaxeFieldFunc`, `HaxeSymbolPokemonObject`) and,
+in the `usertype_metatable` instances' names, every member pointer type in
+registration order (the PokemonObject one is 8,865 characters). The Lua keys
+come from the registration's string arguments. Getting every instance exact
+needed:
+
+- **PokemonObject has a user-provided, out-of-line default constructor**
+  (`0x7100deb970`, a `memset` of `0x10c` bytes). sol2's `constructor_list`
+  wrappers call it. The type is `0x110` bytes: the callables copy `0x110`
+  bytes of it into a local.
+- **Vector2 and Vector3 have constructors but no default one.** sol2 gives a
+  default-constructible usertype a `"new"`, and the executable has none for
+  them (with a default constructor, 7 more instances appear).
+- **The Log functions are passed by reference** (`"Print", f`, not `&f`): it
+  changes the `tuple_set` instance.
+- **The enum values.** WeatherType's are `int` prvalues (0-8). The other
+  enums' are `unsigned int` (their `tuple_set`s load them with `ldr w`, not
+  `ldrsw`), and the registration stores them into a zeroed `0x100`-byte local
+  array first, so they may have been the values of `unsigned` enums or array
+  elements. BalloonType is 0, 1, 2, 3, 8, 9 and MotionState is 1, 2, 3.
+  RaycastTarget's three values are read through the GOT from `const unsigned
+  int`s at `0x7101f25c58`, `0x7101f25c5c` and `0x7101f25c60` (1, 2 and
+  `0xffffffff`, a mask), so they are objects defined in another TU.
+- **The callables call the script with the object by reference.**
+  `0x7100dee930` is `unsafe_function::call` with a `HaxeSymbolPokemonObject&`
+  (no null check, pushed as a pointer), and `0x7100deea20` is the
+  `table["CLwixWp"][name]` lookup with a `const char*` key.
+
+### Names
+
+1,174 rows of the block are named: 1,038 instances with their mangled names
+(upstream sol2 and libc++ templates over the bound types; 1,033 `O`, five
+waiting), the three Log functions (`O`), the 131 bound functions (`U`, in the
+neighbouring TUs) and the two `M` functions. The bound methods are
+named `field::content::<Class>::<Lua key>` with the ctti signature: the
+registration pairs each Lua key with its function's GOT slot. That the C++
+names equal the Lua keys is an assumption (the class names are certain).
+Game Freak's own functions in the TU get
+placeholders (`Unk_df22f0`, `Unk_df4440`, `Unk_df22c0`, ...). The two
+copies of `walk_all_bases` are internal and file-qualified (`@Unk_df22f0`);
+`<true>`'s address is taken first, as in the compiled code.
+`lib/sol/enum_newindex.cpp` (a hand-written `fail_on_newindex`) is gone:
+`sol.hpp` defines it, and the TU emits it.
+
+### Reproducing
+
+```sh
+# sol2 single headers, one directory per tag (only sol/, sol.hpp and single/)
+for t in v2.18.6 v2.18.7 v2.19.0 v2.19.4 v2.19.5 v2.20.0 v2.20.1 v2.20.2 v2.20.3 v2.20.4 v2.20.5 v2.20.6; do
+  mkdir -p toolchain/candidates/src/sol2-v2/$t/single/sol
+  curl -sfL -o toolchain/candidates/src/sol2-v2/$t/single/sol/sol.hpp \
+    https://raw.githubusercontent.com/ThePhD/sol2/$t/single/sol/sol.hpp
+done
+# libc++ 7.0.1 headers (the full tree; include/libcxx only has what v2.20.4 reads)
+#   toolchain/candidates/src/libcxx-7.0.1/include, see "PhysX: Reproducing"
+T=toolchain/candidates/src/sol2-v2 X=toolchain/candidates/src/libcxx-7.0.1/include
+COMMON="-O3 -fno-exceptions -fno-rtti -nostdinc++ -std=c++14 -DNDEBUG -D_GNU_SOURCE \
+  -D_LIBCPP_HAS_MUSL_LIBC -D_LIBCPP_HAS_THREAD_API_PTHREAD -I lib/lua -isystem $X \
+  -I include -I src -isystem include/libc -DPKMN_VERSION=PKMN_VERSION_SWORD"
+# versions: each variant puts a tag's single/ before lib/ (the TU includes <sol/sol.hpp>)
+python tools/compiler_sweep.py --compiler toolchain/candidates/clang-7.0.1 \
+    --variant "v2.20.4=-I $T/v2.20.4/single" --variant "v2.20.5=-I $T/v2.20.5/single" \
+    --variant "v2.20.3=-I $T/v2.20.3/single -include array" \
+    --variant "v2.19.0-cxx17=-I $T/v2.19.0/single -std=c++17" ... \
+    --src src/field/content/Unk_df22f0.cpp --range 0x7100dedf00-0x7100e366b0 -- $COMMON
+# flags: --variant "base=-I lib" --variant "cxx17=-I lib -std=c++17" --variant "no-NDEBUG=-I lib -UNDEBUG" ...
+# compilers: --compiler toolchain/candidates/clang-{6.0.1,7.0.0,7.0.1,7.1.0,8.0.0} --variant "base=-I lib"
+python tools/check.py   # builds both games with the pkmn_library_settings entry
+```
+
+### What's left open
+
+- **The registration, `0x7100df22f0` (`Unk_df22f0`, `M`).** Every call it
+  makes matches, but the original creates `fromcpp` through `0x7100df4370`, a
+  separate 208-byte function. That function takes the address of an
+  8-byte object on the caller's stack (which holds the registration's
+  argument, a pointer to an object whose `+8` is a `state_view`, i.e. a
+  `sol::state`), and returns a copy of the new table: the stack frame (`0xd10`
+  against `0xc90` bytes) and the stores that build the argument lists differ.
+  It looks like a lambda that captures the state by reference, but a
+  lambda called once would be inlined. Not found yet.
+- **The callables (`0x7100dee870`, `0x7100df2100`, `0x7100df21e0`).** They
+  differ only in the script function they call (`SLNoy2O`, `SLW05E4` and
+  `SelxSXW` in table `CLwixWp`, obfuscated Haxe names). Each sits with
+  12-byte and 4-byte functions that look like a type-erased callable's
+  (clone, destroy, ...). `Unk_dee870` is written as a plain function only to
+  instantiate the two sol2 functions it calls, and it is `M`.
+- **The rest of the TU's own functions** (`0x7100dedfa0`-`0x7100dee830`, the
+  class around the loader, and the small functions next to the callables) are
+  still `U`. They're plain game code and don't involve sol2 beyond what is
+  matched.
+- **The enum types.** The values match, but whether they were `unsigned`
+  enums, `unsigned` constants or array elements can't be seen, so the
+  registration passes literals.
 
 ## Wwise
 

@@ -1,0 +1,4 @@
+# libc++ 7.0.1's headers, vendored unchanged: keep upstream formatting, so they
+# can be diffed against the original sources (as lib/.clang-format does).
+DisableFormat: true
+SortIncludes: Never

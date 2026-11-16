@@ -55,9 +55,10 @@
 # a SYSTEM_INCLUDE of some entries or an INCLUDE of others, not both, and it
 # can't be one of the shared directories.
 #
-# libc++: the PhysX entry has `SYSTEM_INCLUDES include/libcxx`, where the
-# libc++ 7.0.1 headers that PhysX reads are vendored unchanged (with their
-# LICENSE.TXT), the way musl's headers are vendored in include/libc.
+# libc++: the PhysX and src/field/content entries have `SYSTEM_INCLUDES
+# include/libcxx`, where the libc++ 7.0.1 headers that they read are vendored
+# unchanged (with their LICENSE.TXT), the way musl's headers are vendored in
+# include/libc.
 #
 # How: the directories are the sources' INCLUDE_DIRECTORIES source property,
 # which the Ninja generator emits before the target's include directories. That
