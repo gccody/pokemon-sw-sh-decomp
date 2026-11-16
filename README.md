@@ -162,5 +162,5 @@ The code, tooling and documentation in this repository are released under the
 That covers only this project's own work. It grants no rights to Pokémon Sword
 and Shield or any other Nintendo, Game Freak or The Pokémon Company game,
 asset or trademark. You still need your own legally obtained copy of the game.
-Third-party code under `lib/` (Lua, sol2, PhysX ...) stays under its upstream
+Third-party code under `lib/` (Lua, sol2, PhysX, libcurl ...) stays under its upstream
 license.

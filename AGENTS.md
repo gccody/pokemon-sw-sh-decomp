@@ -84,8 +84,9 @@ game files.
 data/functions.csv     104k rows, ~6 MB: Sword/Shield address+size, Scope, Status, Name
 data/data_symbols.csv  named globals/rodata (check.py resolves data references through it)
 data/areas.csv         address range -> library/subsystem
-data/absent_functions.csv, data/foreign_copies.csv
-                       compiled functions check.py skips (not in the executable / another library's copy kept)
+data/absent_functions.csv, data/unidentified_functions.csv, data/foreign_copies.csv
+                       compiled functions check.py skips (not in the executable / original not found yet /
+                       another library's copy kept)
 data/source_paths.csv  vendored dirs whose __FILE__ literals check.py compares by the file they name
 data/physx_v342.csv    lib/physx files tools/get_physx.py generates (v3.4.2 code, never committed) + SHA-256
 cmake/                 toolchain (global flags) + LibrarySettings.cmake (per-library flags)

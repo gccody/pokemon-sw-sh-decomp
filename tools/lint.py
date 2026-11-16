@@ -14,6 +14,8 @@ data/source_paths.csv: header, relative directories, absolute originals,
 evidence for every row (tools/source_paths.py).
 data/absent_functions.csv: compiled functions that are not in the executable;
 valid unique names with a reason, none of them also a row of functions.csv.
+data/unidentified_functions.csv: compiled functions whose original hasn't been
+identified; the same rules, and none of them also absent.
 data/foreign_copies.csv: weak/COMDAT functions whose copy in the executable
 comes from a library this repository doesn't build; valid unique names with a
 reason, each a row of functions.csv and not also absent.
@@ -151,6 +153,11 @@ def lint_absent(path: Path, function_names: set[str] = frozenset()) -> list[str]
     return _lint_name_reasons(path, function_names, named=False)
 
 
+def lint_unidentified(path: Path, function_names: set[str] = frozenset(),
+                      absent_names: set[str] = frozenset()) -> list[str]:
+    return _lint_name_reasons(path, function_names, named=False, absent_names=absent_names)
+
+
 def lint_foreign(path: Path, function_names: set[str] = frozenset(),
                  absent_names: set[str] = frozenset()) -> list[str]:
     return _lint_name_reasons(path, function_names, named=True, absent_names=absent_names)
@@ -180,7 +187,7 @@ def _lint_name_reasons(path: Path, function_names: set[str], named: bool,
                 errors.append(f"{where}: {name} is in functions.csv, so it is in the executable")
             elif named and name not in function_names:
                 errors.append(f"{where}: {name} is not in functions.csv")
-            elif named and name in absent_names:
+            elif name in absent_names:
                 errors.append(f"{where}: {name} is also in absent_functions.csv")
             if not (r["Reason"] or "").strip():
                 errors.append(f"{where}: give a reason")
@@ -333,7 +340,9 @@ def main(argv: list[str] | None = None) -> int:
     functions = read_functions_csv(args.data / "functions.csv") if n_funcs else []
     names = {f.name for f in functions if f.name}
     errors += lint_absent(args.data / "absent_functions.csv", names)
-    errors += lint_foreign(args.data / "foreign_copies.csv", names, _names(args.data / "absent_functions.csv"))
+    absent = _names(args.data / "absent_functions.csv")
+    errors += lint_unidentified(args.data / "unidentified_functions.csv", names, absent)
+    errors += lint_foreign(args.data / "foreign_copies.csv", names, absent)
     errors += lint_areas(args.data / "areas.csv", functions)
     errors += lint_source_paths(args.data / "source_paths.csv", ROOT)
     if args.no_git:
