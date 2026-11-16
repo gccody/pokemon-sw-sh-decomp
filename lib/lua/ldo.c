@@ -218,8 +218,6 @@ static int stackinuse (lua_State *L) {
 }
 
 
-// NON_MATCHING: the inlined stackinuse() loop loads ci->top and ci->previous with
-// one ldp; the original uses two ldr (same in Sword and Shield). See docs/compiler.md.
 void luaD_shrinkstack (lua_State *L) {
   int inuse = stackinuse(L);
   int goodsize = inuse + (inuse / 8) + 2*EXTRA_STACK;
@@ -647,8 +645,6 @@ static void resume (lua_State *L, void *ud) {
 }
 
 
-// NON_MATCHING: the inlined stackinuse() loop loads ci->top and ci->previous with
-// one ldp; the original uses two ldr (same in Sword and Shield). See docs/compiler.md.
 LUA_API int lua_resume (lua_State *L, lua_State *from, int nargs) {
   int status;
   unsigned short oldnny = L->nny;  /* save "number of non-yieldable" calls */
@@ -722,8 +718,6 @@ LUA_API int lua_yieldk (lua_State *L, int nresults, lua_KContext ctx,
 }
 
 
-// NON_MATCHING: the inlined stackinuse() loop loads ci->top and ci->previous with
-// one ldp; the original uses two ldr (same in Sword and Shield). See docs/compiler.md.
 int luaD_pcall (lua_State *L, Pfunc func, void *u,
                 ptrdiff_t old_top, ptrdiff_t ef) {
   int status;
