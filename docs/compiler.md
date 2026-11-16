@@ -1594,6 +1594,41 @@ the tool gives the old figures too: 78 / 9,819, 3 `movi`, 5,183 FDEs and 5 /
   (The two globs leave out `example.c` and `minigzip.c`.) With the
   corrected range, clang 7.0.1 `-O3` still gives 30 functions (34,116 bytes)
   in both games, the same as over `0x710040f550`-`0x71005a0000`.
+
+  **All of it matches now, in `lib/zlib`.** The zlib code is one contiguous
+  block, `0x710058be50`-`0x7100594470` at the same addresses in both games:
+  33 functions, `compress2` first and `zutil.c`'s `zlibVersion`, `zcalloc`
+  and `zcfree` last. The sweep's default `--min-size 16` hides those three
+  (12, 8 and 8 bytes); with `--min-size 4` it maps 34 names. One address
+  gets two: `zlibVersion` and `get_crc_table` both compile to `adrp; add;
+  ret`. The address it loads is odd (a string, not the 4-byte-aligned CRC
+  table), and the function sits after `inftrees.c`'s, where `zutil.c` comes
+  in link order, so it's `zlibVersion`. `zcalloc` is `mul w0, w2, w1; b
+  malloc` and `zcfree` `mov x0, x1; b free`, upstream's
+  `sizeof(uInt) > 2` paths. The functions before and after the block call
+  into it but aren't zlib (YEBIS's SiIO).
+
+  `lib/zlib` is the upstream source, unmodified, for the 10 TUs with functions
+  in the executable (`adler32 compress crc32 deflate inffast inflate inftrees
+  trees uncompr zutil`) and their headers, built with the global flags (no
+  `pkmn_library_settings` entry). `check.py` reports all 33 `OK` in both
+  games. The other 27 functions those TUs compile (`compress`,
+  `compressBound`, `deflateParams`, `inflateSync`, `crc32_combine`, `zError`,
+  ...) aren't in the executable: swept over all of `main`, they match nothing
+  but 4-byte tail calls (`b`), which any thunk matches. They're in
+  `data/absent_functions.csv`. `gz*.c` and `infback.c` have no function in
+  the executable and aren't vendored.
+
+  ```sh
+  python tools/compiler_sweep.py --compiler toolchain/candidates/clang-7.0.1 --variant O3=-O3 \
+      --min-size 4 --src "$Z/[a-di-z]*.c" --src "$Z/gz*.c" \
+      --range 0x710058be00-0x7100594470 --map-out zlib_map.csv \
+      -- -isystem toolchain/candidates/sysroot/include
+  ```
+
+  The second zlib-like string, `invalid distance code` at `0x7100516b50`
+  (6,732 bytes), is another inflater in YEBIS. No zlib 1.2.5 function
+  matches it.
 - **After Lua** (NEX 4.6.8, Pia, NintendoWare, nn SDK static libraries): all
   `orr`-form constants (clang older than 9), frame pointers, GPR-only zeroing
   and no exception tables (1 `zPLR` FDE). Only 1 `-g` `ldr` pair against 868
