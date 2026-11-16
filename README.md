@@ -22,7 +22,9 @@ that game. The treemap groups the executable by area
 ([`data/areas.csv`](data/areas.csv)). Each cell is a run of neighbouring
 functions, sized by code: grey means nothing matches yet, and brighter green
 means more of it matches. Open the image to see each cell's address range and
-counts on hover.
+counts on hover. One treemap covers both games: a function is in the same
+area in both, so it's drawn once, at its Sword address (Shield's for
+Shield-only functions).
 
 CI regenerates these images from `data/functions.csv` on every push to `master`
 ([progress.yml](.github/workflows/progress.yml)) and publishes them to the

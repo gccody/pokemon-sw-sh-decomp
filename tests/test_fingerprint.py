@@ -232,14 +232,13 @@ def test_typeinfo_names():
 
 
 # --------------------------------------------------------------------------- ranges
-def test_read_areas_both_formats(write_csv):
-    old = write_csv("old.csv", "Start,End,Area,Kind,Confidence,Evidence\n"
-                    "0x7100000000,0x7100010a90,startup,game,low,x\n")
-    new = write_csv("new.csv", "SwordStart,SwordEnd,ShieldStart,ShieldEnd,Area,Kind,Confidence,Evidence\n"
-                    "0x7101548410,0x7101570900,0x71015484b0,0x71015709a0,lua,library,high,x\n")
-    assert fp.read_areas(old) == {"startup": {"sword": (0x7100000000, 0x7100010a90)}}
-    assert fp.read_areas(new) == {"lua": {"sword": (0x7101548410, 0x7101570900),
-                                          "shield": (0x71015484b0, 0x71015709a0)}}
+def test_read_areas_per_game(write_csv):
+    path = write_csv("areas.csv", "SwordStart,SwordEnd,ShieldStart,ShieldEnd,Area,Kind,Confidence,Evidence\n"
+                     "0x7101548410,0x7101570900,0x71015484b0,0x71015709a0,lua,library,high,x\n"
+                     "0x7101570900,0x7101571000,,,swonly,game,low,y\n")
+    assert fp.read_areas(path) == {"lua": {"sword": (0x7101548410, 0x7101570900),
+                                           "shield": (0x71015484b0, 0x71015709a0)},
+                                   "swonly": {"sword": (0x7101570900, 0x7101571000)}}
 
 
 def test_parse_target():
