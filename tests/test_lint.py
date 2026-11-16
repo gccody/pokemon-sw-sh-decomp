@@ -278,6 +278,22 @@ def test_repository_absent_functions_are_clean():
     assert lint.lint_absent(ROOT / "data" / "absent_functions.csv", names) == []
 
 
+def test_unidentified_functions(write_csv):
+    ok = write_csv("unidentified_functions.csv", ABSENT_HEADER + "Curl_foo,changed by Nintendo\n")
+    assert lint.lint_unidentified(ok, {"luaL_error"}, absent_names={"b@x"}) == []
+    bad = write_csv("unidentified_functions.csv", ABSENT_HEADER + "b@x,x\nluaL_error,x\nz,\n")
+    errors = lint.lint_unidentified(bad, {"luaL_error"}, absent_names={"b@x"})
+    assert any("b@x is also in absent_functions.csv" in e for e in errors)
+    assert any("is in functions.csv" in e for e in errors)
+    assert any("give a reason" in e for e in errors)
+
+
+def test_repository_unidentified_functions_are_clean():
+    names = {f.name for f in lint.read_functions_csv(ROOT / "data" / "functions.csv") if f.name}
+    assert lint.lint_unidentified(ROOT / "data" / "unidentified_functions.csv", names,
+                                  lint._names(ROOT / "data" / "absent_functions.csv")) == []
+
+
 def test_foreign_copies(write_csv):
     ok = write_csv("foreign_copies.csv", ABSENT_HEADER + "__clang_call_terminate,another library's copy\n")
     assert lint.lint_foreign(ok, {"__clang_call_terminate"}) == []

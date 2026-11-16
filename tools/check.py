@@ -21,10 +21,13 @@ vendor's checkout (see tools/source_paths.py).
 
 Local (static) symbols are looked up by their file-qualified name,
 `<symbol>@<file stem>` (see tools/symbols.py). Compiled functions listed in
-data/absent_functions.csv are not in the executable and are skipped. So are the
-weak/COMDAT functions of data/foreign_copies.csv: the executable has them, but
-the linker kept the copy of a library this repository doesn't build, so the
-copies compiled here aren't the one to compare.
+data/absent_functions.csv are not in the executable and are skipped. Those in
+data/unidentified_functions.csv are skipped too, and counted apart: vendored
+code whose original hasn't been found (changed beyond recognition, inlined or
+dropped, nobody knows yet). So are the weak/COMDAT functions of
+data/foreign_copies.csv: the executable has them, but the linker kept the copy
+of a library this repository doesn't build, so the copies compiled here aren't
+the one to compare.
 
 Weak and COMDAT definitions (inline functions, template instantiations) may be
 emitted by several translation units, and the linker keeps one of them.
@@ -85,13 +88,15 @@ BRK_1, NX_TRAP = 0xD4200020, 0xE7FFDEFE  # upstream clang's trap, the originals'
 
 ABSENT_CSV = ROOT / "data" / "absent_functions.csv"
 FOREIGN_CSV = ROOT / "data" / "foreign_copies.csv"
+UNIDENTIFIED_CSV = ROOT / "data" / "unidentified_functions.csv"
 SOURCE_PATHS_CSV = ROOT / "data" / "source_paths.csv"
 TOOLCHAIN_FILE = ROOT / "cmake" / "toolchain-nx64.cmake"
 
 
 def read_absent(path: Path = ABSENT_CSV) -> dict[str, str]:
     """A Name,Reason CSV: the compiled functions that are not in the executable
-    (data/absent_functions.csv), or those whose copy in the executable is
+    (data/absent_functions.csv), those whose original hasn't been identified
+    (data/unidentified_functions.csv), or those whose copy in the executable is
     another library's (data/foreign_copies.csv): name -> reason."""
     if not path.exists():
         return {}
@@ -763,12 +768,16 @@ def main() -> int:
     all_names = sorted(set().union(*(c.keys() for c in compiled.values())))
     absent = read_absent()
     foreign = read_absent(FOREIGN_CSV)
-    n_ok = n_bad = n_absent = n_alias = n_foreign = 0
+    unidentified = read_absent(UNIDENTIFIED_CSV)
+    n_ok = n_bad = n_absent = n_alias = n_foreign = n_unidentified = 0
     status_updates: dict[str, str] = {}
     for name in all_names:
         fn = by_name.get(name)
         if fn is None and name in absent:
             n_absent += 1
+            continue
+        if fn is None and name in unidentified:
+            n_unidentified += 1
             continue
         if fn is None and any(a in by_name for c in compiled.values() if name in c for a in c[name].aliases):
             n_alias += 1
@@ -829,6 +838,9 @@ def main() -> int:
     print(f"\n{n_ok} matching, {n_bad} not matching")
     if n_absent:
         print(f"({n_absent} compiled functions skipped as not in the executable: data/absent_functions.csv)")
+    if n_unidentified:
+        print(f"({n_unidentified} compiled functions skipped, their original not identified yet: "
+              f"data/unidentified_functions.csv)")
     if n_foreign:
         print(f"({n_foreign} weak/COMDAT functions skipped: the executable keeps another library's copy, "
               f"data/foreign_copies.csv)")

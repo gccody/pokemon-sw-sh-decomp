@@ -209,6 +209,15 @@ registers `os.clock`, so `luaopen_os` creates a table with 1 field and the other
 `os_*` functions don't exist. Lint rejects an absent function that is also a
 row of `functions.csv`.
 
+**Functions whose original hasn't been found.** Sometimes a vendored function
+compiles, but nothing in the executable can be shown to be it: the vendor
+changed it beyond recognition, or it may have been inlined or dropped, and
+nobody can tell yet. Don't put those in `absent_functions.csv`, which says
+the function isn't there. List them in `data/unidentified_functions.csv`
+(same format). `check.py` skips them and prints how many it skipped. Move a
+row out once its original is found (name it in `functions.csv`) or shown
+absent.
+
 **Another library's copy.** An inline function or template instance can be
 compiled into several libraries, and the linker keeps one copy. Sometimes the
 kept copy belongs to a library this repository doesn't build (an SDK library
