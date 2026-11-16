@@ -4,15 +4,19 @@
 `python tools/get_llvm.py` installs it into `toolchain/clang/`, and
 `cmake/toolchain-nx64.cmake` uses it automatically.
 
-Compiling Lua 5.3.4 this way reproduces **490 functions (156 KB of code)
-byte-for-byte**. No other version or flag set comes close (see the tables below).
+Compiling Lua 5.3.4 this way reproduces **493 functions (158 KB of code)
+byte-for-byte**, every function the sweep maps. No other version or flag set
+comes close (see the tables below).
 
 ```
 clang 7.0.1  --target=aarch64-none-elf -mcpu=cortex-a57+fp+simd+crypto+crc
-  -O3 -D__ELF__ -funwind-tables -mno-implicit-float -fPIC
+  -O3 -g -D__ELF__ -funwind-tables -mno-implicit-float -fPIC
   -fno-omit-frame-pointer -fno-strict-aliasing -ffunction-sections -fdata-sections
   C++ only: -fno-exceptions -fno-rtti
 ```
+
+`-g` matters: debug info changes LLVM 7's code (see "Debug info" below). The
+tables below were measured without it, which is why they top out at 490.
 
 clang 7.0.0, 7.0.1 and 7.1.0 produce identical code on the whole corpus, so
 they can't be told apart yet. The toolchain uses 7.0.1. Only an x86-64 build of
@@ -70,6 +74,67 @@ instead of `orr w1, wzr, #2`, which on its own rules out every version from 9 on
 | `-fno-pic` | 451 | 100,536 | Public globals do go through the GOT. |
 | `-mcpu=generic` | 129 | 11,976 | Cortex-A57 scheduling model. |
 | `-fomit-frame-pointer` | 76 | 8,500 | Frame pointers are kept. |
+| **final + `-g`** | **493** | **157,660** | All 473 mapped functions match (470 without). See "Debug info". |
+
+### Debug info (`-g`)
+
+**The original was built with debug info, and with LLVM 7 that changes the
+code.** Without `-g`, three Lua functions missed, all because of one load pair:
+`luaD_shrinkstack` (`0x7101550ab0`), `lua_resume` (`0x71015516b0`) and
+`luaD_pcall` (`0x7101551cd0`). Each inlines `stackinuse()`, whose loop reads
+`ci->top` and then `ci->previous`:
+
+```
+original (both games)        clang 7.0.1 without -g
+ldr  x10, [x9, #8]           ldp  x10, x9, [x9, #8]
+ldr  x9, [x9, #0x10]         cmp  x8, x10
+cmp  x8, x10                 csel x8, x10, x8, lo
+csel x8, x10, x8, lo
+```
+
+With `-g`, clang 7.0.1 emits the original's two `ldr`. Here's why. Just before
+`aarch64-ldst-opt` runs (`-mllvm -print-before=aarch64-ldst-opt`), the loop
+body is `ldr x10, [x9, #8]`, `cmp`, `csel`, then
+`DBG_VALUE $x9, !"ci", !DIExpression(DW_OP_plus_uconst, 16, DW_OP_deref, DW_OP_stack_value)`
+(the location of `ci` after `ci = ci->previous`), then `ldr x9, [x9, #16]`.
+`findMatchingInsn` in LLVM 7's `AArch64LoadStoreOptimizer.cpp` passes every
+instruction it scans to `LiveRegUnits::accumulateUsedDefed`, including debug
+instructions. Only the scan limit skips them (`isTransient`). The `DBG_VALUE`
+therefore counts as a use of `x9` between the two loads, so the second load
+can't be moved up. The first can't be moved down either, because `cmp` and
+`csel` read `x10`. The loads stay unpaired.
+
+The evidence:
+
+- **`check.py`, all TUs built with `-g`:** the three functions match in both
+  games, and nothing else changes (515 matching, 6 not matching: the
+  `loadlib.c` functions Game Freak changed).
+- **Sweep (Lua 5.3.4, 473 mapped):** clang 7.0.0, 7.0.1 and 7.1.0 with `-g` give
+  493 hits and match all 473 mapped functions (avg similarity 1.0000), against
+  490 and 470 without it. `-gline-tables-only` emits no `DBG_VALUE`s and changes
+  nothing. With `-g`, clang 5.0.x, 6.0.x, 8.0.x and 9.0.1 score the same hits
+  as without it.
+- **The pattern is specific.** In the original's Lua range there are 40 `ldp`
+  whose second destination is also the base register (20 of them inside
+  loops), so pairing into the base register isn't blocked in general. There
+  are exactly 3 adjacent, pairable `ldr` pairs whose second destination is the
+  base: the three `stackinuse` loops. Both games are the same.
+- **PhysX too.** On the PhysX corpus (clang 6.0.1, PhysX flags, revision
+  `5e42a5f`, 127 TUs in that run), adding `-g` raises the hits from 699 to 716
+  and matches all 566 mapped functions (549 without). The PhysX tables above
+  were measured without `-g`. clang 6.0.1 also leaves the `stackinuse` loads
+  unpaired with `-g`.
+
+A `volatile` read of `ci->top` also matched all three (a debug use between the
+loads blocks pairing the same way a volatile access does). Earlier hypotheses
+were a vendor patch or a Game Freak source change. Neither is needed: this is
+a known class of LLVM behaviour, debug info changing codegen. `-g` is in
+`PKMN_CODEGEN_FLAGS`, and `lib/lua/ldo.c` is unmodified upstream source.
+
+Sweeps should pass `-g` (`--variant "O3g=-O3 -g"`) until
+`tools/compiler_sweep.py`'s base flags include it. Existing build directories
+keep their cached flags, so reconfigure (`cmake --preset <game> --fresh`) after
+a toolchain flag change.
 
 ### Beyond Lua
 
@@ -93,35 +158,14 @@ clang 7.0.1.
   defaults to that. Confirm it once the first real game functions are
   decompiled. If a TU won't match, try `-O2` before assuming the source is wrong.
 - **The C++ standard version.** It's `-std=c++17` for now (clang 7 supports it).
-- **A possible vendor patch or source edit in `ldo.c`.** With the final flags,
-  three Lua functions miss, and only because of one load pair. They are
-  `luaD_shrinkstack` (`0x7101550ab0`), `lua_resume` (`0x71015516b0`) and
-  `luaD_pcall` (`0x7101551cd0`), all `M` in `data/functions.csv`. Each inlines
-  `stackinuse()`, whose loop reads `ci->top` and `ci->previous`:
-
-  ```
-  original (both games)        clang 7.0.1
-  ldr  x10, [x9, #8]           ldp  x10, x9, [x9, #8]
-  ldr  x9, [x9, #0x10]         cmp  x8, x10
-  cmp  x8, x10                 csel x8, x10, x8, lo
-  csel x8, x10, x8, lo
-  ```
-
-  This isn't a blanket rule of Nintendo's compiler. The same form, with the
-  second destination being the base register, appears 40 times in the
-  original's Lua code. `lua_pushvalue`, which matches, has `ldp x10, x9, [x9]`.
-  Hypotheses tested on `ldo.c`:
-  - Every upstream clang from 5.0.2 to 9.0.1 (including 7.0.0 and 7.1.0)
-    emits the `ldp`.
-  - `-mllvm -aarch64-enable-ldst-opt=false` fixes `luaD_shrinkstack` but breaks
-    the other two, which need pairing elsewhere.
-  - Reading `ci->top` through a `volatile` lvalue in `stackinuse` makes all
-    three match exactly in both games. The original therefore behaves as if
-    that load can't be paired (volatile and atomic loads never are). Whether
-    that comes from a compiler patch or from a source change in Game Freak's
-    Lua is open. The trick isn't used in `lib/lua` (see rule 7 in AGENTS.md).
-
-  Note any similar load/store-pairing differences you find.
+- **`-g` beyond Lua.** It's in the global flags because of the evidence in
+  "Debug info". Game Freak's C++ hasn't been tested with it yet (the four C++
+  functions checked so far match either way). If a game function misses only
+  in load/store pairing or in scheduling around a variable's last use, check
+  that the build really has `-g` before changing the source. The game code has
+  60 adjacent pairable `ldr` pairs whose second destination is the base,
+  against 1,334 such `ldp`. Debug info may explain some of those 60, but they
+  haven't been checked one by one.
 - **The remaining Lua misses** are in libraries Game Freak changed or removed:
   `loslib`, `liolib` (`luaopen_io` creates 9 fields, not 11), `loadlib`,
   `lbitlib`, `lutf8lib`, and the `lauxlib` allocator and panic handler.
