@@ -61,3 +61,49 @@ def test_find_sources_recursive_and_dedup(tmp_path):
 
 def test_find_sources_no_match(tmp_path):
     assert find_sources([str(tmp_path / "*.c")]) == []
+
+
+def test_variant_flags_come_after_common_flags(tmp_path):
+    # clang takes the last of conflicting options, so the variant must come last
+    # to override both the base flags and the common flags after `--`.
+    cmd = compiler_sweep.compile_command(
+        tmp_path / "clang", ["-O2", "-std=gnu++11", "-fno-strict-aliasing"],
+        ["-O3", "-std=gnu++14", "-DPX_SUPPORT_PVD=0"], tmp_path / "a.cpp", tmp_path / "a.o")
+    base = compiler_sweep.BASE_FLAGS
+    assert cmd[1:1 + len(base)] == base
+    rest = cmd[1 + len(base):]
+    assert rest[:6] == ["-O3", "-std=gnu++14", "-DPX_SUPPORT_PVD=0", "-O2", "-std=gnu++11", "-fno-strict-aliasing"]
+    assert rest[6:] == ["-x", "c++", "-c", str(tmp_path / "a.cpp"), "-o", str(tmp_path / "a.o")]
+    # the last occurrence of each conflicting option is the variant's
+    assert [a for a in cmd if a.startswith("-O")][-1] == "-O2"
+    assert [a for a in cmd if a.endswith("strict-aliasing")][-1] == "-fno-strict-aliasing"
+
+
+def test_compile_all_passes_variant_last(tmp_path, monkeypatch):
+    seen = []
+
+    class Done:
+        returncode, stderr = 1, "error: stub"
+
+    def fake_run(cmd, **_kw):
+        seen.append(cmd)
+        return Done()
+
+    monkeypatch.setattr(compiler_sweep.subprocess, "run", fake_run)
+    src = tmp_path / "l.c"
+    funcs_, errors = compiler_sweep.compile_all(tmp_path / "clang", ["-fno-unwind-tables"], ["-DX=1"],
+                                                [src], tmp_path)
+    assert funcs_ == {} and len(errors) == 1
+    (cmd,) = seen
+    assert "-x" not in cmd  # C source
+    assert cmd.index("-DX=1") < cmd.index("-fno-unwind-tables") < cmd.index("-c")
+    assert cmd.index("-funwind-tables") < cmd.index("-fno-unwind-tables")
+
+
+
+def test_debug_info_is_a_base_flag_a_variant_can_drop(tmp_path):
+    # The originals were built with -g (docs/compiler.md, "Debug info"), and it
+    # changes LLVM's codegen. A -g0 variant must still be able to switch it off.
+    assert "-g" in compiler_sweep.BASE_FLAGS
+    cmd = compiler_sweep.compile_command(tmp_path / "clang", ["-g0"], [], tmp_path / "l.c", tmp_path / "l.o")
+    assert cmd.index("-g") < cmd.index("-g0")

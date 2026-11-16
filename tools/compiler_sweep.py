@@ -10,6 +10,12 @@ original executable (see docs/compiler.md).
         --range 0x7101540000-0x7101570000 \\
         -- -isystem toolchain/candidates/sysroot/include -DLUA_COMPAT_5_2 -DLUA_USE_POSIX
 
+Every compile gets the base flags (the identified NX codegen flags), then the
+common flags after `--`, then the variant's flags, in that order. With clang
+the last of conflicting options wins, so a variant always overrides both: it
+can switch a base or common flag off (-fno-unwind-tables, -U__ELF__, -O2, ...)
+to measure what that flag contributes.
+
 No names or addresses are needed. Every instruction is compared with its
 address-dependent fields masked out (B/BL, ADRP, the lo12 half, ADR, LDR
 literal), on both sides, using tools/nx/refs.py. An exact hit is a compiled
@@ -50,11 +56,13 @@ from elftools.elf.elffile import ELFFile  # noqa: E402
 from elftools.elf.sections import SymbolTableSection  # noqa: E402
 
 # The identified NX codegen flags (C-safe subset of cmake/toolchain-nx64.cmake),
-# minus the optimisation level. Variants are appended after these, so a variant
-# can switch one off (-fno-unwind-tables, -mimplicit-float, -fstrict-aliasing,
-# -U__ELF__, ...) to measure what it contributes.
+# minus the optimisation level. The common flags and then the variant's flags
+# come after these (see compile_command), so a variant can switch one off
+# (-fno-unwind-tables, -mimplicit-float, -fstrict-aliasing, -U__ELF__, -g0, ...)
+# to measure what it contributes. -g matters: debug instructions change LLVM's
+# load/store pairing and scheduling (docs/compiler.md, "Debug info").
 BASE_FLAGS = [
-    "--target=aarch64-none-elf", "-mcpu=cortex-a57+fp+simd+crypto+crc", "-D__ELF__",
+    "--target=aarch64-none-elf", "-mcpu=cortex-a57+fp+simd+crypto+crc", "-g", "-D__ELF__",
     "-funwind-tables", "-mno-implicit-float", "-fPIC", "-fno-omit-frame-pointer",
     "-fno-strict-aliasing", "-ffunction-sections", "-fdata-sections", "-fno-common",
     "-fno-short-enums", "-nostdlibinc",
@@ -94,14 +102,20 @@ def compiler_label(root: Path) -> str:
     return root.name
 
 
-def compile_all(cc: Path, flags: list[str], srcs: list[Path], outdir: Path) -> tuple[dict[str, bytes], list[str]]:
+def compile_command(cc: Path, variant_flags: list[str], common: list[str], src: Path, obj: Path) -> list[str]:
+    """Base flags, then the common flags, then the variant's: the variant wins any conflict."""
+    lang = ["-x", "c++"] if src.suffix in (".cpp", ".cc", ".cxx") else []
+    return [str(cc), *BASE_FLAGS, *common, *variant_flags, *lang, "-c", str(src), "-o", str(obj)]
+
+
+def compile_all(cc: Path, variant_flags: list[str], common: list[str], srcs: list[Path],
+                outdir: Path) -> tuple[dict[str, bytes], list[str]]:
     funcs: dict[str, bytes] = {}
     errors: list[str] = []
 
     def one(src: Path):
-        lang = ["-x", "c++"] if src.suffix in (".cpp", ".cc", ".cxx") else []
         obj = outdir / (hashlib.md5(str(src).encode()).hexdigest()[:8] + "_" + src.stem + ".o")
-        cmd = [str(cc), *BASE_FLAGS, *flags, *lang, "-c", str(src), "-o", str(obj)]
+        cmd = compile_command(cc, variant_flags, common, src, obj)
         p = subprocess.run(cmd, capture_output=True, text=True)
         if p.returncode != 0:
             return src, None, p.stderr.strip().splitlines()[:3]
@@ -178,14 +192,15 @@ def write_map(path: Path, maps: dict[str, dict[str, int]]) -> int:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--compiler", nargs="+", required=True, help="compiler root dirs (containing bin/clang)")
-    ap.add_argument("--variant", action="append", default=[], help='NAME="flags" (repeatable)')
+    ap.add_argument("--variant", action="append", default=[],
+                    help='NAME="flags" (repeatable); they come after the common flags, so they win')
     ap.add_argument("--src", action="append", required=True,
                     help="source glob, quoted; ** recurses (repeatable)")
     ap.add_argument("--range", help="original address range to search, e.g. 0x7101540000-0x7101570000 (default: all)")
     ap.add_argument("--game", default="sword")
     ap.add_argument("--show", type=int, default=0, help="list up to N mapped functions per config that miss")
     ap.add_argument("--map-out", type=Path, help="write the consensus name -> address map for both games (CSV)")
-    ap.add_argument("common", nargs=argparse.REMAINDER, help="-- extra flags for every compile")
+    ap.add_argument("common", nargs=argparse.REMAINDER, help="-- flags for every compile (before each variant's flags)")
     args = ap.parse_args()
     common = [a for a in args.common if a != "--"]
 
@@ -215,7 +230,7 @@ def main() -> int:
         for vname, vflags in variants:
             out = tmp / f"{root.name}_{vname}"
             out.mkdir()
-            funcs, errors = compile_all(cc, shlex.split(vflags) + common, srcs, out)
+            funcs, errors = compile_all(cc, shlex.split(vflags), common, srcs, out)
             hits = find_hits(funcs, index)
             results[(root.name, vname)] = (funcs, hits, errors)
 
