@@ -22,6 +22,10 @@ both executables and install the toolchain. Then install the dev tools:
 `tools/check.py` drives CMake with the Ninja generator, so `ninja` must be on
 your `PATH`.
 
+A library whose `pkmn_library_settings()` entry has a `COMPILER_VERSION`
+(PhysX: clang 6.0.1) also needs that compiler, which
+`python tools/get_llvm.py --compiler 6.0.1` installs into `toolchain/clang-6.0.1/`.
+
 ## 1. Claim something
 
 The **unit of tracking** is a function (`data/functions.csv`), but **claim a

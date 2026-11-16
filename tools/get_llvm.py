@@ -1,23 +1,36 @@
 #!/usr/bin/env python3
 """Download the toolchain into toolchain/ (gitignored).
 
-    python tools/get_llvm.py              # both of the below
-    python tools/get_llvm.py --compiler   # toolchain/clang:   clang 7.0.1, the matching compiler
-    python tools/get_llvm.py --tools      # toolchain/llvm-19: llvm-objdump, llvm-cxxfilt, clang-format, ld.lld
+    python tools/get_llvm.py                    # --compiler and --tools
+    python tools/get_llvm.py --compiler         # toolchain/clang:       clang 7.0.1, the matching compiler
+    python tools/get_llvm.py --compiler 6.0.1   # toolchain/clang-6.0.1: clang 6.0.1, for libraries built with it
+    python tools/get_llvm.py --tools            # toolchain/llvm-19:     llvm-objdump, llvm-cxxfilt, clang-format, ld.lld
 
 The game was built with a clang 7.0-based compiler (NintendoSDK 7.3.2); see
 docs/compiler.md for how that was established. cmake/toolchain-nx64.cmake
 picks up toolchain/clang automatically. The newer LLVM utilities are only
 used by the tooling (disassembly, demangling, formatting), never to compile.
 
-On Windows, LLVM 7 ships only as an NSIS installer, so 7-Zip (7z/7za/7zz or
-NanaZip) must be on PATH to unpack it. On Linux it needs libtinfo.so.5
-(`libtinfo5` on Debian and Ubuntu up to 22.04). Nothing is installed system-wide.
+Some prebuilt libraries were compiled with a different clang (PhysX 3.4:
+clang 6.0.1). Their CMake settings name it with
+`pkmn_library_settings(... COMPILER_VERSION <version>)`, and building them
+needs `--compiler <version>`, which installs that clang into
+toolchain/clang-<version>/ with the same layout as toolchain/clang (bin/clang,
+bin/clang++ and clang's own headers). Each version has its own directory, so
+installing one never touches another.
+
+On Windows, LLVM 6 and 7 ship only as NSIS installers, so 7-Zip (7z/7za/7zz or
+NanaZip) must be on PATH to unpack them. On Linux, clang 7.0.1 needs
+libtinfo.so.5 (`libtinfo5` on Debian and Ubuntu up to 22.04); the 6.0.1 build
+doesn't link it and runs on Ubuntu 24.04 as is. LLVM published no macOS build
+of 6.0.1, only 6.0.0, which compiles PhysX differently, so 6.0.1 is not offered
+there. Nothing is installed system-wide.
 """
 from __future__ import annotations
 
 import argparse
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -27,18 +40,29 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 TOOLCHAIN = ROOT / "toolchain"
-EXE = ".exe" if platform.system() == "Windows" else ""
 
-COMPILER_VERSION = "7.0.1"
-# releases.llvm.org hosts the LLVM 7 binaries (GitHub has none for 7.0.x).
-# macOS only has a 7.0.0 build; 7.0.0, 7.0.1 and 7.1.0 generate identical
-# code on the identification corpus.
-COMPILER_ASSETS = {
-    ("Windows", "AMD64"): "https://releases.llvm.org/7.0.1/LLVM-7.0.1-win64.exe",
-    ("Linux", "x86_64"): "https://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-18.04.tar.xz",
-    ("Linux", "aarch64"): "https://releases.llvm.org/7.0.1/clang+llvm-7.0.1-aarch64-linux-gnu.tar.xz",
-    ("Darwin", "x86_64"): "https://releases.llvm.org/7.0.0/clang+llvm-7.0.0-x86_64-apple-darwin.tar.xz",
-    ("Darwin", "arm64"): "https://releases.llvm.org/7.0.0/clang+llvm-7.0.0-x86_64-apple-darwin.tar.xz",  # Rosetta
+DEFAULT_COMPILER = "7.0.1"
+_R = "https://releases.llvm.org"
+# clang version -> host -> (version of the build, URL). releases.llvm.org hosts
+# the LLVM 6 and 7 binaries (GitHub has none for them). The installed clang must
+# report the build version. That's the requested version, except for 7.0.1 on
+# macOS, which only has a 7.0.0 build: 7.0.0, 7.0.1 and 7.1.0 generate
+# identical code on the identification corpus.
+COMPILERS: dict[str, dict[tuple[str, str], tuple[str, str]]] = {
+    "7.0.1": {
+        ("Windows", "AMD64"): ("7.0.1", f"{_R}/7.0.1/LLVM-7.0.1-win64.exe"),
+        ("Linux", "x86_64"): ("7.0.1", f"{_R}/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-18.04.tar.xz"),
+        ("Linux", "aarch64"): ("7.0.1", f"{_R}/7.0.1/clang+llvm-7.0.1-aarch64-linux-gnu.tar.xz"),
+        ("Darwin", "x86_64"): ("7.0.0", f"{_R}/7.0.0/clang+llvm-7.0.0-x86_64-apple-darwin.tar.xz"),
+        ("Darwin", "arm64"): ("7.0.0", f"{_R}/7.0.0/clang+llvm-7.0.0-x86_64-apple-darwin.tar.xz"),  # Rosetta
+    },
+    # No macOS build of 6.0.1 exists. 6.0.0 has one, but it differs from 6.0.1
+    # in two PhysX functions (Gu::RTree::traverseRay<0>/<1>), so it's no stand-in.
+    "6.0.1": {
+        ("Windows", "AMD64"): ("6.0.1", f"{_R}/6.0.1/LLVM-6.0.1-win64.exe"),
+        ("Linux", "x86_64"): ("6.0.1", f"{_R}/6.0.1/clang+llvm-6.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz"),
+        ("Linux", "aarch64"): ("6.0.1", f"{_R}/6.0.1/clang+llvm-6.0.1-aarch64-linux-gnu.tar.xz"),
+    },
 }
 
 TOOLS_VERSION = "19.1.7"
@@ -51,9 +75,32 @@ TOOLS_ASSETS = {
 }
 TOOLS_WANT = {"ld.lld", "llvm-objdump", "llvm-cxxfilt", "llvm-readelf", "clang-format"}
 
+# The real binary in a Linux/macOS tarball: bin/clang-7 (LLVM 7), bin/clang-6.0 (LLVM 6).
+VERSIONED_CLANG = re.compile(r"clang-\d+(\.\d+)?")
+
 
 def host() -> tuple[str, str]:
     return platform.system(), platform.machine()
+
+
+def exe_suffix(on: tuple[str, str]) -> str:
+    return ".exe" if on[0] == "Windows" else ""
+
+
+EXE = exe_suffix(host())
+
+
+def compiler_dir(version: str, toolchain: Path = TOOLCHAIN) -> Path:
+    """toolchain/clang for the matching compiler, toolchain/clang-<version> for any other."""
+    return toolchain / ("clang" if version == DEFAULT_COMPILER else f"clang-{version}")
+
+
+def compiler_arg(value: str) -> str:
+    """argparse type for --compiler: one of the versions in COMPILERS."""
+    if value not in COMPILERS:
+        raise argparse.ArgumentTypeError(
+            f"unsupported clang version {value!r} (supported: {', '.join(sorted(COMPILERS))})")
+    return value
 
 
 def download(url: str, dest: Path) -> Path:
@@ -78,26 +125,32 @@ def extract_tar(tarball: Path, out: Path, keep) -> None:
 
 
 def keep_compiler(rel: str) -> bool:
-    """Members of a Linux/macOS LLVM 7 tarball that the compiler needs."""
-    return rel in ("bin/clang", "bin/clang-7") or (rel.startswith("lib/clang/") and "/include/" in rel)
+    """Members of a Linux/macOS LLVM tarball that the compiler needs."""
+    if rel.startswith("bin/"):
+        name = rel[4:]
+        return name == "clang" or VERSIONED_CLANG.fullmatch(name) is not None
+    return rel.startswith("lib/clang/") and "/include/" in rel
 
 
 def finish_layout(out: Path, exe: str = EXE) -> Path:
     """Make sure out/bin has clang and clang++, and return the clang path.
 
-    In the LLVM 7 tarballs bin/clang-7 is the binary and bin/clang is a
-    symlink to it (a plain clang-7 is renamed). clang++ is only a name: clang
-    picks the C++ driver from argv[0]. It becomes a symlink to clang, saving
-    a second ~80 MB binary, except on Windows (exe=".exe"), where it is a
-    copy as before, and wherever a symlink can't be created.
+    In the LLVM tarballs bin/clang-7 (bin/clang-6.0 in LLVM 6) is the binary
+    and bin/clang is a symlink to it (a plain versioned binary is renamed).
+    clang++ is only a name: clang picks the C++ driver from argv[0]. It
+    becomes a symlink to clang, saving a second ~80 MB binary, except on
+    Windows (exe=".exe"), where it is a copy as before, and wherever a symlink
+    can't be created.
     """
     bindir = out / "bin"
     clang = bindir / f"clang{exe}"
-    clang7 = bindir / f"clang-7{exe}"
-    if not clang.exists() and clang7.exists():
-        if clang.is_symlink():  # dangling
-            clang.unlink()
-        clang7.rename(clang)
+    if not clang.exists():
+        versioned = sorted(p for p in bindir.iterdir()
+                           if p.name.endswith(exe) and VERSIONED_CLANG.fullmatch(p.name[:len(p.name) - len(exe)]))
+        if versioned:
+            if clang.is_symlink():  # dangling
+                clang.unlink()
+            versioned[0].rename(clang)
     clangxx = bindir / f"clang++{exe}"
     if not clangxx.exists():
         if clangxx.is_symlink():
@@ -123,28 +176,52 @@ def run_failure_hint(stderr: str) -> str | None:
     return None
 
 
-def install_compiler() -> int:
-    url = COMPILER_ASSETS.get(host())
-    if url is None:
-        print(f"no prebuilt clang {COMPILER_VERSION} configured for {host()}; "
-              f"install it yourself and set PKMN_CLANG_ROOT")
+def reported_version(version_output: str) -> str | None:
+    """The version on the first line of `clang --version` ("clang version 6.0.1 (tags/...)")."""
+    first = version_output.splitlines()[0] if version_output else ""
+    m = re.search(r"\bclang version (\d+\.\d+\.\d+)\b", first)
+    return m.group(1) if m else None
+
+
+def check_version(version_output: str, want: str) -> str | None:
+    """None if `clang --version` printed version `want`, else what's wrong."""
+    if reported_version(version_output) == want:
+        return None
+    first = version_output.splitlines()[0] if version_output else ""
+    return f"is not clang {want}: {first!r}"
+
+
+def run_version(clang: Path) -> subprocess.CompletedProcess:
+    return subprocess.run([str(clang), "--version"], capture_output=True, text=True)
+
+
+def install_compiler(version: str = DEFAULT_COMPILER, toolchain: Path = TOOLCHAIN,
+                     on: tuple[str, str] | None = None) -> int:
+    on = on or host()
+    out = compiler_dir(version, toolchain)
+    asset = COMPILERS[version].get(on)
+    if asset is None:
+        print(f"no prebuilt clang {version} configured for {on}; install it yourself into {out} "
+              "(bin/clang, bin/clang++, lib/clang/*/include)"
+              + (" or set PKMN_CLANG_ROOT" if version == DEFAULT_COMPILER else ""))
         return 1
-    out = TOOLCHAIN / "clang"
-    archive = download(url, TOOLCHAIN / "download" / url.rsplit("/", 1)[1])
+    build_version, url = asset
+    exe = exe_suffix(on)
+    archive = download(url, toolchain / "download" / url.rsplit("/", 1)[1])
     print(f"extracting into {out}")
     if url.endswith(".exe"):
         sevenzip = next((shutil.which(n) for n in ("7z", "7za", "7zz", "NanaZip") if shutil.which(n)), None)
         if sevenzip is None:
-            print("7-Zip is required to unpack the LLVM 7 Windows installer (e.g. `winget install 7zip.7zip`)")
+            print(f"7-Zip is required to unpack the LLVM {version} Windows installer (e.g. `winget install 7zip.7zip`)")
             return 1
         out.mkdir(parents=True, exist_ok=True)
-        subprocess.run([sevenzip, "x", "-y", f"-o{out}", str(archive), f"bin/clang{EXE}", "lib/clang/*/include"],
+        subprocess.run([sevenzip, "x", "-y", f"-o{out}", str(archive), f"bin/clang{exe}", "lib/clang/*/include"],
                        check=True, stdout=subprocess.DEVNULL)
     else:
         extract_tar(archive, out, keep_compiler)
-    clang = finish_layout(out)
+    clang = finish_layout(out, exe)
     try:
-        r = subprocess.run([str(clang), "--version"], capture_output=True, text=True)
+        r = run_version(clang)
     except OSError as e:
         print(f"installed, but {clang} does not run: {e}")
         return 1
@@ -154,12 +231,12 @@ def install_compiler() -> int:
         if hint:
             print(hint)
         return 1
-    ver = r.stdout.splitlines()[0] if r.stdout else ""
-    if "version 7.0." not in ver:
-        print(f"installed, but {clang} is not clang 7.0.x: {ver!r}")
+    problem = check_version(r.stdout, build_version)
+    if problem:
+        print(f"installed, but {clang} {problem}")
         return 1
     archive.unlink()
-    print(f"ok: {ver}")
+    print(f"ok: {r.stdout.splitlines()[0]}")
     return 0
 
 
@@ -178,16 +255,24 @@ def install_tools() -> int:
     return 0
 
 
-def main() -> int:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--compiler", action="store_true", help=f"only install clang {COMPILER_VERSION}")
+    ap.add_argument("--compiler", nargs="?", const=DEFAULT_COMPILER, type=compiler_arg, metavar="VERSION",
+                    help=f"only install clang VERSION (default {DEFAULT_COMPILER}; "
+                         f"supported: {', '.join(sorted(COMPILERS))})")
     ap.add_argument("--tools", action="store_true", help=f"only install the LLVM {TOOLS_VERSION} utilities")
-    args = ap.parse_args()
-    both = not (args.compiler or args.tools)
+    args = ap.parse_args(argv)
+    if args.compiler is None and not args.tools:  # neither: both, with the matching compiler
+        args.compiler, args.tools = DEFAULT_COMPILER, True
+    return args
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
     rc = 0
-    if args.compiler or both:
-        rc |= install_compiler()
-    if args.tools or both:
+    if args.compiler:
+        rc |= install_compiler(args.compiler)
+    if args.tools:
         rc |= install_tools()
     return rc
 

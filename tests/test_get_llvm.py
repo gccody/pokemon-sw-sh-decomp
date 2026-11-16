@@ -1,9 +1,10 @@
 """tools/get_llvm.py without the network: synthetic archives laid out like the
-LLVM 7 release tarballs."""
+LLVM 6/7 release tarballs."""
 from __future__ import annotations
 
 import io
 import os
+import subprocess
 import tarfile
 
 import pytest
@@ -22,17 +23,17 @@ def can_symlink(tmp_path) -> bool:
     return True
 
 
-def make_tarball(path, files: dict[str, bytes], links: dict[str, str]) -> None:
+def make_tarball(path, files: dict[str, bytes], links: dict[str, str], top: str = TOP) -> None:
     """Write a .tar.xz with everything under TOP/. Symlinks come first, before
     their targets, as the stream extractor can see them in any order."""
     with tarfile.open(path, "w:xz") as t:
         for name, target in links.items():
-            info = tarfile.TarInfo(f"{TOP}/{name}")
+            info = tarfile.TarInfo(f"{top}/{name}")
             info.type = tarfile.SYMTYPE
             info.linkname = target
             t.addfile(info)
         for name, data in files.items():
-            info = tarfile.TarInfo(f"{TOP}/{name}")
+            info = tarfile.TarInfo(f"{top}/{name}")
             info.size = len(data)
             info.mode = 0o755
             t.addfile(info, io.BytesIO(data))
@@ -41,7 +42,10 @@ def make_tarball(path, files: dict[str, bytes], links: dict[str, str]) -> None:
 @pytest.mark.parametrize("rel, keep", [
     ("bin/clang", True),
     ("bin/clang-7", True),
+    ("bin/clang-6.0", True),
     ("bin/clang++", False),
+    ("bin/clang-cl", False),
+    ("bin/clang-format", False),
     ("bin/llvm-ar", False),
     ("lib/clang/7.0.1/include/stddef.h", True),
     ("lib/clang/7.0.1/include/sanitizer/asan_interface.h", True),
@@ -123,3 +127,135 @@ def test_run_failure_hint():
            "cannot open shared object file: No such file or directory")
     assert "libtinfo5" in get_llvm.run_failure_hint(err)
     assert get_llvm.run_failure_hint("Segmentation fault") is None
+
+
+def test_plain_clang60_is_renamed(tmp_path):
+    """LLVM 6 names the binary clang-6.0 (major.minor), LLVM 7 clang-7."""
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    (bindir / "clang-6.0").write_bytes(b"CLANG6")
+    clang = get_llvm.finish_layout(tmp_path, exe="")
+    assert clang.read_bytes() == b"CLANG6"
+    assert sorted(p.name for p in bindir.iterdir()) == ["clang", "clang++"]
+
+
+# --- versions, arguments, output directories ---
+
+def test_parse_args_defaults():
+    a = get_llvm.parse_args([])
+    assert (a.compiler, a.tools) == (get_llvm.DEFAULT_COMPILER, True)
+    a = get_llvm.parse_args(["--compiler"])
+    assert (a.compiler, a.tools) == ("7.0.1", False)
+    a = get_llvm.parse_args(["--tools"])
+    assert (a.compiler, a.tools) == (None, True)
+    a = get_llvm.parse_args(["--compiler", "--tools"])
+    assert (a.compiler, a.tools) == ("7.0.1", True)
+
+
+@pytest.mark.parametrize("argv", [["--compiler", "6.0.1"], ["--compiler=6.0.1"]])
+def test_parse_args_version(argv):
+    a = get_llvm.parse_args(argv)
+    assert (a.compiler, a.tools) == ("6.0.1", False)
+
+
+@pytest.mark.parametrize("bad", ["6.0.0", "7", "latest"])
+def test_parse_args_unknown_version(bad, capsys):
+    with pytest.raises(SystemExit) as e:
+        get_llvm.parse_args(["--compiler", bad])
+    assert e.value.code == 2
+    err = capsys.readouterr().err
+    assert f"unsupported clang version '{bad}'" in err
+    assert "supported: 6.0.1, 7.0.1" in err
+
+
+def test_compiler_dir(tmp_path):
+    assert get_llvm.compiler_dir("7.0.1", tmp_path) == tmp_path / "clang"
+    assert get_llvm.compiler_dir("6.0.1", tmp_path) == tmp_path / "clang-6.0.1"
+    assert get_llvm.compiler_dir("6.0.1") == get_llvm.TOOLCHAIN / "clang-6.0.1"
+
+
+def test_compiler_table():
+    assert get_llvm.DEFAULT_COMPILER in get_llvm.COMPILERS
+    for version, assets in get_llvm.COMPILERS.items():
+        for on, (build, url) in assets.items():
+            assert f"/{build}/" in url and build in url.rsplit("/", 1)[1], (version, on)
+            # Only the documented macOS stand-in may differ from the requested version.
+            assert build == version or (version, build, on[0]) == ("7.0.1", "7.0.0", "Darwin")
+    # LLVM never published a macOS 6.0.1 build.
+    assert not any(on[0] == "Darwin" for on in get_llvm.COMPILERS["6.0.1"])
+
+
+@pytest.mark.parametrize("out, want, ok", [
+    ("clang version 7.0.1 (tags/RELEASE_701/final)\nTarget: x86_64-pc-windows-msvc\n", "7.0.1", True),
+    ("clang version 6.0.1 (tags/RELEASE_601/final)\nTarget: x86_64-unknown-linux-gnu\n", "6.0.1", True),
+    ("clang version 7.0.0 (tags/RELEASE_700/final)\n", "7.0.0", True),
+    ("clang version 7.0.1 (tags/RELEASE_701/final)\n", "6.0.1", False),
+    ("clang version 6.0.10\n", "6.0.1", False),
+    ("clang version 16.0.1\n", "6.0.1", False),
+    ("Target: x86_64\nclang version 6.0.1\n", "6.0.1", False),  # version must be on the first line
+    ("", "6.0.1", False),
+])
+def test_check_version(out, want, ok):
+    problem = get_llvm.check_version(out, want)
+    assert (problem is None) is ok
+    if not ok:
+        assert f"is not clang {want}" in problem
+
+
+def fake_install(tmp_path, monkeypatch, version, reported, on=("Linux", "x86_64")):
+    """Run install_compiler against a synthetic tarball and a fake `clang --version`."""
+    tarball = tmp_path / "dl.tar.xz"
+    major = version.split(".")[0]
+    binary = "clang-6.0" if major == "6" else f"clang-{major}"
+    make_tarball(tarball, files={f"bin/{binary}": b"CLANG", f"lib/clang/{version}/include/stddef.h": b"/* */",
+                                 "bin/llvm-ar": b"AR"},
+                 links={}, top=f"clang+llvm-{version}-x86_64-linux-gnu")
+    monkeypatch.setattr(get_llvm, "download", lambda url, dest: tarball)
+    seen = []
+
+    def run_version(clang):
+        seen.append(clang)
+        return subprocess.CompletedProcess([str(clang), "--version"], 0, f"clang version {reported} (tags)\n", "")
+
+    monkeypatch.setattr(get_llvm, "run_version", run_version)
+    toolchain = tmp_path / "toolchain"
+    rc = get_llvm.install_compiler(version, toolchain, on)
+    return rc, toolchain, seen
+
+
+def test_install_second_compiler_goes_to_its_own_dir(tmp_path, monkeypatch, capsys):
+    rc, toolchain, seen = fake_install(tmp_path, monkeypatch, "6.0.1", "6.0.1")
+    assert rc == 0
+    out = toolchain / "clang-6.0.1"
+    assert seen == [out / "bin" / "clang"]
+    assert (out / "bin" / "clang").read_bytes() == b"CLANG"
+    assert (out / "bin" / "clang++").read_bytes() == b"CLANG"
+    assert (out / "lib" / "clang" / "6.0.1" / "include" / "stddef.h").exists()
+    assert not (toolchain / "clang").exists()  # the matching compiler's dir is untouched
+    assert "ok: clang version 6.0.1" in capsys.readouterr().out
+
+
+def test_install_default_compiler_dir(tmp_path, monkeypatch):
+    rc, toolchain, _ = fake_install(tmp_path, monkeypatch, "7.0.1", "7.0.1")
+    assert rc == 0
+    assert (toolchain / "clang" / "bin" / "clang").exists()
+    assert not (toolchain / "clang-7.0.1").exists()
+
+
+def test_install_rejects_wrong_version(tmp_path, monkeypatch, capsys):
+    rc, _, _ = fake_install(tmp_path, monkeypatch, "6.0.1", "7.0.1")
+    assert rc == 1
+    assert "is not clang 6.0.1" in capsys.readouterr().out
+
+
+def test_install_macos_7_accepts_its_700_build(tmp_path, monkeypatch):
+    rc, _, _ = fake_install(tmp_path, monkeypatch, "7.0.1", "7.0.0", on=("Darwin", "arm64"))
+    assert rc == 0
+
+
+def test_install_unsupported_host(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(get_llvm, "download", lambda url, dest: pytest.fail("must not download"))
+    assert get_llvm.install_compiler("6.0.1", tmp_path, ("Darwin", "arm64")) == 1
+    out = capsys.readouterr().out
+    assert "no prebuilt clang 6.0.1" in out and "clang-6.0.1" in out
+    assert not (tmp_path / "clang-6.0.1").exists()
