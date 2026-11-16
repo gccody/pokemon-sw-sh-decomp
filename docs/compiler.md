@@ -127,9 +127,4 @@ The sweep tool starts from the final flag set. A variant's flags come after it,
 so they can switch one off (`-fno-unwind-tables`, `-mimplicit-float`, `-U__ELF__`, ...).
 
 Linux note: the LLVM 7 Linux builds need `libtinfo.so.5` (`libtinfo5` /
-`libncurses5` on Debian and Ubuntu). Ubuntu 24.04 no longer ships `libtinfo5`,
-and a `libtinfo.so.5` -> `libtinfo.so.6` symlink does not work: clang fails with
-``version `NCURSES_TINFO_5.0.19991023' not found`` (tested on 24.04), because
-`libtinfo.so.6` only defines `NCURSES6_TINFO_*` symbol versions. Use Ubuntu
-22.04 or an `ubuntu:22.04` container, as CI does. (The LLVM 6.0.1 Linux build,
-used for PhysX, doesn't link libtinfo and runs on 24.04.)
+`libncurses5` on Debian and Ubuntu).
