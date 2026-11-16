@@ -1823,6 +1823,9 @@ _ZZN5physx2Sn8MetaData4loadERNS_13PxInputStreamENS0_12MetaDataTypeEEN5Local14com
 _ZZN5physx2Sn8MetaData4loadERNS_13PxInputStreamENS0_12MetaDataTypeEEN5Local14compareEntriesEPKvS7_@SnConvX_MetaData,"PhysX: not in the executable (inlined into every caller, or unreferenced and dropped by the linker)"
 _ZZNK5physx2Gu8AABBTree4walkEPFbPKNS0_12AABBTreeNodeEjPvES5_EN5Local5_WalkES4_RjS9_S7_S5_@GuBV4Build,"PhysX: not in the executable (inlined into every caller, or unreferenced and dropped by the linker)"
 _ZZNK5physx2Sq25IncrementalAABBPrunerCore9visualizeERNS_2Cm12RenderOutputEjEN5Local5_DrawEPKNS0_23IncrementalAABBTreeNodeES8_S4_@SqIncrementalAABBPrunerCore,"PhysX: not in the executable (inlined into every caller, or unreferenced and dropped by the linker)"
+_tr_tally,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+adler32_combine,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+adler32_combine64,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
 b_and@lbitlib,no function of lbitlib.c (bit32) is in the executable
 b_arshift@lbitlib,no function of lbitlib.c (bit32) is in the executable
 b_extract@lbitlib,no function of lbitlib.c (bit32) is in the executable
@@ -1835,6 +1838,28 @@ b_rrot@lbitlib,no function of lbitlib.c (bit32) is in the executable
 b_rshift@lbitlib,no function of lbitlib.c (bit32) is in the executable
 b_test@lbitlib,no function of lbitlib.c (bit32) is in the executable
 b_xor@lbitlib,no function of lbitlib.c (bit32) is in the executable
+compress,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+compressBound,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+crc32_combine,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+crc32_combine64,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+crc32_combine_@crc32,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+deflateCopy,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+deflateParams,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+deflatePrime,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+deflateSetDictionary,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+deflateSetHeader,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+deflateTune,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+get_crc_table,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+inflateCopy,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+inflateGetHeader,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+inflateMark,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+inflatePrime,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+inflateReset,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+inflateReset2,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+inflateSetDictionary,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+inflateSync,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+inflateSyncPoint,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+inflateUndermine,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
 l_alloc@lauxlib,"not in the executable, like luaL_newstate"
 luaC_runtilstate,"not in the executable: inlined into all its callers (all in lgc.c), so the out-of-line copy is dropped"
 luaL_execresult,"not in the executable: its only callers (io_pclose, os_execute) were removed"
@@ -1847,3 +1872,5 @@ lua_setallocf,"not in the executable: unreferenced, so dropped by the linker"
 lua_tocfunction,"not in the executable: unreferenced, so dropped by the linker"
 luaopen_bit32,no function of lbitlib.c (bit32) is in the executable
 panic@lauxlib,"not in the executable, like luaL_newstate"
+zError,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+zlibCompileFlags,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
