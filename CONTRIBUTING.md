@@ -53,8 +53,9 @@ a class, so splitting one class between people causes conflicts.
 - Don't put claims in `functions.csv`. It would turn every claim into a merge
   conflict.
 - Third-party code (`data/areas.csv` rows of kind `library`) comes first or
-  separately. PhysX 3.4.2, Lua and sol2 are open source, so their functions can
-  be matched largely by compiling upstream source.
+  separately. PhysX 3.4.2, Lua, sol2, protobuf 3.0.0, zlib and libcurl are
+  open source, so their functions can be matched largely by compiling
+  upstream source.
 - Each `areas.csv` row has a range per game (`SwordStart`/`SwordEnd`,
   `ShieldStart`/`ShieldEnd`). When you move a boundary, move it in both games
   (the README's "Areas" section says how).
@@ -159,9 +160,9 @@ pkmn_library_settings(lib/lua
   `max_align_t` redefinition.) Paths are relative to the repo root and may
   point into `toolchain/`. They must exist once the directory has sources.
   libc++ 7.0.1's headers are vendored unchanged in `include/libcxx/` (the ones
-  PhysX and sol2 read), the way musl's are in `include/libc/`. It works the
-  same for sources built with the main clang and for `COMPILER_VERSION`
-  libraries.
+  PhysX, sol2 and protobuf read), the way musl's are in `include/libc/`. It
+  works the same for sources built with the main clang and for
+  `COMPILER_VERSION` libraries.
 - Don't set flags anywhere else: no per-file properties, no
   `target_compile_options` for one library.
 - A library built with another clang version gets `COMPILER_VERSION`. PhysX

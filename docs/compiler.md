@@ -1577,6 +1577,239 @@ python tools/check.py   # builds both games with the pkmn_library_settings entry
   enums, `unsigned` constants or array elements can't be seen, so the
   registration passes literals.
 
+## Protocol Buffers 3.0.0
+
+**Result: Google's protobuf 3.0.0 runtime, vendored by gflnet3 and built
+with the game's clang 7.0.x and global flags plus `NDEBUG`, `HAVE_PTHREAD` and
+`GOOGLE_PROTOBUF_NO_RTTI`.** The 32 TUs that have code in `main` are vendored
+unchanged in `lib/protobuf` (BSD-3-Clause, `lib/protobuf/README.md`), and the
+`pkmn_library_settings(lib/protobuf ...)` entry is this section's
+configuration. **`check.py` reports 1,618 of the area's 1,622 functions `OK`
+in both games**, with three linkonce functions the linker kept in gflnet3's
+code. The other four are `M` (see "What doesn't match").
+
+### Where it is
+
+`data/areas.csv`'s `protobuf` row, `0x71006dea00`-`0x7100761f70` in both
+games (docs/game_code.md has the boundaries). `__FILE__` names
+`C:/jenkins/workspace/orion/RomBuild/program/lib/gflnet3/external/include/google/protobuf/<file>.cc`,
+and headers found through `-I` are spelled `external/include\google/protobuf/...`.
+So the TUs sit next to their headers, and `external/include` was the include
+directory. `lib/protobuf` keeps that layout: it is the `INCLUDES` directory,
+and `data/source_paths.csv` maps the literals onto it. Every literal is
+absolute, so the row's `WorkDir` is never used.
+
+The version is pinned by the generated code: every `AddDescriptors` passes
+`3000000` to `VerifyVersion`. It's the full runtime, not `libprotobuf-lite`:
+`descriptor.cc`, `text_format.cc`, `dynamic_message.cc` and the reflection
+code are all there.
+
+The TUs in link order, by their strong functions' addresses (Sword; Shield is
+the same):
+
+| Range | TU |
+|---|---|
+| `0x71006dea00`-`0x71006f8d80` | `descriptor.cc` |
+| `0x71006fd780`-`0x7100700af0` | `stubs/strutil.cc`, `stubs/common.cc`, `stubs/once.cc`, `stubs/status.cc` |
+| `0x7100700b80`-`0x710070dfa0` | `text_format.cc`, `message_lite.cc`, `io/coded_stream.cc`, `io/zero_copy_stream_impl_lite.cc`, `io/zero_copy_stream.cc`, `arena.cc`, `stubs/stringprintf.cc` |
+| `0x710070e020`-`0x7100715270` | `unknown_field_set.cc`, `wire_format.cc`, `wire_format_lite.cc`, `generated_message_util.cc`, `stubs/structurally_valid.cc` |
+| `0x7100715370`-`0x710073ed10` | `dynamic_message.cc`, `message.cc`, `map_field.cc`, `repeated_field.cc`, `reflection_ops.cc`, `extension_set.cc`, `generated_message_reflection.cc`, `extension_set_heavy.cc` |
+| `0x7100740780`-`0x7100742df0` | `io/tokenizer.cc`, `io/strtod.cc`, `any.cc` |
+| `0x7100742ef0`-`0x7100761c20` | `descriptor.pb.cc`, `arenastring.cc`, `descriptor_database.cc`, `stubs/substitute.cc` |
+
+The rest of upstream's `libprotobuf` defines nothing in `main`: `compiler/`, `util/`, the well-known types' `*.pb.cc` other than
+`descriptor.pb.cc`, `io/printer.cc`, `io/gzip_stream.cc`,
+`io/zero_copy_stream_impl.cc`, `service.cc`, `stubs/bytestream.cc`,
+`stubs/int128.cc`, `stubs/stringpiece.cc`, `stubs/time.cc`, ... In a sweep of
+all 73 of upstream's TUs (below), none of their strong functions hits, and
+every original of the area is accounted for by the 32.
+`arena.cc` and `stubs/status.cc` had no strong hit either, but the
+attribution places their functions (the arena ones differ only in TLS
+access, see "`check.py`").
+
+### Build settings
+
+Upstream's 73 `libprotobuf` and `libprotobuf-lite` TUs (`cmake/*.cmake` of
+the tag, minus the x86 atomics and `type_info_test_helper.cc`) with libc++
+7.0.1 and musl, over the area (1,622 functions, Sword; Shield the same).
+Hits and bytes as in "Method":
+
+| Variant | Compiled | **Hits** | Hit bytes | Mapped | Exact |
+|---|---:|---:|---:|---:|---:|
+| `-std=c++11` | 4,967 | 1,475 | 329,656 | 1,126 | 702 |
+| `-std=gnu++98 -DNDEBUG` | 4,839 | 1,855 | 457,776 | 1,124 | 987 |
+| `-std=c++11 -DNDEBUG` | 4,828 | 2,011 | 602,992 | 1,128 | 1,111 |
+| **`-std=c++14 -DNDEBUG`** | 4,828 | **2,028** | **611,164** | 1,128 | **1,128** |
+
+Each row below changes one thing against `-std=c++14 -DNDEBUG`, clang 7.0.1:
+
+| Variant | **Hits** | Hit bytes | Exact |
+|---|---:|---:|---:|
+| **final** | **2,028** | **611,164** | **1,128** |
+| `-std=c++17`, `-std=gnu++14`, `-g0` | 2,028 | 611,164 | 1,128 |
+| `-fstrict-aliasing` | 1,896 | 512,208 | 1,037 |
+| `-fno-builtin` | 1,447 | 305,208 | 715 |
+| `-O2` | 1,351 | 211,048 | 667 |
+| clang 7.0.0, 7.1.0 | 2,028 | 611,164 | 1,128 |
+| clang 8.0.0 | 1,486 | 248,444 | 720 |
+| clang 6.0.1 | 515 | 37,836 | 196 |
+
+- **The game's compiler and flags.** clang 7.0.0, 7.0.1 and 7.1.0 give the
+  same code, and every mapped function is exact. So the global flags stay, and
+  C++11 to C++17 can't be told apart: the global `-std=c++17` is kept.
+- **`NDEBUG`.** Without it every `GOOGLE_DCHECK` stays in. None of their
+  messages is in rodata, and C++11 without it loses 536 hits. `main` imports
+  `__assert_fail`, so `NDEBUG` can't be global (as for sol2).
+- **`HAVE_PTHREAD`.** `stubs/common.cc`'s `Mutex` needs a threading library.
+  `main` imports `pthread_mutex_init`, `_lock`, `_unlock` and `_destroy`, and
+  has the `"pthread_mutex_lock: "` message, so it's upstream's pthread code.
+- **`GOOGLE_PROTOBUF_NO_RTTI`.** The global `-fno-rtti` needs it:
+  `arena.h`, `casts.h` and `generated_message_reflection.h` use
+  `typeid`/`dynamic_cast` otherwise. Game Freak code has no RTTI anyway
+  (docs/game_code.md).
+- **The thread-local arena cache.** `Arena::thread_cache_` is a real TLS
+  variable (`mrs tpidr_el0`), upstream's default. Neither
+  `GOOGLE_PROTOBUF_NO_THREADLOCAL` nor `PROTOBUF_USE_DLLS` is defined.
+- `_GNU_SOURCE`, `_LIBCPP_HAS_MUSL_LIBC` and `_LIBCPP_HAS_THREAD_API_PTHREAD`
+  make libc++ 7.0.1 compile against musl, as for sol2. The 8 libc++ headers
+  protobuf reads that `include/libcxx` didn't have yet (`__tree`, `cfloat`,
+  `deque`, `iostream`, `map`, `set`, `stack`, `unordered_set`) are added
+  unchanged.
+
+### Names
+
+`sweep_attribute.py` over the build dirs (`--source-prefix lib/protobuf/`,
+the area's range), the same in both games: 1,551 originals pinned to a
+compiled function with the same code, 60 placed by link order and 6 pinned by
+the call graph whose code differs. Five are named by hand:
+
+- `Arena::SlowAlloc` (`0x710070dc50`): `AllocateAligned`'s slow-path tail
+  call, with the compiled function's 372 bytes.
+- `Closure::~Closure` D2 (`0x71006fff50`): in `common.cc`,
+  `FunctionClosure0`'s destructors are aliases of it, and both classes'
+  vtables point there.
+- `MessageLite::SerializeToArray` (`0x710070b2e0`). With `NDEBUG` it and
+  `SerializePartialToArray` compile to the same 160 bytes, and `main` has one
+  copy. The linker doesn't fold identical code (the two `__lower_bound`
+  copies below are both there), so the other one was unreferenced and dropped.
+  Nothing in protobuf calls either. `SerializeToArray` is the API callers
+  normally use, so the row has that name, and `SerializePartialToArray` is in
+  `data/absent_functions.csv`. That is a choice, not evidence.
+- `descriptor_database.cc`'s const and non-const `__tree::__lower_bound` for
+  `map<pair<string, int>, pair<const void*, int>>` (`0x71007617e0`,
+  `0x71007619d0`): the same code, so they go in the TU's section order.
+
+Two protobuf inlines are in gflnet3's code, because a gflnet3 TU emitted them
+first: `InternalMetadataWithArena::mutable_unknown_fields_slow`
+(`0x71006bd410`), which the generated `Merge` functions call 66 times, and the
+`arena_destruct_object<InternalMetadataWithArena::Container>` whose address
+it takes. A sweep over gflnet3's range pins a few more names by unique code
+alone (`Message::GetReflection` at `0x71006bd340`, an 8-byte
+`StringOutputStream::SetString` at `0x71006dd740`). That isn't evidence
+enough, and `SetString` is a strong function of
+`zero_copy_stream_impl_lite.cc`, which would sit in that TU's code. They stay
+unnamed.
+
+Of the other compiled functions, the 753 strong ones that aren't in `main`
+are in `data/absent_functions.csv`. Every original in the area has a name,
+so a strong function of these TUs that isn't one of them was dropped or
+inlined. The 73 weak copies (inline functions, templates) with no original are
+in `data/unidentified_functions.csv`. Some may be among gflnet3's code.
+
+### `check.py`
+
+Two cases needed `check.py` changes:
+
+- **Weak copies that differ between TUs.**
+  `GenericTypeHandler<T>::NewFromPrototype` is emitted by `descriptor.cc`,
+  which inlines `New()` (112 bytes), and by `descriptor.pb.cc`, which
+  tail-calls it (8 bytes). `check.py` required every distinct copy to match,
+  because the linker keeps one by link order. But the executable shows which
+  one: the linker places the kept copy among the code of the TU it took it
+  from, and all nine originals are inside `descriptor.cc`'s code. Now, when
+  the original lies inside exactly one copy's TUs (between their first and
+  last strong functions with a row), only that copy is compared, and a
+  warning names the others (`kept_copy`).
+- **TLS.** clang emits `Arena::thread_cache_`'s accesses as the TLS
+  descriptor sequence (`adrp x0`, `ldr x1, [x0]`, `add x0, x0`, `blr x1`).
+  In an executable, lld relaxes it to local-exec: `movz x0, #hi, lsl #16`,
+  `movk x0, #lo`, two `nop`s. `check.py` now accepts exactly that, and
+  requires every access to one variable to load the same thread-pointer
+  offset (`0x10` here). Which variable is at that offset can't be checked:
+  the NSO has no TLS segment table. `Arena::AddListNode`, `AllocateAligned`
+  and `SlowAlloc` match with it.
+
+`check.py --update` (both games), with everything before:
+
+```
+12815 matching, 87 not matching
+(2628 compiled functions skipped as not in the executable: data/absent_functions.csv)
+(282 compiled functions skipped, their original not identified yet: data/unidentified_functions.csv)
+(1 weak/COMDAT functions skipped: the executable keeps another library's copy, data/foreign_copies.csv)
+(405 compiled aliases of checked functions skipped, e.g. D1 = D2 destructors)
+```
+
+Before protobuf, 11,194 matched. The 87 that don't match are the 83 libcurl
+and sol2 `M` functions as before, and protobuf's four.
+
+### What doesn't match
+
+All four come from the SDK's libc headers, for which musl 1.1.24's stand in
+(`include/libc`):
+
+- **`FloatToBuffer` (`0x71006fee00`).** The original calls
+  `__errno_location` again after `strtof` to read `errno`; the compiled code
+  reuses the first call's result. musl declares `__errno_location`
+  `__attribute__((const))`, and the SDK's header evidently doesn't.
+- **`Mutex::Mutex` (`0x71006fff70`), `InitLogSilencerCount`
+  (`0x71006ffc20`), `InitShutdownFunctions` (`0x7100700140`).** They
+  allocate `Mutex::Internal`, which holds just a `pthread_mutex_t`: `0x20`
+  bytes in the original, 40 with musl's aarch64 `pthread_mutex_t`.
+
+Both would mean changing `include/libc` for every TU (Lua, libcurl and PhysX
+read `errno.h` too), which is out of scope here; see "What's left open".
+
+### Reproducing
+
+```sh
+cd toolchain/candidates/src
+mkdir protobuf-3.0.0-dl && cd protobuf-3.0.0-dl
+curl -LO https://github.com/protocolbuffers/protobuf/archive/refs/tags/v3.0.0.tar.gz && tar xzf v3.0.0.tar.gz
+cd ../../../..
+P=toolchain/candidates/src/protobuf-3.0.0-dl/protobuf-3.0.0 X=toolchain/candidates/src/libcxx-7.0.1/include
+# upstream's library TUs, one --src per line
+cat $P/cmake/libprotobuf-lite.cmake $P/cmake/libprotobuf.cmake | grep -oE 'src/google/protobuf/[^ ]+\.cc' \
+  | grep -v -E 'x86_|test_helper' | sed "s#^#--src\n$P/#" > pb_src.rsp
+COMMON="-O3 -fno-exceptions -fno-rtti -nostdinc++ -isystem $X -I $P/src -isystem include/libc \
+  -DHAVE_PTHREAD -DGOOGLE_PROTOBUF_NO_RTTI -D_GNU_SOURCE -D_LIBCPP_HAS_MUSL_LIBC -D_LIBCPP_HAS_THREAD_API_PTHREAD"
+python tools/compiler_sweep.py --compiler toolchain/candidates/clang-7.0.1 \
+    --variant "cxx11=-std=c++11" --variant "cxx11nd=-std=c++11 -DNDEBUG" \
+    --variant "cxx14nd=-std=c++14 -DNDEBUG" --variant "gnu98nd=-std=gnu++98 -DNDEBUG" \
+    --range 0x71006dea00-0x7100761f70 @pb_src.rsp -- $COMMON
+# flags: COMMON+="-std=c++14 -DNDEBUG", --variant "final=" --variant "cxx17=-std=c++17" --variant "O2=-O2" ...
+# compilers: --compiler toolchain/candidates/clang-{6.0.1,7.0.0,7.1.0,8.0.0} --variant "final="
+# names: build both games, then
+python tools/sweep_attribute.py build/sword --source-prefix lib/protobuf/ \
+    --range 0x71006dea00-0x7100761f70 --game sword --out attr_sword.csv   # and shield
+```
+
+### What's left open
+
+- **The SDK's libc.** `errno` and `pthread_mutex_t` above. Fixing them means
+  making `include/libc` follow the SDK's headers rather than musl's where the
+  binary shows a difference. That needs checking against every library that
+  already matches.
+- **`SerializeToArray` or `SerializePartialToArray`.** See "Names".
+- **Two pairs in gflnet3's code with the same code**: `0x71006bd300`
+  (`GenericTypeHandler<Message>::GetArena` or
+  `MessageLite::GetMaybeArenaPointer`) and `0x71006bd4b0`
+  (`arena_delete_object<MessageLite>` or `<Message>`). They stay unnamed
+  until gflnet3's own code pins them.
+- **gflnet3's generated messages.** `lib/gflnet3/src/p2p/*.pb.cc` is
+  `protoc` 3.0.0 output for Game Freak's own `.proto` files. With the runtime
+  matched, their message classes can be reconstructed from the descriptors
+  embedded in `main`, and the generated code compared.
+
 ## Wwise
 
 **Result: Wwise 2017.2, built with upstream clang 6.0.x (like PhysX, not the
