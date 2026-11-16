@@ -26,6 +26,11 @@ check.py keeps one copy for each distinct code+relocations, and a function
 matches only if every distinct copy matches the original (see add_definition).
 Two strong definitions of one symbol are an error.
 
+Symbols at the same address of one object are aliases (clang emits a complete
+destructor or constructor, D1/C1, as an alias of the base one, D2/C2, when they
+are the same code). functions.csv has one row per address, so an alias of a
+checked function needs no row of its own and is skipped.
+
 Before checking, each build dir must use the global codegen flags of
 cmake/toolchain-nx64.cmake (PKMN_CODEGEN_FLAGS): its last configure recorded
 the same list, and every command in its compile_commands.json contains it, in
@@ -140,6 +145,8 @@ class CompiledFunc:
     fingerprint: tuple = ()
     # copies of this (mergeable) function from other TUs whose fingerprint differs
     variants: list[CompiledFunc] = field(default_factory=list, repr=False)
+    # other function symbols of the object at the same address (see alias_groups)
+    aliases: tuple[str, ...] = ()
 
     def copies(self) -> list[CompiledFunc]:
         return [self, *self.variants]
@@ -281,6 +288,15 @@ def check_trap_rewrite(build_dir: Path) -> str | None:
     return None
 
 
+def alias_groups(syms: list[tuple[str, object, int, int]]) -> dict[str, tuple[str, ...]]:
+    """For (name, section, value, size) function symbols of one object, the other
+    names at the same section, value and size, for every name that has any."""
+    at: dict[tuple, list[str]] = {}
+    for name, shndx, value, size in syms:
+        at.setdefault((shndx, value, size), []).append(name)
+    return {n: tuple(o for o in names if o != n) for names in at.values() if len(names) > 1 for n in names}
+
+
 def load_objects(build_dir: Path) -> dict[str, CompiledFunc]:
     out: dict[str, CompiledFunc] = {}
     # Only objects of sources that currently exist (stale .o files of deleted
@@ -305,9 +321,11 @@ def load_objects(build_dir: Path) -> dict[str, CompiledFunc]:
                     s = symtab.get_symbol(r["r_info_sym"])
                     rs[r["r_offset"]] = Reloc(r["r_info_type"], _symbol_name(s, source), s["st_info"]["type"],
                                               s["st_shndx"], s["st_value"], r["r_addend"])
-        for s in symtab.iter_symbols():
-            if s["st_info"]["type"] != "STT_FUNC" or s["st_shndx"] in ("SHN_UNDEF", "SHN_ABS"):
-                continue
+        func_syms = [s for s in symtab.iter_symbols()
+                     if s["st_info"]["type"] == "STT_FUNC" and s["st_shndx"] not in ("SHN_UNDEF", "SHN_ABS")]
+        aliases = alias_groups([(_symbol_name(s, source), s["st_shndx"], s["st_value"], s["st_size"])
+                                for s in func_syms])
+        for s in func_syms:
             sec = elf.get_section(s["st_shndx"])
             v, n = s["st_value"], s["st_size"]
             relocs = {off - v: r for off, r in rel_by_sec.get(s["st_shndx"], {}).items() if v <= off < v + n}
@@ -316,7 +334,8 @@ def load_objects(build_dir: Path) -> dict[str, CompiledFunc]:
             bind = s["st_info"]["bind"]
             mergeable = bind == "STB_WEAK" or (bind == "STB_GLOBAL" and s["st_shndx"] in comdat)
             w = add_definition(out, CompiledFunc(name, obj, code, relocs, elf, source, rel_by_sec,
-                                                 mergeable, _fingerprint(code, relocs, elf)))
+                                                 mergeable, _fingerprint(code, relocs, elf),
+                                                 aliases=aliases.get(name, ())))
             if w:
                 print(f"warning ({build_dir.name}): {w}")
     return out
@@ -633,12 +652,15 @@ def main() -> int:
 
     all_names = sorted(set().union(*(c.keys() for c in compiled.values())))
     absent = read_absent()
-    n_ok = n_bad = n_absent = 0
+    n_ok = n_bad = n_absent = n_alias = 0
     status_updates: dict[str, str] = {}
     for name in all_names:
         fn = by_name.get(name)
         if fn is None and name in absent:
             n_absent += 1
+            continue
+        if fn is None and any(a in by_name for c in compiled.values() if name in c for a in c[name].aliases):
+            n_alias += 1
             continue
         if fn is None:
             if wanted is None:
@@ -687,6 +709,8 @@ def main() -> int:
     print(f"\n{n_ok} matching, {n_bad} not matching")
     if n_absent:
         print(f"({n_absent} compiled functions skipped as not in the executable: data/absent_functions.csv)")
+    if n_alias and wanted is None:
+        print(f"({n_alias} compiled aliases of checked functions skipped, e.g. D1 = D2 destructors)")
     if args.update and status_updates:
         for f in funcs:
             if f.key in status_updates:

@@ -222,3 +222,10 @@ def test_merge_results_requires_every_copy_to_match():
     assert not merged.ok and merged.first_bad == 0
     assert merged.errors == ["[copy from b.cpp] +0x000: instruction differs"]
     assert check.merge_results([(a, good), (b, check.Result(True))]).ok
+
+
+def test_alias_groups():
+    # clang emits D1 as an alias of D2 (same section, value and size)
+    syms = [("_ZN1AD2Ev", 3, 0, 4), ("_ZN1AD1Ev", 3, 0, 4), ("_ZN1AD0Ev", 4, 0, 4),
+            ("other", 5, 0, 8), ("same_place_other_size", 5, 0, 4)]
+    assert check.alias_groups(syms) == {"_ZN1AD2Ev": ("_ZN1AD1Ev",), "_ZN1AD1Ev": ("_ZN1AD2Ev",)}
