@@ -44,9 +44,27 @@ target_compile_definitions(pkmn PRIVATE PKMN_VERSION=${_ver})
 target_compile_options(pkmn PRIVATE -Wall -Wno-unused-private-field)
 
 # --- Per-library settings ----------------------------------------------------
-# Lua 5.3.4 (lib/lua): built as C with the configuration identified in
-# docs/compiler.md. Kept to lib/lua's sources only; a later change will turn
-# this into a general per-library settings mechanism.
-file(GLOB PKMN_LUA_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/lib/lua/*.c")
-set_source_files_properties(${PKMN_LUA_SOURCES} PROPERTIES
-  COMPILE_DEFINITIONS "LUA_COMPAT_5_2;LUA_USE_POSIX")
+# The global flags above and in cmake/toolchain-nx64.cmake are the default for
+# every TU. A library that was built differently gets an entry here, and only
+# here, backed by a section of docs/compiler.md. cmake/LibrarySettings.cmake
+# documents the mechanism and its limits.
+include(cmake/LibrarySettings.cmake)
+
+# Lua 5.3.4, built as C by Game Freak with the global flags (it is the corpus
+# that identified them: 490 functions byte for byte). Of the Lua versions, 5.3.4
+# with LUA_COMPAT_5_2 and LUA_USE_POSIX defined scores best.
+pkmn_library_settings(lib/lua
+  EVIDENCE "docs/compiler.md, section Method (Lua version and defines)"
+  DEFINES LUA_COMPAT_5_2 LUA_USE_POSIX)
+
+# PhysX 3.4, built by NVIDIA: full C++ exceptions (its FDEs have personality
+# and LSDA), strict aliasing, gnu++14 (gnu++11/14/17 give identical code; strict
+# c++17 breaks musl's alloca), and NVIDIA's static-library defines. The other
+# codegen flags are the global ones. PhysX was built with clang 6.0.1, which
+# this build can't provide: once lib/physx has sources, configuring warns that
+# they won't match with clang 7.0.1.
+pkmn_library_settings(lib/physx
+  EVIDENCE "docs/compiler.md, section PhysX"
+  COMPILER_VERSION 6.0.1
+  DEFINES __NX__ NDEBUG PX_PHYSX_STATIC_LIB PX_FOUNDATION_DLL=0 PX_SUPPORT_PVD=0
+  OPTIONS -fexceptions -fstrict-aliasing $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++14>)

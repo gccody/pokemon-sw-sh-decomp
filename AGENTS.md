@@ -35,9 +35,13 @@ count. A function is done only when `tools/check.py` reports `OK`.
 5. **Don't make one source tree per game**, and don't add tooling that only
    handles one game. Everything is version-aware: two address columns, two
    builds, two checks.
-6. **Don't change the codegen flags** in `cmake/toolchain-nx64.cmake` to make
-   one function match. They're fixed by evidence (`docs/compiler.md`) and apply
-   to every TU.
+6. **Don't change the global codegen flags** in `cmake/toolchain-nx64.cmake`
+   (or add flags anywhere else) to make one function match. They're fixed by
+   evidence (`docs/compiler.md`) and apply to every TU. A library that was
+   built differently (other defines, `-fexceptions`, ...) gets a
+   `pkmn_library_settings(<dir> ...)` entry in `CMakeLists.txt`, and only
+   there. It needs a `docs/compiler.md` section with the evidence, named in
+   the entry's `EVIDENCE`. See `cmake/LibrarySettings.cmake`.
 7. Don't force matches with `volatile`, inline asm or meaningless temporaries.
    If it won't match with natural code, submit it as `M`/`m` with
    `// NON_MATCHING: <reason>`.
@@ -69,6 +73,7 @@ game files.
 data/functions.csv     104k rows, ~6 MB: Sword/Shield address+size, Scope, Status, Name
 data/data_symbols.csv  named globals/rodata (check.py resolves data references through it)
 data/areas.csv         address range -> library/subsystem
+cmake/                 toolchain (global flags) + LibrarySettings.cmake (per-library flags)
 include/types.h        u8..u64, f32, PKMN_SIZE_ASSERT, PKMN_OFFSET_ASSERT
 include/pkmn/version.h PKMN_SW_SH, PKMN_IS_SWORD, PKMN_IS_SHIELD
 src/                   Game Freak code (src/unsorted/ until a subsystem is known)

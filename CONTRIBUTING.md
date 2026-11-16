@@ -96,6 +96,39 @@ Look at `src/pkmn/Version.cpp`, `src/unsorted/Unk_7eef40.*` and
 - Python tooling: `ruff check .` must pass. Formatting isn't enforced, so
   match the style of the file you're editing.
 
+### Build settings
+
+Every TU is built with the same global flags (`cmake/toolchain-nx64.cmake`),
+and the reasons for each one are in [docs/compiler.md](docs/compiler.md).
+**Those flags never change to make one function match.** If something won't
+match, look at the source first.
+
+Some vendored libraries were built with a different configuration, such as
+Lua's `LUA_COMPAT_5_2` or PhysX's `-fexceptions`. Their settings are per
+directory, in one place: the `pkmn_library_settings()` entries in
+`CMakeLists.txt`.
+
+```cmake
+pkmn_library_settings(lib/lua
+  EVIDENCE "docs/compiler.md, section Method (Lua version and defines)"
+  DEFINES LUA_COMPAT_5_2 LUA_USE_POSIX)
+```
+
+- An entry needs evidence first. Add or extend a section of `docs/compiler.md`
+  that shows the setting with numbers (`tools/compiler_sweep.py` hits, or
+  `check.py` results with and without it), and name that section in `EVIDENCE`.
+- `DEFINES` and `OPTIONS` apply to every source under the directory and to
+  nothing else. `OPTIONS` come after the global flags, so `-fexceptions`
+  overrides the global `-fno-exceptions`.
+- Don't set flags anywhere else: no per-file properties, no
+  `target_compile_options` for one library.
+- The compiler is the same for the whole build. A library built with another
+  clang version (PhysX: clang 6.0.1) can't be matched by flags. Its entry
+  records the version (`COMPILER_VERSION`), and configuring warns while the
+  build's clang differs.
+
+`cmake/LibrarySettings.cmake` documents the details.
+
 ## 3. Check (matching)
 
 ```sh
