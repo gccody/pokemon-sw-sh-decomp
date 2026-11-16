@@ -473,6 +473,30 @@ These results also corrected `data/areas.csv`. The boundaries are identical in S
 - **YEBIS starts at `0x710040f550`**, the first function that references the
   `sisdk/3.0/SDK/Core` source path. The functions after it are called only
   from YEBIS.
+- **YEBIS ends at `0x7100596d20`, where Game Freak code starts.** It's the
+  same address in both games. An earlier guess, `0x71005a0000`, was inside
+  the function at `0x710059fe00` and put 181 game functions in YEBIS. The
+  evidence:
+  - **Static initialisers.** clang emits a TU's initialiser after its other
+    functions, and `.init_array` lists them in link order. YEBIS's run ends
+    with entries 285-287 (of 1,508): `0x71005966e0`, `0x7100596770` and
+    `0x7100596ca0`. All three have the same shape: they construct one SiSDK
+    object and register its destructor. The last TU also holds `0x71005967f0`,
+    the last function that references a YEBIS source path
+    (`SiCore_String.inl`). Entry 288 is `0x71005cf950`, in game code.
+  - **RTTI.** The last vtables with `SiSDK3` typeinfo (`SiOSMutex`,
+    `SiOSCriticalSection`) end at `0x71005966d0`. No vtable with typeinfo
+    points into `0x7100596d20`-`0x7100620000`.
+  - **Call graph.** Nothing in `0x710040f550`-`0x7100596d20` calls code after
+    it, apart from 10 calls into two libc++ red-black-tree helpers
+    (`0x71006a54a0` and `0x71006f9720`, shaped like `__tree_balance_after_insert`
+    and `__tree_remove`). Those are inline template code that the linker kept
+    in a game TU. From `0x7100596d20` on, nothing in YEBIS calls these
+    functions, and they call Game Freak code, for example `0x710065d700`
+    next to the `GlobalHeap`/`DebugHeap` strings and the functions that cite
+    `gflib3/src/mem` source paths. The first ones
+    read FlatBuffers tables. Moving the end to `0x71005a00c0` adds 152 calls
+    from "YEBIS" into game code. Both games give the same counts.
 
 ### Reproducing
 
@@ -790,13 +814,29 @@ Fingerprints with the same definitions as above (Sword):
 
 | Region | Small consts `movz` / `orr` | Frame records (calling functions) | `movi #0` / `stp xzr, xzr` | FDEs `zR` / `zPLR` | `-g` `ldr` pairs / `ldp` |
 |---|---|---|---|---|---|
-| YEBIS (`0x710040f550`-`0x71005a0000`) | 78 / 9,819 | 2,455 of 2,474 | 3 / 1,059 | 5,183 / 0 | 5 / 255 |
+| YEBIS (`0x710040f550`-`0x7100596d20`) | 78 / 9,677 | 2,380 of 2,399 | 2 / (1,059)* | 5,002 / 0 | **0 / 250** |
 | After Lua (`0x7101570900`-`0x71017ec260`) | 380 / 15,358 | 6,329 of 6,344 | 116 / 1,123 | 10,846 / 1 | 1 / 868 |
 
-In this table, "small constants" counts only immediates that `orr` can
-encode, "frame records" counts functions with a `bl` whose first 12
+In this table, "small constants" counts only 32-bit immediates that `orr`
+can encode, "frame records" counts functions with a `bl` whose first 12
 instructions hold `stp x29, x30`, and `stp xzr, xzr` counts single
 instructions. That's why the numbers differ from the Wwise table above.
+Shield gives the same YEBIS row.
+
+\* The YEBIS row was first measured over `0x710040f550`-`0x71005a0000`,
+which included 181 game functions (see "Area boundaries" under PhysX). The
+other columns were measured again over the corrected range. The old numbers
+were 78 / 9,819, 2,455 of 2,474, 3 `movi`, 5,183 FDEs and 5 / 255 `-g` pairs,
+and all of them reproduce over the old range. The `stp xzr, xzr` count
+doesn't reproduce from the definition above, so 1,059 is the old figure and
+wasn't measured again.
+
+- **YEBIS has no `-g` `ldr` pair.** All 5 counted over the old range are in
+  the game functions after `0x7100596d20`. At the game's rate (11 against
+  162) about 17 would be expected against 250 `ldp`, so **YEBIS was probably
+  built without `-g`**, like Wwise and the libraries after Lua. The
+  confidence is low for the same reasons as for Wwise. zlib compiles the same
+  with or without `-g`, so it doesn't settle the question.
 
 - **YEBIS embeds zlib 1.2.5**: the `"1.2.5"` version string and inflate's
   `header crc mismatch`, used by SiIO's `SiIO_Codec_ZLib_Impl.h` (the code is
@@ -817,11 +857,13 @@ instructions. That's why the numbers differ from the Wwise table above.
   Z=toolchain/candidates/src/zlib-1.2.5
   python tools/compiler_sweep.py --compiler 'toolchain/candidates/clang-*' \
       --variant O3=-O3 --variant O3g="-O3 -g" --variant O2=-O2 --variant Os=-Os \
-      --src "$Z/[a-di-z]*.c" --src "$Z/gz*.c" --range 0x710040f550-0x71005a0000 \
+      --src "$Z/[a-di-z]*.c" --src "$Z/gz*.c" --range 0x710040f550-0x7100596d20 \
       -- -isystem toolchain/candidates/sysroot/include
   ```
 
-  (The two globs leave out `example.c` and `minigzip.c`.)
+  (The two globs leave out `example.c` and `minigzip.c`.) With the
+  corrected range, clang 7.0.1 `-O3` still gives 30 functions (34,116 bytes)
+  in both games, the same as over `0x710040f550`-`0x71005a0000`.
 - **After Lua** (NEX 4.6.8, Pia, NintendoWare, nn SDK static libraries): all
   `orr`-form constants (clang older than 9), frame pointers, GPR-only zeroing
   and no exception tables (1 `zPLR` FDE). Only 1 `-g` `ldr` pair against 868
