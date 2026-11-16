@@ -12,8 +12,6 @@ b_rshift@lbitlib,no function of lbitlib.c (bit32) is in the executable
 b_test@lbitlib,no function of lbitlib.c (bit32) is in the executable
 b_xor@lbitlib,no function of lbitlib.c (bit32) is in the executable
 l_alloc@lauxlib,"not in the executable, like luaL_newstate"
-loadfunc@loadlib,no counterpart in Game Freak's changed C-module loading (loadlib.c)
-lookforfunc@loadlib,no counterpart in Game Freak's changed C-module loading (loadlib.c)
 luaC_runtilstate,"not in the executable: inlined into all its callers (all in lgc.c), so the out-of-line copy is dropped"
 luaL_execresult,"not in the executable: its only callers (io_pclose, os_execute) were removed"
 luaL_loadstring,"not in the executable: unreferenced, so dropped by the linker"

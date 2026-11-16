@@ -390,8 +390,6 @@ static int lookforfunc (lua_State *L, const char *path, const char *sym) {
 }
 
 
-// NON_MATCHING: Game Freak changed module loading (file search and C loaders);
-// the original differs in size and structure; not reconstructed yet.
 static int ll_loadlib (lua_State *L) {
   const char *path = luaL_checkstring(L, 1);
   const char *init = luaL_checkstring(L, 2);
@@ -416,10 +414,16 @@ static int ll_loadlib (lua_State *L) {
 
 
 static int readable (const char *filename) {
+#if 0  /* not in Pokémon SwSh: no file is ever readable, so searchpath
+         finds nothing and searcher_Lua/C/Croot only build "no file" messages */
   FILE *f = fopen(filename, "r");  /* try to open file */
   if (f == NULL) return 0;  /* open failed */
   fclose(f);
   return 1;
+#else
+  (void)(filename);  /* not used */
+  return 0;
+#endif  /* not in Pokémon SwSh */
 }
 
 
@@ -434,8 +438,6 @@ static const char *pushnexttemplate (lua_State *L, const char *path) {
 }
 
 
-// NON_MATCHING: Game Freak changed module loading (file search and C loaders);
-// the original differs in size and structure; not reconstructed yet.
 static const char *searchpath (lua_State *L, const char *name,
                                              const char *path,
                                              const char *sep,
@@ -459,8 +461,6 @@ static const char *searchpath (lua_State *L, const char *name,
 }
 
 
-// NON_MATCHING: Game Freak changed module loading (file search and C loaders);
-// the original differs in size and structure; not reconstructed yet.
 static int ll_searchpath (lua_State *L) {
   const char *f = searchpath(L, luaL_checkstring(L, 1),
                                 luaL_checkstring(L, 2),
@@ -498,8 +498,6 @@ static int checkload (lua_State *L, int stat, const char *filename) {
 }
 
 
-// NON_MATCHING: Game Freak changed module loading (file search and C loaders);
-// the original differs in size and structure; not reconstructed yet.
 static int searcher_Lua (lua_State *L) {
   const char *filename;
   const char *name = luaL_checkstring(L, 1);
@@ -535,8 +533,6 @@ static int loadfunc (lua_State *L, const char *filename, const char *modname) {
 }
 
 
-// NON_MATCHING: Game Freak changed module loading (file search and C loaders);
-// the original differs in size and structure; not reconstructed yet.
 static int searcher_C (lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
   const char *filename = findfile(L, name, "cpath", LUA_CSUBSEP);
@@ -545,8 +541,6 @@ static int searcher_C (lua_State *L) {
 }
 
 
-// NON_MATCHING: Game Freak changed module loading (file search and C loaders);
-// the original differs in size and structure; not reconstructed yet.
 static int searcher_Croot (lua_State *L) {
   const char *filename;
   const char *name = luaL_checkstring(L, 1);
