@@ -85,6 +85,11 @@ ADD_ABS_LO12_NC = 277
 LDST_LO12 = {278, 284, 285, 286, 299}
 ADR_GOT_PAGE, LD64_GOT_LO12_NC = 311, 312
 ABS64, PREL32 = 257, 261  # in data: address tables, jump tables
+# TLS descriptor access (adrp x0; ldr x1, [x0]; add x0, x0; blr x1), which the
+# linker relaxes to local-exec in an executable (see tls_relaxed)
+TLSDESC_ADR_PAGE21, TLSDESC_LD64_LO12, TLSDESC_ADD_LO12, TLSDESC_CALL = 562, 563, 564, 569
+TLSDESC = (TLSDESC_ADR_PAGE21, TLSDESC_LD64_LO12, TLSDESC_ADD_LO12, TLSDESC_CALL)
+NOP = 0xD503201F
 MAX_LITERAL = 1024  # bytes compared for a reference into a data section without entsize
 SHF_MERGE, SHF_STRINGS, SHF_EXECINSTR = 0x10, 0x20, 0x4
 GRP_COMDAT = 1
@@ -467,6 +472,25 @@ def adrp_pairs(relocs: dict[int, Reloc], o_img: bytes, addr: int) -> dict[int, i
     return out
 
 
+def tls_relaxed(t: int, cw: int, ow: int) -> tuple[bool, int | None]:
+    """Whether original word `ow` is the linker's local-exec relaxation of the
+    TLS descriptor instruction `cw` (relocation `t`), and the bits of the
+    thread-pointer offset it holds (hi for the movz, lo for the movk).
+
+    In an executable, lld rewrites `adrp x0, :tlsdesc:v` to `movz x0,
+    #:tprel_g1:v, lsl #16`, `ldr x1, [x0, :tlsdesc_lo12:v]` to `movk x0,
+    #:tprel_g0_nc:v`, and the `add` and `blr x1` to nops."""
+    if t == TLSDESC_ADR_PAGE21:
+        ok = (cw & 0x9F00001F) == 0x90000000 and (ow & 0xFFE0001F) == 0xD2A00000  # adrp x0 / movz x0, lsl 16
+        return ok, ((ow >> 5) & 0xFFFF) << 16 if ok else None
+    if t == TLSDESC_LD64_LO12:
+        ok = (cw & 0xFFC003FF) == 0xF9400001 and (ow & 0xFFE0001F) == 0xF2800000  # ldr x1, [x0] / movk x0
+        return ok, (ow >> 5) & 0xFFFF if ok else None
+    if t == TLSDESC_ADD_LO12:
+        return (cw & 0xFFC003FF) == 0x91000000 and ow == NOP, None  # add x0, x0 / nop
+    return cw == 0xD63F0020 and ow == NOP, None  # blr x1 / nop
+
+
 def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name,
             paths: SourcePaths | None = None) -> Result:
     by_name, by_addr, data_syms = syms
@@ -583,6 +607,8 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name,
                 raise LookupError  # pointer to something unnamed
         return None
 
+    tls_hi: dict[str, int] = {}  # TLS symbol -> high offset bits of its last movz
+    tls: dict[str, tuple[int, set[int]]] = {}  # TLS symbol -> (first access, offsets loaded)
     for off in range(0, n - n % 4, 4):
         cw = struct.unpack_from("<I", cf.code, off)[0]
         ow = struct.unpack_from("<I", o_img, addr + off)[0]
@@ -669,10 +695,29 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name,
             else:
                 if err:
                     bad(off, err)
+        elif t in TLSDESC:
+            ok, bits = tls_relaxed(t, cw, ow)
+            if not ok:
+                bad(off, f"TLS access to {verbose_name(r.sym)} isn't the local-exec relaxation "
+                         f"of the descriptor sequence ({cw:08x} vs {ow:08x})")
+            elif t == TLSDESC_ADR_PAGE21:
+                tls_hi[r.sym] = bits
+            elif t == TLSDESC_LD64_LO12:
+                tls.setdefault(r.sym, (off, set()))[1].add(tls_hi.pop(r.sym, 0) | bits)
         else:
             res.warnings.append(f"+{off:#05x}: unhandled relocation type {t} ({r.sym})")
             if cw != ow:
                 bad(off, "instruction differs")
+    # Every access to one TLS variable must load the same thread-pointer
+    # offset. Which variable is at that offset can't be checked: the NSO has no
+    # TLS segment table to resolve it with.
+    for sym, (first, values) in tls.items():
+        if len(values) > 1:
+            bad(first, f"TLS accesses to {verbose_name(sym)} load different offsets "
+                       f"({', '.join(f'{x:#x}' for x in sorted(values))})")
+        else:
+            res.warnings.append(f"+{first:#05x}: TLS {verbose_name(sym)} at thread-pointer offset "
+                                f"{min(values):#x}, relaxed to local-exec (the offset isn't verified)")
     return res
 
 
