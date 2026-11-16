@@ -141,11 +141,12 @@ def tiny_elf(text: bytes, syms, relocs) -> bytes:
     """A minimal ELF64 AArch64 relocatable object with one code section.
 
     syms: (name, bind, type, value, size), locals first; functions (type 2)
-    are in the code section, anything else is undefined.
+    and data objects (type 1) are in the code section, anything else is
+    undefined.
     relocs: (offset, symbol index, type), in the code section's .rela."""
     strtab, symtab = b"\0", b"\0" * 24
     for name, bind, typ, value, size in syms:
-        symtab += struct.pack("<IBBHQQ", len(strtab), (bind << 4) | typ, 0, 1 if typ == 2 else 0, value, size)
+        symtab += struct.pack("<IBBHQQ", len(strtab), (bind << 4) | typ, 0, 1 if typ in (1, 2) else 0, value, size)
         strtab += name.encode() + b"\0"
     rela = b"".join(struct.pack("<QQq", off, (sym << 32) | typ, 0) for off, sym, typ in relocs)
     names = [b".text.foo", b".rela.text.foo", b".symtab", b".strtab", b".shstrtab"]

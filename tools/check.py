@@ -14,11 +14,17 @@ sword/shield-only functions against their game.
 
 Relocation-aware: calls, ADRP/lo12 pairs, GOT loads and SDK imports (via PLT)
 are resolved by symbol name through data/functions.csv and
-data/data_symbols.csv; string/constant literals are compared by content.
+data/data_symbols.csv; string/constant literals are compared by content. A
+`__FILE__` literal of vendored code (a source path, listed by directory in
+data/source_paths.csv) is compared by the file it names, because it spells the
+vendor's checkout (see tools/source_paths.py).
 
 Local (static) symbols are looked up by their file-qualified name,
 `<symbol>@<file stem>` (see tools/symbols.py). Compiled functions listed in
-data/absent_functions.csv are not in the executable and are skipped.
+data/absent_functions.csv are not in the executable and are skipped. So are the
+weak/COMDAT functions of data/foreign_copies.csv: the executable has them, but
+the linker kept the copy of a library this repository doesn't build, so the
+copies compiled here aren't the one to compare.
 
 Weak and COMDAT definitions (inline functions, template instantiations) may be
 emitted by several translation units, and the linker keeps one of them.
@@ -58,6 +64,7 @@ from nx.module import DynInfo  # noqa: E402
 from nx.nso import Nso  # noqa: E402
 from nx.refs import decode, ldst_scale  # noqa: E402
 import symbols  # noqa: E402
+from source_paths import SourcePaths, read_source_paths  # noqa: E402
 
 from elftools.elf.elffile import ELFFile  # noqa: E402
 from elftools.elf.sections import SymbolTableSection  # noqa: E402
@@ -72,16 +79,20 @@ LDST_LO12 = {278, 284, 285, 286, 299}
 ADR_GOT_PAGE, LD64_GOT_LO12_NC = 311, 312
 ABS64, PREL32 = 257, 261  # in data: address tables, jump tables
 MAX_LITERAL = 1024  # bytes compared for a reference into a data section without entsize
-SHF_STRINGS, SHF_EXECINSTR = 0x20, 0x4
+SHF_MERGE, SHF_STRINGS, SHF_EXECINSTR = 0x10, 0x20, 0x4
 GRP_COMDAT = 1
 BRK_1, NX_TRAP = 0xD4200020, 0xE7FFDEFE  # upstream clang's trap, the originals' (tools/fix_traps.py)
 
 ABSENT_CSV = ROOT / "data" / "absent_functions.csv"
+FOREIGN_CSV = ROOT / "data" / "foreign_copies.csv"
+SOURCE_PATHS_CSV = ROOT / "data" / "source_paths.csv"
 TOOLCHAIN_FILE = ROOT / "cmake" / "toolchain-nx64.cmake"
 
 
 def read_absent(path: Path = ABSENT_CSV) -> dict[str, str]:
-    """Compiled functions that are not in the executable: name -> reason."""
+    """A Name,Reason CSV: the compiled functions that are not in the executable
+    (data/absent_functions.csv), or those whose copy in the executable is
+    another library's (data/foreign_copies.csv): name -> reason."""
     if not path.exists():
         return {}
     with open(path, newline="", encoding="utf-8") as fh:
@@ -198,7 +209,8 @@ def _comdat_sections(elf: ELFFile) -> set[int]:
 def _fingerprint(code: bytes, relocs: dict[int, Reloc], elf: ELFFile | None) -> tuple:
     """Code bytes plus relocations, with section-relative targets described
     independently of the object's layout: the string itself for a merged-string
-    section, otherwise the section name and offset."""
+    section, the constant's bytes for a merged-constant section (.rodata.cst16),
+    otherwise the section name and offset."""
     rs = []
     for off, r in sorted(relocs.items()):
         target: tuple = (r.sym, r.addend)
@@ -208,11 +220,25 @@ def _fingerprint(code: bytes, relocs: dict[int, Reloc], elf: ELFFile | None) -> 
             if sec["sh_flags"] & SHF_STRINGS and sec["sh_type"] != "SHT_NOBITS":
                 blob = sec.data()
                 end = blob.find(b"\0", start)
-                target = ("string", blob[start:end if end >= 0 else len(blob)])
+                target = ("string", _path_key(blob[start:end if end >= 0 else len(blob)]))
+            elif sec["sh_flags"] & SHF_MERGE and sec["sh_entsize"] and sec["sh_type"] != "SHT_NOBITS":
+                target = ("const", sec.data()[start:start + sec["sh_entsize"]])
             else:
                 target = (sec.name, start)
         rs.append((off, r.type, target))
     return code, tuple(rs)
+
+
+_ROOT_KEY = ROOT.as_posix().lower().encode()
+
+
+def _path_key(s: bytes) -> bytes:
+    """A __FILE__ path of this checkout with one kind of separator: clang spells
+    one header with "\\" or "/" depending on the include that found it. No
+    original names this checkout, so its paths only ever match through
+    data/source_paths.csv, which compares them by the file they name."""
+    key = s.replace(b"\\", b"/")
+    return key if key.lower().startswith(_ROOT_KEY) else s
 
 
 def _symbol_name(s, source: str) -> str:
@@ -288,6 +314,26 @@ def check_trap_rewrite(build_dir: Path) -> str | None:
     return None
 
 
+def strong_definition(name: str, builds) -> str | None:
+    """The source of a strong (not weak/COMDAT) compiled definition of `name`,
+    or None. A function of data/foreign_copies.csv may only have weak copies:
+    a strong one is what the linker would keep."""
+    return next((c[name].source for c in builds if name in c and not c[name].mergeable), None)
+
+
+def with_aliases(by_name: dict[str, Function], builds) -> dict[str, Function]:
+    """`by_name` plus every compiled name that has no row of its own but is an
+    alias of one that does (C1 of C2, D1 of D2), mapped to that row."""
+    out = dict(by_name)
+    for compiled in builds:
+        for name, cf in compiled.items():
+            if name not in out:
+                row = next((by_name[a] for a in cf.aliases if a in by_name), None)
+                if row is not None:
+                    out[name] = row
+    return out
+
+
 def alias_groups(syms: list[tuple[str, object, int, int]]) -> dict[str, tuple[str, ...]]:
     """For (name, section, value, size) function symbols of one object, the other
     names at the same section, value and size, for every name that has any."""
@@ -354,7 +400,57 @@ def _imm12(w: int) -> int:
     return (w >> 10) & 0xFFF
 
 
-def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name) -> Result:
+PAGE_RELOCS = (ADR_PREL_PG_HI21, ADR_PREL_PG_HI21_NC, ADR_GOT_PAGE)
+
+
+def _adrp_page(w: int, pc: int) -> int:
+    imm = ((w >> 29) & 3) | (((w >> 5) & 0x7FFFF) << 2)
+    imm = imm - (1 << 21) if imm & (1 << 20) else imm
+    return (pc & ~0xFFF) + (imm << 12)
+
+
+def lo12_target(w: int, page: int, t: int) -> int:
+    """The address a lo12 instruction `w` (relocation type `t`) forms from `page`."""
+    if t == LD64_GOT_LO12_NC:
+        return page + _imm12(w) * 8
+    if t == ADD_ABS_LO12_NC:
+        return page + (_imm12(w) << (12 if (w >> 22) & 1 else 0))
+    return page + (_imm12(w) << ldst_scale(w))
+
+
+def adrp_pairs(relocs: dict[int, Reloc], o_img: bytes, addr: int) -> dict[int, int]:
+    """offset -> original target of each lo12 and GOT-lo12 instruction, paired
+    with its `adrp` through the compiled relocations: an ADRP relocation of the
+    same target whose original instruction writes the lo12's base register (the
+    nearest one before it, else after it).
+
+    The original's linear decode (nx.refs.decode) loses a page when an
+    instruction in between has that number as its destination field, a SIMD
+    write to v9 for x9's page for example. The code here is compared
+    instruction by instruction anyway, so the compiled pairing holds for the
+    original wherever the instructions agree."""
+    def word(off: int) -> int:
+        return struct.unpack_from("<I", o_img, addr + off)[0]
+
+    pages = [(off, r) for off, r in sorted(relocs.items()) if r.type in PAGE_RELOCS]
+    out: dict[int, int] = {}
+    for off, r in relocs.items():
+        if not (r.type in (LD64_GOT_LO12_NC, ADD_ABS_LO12_NC) or r.type in LDST_LO12):
+            continue
+        got = r.type == LD64_GOT_LO12_NC
+        rn = (word(off) >> 5) & 0x1F
+        cands = [p for p, pr in pages
+                 if (pr.type == ADR_GOT_PAGE) == got and (pr.sym, pr.sym_shndx, pr.sym_value) == (r.sym, r.sym_shndx, r.sym_value)
+                 and (got or pr.addend == r.addend) and word(p) & 0x1F == rn]
+        before = [p for p in cands if p < off]
+        p = before[-1] if before else (cands[0] if cands else None)
+        if p is not None:
+            out[off] = lo12_target(word(off), _adrp_page(word(p), addr + p), r.type)
+    return out
+
+
+def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name,
+            paths: SourcePaths | None = None) -> Result:
     by_name, by_addr, data_syms = syms
     v = orig.version
     addr, size = fn.addr(v), fn.size(v)
@@ -371,6 +467,9 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name) 
     n = min(len(cf.code), size or 0)
     o_img = orig.img
     o_targets = {off: t for off, _, _, t in decode(o_img, addr, n - n % 4)} if n >= 4 else {}
+    for off, t in adrp_pairs({o: r for o, r in cf.relocs.items() if o < n - n % 4}, o_img, addr).items():
+        if o_targets.get(off) is None:
+            o_targets[off] = t
 
     def expected_addr(r: Reloc) -> tuple[int | None, str]:
         """Absolute expected target for a reloc's symbol (None = unknown) + description."""
@@ -420,6 +519,13 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name) 
         if sec["sh_flags"] & SHF_STRINGS:
             end = blob.find(b"\0", start)
             end = end + 1 if end >= 0 else len(blob)
+            if paths is not None:
+                o_end = o_img.find(b"\0", otgt)
+                mine = blob[start:end].rstrip(b"\0").decode("latin-1")
+                theirs = o_img[otgt:o_end if o_end >= 0 else otgt].decode("latin-1")
+                same = paths.compare(cf.source, mine, theirs)
+                if same is not None:
+                    return None if same else f"source path {mine!r} names another file than the original's {theirs!r}"
         else:
             end = start + (sec["sh_entsize"] or min(MAX_LITERAL, len(blob) - start))
         ptrs = data_relocs(r.sym_shndx)
@@ -553,9 +659,9 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name) 
 
 
 def compare_copies(cf: CompiledFunc, fn: Function, orig: Original, syms,
-                   verbose_name) -> list[tuple[CompiledFunc, Result]]:
+                   verbose_name, paths: SourcePaths | None = None) -> list[tuple[CompiledFunc, Result]]:
     """compare() for every distinct copy of a function (one unless weak/COMDAT copies differ)."""
-    return [(c, compare(c, fn, orig, syms, verbose_name)) for c in cf.copies()]
+    return [(c, compare(c, fn, orig, syms, verbose_name, paths)) for c in cf.copies()]
 
 
 def merge_results(per_copy: list[tuple[CompiledFunc, Result]]) -> Result:
@@ -641,6 +747,10 @@ def main() -> int:
     dm = demangler()
     origs = {v: Original(v) for v in VERSIONS}
     compiled = {v: load_objects(ROOT / "build" / v) for v in VERSIONS}
+    paths = SourcePaths(read_source_paths(SOURCE_PATHS_CSV), ROOT)
+    # References resolve through aliases too: a call to a complete constructor
+    # or destructor (C1/D1) reaches the row of the base one (C2/D2) it aliases.
+    syms = (with_aliases(by_name, compiled.values()), *syms[1:])
 
     wanted = None
     if args.names:
@@ -652,7 +762,8 @@ def main() -> int:
 
     all_names = sorted(set().union(*(c.keys() for c in compiled.values())))
     absent = read_absent()
-    n_ok = n_bad = n_absent = n_alias = 0
+    foreign = read_absent(FOREIGN_CSV)
+    n_ok = n_bad = n_absent = n_alias = n_foreign = 0
     status_updates: dict[str, str] = {}
     for name in all_names:
         fn = by_name.get(name)
@@ -669,6 +780,15 @@ def main() -> int:
             continue
         if wanted is not None and fn.key not in wanted:
             continue
+        if name in foreign:
+            strong = strong_definition(name, compiled.values())
+            if strong is None:
+                n_foreign += 1
+                continue
+            print(f"BAD {fn.scope:11} {dm(name)}  is in data/foreign_copies.csv, but {strong} "
+                  f"defines it strongly, so the linker keeps that one")
+            n_bad += 1
+            continue
         results = {}
         per_copy: dict[str, list[tuple[CompiledFunc, Result]]] = {}
         for v in VERSIONS:
@@ -681,7 +801,7 @@ def main() -> int:
             if cf is None:
                 results[v] = Result(False, [f"not compiled in the {v} build (missing #if branch?)"])
                 continue
-            per_copy[v] = compare_copies(cf, fn, origs[v], syms, dm)
+            per_copy[v] = compare_copies(cf, fn, origs[v], syms, dm, paths)
             results[v] = merge_results(per_copy[v])
         ok = all(r.ok for r in results.values())
         tag = "OK " if ok else "BAD"
@@ -709,6 +829,9 @@ def main() -> int:
     print(f"\n{n_ok} matching, {n_bad} not matching")
     if n_absent:
         print(f"({n_absent} compiled functions skipped as not in the executable: data/absent_functions.csv)")
+    if n_foreign:
+        print(f"({n_foreign} weak/COMDAT functions skipped: the executable keeps another library's copy, "
+              f"data/foreign_copies.csv)")
     if n_alias and wanted is None:
         print(f"({n_alias} compiled aliases of checked functions skipped, e.g. D1 = D2 destructors)")
     if args.update and status_updates:

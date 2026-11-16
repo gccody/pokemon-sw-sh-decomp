@@ -10,8 +10,13 @@ in Sword ...), unique symbol names (local symbols file-qualified as
 <symbol>@<file stem>, see tools/symbols.py), and that rows stay sorted by address.
 
 data/data_symbols.csv: header, hex addresses, unique symbol names.
+data/source_paths.csv: header, relative directories, absolute originals,
+evidence for every row (tools/source_paths.py).
 data/absent_functions.csv: compiled functions that are not in the executable;
 valid unique names with a reason, none of them also a row of functions.csv.
+data/foreign_copies.csv: weak/COMDAT functions whose copy in the executable
+comes from a library this repository doesn't build; valid unique names with a
+reason, each a row of functions.csv and not also absent.
 data/areas.csv: header, valid kind/confidence, unique area names; per game
 (SwordStart/SwordEnd, ShieldStart/ShieldEnd): start < end, rows sorted and
 non-overlapping, so areas in both games are in the same order. A game's pair is
@@ -36,6 +41,7 @@ from common import (  # noqa: E402
     read_functions_csv,
 )
 import symbols  # noqa: E402
+from source_paths import lint_source_paths  # noqa: E402
 
 DATA_SYMBOLS_HEADER = ["Sword", "Shield", "Size", "Name"]
 ABSENT_HEADER = ["Name", "Reason"]
@@ -48,6 +54,14 @@ FORBIDDEN_SUFFIXES = (".xci", ".nsp", ".nca", ".nso", ".nro", ".elf", ".keys", "
 FORBIDDEN_PREFIXES = ("data/original/", "assets/Pokemon Sword/", "assets/Pokemon Shield/")
 MAX_TRACKED_BYTES = 1024 * 1024  # functions.csv (~6 MB) is allowed explicitly below
 LARGE_FILE_ALLOWLIST = {"data/functions.csv"}
+
+
+def _names(path: Path) -> set[str]:
+    """The Name column of a CSV (empty if it doesn't exist)."""
+    if not path.exists():
+        return set()
+    with open(path, newline="", encoding="utf-8") as f:
+        return {r["Name"] for r in csv.DictReader(f)}
 
 
 def _read_header(path: Path) -> list[str]:
@@ -131,6 +145,18 @@ def lint_data_symbols(path: Path) -> list[str]:
 
 
 def lint_absent(path: Path, function_names: set[str] = frozenset()) -> list[str]:
+    return _lint_name_reasons(path, function_names, named=False)
+
+
+def lint_foreign(path: Path, function_names: set[str] = frozenset(),
+                 absent_names: set[str] = frozenset()) -> list[str]:
+    return _lint_name_reasons(path, function_names, named=True, absent_names=absent_names)
+
+
+def _lint_name_reasons(path: Path, function_names: set[str], named: bool,
+                       absent_names: set[str] = frozenset()) -> list[str]:
+    """A sorted Name,Reason CSV. `named`: every name must be a row of
+    functions.csv (otherwise: none may be)."""
     if not path.exists():
         return []
     header = _read_header(path)
@@ -147,8 +173,12 @@ def lint_absent(path: Path, function_names: set[str] = frozenset()) -> list[str]
                 errors.append(f"{where}: bad name {name!r}")
             elif name in names:
                 errors.append(f"{where}: duplicate name {name} (also line {names[name]})")
-            elif name in function_names:
+            elif not named and name in function_names:
                 errors.append(f"{where}: {name} is in functions.csv, so it is in the executable")
+            elif named and name not in function_names:
+                errors.append(f"{where}: {name} is not in functions.csv")
+            elif named and name in absent_names:
+                errors.append(f"{where}: {name} is also in absent_functions.csv")
             if not (r["Reason"] or "").strip():
                 errors.append(f"{where}: give a reason")
             if name < prev:
@@ -263,8 +293,11 @@ def main(argv: list[str] | None = None) -> int:
     errors, n_funcs, n_named = lint_functions(args.data / "functions.csv")
     errors += lint_data_symbols(args.data / "data_symbols.csv")
     functions = read_functions_csv(args.data / "functions.csv") if n_funcs else []
-    errors += lint_absent(args.data / "absent_functions.csv", {f.name for f in functions if f.name})
+    names = {f.name for f in functions if f.name}
+    errors += lint_absent(args.data / "absent_functions.csv", names)
+    errors += lint_foreign(args.data / "foreign_copies.csv", names, _names(args.data / "absent_functions.csv"))
     errors += lint_areas(args.data / "areas.csv", functions)
+    errors += lint_source_paths(args.data / "source_paths.csv", ROOT)
     if not args.no_git:
         tracked = git_tracked_files()
         if tracked is None:

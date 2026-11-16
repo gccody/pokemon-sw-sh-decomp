@@ -17,9 +17,10 @@ relocation *targets*, to pin names to addresses:
   - a call that reaches a PLT stub in the original must call that import by name
     in the compiled code (otherwise the code isn't the same);
   - once a name is pinned to an original with the same code, every call in it
-    pins the callee's name to the original's branch target, and every vtable it
-    references (adrp/lo12 or GOT) pins the virtual functions to the original
-    vtable's slots. This repeats until nothing changes.
+    pins the callee's name to the original's branch target, every function whose
+    address it takes (adrp/lo12 or GOT) to that address, and every vtable or other
+    pointer table it references to the original table's slots. This repeats
+    until nothing changes.
 
 Each original then gets a class:
 
@@ -34,12 +35,18 @@ Each original then gets a class:
   none             none of the above
 
 Names are file-qualified like compiler_sweep.py's (tools/symbols.py). The
-object files must be compiler_sweep.py's, named `<hash>_<stem>.o`.
+objects are either compiler_sweep.py's, named `<hash>_<stem>.o`, or those of a
+CMake build dir, read through its compile_commands.json:
+
+    python tools/sweep_attribute.py build/sword --source-prefix lib/physx/ \
+        --range 0x7100010a90-0x71003035e0 --game sword --out attr.csv
 """
 from __future__ import annotations
 
 import argparse
 import csv
+import json
+import re
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -75,6 +82,8 @@ class Copy(NamedTuple):
     name: str
     words: tuple[int, ...]
     relocs: tuple[Reloc, ...] = ()
+    tu: str = ""  # stem of the object that defines this copy
+    order: int = -1  # position in that object: its section index (-ffunction-sections), then offset
 
     @property
     def reloc_indices(self) -> frozenset[int]:
@@ -112,11 +121,12 @@ def lo12(w: int) -> int:
     imm = (w >> 10) & 0xFFF
     if (w & 0x1F000000) == 0x11000000:  # add/sub immediate
         return imm << (12 if w & (1 << 22) else 0)
-    return imm * ldst_scale(w)
+    return imm << ldst_scale(w)
 
 
 def read_object(path: Path, stem: str) -> tuple[list[Copy], dict[str, dict[int, str]]]:
-    """Functions and vtables (`_ZTV*`: offset -> function name) of one object file."""
+    """Functions and pointer tables of one object file: vtables (`_ZTV*`) and
+    other data objects with absolute pointers, each as offset -> target name."""
     copies, vtables = [], {}
     src = Path(stem + ".cpp")
     with open(path, "rb") as fh:
@@ -152,16 +162,47 @@ def read_object(path: Path, stem: str) -> tuple[list[Copy], dict[str, dict[int, 
             mine = [(o - v, t, k, ad) for o, t, k, ad in rels.get(sh, ()) if v <= o < v + n]
             if s["st_info"]["type"] == "STT_FUNC" and n >= 4:
                 code = elf.get_section(sh).data()[v:v + n]
-                copies.append(Copy(qual(s), cs.words(code), tuple(Reloc(o // 4, t, k, ad) for o, t, k, ad in mine)))
-            elif s.name.startswith("_ZTV"):
-                vtables.setdefault(qual(s), {o: k for o, t, k, _ in mine if t == R_ABS64})
+                copies.append(Copy(qual(s), cs.words(code), tuple(Reloc(o // 4, t, k, ad) for o, t, k, ad in mine),
+                                   stem, (sh << 32) | v))
+            elif s.name.startswith("_ZTV") or s["st_info"]["type"] == "STT_OBJECT":
+                table = {o: k for o, t, k, _ in mine if t == R_ABS64}
+                if table or s.name.startswith("_ZTV"):
+                    vtables.setdefault(qual(s), table)
+                if table and s["st_info"]["bind"] == "STB_LOCAL":
+                    # code refers to a local object through its section symbol
+                    sec = f"<{elf.get_section(sh).name}@{stem}>"
+                    vtables.setdefault(sec, {}).update({v + o: k for o, k in table.items()})
     return copies, vtables
 
 
-def read_objects(objdir: Path) -> tuple[list[Copy], dict[str, dict[int, str]]]:
+def build_objects(build_dir: Path, source_prefix: str = "") -> list[tuple[Path, str]]:
+    """(object, stem) for the sources of a CMake build dir (its compile_commands.json)
+    whose path relative to the repository starts with `source_prefix` (e.g. lib/physx/)."""
+    from common import ROOT
+
+    out = []
+    for e in json.loads((build_dir / "compile_commands.json").read_text()):
+        src = Path(e["file"])
+        try:
+            rel = src.resolve().relative_to(ROOT.resolve()).as_posix()
+        except ValueError:
+            rel = src.as_posix()
+        obj = Path(e["directory"]) / e["output"]
+        if rel.startswith(source_prefix) and obj.exists():
+            out.append((obj, symbols.file_stem(src)))
+    return sorted(out)
+
+
+def read_objects(objdir: Path, source_prefix: str = "") -> tuple[list[Copy], dict[str, dict[int, str]]]:
+    """Objects of a compiler_sweep.py configuration (`<hash>_<stem>.o`), or of a
+    CMake build dir (one with compile_commands.json, filtered by `source_prefix`)."""
+    if (objdir / "compile_commands.json").exists():
+        objs = build_objects(objdir, source_prefix)
+    else:
+        objs = [(obj, obj.stem.split("_", 1)[1]) for obj in sorted(objdir.glob("*.o"))]
     copies, vtables = [], {}
-    for obj in sorted(objdir.glob("*.o")):
-        c, v = read_object(obj, obj.stem.split("_", 1)[1])
+    for obj, stem in objs:
+        c, v = read_object(obj, stem)
         copies += c
         for k, t in v.items():
             vtables.setdefault(k, t)
@@ -209,6 +250,7 @@ def attribute(copies: list[Copy], vtables: dict[str, dict[int, str]], orig: Orig
         by_name[c.name].append((c, exact | trap))
         trap_only[c.name] |= trap
     pinned: dict[str, int] = {}
+    pinned_at: dict[int, set[str]] = defaultdict(set)  # address -> alias keys pinned there
     conflicts: dict[str, set[int]] = defaultdict(set)
 
     def pin(name: str, addr: int) -> bool:
@@ -219,12 +261,23 @@ def attribute(copies: list[Copy], vtables: dict[str, dict[int, str]], orig: Orig
                 conflicts[name] |= {pinned[name], addr}
             return False
         pinned[name] = addr
+        pinned_at[addr].add(alias_key(name))
         return True
 
     def calls_agree(c: Copy, a: int) -> bool:
+        """Every call of `c`, placed at `a`, reaches where its callee is pinned,
+        and no call reaches an original pinned to another function."""
         ws = orig.words[a]
-        return all(r.type not in R_CALL or r.target not in pinned
-                   or pinned[r.target] == branch_target(ws, a, r.index) - r.addend for r in c.relocs)
+        for r in c.relocs:
+            if r.type not in R_CALL:
+                continue
+            t = branch_target(ws, a, r.index) - r.addend
+            if r.target in pinned:
+                if pinned[r.target] != t:
+                    return False
+            elif pinned_at.get(t) and alias_key(r.target) not in pinned_at[t]:
+                return False
+        return True
 
     def data_refs(c: Copy, a: int):
         """(symbol, addend) -> address, resolved from the original's adrp/lo12 and GOT pairs."""
@@ -267,12 +320,45 @@ def attribute(copies: list[Copy], vtables: dict[str, dict[int, str]], orig: Orig
                     if t is not None and t not in orig.plt:
                         changed |= pin(r.target, t - r.addend)
                 for (sym, addend), d in data_refs(c, a).items():
+                    if sym in by_name and d - addend in orig.words:
+                        # the function's address taken (a table filled at run time)
+                        changed |= pin(sym, d - addend)
                     for off, fn in vtables.get(sym, {}).items():
                         v = orig.slots.get(d - addend + off)
                         if isinstance(v, int) and v in orig.words:
                             changed |= pin(fn, v)
     for name in conflicts:
         pinned.pop(name, None)
+    # One original is one function. Where several names are pinned to one
+    # original, those whose code differs from it give way to one whose code is
+    # the same; then a name pinned by its unique code before its callees were
+    # pinned stays only if its calls still agree. Until nothing changes.
+    def same_code(name: str, a: int) -> bool:
+        return any(a in m for _, m in by_name.get(name, ()))
+
+    def reindex():
+        pinned_at.clear()
+        for n, b in pinned.items():
+            pinned_at[b].add(alias_key(n))
+
+    at: dict[int, list[str]] = defaultdict(list)
+    for name, a in pinned.items():
+        at[a].append(name)
+    for a, names in at.items():
+        if len(names) > 1 and any(same_code(n, a) for n in names):
+            for n in names:
+                if by_name.get(n) and not same_code(n, a):
+                    del pinned[n]
+    reindex()
+    changed = True
+    while changed:
+        changed = False
+        for name, a in list(pinned.items()):
+            cl = [c for c, m in by_name.get(name, ()) if a in m]
+            if cl and not any(calls_agree(c, a) for c in cl):
+                del pinned[name]
+                changed = True
+        reindex()
     matches = {n: set().union(*(m for _, m in cl)) for n, cl in by_name.items()}
     return Result(pinned, dict(conflicts), matches, dict(trap_only))
 
@@ -302,6 +388,125 @@ def classify(res: Result, orig: Original) -> list[tuple[int, int, str, list[str]
         else:
             rows.append((a, len(ws) * 4, "none", []))
     return rows
+
+
+_STRUCTOR = re.compile(r"([CD])[12](E)")
+
+
+def alias_key(name: str) -> str:
+    """Complete (C1/D1) and base (C2/D2) constructors and destructors share a key:
+    clang emits the complete one as an alias of the base one when they're the same code."""
+    return _STRUCTOR.sub(r"\1?\2", name, count=1)
+
+
+def prefer_base(names) -> str:
+    """The name to record for a group of aliases: the base (C2/D2) one, as in functions.csv."""
+    return min(names, key=lambda n: (not re.search(r"[CD]2E", n), n))
+
+
+def resolve_layout(res: Result, copies: list[Copy], orig: Original,
+                   tables: dict[str, dict[int, str]] | None = None) -> dict[int, tuple[str, str]]:
+    """One name per original: address -> (name, "pinned" | "layout").
+
+    Code alone can't place identical copies (a `static` function from a header
+    in every TU, one-instruction getters of different classes), and it can pin
+    several names to one address. The link order can. With -ffunction-sections
+    the linker keeps each object's functions together and in the object's
+    section order. So:
+
+      - an original with exactly one pinned name of the same code gets it ("pinned");
+      - an original with several candidates (same code, not used elsewhere)
+        gets the one defined in the TU of its nearest placed neighbours, between
+        them in that TU's section order ("layout"). If the neighbours are in two
+        TUs, the candidate must come after the previous one in its TU or before
+        the next one in its. Repeated until nothing changes.
+
+    A neighbour counts only if its name is defined in exactly one TU, because
+    which copy of a COMDAT (template, inline) function the linker kept isn't
+    known. Every name is used at most once. Complete and base constructors or
+    destructors at one address (C1/C2, D1/D2: aliases) count as one name, and
+    the base one is recorded (alias_key).
+    """
+    # Work on alias keys; members maps a key back to its names.
+    members: dict[str, set[str]] = defaultdict(set)
+    tus: dict[str, set[str]] = defaultdict(set)
+    order: dict[tuple[str, str], int] = {}
+    for c in copies:
+        k = alias_key(c.name)
+        members[k].add(c.name)
+        if c.tu:
+            tus[k].add(c.tu)
+            order[c.tu, k] = min(order.get((c.tu, k), c.order), c.order)
+    cands: dict[int, set[str]] = defaultdict(set)
+    for n, m in res.matches.items():
+        if n.startswith("<"):
+            continue
+        for a in m:
+            cands[a].add(alias_key(n))
+    pinned_at: dict[int, set[str]] = defaultdict(set)
+    for n, a in res.pinned.items():
+        if a in res.matches.get(n, ()):
+            pinned_at[a].add(alias_key(n))
+
+    # Names something refers to (a call, a vtable or another pointer table). With
+    # --gc-sections only referenced functions are kept, so of two candidates with
+    # the same code the referenced one wins.
+    referenced = {alias_key(r.target) for c in copies for r in c.relocs}
+    referenced |= {alias_key(fn) for table in (tables or {}).values() for fn in table.values()}
+
+    def pick(keys: set[str]) -> str | None:
+        if len(keys) == 1:
+            return next(iter(keys))
+        live = keys & referenced
+        return next(iter(live)) if len(live) == 1 else None
+
+    out: dict[int, tuple[str, str]] = {}
+    for a, ns in pinned_at.items():
+        k = pick(ns)
+        if k is not None:
+            out[a] = (k, "pinned")
+    used = {n for n, _ in out.values()}
+    addrs = sorted(orig.words)
+    pos = {a: i for i, a in enumerate(addrs)}
+
+    def anchor(i: int, step: int) -> tuple[str, str] | None:
+        """(tu, name) of the nearest placed original before (step -1) or after (+1) index i."""
+        i += step
+        while 0 <= i < len(addrs):
+            hit = out.get(addrs[i])
+            if hit is not None and len(tus.get(hit[0], ())) == 1:
+                return next(iter(tus[hit[0]])), hit[0]
+            i += step
+        return None
+
+    changed = True
+    while changed:
+        changed = False
+        for a in addrs:
+            if a in out or not cands.get(a):
+                continue
+            free = cands[a] - used
+            if not free:
+                continue
+            prev, nxt = anchor(pos[a], -1), anchor(pos[a], 1)
+            ok = set()
+            for n in free:
+                for tu in tus.get(n, ()):
+                    o = order.get((tu, n))
+                    after_prev = prev is not None and prev[0] == tu and o > order[prev]
+                    before_next = nxt is not None and nxt[0] == tu and o < order[nxt]
+                    if prev is not None and nxt is not None and prev[0] == nxt[0]:
+                        good = after_prev and before_next
+                    else:
+                        good = after_prev or before_next
+                    if good:
+                        ok.add(n)
+            n = pick(ok)
+            if n is not None:
+                out[a] = (n, "layout")
+                used.add(n)
+                changed = True
+    return {a: (prefer_base(members[k]) if members.get(k) else k, how) for a, (k, how) in out.items()}
 
 
 def load_original(game: str, lo: int, hi: int, module: str = "main") -> Original:
@@ -335,15 +540,18 @@ def summary(rows) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("objdir", type=Path, help="one configuration's objects (compiler_sweep.py --obj-dir DIR/<config>)")
+    ap.add_argument("objdir", type=Path, help="one configuration's objects (compiler_sweep.py --obj-dir DIR/<config>), "
+                    "or a CMake build dir such as build/sword")
+    ap.add_argument("--source-prefix", default="",
+                    help="with a build dir: only sources under this repository path, e.g. lib/physx/")
     ap.add_argument("--range", required=True, help="original address range, e.g. 0x7100010a90-0x71003035e0")
     ap.add_argument("--game", default="sword")
     ap.add_argument("--module", default="main")
-    ap.add_argument("--out", type=Path, help="write Address,Size,Class,Names (CSV)")
+    ap.add_argument("--out", type=Path, help="write Address,Size,Class,Names,Name,How (CSV)")
     args = ap.parse_args(argv)
 
     lo, hi = (int(x, 16) - BASE for x in args.range.split("-"))
-    copies, vtables = read_objects(args.objdir)
+    copies, vtables = read_objects(args.objdir, args.source_prefix)
     if not copies:
         raise SystemExit(f"no objects in {args.objdir}")
     orig = load_original(args.game, lo, hi, args.module)
@@ -352,12 +560,17 @@ def main(argv: list[str] | None = None) -> int:
     print(f"{len(copies)} compiled functions, {len(vtables)} vtables, {len(orig.words)} originals; "
           f"{len(res.pinned)} names pinned, {len(res.conflicts)} pinned to two addresses (left out)\n")
     print(summary(rows))
+    chosen = resolve_layout(res, copies, orig, vtables)
+    how = Counter(h for _, h in chosen.values())
+    print(f"\none name per original: {how['pinned']} pinned, {how['layout']} placed by link order, "
+          f"{len(orig.words) - len(chosen)} left without a name")
     if args.out:
         with open(args.out, "w", newline="", encoding="utf-8") as fh:
             w = csv.writer(fh, lineterminator="\n")
-            w.writerow(["Address", "Size", "Class", "Names"])
+            w.writerow(["Address", "Size", "Class", "Names", "Name", "How"])
             for a, n, cls, names in rows:
-                w.writerow([f"{a + BASE:#x}", n, cls, ";".join(names)])
+                name, h = chosen.get(a, ("", ""))
+                w.writerow([f"{a + BASE:#x}", n, cls, ";".join(names), name, h])
     return 0
 
 

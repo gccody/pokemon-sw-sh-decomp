@@ -276,3 +276,20 @@ def test_absent_functions(write_csv):
 def test_repository_absent_functions_are_clean():
     names = {f.name for f in lint.read_functions_csv(ROOT / "data" / "functions.csv") if f.name}
     assert lint.lint_absent(ROOT / "data" / "absent_functions.csv", names) == []
+
+
+def test_foreign_copies(write_csv):
+    ok = write_csv("foreign_copies.csv", ABSENT_HEADER + "__clang_call_terminate,another library's copy\n")
+    assert lint.lint_foreign(ok, {"__clang_call_terminate"}) == []
+    bad = write_csv("foreign_copies.csv", ABSENT_HEADER + "a,x\nb,\nc,x\n")
+    errors = lint.lint_foreign(bad, {"b", "c"}, absent_names={"c"})
+    assert any("a is not in functions.csv" in e for e in errors)
+    assert any("give a reason" in e for e in errors)
+    assert any("c is also in absent_functions.csv" in e for e in errors)
+    assert lint.lint_foreign(write_csv("missing_dir_ok.csv", "Name,Reason\n")) == []
+
+
+def test_repository_foreign_copies_are_clean():
+    names = {f.name for f in lint.read_functions_csv(ROOT / "data" / "functions.csv") if f.name}
+    assert lint.lint_foreign(ROOT / "data" / "foreign_copies.csv", names,
+                             lint._names(ROOT / "data" / "absent_functions.csv")) == []

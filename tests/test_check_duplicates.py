@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import json
 import struct
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import pytest
@@ -43,8 +43,10 @@ class _Sec:
     entsize: int = 0
 
 
-def make_object(funcs: list[Func], strings_prefix: bytes = b"") -> bytes:
-    """An ELF64 AArch64 relocatable defining `funcs`, each in its own section."""
+def make_object(funcs: list[Func], strings_prefix: bytes = b"", consts: bool = False) -> bytes:
+    """An ELF64 AArch64 relocatable defining `funcs`, each in its own section.
+    With `consts`, each Func.string is a 16-byte constant of a .rodata.cst16
+    section instead of a string."""
     secs = [_Sec("", 0)]
     strtab = bytearray(b"\0")
 
@@ -57,9 +59,12 @@ def make_object(funcs: list[Func], strings_prefix: bytes = b"") -> bytes:
     for f in funcs:
         if f.string is not None:
             str_offsets[f.name] = len(pool)
-            pool += f.string + b"\0"
+            pool += f.string + (b"" if consts else b"\0")
     str_idx = None
-    if pool:
+    if pool and consts:
+        str_idx = len(secs)
+        secs.append(_Sec(".rodata.cst16", SHT_PROGBITS, SHF_ALLOC | SHF_MERGE, bytes(pool), align=16, entsize=16))
+    elif pool:
         str_idx = len(secs)
         secs.append(_Sec(".rodata.str1.1", SHT_PROGBITS, SHF_ALLOC | SHF_MERGE | SHF_STRINGS, bytes(pool), entsize=1))
 
@@ -213,6 +218,32 @@ def test_fingerprint_compares_strings_not_their_offsets(build_dir, capsys):
     assert capsys.readouterr().out.count("\n") == 1
 
 
+def test_fingerprint_compares_merged_constants_not_their_offsets(build_dir, capsys):
+    one, two = bytes(range(16)), bytes(range(16, 32))
+    a = make_object([Func("_Z1gv", bind="weak", string=one)], consts=True)
+    b = make_object([Func("_Z1gv", bind="weak", string=one)], strings_prefix=two, consts=True)
+    c = make_object([Func("_Z1gv", bind="weak", string=two)], consts=True)
+    out = check.load_objects(build_dir({"a.cpp": a, "b.cpp": b, "c.cpp": c}))
+    assert [Path(c.source).name for c in out["_Z1gv"].copies()] == ["a.cpp", "c.cpp"]
+    assert capsys.readouterr().out.count("\n") == 1
+
+
+def test_fingerprint_folds_separators_of_this_checkouts_paths(build_dir, capsys):
+    # clang spells a header "include\X.h" or "include/X.h" depending on the
+    # include that found it: one file, so one copy. Paths outside the checkout
+    # (an original's spelling) stay as they are.
+    root = check.ROOT.as_posix().encode()
+    back, fwd = root.replace(b"/", b"\\") + b"\\inc\\X.h", root + b"/inc/X.h"
+    other = b"D:\\elsewhere\\X.h"
+    objs = {"a.cpp": make_object([Func("_Z1gv", bind="weak", string=back)]),
+            "b.cpp": make_object([Func("_Z1gv", bind="weak", string=fwd)]),
+            "c.cpp": make_object([Func("_Z1gv", bind="weak", string=other)]),
+            "d.cpp": make_object([Func("_Z1gv", bind="weak", string=other.replace(b"\\", b"/"))])}
+    out = check.load_objects(build_dir(objs))
+    assert [Path(c.source).name for c in out["_Z1gv"].copies()] == ["a.cpp", "c.cpp", "d.cpp"]
+    capsys.readouterr()
+
+
 def test_merge_results_requires_every_copy_to_match():
     a = check.CompiledFunc("f", Path("a.o"), RET, {}, None, "a.cpp")
     b = check.CompiledFunc("f", Path("b.o"), RET, {}, None, "b.cpp")
@@ -229,3 +260,36 @@ def test_alias_groups():
     syms = [("_ZN1AD2Ev", 3, 0, 4), ("_ZN1AD1Ev", 3, 0, 4), ("_ZN1AD0Ev", 4, 0, 4),
             ("other", 5, 0, 8), ("same_place_other_size", 5, 0, 4)]
     assert check.alias_groups(syms) == {"_ZN1AD2Ev": ("_ZN1AD1Ev",), "_ZN1AD1Ev": ("_ZN1AD2Ev",)}
+
+
+def test_with_aliases_maps_a_complete_structor_to_the_base_row():
+    # a call to D1 (no row of its own) reaches the row of the D2 it aliases
+    d2, d1 = (check.CompiledFunc(n, Path("a.o"), RET, {}, None, "a.cpp", aliases=(o,))
+              for n, o in (("_ZN1AD2Ev", "_ZN1AD1Ev"), ("_ZN1AD1Ev", "_ZN1AD2Ev")))
+    lone = check.CompiledFunc("_ZN1BD1Ev", Path("a.o"), RET, {}, None, "a.cpp", aliases=("_ZN1BD2Ev",))
+    row = object()
+    by_name = {"_ZN1AD2Ev": row}
+    out = check.with_aliases(by_name, [{"_ZN1AD2Ev": d2, "_ZN1AD1Ev": d1, "_ZN1BD1Ev": lone}])
+    assert out == {"_ZN1AD2Ev": row, "_ZN1AD1Ev": row}
+    assert by_name == {"_ZN1AD2Ev": row}
+
+
+def test_strong_definition_rules_out_a_foreign_copy():
+    weak = check.CompiledFunc("f", Path("a.o"), RET, {}, None, "a.cpp", mergeable=True)
+    strong = check.CompiledFunc("f", Path("b.o"), RET, {}, None, "b.cpp")
+    assert check.strong_definition("f", [{"f": weak}, {}]) is None
+    assert check.strong_definition("f", [{"f": weak}, {"f": strong}]) == "b.cpp"
+
+
+def test_adrp_pairs_survive_a_simd_write_to_the_same_number():
+    # adrp x9, page 0x5000; fmul v9.4s, v1.4s, v2.4s; ldr x9, [x9, #0x18] (GOT)
+    # The linear decode drops x9's page at the fmul (destination field 9).
+    words = (0x90000029, 0x6E22DC29, 0xF9400D29)
+    img = b"\0" * 0x1000 + struct.pack("<3I", *words)
+    got = check.Reloc(check.ADR_GOT_PAGE, "_ZTV3Foo", "STT_OBJECT", 5, 0, 0)
+    relocs = {0: got, 8: replace(got, type=check.LD64_GOT_LO12_NC)}
+    assert dict((o, t) for o, _, _, t in check.decode(img, 0x1000, 12))[8] is None
+    assert check.adrp_pairs(relocs, img, 0x1000) == {8: 0x5018}
+    # a pairing needs the lo12's base register: none for ldr x9, [x8, #0x18]
+    img2 = img[:-4] + struct.pack("<I", 0xF9400D09)
+    assert check.adrp_pairs(relocs, img2, 0x1000) == {}
