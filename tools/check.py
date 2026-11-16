@@ -30,6 +30,9 @@ Before checking, each build dir must use the global codegen flags of
 cmake/toolchain-nx64.cmake (PKMN_CODEGEN_FLAGS): its last configure recorded
 the same list, and every command in its compile_commands.json contains it, in
 order. Otherwise the objects were built with other flags and check.py stops.
+It also stops if the build dir doesn't run tools/fix_traps.py on its objects
+(cmake/TrapEncoding.cmake records that it does): without it, every trap is
+`brk #1` instead of the NX trap word 0xe7ffdefe.
 """
 from __future__ import annotations
 
@@ -66,6 +69,7 @@ ABS64, PREL32 = 257, 261  # in data: address tables, jump tables
 MAX_LITERAL = 1024  # bytes compared for a reference into a data section without entsize
 SHF_STRINGS, SHF_EXECINSTR = 0x20, 0x4
 GRP_COMDAT = 1
+BRK_1, NX_TRAP = 0xD4200020, 0xE7FFDEFE  # upstream clang's trap, the originals' (tools/fix_traps.py)
 
 ABSENT_CSV = ROOT / "data" / "absent_functions.csv"
 TOOLCHAIN_FILE = ROOT / "cmake" / "toolchain-nx64.cmake"
@@ -265,6 +269,18 @@ def check_codegen_flags(build_dir: Path, flags: list[str]) -> str | None:
     return None
 
 
+def check_trap_rewrite(build_dir: Path) -> str | None:
+    """Error message if build_dir's objects aren't rewritten by tools/fix_traps.py, else None."""
+    cache = build_dir / "CMakeCache.txt"
+    text = cache.read_text(encoding="utf-8", errors="replace") if cache.exists() else ""
+    if not any(line.startswith("PKMN_TRAP_REWRITE:INTERNAL=") for line in text.splitlines()):
+        return (f"{build_dir} doesn't rewrite traps (cmake/TrapEncoding.cmake isn't in its configure), "
+                f"so its traps are `brk #1`, not the NX trap word. Rebuild (`cmake --build --preset "
+                f"{build_dir.name}`, or check.py without --no-build), or reconfigure with "
+                f"`cmake --preset {build_dir.name} --fresh`.")
+    return None
+
+
 def load_objects(build_dir: Path) -> dict[str, CompiledFunc]:
     out: dict[str, CompiledFunc] = {}
     # Only objects of sources that currently exist (stale .o files of deleted
@@ -429,7 +445,10 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name) 
         ow = struct.unpack_from("<I", o_img, addr + off)[0]
         r = cf.relocs.get(off)
         if r is None:
-            if cw != ow:
+            if cw == BRK_1 and ow == NX_TRAP:
+                bad(off, "trap is `brk #1`, not rewritten to 0xe7ffdefe: the object wasn't compiled "
+                         "through tools/fix_traps.py (cmake/TrapEncoding.cmake)")
+            elif cw != ow:
                 bad(off, f"instruction differs ({cw:08x} vs {ow:08x})")
             continue
         pc = addr + off
@@ -592,7 +611,7 @@ def main() -> int:
         build(list(VERSIONS))
     flags = codegen_flags()
     for v in VERSIONS:
-        err = check_codegen_flags(ROOT / "build" / v, flags)
+        err = check_codegen_flags(ROOT / "build" / v, flags) or check_trap_rewrite(ROOT / "build" / v)
         if err:
             print(f"error: {err}", file=sys.stderr)
             return 2
