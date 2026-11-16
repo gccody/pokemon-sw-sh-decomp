@@ -177,6 +177,90 @@ pairs, 3,720 copies, 74,530 FDEs, 1,250 `zPLR`).
 The four functions checked by `tools/check.py` still match in both games with
 clang 7.0.1.
 
+### Traps
+
+**Result: the traps are where upstream clang puts them. Only their encoding
+differs: Nintendo's toolchain writes the word `0xe7ffdefe` where upstream
+clang writes `brk #1` (`0xd4200020`). No clang option changes the encoding, so
+the build rewrites it in every object (`tools/fix_traps.py`, run as the
+compiler launcher by `cmake/TrapEncoding.cmake`).** With that, functions
+with a trap match in both games, for example the deleting destructors
+`0x710067b7b0` and `0x710067b7d0`. Compiled without the rewrite, they
+fail on that one word.
+
+**The encoding.** Every trap in every module Nintendo's toolchain built is
+`0xe7ffdefe`, the A32 encoding LLVM's ARM backend uses for `trap` (in A64 it's
+an unallocated encoding, so it raises an undefined-instruction exception).
+None of the modules has a `brk` with any immediate. The counts are the same
+in both games:
+
+| Module | Built by | `0xe7ffdefe` | `brk` |
+|---|---|---:|---:|
+| `main` | Game Freak (clang 7.0.1), PhysX (clang 6.0.1), Wwise, YEBIS, middleware | 650 | 0 |
+| `sdk` | Nintendo | 264 | 0 |
+| `subsdk0` | Nintendo | 309 | 0 |
+| `subsdk1` | Nintendo | 1 | 0 |
+| `rtld` | Nintendo | 0 | 0 |
+
+Code built with two clang versions (7.0.1 for Game Freak's code, 6.0.1 for
+PhysX) has the same word, and so do the SDK modules, which Nintendo builds
+and links separately from `main`. So it comes from the NX toolchain, not from any one
+library's source or build. Upstream clang 6.0.1 and 7.0.1 both lower
+`llvm.trap` to `brk #1` for `aarch64-none-elf`, and their `-mllvm --help-hidden`
+has no option for the encoding. In LLVM 7, `llvm.debugtrap` is `brk #1` too,
+so the originals can't show whether the toolchain also rewrites debug traps
+(the build rewrites every `brk #1`). No public source documents a vendor
+patch, and none mentions `0xe7ffdefe` on AArch64. Whether Nintendo's clang
+emits it directly (a patched AArch64 trap lowering) or an assembler or linker
+step rewrites it can't be told from the binary, and it makes no difference to
+the objects. Confidence: high that it's the toolchain, unknown which stage.
+
+**The placement.** The traps are `llvm.trap` calls that upstream clang and
+LLVM create by themselves, without any option. By context, in both games:
+
+| Context | Count | Game code | What it is |
+|---|---:|---:|---|
+| The whole function is one trap word, referenced from a vtable | 332 | 158 | Deleting destructor (D0) of an abstract class. Clang emits it as `llvm.trap` because it can never be called. The vtable slot before it is the D1. |
+| Last word of a function, after a call | 193 | 186 | Code on a path where a pointer is known to be null: the call (often with `x0 = 0`, e.g. a constructor or `memset`) is kept, and the store through the null pointer after it becomes a trap. |
+| Last word of a function, after anything else | 113 | 100 | The same for a null path that is branched to (`cbz x, <trap>`), typically a pointer converted to a base class at a non-zero offset (null check) and then used for a virtual call. |
+| Inside a function | 12 | 3 | The same, laid out mid-function. |
+| **Total** | **650** | **447** | |
+
+LLVM turns a store through a null pointer into `llvm.trap` (SimplifyCFG,
+`changeToUnreachable` with `UseLLVMTrap`), and InstCombine turns a load from
+null into such a store first. These are all upstream passes at `-O3`.
+
+It isn't LLVM's trap-on-unreachable (`TargetOptions::TrapUnreachable`, which
+some vendor toolchains turn on; LLVM 7 has it as `-mllvm -trap-unreachable`):
+
+- 5,813 game functions end in a call to a function that doesn't return, with
+  no trap after it. PhysX has 1,246 such functions, Lua 96, and none of them
+  has a trap either. With trap-on-unreachable, each would end in one.
+- Lua, built by Game Freak with the global flags, has no trap at all.
+  Compiling `lib/lua` with `-mllvm -trap-unreachable` gives 159 traps.
+- Of the 18 functions called right before a trap, 17 never end a function
+  without one, so they aren't `noreturn`. The trap belongs to the code after
+  the call.
+
+So the global flags stay as they are.
+
+**The rewrite.** `tools/fix_traps.py --run -- <compiler command>` compiles, then
+replaces `brk #1` with `0xe7ffdefe` in the object, in place. It changes only
+4-byte-aligned words in executable sections, inside code regions (`$x`
+mapping symbols, never `$d` data), at offsets without a relocation. Other
+`brk` immediates, data and other sections are left alone, and running it twice
+changes nothing. `cmake/TrapEncoding.cmake` makes it the C and C++ compiler
+launcher, so it applies to every target, including libraries with their own
+`COMPILER_VERSION`, and `compile_commands.json` keeps the plain compiler
+command. `tools/check.py` stops if a build dir doesn't rewrite traps, and it
+names the cause when a compiled `brk #1` meets the original's trap word.
+`tests/test_fix_traps.py` covers the rewrite with hand-built objects.
+
+The PhysX sweep's 31 lone traps (see "What the sweep doesn't reproduce") are
+the same case: deleting destructors of abstract classes, the same code once
+the trap word is rewritten. `compiler_sweep.py` compiles without the build,
+so it still sees `brk #1`.
+
 ## What's left open
 
 Game Freak's C++ was tested with 32 small decompiled game functions
@@ -534,9 +618,8 @@ encoding of LLVM's ARM `trap` (650 in both games: 447 in game code, 71 in
 Wwise, 31 in PhysX). `main` has no `brk` at all. Upstream clang lowers
 `llvm.trap` to `brk #1` on AArch64. In PhysX the 31 are deleting destructors
 that compile to a lone trap, and they match once `brk #1` is read as
-`0xe7ffdefe`. So the trap encoding is a property of the toolchain or the
-build, not of PhysX's compiler alone. Where it comes from (a vendor patch to
-LLVM, or a post-processing step) is open.
+`0xe7ffdefe`. So the trap encoding is a property of the toolchain, not of
+PhysX's compiler alone. The build rewrites it in every object (see "Traps").
 
 **The NX platform code** is 39 functions (2,508 bytes):
 
@@ -1027,11 +1110,9 @@ writes its objects to a `sweep_*` temp directory: delete it afterwards.
   `highestSetBitUnsafe`, `PxIsFinite` through `nn::cstd`). The others change no
   compiled function, so the stand-ins keep the Unix versions, which may not
   be the real ones.
-- **The trap word.** All 650 traps in `main` (447 in game code) are
-  `0xe7ffdefe`, and there's no `brk`. Upstream clang emits `brk #1`. Where the
-  encoding comes from isn't known. Until it is, no function with a trap
-  (`__builtin_trap`, a deleting destructor that can't be called) can match
-  with an upstream compiler, in PhysX or in game code.
+- **The trap word** is settled for matching: it's the NX toolchain's encoding
+  of `llvm.trap`, and the build rewrites `brk #1` to it (see "Traps"). Which
+  stage of the toolchain writes it is still unknown.
 - **Attribution limits.** 412 originals have the same code as some compiled
   function, but nothing pins a name to them (identical per-TU copies reached
   only through data). 11 names pin to two addresses and are left out. Their
