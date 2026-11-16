@@ -17,3 +17,6 @@ updates:
     ignore:
       - dependency-name: clang-format
       - dependency-name: ruff
+      # pre-commit 4.7+ needs Python 3.11, and the tools support 3.10. The
+      # `>=3.7` floor already lets newer Pythons get the latest release.
+      - dependency-name: pre-commit

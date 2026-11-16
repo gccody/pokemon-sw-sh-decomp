@@ -1,4 +1,4 @@
 pycryptodome>=3.20
-lz4>=4.3
+lz4>=4.4.5
 capstone>=5.0.9
-pyelftools>=0.31
+pyelftools>=0.33
