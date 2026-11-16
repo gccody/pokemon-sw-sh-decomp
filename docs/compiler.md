@@ -512,13 +512,132 @@ Notes for reproducing:
 - **`PX_PROFILE`, `PX_SUPPORT_PVD` and `-std`.** Codegen doesn't tell them apart
   in this corpus. The strings say release without PVD, and `gnu++14` is clang 6's
   default.
-- **Wwise's compiler and flags** (see below).
+- **Wwise** is clang 6.0.x too, but with the game's aliasing and exception
+  flags (see below).
 
 ## Wwise
 
-Audiokinetic Wwise (`0x71003035e0`-`0x710040f550`, 4,179 functions) is
-proprietary, so there's no source to sweep. **Its compiler can't be identified
-without source.** What the binary shows cheaply (Sword, same in Shield):
+**Result: Wwise 2017.2, built with upstream clang 6.0.x (like PhysX, not the
+game's 7.0.1) at `-O2` or `-O3`, with the game's codegen flags. That means
+strict aliasing off, unlike PhysX.**
+
+```
+clang 6.0.0 or 6.0.1  --target=aarch64-none-elf -mcpu=cortex-a57+fp+simd+crypto+crc
+  -O3 (or -O2) -DNDEBUG -D__ELF__ -funwind-tables -mno-implicit-float -fPIC
+  -fno-omit-frame-pointer -fno-strict-aliasing -ffunction-sections -fdata-sections
+  C++: -fno-exceptions -fno-rtti (from the binary, not from the corpus)
+```
+
+Wwise (`0x71003035e0`-`0x710040f550`, 4,179 functions) is proprietary. It
+contains one piece of public code that compiles to identical machine code:
+Matthew Conte's **TLSF** allocator, which backs Wwise's memory manager.
+Compiled with clang 6.0.0 or 6.0.1, it reproduces **all 8 TLSF functions in
+the binary (2,596 bytes) byte-for-byte, in both games**. No other version gets
+more than 6.
+
+Confidence:
+
+- **High** that the TLSF TU was built with clang 6.0.x, `-O2`/`-O3`,
+  `-fno-strict-aliasing`, unwind tables, frame pointers and the Cortex-A57
+  model.
+- **Medium** that this holds for all of Wwise. It's one TU, but it sits inside
+  the Wwise block, it's reached only through Wwise's allocator wrappers, and
+  Audiokinetic ships the sound engine as one set of prebuilt libraries. The
+  fingerprints below agree.
+- **Not determined:** 6.0.0 vs 6.0.1, `-O2` vs `-O3`, and `-g`.
+
+### Version
+
+The bank loader (`0x7100343f80`) rejects banks whose version isn't 128. It
+prints "Load bank failed : incompatible bank version. Bank was generated with
+%s version of Wwise. The Bank version is %d and the current SDK version is %d",
+with `mov w5, #0x80` as the SDK version and "an older"/"a newer" chosen by
+`cmp w4, #0x7f`. The binary has no Wwise version string. Audiokinetic doesn't
+publish a bank-version table, but the open-source bank parser
+[wwiser](https://github.com/bnnm/wwiser) (`wwiser/parser/wdefs.py`) lists
+**bank version 128 as Wwise 2017.2**. 2017.1 is 125/126 and 2018.1 is 132. Its
+example games for 128 include Let's Go Pikachu (Switch).
+
+### Public code in Wwise
+
+Wwise references only 12 strings, so most of this comes from constant tables
+(the public source's tables searched for in the image, not dumped) and from code
+shape.
+
+| Candidate | Found? | Usable as a corpus? |
+|---|---|---|
+| **TLSF** | `tlsf_create: Pool size must be at least %d bytes.` (`0x71003049d0`) | **Yes**, see below |
+| libvorbis | The float window tables `vwin256` to `vwin4096` of `window.c` are in `.data`, all used by `0x7100406560` | No. That function and the rest of the decoder are Wwise's own rewrite: libvorbis + libogg compiled with clang 6.0.1/7.0.1 at `-O2`/`-O3`/`-Os` give 0 hits, and the closest functions have similarity < 0.4. The fixed-point Tremor tables aren't present. |
+| libopus | No | Opus goes through the SDK's `nn::codec::HardwareOpusDecoder` (imported). `AK::OpusDecodingThread` is the thread that drives it. |
+| Kiss FFT | `kiss fft usage error: improper alloc` | Not Wwise: it's referenced from game code (`0x710078e07c`), and upstream `kiss_fft.c`/`kiss_fftr.c` give 0 hits there. |
+| zlib, CRC-32, MurmurHash3, xxHash32 | No strings, no CRC-32 table, no `movz`/`movk` of their constants in the Wwise range | |
+| FNV-1 | The 32-bit prime and offset basis (`0x01000193`, `0x811c9dc5`) are built 14 and 12 times | No. Wwise's ID hashing, a few instructions with no library code around it. |
+
+### TLSF corpus
+
+The binary's TLSF is the **2.0** release with one fix from 3.x:
+
+- `tlsf_create(void* mem, size_t bytes)` and its "Pool size must be at least"
+  message are 2.0. 3.0 split pool creation into `tlsf_add_pool`, with different
+  messages.
+- `tlsf_malloc` and `tlsf_memalign` use 3.x's `adjust_request_size`, which
+  checks `aligned < block_size_max` instead of `size < block_size_max`
+  (mattconte/tlsf `2b73b8a`, "Fix block_size_max handling in
+  adjust_request_size", 2016). Plain 2.0 misses exactly those two functions.
+  3.x misses `tlsf_create` and `block_locate_free`.
+- `tlsf_realloc`, `tlsf_check_heap` and `tlsf_walk_heap` aren't in the binary
+  (presumably dropped by `--gc-sections`).
+
+The Wwise side of TLSF is `0x71003045e0`-`0x7100305450`: allocator wrappers
+called from 1,024 Wwise functions (and 3 game functions), including the bank
+loader, with the TLSF functions between them. All addresses are the same in Shield.
+
+**Versions** (2.0 + the `2b73b8a` `adjust_request_size`, `-DNDEBUG`, 8 mapped):
+
+| Compiler | `-O3` hits | `-O3` bytes | `-O3` avg similarity | `-O2` hits | `-Os` hits |
+|---|---:|---:|---:|---:|---:|
+| clang 3.9.1 | 1 | 16 | 0.736 | 1 | 1 |
+| clang 4.0.1 | 3 | 464 | 0.814 | 3 | 2 |
+| clang 5.0.1 / 5.0.2 | 6 | 1,748 | 0.820 | 6 | 2 |
+| **clang 6.0.0 / 6.0.1** | **8** | **2,596** | **1.000** | **8** | 2 |
+| clang 7.0.0 / 7.0.1 / 7.1.0 | 2 | 104 | 0.779 | 2 | 2 |
+| clang 8.0.0 / 8.0.1 | 2 | 104 | 0.683 | 2 | 2 |
+| clang 9.0.1 | 1 | 16 | 0.658 | 1 | 1 |
+| clang 10.0.0 / 11.0.0 | 1 | 16 | 0.614 | 1 | 1 |
+
+The two functions every version from 4 to 8 gets are `tlsf_block_size` and
+`tlsf_malloc`. Where clang 7 differs, it's a redundant zero extension that
+clang 6 keeps before a 32-bit variable shift. The original has
+`and x10, x10, #0xffffffff` / `lsl w10, w12, w10` (`block_merge_next`, the
+`fl_bitmap` update in the inlined `remove_free_block`), and clang 7 drops the
+`and`. Unmodified upstream sources score lower but agree: TLSF 2.0 alone gets
+6/6 mapped with clang 6.0.x (5.0.x: 4, 7.x: 1), and mattconte `2b73b8a` gets
+5/5 (5.0.x and 6.0.x: 5, 7.x: 2).
+
+**Flags** (clang 6.0.1, `-O3 -DNDEBUG`, each row changes one thing, 8 mapped):
+
+| Variant | Hits | Bytes | What it shows |
+|---|---:|---:|---|
+| **final** | **8** | **2,596** | |
+| without `-DNDEBUG` | 2 | 104 | `tlsf_assert` is `assert`, and asserts are compiled out. |
+| `-O2` | 8 | 2,596 | Not distinguishable. |
+| `-Os` / `-O1` | 2 / 0 | | |
+| `-fstrict-aliasing` | 3 | 496 | Strict aliasing is off, as in the game and unlike PhysX. |
+| `-fno-unwind-tables` | 4 | 1,024 | |
+| `-fomit-frame-pointer` | 4 | 1,024 | |
+| `-mcpu=generic` | 1 | 16 | |
+| `-g`, `-mimplicit-float`, `-fno-pic`, `-fvisibility=hidden`, `-U__ELF__`, C++ (`-x c++ -std=gnu++14`, with or without `-fexceptions`) | 8 | 2,596 | Not distinguishable with this corpus. |
+
+The binary decides what TLSF can't:
+
+- **Exceptions off.** All Wwise FDEs are `zR`, even though Wwise is C++ with
+  destructors. With `-fexceptions` there would be `zPLR` FDEs, as in PhysX.
+- **No RTTI.** There are no `AK`/`Ak` typeinfo names.
+- **No implicit float.** See the table below.
+
+### Fingerprints over the whole block
+
+Sword. Shield's Wwise has the same layout.
 
 | Check | Wwise | Game code (`0x71005a0000`-`0x7100700000`) | PhysX |
 |---|---|---|---|
@@ -527,11 +646,110 @@ without source.** What the binary shows cheaply (Sword, same in Shield):
 | `movi v.2d, #0` / `stp xzr, xzr` | 8 / 1,044 | 97 / 3,057 | 432 / 1,645 |
 | FDE CIEs | `zR` only | `zR` only | `zPLR` and `zR` |
 | Mangled typeinfo names in `.rodata` | none with `AK`/`Ak` | | none (`-fno-rtti`) |
+| Adjacent pairable `ldr` pairs whose second destination is the base / `ldp` with that form | **0 / 40** | 11 / 162 | 5 / 157 |
+| `and xN, xM, #0xffffffff` feeding a 32-bit variable shift within 4 instructions | 11 in 7 functions | 0 | 1 |
 
-So Wwise was built with clang older than 9. Small constants use the `orr` form,
-and clang 9+ and GCC both emit `movz`. Frame pointers are kept, zeroing is
-GPR-only (as with `-mno-implicit-float`), and there are no exception tables and
-no RTTI. Those flags look like the game's configuration rather than PhysX's
-(`-fexceptions`), but the clang version (anything up to 8) and the `-O` level
-stay open. For comparison, YEBIS has 47 `PPFX` typeinfo names, so it was built
-with RTTI.
+- **The `ldr` pair row is the `-g` fingerprint** (see "Debug info"). Both
+  `-g` builds have it: game code 11 against 162, Lua 3 against 40. Wwise has
+  none against 40. With the game's rate about 3 would be expected, so **Wwise
+  was probably built without `-g`**. That's low confidence: it's a small
+  count, and the pattern depends on the source. TLSF itself compiles the same
+  with or without `-g`.
+- **The `and` row** is the clang 6 idiom TLSF shows. 3 of the 7 functions are
+  TLSF. The other 4 are elsewhere in Wwise (`0x71003a9300`, `0x71003ad140`,
+  `0x7100408370`, `0x710040b1b0`). It never appears in the clang 7.0.1 regions
+  (game code, Lua). That's only supporting evidence: a small hand-written
+  reproducer didn't trigger it in clang 6.0.1 either, so it depends on the
+  source too.
+
+### Reproducing
+
+Fetch the sources into `toolchain/candidates/src` (all small). `samplecount/tlsf`
+is an unmodified import of Conte's TLSF 2.0 (its `VERSION` file says `2.0`).
+The barebox copies of 2.0 are modified, so don't use them.
+
+```sh
+cd toolchain/candidates/src
+git clone https://github.com/samplecount/tlsf.git tlsf-2.0
+git clone --filter=blob:none https://github.com/mattconte/tlsf.git tlsf
+mkdir tlsf-wwise && cp tlsf-2.0/tlsf.h tlsf-2.0/tlsfbits.h tlsf-wwise/
+git -C tlsf show 2b73b8a:tlsf.c > tlsf-2b73b8a.c
+python - <<'EOF'
+import re
+pat = re.compile(r"static size_t adjust_request_size\(.*?\n\}\n", re.S)
+a = open("tlsf-2.0/tlsf.c").read()
+fix = pat.search(open("tlsf-2b73b8a.c").read()).group(0)
+open("tlsf-wwise/tlsf.c", "w", newline="\n").write(pat.sub(lambda m: fix, a, count=1))
+EOF
+cd ../../..
+
+B="-O3 -DNDEBUG"
+python tools/compiler_sweep.py --compiler 'toolchain/candidates/clang-*' \
+    --variant "O3=$B" --variant "O2=$B -O2" --variant "Os=$B -Os" --variant "O3g=$B -g" \
+    --src toolchain/candidates/src/tlsf-wwise/tlsf.c --range 0x71003035e0-0x710040f550 \
+    -- -isystem toolchain/candidates/sysroot/include
+```
+
+For the flags table, use `--compiler toolchain/candidates/clang-6.0.1` with
+variants such as `"strict=$B -fstrict-aliasing"`. Keep every flag that changes
+in the variants and only the include path after `--`. Add `--game shield` to
+check Shield. Each configuration takes about a second.
+
+### What's left open
+
+- **6.0.0 vs 6.0.1, `-O2` vs `-O3`.** TLSF is too small to tell them apart,
+  and no other public code in Wwise compiles to the same instructions.
+- **`-g`.** Probably off (fingerprint above), not proven.
+- **Whether every Wwise library used the same configuration.** Only the
+  memory manager's TLSF was compiled. The plugin-registration stubs and the
+  codecs are separate libraries in the Wwise SDK.
+- **How the Vorbis decoder was derived.** Its window tables are libvorbis's,
+  but the code isn't. Matching it needs the decompilation route.
+
+## Other middleware
+
+Fingerprints with the same definitions as above (Sword):
+
+| Region | Small consts `movz` / `orr` | Frame records (calling functions) | `movi #0` / `stp xzr, xzr` | FDEs `zR` / `zPLR` | `-g` `ldr` pairs / `ldp` |
+|---|---|---|---|---|---|
+| YEBIS (`0x710040f550`-`0x71005a0000`) | 78 / 9,819 | 2,455 of 2,474 | 3 / 1,059 | 5,183 / 0 | 5 / 255 |
+| After Lua (`0x7101570900`-`0x71017ec260`) | 380 / 15,358 | 6,329 of 6,344 | 116 / 1,123 | 10,846 / 1 | 1 / 868 |
+
+In this table, "small constants" counts only immediates that `orr` can
+encode, "frame records" counts functions with a `bl` whose first 12
+instructions hold `stp x29, x30`, and `stp xzr, xzr` counts single
+instructions. That's why the numbers differ from the Wwise table above.
+
+- **YEBIS embeds zlib 1.2.5**: the `"1.2.5"` version string and inflate's
+  `header crc mismatch`, used by SiIO's `SiIO_Codec_ZLib_Impl.h` (the code is
+  around `0x710058be50`-`0x7100596000`). Upstream zlib 1.2.5 reproduces **30
+  functions (34,116 bytes) byte-for-byte with clang 7.0.x at `-O3` and exactly
+  the game's flags, in both games**. clang 8.0.x gets 17, 6.0.x gets 3, and
+  9.0.1 gets 0. Each flag change loses hits (clang 7.0.1, `-O3`):
+  `-O2` 8, `-Os` 3, `-fstrict-aliasing` 20, `-fno-unwind-tables` 18,
+  `-mimplicit-float` 20, `-fomit-frame-pointer` 15, `-fno-pic` 27 and
+  `-mcpu=generic` 3. `-g` and `-fvisibility=hidden` give 30 as well. So at
+  least YEBIS's zlib was built with the game's toolchain, unlike Wwise and
+  PhysX. Silicon Studio may have used the same compiler, or Game Freak may have
+  built YEBIS from source. Nothing here tells those apart. YEBIS also keeps RTTI
+  (47 `PPFX` typeinfo names) and has no exception tables.
+
+  ```sh
+  cd toolchain/candidates/src && curl -LO https://zlib.net/fossils/zlib-1.2.5.tar.gz && tar xzf zlib-1.2.5.tar.gz && cd ../../..
+  Z=toolchain/candidates/src/zlib-1.2.5
+  python tools/compiler_sweep.py --compiler 'toolchain/candidates/clang-*' \
+      --variant O3=-O3 --variant O3g="-O3 -g" --variant O2=-O2 --variant Os=-Os \
+      --src "$Z/[a-di-z]*.c" --src "$Z/gz*.c" --range 0x710040f550-0x71005a0000 \
+      -- -isystem toolchain/candidates/sysroot/include
+  ```
+
+  (The two globs leave out `example.c` and `minigzip.c`.)
+- **After Lua** (NEX 4.6.8, Pia, NintendoWare, nn SDK static libraries): all
+  `orr`-form constants (clang older than 9), frame pointers, GPR-only zeroing
+  and no exception tables (1 `zPLR` FDE). Only 1 `-g` `ldr` pair against 868
+  `ldp`, so these libraries probably weren't built with `-g`. NEX's source isn't
+  public. The block does contain public code that could identify Nintendo's
+  SDK compiler later: libcurl 7.55.1 (`libcurl/7.55.1`,
+  `NintendoSDK_libcurl-7_3_2-Release`), a zlib 1.2.11 build
+  (`1.2.11.f-NINTENDO-SDK-v1`) and LZ4 (`nlib_LZ4-19_0226`). Those weren't
+  swept here.
