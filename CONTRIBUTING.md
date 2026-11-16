@@ -124,14 +124,25 @@ pkmn_library_settings(lib/lua
 - `DEFINES` and `OPTIONS` apply to every source under the directory and to
   nothing else. `OPTIONS` come after the global flags, so `-fexceptions`
   overrides the global `-fno-exceptions`.
+- `INCLUDES` (`-I`) and `SYSTEM_INCLUDES` (`-isystem`) add include
+  directories for the library's sources only, searched before the shared ones.
+  `SYSTEM_INCLUDES` is what C++ standard headers need: libc++ must be found
+  before the musl headers in `include/libc`, and as system headers. (As
+  `-isystem` in `OPTIONS` it comes after musl, and `<cstddef>` fails with a
+  `max_align_t` redefinition.) Paths are relative to the repo root and may
+  point into `toolchain/`. They must exist once the directory has sources.
+  libc++ 7.0.1's headers will be vendored unchanged in `include/libcxx/` with
+  the first PhysX sources, the way musl's are in `include/libc/`. It works the
+  same for sources built with the main clang and for `COMPILER_VERSION`
+  libraries.
 - Don't set flags anywhere else: no per-file properties, no
   `target_compile_options` for one library.
 - A library built with another clang version gets `COMPILER_VERSION`. PhysX
   was built with clang 6.0.1 (920 functions match, against 463 with 7.0.1), so
   its sources are compiled with clang 6.0.1 in the same build. Only the
-  compiler changes: the global flags, includes and the entry's `DEFINES` and
-  `OPTIONS` stay the same, and `compile_commands.json` shows which clang
-  compiled each file.
+  compiler changes: the global flags, includes and the entry's other settings
+  stay the same, and `compile_commands.json` shows which clang compiled each
+  file.
 - That clang is found in `toolchain/clang-<version>/` (with `bin/clang` and
   `bin/clang++`), which `python tools/get_llvm.py --compiler <version>`
   installs. Use `-DPKMN_CLANG_ROOT_6_0_1=<dir>` (or the environment variable
@@ -140,7 +151,9 @@ pkmn_library_settings(lib/lua
   what to run. `-DPKMN_ALLOW_LIBRARY_COMPILER_FALLBACK=ON` builds the library
   with the main clang instead, with a warning that it won't match. A library
   directory with no sources needs no compiler.
-- Once PhysX sources land, CI needs `tools/get_llvm.py --compiler 6.0.1` too.
+- Once PhysX sources land, CI needs clang 6.0.1 too. CI's build job
+  runs `tools/get_llvm.py --library-compilers`, which installs the
+  `COMPILER_VERSION` of every entry that has sources, so nothing in CI changes.
 
 `cmake/LibrarySettings.cmake` documents the details.
 
