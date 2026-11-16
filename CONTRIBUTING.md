@@ -76,6 +76,10 @@ python tools/progress.py
    (`tools/symbols.py`). Moving a file to another directory keeps the names.
    Renaming the file renames its local symbols, and two files with the same
    stem can't both define the same local symbol (`check.py` stops with an error).
+   Weak and COMDAT definitions (inline functions, template instantiations) may
+   come from several files: `check.py` checks every distinct copy and warns when
+   copies differ, and the function matches only if all of them do. Two strong
+   definitions of one global symbol are an error, as they are for the linker.
 
    Bulk naming: `tools/funcs.py name --from-file map.csv` applies a
    `Name,Sword,Shield` CSV, such as the one
@@ -106,6 +110,67 @@ Look at `src/pkmn/Version.cpp`, `src/unsorted/Unk_7eef40.*` and
   a `// NON_MATCHING` note explaining why.
 - Python tooling: `ruff check .` must pass. Formatting isn't enforced, so
   match the style of the file you're editing.
+
+### Build settings
+
+Every TU is built with the same global flags (`cmake/toolchain-nx64.cmake`),
+and the reasons for each one are in [docs/compiler.md](docs/compiler.md).
+**Those flags never change to make one function match.** If something won't
+match, look at the source first. When the list does change (with evidence), the
+next build picks it up: the toolchain file is a configure dependency, so
+`cmake --build`, `ninja` and `check.py` reconfigure and recompile every TU
+without `--fresh`, and `check.py` stops if a build dir isn't using the current
+flags.
+
+Some vendored libraries were built with a different configuration, such as
+Lua's `LUA_COMPAT_5_2` or PhysX's `-fexceptions`. Their settings are per
+directory, in one place: the `pkmn_library_settings()` entries in
+`CMakeLists.txt`.
+
+```cmake
+pkmn_library_settings(lib/lua
+  EVIDENCE "docs/compiler.md, section Method (Lua version and defines)"
+  DEFINES LUA_COMPAT_5_2 LUA_USE_POSIX)
+```
+
+- An entry needs evidence first. Add or extend a section of `docs/compiler.md`
+  that shows the setting with numbers (`tools/compiler_sweep.py` hits, or
+  `check.py` results with and without it), and name that section in `EVIDENCE`.
+- `DEFINES` and `OPTIONS` apply to every source under the directory and to
+  nothing else. `OPTIONS` come after the global flags, so `-fexceptions`
+  overrides the global `-fno-exceptions`.
+- `INCLUDES` (`-I`) and `SYSTEM_INCLUDES` (`-isystem`) add include
+  directories for the library's sources only, searched before the shared ones.
+  `SYSTEM_INCLUDES` is what C++ standard headers need: libc++ must be found
+  before the musl headers in `include/libc`, and as system headers. (As
+  `-isystem` in `OPTIONS` it comes after musl, and `<cstddef>` fails with a
+  `max_align_t` redefinition.) Paths are relative to the repo root and may
+  point into `toolchain/`. They must exist once the directory has sources.
+  libc++ 7.0.1's headers will be vendored unchanged in `include/libcxx/` with
+  the first PhysX sources, the way musl's are in `include/libc/`. It works the
+  same for sources built with the main clang and for `COMPILER_VERSION`
+  libraries.
+- Don't set flags anywhere else: no per-file properties, no
+  `target_compile_options` for one library.
+- A library built with another clang version gets `COMPILER_VERSION`. PhysX
+  was built with clang 6.0.1 (920 functions match, against 463 with 7.0.1), so
+  its sources are compiled with clang 6.0.1 in the same build. Only the
+  compiler changes: the global flags, includes and the entry's other settings
+  stay the same, and `compile_commands.json` shows which clang compiled each
+  file.
+- That clang is found in `toolchain/clang-<version>/` (with `bin/clang` and
+  `bin/clang++`), which `python tools/get_llvm.py --compiler <version>`
+  installs. Use `-DPKMN_CLANG_ROOT_6_0_1=<dir>` (or the environment variable
+  of the same name) to point at another install. Configuring checks that it
+  reports the right version. If it's missing, configuring fails and tells you
+  what to run. `-DPKMN_ALLOW_LIBRARY_COMPILER_FALLBACK=ON` builds the library
+  with the main clang instead, with a warning that it won't match. A library
+  directory with no sources needs no compiler.
+- Once PhysX sources land, CI needs clang 6.0.1 too. CI's build job
+  runs `tools/get_llvm.py --library-compilers`, which installs the
+  `COMPILER_VERSION` of every entry that has sources, so nothing in CI changes.
+
+`cmake/LibrarySettings.cmake` documents the details.
 
 ## 3. Check (matching)
 

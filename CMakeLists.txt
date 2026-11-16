@@ -11,6 +11,12 @@ endif()
 
 project(pkmn_swsh LANGUAGES C CXX)
 
+# The global codegen flags of the toolchain file, applied on every configure.
+include(cmake/CodegenFlags.cmake)
+# Traps get the NX encoding (0xe7ffdefe, not brk #1): every object is rewritten
+# by tools/fix_traps.py after it is compiled.
+include(cmake/TrapEncoding.cmake)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -33,20 +39,45 @@ file(GLOB_RECURSE PKMN_SOURCES CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/lib/*.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/lib/*.c")
 
-add_library(pkmn OBJECT ${PKMN_SOURCES})
-target_include_directories(pkmn PRIVATE
+# Settings every TU shares go on pkmn_common, not on pkmn: a library with its
+# own COMPILER_VERSION is a separate target that links pkmn_common too.
+add_library(pkmn_common INTERFACE)
+target_include_directories(pkmn_common INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
   "${CMAKE_CURRENT_SOURCE_DIR}/src"
   "${CMAKE_CURRENT_SOURCE_DIR}/lib")
 # Nintendo's libc is musl-based: musl 1.1.24 headers stand in for it (<stdio.h> ...).
-target_include_directories(pkmn SYSTEM PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/libc")
-target_compile_definitions(pkmn PRIVATE PKMN_VERSION=${_ver})
-target_compile_options(pkmn PRIVATE -Wall -Wno-unused-private-field)
+target_include_directories(pkmn_common SYSTEM INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include/libc")
+target_compile_definitions(pkmn_common INTERFACE PKMN_VERSION=${_ver})
+target_compile_options(pkmn_common INTERFACE -Wall -Wno-unused-private-field)
+
+add_library(pkmn OBJECT ${PKMN_SOURCES})
+target_link_libraries(pkmn PRIVATE pkmn_common)
 
 # --- Per-library settings ----------------------------------------------------
-# Lua 5.3.4 (lib/lua): built as C with the configuration identified in
-# docs/compiler.md. Kept to lib/lua's sources only; a later change will turn
-# this into a general per-library settings mechanism.
-file(GLOB PKMN_LUA_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/lib/lua/*.c")
-set_source_files_properties(${PKMN_LUA_SOURCES} PROPERTIES
-  COMPILE_DEFINITIONS "LUA_COMPAT_5_2;LUA_USE_POSIX")
+# The global flags above and in cmake/toolchain-nx64.cmake are the default for
+# every TU. A library that was built differently gets an entry here, and only
+# here, backed by a section of docs/compiler.md. cmake/LibrarySettings.cmake
+# documents the mechanism, including COMPILER_VERSION.
+include(cmake/LibrarySettings.cmake)
+
+# Lua 5.3.4, built as C by Game Freak with the global flags (it is the corpus
+# that identified them: 493 functions byte for byte). Of the Lua versions, 5.3.4
+# with LUA_COMPAT_5_2 and LUA_USE_POSIX defined scores best.
+pkmn_library_settings(lib/lua
+  EVIDENCE "docs/compiler.md, section Method (Lua version and defines)"
+  DEFINES LUA_COMPAT_5_2 LUA_USE_POSIX)
+
+# PhysX 3.4.2, built by NVIDIA: full C++ exceptions (its FDEs have personality
+# and LSDA), strict aliasing, -fno-builtin (fabsf/sqrtf stay library calls),
+# gnu++14 (gnu++11/14/17 give identical code; strict c++17 breaks musl's
+# alloca), and NVIDIA's static-library defines. The other codegen flags,
+# including -g, are the global ones. PhysX was built with clang 6.0.1 (1,224
+# functions match, 509 with clang 7.0.1), so once lib/physx has sources they
+# are compiled with toolchain/clang-6.0.1 (`python tools/get_llvm.py --compiler
+# 6.0.1`) or -DPKMN_CLANG_ROOT_6_0_1.
+pkmn_library_settings(lib/physx
+  EVIDENCE "docs/compiler.md, section PhysX"
+  COMPILER_VERSION 6.0.1
+  DEFINES __NX__ NDEBUG PX_PHYSX_STATIC_LIB PX_FOUNDATION_DLL=0 PX_SUPPORT_PVD=0
+  OPTIONS -fexceptions -fstrict-aliasing -fno-builtin $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++14>)
