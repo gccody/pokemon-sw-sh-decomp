@@ -59,21 +59,22 @@ target_link_libraries(pkmn PRIVATE pkmn_common)
 include(cmake/LibrarySettings.cmake)
 
 # Lua 5.3.4, built as C by Game Freak with the global flags (it is the corpus
-# that identified them: 490 functions byte for byte). Of the Lua versions, 5.3.4
+# that identified them: 493 functions byte for byte). Of the Lua versions, 5.3.4
 # with LUA_COMPAT_5_2 and LUA_USE_POSIX defined scores best.
 pkmn_library_settings(lib/lua
   EVIDENCE "docs/compiler.md, section Method (Lua version and defines)"
   DEFINES LUA_COMPAT_5_2 LUA_USE_POSIX)
 
-# PhysX 3.4, built by NVIDIA: full C++ exceptions (its FDEs have personality
-# and LSDA), strict aliasing, gnu++14 (gnu++11/14/17 give identical code; strict
-# c++17 breaks musl's alloca), and NVIDIA's static-library defines. The other
-# codegen flags are the global ones. PhysX was built with clang 6.0.1 (920
-# functions match, 463 with clang 7.0.1), so once lib/physx has sources they
+# PhysX 3.4.2, built by NVIDIA: full C++ exceptions (its FDEs have personality
+# and LSDA), strict aliasing, -fno-builtin (fabsf/sqrtf stay library calls),
+# gnu++14 (gnu++11/14/17 give identical code; strict c++17 breaks musl's
+# alloca), and NVIDIA's static-library defines. The other codegen flags,
+# including -g, are the global ones. PhysX was built with clang 6.0.1 (1,224
+# functions match, 509 with clang 7.0.1), so once lib/physx has sources they
 # are compiled with toolchain/clang-6.0.1 (`python tools/get_llvm.py --compiler
 # 6.0.1`) or -DPKMN_CLANG_ROOT_6_0_1.
 pkmn_library_settings(lib/physx
   EVIDENCE "docs/compiler.md, section PhysX"
   COMPILER_VERSION 6.0.1
   DEFINES __NX__ NDEBUG PX_PHYSX_STATIC_LIB PX_FOUNDATION_DLL=0 PX_SUPPORT_PVD=0
-  OPTIONS -fexceptions -fstrict-aliasing $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++14>)
+  OPTIONS -fexceptions -fstrict-aliasing -fno-builtin $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++14>)
