@@ -35,6 +35,8 @@ struct Unk_14f76f0_Range {
 
     Unk_14f76f0_Iter begin() { return Unk_14f76f0_Iter(field_0); }
     Unk_14f76f0_Iter end() { return Unk_14f76f0_Iter(field_8); }
+
+    Unk_14f76f0* find(const u64& key);
 };
 PKMN_SIZE_ASSERT(Unk_14f76f0_Range, 0x10);
 
@@ -45,6 +47,16 @@ static inline Iter findIf(Iter first, Iter last, Pred pred) {
             break;
     }
     return first;
+}
+
+// Inlined into 0x71014f7a50. As a member of the range (rather than written out
+// in the caller like findFree below), the debug value of the inlined begin()
+// survives as a DBG_VALUE between the two loads, so with -g they stay two ldr
+// (one ldp with -g0). The exits' `cmp; csel; ret` tail is duplicated only at -O3.
+inline Unk_14f76f0* Unk_14f76f0_Range::find(const u64& key) {
+    Unk_14f76f0_Iter it =
+        findIf(begin(), end(), [&](const Unk_14f76f0& slot) { return slot.field_0 == key; });
+    return it == end() ? nullptr : &*it;
 }
 
 struct Unk_14f7960 {
@@ -78,24 +90,27 @@ Unk_14f76f0* Unk_14f7960_setFirstFree(Unk_14f7960* self, s32 value) {
     return slot;
 }
 
+// 0x71014f79b0 (Shield 0x71014f7a50)
+// The `cmp; csel; ret` tail is duplicated only at -O3 (-O2/-Os share it). Even
+// with the -O3 tail-duplication threshold, -O2 still differs (as in 0x71014f7960).
+Unk_14f76f0* Unk_14f7960_findUsed(Unk_14f7960* self, s32 value) {
+    Unk_14f76f0_Range* range = self->field_0;
+    Unk_14f76f0_Iter it = findIf(range->begin(), range->end(), [&](const Unk_14f76f0& slot) {
+        return slot.field_c == value && !slot.field_8;
+    });
+    return it == range->end() ? nullptr : &*it;
+}
+
 // 0x71014f7a20
 void Unk_14f7960_clearAll(Unk_14f7960* self) {
     for (Unk_14f76f0& slot : *self->field_0)
         Unk_14f76f0_clear(&slot);
 }
 
-// 0x71014f7a50
-// NON_MATCHING: the original loads begin/end with two ldr (the second into the
-// base register) and compares `cmp it, end` at the exits; this gives one ldp and
-// `cmp end, it`. Everything else matches. The two ldr need a debug use of begin
-// between the loads (a DBG_VALUE in a register; -g0 pairs them in every variant),
-// e.g. constructing the iterators from raw pointers in this function, but no
-// variant tried so far also gets the comparison order right.
+// 0x71014f7a50 (Shield 0x71014f7af0) - begin/end are two ldr here, one ldp in
+// 0x71014f7960.
 Unk_14f76f0* Unk_14f7960_find(Unk_14f7960* self, const u64& key) {
-    Unk_14f76f0_Range* range = self->field_0;
-    Unk_14f76f0_Iter it = findIf(range->begin(), range->end(),
-                                 [&](const Unk_14f76f0& slot) { return slot.field_0 == key; });
-    return it == range->end() ? nullptr : &*it;
+    return self->field_0->find(key);
 }
 
 // 0x71014f7ab0

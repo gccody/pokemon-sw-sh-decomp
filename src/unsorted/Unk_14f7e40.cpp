@@ -21,14 +21,13 @@ bool Unk_14f7e40_hasField1b8(const Unk_14f7e40* self) {
     return self->field_1b8 != 0;
 }
 
-// 0x71014f7fe0
-// NON_MATCHING: register allocation only. The original keeps the quotient in s2
-// and field_1d8 in s1 (`fcsel s1, s2, s3, lt`); this swaps them. Same result with
-// -O2, -g0 and -std=c++14.
+// 0x71014f7fe0 - field_1d8 is read before the divide: reading it in the
+// condition instead swaps the quotient and field_1d8 between s1 and s2.
 void Unk_14f7e40_snap(Unk_14f7e40* self, f32 step) {
     if (self->field_1b8 == 4) {
+        f32 dir = self->field_1d8;
         f32 q = self->field_1d4 / step;
-        if (self->field_1d8 >= 0.0f)
+        if (dir >= 0.0f)
             q += 1.0f;
         s32 n = q;
         self->field_1e0 = n * step;
