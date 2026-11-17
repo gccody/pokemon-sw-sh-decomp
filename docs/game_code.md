@@ -290,6 +290,14 @@ same way, unless a target is a virtual function, already has another name,
 or is called with other types (forwarders call theirs with one `void*`).
 269 match in both games (check.py: 24,568 matching, 106 not matching).
 
+Virtual functions that return a string literal
+(`adrp x0, S ; add x0, x0, S ; ret`) are written as `return "...";`:
+check.py compares literals by their contents. 51 match, among them layout
+paths and session state names. The commonest function that addresses
+data, 215 of them, stores a vtable and one captured word into the caller's
+buffer: libc++'s `std::function` `__clone(p)` for lambdas whose types aren't
+known, left alone.
+
 ## Vtables and classes (`tools/vtables.py`)
 
 Most of the tiny functions are virtual (see "The tiny functions"), and
