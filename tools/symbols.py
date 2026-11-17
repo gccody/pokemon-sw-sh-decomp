@@ -30,6 +30,9 @@ LOCAL_SEP = "@"
 # A C identifier or an Itanium-mangled C++ name (also identifier characters).
 _SYMBOL = re.compile(r"[A-Za-z_][A-Za-z0-9_.$]*")
 _STEM = re.compile(r"[A-Za-z0-9_+-][A-Za-z0-9_.+-]*")
+# clang's GlobalMerge pass puts a TU's internal globals into one object with a
+# local, assembler-private name: only file-qualified.
+_MERGED = re.compile(r"\.L_MergedGlobals(?:\.\d+)?")
 
 
 def file_stem(source: str | PurePath) -> str:
@@ -53,6 +56,8 @@ def split(name: str) -> tuple[str, str | None]:
 def is_valid_name(name: str) -> bool:
     """A symbol name, optionally file-qualified (see the module docstring)."""
     sym, stem = split(name)
+    if _MERGED.fullmatch(sym):
+        return stem is not None and bool(_STEM.fullmatch(stem))
     if not _SYMBOL.fullmatch(sym):
         return False
     return stem is None or bool(_STEM.fullmatch(stem))
