@@ -254,6 +254,23 @@ def test_lifted_member_with_a_tail_call():
     assert V.lift_member(m, 0x130).body == "    Unk_234(this, 5);\n"
 
 
+def test_lifted_member_with_a_global():
+    """adrp x8, +1 page ; ldr x8, [x8, #0x10] ; ldr w0, [x8] ; ret: the GOT slot holds a global's address."""
+    m = lifted_model([0xB0000008, 0xF9400000 | (0x10 // 8) << 10 | 8 << 5 | 8, 0xB9400100, RET])
+    assert V.lift_member(m, 0x130) is None                  # no GOT: refused
+    m.got = {0x1010: 0x5000}
+    x = V.lift_member(m, 0x130)
+    assert x.globals == ((0x5000, "u32"),) and x.body == "    return Unk_5000;\n"
+    a = m.vtables[0]
+    own = V.owners(m.vtables)
+    members = V.placeholder_members(m, a, own, lambda f: True, None, lambda f: V.lift_member(m, f))
+    spec = V.class_specs(m, {a.addr: members}, own, lambda f: 0, lambda f: True)[a.addr]
+    text, _ = V.render_file(m, [(spec, members)])
+    assert "\nextern u32 Unk_5000;\n" in text and "u32 Unk_1000::vf3() {\n    return Unk_5000;\n}" in text
+    m.got = {0x1010: 0x130}                                 # a function's address: refused
+    assert V.lift_member(m, 0x130) is None
+
+
 def test_string_member():
     """adrp x0, S ; add x0, x0, S ; ret with S a string: `return "...";`."""
     m = lifted_model([0x90000000, 0x91100000, RET])        # adrp x0, 0 ; add x0, x0, #0x400

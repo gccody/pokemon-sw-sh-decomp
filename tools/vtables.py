@@ -224,6 +224,7 @@ class Model:
     statuses: dict[int, str]
     area_of: object
     delete: int | None = None       # operator delete(void*), what an empty D0 tail-calls
+    got: dict[int, int] = field(default_factory=dict)  # GOT slot -> the address it holds, for globals
 
     def pattern(self, f: int | str) -> str | None:
         if not isinstance(f, int):
@@ -248,7 +249,8 @@ def load(game: str) -> Model:
     names = {f.addr(game): f.name for f in rows if f.name}
     delete = next((a for a, n in names.items() if n == "_ZdlPv"), None)
     return Model(game, img, mod["functions"], vtables, tables, dict(mod["functions"]), names,
-                 {f.addr(game): f.status for f in rows}, AreaMap(read_areas_csv(), game).area_of, delete)
+                 {f.addr(game): f.status for f in rows}, AreaMap(read_areas_csv(), game).area_of, delete,
+                 {slot: t for slot, t in dyn.slots.items() if isinstance(t, int)})
 
 
 def vtable_area(m: Model, v: Vtable) -> str:
@@ -613,6 +615,7 @@ class Lifted:
     fields: tuple                   # ((offset, type or ("*", fields of the struct it points to)), ...)
     prefix: str = ""                # leafgen's name of the first argument's struct (Unk_<addr>)
     callee: tuple | None = None     # a final tail call: (its target, its parameter types)
+    globals: tuple = ()             # ((address, type), ...): the extern Unk_<address> it reads or writes
 
     def named(self, text: str, cls: str) -> str:
         """`text` with leafgen's names of the structs the class's fields point
@@ -631,6 +634,9 @@ def lift_member(m: Model, f: int) -> Lifted | None:
 
     if m.sizes.get(f, 0) > 64:
         return None
+    saved = dict(L.GOT)
+    L.GOT.clear()
+    L.GOT.update(m.got)
     try:
         lf = L.lift(m.img[f:f + m.sizes[f]], f + BASE)
         render = L.Emitter.render_tail if lf.tail is not None else L.Emitter.render
@@ -638,9 +644,15 @@ def lift_member(m: Model, f: int) -> Lifted | None:
         render(first)
         e = L.Emitter(f + BASE, lf)
         e.structs, e.arg_types, e.fp_types = first.structs, first.arg_types, first.fp_types
+        e.globals = first.globals
         _, func = render(e)
     except (L.LiftError, ValueError, KeyError):
         return None
+    finally:
+        L.GOT.clear()
+        L.GOT.update(saved)
+    if any(g in m.sizes or g in {v.addr for v in m.vtables} for g in e.globals):
+        return None  # named like a function or a class
     if any(isinstance(b, L.Arg) and (b.index != 0 or b.fp) for b in e.structs):
         return None
     byname = {s.name: s for s in e.structs.values()}
@@ -664,8 +676,8 @@ def lift_member(m: Model, f: int) -> Lifted | None:
     x = _LIFTED.fullmatch(func)
     if x is None:
         return None
-    params = [p.strip() for p in x.group(2).split(",")]
-    if not params[0].endswith(" self") and params[0] != "void* /*unused*/":
+    params = [p.strip() for p in x.group(2).split(",")] if x.group(2) else []  # () if it uses no argument
+    if params and not params[0].endswith(" self") and params[0] != "void* /*unused*/":
         return None
     params = params[1:]
     if any(p.split()[0] not in PARAM_CODES for p in params):
@@ -673,7 +685,7 @@ def lift_member(m: Model, f: int) -> Lifted | None:
     rtype = x.group(1).replace("const ", "") if "*" in x.group(1) else x.group(1)
     body = re.sub(r"\bself\b", "this", x.group(3).replace("self->", ""))  # passed on to a tail call
     callee = (lf.tail - BASE, e.callee[1]) if lf.tail is not None else None
-    return Lifted(rtype, tuple(params), body, fields, f"Unk_{e.short}", callee)
+    return Lifted(rtype, tuple(params), body, fields, f"Unk_{e.short}", callee, tuple(sorted(e.globals.items())))
 
 
 def simple_body(x: Member) -> str:
@@ -1178,6 +1190,10 @@ def render_file(m: Model, entries: list[tuple[ClassSpec, list[Member]]],
     if tails:
         parts += ["// Tail-called by lifted functions. Placeholders, like the forwarders' callees.",
                   *(f"void {callee_name(t)[0]}({', '.join(types)});" for t, types in tails), ""]
+    externs = sorted({g for _, xs in entries for x in xs if x.kind == "lifted" for g in x.lifted.globals})
+    if externs:
+        parts += ["// Globals other TUs define, named after their addresses.",
+                  *(f"extern {t} Unk_{a:x};" for a, t in externs), ""]
     here = {spec.v.addr: xs for spec, xs in entries}
     done: set[int] = set()
     names: list[tuple[int, str]] = []
@@ -1303,8 +1319,20 @@ def cmd_write(m: Model, args) -> None:
         return (t not in holders and r is not None and r.shield is not None and len(sigs[t]) == 1
                 and (not r.name or r.name == tail_callee(c)[1]))
 
+    # A global is read or written with one type by every lifted member.
+    gtypes: dict[int, set] = defaultdict(set)
+    for ms in picked.values():
+        for x in ms:
+            if x.kind == "lifted":
+                for g, t in x.lifted.globals:
+                    gtypes[g].add(t)
+
+    def lifted_ok(x: Member) -> bool:
+        return x.kind != "lifted" or ((x.lifted.callee is None or tail_ok(x.lifted.callee))
+                                      and all(len(gtypes[g]) == 1 for g, _ in x.lifted.globals))
+
     for a, ms in list(picked.items()):
-        picked[a] = [x for x in ms if x.kind != "lifted" or x.lifted.callee is None or tail_ok(x.lifted.callee)]
+        picked[a] = [x for x in ms if lifted_ok(x)]
         if not picked[a]:
             del picked[a]
     specs = class_specs(m, picked, own, seg, kept, getter_ok)
