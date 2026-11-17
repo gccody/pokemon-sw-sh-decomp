@@ -649,7 +649,11 @@ type getter takes, which say how its TU was put together:
   getter is called, not inlined, by theirs (`shared_tu`). Its own
   definitions are `src/unsorted/Unk_23d4470.inl`, which the TU's generated
   file includes (`source`). 61 classes derive from it; the other 2 have
-  another type in between (a 168-byte `vf_type`).
+  another type in between (a 168-byte `vf_type`). That `vf_type` inlines
+  the getter of the class in between as well, two guarded statics deep
+  (`intermediate_type`). That class isn't known, so a placeholder
+  `struct Unk_<its type object>` holds only its getter, and the derived
+  class's getter chains to it. All 16 functions of the 2 classes match.
 - **The object itself** (`inline_dtor`: its destructor is inline, so a
   derived D0 and its thunks are copies of it). Of its 113 direct
   descendants, 58 have the inline shape, but only 1 defines a function write

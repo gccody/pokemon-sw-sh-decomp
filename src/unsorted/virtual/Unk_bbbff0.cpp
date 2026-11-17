@@ -233,6 +233,32 @@ const Unk_239a418_Type* Unk_23d48f0::vf_type() {
     return Unk_GetType();
 }
 
+// The type between Unk_23d4470 and Unk_23d4b50 (its class isn't known yet).
+struct Unk_27d8c38 {
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23d4470::Unk_GetType());
+        return &type;
+    }
+};
+
+class Unk_23d4b50 : public Unk_23d4470 {
+public:
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_27d8c38::Unk_GetType());
+        return &type;
+    }
+
+    const Unk_239a418_Type* vf_type() override;
+    void vf7() override;
+    u32 vf8() override;
+    virtual void vf9();
+};
+
+// 0x7100bcfcb0
+const Unk_239a418_Type* Unk_23d4b50::vf_type() {
+    return Unk_GetType();
+}
+
 class Unk_23d4cf8 : public Unk_23d4470 {
 public:
     static const Unk_239a418_Type* Unk_GetType() {
@@ -1503,6 +1529,32 @@ public:
 
 // 0x7100c0c670
 const Unk_239a418_Type* Unk_23d8cf0::vf_type() {
+    return Unk_GetType();
+}
+
+// The type between Unk_23d4470 and Unk_23d8f80 (its class isn't known yet).
+struct Unk_27d9058 {
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23d4470::Unk_GetType());
+        return &type;
+    }
+};
+
+class Unk_23d8f80 : public Unk_23d4470 {
+public:
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_27d9058::Unk_GetType());
+        return &type;
+    }
+
+    const Unk_239a418_Type* vf_type() override;
+    void vf7() override;
+    u32 vf8() override;
+    virtual void vf9();
+};
+
+// 0x7100c0f5c0
+const Unk_239a418_Type* Unk_23d8f80::vf_type() {
     return Unk_GetType();
 }
 
