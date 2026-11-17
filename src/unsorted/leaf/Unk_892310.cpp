@@ -258,6 +258,19 @@ u32 Unk_894fd0_get(const Unk_894fd0* self) {
     return self->field_211 == 5 ? 0x6e : self->field_211;
 }
 
+struct Unk_8954a0 {
+    u8 _0[0x3b8];
+    u64 field_3b8;
+};
+PKMN_OFFSET_ASSERT(Unk_8954a0, field_3b8, 0x3b8);
+
+void Unk_8a7000(u64);
+
+// 0x71008954a0
+void Unk_8954a0_call(const Unk_8954a0* self) {
+    Unk_8a7000(self->field_3b8);
+}
+
 struct Unk_895540 {
     u8 _0[0x234];
     u8 field_234;

@@ -135,6 +135,20 @@ void Unk_11319e0_set(Unk_11319e0* self, bool value) {
     self->field_108 = value;
 }
 
+void Unk_111b250();
+
+// 0x7101133c30
+void Unk_1133c30_call() {
+    Unk_111b250();
+}
+
+void Unk_111b410();
+
+// 0x7101133c40
+void Unk_1133c40_call() {
+    Unk_111b410();
+}
+
 struct Unk_1134fa0 {
     u8 _0[0x710];
     u8 field_710;
@@ -375,6 +389,19 @@ PKMN_OFFSET_ASSERT(Unk_113a930, field_848, 0x848);
 // 0x710113a930
 void Unk_113a930_clearField848(Unk_113a930* self) {
     self->field_848 = 0;
+}
+
+struct Unk_113a990 {
+    u8 _0[0x4e0];
+    u64 field_4e0;
+};
+PKMN_OFFSET_ASSERT(Unk_113a990, field_4e0, 0x4e0);
+
+void Unk_1172950(u64);
+
+// 0x710113a990
+void Unk_113a990_call(const Unk_113a990* self) {
+    Unk_1172950(self->field_4e0);
 }
 
 struct Unk_113ae90 {

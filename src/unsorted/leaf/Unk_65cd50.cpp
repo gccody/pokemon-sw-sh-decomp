@@ -180,6 +180,19 @@ void Unk_65f1b0_setField10(Unk_65f1b0* self, u64 value) {
 // 0x710065fb00
 void Unk_65fb00() {}
 
+struct Unk_663620 {
+    u8 _0[0x120];
+    u64 field_120;
+};
+PKMN_OFFSET_ASSERT(Unk_663620, field_120, 0x120);
+
+void Unk_6676c0(u64);
+
+// 0x7100663620
+void Unk_663620_call(const Unk_663620* self) {
+    Unk_6676c0(self->field_120);
+}
+
 // 0x7100666a30
 void Unk_666a30() {}
 

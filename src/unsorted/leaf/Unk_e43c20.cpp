@@ -17,6 +17,13 @@ bool Unk_e44e00_check(const Unk_e44e00* self) {
     return self->field_90 != 0;
 }
 
+void Unk_e4c3c0();
+
+// 0x7100e4c3b0
+void Unk_e4c3b0_call() {
+    Unk_e4c3c0();
+}
+
 // 0x7100e4cc50
 void Unk_e4cc50() {}
 

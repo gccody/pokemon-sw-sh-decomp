@@ -20,6 +20,19 @@ void Unk_cf4bf0_set(const Unk_cf4bf0* self, u64 value) {
     self->field_78->field_138 = value;
 }
 
+struct Unk_cf5730 {
+    u8 _0[0x78];
+    u64 field_78;
+};
+PKMN_OFFSET_ASSERT(Unk_cf5730, field_78, 0x78);
+
+void Unk_cf5740(u64);
+
+// 0x7100cf5730
+void Unk_cf5730_call(const Unk_cf5730* self) {
+    Unk_cf5740(self->field_78);
+}
+
 struct Unk_cf7230_78 {
     u8 _0[0x60];
     u64 field_60;

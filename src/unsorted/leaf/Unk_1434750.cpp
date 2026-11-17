@@ -16,3 +16,16 @@ void Unk_1434750_set(Unk_1434750* self) {
     self->field_54 = 0;
     self->field_50 = 0;
 }
+
+struct Unk_1435ec0 {
+    u8 _0[0x88];
+    u64 field_88;
+};
+PKMN_OFFSET_ASSERT(Unk_1435ec0, field_88, 0x88);
+
+void Unk_eb8a30(u64, u32);
+
+// 0x7101435ec0
+void Unk_1435ec0_call(const Unk_1435ec0* self) {
+    Unk_eb8a30(self->field_88, 1);
+}

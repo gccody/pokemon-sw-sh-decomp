@@ -17,6 +17,13 @@ void Unk_d3e090_set(Unk_d3e090* self, u32 value, bool arg2) {
     self->field_654 = arg2;
 }
 
+void Unk_cf2010();
+
+// 0x7100d42e80
+void Unk_d42e80_call() {
+    Unk_cf2010();
+}
+
 struct Unk_d45b60 {
     u8 _0[0x7e8];
     u32 field_7e8;

@@ -218,6 +218,20 @@ u32 Unk_115bc00_getField3bc(const Unk_115bc00* self) {
     return self->field_3bc;
 }
 
+struct Unk_115bde0 {
+    u8 _0[0x3c0];
+    u8 field_3c0;
+};
+PKMN_OFFSET_ASSERT(Unk_115bde0, field_3c0, 0x3c0);
+
+void Unk_115bc90();
+
+// 0x710115bde0
+void Unk_115bde0_call(Unk_115bde0* self, u32 value) {
+    self->field_3c0 = ~value & 1;
+    Unk_115bc90();
+}
+
 struct Unk_115bfa0 {
     u8 _0[0x418];
     bool field_418;

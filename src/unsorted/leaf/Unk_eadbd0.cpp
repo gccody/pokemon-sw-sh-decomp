@@ -60,3 +60,10 @@ PKMN_OFFSET_ASSERT(Unk_eadcf0, field_50, 0x50);
 u64 Unk_eadcf0_getField50(const Unk_eadcf0* self) {
     return self->field_50;
 }
+
+void Unk_eae960();
+
+// 0x7100eae950
+void Unk_eae950_call() {
+    Unk_eae960();
+}

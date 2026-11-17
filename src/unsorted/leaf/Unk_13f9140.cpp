@@ -14,6 +14,19 @@ bool Unk_13f9140_check(const Unk_13f9140* self) {
     return self->field_380 == 0;
 }
 
+struct Unk_13fa740 {
+    u8 _0[0x460];
+    u64 field_460;
+};
+PKMN_OFFSET_ASSERT(Unk_13fa740, field_460, 0x460);
+
+void Unk_13fa750(u64);
+
+// 0x71013fa740
+void Unk_13fa740_call(const Unk_13fa740* self) {
+    Unk_13fa750(self->field_460);
+}
+
 struct Unk_13faad0_460 {
     u8 _0[0x6c];
     u8 field_6c;

@@ -72,6 +72,13 @@ void Unk_13193e0_setField6c(Unk_13193e0* self, u32 value) {
     self->field_6c = value;
 }
 
+void Unk_131d440();
+
+// 0x710131d430
+void Unk_131d430_call() {
+    Unk_131d440();
+}
+
 struct Unk_131dbe0 {
     u8 _0[0x5cc];
     u32 field_5cc;

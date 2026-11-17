@@ -65,3 +65,10 @@ PKMN_OFFSET_ASSERT(Unk_113f1c0, field_90, 0x90);
 void Unk_113f1c0_set(Unk_113f1c0* self, bool value) {
     self->field_90 = value;
 }
+
+void Unk_1144890(u32, void*, u64, u64);
+
+// 0x7101144cc0
+void Unk_1144cc0_call(void* self, u64 value, u64 arg2) {
+    Unk_1144890(7, self, value, arg2);
+}

@@ -1,0 +1,205 @@
+// Scope: common
+// Directly called leaf functions between two static initialisers (one or more
+// TUs). Placeholder types: rename and move once the owning classes are known.
+#include <types.h>
+
+struct Unk_819660 {
+    u8 _0[0x30];
+    u64 field_30;
+};
+PKMN_OFFSET_ASSERT(Unk_819660, field_30, 0x30);
+
+void Unk_7e97f0(u64);
+
+// 0x7100819660
+void Unk_819660_call(const Unk_819660* self) {
+    Unk_7e97f0(self->field_30);
+}
+
+struct Unk_819670 {
+    u8 _0[0x30];
+    u64 field_30;
+};
+PKMN_OFFSET_ASSERT(Unk_819670, field_30, 0x30);
+
+void Unk_7e9860(u64);
+
+// 0x7100819670
+void Unk_819670_call(const Unk_819670* self) {
+    Unk_7e9860(self->field_30);
+}
+
+struct Unk_819680 {
+    u8 _0[0x30];
+    u64 field_30;
+};
+PKMN_OFFSET_ASSERT(Unk_819680, field_30, 0x30);
+
+void Unk_7e9910(u64);
+
+// 0x7100819680
+void Unk_819680_call(const Unk_819680* self) {
+    Unk_7e9910(self->field_30);
+}
+
+struct Unk_8196a0 {
+    u8 _0[0x40];
+    u64 field_40;
+};
+PKMN_OFFSET_ASSERT(Unk_8196a0, field_40, 0x40);
+
+void Unk_7e9a00(u64);
+
+// 0x71008196a0
+void Unk_8196a0_call(const Unk_8196a0* self) {
+    Unk_7e9a00(self->field_40);
+}
+
+struct Unk_8196b0 {
+    u8 _0[0x40];
+    u64 field_40;
+};
+PKMN_OFFSET_ASSERT(Unk_8196b0, field_40, 0x40);
+
+void Unk_7e9a10(u64);
+
+// 0x71008196b0
+void Unk_8196b0_call(const Unk_8196b0* self) {
+    Unk_7e9a10(self->field_40);
+}
+
+struct Unk_8197a0 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_8197a0, field_0, 0x0);
+
+void Unk_7cc000(u64);
+
+// 0x71008197a0
+void Unk_8197a0_call(const Unk_8197a0* self) {
+    Unk_7cc000(self->field_0);
+}
+
+struct Unk_8197e0 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_8197e0, field_0, 0x0);
+
+void Unk_7cc030(u64);
+
+// 0x71008197e0
+void Unk_8197e0_call(const Unk_8197e0* self) {
+    Unk_7cc030(self->field_0);
+}
+
+struct Unk_8197f0 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_8197f0, field_0, 0x0);
+
+void Unk_7cbf80(u64);
+
+// 0x71008197f0
+void Unk_8197f0_call(const Unk_8197f0* self) {
+    Unk_7cbf80(self->field_0);
+}
+
+struct Unk_819800 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_819800, field_0, 0x0);
+
+void Unk_7cbf80(u64);
+
+// 0x7100819800
+void Unk_819800_call(const Unk_819800* self) {
+    Unk_7cbf80(self->field_0);
+}
+
+struct Unk_819910 {
+    u8 _0[0x10];
+    u64 field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_819910, field_10, 0x10);
+
+void Unk_82cff0(u64, u64, u32);
+
+// 0x7100819910
+void Unk_819910_call(const Unk_819910* self, u64 value, bool arg2) {
+    Unk_82cff0(self->field_10, value, arg2);
+}
+
+struct Unk_819940 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_819940, field_0, 0x0);
+
+void Unk_7cb320(u64);
+
+// 0x7100819940
+void Unk_819940_call(const Unk_819940* self) {
+    Unk_7cb320(self->field_0);
+}
+
+struct Unk_819a10 {
+    u8 _0[0x40];
+    u64 field_40;
+};
+PKMN_OFFSET_ASSERT(Unk_819a10, field_40, 0x40);
+
+void Unk_7e9a30(u64);
+
+// 0x7100819a10
+void Unk_819a10_call(const Unk_819a10* self) {
+    Unk_7e9a30(self->field_40);
+}
+
+struct Unk_819a60 {
+    u8 _0[0x10];
+    u64 field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_819a60, field_10, 0x10);
+
+void Unk_82cd00(u64);
+
+// 0x7100819a60
+void Unk_819a60_call(const Unk_819a60* self) {
+    Unk_82cd00(self->field_10);
+}
+
+struct Unk_81a670 {
+    u8 _0[0x8];
+    u64 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_81a670, field_8, 0x8);
+
+void Unk_7fe3b0(u64);
+
+// 0x710081a670
+void Unk_81a670_call(const Unk_81a670* self) {
+    Unk_7fe3b0(self->field_8);
+}
+
+struct Unk_81be90 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_81be90, field_0, 0x0);
+
+void Unk_7cce80(u64);
+
+// 0x710081be90
+void Unk_81be90_call(const Unk_81be90* self) {
+    Unk_7cce80(self->field_0);
+}
+
+struct Unk_81c3a0 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_81c3a0, field_0, 0x0);
+
+void Unk_7cab30(u64);
+
+// 0x710081c3a0
+void Unk_81c3a0_call(const Unk_81c3a0* self) {
+    Unk_7cab30(self->field_0);
+}

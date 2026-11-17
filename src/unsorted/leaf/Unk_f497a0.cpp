@@ -25,6 +25,13 @@ u32 Unk_f498c0_getField5cc(const Unk_f498c0* self) {
     return self->field_5cc;
 }
 
+void Unk_f4ae60();
+
+// 0x7100f4b450
+void Unk_f4b450_call() {
+    Unk_f4ae60();
+}
+
 struct Unk_f4b560 {
     u8 _0[0x5cc];
     u32 field_5cc;
@@ -45,6 +52,13 @@ PKMN_OFFSET_ASSERT(Unk_f4b570, field_5cc, 0x5cc);
 // 0x7100f4b570
 void Unk_f4b570_clearField5cc(Unk_f4b570* self) {
     self->field_5cc = 0;
+}
+
+void Unk_f4c3d0();
+
+// 0x7100f4c810
+void Unk_f4c810_call() {
+    Unk_f4c3d0();
 }
 
 struct Unk_f4c920 {
