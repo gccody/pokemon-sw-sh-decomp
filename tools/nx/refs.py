@@ -79,6 +79,10 @@ def decode(img: bytes, start: int, size: int):
             rn = (w >> 5) & 0x1F
             tgt = pages[rn] + ((w >> 10) & 0xFFF) * (1 << ldst_scale(w))
             m = w & 0xFFC003FF
+            # a load into a general register (`ldr x8, [x8, #lo]` from a GOT
+            # slot) overwrites what it held: no page there any more.
+            if (w >> 22) & 3 and not (w >> 26) & 1:
+                pages.pop(w & 0x1F, None)
         elif (w & 0x1F) in pages and _writes_rd(w):
             # any other write to a tracked register ends the ADRP pairing.
             # A spurious drop only makes a later lo12 compare raw (-> reported
