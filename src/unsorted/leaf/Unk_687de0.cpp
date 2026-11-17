@@ -275,3 +275,37 @@ void Unk_694510() {}
 
 // 0x71006955b0
 void Unk_6955b0() {}
+
+struct Unk_69a210 {
+    u8 _0[0x410];
+    u8 field_410;
+    u8 _411[0x1ef];
+    u32 field_600;
+};
+PKMN_OFFSET_ASSERT(Unk_69a210, field_410, 0x410);
+PKMN_OFFSET_ASSERT(Unk_69a210, field_600, 0x600);
+
+void Unk_699f60(void*, u64);
+
+// 0x710069a210
+void Unk_69a210_call(Unk_69a210* self, u32 value, u64 arg2) {
+    self->field_600 = value;
+    Unk_699f60(&self->field_410, arg2);
+}
+
+struct Unk_69a220 {
+    u8 _0[0x610];
+    u8 field_610;
+    u8 _611[0x1ef];
+    u32 field_800;
+};
+PKMN_OFFSET_ASSERT(Unk_69a220, field_610, 0x610);
+PKMN_OFFSET_ASSERT(Unk_69a220, field_800, 0x800);
+
+void Unk_699f60(void*, u64);
+
+// 0x710069a220
+void Unk_69a220_call(Unk_69a220* self, u32 value, u64 arg2) {
+    self->field_800 = value;
+    Unk_699f60(&self->field_610, arg2);
+}

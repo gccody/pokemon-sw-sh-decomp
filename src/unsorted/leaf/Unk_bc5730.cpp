@@ -33,6 +33,19 @@ void Unk_bc64e0_call(const Unk_bc64e0* self) {
     Unk_c182b0(self->field_2b8);
 }
 
+struct Unk_c178a0 {
+    u8 _0[0x780];
+    u64 field_780;
+};
+PKMN_OFFSET_ASSERT(Unk_c178a0, field_780, 0x780);
+
+void Unk_c545c0(u64, u32);
+
+// 0x7100c178a0
+void Unk_c178a0_call(const Unk_c178a0* self, u32 value) {
+    Unk_c545c0(self->field_780, value);
+}
+
 struct Unk_c18050 {
     u8 _0[0x780];
     u64 field_780;

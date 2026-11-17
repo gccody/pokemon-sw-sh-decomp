@@ -11,6 +11,14 @@ void Unk_791da0_call() {
     Unk_793880(Unk_27ce848);
 }
 
+extern u64 Unk_27ce848;
+void Unk_793a60(u64, void*);
+
+// 0x7100791db0
+void Unk_791db0_call(void* /*unused*/, void* value) {
+    Unk_793a60(Unk_27ce848, value);
+}
+
 struct Unk_7935d0 {
     u8 _0[0x70];
     u64 field_70;
