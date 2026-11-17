@@ -625,3 +625,28 @@ the bases of the remaining groups of D0s that tail-call a shared D2 (50,
 destructors that release owned objects, hashed-name handles (the FNV-1a
 hash of "", `0xcbf29ce484222645`) and members with out-of-line
 destructors.
+
+### Batch 8: constructors that only call their base's
+
+`Unk_D::Unk_D() {}` for a class derived from another, with nothing of its
+own to initialise, is `bl <the base's constructor>` and then the store of
+D's vptr (its `_ZTV` from the GOT, + 16), 48 bytes (`CTOR_PATTERN`). The
+function is a referrer of D's vtable only, and what it calls first of B's
+only, so both classes are known: `vtables.py ctors` writes the ones whose
+D and B have one vtable each, aren't hand-written bases and aren't defined
+anywhere else. Each file (`src/unsorted/ctor/`, one per segment) declares
+the classes the same way: a constructor, and a destructor that isn't
+defined there, so that the vtable stays the key function's TU's. A base
+that is itself such a class derives from its own base there too.
+`vtables.py write` leaves these classes alone (it still writes what their
+vtables inherit, for the classes that own it).
+
+153 constructors match, of 153 classes, and the 20 base constructors that
+aren't among them get their names (`_ZN<B>C2Ev`, still U). The 153 vtables'
+names agree with where the original loads them from (`check.py
+--record-data` put them in `data_symbols.csv`). check.py: 25,193
+matching, 107 not matching.
+
+Left: 113 more of the shape whose class has a secondary vtable, and about
+50 constructors of other shapes that store more than one vptr (multiple
+inheritance) or initialise a field as well.
