@@ -134,9 +134,11 @@ def main() -> int:
 
     def table(title, items):
         print(f"\n{title}")
-        print(f"  {'':14} {'matching':>18} {'functions':>10} {'code':>12}")
+        items = list(items)
+        w = max([14] + [len(k) for k, _ in items])
+        print(f"  {'':{w}} {'matching':>18} {'functions':>10} {'code':>12}")
         for k, t in items:
-            print(f"  {k:14} {t.done_n:>8} ({t.pct():6.3f}%) {t.n:>10} {t.bytes / 1024:>10.0f}KB")
+            print(f"  {k:{w}} {t.done_n:>8} ({t.pct():6.3f}%) {t.n:>10} {t.bytes / 1024:>10.0f}KB")
 
     table("Per game (bytes-weighted %)", per_game.items())
     table("Per scope", [(s, per_scope[s]) for s in SCOPES if s in per_scope])
