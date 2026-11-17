@@ -40,6 +40,12 @@ public:
     ~Unk_245d728() override;
 };
 
+class Unk_245d7a8 {
+public:
+    Unk_245d7a8();
+    virtual ~Unk_245d7a8();
+};
+
 class Unk_245b638 {
 public:
     Unk_245b638();
@@ -57,6 +63,9 @@ Unk_245d2a8::Unk_245d2a8() {}
 
 // 0x71016d8320
 Unk_245d728::Unk_245d728() {}
+
+// 0x71016d8b60
+Unk_245d7a8::Unk_245d7a8() {}
 
 // 0x71016d9000
 Unk_245d898::Unk_245d898() {}
