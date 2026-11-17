@@ -111,25 +111,3 @@ public:
 
 // 0x71008b1490
 void Unk_23b9cb8::vf0() {}
-
-class Unk_23b9e78 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual u64 vf7();
-    virtual void vf8();
-    virtual void vf9();
-    u8 _8[0x70];
-    u64 field_78;
-};
-PKMN_OFFSET_ASSERT(Unk_23b9e78, field_78, 0x78);
-
-// 0x71008b2c60
-u64 Unk_23b9e78::vf7() {
-    return field_78;
-}

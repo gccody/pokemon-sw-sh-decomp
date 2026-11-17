@@ -132,25 +132,3 @@ PKMN_OFFSET_ASSERT(Unk_24056c8, field_22, 0x22);
 void Unk_24056c8::vf0() {
     field_22 = 1;
 }
-
-class Unk_2405910 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual u64 vf7();
-    virtual void vf8();
-    virtual void vf9();
-    u8 _8[0x70];
-    u64 field_78;
-};
-PKMN_OFFSET_ASSERT(Unk_2405910, field_78, 0x78);
-
-// 0x7100fe9b10
-u64 Unk_2405910::vf7() {
-    return field_78;
-}

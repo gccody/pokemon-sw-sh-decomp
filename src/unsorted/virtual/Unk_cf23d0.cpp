@@ -346,42 +346,6 @@ void Unk_23e4e58::vf11() {
     Unk_cf72e0(field_30);
 }
 
-class Unk_23e4fa0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7(bool value);
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    u8 _8[0x68];
-    bool field_70;
-    u8 field_71;
-};
-PKMN_OFFSET_ASSERT(Unk_23e4fa0, field_70, 0x70);
-PKMN_OFFSET_ASSERT(Unk_23e4fa0, field_71, 0x71);
-
-// 0x7100cfa850
-void Unk_23e4fa0::vf7(bool value) {
-    field_70 = value;
-}
-
-// 0x7100cfa880
-void Unk_23e4fa0::vf9() {
-    field_71 = 1;
-}
-
-// 0x7100cfa890
-void Unk_23e4fa0::vf10() {
-    field_71 = 0;
-}
-
 class Unk_23e54c0 {
 public:
     virtual void vf0();
