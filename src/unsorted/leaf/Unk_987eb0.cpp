@@ -14,6 +14,20 @@ void Unk_987eb0_set(Unk_987eb0* self, bool value) {
     self->field_18 = value;
 }
 
+struct Unk_6323a0;
+struct Unk_9a59d0 {
+    u8 _0[0x10];
+    Unk_6323a0* field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_9a59d0, field_10, 0x10);
+
+void Unk_6323a0_call(const Unk_6323a0*);
+
+// 0x71009a59d0
+void Unk_9a59d0_call(const Unk_9a59d0* self) {
+    Unk_6323a0_call(self->field_10);
+}
+
 struct Unk_9a71a0_arg1 {
     u64 field_0;
     u64 field_8;

@@ -84,6 +84,20 @@ void Unk_eb6070_call(void* self) {
     Unk_eb6230(self, 3);
 }
 
+struct Unk_14e4110;
+struct Unk_eb7070 {
+    u8 _0[0x18];
+    Unk_14e4110* field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_eb7070, field_18, 0x18);
+
+void Unk_14e4110_set(Unk_14e4110*);
+
+// 0x7100eb7070
+void Unk_eb7070_call(const Unk_eb7070* self) {
+    Unk_14e4110_set(self->field_18);
+}
+
 struct Unk_eb76a0 {
     u8 _0[0x5d0];
     u64 field_5d0;

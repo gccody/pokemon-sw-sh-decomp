@@ -236,6 +236,22 @@ u8 Unk_894500_getField141(const Unk_894500* self) {
     return self->field_141;
 }
 
+struct Unk_8a6bc0;
+struct Unk_894ca0 {
+    u8 _0[0x3b8];
+    Unk_8a6bc0* field_3b8;
+};
+PKMN_OFFSET_ASSERT(Unk_894ca0, field_3b8, 0x3b8);
+
+bool Unk_8a6bc0_check(const Unk_8a6bc0*);
+
+// 0x7100894ca0
+void Unk_894ca0_call(const Unk_894ca0* self) {
+    if (self->field_3b8 != nullptr) {
+        Unk_8a6bc0_check(self->field_3b8);
+    }
+}
+
 struct Unk_894f90 {
     u8 _0[0x211];
     u8 field_211;
