@@ -673,6 +673,19 @@ type getter takes, which say how its TU was put together:
   functions match (their `vf_type`s, the copies in the secondary vtables,
   the destructors and their thunks).
 
+  Of the 35 that "store a type created by an out-of-line function", that
+  function is the same kind of getter: another direct descendant's
+  (`static type(Unk_239a418_GetType())`, three statics deep), out of line.
+  Their `vf_type` makes three calls (guard, that getter, guard) and their
+  secondary type slots are copies of it (`out_of_line_parent`). There are 9
+  such getters; 22 classes are on the one at `0x710089b390`. Written with
+  the placeholder above for the class that getter belongs to (its getter
+  named, not defined), 33 classes match: 264 functions (check.py: 26,034
+  matching, 107 not matching). `Unk_239c050` (`0x7100603810`) is one of
+  those classes, but its getter already has a forwarder callee's name
+  (`_Z10Unk_603810Pv`, from its `vf_type`, `b <getter>`), so its 2 classes
+  wait until it is written as a base.
+
 A class's getter may now be called by other code of the class; it only
 isn't its own when another vtable function calls it.
 
