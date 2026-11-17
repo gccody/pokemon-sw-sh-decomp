@@ -127,6 +127,11 @@ class GlobalPtr:
 # by the callers that have the executable (main, tools/vtables.py).
 GOT: dict[int, int] = {}
 
+# Tail-call targets whose callers write fewer argument registers than others:
+# address (absolute) -> the longest caller's parameter types, which the
+# others pass on unchanged (unify_arity).
+TAIL_TYPES: dict[int, list[str]] = {}
+
 # Functions already written (and named) that a tail call can call by their own
 # prototype: address (absolute) -> (return type, name, parameter types). Set
 # by main from the sources (known_prototypes).
@@ -467,6 +472,7 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
         if any(("f", i) in written for i in range(8)):
             raise LiftError("floating-point tail-call argument")
         n = max((i + 1 for i in range(8) if ("x", i) in written), default=0)
+        n = max(n, len(TAIL_TYPES.get(tail, ())))  # the registers it passes on, as other callers set them
         out.tail, out.args = tail, [regs[("x", i)] for i in range(n)]
         return out
     # The result: whatever the function left in w0/x0 or s0, if it wrote it.
@@ -850,7 +856,9 @@ class Emitter:
             if isinstance(e, Arg) and not e.fp:
                 t = self.arg_types.get(e.index)
                 if t is None:
-                    t = self.arg_types[e.index] = "void*" if e.index == 0 else "u64"
+                    padded = TAIL_TYPES.get(lf.tail, ())
+                    t = padded[len(args)] if len(args) < len(padded) else "void*" if e.index == 0 else "u64"
+                    self.arg_types[e.index] = t
                 args.append(self.arg_name(e.index))
                 types.append("void*" if t.endswith("*") else t)
             elif self.is_pointer(e) or self.type_of(e) == "ptr":
@@ -1052,6 +1060,13 @@ def main(argv: list[str] | None = None) -> int:
             lifted[addr] = generate(addr, code)
         except LiftError as e:
             why[str(e).split(" ")[0]] += 1
+    TAIL_TYPES.update(unify_arity(lifted))
+    for addr, code in cands:  # again, the callers that pass more on now
+        if addr in lifted and (m := PROTO.search(lifted[addr][0])) and int(m.group(2), 16) + BASE in TAIL_TYPES:
+            try:
+                lifted[addr] = generate(addr, code)
+            except LiftError:
+                del lifted[addr]
     lifted = callable_tails(lifted, why)
     print(f"{len(cands)} candidates, {len(lifted)} lifted", file=sys.stderr)
     if args.cmd == "scan":
@@ -1071,6 +1086,25 @@ def main(argv: list[str] | None = None) -> int:
 
 
 PROTO = re.compile(r"^void (Unk_([0-9a-f]+))\((.*)\);$", re.M)
+
+
+def unify_arity(lifted: dict[int, tuple[str, str]]) -> dict[int, list[str]]:
+    """Tail-call targets whose callers pass fewer arguments than the longest
+    one, and otherwise the same types: target (absolute) -> the longest's
+    types. A caller passes the registers it doesn't write on as it got them,
+    so it can say so (TAIL_TYPES)."""
+    sigs: dict[int, set[str]] = {}
+    for structs, func in lifted.values():
+        m = PROTO.search(structs)
+        if m and "_call(" in func:
+            sigs.setdefault(int(m.group(2), 16), set()).add(m.group(3))
+    out = {}
+    for t, ss in sigs.items():
+        lists = sorted((x.split(", ") if x else [] for x in ss), key=len)
+        longest = lists[-1]
+        if len(lists) > 1 and all(lst == longest[:len(lst)] for lst in lists) and len(lists[0]) < len(longest):
+            out[t + BASE] = longest
+    return out
 
 
 def callable_tails(lifted: dict[int, tuple[str, str]], why: Counter) -> dict[int, tuple[str, str]]:
