@@ -240,6 +240,29 @@ void Unk_14a9580_set(Unk_14a9580* self, bool value) {
     self->field_d9 = value;
 }
 
+struct Unk_14a9630_a0 {
+    u8 _0[0x118];
+    u64 field_118;
+};
+PKMN_OFFSET_ASSERT(Unk_14a9630_a0, field_118, 0x118);
+
+struct Unk_14a9630 {
+    u8 _0[0xa0];
+    Unk_14a9630_a0* field_a0;
+    u8 _a8[0x28];
+    u64 field_d0;
+};
+PKMN_OFFSET_ASSERT(Unk_14a9630, field_a0, 0xa0);
+PKMN_OFFSET_ASSERT(Unk_14a9630, field_d0, 0xd0);
+
+// 0x71014a9630
+void Unk_14a9630_set(Unk_14a9630* self, u64 value) {
+    self->field_d0 = value;
+    if (self->field_a0 != nullptr) {
+        self->field_a0->field_118 = value;
+    }
+}
+
 struct Unk_14a9c50_68 {
     u8 _0[0x170];
     u8 field_170;

@@ -18,6 +18,9 @@ public:
     void vf9() override;
 };
 
+// 0x7101538390
+void Unk_2449098::vf9() {}
+
 // 0x71015383b0; its type 0x7101538420
 const Unk_239a418_Type* Unk_2449098::vf_type() {
     return Unk_GetType();

@@ -101,6 +101,18 @@ void* Unk_236d0b8::vf16() {
     return nullptr;
 }
 
+class Unk_239fac0 {
+public:
+    virtual ~Unk_239fac0();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+};
+
+// 0x7100663d20, 0x7100663d30
+Unk_239fac0::~Unk_239fac0() {}
+
 class Unk_239fc70 {
 public:
     virtual ~Unk_239fc70();

@@ -5,7 +5,7 @@
 #include <types.h>
 #include "unsorted/Unk_23f43c8.h"
 
-class Unk_2448a18 : public Unk_23f43c8 {
+class Unk_2449268 : public Unk_23f43c8 {
 public:
     static const Unk_239a418_Type* Unk_GetType() {
         static Unk_239a418_Type type(Unk_23f43c8::Unk_GetType());
@@ -18,7 +18,10 @@ public:
     void vf9() override;
 };
 
-// 0x7101533f50; its type 0x7101533fc0
-const Unk_239a418_Type* Unk_2448a18::vf_type() {
+// 0x7101539950
+void Unk_2449268::vf9() {}
+
+// 0x7101539970; its type 0x71015399e0
+const Unk_239a418_Type* Unk_2449268::vf_type() {
     return Unk_GetType();
 }
