@@ -385,6 +385,7 @@ class ExternalBase:
     inline_dtor: bool = False       # its D2 is inline: the D0s and thunks are copies of it, not `b`s
     shared_tu: bool = False         # it and its derived classes are one TU: no file of their own
     source: str | None = None       # its own definitions, included in its TU's file (a shared TU)
+    size: int = 0                   # sizeof (its header asserts it): a derived class's fields follow
 
     def slot(self, i: int) -> tuple[str, str]:
         return next(((rt, n) for j, rt, n in self.slots if j == i), ("void", f"vf{i}"))
@@ -396,22 +397,23 @@ EXTERNAL_BASES = (
                  ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
                   (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7"), (8, "u32", "vf8"), (9, "void", "vf9"),
                   (10, "u32", "vf10")),
-                 6, "Unk_23f43c8::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0))),
+                 6, "Unk_23f43c8::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x78),
     ExternalBase(0x23f4328, "Unk_23f4318", "unsorted/Unk_23f43c8.h",
                  ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
                   (5, "void", "vf5"), (6, TYPE, "vf_type")),
-                 6, "Unk_23f4318::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0))),
+                 6, "Unk_23f4318::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x60),
     ExternalBase(0x23d4480, "Unk_23d4470", "unsorted/Unk_23d4470.h",
                  ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
                   (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7"), (8, "u32", "vf8")),
                  6, "Unk_23d4470::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)),
-                 shared_tu=True, source="unsorted/Unk_23d4470.inl"),
+                 shared_tu=True, source="unsorted/Unk_23d4470.inl", size=0x348),
     # gflib3's reference-counted object: its destructor is inline, and it has no type slot of
     # its own (a class that overrides the interfaces' getter gets slot 6 for it).
     ExternalBase(0x239a428, "Unk_239a418", "gflib3/Unk_239a418.h",
                  ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
                   (5, "void", "vf5")),
-                 6, "Unk_239a418_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), inline_dtor=True),
+                 6, "Unk_239a418_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), inline_dtor=True,
+                 size=0x60),
 )
 # Vtable groups whose classes are written by hand: write leaves their functions alone.
 HANDWRITTEN = {e.vtable for e in EXTERNAL_BASES}
@@ -832,11 +834,8 @@ def class_specs(m: Model, picked: dict[int, list[Member]], own: dict[int, tuple[
 SIMPLE_KINDS = ("ret", "constant", "zero", "null", "forward", "string")
 
 
-def intermediate_type(m: Model, f: int) -> int | None:
-    """The type object of the class between a hand-written base and the class
-    whose vf_type f is, when f inlines that class's getter too: five calls (two
-    guarded statics, then the base's getter out of line) instead of three. Its
-    type is the fourth static f loads from the GOT (guard, type, guard, type)."""
+def _calls_and_statics(m: Model, f: int) -> tuple[list[int], list[int]]:
+    """f's calls (out of f) and the statics it loads from the GOT, in order."""
     from nx.refs import decode, is_b_bl
 
     n = m.sizes.get(f, 0)
@@ -849,9 +848,41 @@ def intermediate_type(m: Model, f: int) -> int | None:
                 calls.append(t)
         elif t in m.got and m.got[t] not in statics:
             statics.append(m.got[t])
-    if len(calls) != 5 or len(statics) != 4 or not any(m.names.get(t, "").endswith("11Unk_GetTypeEv") for t in calls):
+    return calls, statics
+
+
+def intermediate_type(m: Model, f: int) -> tuple[int, int] | None:
+    """(type object, getter) of the class between a hand-written base and the
+    class whose vf_type f is, when f inlines that class's getter too: five
+    calls (two guarded statics, then a getter out of line) instead of three.
+    Its type is the fourth static f loads from the GOT (guard, type, guard,
+    type); the getter is the call that isn't a guard's (those come twice)."""
+    calls, statics = _calls_and_statics(m, f)
+    once = [t for t in calls if calls.count(t) == 1]
+    if len(calls) != 5 or len(statics) != 4 or len(once) != 1:
         return None
-    return statics[3]
+    return statics[3], once[0]
+
+
+def getter_type(m: Model, g: int) -> int | None:
+    """The type object getter g returns: the second static it loads (its guard first)."""
+    _, statics = _calls_and_statics(m, g)
+    return statics[1] if len(statics) >= 2 else None
+
+
+def _ext_lifted_ok(e: ExternalBase, ev: Vtable, x: Member, fields: dict) -> bool:
+    """Whether a lifted member can be one of a class derived from e: its
+    fields after e's (merged into `fields`), no struct named after the class
+    in its signature or body, and an override declared as e declares it (no
+    parameters)."""
+    lf = x.lifted
+    if not e.size or any(off < e.size for off, _ in lf.fields):
+        return False
+    if lf.prefix and any(lf.prefix + "_" in t for t in (lf.rtype, *lf.params, lf.body)) or lf.globals or lf.callee:
+        return False
+    if x.slot < len(ev.slots) and (lf.params or e.slot(x.slot)[0] != lf.rtype):
+        return False
+    return merge_fields(fields, lf.fields)
 
 
 def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], picked: dict[int, list[Member]],
@@ -911,8 +942,23 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
                     m.pattern(f) != m.pattern(f6) or not pickable(f) for f in thunks):
                 ok = False
             else:
-                inter = intermediate_type(m, f6)
-                extra.append(Member(e.type_slot, f6, "ext_type", "copy" if inter is None else ("copy", inter)))
+                it = intermediate_type(m, f6)
+                inter = it is not None and m.names.get(it[1], "").endswith("11Unk_GetTypeEv")
+                extra.append(Member(e.type_slot, f6, "ext_type", ("copy", it[0], None, None) if inter else "copy"))
+                extra += [Member(-1, f, "ext_thunk", (off, "vf_type"))
+                          for f, (off, _, _) in zip(thunks, e.secondaries)]
+        elif ok and overrides and t is None and isinstance(f6, int) and (it := intermediate_type(m, f6)) \
+                and (x := getter_type(m, it[1])) is not None \
+                and m.names.get(it[1], "") in ("", mangle(f"Unk_{x:x}", "Unk_GetType")) \
+                and all(m.pattern(f) == m.pattern(f6) for f in thunks):
+            # Two below the base, under a class whose getter (out of line: it
+            # has many callers) isn't the base's: vf_type inlines its getter
+            # and the in-between class's, and its secondary type slots are
+            # copies of it. That class's getter is only named here.
+            if not pickable(f6) or any(not pickable(f) for f in thunks):
+                ok = False
+            else:
+                extra.append(Member(e.type_slot, f6, "ext_type", ("copy", it[0], x, it[1])))
                 extra += [Member(-1, f, "ext_thunk", (off, "vf_type"))
                           for f, (off, _, _) in zip(thunks, e.secondaries)]
         elif ok and overrides and t is None:
@@ -950,8 +996,14 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         if not ok or any(seg(x.addr) != seg(s1) for x in extra):
             continue
         mine = []
+        fields: dict = {}
         for x in picked.get(v.addr, []):
+            if x.kind == "lifted" and x.slot >= 2 and x.slot != e.type_slot and _ext_lifted_ok(e, ev, x, fields):
+                mine.append(x)
+                continue
             if x.kind not in SIMPLE_KINDS or x.slot < 2 or x.slot == e.type_slot:
+                if x.kind not in SIMPLE_KINDS and m.statuses.get(x.addr) == "O" and x.slot != e.type_slot:
+                    ok = False  # a matched member this shape can't write: keep the class as it is
                 continue
             if x.slot < len(ev.slots):
                 if v.slots[x.slot] == ev.slots[x.slot]:
@@ -983,8 +1035,8 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             order = derived_order(v, ev, mine, seg)
             if order is None:
                 continue
-        d = specs[v.addr] = ClassSpec(v, mine + extra, None, ext=e, order=order)
-        d.sigs = {x.slot: (RTYPE[x.kind], ()) for x in mine}
+        d = specs[v.addr] = ClassSpec(v, mine + extra, None, ext=e, order=order, fields=fields)
+        d.sigs = {x.slot: signature(x) if x.kind == "lifted" else (RTYPE[x.kind], ()) for x in mine}
         gone = {x.addr for x in extra}
         for w in secs:              # its secondary vtables' functions are its own now
             if w.addr in specs:
@@ -1183,15 +1235,24 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
     decl = [f"class {cls} : public {e.name} {{", "public:"]
     names: list[tuple[int, str]] = []
     defs: list[str] = []
-    inter = next((x.value[1] for x in spec.members if x.kind == "ext_type" and isinstance(x.value, tuple)), None)
+    inter = next((x.value for x in spec.members if x.kind == "ext_type" and isinstance(x.value, tuple)), None)
     parent = e.get_type
     if inter is not None:
         # A class between the base and this one, whose getter this one's
         # inlines: only that getter is known, named after its type object.
-        parent = f"Unk_{inter:x}::Unk_GetType"
-        decl[:0] = [f"// The type between {e.name} and {cls} (its class isn't known yet).",
-                    f"struct Unk_{inter:x} {{", f"    static {TYPE} Unk_GetType() {{",
-                    f"        static Unk_239a418_Type type({e.get_type}());", "        return &type;", "    }",
+        _, it, above, getter = inter
+        it_parent = e.get_type
+        pre = []
+        if above is not None:
+            # and the class above it, whose getter is out of line
+            it_parent = f"Unk_{above:x}::Unk_GetType"
+            pre = [f"// A class on {e.name} whose type getter (0x{getter + BASE:x}) is out of line.",
+                   f"struct Unk_{above:x} {{", f"    static {TYPE} Unk_GetType();", "};", ""]
+            names.append((getter, mangle(f"Unk_{above:x}", "Unk_GetType")))
+        parent = f"Unk_{it:x}::Unk_GetType"
+        decl[:0] = [*pre, f"// The type between {e.name} and {cls} (its class isn't known yet).",
+                    f"struct Unk_{it:x} {{", f"    static {TYPE} Unk_GetType() {{",
+                    f"        static Unk_239a418_Type type({it_parent}());", "        return &type;", "    }",
                     "};", ""]
     if e.type_slot in spec.order:
         # Its type, whose parent is the base's: inline, but too big to be
@@ -1205,9 +1266,15 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
                         else f"    {TYPE} vf_type() override;")
             continue
         base_slot = any(j == i for j, _, _ in e.slots)
-        rt = e.slot(i)[0] if base_slot else spec.sigs.get(i, ("void", ()))[0]
-        decl.append(f"    {rt} {e.slot(i)[1]}() override;" if base_slot else f"    virtual {rt} vf{i}();")
+        rt, params = (e.slot(i)[0], ()) if base_slot else spec.sigs.get(i, ("void", ()))
+        decl.append(f"    {rt} {e.slot(i)[1]}() override;" if base_slot else
+                    f"    virtual {rt} vf{i}({', '.join(params)});")
+    if spec.fields:
+        decl += field_lines(spec.fields, cls, e.size)
     decl.append("};")
+    if spec.fields:
+        decl[:0] = structs(spec.fields, cls)
+        decl += [f"PKMN_OFFSET_ASSERT({cls}, field_{o:x}, 0x{o:x});" for o in sorted(spec.fields)]
     for x in sorted(here, key=lambda x: (x.kind != "ext_getter", x.addr)):  # the getter before its use
         if x.kind == "d0":
             names.append((x.addr, mangle(cls, "D0")))
@@ -1223,6 +1290,11 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
                 defs.append(f"// 0x{x.addr + BASE:x}{where}\n{TYPE} {cls}::vf_type() {{\n"
                             f"    return Unk_GetType();\n}}")
             names.append((x.addr, mangle(cls, "vf_type")))
+        elif x.kind == "lifted":
+            name = e.slot(x.slot)[1]
+            defs.append(f"// 0x{x.addr + BASE:x}\n{x.lifted.rtype} {cls}::{name}({', '.join(x.lifted.params)}) "
+                        f"{{\n{x.lifted.named(x.lifted.body, cls)}}}")
+            names.append((x.addr, mangle(cls, name, x.lifted.codes)))
         else:
             rt, name = RTYPE[x.kind], e.slot(x.slot)[1]
             if x.kind == "forward":

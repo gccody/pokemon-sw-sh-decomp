@@ -501,6 +501,22 @@ def test_intermediate_type():
     sizes = {0x200: 4 * len(words)}
     m = V.Model("sword", bytes(img), sorted(sizes.items()), [], [], sizes, {0x600: "_ZN8Unk_100011Unk_GetTypeEv"},
                 {}, lambda a: "game", DELETE, {0x1010: 0x3000, 0x1018: 0x3008, 0x1020: 0x3010, 0x1028: 0x3018})
-    assert V.intermediate_type(m, 0x200) == 0x3018
-    m.names = {}                                         # no call to a type getter: another shape
+    assert V.intermediate_type(m, 0x200) == (0x3018, 0x600)   # the in-between type, the getter it calls
+    assert V.getter_type(m, 0x200) == 0x3008                   # what a getter returns: its second static
+    m.got = {0x1010: 0x3000, 0x1018: 0x3008}                   # two statics: another shape
     assert V.intermediate_type(m, 0x200) is None
+
+
+def test_lifted_member_of_a_class_on_a_hand_written_base():
+    """Its fields come after the base's (e.size); an override is declared as the base declares it."""
+    e = V.ExternalBase(0x1010, "Unk_B", "b.h", ((2, "void", "vf2"), (3, "u32", "vf3")), 6, "Unk_B::Unk_GetType",
+                       (), size=0x60)
+    m = model()
+    ev = m.vtables[0]
+    fields = {}
+    get = V.Member(3, 0x130, "lifted", lifted=V.Lifted("u32", (), "    return field_70;\n", ((0x70, "u32"),), "Unk_130"))
+    assert V._ext_lifted_ok(e, ev, get, fields) and fields == {0x70: "u32"}
+    inside = V.Member(3, 0x130, "lifted", lifted=V.Lifted("u32", (), "    return field_10;\n", ((0x10, "u32"),), "Unk_130"))
+    assert not V._ext_lifted_ok(e, ev, inside, fields)          # a field of the base's
+    other = V.Member(3, 0x130, "lifted", lifted=V.Lifted("bool", (), "    return field_78;\n", ((0x78, "u8"),), "Unk_130"))
+    assert not V._ext_lifted_ok(e, ev, other, fields)           # the base declares vf3 as u32
