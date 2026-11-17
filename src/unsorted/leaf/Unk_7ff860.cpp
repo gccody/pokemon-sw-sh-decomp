@@ -139,6 +139,13 @@ bool Unk_800280_check(const Unk_800280* self) {
     return self->field_1a4 != 0;
 }
 
+void Unk_7eb420(u32);
+
+// 0x7100800290
+void Unk_800290_call(void* /*unused*/, u32 value) {
+    Unk_7eb420(value);
+}
+
 struct Unk_8003c0 {
     u8 _0[0x11];
     u8 field_11;

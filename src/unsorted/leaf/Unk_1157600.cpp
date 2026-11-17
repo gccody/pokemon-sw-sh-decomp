@@ -25,6 +25,13 @@ u64 Unk_1157610_getField80(const Unk_1157610* self) {
     return self->field_80;
 }
 
+void Unk_115a2e0(void*, u64, u32, u64);
+
+// 0x710115a510
+void Unk_115a510_call(void* self, u32 value, u64 arg2) {
+    Unk_115a2e0(self, 0, value, arg2);
+}
+
 struct Unk_115a6e0 {
     u8 _0[0x308];
     u64 field_308;

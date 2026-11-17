@@ -362,6 +362,11 @@ itself); a member whose return or parameter type names that struct stays
 out. 98 more virtual functions match, most of them setting a flag through a
 pointer field (check.py: 25,563 matching, 107 not matching).
 
+An argument a function moves on with a 32-bit move (`mov w2, w3`) is a
+32-bit one: the tail call's placeholder takes a `u32` there, not a `u64`
+(which compiles to `mov x2, x3`). 33 more leaf functions and 21 virtual
+ones match (check.py: 25,617 matching, 107 not matching).
+
 ## Vtables and classes (`tools/vtables.py`)
 
 Most of the tiny functions are virtual (see "The tiny functions"), and

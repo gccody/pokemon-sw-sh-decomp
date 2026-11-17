@@ -3,6 +3,14 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
+extern u64 Unk_27e0740;
+void Unk_e43620(u64, u32, u64, u64, u64, u64);
+
+// 0x7100d281c0
+void Unk_d281c0_call(u32 self, u64 value, u64 arg2, u64 arg3, u64 arg4) {
+    Unk_e43620(Unk_27e0740, self, value, arg2, arg3, arg4);
+}
+
 // 0x7100d29850
 u32 Unk_d29850() {
     return 0;

@@ -766,6 +766,14 @@ void Unk_7f7140_call() {
     Unk_7870a0();
 }
 
+extern u64 Unk_27cecf0;
+void Unk_785c80(u64, u32, u32);
+
+// 0x71007f7ae0
+void Unk_7f7ae0_call(u32 self, u32 value) {
+    Unk_785c80(Unk_27cecf0, self, value);
+}
+
 void Unk_787110();
 
 // 0x71007f7fe0
