@@ -15,8 +15,8 @@ public:
     virtual void vf7();
     virtual u8 vf8();
     virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
+    virtual const char* vf10();
+    virtual const char* vf11();
     virtual u32 vf12();
     virtual u32 vf13(u32 value);
     virtual void vf14();
@@ -40,6 +40,16 @@ void Unk_2418708::vf7() {
 // 0x7101104c90
 u8 Unk_2418708::vf8() {
     return field_271;
+}
+
+// 0x7101104f30
+const char* Unk_2418708::vf10() {
+    return "bin/appli/autosave/bin/autosave_00.arc";
+}
+
+// 0x7101104f40
+const char* Unk_2418708::vf11() {
+    return "autosave_00.bflyt";
 }
 
 // 0x71011050f0

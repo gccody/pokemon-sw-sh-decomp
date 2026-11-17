@@ -48,6 +48,21 @@ u8 Unk_23a3f28::vf22() {
     return field_4f5;
 }
 
+class Unk_23a4018 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual const char* vf5();
+};
+
+// 0x71006c8ce0
+const char* Unk_23a4018::vf5() {
+    return "RandomSession";
+}
+
 class Unk_23a4058 {
 public:
     virtual void vf0();
@@ -55,12 +70,17 @@ public:
     virtual u32 vf2();
     virtual void vf3();
     virtual void vf4();
-    virtual void vf5();
+    virtual const char* vf5();
 };
 
 // 0x71006c8cf0
 u32 Unk_23a4058::vf2() {
     return 0;
+}
+
+// 0x71006c8d00
+const char* Unk_23a4058::vf5() {
+    return "BindNgs";
 }
 
 class Unk_23a4098 {
@@ -70,12 +90,17 @@ public:
     virtual u32 vf2();
     virtual void vf3();
     virtual void vf4();
-    virtual void vf5();
+    virtual const char* vf5();
 };
 
 // 0x71006c8d10
 u32 Unk_23a4098::vf2() {
     return 0;
+}
+
+// 0x71006c8d20
+const char* Unk_23a4098::vf5() {
+    return "UnbindNgs";
 }
 
 class Unk_23a40d8 {
@@ -85,12 +110,47 @@ public:
     virtual u32 vf2();
     virtual void vf3();
     virtual void vf4();
-    virtual void vf5();
+    virtual const char* vf5();
 };
 
 // 0x71006c8d30
 u32 Unk_23a40d8::vf2() {
     return 0;
+}
+
+// 0x71006c8d40
+const char* Unk_23a40d8::vf5() {
+    return "SearchSession";
+}
+
+class Unk_23a4118 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual const char* vf5();
+};
+
+// 0x71006c8d50
+const char* Unk_23a4118::vf5() {
+    return "JoinSession";
+}
+
+class Unk_23a4158 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual const char* vf5();
+};
+
+// 0x71006c8d60
+const char* Unk_23a4158::vf5() {
+    return "JoinSessionWithId";
 }
 
 class Unk_23a4198 {
@@ -100,12 +160,17 @@ public:
     virtual u32 vf2();
     virtual void vf3();
     virtual void vf4();
-    virtual void vf5();
+    virtual const char* vf5();
 };
 
 // 0x71006c8d70
 u32 Unk_23a4198::vf2() {
     return 0;
+}
+
+// 0x71006c8d80
+const char* Unk_23a4198::vf5() {
+    return "CreateSession";
 }
 
 class Unk_23a41d8 {
@@ -115,10 +180,15 @@ public:
     virtual u32 vf2();
     virtual void vf3();
     virtual void vf4();
-    virtual void vf5();
+    virtual const char* vf5();
 };
 
 // 0x71006c8d90
 u32 Unk_23a41d8::vf2() {
     return 1;
+}
+
+// 0x71006c8da0
+const char* Unk_23a41d8::vf5() {
+    return "CheckBlock";
 }

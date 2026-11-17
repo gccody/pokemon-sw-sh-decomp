@@ -100,7 +100,7 @@ public:
     virtual u32 vf2();
     virtual void vf3();
     virtual void vf4();
-    virtual void vf5();
+    virtual const char* vf5();
 };
 
 // 0x71006b21b0
@@ -113,6 +113,11 @@ u32 Unk_23a2fc8::vf2() {
     return 0;
 }
 
+// 0x71006b3110
+const char* Unk_23a2fc8::vf5() {
+    return "NotifyErrorFunc";
+}
+
 class Unk_23a2dc8 {
 public:
     virtual void vf0();
@@ -120,7 +125,7 @@ public:
     virtual u32 vf2();
     virtual void* vf3();
     virtual void vf4();
-    virtual void vf5();
+    virtual const char* vf5();
 };
 
 // 0x71006b2fe0
@@ -133,6 +138,11 @@ void* Unk_23a2dc8::vf3() {
     return nullptr;
 }
 
+// 0x71006b3000
+const char* Unk_23a2dc8::vf5() {
+    return "LeaveSession";
+}
+
 class Unk_23a2e08 {
 public:
     virtual void vf0();
@@ -140,12 +150,17 @@ public:
     virtual u32 vf2();
     virtual void vf3();
     virtual void vf4();
-    virtual void vf5();
+    virtual const char* vf5();
 };
 
 // 0x71006b3010
 u32 Unk_23a2e08::vf2() {
     return 0;
+}
+
+// 0x71006b3020
+const char* Unk_23a2e08::vf5() {
+    return "StartSession";
 }
 
 class Unk_23a2e48 {
@@ -155,12 +170,17 @@ public:
     virtual u32 vf2();
     virtual void vf3();
     virtual void vf4();
-    virtual void vf5();
+    virtual const char* vf5();
 };
 
 // 0x71006b3030
 u32 Unk_23a2e48::vf2() {
     return 0;
+}
+
+// 0x71006b3040
+const char* Unk_23a2e48::vf5() {
+    return "CleanupSession";
 }
 
 class Unk_23a2e88 {
@@ -170,7 +190,7 @@ public:
     virtual u32 vf2();
     virtual void vf3();
     virtual u32 vf4();
-    virtual void vf5();
+    virtual const char* vf5();
 };
 
 // 0x71006b3050
@@ -183,6 +203,11 @@ u32 Unk_23a2e88::vf4() {
     return 0;
 }
 
+// 0x71006b3070
+const char* Unk_23a2e88::vf5() {
+    return "CloseSession";
+}
+
 class Unk_23a2ec8 {
 public:
     virtual void vf0();
@@ -190,12 +215,17 @@ public:
     virtual u32 vf2();
     virtual void vf3();
     virtual void vf4();
-    virtual void vf5();
+    virtual const char* vf5();
 };
 
 // 0x71006b3080
 u32 Unk_23a2ec8::vf2() {
     return 1;
+}
+
+// 0x71006b3090
+const char* Unk_23a2ec8::vf5() {
+    return "ExecSuccess";
 }
 
 class Unk_23a2f08 {
@@ -205,12 +235,17 @@ public:
     virtual u32 vf2();
     virtual void vf3();
     virtual void vf4();
-    virtual void vf5();
+    virtual const char* vf5();
 };
 
 // 0x71006b30a0
 u32 Unk_23a2f08::vf2() {
     return 1;
+}
+
+// 0x71006b30b0
+const char* Unk_23a2f08::vf5() {
+    return "ExecCancel";
 }
 
 class Unk_23a2f48 {
@@ -220,12 +255,17 @@ public:
     virtual u32 vf2();
     virtual void vf3();
     virtual void vf4();
-    virtual void vf5();
+    virtual const char* vf5();
 };
 
 // 0x71006b30c0
 u32 Unk_23a2f48::vf2() {
     return 1;
+}
+
+// 0x71006b30d0
+const char* Unk_23a2f48::vf5() {
+    return "ExecTimeout";
 }
 
 class Unk_23a2f88 {
@@ -235,12 +275,17 @@ public:
     virtual u32 vf2();
     virtual void vf3();
     virtual void vf4();
-    virtual void vf5();
+    virtual const char* vf5();
 };
 
 // 0x71006b30e0
 u32 Unk_23a2f88::vf2() {
     return 1;
+}
+
+// 0x71006b30f0
+const char* Unk_23a2f88::vf5() {
+    return "IndexSelectSession";
 }
 
 class Unk_23a3008 {
@@ -250,12 +295,17 @@ public:
     virtual u32 vf2();
     virtual void vf3();
     virtual void vf4();
-    virtual void vf5();
+    virtual const char* vf5();
 };
 
 // 0x71006b3120
 u32 Unk_23a3008::vf2() {
     return 1;
+}
+
+// 0x71006b3130
+const char* Unk_23a3008::vf5() {
+    return "WaitMemberConnection";
 }
 
 class Unk_23a3048 {
@@ -265,12 +315,17 @@ public:
     virtual u32 vf2();
     virtual void vf3();
     virtual void vf4();
-    virtual void vf5();
+    virtual const char* vf5();
 };
 
 // 0x71006b3140
 u32 Unk_23a3048::vf2() {
     return 0;
+}
+
+// 0x71006b3150
+const char* Unk_23a3048::vf5() {
+    return "CancelJoinRandomSession";
 }
 
 class Unk_23a3088 {
@@ -280,12 +335,17 @@ public:
     virtual u32 vf2();
     virtual void vf3();
     virtual void vf4();
-    virtual void vf5();
+    virtual const char* vf5();
 };
 
 // 0x71006b3160
 u32 Unk_23a3088::vf2() {
     return 0;
+}
+
+// 0x71006b3170
+const char* Unk_23a3088::vf5() {
+    return "CancelJoinSession";
 }
 
 class Unk_23a30c8 {
@@ -295,7 +355,7 @@ public:
     virtual u32 vf2();
     virtual void vf3();
     virtual void vf4();
-    virtual void vf5();
+    virtual const char* vf5();
 };
 
 // 0x71006b3180
@@ -311,4 +371,9 @@ u32 Unk_23a30c8::vf1() {
 // 0x71006b31a0
 u32 Unk_23a30c8::vf2() {
     return 0;
+}
+
+// 0x71006b31b0
+const char* Unk_23a30c8::vf5() {
+    return "NullFunc";
 }
