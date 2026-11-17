@@ -437,3 +437,29 @@ def test_constructors():
            "class Unk_1000 : public Unk_1040 {\npublic:\n    Unk_1000();\n    ~Unk_1000() override;\n};\n" in text
     assert text.endswith("// 0x7100000200\nUnk_1000::Unk_1000() {}\n")
     assert V.ctor_name("Unk_1000") == "_ZN8Unk_1000C2Ev"
+
+
+def test_derived_class_lifted_members_use_the_base_fields():
+    """B derives from A: B's lifted members, left out to derive it, are added
+    back with their fields declared by A (the same offsets in the object)."""
+    m = model()
+    a, b = m.vtables[0], m.vtables[2]
+    base = V.ClassSpec(a, [], "empty")
+    d = V.ClassSpec(b, [], "empty", base=base)
+    families = {a.addr: base.sigs}
+    set0 = V.Member(3, 0x160, "lifted", lifted=V.Lifted("void", (), "    field_10 = 0;\n", ((0x10, "u32"),), "Unk_160"))
+    ptr = V.Member(4, 0x170, "lifted", lifted=V.Lifted("u8", (), "    return field_18->field_4;\n",
+                                                       ((0x18, ("*", ((4, "u8"),))),), "Unk_170"))
+    V._readd_lifted(d, [set0, ptr], families)
+    assert d.members == [set0, ptr]
+    assert base.fields == {0x10: "u32", 0x18: {4: "u8"}}
+    assert base.sigs == {3: ("void", ())}                    # an override: the base's family has it
+    assert d.sigs == {4: ("u8", ())}                         # a new slot (A has 4): B's own
+    # another signature for slot 3, a conflicting field, a struct the return type names: left out
+    other = V.Member(3, 0x160, "lifted", lifted=V.Lifted("u32", (), "    return 1;\n", (), "Unk_160"))
+    clash = V.Member(5, 0x180, "lifted", lifted=V.Lifted("void", (), "    field_10 = 0;\n", ((0x10, "u8"),), "Unk_180"))
+    named = V.Member(6, 0x190, "lifted", lifted=V.Lifted("Unk_190_8*", (), "    return field_8;\n",
+                                                         ((8, ("*", ())),), "Unk_190"))
+    d2 = V.ClassSpec(b, [], "empty", base=base)
+    V._readd_lifted(d2, [other, clash, named], families)
+    assert d2.members == []
