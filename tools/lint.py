@@ -236,6 +236,11 @@ def lint_areas(path: Path, functions: list[Function] | None = None) -> list[str]
             elif r["Area"] in names:
                 errors.append(f"{where}: duplicate Area {r['Area']} (also line {names[r['Area']]})")
             names[r["Area"]] = i
+    for name, i in names.items():
+        for other in names:
+            if other.startswith(name + "/"):
+                errors.append(f"{path.name}:{i}: {name} is also the group of {other}: name the row {name}/...")
+                break
     if functions and not errors:
         errors += lint_areas_against_functions(path, functions)
     return errors

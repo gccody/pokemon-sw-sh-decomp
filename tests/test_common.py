@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from common import BASE, ROOT, Function, read_functions_csv, write_functions_csv
+import pytest
+from common import (
+    BASE, ROOT, Function, area_names, area_span, in_area, read_areas_csv, read_functions_csv,
+    write_functions_csv,
+)
 
 
 def test_functions_csv_round_trips_byte_for_byte(tmp_path):
@@ -34,3 +38,18 @@ def test_key_is_stable_across_names():
     a = Function(sword=0x10, shield=0x20, sword_size=4, shield_size=4, scope="common")
     b = Function(sword=0x10, shield=0x20, sword_size=4, shield_size=4, scope="common", name="_Z1av")
     assert a.key == b.key == "sw:10"
+
+
+def test_area_groups(write_csv):
+    path = write_csv("areas.csv", "SwordStart,SwordEnd,ShieldStart,ShieldEnd,Area,Kind,Confidence,Evidence\n"
+                     "0x7100001000,0x7100002000,0x7100001000,0x7100002010,game/a,game,low,x\n"
+                     "0x7100002000,0x7100003000,,,game/b/c,game,low,x\n"
+                     "0x7100003000,0x7100004000,0x7100003010,0x7100004010,game/d,game,low,x\n")
+    areas = read_areas_csv(path)
+    assert area_names(areas) == {"game", "game/a", "game/b", "game/b/c", "game/d"}
+    assert in_area("game/b/c", "game") and in_area("game/b/c", "game/b") and in_area("game/a", "game/a")
+    assert not in_area("gamex", "game") and not in_area(None, "game") and not in_area("game", "game/a")
+    assert area_span(areas, "game", "sword") == (0x1000, 0x4000)
+    assert area_span(areas, "game/b", "shield") is None
+    with pytest.raises(ValueError, match="aren't contiguous in shield"):
+        area_span(areas, "game", "shield")

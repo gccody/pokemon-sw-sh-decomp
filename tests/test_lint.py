@@ -105,6 +105,22 @@ def test_areas(write_csv):
     assert any("Confidence" in e for e in errors)
 
 
+def test_area_name_is_not_a_group(write_csv):
+    ok = areas_csv(
+        write_csv,
+        "0x7100000000,0x7100001000,0x7100000000,0x7100001000,game/a,game,low,x",
+        "0x7100001000,0x7100002000,0x7100001000,0x7100002000,game/b/c,game,low,y",
+        "0x7100002000,0x7100003000,0x7100002000,0x7100003000,gamex,game,low,z",
+    )
+    assert lint.lint_areas(ok) == []
+    bad = areas_csv(
+        write_csv,
+        "0x7100000000,0x7100001000,0x7100000000,0x7100001000,game,game,low,x",
+        "0x7100001000,0x7100002000,0x7100001000,0x7100002000,game/b,game,low,y",
+    )
+    assert lint.lint_areas(bad) == ["areas.csv:2: game is also the group of game/b: name the row game/..."]
+
+
 def test_areas_are_checked_per_game(write_csv):
     # Sword is fine, Shield's second area starts before the first one ends.
     errors = lint.lint_areas(areas_csv(
