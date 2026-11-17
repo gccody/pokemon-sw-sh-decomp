@@ -83,6 +83,11 @@ boundaries at function starts and take the other game's value from the same
 row of `functions.csv`; `tools/lint.py` checks that they pair up and that every
 function lands in the same area in both games. `tools/progress.py` reports
 areas per game, and `tools/funcs.py list --area <name>` lists an area's rows.
+Area names are paths: Game Freak's game code is split into `game/<subsystem>`
+rows (`game/pokecamp`, `game/battle_logic`, ...) and `game/unk_<address>` for
+what isn't placed yet, and `--area game` covers all of them.
+`tools/segments.py` shows where a boundary can go without splitting a TU
+([docs/game_code.md](docs/game_code.md), "Subsystems").
 
 ## Getting started
 
@@ -120,6 +125,7 @@ python tools/progress.py
 | `tools/versiondiff.py --update-csv` | Re-pair Sword ↔ Shield and regenerate scopes (keeps names and status) |
 | `tools/funcs.py list --status U --max 64 --area game` | Find work |
 | `tools/funcs.py patterns --area game --status U --max 8` | Group functions by instruction pattern and how they're reached (vtable, call, neither), to find batches ([docs/game_code.md](docs/game_code.md)) |
+| `tools/segments.py <area>` | The runs of TUs that static initialisers end, with the strings and namespaces in each, to place area boundaries ([docs/game_code.md](docs/game_code.md)) |
 | `tools/funcs.py show <addr>` | Original assembly, with both games side by side for `diverged` |
 | `tools/funcs.py name <addr> <mangled>` | Assign a symbol name to a function |
 | `tools/check.py [name] [--diff] [--update]` | Build both games and check against both originals |
