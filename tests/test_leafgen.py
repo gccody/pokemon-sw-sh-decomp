@@ -186,6 +186,39 @@ def test_global(monkeypatch):
         leafgen.generate(ADDR, code(adrp, ldr_x(8, 8, 0x18), ldr_w(0, 8, 0), RET))
 
 
+def cbz_x(rt, insns):
+    return 0xB4000000 | insns << 5 | rt  # cbz xN, +4*insns
+
+
+def test_guarded_tail_call():
+    """ldr x0, [x0, #8] ; cbz x0, L ; b +0x100 ; L: ret: the call only if the field isn't 0."""
+    _, func = leafgen.generate(ADDR, code(ldr_x(0, 0, 8), cbz_x(0, 2), 0x14000000 | 0x100 >> 2, RET))
+    assert func == ("void Unk_123450_call(const Unk_123450* self) {\n    if (self->field_8 != 0) {\n"
+                    "        Unk_123558(self->field_8);\n    }\n}\n")
+
+
+def test_guarded_getter_returns_0_otherwise():
+    """ldr x8, [x0, #0x10] ; cbz x8, L ; ldrb w0, [x8, #4] ; ret ; L: mov w0, wzr ; ret."""
+    mov_w0_wzr = 0x2A1F03E0
+    _, func = leafgen.generate(ADDR, code(ldr_x(8, 0, 0x10), cbz_x(8, 3), ldrb(0, 8, 4), RET, mov_w0_wzr, RET))
+    assert func == ("u8 Unk_123450_get(const Unk_123450* self) {\n    if (self->field_10 == nullptr) {\n"
+                    "        return 0;\n    }\n    return self->field_10->field_4;\n}\n")
+    # ldrb w0, [x0, #4] ; cbz w0, L ; strb wzr, [x0, #5] ; L: ret: a store on one path only
+    out = gen(ldrb(8, 0, 4), 0x34000048, strb(31, 0, 5), RET)  # cbz w8, +8
+    assert "    if (self->field_4 != 0) {\n        self->field_5 = 0;\n    }\n" in out
+
+
+@pytest.mark.parametrize("words, why", [
+    ((ldr_x(8, 0, 8), cbz_x(8, 2), ldr_w(0, 8, 0), 0x52800020, RET), "other code"),   # L: mov w0, #1
+    ((str_w(1, 0, 0x10), ldr_x(8, 0, 8), cbz_x(8, 2), str_w(1, 8, 0), RET), "after a store"),
+    ((ldr_x(8, 0, 8), cbz_x(8, 3), cbz_x(8, 2), str_w(1, 8, 0), RET), "more than one"),
+    ((cbz_x(1, 2), 0x14000000 | 0x40, 0x2A1F03E0, RET), "tail call"),   # 0, or what the tail call returns
+])
+def test_guard_refused(words, why):
+    with pytest.raises(leafgen.LiftError, match=why):
+        leafgen.generate(ADDR, code(*words))
+
+
 def test_misaligned_field_is_refused():
     # ldur w0, [x0, #2]: a u32 at offset 2 can't be a plain struct member.
     ldur_w = 0xB8400000 | 2 << 12 | 0 << 5 | 0

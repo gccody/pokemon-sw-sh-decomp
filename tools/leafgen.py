@@ -6,7 +6,8 @@
     python tools/leafgen.py names --out map.csv         # after a build: the mangled names, for funcs.py
 
 A *leaf* here is a function with no branch other than its final `ret` (or a
-final tail call `b T`, see below), no other call, and no reference to
+final tail call `b T`, see below) but one `cbz`/`cbnz` that skips the rest
+(guard_shape), no other call, and no reference to
 anything but its arguments: loads and stores
 through x0..x7, constants, masks, shifts, compares and selects. That covers
 getters and setters of nested fields, flag tests and updates, bitfields,
@@ -36,7 +37,6 @@ from __future__ import annotations
 
 import argparse
 import re
-import struct
 import sys
 from collections import Counter
 from dataclasses import dataclass, field
@@ -208,6 +208,8 @@ class Lifted:
     ret: object = None    # what w0/x0 or s0 holds at the ret, if the function wrote it
     tail: int | None = None   # a final `b T`: T (absolute)
     args: list = field(default_factory=list)  # then: x0.. at the branch, up to the last one written
+    guard: tuple | None = None  # (value, nonzero): the rest runs only if value != 0 (nonzero) or == 0
+    zero_else: bool = False   # if it doesn't, the function returns 0 (else nothing)
 
 
 CALL_CODES = {"void*": "Pv", "bool": "b", "u8": "h", "s8": "a", "u16": "t", "s16": "s", "u32": "j", "s32": "i",
@@ -220,20 +222,62 @@ def callee_name(target: int, types: list[str]) -> tuple[str, str]:
     return name, f"_Z{len(name)}{name}" + ("".join(CALL_CODES[t] for t in types) or "v")
 
 
+GUARDS = ("cbz", "cbnz")
+
+
+def guard_shape(insns: list[tuple[str, list[str]]], addr: int | None) -> tuple[int, list, bool] | None:
+    """For one `cbz`/`cbnz r, L` that skips the rest of the function:
+    (its index, the path that doesn't branch, whether the other returns 0).
+
+    L is either the final `ret` (`if (r) { ... }`: the path before it ends in
+    `ret`, a tail call or falls through), or `mov w0, wzr ; ret` after the
+    path's own `ret` (`if (!r) return 0; ...`). Other branches are refused."""
+    ks = [i for i, (mn, _) in enumerate(insns) if mn in GUARDS]
+    if not ks:
+        return None
+    k = ks[0]
+    mn = insns[k][0]
+    if len(ks) > 1 or addr is None:
+        raise LiftError(f"{mn}: more than one branch" if len(ks) > 1 else f"{mn} without an address")
+    to = (_imm(insns[k][1][1]) - addr) // 4
+    if not k + 1 < to < len(insns):
+        raise LiftError(f"{mn} out of the function")
+    rest = [(m, [o.strip() for o in ops]) for m, ops in insns[to:]]
+    if rest == [("ret", [])]:
+        zero = False
+    elif len(rest) == 2 and rest[1] == ("ret", []) and rest[0][0] == "mov" and rest[0][1] in (["w0", "wzr"],
+                                                                                               ["x0", "xzr"]):
+        zero = True
+    else:
+        raise LiftError(f"{mn} to other code")
+    path = insns[:to]
+    if zero and path[-1][0] != "ret":
+        # falls into the zero return, or returns a tail call's result (void here)
+        raise LiftError(f"{mn}: 0 or {'a tail call' if path[-1][0] == 'b' else 'more'}")
+    if path[-1][0] not in ("ret", "b"):
+        path = path + [("ret", [])]
+    return k, path, zero
+
+
 def lift(code: bytes, addr: int | None = None) -> Lifted:
     """Symbolically execute a straight-line leaf function (see the module docstring).
 
     With `addr`, the function may end in a tail call (`b T`) instead of `ret`:
     then `args` are the argument registers at the branch, up to the last
-    one it wrote (the ones after it pass through, whatever T takes)."""
-    last = struct.unpack_from("<I", code, len(code) - 4)[0] if len(code) >= 4 else None
+    one it wrote (the ones after it pass through, whatever T takes). It may
+    also skip all that with one `cbz`/`cbnz` (guard_shape)."""
+    insns = disassemble(code, addr or 0) if len(code) >= 4 and len(code) % 4 == 0 else []
+    shape = guard_shape(insns, addr) if insns and insns[-1][0] == "ret" else None
+    k, zero = None, False
+    if shape is not None:
+        k, insns, zero = shape
     tail = None
-    if addr is not None and last is not None and last >> 26 == 0b000101:
-        off = ((last & 0x3FFFFFF) ^ 0x2000000) - 0x2000000
-        tail = addr + len(code) - 4 + 4 * off
-    elif last != RET:
+    if not insns:
         raise LiftError("doesn't end with ret")
-    insns = disassemble(code, addr or 0)
+    if addr is not None and insns[-1][0] == "b":
+        tail = _imm(insns[-1][1][0])
+    elif insns[-1][0] != "ret":
+        raise LiftError("doesn't end with ret")
     regs: dict[tuple[str, int], object] = {}
     for i in range(8):
         regs[("x", i)] = Arg(i)
@@ -265,7 +309,16 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
     def width_of(r: str) -> int:
         return 8 if _reg(r)[0] in "xd" else 4
 
-    for mn, ops in insns[:-1]:
+    for idx, (mn, ops) in enumerate(insns[:-1]):
+        if idx == k:
+            if out.stores:
+                raise LiftError(f"{mn} after a store")
+            v = get(ops[0])
+            if not isinstance(v, (Load, Arg)) or (isinstance(v, Load) and width_of(ops[0]) < WIDTH[v.type]):
+                raise LiftError(f"{mn} of a computed value")
+            out.guard = (v, mn == "cbz")
+            out.zero_else = zero
+            continue
         if mn == "adrp" and addr is not None:
             dst, page = ops
             put(dst, Page(_imm(page)))
@@ -408,6 +461,13 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
         out.ret = regs[("x", 0)]
     elif ("f", 0) in written:
         out.ret = regs[("f", 0)]
+    if out.guard is not None and out.ret is not None and not out.zero_else:
+        # The other path returns x0 as it was at the branch: 0 if cbz tested it.
+        if not out.guard[1] or _reg(insns[k][1][0])[1] != 0:
+            raise LiftError("cbz: the other path returns something")
+        out.zero_else = True
+    if out.zero_else and (out.ret is None or ("f", 0) in written):
+        raise LiftError("cbz: returns 0 on one path only")
     return out
 
 
@@ -676,6 +736,7 @@ class Emitter:
                     rt = ft
             ret_type = rt
             body.append(f"    return {rhs};")
+        body = self.guarded(body, ret_type)
         params = []
         for i in range(max(self.arg_types, default=-1) + 1):
             t = self.arg_types.get(i)
@@ -727,6 +788,7 @@ class Emitter:
                 types.append(t)
         callee, _ = callee_name(lf.tail, types)
         body.append(f"    {callee}({', '.join(args)});")
+        body = self.guarded(body, "void")
         params = []
         for i in range(max(self.arg_types, default=-1) + 1):
             t = self.arg_types.get(i)
@@ -743,6 +805,20 @@ class Emitter:
         func = f"void Unk_{self.short}_call({', '.join(params)}) {{\n" + "".join(x + "\n" for x in body) + "}\n"
         structs = self.render_structs()
         return (structs + "\n" if structs else "") + proto, func
+
+    def guarded(self, body: list[str], ret_type: str) -> list[str]:
+        """body (the statements, and the return last if it returns) under lf.guard."""
+        lf = self.lifted
+        if lf.guard is None:
+            return body
+        v, nonzero = lf.guard
+        w = 8 if self.is_pointer(v) or WIDTH.get(self.type_of(v), 8) == 8 else 4
+        if lf.zero_else:
+            test = self.cond(Cmp("eq" if nonzero else "ne", v, Const(0, w)))
+            zero = _const(0, ret_type)
+            return [f"    if ({test}) {{", f"        return {zero};", "    }", *body]
+        test = self.cond(Cmp("ne" if nonzero else "eq", v, Const(0, w)))
+        return [f"    if ({test}) {{", *("    " + line for line in body), "    }"]
 
     def function_name(self, ret_type: str) -> str:
         lf = self.lifted
