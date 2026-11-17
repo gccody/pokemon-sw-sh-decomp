@@ -706,3 +706,26 @@ only one function can be its C2.
 
 Left are about 50 of other shapes, which store more than one vptr
 (multiple inheritance) or initialise a field as well.
+
+## What's left of the small functions
+
+After these batches (check.py: 25,626 matching), most of game code's
+undecompiled functions of up to 16 bytes (11,761 by
+`funcs.py patterns --area game --status U --max 16`) are blocked on something
+bigger rather than on the lifters:
+
+| Shape | Count | What it waits for |
+|---|---|---|
+| `sub x0, x0, #N ; b T` | 2,921 | Non-virtual thunks. The compiler emits one with the override it adjusts for, so its target has to be written first, in a class declared with its secondary bases. |
+| `ret` | 2,869 | 953 are in data but in no vtable (plain tables, or vtables not found), 1,915 are referenced nowhere: nothing says what they belong to. |
+| `ldr x8, [x0] ; str x8, [x1] ; ret` | 2,703 | Copy operations of type-erased callables, one per lambda type. A caller builds a table of them (invoke, copy, ...) on its stack. They're template instances: one template covers them once the wrapper is known. `ldp`/`stp` (281) and `str xzr` (107) are their 16-byte and move variants. |
+| `b T` | 1,426 | Forwarders, nearly all in data: `vtables.py` writes one only when its target can be a placeholder (in no vtable, unnamed). The others go to virtual functions, D2s or `operator delete` of classes not written yet. |
+| `trap` | 115 | In vtables (an abstract class's deleting destructor, for one) of classes not written yet. |
+
+Larger shapes have their own blockers:
+
+- destructors of derived classes (`store vptr ; b <base D2>`), whose class
+  would need its whole vtable declared, not the constructor files' minimal one;
+- constructors with several vptrs (multiple inheritance);
+- 16-byte values returned in `x0`:`x1`;
+- functions that read a field after storing to it.
