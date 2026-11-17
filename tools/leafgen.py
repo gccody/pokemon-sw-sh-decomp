@@ -5,11 +5,15 @@
     python tools/leafgen.py write --max 32              # into src/unsorted/leaf
     python tools/leafgen.py names --out map.csv         # after a build: the mangled names, for funcs.py
 
-A *leaf* here is a function with no branch other than its final `ret`, no
-call, and no reference to anything but its arguments: loads and stores
+A *leaf* here is a function with no branch other than its final `ret` (or a
+final tail call `b T`, see below), no other call, and no reference to
+anything but its arguments: loads and stores
 through x0..x7, constants, masks, shifts, compares and selects. That covers
 getters and setters of nested fields, flag tests and updates, bitfields,
-range checks and constant returns. `lift()` turns one into C++: a placeholder
+range checks and constant returns. A function that ends in `b T` instead
+becomes `Unk_<T>(args...);`, with the argument registers it wrote (up to
+the last one; the ones before it that it didn't touch are passed on) and T
+declared `void Unk_<T>(...)`, `void*` for pointers. `lift()` turns one into C++: a placeholder
 struct per pointer it dereferences (`Unk_<addr>` for the first argument,
 `Unk_<addr>_<offset>` for a pointer loaded from it, ...), with a field per
 offset (`field_<offset>`, typed by the access width and signedness), and a
@@ -187,11 +191,32 @@ CONDS = set(COND_INV)
 class Lifted:
     stores: list[tuple[object, int, str, object]] = field(default_factory=list)  # (base, offset, type, value)
     ret: object = None    # what w0/x0 or s0 holds at the ret, if the function wrote it
+    tail: int | None = None   # a final `b T`: T (absolute)
+    args: list = field(default_factory=list)  # then: x0.. at the branch, up to the last one written
 
 
-def lift(code: bytes) -> Lifted:
-    """Symbolically execute a straight-line leaf function (see the module docstring)."""
-    if len(code) < 4 or struct.unpack_from("<I", code, len(code) - 4)[0] != RET:
+CALL_CODES = {"void*": "Pv", "bool": "b", "u8": "h", "s8": "a", "u16": "t", "s16": "s", "u32": "j", "s32": "i",
+              "u64": "m", "s64": "l"}
+
+
+def callee_name(target: int, types: list[str]) -> tuple[str, str]:
+    """(placeholder name, mangled name) of a tail call's target: `void Unk_<T>(types...)`."""
+    name = f"Unk_{target - BASE:x}"
+    return name, f"_Z{len(name)}{name}" + ("".join(CALL_CODES[t] for t in types) or "v")
+
+
+def lift(code: bytes, addr: int | None = None) -> Lifted:
+    """Symbolically execute a straight-line leaf function (see the module docstring).
+
+    With `addr`, the function may end in a tail call (`b T`) instead of `ret`:
+    then `args` are the argument registers at the branch, up to the last
+    one it wrote (the ones after it pass through, whatever T takes)."""
+    last = struct.unpack_from("<I", code, len(code) - 4)[0] if len(code) >= 4 else None
+    tail = None
+    if addr is not None and last is not None and last >> 26 == 0b000101:
+        off = ((last & 0x3FFFFFF) ^ 0x2000000) - 0x2000000
+        tail = addr + len(code) - 4 + 4 * off
+    elif last != RET:
         raise LiftError("doesn't end with ret")
     insns = disassemble(code)
     regs: dict[tuple[str, int], object] = {}
@@ -319,6 +344,12 @@ def lift(code: bytes) -> Lifted:
         else:
             raise LiftError(mn)
 
+    if tail is not None:
+        if any(("f", i) in written for i in range(8)):
+            raise LiftError("floating-point tail-call argument")
+        n = max((i + 1 for i in range(8) if ("x", i) in written), default=0)
+        out.tail, out.args = tail, [regs[("x", i)] for i in range(n)]
+        return out
     # The result: whatever the function left in w0/x0 or s0, if it wrote it.
     if ("x", 0) in written and ("f", 0) in written:
         raise LiftError("writes both x0 and s0")
@@ -592,6 +623,57 @@ class Emitter:
         func = f"{ret_type} {name}({', '.join(params)}) {{\n" + "".join(line + "\n" for line in body) + "}\n"
         return self.render_structs(), func
 
+    def render_tail(self) -> tuple[str, str]:
+        """render() of a function that ends in a tail call: its stores, then
+        `Unk_<T>(args...);`, T declared with `void*` for pointers, so that its
+        name doesn't depend on this function's placeholder structs."""
+        lf = self.lifted
+        body: list[str] = []
+        for base, off, t, value in lf.stores:
+            if isinstance(value, AddrOf):
+                raise LiftError("stores an address")
+            lhs = self.field_expr(base, off, t)
+            ft = self.structs[base].fields[off]
+            rhs = self.expr(value, None if ft.endswith("*") else ft)
+            if isinstance(value, Const) and value.value == 0 and ft.endswith("*"):
+                rhs = "nullptr"
+            body.append(f"    {lhs} = {rhs};")
+        args, types = [], []
+        for e in lf.args:
+            if isinstance(e, Arg) and not e.fp:
+                t = self.arg_types.get(e.index)
+                if t is None:
+                    t = self.arg_types[e.index] = "void*" if e.index == 0 else "u64"
+                args.append(self.arg_name(e.index))
+                types.append("void*" if t.endswith("*") else t)
+            elif self.is_pointer(e) or self.type_of(e) == "ptr":
+                args.append(self.expr(e))
+                types.append("void*")
+            else:
+                t = self.type_of(e)
+                if t not in CALL_CODES:
+                    raise LiftError(f"tail-call argument of type {t}")
+                args.append(self.expr(e, t))
+                types.append(t)
+        callee, _ = callee_name(lf.tail, types)
+        body.append(f"    {callee}({', '.join(args)});")
+        params = []
+        for i in range(max(self.arg_types, default=-1) + 1):
+            t = self.arg_types.get(i)
+            if t is None:
+                params.append("void* /*unused*/" if i == 0 else "u64 /*unused*/")
+                continue
+            # const when only read, unless it's passed on (to a void* parameter)
+            if t.endswith("*") and t != "void*" and Arg(i) not in {b for b, _, _, _ in lf.stores} \
+                    and Arg(i) not in lf.args:
+                t = "const " + t
+            params.append(f"{t} {self.arg_name(i)}")
+        self.callee = (lf.tail, tuple(types))
+        proto = f"void {callee}({', '.join(types)});\n"
+        func = f"void Unk_{self.short}_call({', '.join(params)}) {{\n" + "".join(x + "\n" for x in body) + "}\n"
+        structs = self.render_structs()
+        return (structs + "\n" if structs else "") + proto, func
+
     def function_name(self, ret_type: str) -> str:
         lf = self.lifted
         if lf.stores and lf.ret is None:
@@ -654,12 +736,13 @@ def _const(v: int, t: str) -> str:
 def generate(addr: int, code: bytes) -> tuple[str, str]:
     """(structs, function) of the leaf at `addr` (absolute), or LiftError."""
     try:
-        lifted = lift(code)
+        lifted = lift(code, addr)
         first = Emitter(addr, lifted)
-        first.render()  # learns which fields and arguments are pointers
+        render = Emitter.render_tail if lifted.tail is not None else Emitter.render
+        render(first)  # learns which fields and arguments are pointers
         second = Emitter(addr, lifted)
         second.structs, second.arg_types, second.fp_types = first.structs, first.arg_types, first.fp_types
-        return second.render()
+        return render(second)
     except ValueError as e:  # an operand list of another shape (shifted or extended registers ...)
         raise LiftError(f"operands ({e})") from None
 
@@ -743,6 +826,7 @@ def main(argv: list[str] | None = None) -> int:
             lifted[addr] = generate(addr, code)
         except LiftError as e:
             why[str(e).split(" ")[0]] += 1
+    lifted = callable_tails(lifted, why)
     print(f"{len(cands)} candidates, {len(lifted)} lifted", file=sys.stderr)
     if args.cmd == "scan":
         kinds = Counter(func.split("(")[0].rsplit("_", 1)[1] for _, func in lifted.values())
@@ -760,7 +844,50 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-NAME = re.compile(r"Unk_([0-9a-f]+)_(?:set|get|check|update)")
+PROTO = re.compile(r"^void (Unk_([0-9a-f]+))\((.*)\);$", re.M)
+
+
+def callable_tails(lifted: dict[int, tuple[str, str]], why: Counter) -> dict[int, tuple[str, str]]:
+    """The lifted functions, without the tail calls whose target can't be the
+    placeholder `void Unk_<T>(...)`: one in no table (a virtual function is
+    called by its class's name), unnamed or already named that, not lifted
+    itself, and called with the same parameter types by every caller."""
+    from common import load_module, nso_path, read_functions_csv
+    from nx.module import DynInfo
+    from nx.nso import Nso
+
+    mod = load_module("sword")
+    dyn = DynInfo(Nso(nso_path("sword").read_bytes()), mod["image"], mod["text_end"])
+    in_data = {v for v in dyn.slots.values() if isinstance(v, int)}
+    rows = {f.sword: f for f in read_functions_csv() if f.sword is not None}
+    sigs: dict[int, set[str]] = {}
+    target: dict[int, int] = {}
+    for a, (structs, func) in lifted.items():
+        m = PROTO.search(structs)
+        if m and "_call(" in func:
+            t = int(m.group(2), 16)
+            target[a] = t
+            sigs.setdefault(t, set()).add(m.group(3))
+    out = {}
+    for a, v in lifted.items():
+        t = target.get(a)
+        if t is None:
+            out[a] = v
+            continue
+        r = rows.get(t)
+        types = next(iter(sigs[t])).split(", ") if next(iter(sigs[t])) else []
+        name = callee_name(t + BASE, types)[1]
+        if len(sigs[t]) > 1:
+            why["callee"] += 1          # called with different types: its signature isn't known
+        elif r is None or r.shield is None or t in in_data or t + BASE in lifted or (r.name and r.name != name):
+            why["callee"] += 1
+        else:
+            out[a] = v
+    return out
+
+
+NAME = re.compile(r"Unk_([0-9a-f]+)_(?:set|get|check|update|call)")
+CALLEE = re.compile(r"_Z\d+Unk_([0-9a-f]+)\w+")  # a tail call's target, undefined in the objects
 
 
 def cmd_names(args) -> int:
@@ -777,6 +904,9 @@ def cmd_names(args) -> int:
         for sym in elfobj.parse(o.read_bytes()).symbols:
             m = NAME.search(sym.name)
             if m and sym.type == "STT_FUNC" and sym.shndx != "SHN_UNDEF":
+                found[int(m.group(1), 16) + BASE] = sym.name
+            m = CALLEE.fullmatch(sym.name)
+            if m and sym.shndx == "SHN_UNDEF" and not NAME.search(sym.name):
                 found[int(m.group(1), 16) + BASE] = sym.name
     rows = [f for f in read_functions_csv() if f.sword is not None and f.sword + BASE in found and not f.name]
     with open(args.out, "w", encoding="utf-8", newline="\n") as fh:
