@@ -113,6 +113,21 @@ class AddrOf:
     offset: int
 
 
+@dataclass(frozen=True)
+class Page:
+    addr: int             # what `adrp` computed (absolute)
+
+
+@dataclass(frozen=True)
+class GlobalPtr:
+    addr: int             # a global's address (relative), loaded from its GOT slot
+
+
+# GOT slot -> what it holds (relative addresses), for `adrp ; ldr [slot]`: set
+# by the callers that have the executable (main, tools/vtables.py).
+GOT: dict[int, int] = {}
+
+
 COND_INV = {"eq": "ne", "ne": "eq", "hi": "ls", "ls": "hi", "hs": "lo", "lo": "hs", "gt": "le", "le": "gt",
             "ge": "lt", "lt": "ge"}
 UNSIGNED_CONDS = {"hi", "hs", "lo", "ls"}
@@ -218,7 +233,7 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
         tail = addr + len(code) - 4 + 4 * off
     elif last != RET:
         raise LiftError("doesn't end with ret")
-    insns = disassemble(code)
+    insns = disassemble(code, addr or 0)
     regs: dict[tuple[str, int], object] = {}
     for i in range(8):
         regs[("x", i)] = Arg(i)
@@ -251,10 +266,23 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
         return 8 if _reg(r)[0] in "xd" else 4
 
     for mn, ops in insns[:-1]:
-        if mn in ("ldr", "ldur") or mn in LOADS:
+        if mn == "adrp" and addr is not None:
+            dst, page = ops
+            put(dst, Page(_imm(page)))
+        elif mn in ("ldr", "ldur") or mn in LOADS:
             dst, mem = ops
             base, off = _mem(mem)
             kind = _reg(dst)[0]
+            b = get(f"x{base}")
+            if isinstance(b, Page):
+                # A GOT slot: the address of a global another TU defines.
+                slot = b.addr + off - BASE
+                if mn != "ldr" or kind != "x" or slot not in GOT:
+                    raise LiftError("adrp of data, not a GOT slot")
+                put(dst, GlobalPtr(GOT[slot]))
+                continue
+            if isinstance(b, GlobalPtr) and off != 0:
+                raise LiftError("global at an offset")
             if mn in LOADS:
                 w, signed = LOADS[mn]
                 t = int_type(w, signed)
@@ -277,7 +305,10 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
                 t = "f64"
             else:
                 t = int_type(8 if kind == "x" else 4)
-            out.stores.append((get(f"x{base}"), off, t, get(src)))
+            b = get(f"x{base}")
+            if isinstance(b, Page) or (isinstance(b, GlobalPtr) and off != 0):
+                raise LiftError("store to data at an offset")
+            out.stores.append((b, off, t, get(src)))
         elif mn in ("ldp", "stp"):
             # A pair: two loads or stores of adjacent fields (base + immediate only:
             # writeback and sp, a frame, are refused by _mem).
@@ -289,6 +320,8 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
             w = 8 if kind == "x" else 4
             t = int_type(w)
             b = get(f"x{base}")
+            if isinstance(b, (Page, GlobalPtr)):
+                raise LiftError(f"{mn} of a global")
             if mn == "ldp":
                 first, second = Load(b, off, t), Load(b, off + w, t)
                 put(r1, first)
@@ -402,6 +435,7 @@ class Emitter:
         self.lifted = lifted
         self.structs: dict[object, StructDef] = {}
         self.arg_types: dict[int, str] = {}   # x0..x7
+        self.globals: dict[int, str] = {}     # a global (relative address) -> its type
         self.fp_types: dict[int, str] = {}    # s0..s7 / d0..d7
 
     # -- structs
@@ -437,7 +471,25 @@ class Emitter:
                 return
             raise LiftError(f"field {offset:#x} is {old} and {t}")
 
+    def stored_type(self, base: object, off: int) -> str:
+        """The type of the field (or global) a store writes."""
+        if isinstance(base, GlobalPtr):
+            return self.globals[base.addr]
+        return self.structs[base].fields[off]
+
+    def set_type(self, base: object, off: int, t: str) -> None:
+        if isinstance(base, GlobalPtr):
+            self.globals[base.addr] = t
+        else:
+            self.structs[base].fields[off] = t
+
     def field_expr(self, load_base: object, offset: int, t: str) -> str:
+        if isinstance(load_base, GlobalPtr):   # the global itself (offset 0): `extern <t> Unk_<addr>;`
+            old = self.globals.get(load_base.addr, t)
+            if old != t and {old, t} != {"u8", "bool"}:
+                raise LiftError(f"global is {old} and {t}")
+            self.globals[load_base.addr] = "bool" if "bool" in (old, t) else t
+            return f"Unk_{load_base.addr:x}"
         s = self.struct_for(load_base)
         self.set_field(s, offset, t)
         return f"{self.ptr(load_base)}->field_{offset:x}"
@@ -601,9 +653,9 @@ class Emitter:
                 raise LiftError("stores an address")
             lhs = self.field_expr(base, off, t)
             if _is_bool_arg(value) and t == "u8":
-                self.structs[base].fields[off] = "bool"
+                self.set_type(base, off, "bool")
                 self.arg_types.setdefault(value.a.index, "bool")
-            ft = self.structs[base].fields[off]
+            ft = self.stored_type(base, off)
             rhs = self.expr(value, None if ft.endswith("*") else ft)
             if isinstance(value, Const) and value.value == 0 and ft.endswith("*"):
                 rhs = "nullptr"
@@ -619,7 +671,7 @@ class Emitter:
             else:
                 rhs = self.expr(lf.ret, rt)
             if isinstance(lf.ret, Load) and lf.ret.type in ("u64", "s64"):
-                ft = self.structs[lf.ret.base].fields[lf.ret.offset]
+                ft = self.stored_type(lf.ret.base, lf.ret.offset)
                 if ft.endswith("*"):
                     rt = ft
             ret_type = rt
@@ -651,7 +703,7 @@ class Emitter:
             if isinstance(value, AddrOf):
                 raise LiftError("stores an address")
             lhs = self.field_expr(base, off, t)
-            ft = self.structs[base].fields[off]
+            ft = self.stored_type(base, off)
             rhs = self.expr(value, None if ft.endswith("*") else ft)
             if isinstance(value, Const) and value.value == 0 and ft.endswith("*"):
                 rhs = "nullptr"
@@ -705,7 +757,7 @@ class Emitter:
         return f"Unk_{self.short}_{verb}"
 
     def render_structs(self) -> str:
-        out = []
+        out = [f"extern {t} Unk_{a:x};" for a, t in sorted(self.globals.items())]  # another TU defines them
         # Children before parents, so a parent's pointer member names a complete type.
         order = sorted(self.structs.values(), key=lambda s: -s.name.count("_"))
         for s in order:
@@ -760,6 +812,7 @@ def generate(addr: int, code: bytes) -> tuple[str, str]:
         render(first)  # learns which fields and arguments are pointers
         second = Emitter(addr, lifted)
         second.structs, second.arg_types, second.fp_types = first.structs, first.arg_types, first.fp_types
+        second.globals = first.globals
         return render(second)
     except ValueError as e:  # an operand list of another shape (shifted or extended registers ...)
         raise LiftError(f"operands ({e})") from None
@@ -795,6 +848,7 @@ def candidates(args) -> list[tuple[int, bytes]]:
     img = mod["image"]
     dyn = DynInfo(Nso(nso_path("sword").read_bytes()), img, mod["text_end"])
     in_data = {v for v in dyn.slots.values() if isinstance(v, int)}
+    GOT.update({slot: v for slot, v in dyn.slots.items() if isinstance(v, int)})
     called = F.branch_targets(img, 0, mod["text_end"] & ~3)
     areas = read_areas_csv()
     groups = args.area or ["game", "gflib3", "gflnet3"]
@@ -877,6 +931,7 @@ def callable_tails(lifted: dict[int, tuple[str, str]], why: Counter) -> dict[int
     mod = load_module("sword")
     dyn = DynInfo(Nso(nso_path("sword").read_bytes()), mod["image"], mod["text_end"])
     in_data = {v for v in dyn.slots.values() if isinstance(v, int)}
+    GOT.update({slot: v for slot, v in dyn.slots.items() if isinstance(v, int)})
     rows = {f.sword: f for f in read_functions_csv() if f.sword is not None}
     sigs: dict[int, set[str]] = {}
     target: dict[int, int] = {}

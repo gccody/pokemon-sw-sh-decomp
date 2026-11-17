@@ -172,6 +172,20 @@ def test_pairs():
         leafgen.generate(ADDR, code(0xA9BF7BFD, RET))
 
 
+def test_global(monkeypatch):
+    """adrp x8, +1 page ; ldr x8, [x8, #0x10] ; ldr w0, [x8] ; ret: the GOT slot
+    at 0x124010 holds a global's address, so it's an extern variable."""
+    adrp = 0x90000000 | 1 << 29 | 8  # immlo = 1: one page past the function's
+    monkeypatch.setitem(leafgen.GOT, 0x124010, 0x200000)
+    structs, func = leafgen.generate(ADDR, code(adrp, ldr_x(8, 8, 0x10), ldr_w(0, 8, 0), RET))
+    assert structs == "extern u32 Unk_200000;"
+    assert func == "u32 Unk_123450_get() {\n    return Unk_200000;\n}\n"
+    with pytest.raises(leafgen.LiftError, match="offset"):  # a field of a global
+        leafgen.generate(ADDR, code(adrp, ldr_x(8, 8, 0x10), ldr_w(0, 8, 4), RET))
+    with pytest.raises(leafgen.LiftError, match="GOT"):  # not a slot it knows
+        leafgen.generate(ADDR, code(adrp, ldr_x(8, 8, 0x18), ldr_w(0, 8, 0), RET))
+
+
 def test_misaligned_field_is_refused():
     # ldur w0, [x0, #2]: a u32 at offset 2 can't be a plain struct member.
     ldur_w = 0xB8400000 | 2 << 12 | 0 << 5 | 0
