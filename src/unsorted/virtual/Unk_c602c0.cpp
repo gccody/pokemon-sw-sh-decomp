@@ -20,27 +20,25 @@ Unk_23dc748::~Unk_23dc748() {}
 // 0x7100c602c0
 void Unk_23dc748::vf4() {}
 
-class Unk_23dc790 {
+class Unk_23dc790 : public Unk_23dc748 {
 public:
-    virtual ~Unk_23dc790();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100c60850
 void Unk_23dc790::vf4() {}
 
-class Unk_23dc7d8 {
+class Unk_23dc7d8 : public Unk_23dc748 {
 public:
-    virtual ~Unk_23dc7d8();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100c60a50

@@ -173,14 +173,13 @@ Unk_2403f88::~Unk_2403f88() {}
 // 0x7100fd6420
 void Unk_2403f88::vf4() {}
 
-class Unk_2403fd0 {
+class Unk_2403fd0 : public Unk_2403f88 {
 public:
-    virtual ~Unk_2403fd0();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100fd64f0
@@ -212,40 +211,37 @@ public:
 // 0x7100fd6630
 void Unk_2404060::vf4() {}
 
-class Unk_24040a8 {
+class Unk_24040a8 : public Unk_2403f88 {
 public:
-    virtual ~Unk_24040a8();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100fd66d0
 void Unk_24040a8::vf4() {}
 
-class Unk_24040f0 {
+class Unk_24040f0 : public Unk_2403f88 {
 public:
-    virtual ~Unk_24040f0();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100fd6770
 void Unk_24040f0::vf4() {}
 
-class Unk_2404138 {
+class Unk_2404138 : public Unk_2403f88 {
 public:
-    virtual ~Unk_2404138();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100fd6810
@@ -290,53 +286,49 @@ public:
 // 0x7100fd69f0
 void Unk_2404210::vf4() {}
 
-class Unk_2404258 {
+class Unk_2404258 : public Unk_2403f88 {
 public:
-    virtual ~Unk_2404258();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100fd6a90
 void Unk_2404258::vf4() {}
 
-class Unk_24042a0 {
+class Unk_24042a0 : public Unk_2403f88 {
 public:
-    virtual ~Unk_24042a0();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100fd6b30
 void Unk_24042a0::vf4() {}
 
-class Unk_24042e8 {
+class Unk_24042e8 : public Unk_2403f88 {
 public:
-    virtual ~Unk_24042e8();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100fd6bd0
 void Unk_24042e8::vf4() {}
 
-class Unk_2404330 {
+class Unk_2404330 : public Unk_2403f88 {
 public:
-    virtual ~Unk_2404330();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100fd6c70
@@ -368,27 +360,25 @@ public:
 // 0x7100fd6db0
 void Unk_24043c0::vf4() {}
 
-class Unk_2404408 {
+class Unk_2404408 : public Unk_2403f88 {
 public:
-    virtual ~Unk_2404408();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100fd6e50
 void Unk_2404408::vf4() {}
 
-class Unk_2404450 {
+class Unk_2404450 : public Unk_2403f88 {
 public:
-    virtual ~Unk_2404450();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100fd6ef0
@@ -420,92 +410,85 @@ public:
 // 0x7100fd7030
 void Unk_24044e0::vf4() {}
 
-class Unk_2404528 {
+class Unk_2404528 : public Unk_2403f88 {
 public:
-    virtual ~Unk_2404528();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100fd70d0
 void Unk_2404528::vf4() {}
 
-class Unk_2404570 {
+class Unk_2404570 : public Unk_2403f88 {
 public:
-    virtual ~Unk_2404570();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100fd7170
 void Unk_2404570::vf4() {}
 
-class Unk_24045b8 {
+class Unk_24045b8 : public Unk_2403f88 {
 public:
-    virtual ~Unk_24045b8();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100fd7210
 void Unk_24045b8::vf4() {}
 
-class Unk_2404600 {
+class Unk_2404600 : public Unk_2403f88 {
 public:
-    virtual ~Unk_2404600();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100fd72b0
 void Unk_2404600::vf4() {}
 
-class Unk_2404648 {
+class Unk_2404648 : public Unk_2403f88 {
 public:
-    virtual ~Unk_2404648();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100fd7350
 void Unk_2404648::vf4() {}
 
-class Unk_2404690 {
+class Unk_2404690 : public Unk_2403f88 {
 public:
-    virtual ~Unk_2404690();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100fd73f0
 void Unk_2404690::vf4() {}
 
-class Unk_24046d8 {
+class Unk_24046d8 : public Unk_2403f88 {
 public:
-    virtual ~Unk_24046d8();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100fd74a0
@@ -589,14 +572,13 @@ public:
 // 0x7100fd7860
 void Unk_2404888::vf4() {}
 
-class Unk_24048d0 {
+class Unk_24048d0 : public Unk_2403f88 {
 public:
-    virtual ~Unk_24048d0();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100fd7900
@@ -641,27 +623,25 @@ public:
 // 0x7100fd7ae0
 void Unk_24049a8::vf4() {}
 
-class Unk_24049f0 {
+class Unk_24049f0 : public Unk_2403f88 {
 public:
-    virtual ~Unk_24049f0();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100fd7b80
 void Unk_24049f0::vf4() {}
 
-class Unk_2404a38 {
+class Unk_2404a38 : public Unk_2403f88 {
 public:
-    virtual ~Unk_2404a38();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100fd7c20
@@ -693,14 +673,13 @@ public:
 // 0x7100fd7d60
 void Unk_2404ac8::vf4() {}
 
-class Unk_2404b10 {
+class Unk_2404b10 : public Unk_2403f88 {
 public:
-    virtual ~Unk_2404b10();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    void vf4() override;
+    void vf2() override;
+    void vf3() override;
+    void vf5() override;
+    void vf6() override;
 };
 
 // 0x7100fd7e00
