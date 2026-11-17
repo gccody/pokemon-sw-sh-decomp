@@ -162,6 +162,16 @@ pkmn_library_settings(lib/physx
     lib/physx/PhysX_3.4/Source/PhysXExtensions/src/serialization/File
   SYSTEM_INCLUDES include/libcxx)
 
+# TLSF 2.0 (with mattconte/tlsf 2b73b8a's adjust_request_size), the allocator
+# that Audiokinetic's Wwise memory manager links: clang 6.0.1, like PhysX, but
+# with the game's aliasing and exception flags (strict aliasing loses 5 of the
+# 8 swept functions; Wwise's FDEs are all zR). NDEBUG compiles tlsf_assert out.
+# All 8 swept functions are byte for byte with this, and with no other clang.
+pkmn_library_settings(lib/tlsf
+  EVIDENCE "docs/compiler.md, section Wwise (TLSF corpus)"
+  COMPILER_VERSION 6.0.1
+  DEFINES NDEBUG)
+
 # libcurl 7.55.1, Nintendo's SDK build (NintendoSDK_libcurl-7_3_2-Release in
 # the middleware block): clang 7.0.x -O3 with the game's global flags, like
 # Game Freak's code (84 functions byte for byte). The defines are curl's own
