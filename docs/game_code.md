@@ -263,6 +263,26 @@ python tools/funcs.py name --from-file ok_map.csv     # map.csv's rows for them
 python tools/check.py --update
 ```
 
+### Batch 7: tail-call wrappers (`leafgen.py`, again)
+
+Most directly called functions of at most 32 bytes that `leafgen.py`
+refused (944 of 2,047) don't end in `ret`: they end in a tail call `b T`.
+The lifter now takes those too. It runs the function up to the branch and
+writes the call with the argument registers it left: up to the last one it
+wrote, passing on the ones before it unchanged, so
+`ldr x0, [x0, #8] ; b T` is `Unk_<T>(self->field_8);`. T is declared
+`void Unk_<T>(...)` with `void*` for pointers, so that its name doesn't
+depend on its callers' placeholder structs, and named `_Z<n>Unk_<T><params>`.
+A caller is left out when T is in a table (a virtual function), already has
+another name, is lifted itself, or is called with other parameter types by
+another caller.
+
+Of the 449 that compiled cleanly, 430 match in both games: game code,
+gflib3 and gflnet3. Their 357 callees are named and stay undecompiled.
+The others pass an argument with another width than the guess (a `u64`
+where the original moves a 32-bit register) and were left out with
+`--only`. check.py: 24,299 matching (23,869 before), 106 not matching.
+
 ## Vtables and classes (`tools/vtables.py`)
 
 Most of the tiny functions are virtual (see "The tiny functions"), and
