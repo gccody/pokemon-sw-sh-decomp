@@ -514,7 +514,7 @@ def element_member(m: Model, f: int, slot: int) -> Member | None:
 
 def _width(t) -> int:
     from leafgen import WIDTH
-    return WIDTH[t] if isinstance(t, str) else 8
+    return 8 if t == REF or not isinstance(t, str) else WIDTH[t]
 
 
 def _merge(fields: dict, new) -> dict | None:
@@ -880,6 +880,39 @@ def out_of_line_parent(m: Model, f: int, e: ExternalBase) -> int | None:
     return g if len(gstatics) == 6 else None
 
 
+REF = "Unk_239a418_Ref<Unk_239a418>"   # a reference member (gflib3/Unk_239a418.h)
+_RELEASE = " ; cbz x0, #N ; ldr x8, [x0, #N]! ; ldr x8, [x8, #N] ; blr x8 ; str xzr, [x19, #N]"
+_OBJECT_PART = (" ; adrp x8, #N ; ldr x8, [x8, #N] ; ldr x0, [x19, #N] ; add x9, x8, #N ; add x10, x8, #N ;"
+                " add x8, x8, #N ; str x9, [x19] ; stp x10, x8, [x19, #N]" + _RELEASE)
+
+
+def ref_dtor_pattern(base: str, n: int) -> str | None:
+    """The D2 of a class on the object (whose D2's pattern is `base`) with n
+    reference members and nothing else to destroy: its vtable, its members
+    released (the last declared first), then the object's D2 inlined."""
+    first = " ; ldr x0, [x0, #N]" + _RELEASE
+    head, sep, tail = base.partition(first)
+    if not sep:
+        return None
+    return head + first + (" ; ldr x0, [x19, #N]" + _RELEASE) * (n - 1) + _OBJECT_PART + tail
+
+
+def ref_members(m: Model, f: int, d2: int, vtable: int) -> tuple[int, ...] | None:
+    """The offsets of the reference members a D2 f releases, when that's all
+    it does before the object's D2 (d2, inlined): see ref_dtor_pattern."""
+    from nx.refs import decode
+    offs = [((w >> 10) & 0xFFF) * 8 for _, w, _, _ in decode(m.img, f, m.sizes.get(f, 4))
+            if w & 0xFFC0001F == 0xF9400000 and (w >> 5) & 31 in (0, 19)]  # ldr x0, [x0|x19, #off]
+    if len(offs) < 2 or offs[-1] != 0x58 or any(a <= b for a, b in zip(offs, offs[1:])) or offs[-2] < 0x60:
+        return None
+    if m.pattern(f) != ref_dtor_pattern(m.pattern(d2) or "", len(offs) - 1):
+        return None
+    calls, statics = _calls_and_statics(m, f)
+    if calls or statics[:1] != [vtable] or len(statics) != 2 or statics[1] not in _calls_and_statics(m, d2)[1][:1]:
+        return None
+    return tuple(reversed(offs[:-1]))
+
+
 def direct_getter(m: Model, g: int) -> bool:
     """Whether g is the type getter of a direct descendant of the object, its
     parent's getter inlined: three guarded statics (its type, the object's,
@@ -938,12 +971,19 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
     for v in sorted(m.vtables, key=lambda v: not tail(v)):
         if v.group != v.addr or v.offset_to_top or v.addr == ev.addr or len(v.slots) < len(ev.slots):
             continue
-        s1 = v.slots[1]
-        if v.slots[0] != d2 or not isinstance(s1, int) or s1 == ev.slots[1] or own.get(s1) != (v.addr, 1) \
-                or not pickable(s1):
+        s0, s1 = v.slots[0], v.slots[1]
+        # Its destructor is implicit: the base's D2, or (on a base whose D2 is
+        # inline) one that only releases reference members, then the base's.
+        refs = None
+        if s0 != d2 and e.inline_dtor and isinstance(s0, int):
+            refs = ref_members(m, s0, d2, v.start)
+            if refs is None or own.get(s0) != (v.addr, 0) or not pickable(s0):
+                continue
+        if (s0 != d2 and refs is None) or not isinstance(s1, int) or s1 == ev.slots[1] \
+                or own.get(s1) != (v.addr, 1) or not pickable(s1):
             continue
-        if e.inline_dtor:           # the D0 is the base's D2, inlined (the operator delete is empty)
-            if m.pattern(s1) != m.pattern(d2):
+        if e.inline_dtor:           # the D0 is the D2, inlined (the operator delete is empty)
+            if m.pattern(s1) != m.pattern(s0):
                 continue
         elif m.pattern(s1) != "b T" or branch_target(m, s1) != d2:
             continue
@@ -951,12 +991,14 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         if [(w.offset_to_top, len(w.slots)) for w in secs] != [(w.offset_to_top, len(w.slots)) for w in esecs] \
                 or any(isinstance(f, str) for f in v.slots):
             continue
-        extra = [Member(1, s1, "d0")]
+        extra = [Member(1, s1, "d0")] + ([Member(0, s0, "d2")] if refs else [])
         ok = True
         for w, ew, (off, dslots, _) in zip(secs, esecs, e.secondaries):
             for j, which in zip(dslots, ("D1", "D0")):
                 f = w.slots[j]
-                if e.inline_dtor:       # thunks with the D2 inlined, like the base's
+                if refs:                # thunks with its D2 inlined, the D1's and D0's alike
+                    same = m.pattern(f) == m.pattern(w.slots[dslots[0]]) and m.sizes.get(f) == m.sizes.get(s0)
+                elif e.inline_dtor:     # thunks with the D2 inlined, like the base's
                     same = m.pattern(f) == m.pattern(ew.slots[j])
                 else:
                     same = m.pattern(f) == "sub x0, x0, #N ; b T" and branch_target(m, f) == d2
@@ -1053,7 +1095,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         if not ok or any(seg(x.addr) != seg(s1) for x in extra):
             continue
         mine = []
-        fields: dict = {}
+        fields: dict = {o: REF for o in refs or ()}  # its reference members, then lifted members' fields
         for x in picked.get(v.addr, []):
             if x.kind == "lifted" and x.slot >= 2 and x.slot != e.type_slot and _ext_lifted_ok(e, ev, x, fields):
                 mine.append(x)
@@ -1363,7 +1405,9 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
         decl[:0] = structs(spec.fields, cls)
         decl += [f"PKMN_OFFSET_ASSERT({cls}, field_{o:x}, 0x{o:x});" for o in sorted(spec.fields)]
     for x in sorted(here, key=lambda x: (x.kind != "ext_getter", x.addr)):  # the getter before its use
-        if x.kind == "d0":
+        if x.kind == "d2":
+            names.append((x.addr, mangle(cls, "D2")))
+        elif x.kind == "d0":
             names.append((x.addr, mangle(cls, "D0")))
         elif x.kind == "ext_thunk":
             off, which = x.value

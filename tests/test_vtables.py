@@ -582,3 +582,21 @@ def test_render_file_with_a_class_whose_getter_others_call():
     assert f"{V.TYPE} {owner.name}::vf_type() {{\n    return Unk_3008::Unk_GetType();\n}}" in text
     assert "static Unk_239a418_Type type(Unk_3008::Unk_GetType());" in text
     assert (0x700, "_ZN8Unk_300811Unk_GetTypeEv") in names
+
+
+def test_ref_dtor_pattern():
+    """A D2 that releases n reference members, then the object's D2 inlined:
+    the object's pattern with the members' releases and its own part spliced in."""
+    pro = ("str x19, [sp, #N]! ; stp x29, x30, [sp, #N] ; add x29, sp, #N ; adrp x8, #N ; ldr x8, [x8, #N] ;"
+           " add x9, x8, #N ; add x10, x8, #N ; add x8, x8, #N ; mov x19, x0 ; str x9, [x0] ;"
+           " stp x10, x8, [x0, #N]")
+    release = " ; cbz x0, #N ; ldr x8, [x0, #N]! ; ldr x8, [x8, #N] ; blr x8 ; str xzr, [x19, #N]"
+    epi = " ; ldp x29, x30, [sp, #N] ; ldr x19, [sp], #N ; ret"
+    base = pro + " ; ldr x0, [x0, #N]" + release + epi
+    obj = (" ; adrp x8, #N ; ldr x8, [x8, #N] ; ldr x0, [x19, #N] ; add x9, x8, #N ; add x10, x8, #N ;"
+           " add x8, x8, #N ; str x9, [x19] ; stp x10, x8, [x19, #N]" + release)
+    assert V.ref_dtor_pattern(base, 1) == pro + " ; ldr x0, [x0, #N]" + release + obj + epi
+    assert V.ref_dtor_pattern(base, 2) == (pro + " ; ldr x0, [x0, #N]" + release + " ; ldr x0, [x19, #N]" + release
+                                           + obj + epi)
+    assert V.ref_dtor_pattern("ret", 1) is None
+    assert V._width(V.REF) == 8
