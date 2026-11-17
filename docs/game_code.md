@@ -347,6 +347,11 @@ stores before it are done either way, so they go before the `if`. 12 more
 leaf functions and 12 virtual ones match (check.py: 25,428 matching, 107
 not matching).
 
+`startup` (`nnMain` and the allocator overrides, game code in
+`data/areas.csv`) is in both tools' default areas now: 37 more virtual
+functions match, of classes whose vtables are mostly its (check.py: 25,465
+matching).
+
 ## Vtables and classes (`tools/vtables.py`)
 
 Most of the tiny functions are virtual (see "The tiny functions"), and
