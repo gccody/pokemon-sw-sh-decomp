@@ -1238,6 +1238,7 @@ def segment_starts(m: Model) -> list[int]:
 CTOR_PATTERN = ("str x19, [sp, #N]! ; stp x29, x30, [sp, #N] ; add x29, sp, #N ; mov x19, x0 ; bl T ; "
                 "adrp x8, #N ; ldr x8, [x8, #N] ; add x8, x8, #N ; str x8, [x19] ; ldp x29, x30, [sp, #N] ; "
                 "ldr x19, [sp], #N ; ret")
+ROOT_CTOR_PATTERN = "adrp x8, #N ; ldr x8, [x8, #N] ; add x8, x8, #N ; str x8, [x0] ; ret"  # no base
 CTOR_DIR = ROOT / "src" / "unsorted" / "ctor"
 _CLASS_DEF = re.compile(r"^(?:class|struct) (Unk_[0-9a-f]+)\b", re.M)
 
@@ -1259,9 +1260,9 @@ def defined_classes(root: Path, skip: Path | None = None) -> set[str]:
 @dataclass(frozen=True)
 class Ctor:
     addr: int       # the constructor
-    base_ctor: int  # what it calls first
+    base_ctor: int | None  # what it calls first (None: a class without a base)
     cls: str
-    base: str
+    base: str | None
 
 
 def find_ctors(m: Model, rows: dict, taken: set[str]) -> list[Ctor]:
@@ -1280,9 +1281,19 @@ def find_ctors(m: Model, rows: dict, taken: set[str]) -> list[Ctor]:
     secondary = {v.group for v in m.vtables if v.group != v.addr}
     out = []
     for f, size in m.funcs:
+        r = rows.get(f)
+        if size == 20 and pattern_of(m.img[f:f + size], f + BASE) == ROOT_CTOR_PATTERN:
+            # A class without a base: only its vptr to set.
+            if r is None or r.scope != "common" or r.shield is None or len(refs[f]) != 1:
+                continue
+            (d,) = refs[f]
+            cls = class_name(by[d])
+            if d not in secondary | HANDWRITTEN and cls not in taken and \
+                    (r.name == ctor_name(cls) or not r.name and r.status == "U"):
+                out.append(Ctor(f, None, cls, None))
+            continue
         if size != 48 or pattern_of(m.img[f:f + size], f + BASE) != CTOR_PATTERN:
             continue
-        r = rows.get(f)
         t = branch_target_at(m, f + 16)
         rt = rows.get(t)
         if r is None or r.scope != "common" or r.shield is None:
@@ -1299,7 +1310,16 @@ def find_ctors(m: Model, rows: dict, taken: set[str]) -> list[Ctor]:
         if not (rt.name == ctor_name(base) or not rt.name and rt.status == "U"):
             continue
         out.append(Ctor(f, t, cls, base))
-    return out
+    # A class with more than one constructor (a copy constructor too, say) can't
+    # have them both as C2: not the one it defines here and the one a derived
+    # class calls, nor two that derived classes call.
+    n = Counter(c.cls for c in out)
+    called: dict[str, set[int]] = defaultdict(set)
+    for c in out:
+        if c.base is not None:
+            called[c.base].add(c.base_ctor)
+    two = {b for b, ts in called.items() if len(ts) > 1}
+    return [c for c in out if n[c.cls] == 1 and c.base not in two and called.get(c.cls, {c.addr}) == {c.addr}]
 
 
 def branch_target_at(m: Model, at: int) -> int | None:
@@ -1350,7 +1370,7 @@ def cmd_ctors(m: Model, args) -> None:
     if args.only:
         only = {int(x, 16) - BASE for x in args.only.read_text(encoding="utf-8").split()}
         ctors = [c for c in ctors if c.addr in only]
-    base_of = {c.cls: c.base for c in ctors}
+    base_of = {c.cls: c.base for c in ctors if c.base is not None}
     seg_starts = segment_starts(m)
     files: dict[int, list[Ctor]] = defaultdict(list)
     for c in ctors:
@@ -1364,13 +1384,13 @@ def cmd_ctors(m: Model, args) -> None:
     names: dict[int, str] = {}
     for c in ctors:
         names[c.addr] = ctor_name(c.cls)
-        if not rows[c.base_ctor].name:
+        if c.base is not None and not rows[c.base_ctor].name:
             names[c.base_ctor] = ctor_name(c.base)
     with open(args.names, "w", encoding="utf-8", newline="\n") as fh:
         fh.write("Name,Sword,Shield\n")
         for a, n in sorted(names.items()):
             fh.write(f"{n},{rows[a].sword_str},{rows[a].shield_str}\n")
-    print(f"{len(ctors)} constructors of {len(base_of)} classes in {len(files)} files; "
+    print(f"{len(ctors)} constructors ({len(ctors) - len(base_of)} without a base) in {len(files)} files; "
           f"{len(names)} names in {args.names}", file=sys.stderr)
 
 
