@@ -29,8 +29,9 @@ empty when the area is not in that game. Against functions.csv: a boundary at
 a function start in one game must be that function's address in the other, and
 every function present in both games must fall in the same area in each.
 
-Tracked files: nothing extracted from the game (NSO/XCI/NCA/keys ...) and no
-large binaries may be committed.
+Tracked files: nothing extracted from the game (NSO/XCI/NCA/keys ...), no
+protoc output under src/ (it embeds the game's descriptors) and no large
+binaries may be committed.
 """
 from __future__ import annotations
 
@@ -57,6 +58,8 @@ AREA_CONFIDENCE = ("low", "medium", "high")
 # so a `git add -f` still fails CI.
 FORBIDDEN_SUFFIXES = (".xci", ".nsp", ".nca", ".nso", ".nro", ".elf", ".keys", ".bin", ".bfres", ".bntx")
 FORBIDDEN_PREFIXES = ("data/original/", "assets/Pokemon Sword/", "assets/Pokemon Shield/")
+# protoc output for the .proto files under src/ (src/.gitignore, tools/protos.py)
+GENERATED_PROTOBUF_SUFFIXES = (".pb.cc", ".pb.h")
 MAX_TRACKED_BYTES = 1024 * 1024  # functions.csv (~6 MB) is allowed explicitly below
 LARGE_FILE_ALLOWLIST = {"data/functions.csv"}
 
@@ -279,6 +282,10 @@ def lint_tracked_files(paths: list[str], root: Path = ROOT) -> list[str]:
         low = p.lower()
         if low.endswith(FORBIDDEN_SUFFIXES) or p.startswith(FORBIDDEN_PREFIXES):
             errors.append(f"{p}: looks like game data or keys - never commit these")
+            continue
+        if p.startswith("src/") and low.endswith(GENERATED_PROTOBUF_SUFFIXES):
+            errors.append(f"{p}: protoc output embeds the game's serialized descriptor - commit the .proto "
+                          "and generate it (tools/protos.py generate)")
             continue
         f = root / p
         if p not in LARGE_FILE_ALLOWLIST and f.is_file() and f.stat().st_size > MAX_TRACKED_BYTES:

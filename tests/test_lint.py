@@ -229,6 +229,14 @@ def test_game_data_is_rejected(tmp_path, path):
     assert lint.lint_tracked_files([path], root=tmp_path)
 
 
+def test_generated_protobuf_code_is_rejected(tmp_path):
+    msgs = lint.lint_tracked_files(["src/gflnet3/out/data/ping.pb.cc", "src/a/ping.pb.h"], root=tmp_path)
+    assert len(msgs) == 2 and "tools/protos.py generate" in msgs[0]
+    # the .proto is the source; lib/protobuf's runtime is protobuf's own code
+    assert lint.lint_tracked_files(["src/gflnet3/out/data/ping.proto",
+                                    "lib/protobuf/google/protobuf/descriptor.pb.cc"], root=tmp_path) == []
+
+
 def test_large_files_are_rejected(tmp_path):
     (tmp_path / "big.dat").write_bytes(b"\0" * (lint.MAX_TRACKED_BYTES + 1))
     (tmp_path / "small.cpp").write_text("int x;\n")
