@@ -223,6 +223,7 @@ class Lifted:
     else_value: int = 0
     guard_stores: int = 0     # the stores before the guard: they're done either way
     narrow: set = field(default_factory=set)  # tail-call arguments an argument's 32 bits were moved into
+    loads: Counter = field(default_factory=Counter)  # how often each load ran (more than once: reloaded)
 
 
 CALL_CODES = {"void*": "Pv", "bool": "b", "u8": "h", "s8": "a", "u16": "t", "s16": "s", "u32": "j", "s32": "i",
@@ -369,6 +370,7 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
             else:
                 t = int_type(8 if kind == "x" else 4)
             put(dst, Load(get(f"x{base}"), off, t))
+            out.loads[Load(get(f"x{base}"), off, t)] += 1
         elif mn in ("str", "stur") or mn in STORES:
             src, mem = ops
             base, off = _mem(mem)
@@ -400,6 +402,8 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
                 raise LiftError(f"{mn} of a global")
             if mn == "ldp":
                 first, second = Load(b, off, t), Load(b, off + w, t)
+                out.loads[first] += 1
+                out.loads[second] += 1
                 put(r1, first)
                 put(r2, second)
             else:
@@ -509,6 +513,23 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
     return out
 
 
+def _mentions(e: object, x: object) -> bool:
+    """Whether expression (or tuple of them) e uses x."""
+    if e == x:
+        return True
+    if isinstance(e, tuple):
+        return any(_mentions(y, x) for y in e)
+    if isinstance(e, (Load, AddrOf)):
+        return _mentions(e.base, x)
+    if isinstance(e, Op):
+        return _mentions(e.a, x) or _mentions(e.b, x)
+    if isinstance(e, Cmp):
+        return _mentions(e.a, x) or _mentions(e.b, x)
+    if isinstance(e, Select):
+        return _mentions(e.cond, x) or _mentions(e.a, x) or _mentions(e.b, x)
+    return False
+
+
 def _is_bool_arg(e: object) -> bool:
     """`value & 1` of an argument: how clang stores or tests a bool argument."""
     return isinstance(e, Op) and e.op == "&" and isinstance(e.b, Const) and e.b.value == 1 and isinstance(e.a, Arg)
@@ -536,6 +557,7 @@ class Emitter:
         self.globals: dict[int, str] = {}     # a global (relative address) -> its type
         self.fp_types: dict[int, str] = {}    # s0..s7 / d0..d7
         self.forward: set[str] = set()        # structs a known callee's parameters name
+        self.locals: dict[object, str] = {}   # pointers held in a local (choose_locals)
 
     # -- structs
     def struct_for(self, base: object) -> StructDef:
@@ -593,7 +615,35 @@ class Emitter:
         self.set_field(s, offset, t)
         return f"{self.ptr(load_base)}->field_{offset:x}"
 
+    def choose_locals(self) -> list[str]:
+        """Locals for the pointers the function loads once and stores through,
+        when a statement after a store uses them again: with
+        -fno-strict-aliasing a store may change what `self->field_N` reads, so
+        the source that loaded it once held it in a local. Returns their
+        declarations (render() first learns which loads are pointers)."""
+        lf = self.lifted
+        stmts: list[tuple[bool, object]] = [(True, (b, v)) for b, _, _, v in lf.stores[:lf.guard_stores]]
+        if lf.guard is not None:
+            stmts.append((False, lf.guard[0]))
+        stmts += [(True, (b, v)) for b, _, _, v in lf.stores[lf.guard_stores:]]
+        stmts.append((False, lf.ret if lf.tail is None else tuple(lf.args)))
+        decls = []
+        self.locals = {}
+        for b in sorted({b for b, _, _, _ in lf.stores if isinstance(b, Load)}, key=repr):
+            if lf.loads.get(b) != 1 or b not in self.structs:
+                continue
+            uses = [i for i, (_, st) in enumerate(stmts) if _mentions(st, b)]
+            # reloaded: a use after a store that comes after the first use
+            if not any(stmts[k][0] for j in uses for k in range(uses[0], j)):
+                continue
+            t = f"{self.struct_for(b).name}*"
+            decls.append(f"    {t} p{len(decls)} = {self.field_expr(b.base, b.offset, t)};")
+            self.locals[b] = f"p{len(decls) - 1}"
+        return decls
+
     def ptr(self, base: object) -> str:
+        if base in self.locals:
+            return self.locals[base]
         if isinstance(base, Arg):
             return self.arg_name(base.index)
         if isinstance(base, Load):
@@ -650,6 +700,8 @@ class Emitter:
         raise LiftError("type")
 
     def expr(self, e: object, want: str | None = None) -> str:
+        if e in self.locals:
+            return self.locals[e]
         if isinstance(e, Const):
             return _const(e.value, want or int_type(e.width))
         if isinstance(e, Arg):
@@ -745,6 +797,7 @@ class Emitter:
     def render(self) -> tuple[str, str]:
         """(struct definitions, function definition)."""
         lf = self.lifted
+        decls = self.choose_locals()
         body: list[str] = []
         stored = {base for base, _, _, _ in lf.stores}
         for base, off, t, value in lf.stores:
@@ -775,7 +828,7 @@ class Emitter:
                     rt = ft
             ret_type = rt
             body.append(f"    return {rhs};")
-        body = self.guarded(body, ret_type)
+        body = decls + self.guarded(body, ret_type)
         params = []
         for i in range(max(self.arg_types, default=-1) + 1):
             t = self.arg_types.get(i)
@@ -801,6 +854,7 @@ class Emitter:
         ret, callee, ptypes = known
         if len(ptypes) != len(lf.args):
             raise LiftError("callee: other parameters")
+        decls = self.choose_locals()
         body: list[str] = []
         for base, off, t, value in lf.stores:
             if isinstance(value, AddrOf):
@@ -834,7 +888,7 @@ class Emitter:
             else:
                 raise LiftError(f"callee: parameter {pt}")
         body.append(f"    {callee}({', '.join(args)});")
-        body = self.guarded(body, "void")
+        body = decls + self.guarded(body, "void")
         params = []
         for i in range(max(self.arg_types, default=-1) + 1):
             t = self.arg_types.get(i)
@@ -858,6 +912,7 @@ class Emitter:
         lf = self.lifted
         if lf.tail in KNOWN:
             return self.render_known_tail(KNOWN[lf.tail])
+        decls = self.choose_locals()
         body: list[str] = []
         for base, off, t, value in lf.stores:
             if isinstance(value, AddrOf):
@@ -893,7 +948,7 @@ class Emitter:
                 types.append(t)
         callee, _ = callee_name(lf.tail, types)
         body.append(f"    {callee}({', '.join(args)});")
-        body = self.guarded(body, "void")
+        body = decls + self.guarded(body, "void")
         params = []
         for i in range(max(self.arg_types, default=-1) + 1):
             t = self.arg_types.get(i)
