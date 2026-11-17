@@ -61,7 +61,7 @@ a class, so splitting one class between people causes conflicts.
 - Don't put claims in `functions.csv`. It would turn every claim into a merge
   conflict.
 - Third-party code (`data/areas.csv` rows of kind `library`) comes first or
-  separately. PhysX 3.4.2, Lua, sol2, protobuf 3.0.0, zlib and libcurl are
+  separately. PhysX 3.4.2, Lua, sol2, protobuf 3.0.0, zlib, libcurl and TLSF are
   open source, so their functions can be matched largely by compiling
   upstream source.
 - Each `areas.csv` row has a range per game (`SwordStart`/`SwordEnd`,
