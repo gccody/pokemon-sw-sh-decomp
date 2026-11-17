@@ -66,6 +66,33 @@ void Unk_e6e8b0_call(const Unk_e6e8b0* self) {
     Unk_ec6b00(self->field_10);
 }
 
+struct Unk_e6e8c0 {
+    u8 _0[0x10];
+    void* field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_e6e8c0, field_10, 0x10);
+
+void Unk_ec6e20_call(void*);
+
+// 0x7100e6e8c0
+void Unk_e6e8c0_call(const Unk_e6e8c0* self) {
+    Unk_ec6e20_call(self->field_10);
+}
+
+struct Unk_ec6e30;
+struct Unk_e6e8d0 {
+    u8 _0[0x10];
+    Unk_ec6e30* field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_e6e8d0, field_10, 0x10);
+
+u32 Unk_ec6e30_get(const Unk_ec6e30*);
+
+// 0x7100e6e8d0
+void Unk_e6e8d0_call(const Unk_e6e8d0* self) {
+    Unk_ec6e30_get(self->field_10);
+}
+
 // 0x7100e6f180
 u32 Unk_e6f180_get() {
     return 1;

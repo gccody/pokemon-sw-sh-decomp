@@ -523,6 +523,20 @@ void Unk_768ee0_call(const Unk_768ee0* self) {
     Unk_778d60(self->field_98);
 }
 
+struct Unk_771260;
+struct Unk_768ef0 {
+    u8 _0[0x98];
+    Unk_771260* field_98;
+};
+PKMN_OFFSET_ASSERT(Unk_768ef0, field_98, 0x98);
+
+u32 Unk_771260_get(const Unk_771260*);
+
+// 0x7100768ef0
+void Unk_768ef0_call(const Unk_768ef0* self) {
+    Unk_771260_get(self->field_98);
+}
+
 struct Unk_769040 {
     u8 _0[0x98];
     u64 field_98;

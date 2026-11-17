@@ -13,6 +13,16 @@ void Unk_1061760_call() {
     }
 }
 
+extern u64 Unk_24ba170;
+void Unk_6ae810(u64);
+
+// 0x71010617c0
+void Unk_10617c0_call() {
+    if (Unk_24ba170 != 0) {
+        Unk_6ae810(Unk_24ba170);
+    }
+}
+
 void Unk_6ae9d0(u64);
 
 // 0x7101061800

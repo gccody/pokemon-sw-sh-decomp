@@ -329,6 +329,13 @@ Wide constants (`mov` then `movk` for each further 16 bits) are constants
 too: 18 more leaf functions and 5 virtual ones match (check.py: 25,040
 matching, 107 not matching).
 
+A tail call to a leaf function already written (and matched) uses that
+function's own prototype, from its source (`known_prototypes`: only where it
+mangles to the name in functions.csv): what's passed to a pointer parameter
+gets its type, so a field becomes an `Unk_<T>*` with `struct Unk_<T>;`
+declared, and the other arguments have to match. 28 more leaf functions
+match (check.py: 25,386 matching, 107 not matching).
+
 ## Vtables and classes (`tools/vtables.py`)
 
 Most of the tiny functions are virtual (see "The tiny functions"), and
