@@ -6,6 +6,21 @@
 // Placeholder names: rename once the classes are known.
 #include "gflib3/Unk_239a418.h"
 
+// Another class on the object, from the same TU (vtable 0x71023f4318): nothing
+// of its own to destroy, but an out-of-line destructor and its own type. 13
+// classes derive from it the way the 224 below derive from Unk_23f43c8.
+class Unk_23f4318 : public Unk_239a418 {
+public:
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_239a418_GetType());
+        return &type;
+    }
+
+    ~Unk_23f4318() override;
+    const Unk_239a418_Type* vf_type() override { return Unk_GetType(); }
+};
+static_assert(sizeof(Unk_23f4318) == 0x60, "Unk_23f4318");
+
 class Unk_23f43c8 : public Unk_239a418 {
 public:
     // Its type, whose parent is the object's. A derived class's own getter
