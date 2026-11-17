@@ -28,6 +28,31 @@ void Unk_620820_setField0(Unk_620820* self, f32 value) {
     self->field_0 = value;
 }
 
+struct Unk_620d60 {
+    u8 _0[0x8];
+    u64 field_8;
+    u64 field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_620d60, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_620d60, field_10, 0x10);
+
+// 0x7100620d60
+u64 Unk_620d60_get(const Unk_620d60* self) {
+    return (self->field_10 - self->field_8) >> 3;
+}
+
+struct Unk_621410 {
+    u64 field_0;
+    u64 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_621410, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_621410, field_8, 0x8);
+
+// 0x7100621410
+u64 Unk_621410_get(const Unk_621410* self) {
+    return (self->field_8 - self->field_0) >> 3;
+}
+
 struct Unk_6323a0 {
     u8 _0[0x1a8];
     u64 field_1a8;
