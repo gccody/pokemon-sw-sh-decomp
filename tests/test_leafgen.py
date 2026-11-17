@@ -162,6 +162,28 @@ def test_tail_call_passes_unwritten_arguments_through():
         leafgen.lift(code(0x528000A1, 0x14000000 | 0x100 >> 2))
 
 
+def test_tail_call_to_a_known_function(monkeypatch):
+    """ldr x0, [x0, #8] ; b +0x100, where the target is a leaf function already
+    written: it's called by its own prototype, and field_8 points to its struct."""
+    monkeypatch.setitem(leafgen.KNOWN, ADDR + 0x104, ("u8", "Unk_123554_get", ["const Unk_123554*"]))
+    structs, func = leafgen.generate(ADDR, code(ldr_x(0, 0, 8), 0x14000000 | 0x100 >> 2))
+    assert structs.startswith("struct Unk_123554;\n")
+    assert "    Unk_123554* field_8;\n" in structs
+    assert structs.endswith("u8 Unk_123554_get(const Unk_123554*);\n")
+    assert func == "void Unk_123450_call(const Unk_123450* self) {\n    Unk_123554_get(self->field_8);\n}\n"
+    monkeypatch.setitem(leafgen.KNOWN, ADDR + 0x104, ("void", "Unk_123554_set", ["Unk_123554*", "bool"]))
+    with pytest.raises(leafgen.LiftError, match="other parameters"):
+        leafgen.generate(ADDR, code(ldr_x(0, 0, 8), 0x14000000 | 0x100 >> 2))
+
+
+def test_mangle_and_param_types():
+    assert leafgen.param_types("const Unk_1* self, u32 value, void* /*unused*/") == ["const Unk_1*", "u32", "void*"]
+    assert leafgen.mangle("Unk_1_set", ["Unk_1*", "bool"]) == "_Z9Unk_1_setP5Unk_1b"
+    assert leafgen.mangle("Unk_1_get", ["const Unk_1*"]) == "_Z9Unk_1_getPK5Unk_1"
+    assert leafgen.mangle("Unk_1_get", []) == "_Z9Unk_1_getv"
+    assert leafgen.mangle("Unk_1_set", ["Unk_1*", "const Unk_1*"]) is None  # needs a substitution
+
+
 def test_pairs():
     """ldp x8, x9, [x0, #0x10] ; stp x9, x8, [x0, #0x20] ; ret: two loads, two stores."""
     ldp = 0xA9400000 | (0x10 // 8) << 15 | 9 << 10 | 0 << 5 | 8

@@ -127,6 +127,11 @@ class GlobalPtr:
 # by the callers that have the executable (main, tools/vtables.py).
 GOT: dict[int, int] = {}
 
+# Functions already written (and named) that a tail call can call by their own
+# prototype: address (absolute) -> (return type, name, parameter types). Set
+# by main from the sources (known_prototypes).
+KNOWN: dict[int, tuple[str, str, list[str]]] = {}
+
 
 COND_INV = {"eq": "ne", "ne": "eq", "hi": "ls", "ls": "hi", "hs": "lo", "lo": "hs", "gt": "le", "le": "gt",
             "ge": "lt", "lt": "ge"}
@@ -507,6 +512,7 @@ class Emitter:
         self.arg_types: dict[int, str] = {}   # x0..x7
         self.globals: dict[int, str] = {}     # a global (relative address) -> its type
         self.fp_types: dict[int, str] = {}    # s0..s7 / d0..d7
+        self.forward: set[str] = set()        # structs a known callee's parameters name
 
     # -- structs
     def struct_for(self, base: object) -> StructDef:
@@ -764,11 +770,71 @@ class Emitter:
         func = f"{ret_type} {name}({', '.join(params)}) {{\n" + "".join(line + "\n" for line in body) + "}\n"
         return self.render_structs(), func
 
+    def render_known_tail(self, known: tuple[str, str, list[str]]) -> tuple[str, str]:
+        """render_tail() of a call to a function already written (KNOWN): its
+        own prototype, each argument of its parameter's type (a pointer
+        passed on, field or argument, becomes that pointer)."""
+        lf = self.lifted
+        ret, callee, ptypes = known
+        if len(ptypes) != len(lf.args):
+            raise LiftError("callee: other parameters")
+        body: list[str] = []
+        for base, off, t, value in lf.stores:
+            if isinstance(value, AddrOf):
+                raise LiftError("stores an address")
+            lhs = self.field_expr(base, off, t)
+            ft = self.stored_type(base, off)
+            rhs = self.expr(value, None if ft.endswith("*") else ft)
+            if isinstance(value, Const) and value.value == 0 and ft.endswith("*"):
+                rhs = "nullptr"
+            body.append(f"    {lhs} = {rhs};")
+        args = []
+        for e, pt in zip(lf.args, ptypes):
+            if pt.endswith("*"):
+                if pt != "void*":
+                    self.forward.add(pt.removeprefix("const ")[:-1])
+                if isinstance(e, Arg) and not e.fp:
+                    if self.arg_types.setdefault(e.index, pt) != pt:
+                        raise LiftError("callee: a pointer of another type")
+                    args.append(self.arg_name(e.index))
+                elif isinstance(e, Load) and e.type in ("u64", "s64") and not isinstance(e.base, GlobalPtr):
+                    args.append(self.field_expr(e.base, e.offset, pt.removeprefix("const ")))
+                else:
+                    raise LiftError("callee: a pointer argument")
+            elif pt in CALL_CODES and not (isinstance(e, Arg) and e.fp) and not self.is_pointer(e):
+                if isinstance(e, Arg):
+                    if self.arg_types.setdefault(e.index, pt) != pt:
+                        raise LiftError("callee: an argument of another type")
+                    args.append(self.arg_name(e.index))
+                else:
+                    args.append(self.expr(e, pt))
+            else:
+                raise LiftError(f"callee: parameter {pt}")
+        body.append(f"    {callee}({', '.join(args)});")
+        body = self.guarded(body, "void")
+        params = []
+        for i in range(max(self.arg_types, default=-1) + 1):
+            t = self.arg_types.get(i)
+            if t is None:
+                params.append("void* /*unused*/" if i == 0 else "u64 /*unused*/")
+                continue
+            if t.endswith("*") and not t.startswith("const ") and t != "void*" \
+                    and Arg(i) not in {b for b, _, _, _ in lf.stores} and Arg(i) not in lf.args:
+                t = "const " + t
+            params.append(f"{t} {self.arg_name(i)}")
+        self.callee = (lf.tail, tuple(ptypes))
+        proto = f"{ret} {callee}({', '.join(ptypes)});\n"
+        func = f"void Unk_{self.short}_call({', '.join(params)}) {{\n" + "".join(x + "\n" for x in body) + "}\n"
+        structs = self.render_structs()
+        return (structs + "\n" if structs else "") + proto, func
+
     def render_tail(self) -> tuple[str, str]:
         """render() of a function that ends in a tail call: its stores, then
         `Unk_<T>(args...);`, T declared with `void*` for pointers, so that its
         name doesn't depend on this function's placeholder structs."""
         lf = self.lifted
+        if lf.tail in KNOWN:
+            return self.render_known_tail(KNOWN[lf.tail])
         body: list[str] = []
         for base, off, t, value in lf.stores:
             if isinstance(value, AddrOf):
@@ -843,7 +909,8 @@ class Emitter:
         return f"Unk_{self.short}_{verb}"
 
     def render_structs(self) -> str:
-        out = [f"extern {t} Unk_{a:x};" for a, t in sorted(self.globals.items())]  # another TU defines them
+        out = [f"struct {n};" for n in sorted(self.forward)]  # a known callee's, defined with it
+        out += [f"extern {t} Unk_{a:x};" for a, t in sorted(self.globals.items())]  # another TU defines them
         # Children before parents, so a parent's pointer member names a complete type.
         order = sorted(self.structs.values(), key=lambda s: -s.name.count("_"))
         for s in order:
@@ -976,6 +1043,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "names":
         return cmd_names(args)
 
+    KNOWN.update(known_prototypes(ROOT / "src" / "unsorted" / "leaf"))
     cands = candidates(args)
     lifted: dict[int, tuple[str, str]] = {}
     why: Counter = Counter()
@@ -1042,6 +1110,55 @@ def callable_tails(lifted: dict[int, tuple[str, str]], why: Counter) -> dict[int
             why["callee"] += 1
         else:
             out[a] = v
+    return out
+
+
+_DEF = re.compile(r"^(.+?) (Unk_[0-9a-f]+_(?:set|get|check|update|call))\((.*)\) \{$", re.M)
+_STRUCT_PTR = re.compile(r"^(const )?(Unk_[0-9a-f_]+)\*$")
+
+
+def mangle(name: str, ptypes: list[str]) -> str | None:
+    """The mangled name of `name(ptypes)`, for leafgen's own parameter types
+    (None for what it doesn't spell: a struct twice needs a substitution)."""
+    codes = []
+    seen = set()
+    for t in ptypes:
+        if t in CALL_CODES or t in ("f32", "f64"):
+            codes.append(CALL_CODES.get(t) or {"f32": "f", "f64": "d"}[t])
+            continue
+        m = _STRUCT_PTR.match(t)
+        if m is None or m.group(2) in seen:
+            return None
+        seen.add(m.group(2))
+        codes.append(("PK" if m.group(1) else "P") + f"{len(m.group(2))}{m.group(2)}")
+    return f"_Z{len(name)}{name}" + ("".join(codes) or "v")
+
+
+def param_types(params: str) -> list[str]:
+    """`const Unk_1* self, u32 value` -> ["const Unk_1*", "u32"]."""
+    out = []
+    for p in (x.strip() for x in params.split(",") if x.strip()):
+        out.append(p.split(" /*")[0] if p.endswith("*/") else p.rsplit(" ", 1)[0])
+    return out
+
+
+def known_prototypes(leaf_dir: Path) -> dict[int, tuple[str, str, list[str]]]:
+    """The leaf functions already matched (O), by address: their prototypes
+    from the sources, where the name they mangle to is the one in
+    functions.csv."""
+    from common import read_functions_csv
+
+    rows = {f.sword + BASE: f for f in read_functions_csv() if f.sword is not None and f.status == "O"}
+    out = {}
+    for path in sorted(leaf_dir.glob("*.cpp")):
+        for addr, _, func in parse_file(path.read_text(encoding="utf-8")):
+            m = _DEF.match(func)
+            r = rows.get(addr)
+            if m is None or r is None:
+                continue
+            ret, name, ptypes = m.group(1), m.group(2), param_types(m.group(3))
+            if mangle(name, ptypes) == r.name:
+                out[addr] = (ret, name, ptypes)
     return out
 
 
