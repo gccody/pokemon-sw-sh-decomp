@@ -483,3 +483,24 @@ def test_constructor_that_zeroes_fields():
             "    u64 field_20;\n    u64 field_28;\n};\nPKMN_OFFSET_ASSERT(Unk_1000, field_10, 0x10);\n") in text
     assert text.endswith("Unk_1000::Unk_1000() : field_10(0), field_20(0), field_28(0) {}\n")
     assert V.ctor_layout({"Unk_1000": "Unk_1040"}, {"Unk_1000": c.fields}) == {"Unk_1000": 0x30, "Unk_1040": 8}
+
+
+def test_intermediate_type():
+    """A vf_type that loads four statics (guard, type, guard, type) and makes
+    five calls, one to the base's getter: the fourth static is the type of a
+    class in between."""
+    img = bytearray(0x1100)
+    words = []
+    for slot in (0x1010, 0x1018, 0x1020, 0x1028):       # adrp x8, 0x1000 ; ldr x8, [x8, #slot]
+        words += [0xB0000008, 0xF9400000 | ((slot - 0x1000) // 8) << 10 | 8 << 5 | 8]
+    pc = 0x200 + 4 * len(words)
+    for i, t in enumerate((0x400, 0x500, 0x400, 0x600, 0x500)):  # guard acquire, release, ..., the getter
+        words.append(0x94000000 | ((t - (pc + 4 * i)) >> 2))
+    words.append(RET)
+    struct.pack_into(f"<{len(words)}I", img, 0x200, *words)
+    sizes = {0x200: 4 * len(words)}
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), [], [], sizes, {0x600: "_ZN8Unk_100011Unk_GetTypeEv"},
+                {}, lambda a: "game", DELETE, {0x1010: 0x3000, 0x1018: 0x3008, 0x1020: 0x3010, 0x1028: 0x3018})
+    assert V.intermediate_type(m, 0x200) == 0x3018
+    m.names = {}                                         # no call to a type getter: another shape
+    assert V.intermediate_type(m, 0x200) is None
