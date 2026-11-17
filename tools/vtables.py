@@ -353,7 +353,7 @@ class Member:
     value: int = 0
 
 
-RTYPE = {"ret": "void", "constant": "u32", "zero": "u32", "null": "void*"}
+RTYPE = {"ret": "void", "constant": "u32", "zero": "u32", "null": "void*", "forward": "void"}
 WRITTEN = re.compile(r"_ZN\d+(Unk_[0-9a-f]+)(?:D0|D2|\d+vf\d+)Ev")  # the names write gives
 
 
@@ -414,8 +414,24 @@ def destructor_pair(m: Model, v: Vtable) -> str | None:
 
 
 
-def placeholder_members(m: Model, v: Vtable, own: dict[int, tuple[int, int]], pickable) -> list[Member]:
-    """The members of v's class that write defines: the simple functions it owns."""
+def branch_target(m: Model, f: int) -> int | None:
+    """Where a `b T` function goes."""
+    from nx.refs import decode, is_b_bl
+    return next((t for _, w, _, t in decode(m.img, f, m.sizes[f]) if t is not None and is_b_bl(w)), None)
+
+
+def callee_name(t: int) -> tuple[str, str]:
+    """(placeholder name, mangled name) of a forwarder's callee: `void Unk_<addr>(void* self)`."""
+    name = f"Unk_{t:x}"
+    return name, f"_Z{len(name)}{name}Pv"
+
+
+def placeholder_members(m: Model, v: Vtable, own: dict[int, tuple[int, int]], pickable,
+                        callee=None) -> list[Member]:
+    """The members of v's class that write defines: the simple functions it owns.
+
+    A forwarder (`b T`) is one when callee(f) gives its target: it passes all
+    of its arguments on, so `Unk_<T>(this);` compiles to the same tail call."""
     out = []
     pair = destructor_pair(m, v)
     first = 0
@@ -432,6 +448,8 @@ def placeholder_members(m: Model, v: Vtable, own: dict[int, tuple[int, int]], pi
             out.append(Member(i, f, k))
         elif k == "constant":
             out.append(Member(i, f, k, _mov_w0(m, f)))
+        elif k == "forward" and callee is not None and (t := callee(f)) is not None:
+            out.append(Member(i, f, k, t))
     return out
 
 
@@ -544,10 +562,15 @@ def render_class(m: Model, spec: ClassSpec,
         x = defined.get(i)
         if x is None or x.kind not in RTYPE:
             continue
-        body = {"ret": "{}", "constant": f"{{\n    return {x.value if x.value < 10 else hex(x.value)};\n}}",
-                "zero": "{\n    return 0;\n}", "null": "{\n    return nullptr;\n}"}[x.kind]
+        if x.kind == "forward":
+            body = f"{{\n    {callee_name(x.value)[0]}(this);\n}}"
+        else:
+            body = {"ret": "{}", "constant": f"{{\n    return {x.value if x.value < 10 else hex(x.value)};\n}}",
+                    "zero": "{\n    return 0;\n}", "null": "{\n    return nullptr;\n}"}[x.kind]
         defs.append(f"// 0x{f + BASE:x}\n{rt} {cls}::vf{i}() {body}")
         names.append((f, mangle(cls, f"vf{i}")))
+        if x.kind == "forward":
+            names.append((x.value, callee_name(x.value)[1]))
     decl.append("};")
     return "\n".join(decl) + "\n", names, "\n\n".join(defs) + "\n"
 
@@ -560,6 +583,10 @@ def render_file(m: Model, entries: list[tuple[ClassSpec, list[Member]]]) -> tupl
              "// Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename",
              "// them, and give the functions real signatures, once the classes are known.",
              "#include <types.h>", ""]
+    callees = sorted({x.value for _, xs in entries for x in xs if x.kind == "forward"})
+    if callees:
+        parts += ["// Called by forwarders. Placeholders: their real signatures aren't known.",
+                  *(f"void {callee_name(t)[0]}(void* self);" for t in callees), ""]
     here = {spec.v.addr: xs for spec, xs in entries}
     done: set[int] = set()
     names: list[tuple[int, str]] = []
@@ -619,13 +646,29 @@ def cmd_write(m: Model, args) -> None:
         w = WRITTEN.fullmatch(r.name) if r is not None and r.scope == "common" else None
         return w is not None and w.group(1) in holders[f]
 
+    def callee(f: int) -> int | None:
+        """A forwarder's target, if it can be the placeholder `Unk_<T>(void*)`:
+        in both games, in no vtable (a virtual function is called by its
+        class's name), not operator delete, and unnamed (or named that)."""
+        t = branch_target(m, f)
+        r = rows.get(t)
+        if t is None or t in holders or t == m.delete or r is None or r.shield is None:
+            return None
+        return t if not r.name or r.name == callee_name(t)[1] else None
+
+    # --only: of the functions not named yet, only these (the ones that matched in a trial run).
+    only = {int(x, 16) - BASE for x in args.only.read_text(encoding="utf-8").split()} if args.only else None
+
+    def kept(f: int) -> bool:
+        return written(f) and (only is None or f in only or bool(rows[f].name))
+
     own = owners(m.vtables)
     groups = args.area or ["game", "gflib3", "gflnet3"]
     picked: dict[int, list[Member]] = {}
     for v in m.vtables:
         if not any(in_area(vtable_area(m, v), g) for g in groups):
             continue
-        members = placeholder_members(m, v, own, written)
+        members = placeholder_members(m, v, own, kept, None if args.no_forward else callee)
         if members:
             picked[v.addr] = members
     seg_starts = segment_starts(m)
@@ -633,7 +676,7 @@ def cmd_write(m: Model, args) -> None:
     def seg(f: int) -> int:
         return seg_starts[bisect.bisect_right(seg_starts, f) - 1]
 
-    specs = class_specs(m, picked, own, seg, written)
+    specs = class_specs(m, picked, own, seg, kept)
     # One file per static-initialiser segment, like src/unsorted/leaf: a class
     # whose functions span segments is declared in each of their files.
     files: dict[int, list[tuple[ClassSpec, list[Member]]]] = defaultdict(list)
@@ -647,21 +690,22 @@ def cmd_write(m: Model, args) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     for old in out_dir.glob("Unk_*.cpp"):  # everything here is written again (a file's name can change)
         old.unlink()
-    name_rows = []
+    name_rows: dict[int, str] = {}  # a forwarders' callee is named once
     for _, entries in sorted(files.items()):
         first = min(x.addr for _, xs in entries for x in xs)
         text, names = render_file(m, entries)
-        name_rows += names
+        name_rows.update(names)
         (out_dir / f"Unk_{first:x}.cpp").write_text(text, encoding="utf-8", newline="\n")
     with open(args.names, "w", encoding="utf-8", newline="\n") as fh:
         fh.write("Name,Sword,Shield\n")
-        for f, n in sorted(name_rows):
+        for f, n in sorted(name_rows.items()):
             r = rows[f]
             fh.write(f"{n},{r.sword_str},{r.shield_str}\n")
     derived = sum(s.base is not None for s in specs.values())
-    print(f"{len(name_rows)} functions of {len(specs)} classes ({derived} derived, "
-          f"{sum(s.inline_dtor for s in specs.values())} bases with an inline destructor) in {len(files)} files; "
-          f"names in {args.names}", file=sys.stderr)
+    n_callees = sum(n.startswith("_Z") and not n.startswith("_ZN") for n in name_rows.values())
+    print(f"{len(name_rows) - n_callees} functions of {len(specs)} classes ({derived} derived, "
+          f"{sum(s.inline_dtor for s in specs.values())} bases with an inline destructor) in {len(files)} files, "
+          f"{n_callees} forwarders' callees; names in {args.names}", file=sys.stderr)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -680,6 +724,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--area", action="append", help="area or group (default: game, gflib3, gflnet3)")
     p.add_argument("--out", type=Path, default=ROOT / "src" / "unsorted" / "virtual")
     p.add_argument("--names", type=Path, required=True, help="where to write Name,Sword,Shield")
+    p.add_argument("--only", type=Path, help="file of Sword addresses: of the unnamed functions, write only these")
+    p.add_argument("--no-forward", action="store_true", help="leave out forwarders (b T)")
     args = ap.parse_args(argv)
     if args.cmd == "write" and args.game != "sword":
         raise SystemExit("write works from Sword's vtables (the names cover both games)")
