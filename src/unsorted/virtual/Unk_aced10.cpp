@@ -7,6 +7,12 @@
 // Called by forwarders. Placeholders: their real signatures aren't known.
 void Unk_ac7630(void* self);
 
+struct Unk_23c9028_630 {
+    u8 _0[0x58];
+    u8 field_58;
+};
+PKMN_OFFSET_ASSERT(Unk_23c9028_630, field_58, 0x58);
+
 class Unk_23c9028 {
 public:
     virtual ~Unk_23c9028();
@@ -33,9 +39,12 @@ public:
     u8 _8[0x5f8];
     u64 field_600;
     u32 field_608;
+    u8 _60c[0x24];
+    Unk_23c9028_630* field_630;
 };
 PKMN_OFFSET_ASSERT(Unk_23c9028, field_600, 0x600);
 PKMN_OFFSET_ASSERT(Unk_23c9028, field_608, 0x608);
+PKMN_OFFSET_ASSERT(Unk_23c9028, field_630, 0x630);
 
 // 0x7100aced10
 void Unk_23c9028::vf20() {
