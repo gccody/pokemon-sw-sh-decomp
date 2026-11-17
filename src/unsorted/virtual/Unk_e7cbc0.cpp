@@ -13,7 +13,7 @@ public:
     virtual void vf4();
     virtual void vf5();
     virtual void vf6();
-    virtual void vf7();
+    virtual u32 vf7();
     virtual void vf8();
     virtual void vf9();
     virtual void vf10();
@@ -147,7 +147,7 @@ public:
     virtual void vf22();
     virtual void vf23();
     virtual void vf24();
-    virtual void vf25();
+    virtual u32 vf25();
 };
 
 // 0x7100e7cc40
@@ -174,12 +174,12 @@ public:
     virtual void vf17();
     virtual void vf18();
     virtual void vf19();
-    virtual void vf20();
+    virtual u32 vf20();
     virtual void vf21();
     virtual void vf22();
     virtual void vf23();
     virtual void vf24();
-    virtual void vf25();
+    virtual u32 vf25();
 };
 
 // 0x7100e7cc60

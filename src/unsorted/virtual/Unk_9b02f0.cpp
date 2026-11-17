@@ -25,8 +25,8 @@ public:
     virtual void vf4();
     virtual void vf5();
     virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
+    virtual u32 vf7();
+    virtual u32 vf8();
     virtual void vf9();
     virtual void vf10();
     virtual void vf11();
@@ -349,10 +349,10 @@ public:
     virtual void vf328();
     virtual void vf329();
     virtual void vf330();
-    virtual void vf331();
+    virtual u32 vf331();
     virtual void vf332();
     virtual void vf333();
-    virtual void vf334();
+    virtual u32 vf334();
     virtual void vf335();
     virtual void vf336();
     virtual void vf337();

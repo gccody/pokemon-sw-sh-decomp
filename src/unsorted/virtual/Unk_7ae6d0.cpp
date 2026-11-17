@@ -281,7 +281,7 @@ public:
     virtual void vf14();
     virtual void vf15();
     virtual void vf16();
-    virtual void vf17();
+    virtual u32 vf17();
     virtual void vf18();
 };
 

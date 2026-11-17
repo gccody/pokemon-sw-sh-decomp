@@ -74,7 +74,7 @@ public:
     virtual void vf7();
     virtual void vf8();
     virtual void vf9();
-    virtual void vf10();
+    virtual u32 vf10();
 };
 
 // 0x7100790be0
