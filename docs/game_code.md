@@ -352,6 +352,16 @@ not matching).
 functions match, of classes whose vtables are mostly its (check.py: 25,465
 matching).
 
+A derived class (Batch 4) used to lose its lifted members: their fields
+would have to follow its base's. But a field is at the same offset of the
+object whichever class declares it, so they go to the base's fields now
+(`_readd_lifted`), when they don't conflict with the base's own, and an
+override's signature to the base's family, when it has no other. A field
+may point to a placeholder struct (the base declares it, named after
+itself); a member whose return or parameter type names that struct stays
+out. 98 more virtual functions match, most of them setting a flag through a
+pointer field (check.py: 25,563 matching, 107 not matching).
+
 ## Vtables and classes (`tools/vtables.py`)
 
 Most of the tiny functions are virtual (see "The tiny functions"), and

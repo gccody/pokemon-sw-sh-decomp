@@ -20,7 +20,9 @@ public:
     virtual void vf3() = 0;
     virtual void vf4() = 0;
     virtual void vf5() = 0;
+    u32 field_8;
 };
+PKMN_OFFSET_ASSERT(Unk_2398480, field_8, 0x8);
 
 // 0x710059e460, 0x710059e470
 Unk_2398480::~Unk_2398480() {}
@@ -154,6 +156,11 @@ public:
 
 // 0x71005a9a40
 void Unk_2398748::vf4() {}
+
+// 0x71005a99f0
+void Unk_2398748::vf2() {
+    field_8 = 0;
+}
 
 // 0x71005a9a50
 void Unk_2398748::vf5() {}

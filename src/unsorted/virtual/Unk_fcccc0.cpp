@@ -336,6 +336,12 @@ public:
 // 0x7100fd39a0
 void Unk_2403e18::vf4() {}
 
+struct Unk_2403f88_8 {
+    u8 _0[0xb34];
+    u8 field_b34;
+};
+PKMN_OFFSET_ASSERT(Unk_2403f88_8, field_b34, 0xb34);
+
 class Unk_2403f88 {
 public:
     virtual ~Unk_2403f88();
@@ -344,7 +350,9 @@ public:
     virtual void vf4();
     virtual void vf5();
     virtual void vf6();
+    Unk_2403f88_8* field_8;
 };
+PKMN_OFFSET_ASSERT(Unk_2403f88, field_8, 0x8);
 
 // 0x7100fd7420, 0x7100fd63b0
 Unk_2403f88::~Unk_2403f88() {}
@@ -363,6 +371,11 @@ public:
 
 // 0x7100fd64f0
 void Unk_2403fd0::vf4() {}
+
+// 0x7100fd6510
+void Unk_2403fd0::vf6() {
+    field_8->field_b34 = 1;
+}
 
 struct Unk_2404018_8 {
     u8 _0[0xb30];
@@ -428,6 +441,11 @@ public:
 // 0x7100fd66d0
 void Unk_24040a8::vf4() {}
 
+// 0x7100fd66f0
+void Unk_24040a8::vf6() {
+    field_8->field_b34 = 1;
+}
+
 class Unk_24040f0 : public Unk_2403f88 {
 public:
     void vf4() override;
@@ -440,6 +458,11 @@ public:
 // 0x7100fd6770
 void Unk_24040f0::vf4() {}
 
+// 0x7100fd6790
+void Unk_24040f0::vf6() {
+    field_8->field_b34 = 1;
+}
+
 class Unk_2404138 : public Unk_2403f88 {
 public:
     void vf4() override;
@@ -451,6 +474,11 @@ public:
 
 // 0x7100fd6810
 void Unk_2404138::vf4() {}
+
+// 0x7100fd6830
+void Unk_2404138::vf6() {
+    field_8->field_b34 = 1;
+}
 
 struct Unk_2404180_8 {
     u8 _0[0xb30];
@@ -542,6 +570,11 @@ public:
 // 0x7100fd6a90
 void Unk_2404258::vf4() {}
 
+// 0x7100fd6ab0
+void Unk_2404258::vf6() {
+    field_8->field_b34 = 1;
+}
+
 class Unk_24042a0 : public Unk_2403f88 {
 public:
     void vf4() override;
@@ -553,6 +586,11 @@ public:
 
 // 0x7100fd6b30
 void Unk_24042a0::vf4() {}
+
+// 0x7100fd6b50
+void Unk_24042a0::vf6() {
+    field_8->field_b34 = 1;
+}
 
 class Unk_24042e8 : public Unk_2403f88 {
 public:
@@ -566,6 +604,11 @@ public:
 // 0x7100fd6bd0
 void Unk_24042e8::vf4() {}
 
+// 0x7100fd6bf0
+void Unk_24042e8::vf6() {
+    field_8->field_b34 = 1;
+}
+
 class Unk_2404330 : public Unk_2403f88 {
 public:
     void vf4() override;
@@ -577,6 +620,11 @@ public:
 
 // 0x7100fd6c70
 void Unk_2404330::vf4() {}
+
+// 0x7100fd6c90
+void Unk_2404330::vf6() {
+    field_8->field_b34 = 1;
+}
 
 struct Unk_2404378_8 {
     u8 _0[0xb30];
@@ -642,6 +690,11 @@ public:
 // 0x7100fd6e50
 void Unk_2404408::vf4() {}
 
+// 0x7100fd6e70
+void Unk_2404408::vf6() {
+    field_8->field_b34 = 1;
+}
+
 class Unk_2404450 : public Unk_2403f88 {
 public:
     void vf4() override;
@@ -653,6 +706,11 @@ public:
 
 // 0x7100fd6ef0
 void Unk_2404450::vf4() {}
+
+// 0x7100fd6f10
+void Unk_2404450::vf6() {
+    field_8->field_b34 = 1;
+}
 
 struct Unk_2404498_8 {
     u8 _0[0xb30];
@@ -718,6 +776,11 @@ public:
 // 0x7100fd70d0
 void Unk_2404528::vf4() {}
 
+// 0x7100fd70f0
+void Unk_2404528::vf6() {
+    field_8->field_b34 = 1;
+}
+
 class Unk_2404570 : public Unk_2403f88 {
 public:
     void vf4() override;
@@ -729,6 +792,11 @@ public:
 
 // 0x7100fd7170
 void Unk_2404570::vf4() {}
+
+// 0x7100fd7190
+void Unk_2404570::vf6() {
+    field_8->field_b34 = 1;
+}
 
 class Unk_24045b8 : public Unk_2403f88 {
 public:
@@ -742,6 +810,11 @@ public:
 // 0x7100fd7210
 void Unk_24045b8::vf4() {}
 
+// 0x7100fd7230
+void Unk_24045b8::vf6() {
+    field_8->field_b34 = 1;
+}
+
 class Unk_2404600 : public Unk_2403f88 {
 public:
     void vf4() override;
@@ -753,6 +826,11 @@ public:
 
 // 0x7100fd72b0
 void Unk_2404600::vf4() {}
+
+// 0x7100fd72d0
+void Unk_2404600::vf6() {
+    field_8->field_b34 = 1;
+}
 
 class Unk_2404648 : public Unk_2403f88 {
 public:
@@ -766,6 +844,11 @@ public:
 // 0x7100fd7350
 void Unk_2404648::vf4() {}
 
+// 0x7100fd7370
+void Unk_2404648::vf6() {
+    field_8->field_b34 = 1;
+}
+
 class Unk_2404690 : public Unk_2403f88 {
 public:
     void vf4() override;
@@ -778,6 +861,11 @@ public:
 // 0x7100fd73f0
 void Unk_2404690::vf4() {}
 
+// 0x7100fd7410
+void Unk_2404690::vf6() {
+    field_8->field_b34 = 1;
+}
+
 class Unk_24046d8 : public Unk_2403f88 {
 public:
     void vf4() override;
@@ -789,6 +877,11 @@ public:
 
 // 0x7100fd74a0
 void Unk_24046d8::vf4() {}
+
+// 0x7100fd74c0
+void Unk_24046d8::vf6() {
+    field_8->field_b34 = 1;
+}
 
 struct Unk_2404720_8 {
     u8 _0[0xb30];
@@ -958,6 +1051,11 @@ public:
 // 0x7100fd7900
 void Unk_24048d0::vf4() {}
 
+// 0x7100fd7920
+void Unk_24048d0::vf6() {
+    field_8->field_b34 = 1;
+}
+
 struct Unk_2404918_8 {
     u8 _0[0xb30];
     u32 field_b30;
@@ -1048,6 +1146,11 @@ public:
 // 0x7100fd7b80
 void Unk_24049f0::vf4() {}
 
+// 0x7100fd7ba0
+void Unk_24049f0::vf6() {
+    field_8->field_b34 = 1;
+}
+
 class Unk_2404a38 : public Unk_2403f88 {
 public:
     void vf4() override;
@@ -1059,6 +1162,11 @@ public:
 
 // 0x7100fd7c20
 void Unk_2404a38::vf4() {}
+
+// 0x7100fd7c40
+void Unk_2404a38::vf6() {
+    field_8->field_b34 = 1;
+}
 
 struct Unk_2404a80_8 {
     u8 _0[0xb30];
@@ -1123,3 +1231,8 @@ public:
 
 // 0x7100fd7e00
 void Unk_2404b10::vf4() {}
+
+// 0x7100fd7e20
+void Unk_2404b10::vf6() {
+    field_8->field_b34 = 1;
+}
