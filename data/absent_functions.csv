@@ -3458,6 +3458,7 @@ compressBound,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and droppe
 crc32_combine,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
 crc32_combine64,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
 crc32_combine_@crc32,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+default_walker@tlsf,TLSF 2.0 (Wwise): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
 deflateCopy,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
 deflateParams,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
 deflatePrime,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
@@ -3487,5 +3488,9 @@ lua_setallocf,"not in the executable: unreferenced, so dropped by the linker"
 lua_tocfunction,"not in the executable: unreferenced, so dropped by the linker"
 luaopen_bit32,no function of lbitlib.c (bit32) is in the executable
 panic@lauxlib,"not in the executable, like luaL_newstate"
+tlsf_check_heap,TLSF 2.0 (Wwise): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+tlsf_destroy,TLSF 2.0 (Wwise): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+tlsf_realloc,TLSF 2.0 (Wwise): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
+tlsf_walk_heap,TLSF 2.0 (Wwise): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
 zError,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
 zlibCompileFlags,zlib 1.2.5 (YEBIS): not in the executable (unreferenced and dropped by the linker; no exact copy anywhere in main)
