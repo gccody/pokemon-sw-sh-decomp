@@ -182,3 +182,51 @@ static initialisers share a file, named after the first one. Such a range
 holds one or more whole TUs, because an initialiser is always the last
 function of its TU. When a class is identified,
 move its accessors next to it and give them real types.
+
+### Batch 2: straight-line leaf functions (`tools/leafgen.py`)
+
+Batch 1's six patterns leave a long tail: 1,165 directly called, common
+leaf functions of at most 32 bytes in 667 patterns. `tools/leafgen.py`
+lifts them instead of matching patterns. It executes a function's
+instructions symbolically (loads and stores through the argument
+registers, constants, masks, shifts, compares, `cset`/`csel`, `ubfx`,
+`bfi`/`bfxil`) and writes C++ that computes the same thing:
+
+| Kind | Functions | Example |
+|---|---:|---|
+| `set` | 269 | `self->field_20 = value;` (a `bool` when clang masks the argument with `& 1`), constant stores, several fields, nested `self->field_8->field_30 = 1;`, float arguments |
+| `check` | 163 | `return self->field_10 == 3;`, flag tests `(self->field_8 & 0x10) == 0`, null tests, range checks `x >= 5 && x <= 7` (clang's `(x - 5) < 3`), signed compares (the field becomes `s32`) |
+| `get` | 129 | nested getters `self->field_8->field_30`, bitfields `(self->field_c >> 3) & 1`, constants |
+| `update` | 2 | read-modify-write of a field that also returns a value |
+
+They match in both games: 510 in game code, 46 in gflib3 and 7 in gflnet3.
+Each function gets placeholder structs like batch 1's: `Unk_<addr>` for
+the first argument, `Unk_<addr>_<offset>` for a pointer loaded from it,
+`Unk_<addr>_arg<n>` for other pointer arguments, fields typed by access
+width and signedness. A pointer argument that is only read is `const`. The
+functions go into batch 1's per-segment files (`leafgen.py` merges them in
+address order and renames a file when its first function changes).
+
+What it lifts is a guess at the spelling, not at the meaning. Anything it
+doesn't model is refused: branches and calls, references to globals,
+`ldp`/`stp`, multiplies, address arithmetic, pointer compares other than
+null tests, 64-bit arithmetic that C would do in `int`. The C++ then has to
+compile alone with `-Wall -Wextra -Werror`, because a wrong type guess under
+C's integer promotions shows up as a warning (a tautological compare, a
+shift past the type's width). Of 614 that compiled, 563 match. The other 51
+differ in instruction order or register choice. That comes from how the
+source was written (a reset followed by a copy, a 16-byte struct returned in
+`x0`/`x1`), so they were dropped, not patched.
+
+```sh
+python tools/leafgen.py scan --max 32                 # candidates, lifted, refused (by reason)
+python tools/leafgen.py write --max 32                # into src/unsorted/leaf
+cmake --build --preset sword && cmake --build --preset shield
+python tools/leafgen.py names --out map.csv           # the mangled names the build defined
+python tools/funcs.py name --from-file map.csv
+python tools/check.py --no-build > check.log          # its OK lines are the ones to keep
+# Restore src/unsorted/leaf and data/functions.csv (git checkout, git clean), then:
+python tools/leafgen.py write --max 32 --only ok.txt  # the OK addresses, one per line
+python tools/funcs.py name --from-file ok_map.csv     # map.csv's rows for them
+python tools/check.py --update
+```
