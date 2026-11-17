@@ -1414,6 +1414,9 @@ def cmd_ctors(m: Model, args) -> None:
     for cs in files.values():
         name = f"Unk_{min(c.addr for c in cs):x}.cpp"
         (args.out / name).write_text(render_ctor_file(cs, base_of), encoding="utf-8", newline="\n")
+    from common import clang_format
+    if not clang_format(sorted(args.out.glob("*.cpp"))):
+        print("clang-format isn't on PATH: format the written files before committing them", file=sys.stderr)
     names: dict[int, str] = {}
     for c in ctors:
         names[c.addr] = ctor_name(c.cls)
@@ -1566,6 +1569,9 @@ def cmd_write(m: Model, args) -> None:
         text, names = render_file(m, entries, sources.get(key))
         name_rows.update(names)
         (out_dir / f"Unk_{first:x}.cpp").write_text(text, encoding="utf-8", newline="\n")
+    from common import clang_format
+    if not clang_format(sorted(out_dir.glob("Unk_*.cpp"))):
+        print("clang-format isn't on PATH: format the written files before committing them", file=sys.stderr)
     with open(args.names, "w", encoding="utf-8", newline="\n") as fh:
         fh.write("Name,Sword,Shield\n")
         for f, n in sorted(name_rows.items()):
