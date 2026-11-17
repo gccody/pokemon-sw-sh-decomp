@@ -629,7 +629,7 @@ def lift_member(m: Model, f: int) -> Lifted | None:
     of `this` (after the vptr), the fields they point to, and scalar arguments."""
     import leafgen as L
 
-    if m.sizes.get(f, 0) > 32:
+    if m.sizes.get(f, 0) > 64:
         return None
     try:
         lf = L.lift(m.img[f:f + m.sizes[f]], f + BASE)
