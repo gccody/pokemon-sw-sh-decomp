@@ -39,6 +39,17 @@ u8* Unk_1310150_getField60Ptr(Unk_1310150* self) {
     return &self->field_60;
 }
 
+struct Unk_1310850 {
+    u8 _0[0x17138];
+    u8 field_17138;
+};
+PKMN_OFFSET_ASSERT(Unk_1310850, field_17138, 0x17138);
+
+// 0x7101310850
+const u8* Unk_1310850_get(const Unk_1310850* self) {
+    return &self->field_17138;
+}
+
 struct Unk_13193c0 {
     u8 _0[0x60];
     u64 field_60;

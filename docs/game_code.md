@@ -325,6 +325,10 @@ may be null. 119 more leaf functions match (check.py: 24,964 matching), and
 53 more virtual ones, which `vtables.py write` lifts the same way
 (check.py: 25,017 matching, 107 not matching).
 
+Wide constants (`mov` then `movk` for each further 16 bits) are constants
+too: 18 more leaf functions and 5 virtual ones match (check.py: 25,040
+matching, 107 not matching).
+
 ## Vtables and classes (`tools/vtables.py`)
 
 Most of the tiny functions are virtual (see "The tiny functions"), and

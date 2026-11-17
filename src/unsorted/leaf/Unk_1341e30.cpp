@@ -20,6 +20,17 @@ void Unk_1341e30_set(const Unk_1341e30* self) {
     self->field_628->field_58 = self->field_628->field_58 | 1;
 }
 
+struct Unk_1345c90 {
+    u8 _0[0x221f0];
+    u8 field_221f0;
+};
+PKMN_OFFSET_ASSERT(Unk_1345c90, field_221f0, 0x221f0);
+
+// 0x7101345c90
+const u8* Unk_1345c90_get(const Unk_1345c90* self) {
+    return &self->field_221f0;
+}
+
 struct Unk_1345ca0 {
     u8 _0[0x60];
     u8 field_60;

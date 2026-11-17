@@ -3,6 +3,17 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
+struct Unk_1361f80 {
+    u8 _0[0x60];
+    u32 field_60;
+};
+PKMN_OFFSET_ASSERT(Unk_1361f80, field_60, 0x60);
+
+// 0x7101361f80
+bool Unk_1361f80_check(const Unk_1361f80* self) {
+    return self->field_60 == 0x20180110;
+}
+
 struct Unk_1362000 {
     u8 _0[0xa8];
     u64 field_a8;
@@ -239,6 +250,18 @@ PKMN_OFFSET_ASSERT(Unk_136b790, field_130, 0x130);
 // 0x710136b790
 u32 Unk_136b790_getField130(const Unk_136b790* self) {
     return self->field_130;
+}
+
+struct Unk_136b7a0 {
+    u8 _0[0x130];
+    u32 field_130;
+};
+PKMN_OFFSET_ASSERT(Unk_136b7a0, field_130, 0x130);
+
+// 0x710136b7a0
+u32 Unk_136b7a0_update(Unk_136b7a0* self, u32 value) {
+    self->field_130 = value < 0x98967f ? value : 0x98967f;
+    return value < 0x98967f ? value : 0x98967f;
 }
 
 struct Unk_136b840 {
@@ -493,6 +516,18 @@ PKMN_OFFSET_ASSERT(Unk_137b8b0, field_64, 0x64);
 // 0x710137b8b0
 u32 Unk_137b8b0_getField64(const Unk_137b8b0* self) {
     return self->field_64;
+}
+
+struct Unk_137b8c0 {
+    u8 _0[0x64];
+    u32 field_64;
+};
+PKMN_OFFSET_ASSERT(Unk_137b8c0, field_64, 0x64);
+
+// 0x710137b8c0
+u32 Unk_137b8c0_update(Unk_137b8c0* self, u32 value) {
+    self->field_64 = value < 0x98967f ? value : 0x98967f;
+    return value < 0x98967f ? value : 0x98967f;
 }
 
 struct Unk_137b960 {

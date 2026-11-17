@@ -50,3 +50,10 @@ void Unk_1400540_set(Unk_1400540* self, u64 value, u32 arg2, u32 arg3, u32 arg4,
     self->field_220 = arg4;
     self->field_224 = arg5;
 }
+
+void Unk_1401490(void*, u64, u64, u64, u64, u64);
+
+// 0x7101401b20
+void Unk_1401b20_call(void* self, u64 value, u64 arg2, u64 arg3, u64 arg4) {
+    Unk_1401490(self, 0xcbf29ce484222645, value, arg2, arg3, arg4);
+}

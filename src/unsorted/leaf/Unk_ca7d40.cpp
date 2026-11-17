@@ -99,6 +99,20 @@ void Unk_cb1610_set(Unk_cb1610* self, bool value) {
     self->field_5a = value;
 }
 
+struct Unk_cb33d0 {
+    u8 _0[0x80];
+    u64 field_80;
+    u32 field_88;
+};
+PKMN_OFFSET_ASSERT(Unk_cb33d0, field_80, 0x80);
+PKMN_OFFSET_ASSERT(Unk_cb33d0, field_88, 0x88);
+
+// 0x7100cb33d0
+void Unk_cb33d0_set(Unk_cb33d0* self) {
+    self->field_80 = 0xcbf29ce484222645;
+    self->field_88 = 0;
+}
+
 struct Unk_cb3460 {
     u8 _0[0x98];
     u32 field_98;

@@ -17,6 +17,16 @@ void Unk_1434750_set(Unk_1434750* self) {
     self->field_50 = 0;
 }
 
+// 0x71014357f0
+u64 Unk_14357f0_get() {
+    return 0xfc06cb2c3f628f41;
+}
+
+// 0x7101435810
+u64 Unk_1435810_get() {
+    return 0xfc03492c3f5f7c84;
+}
+
 struct Unk_1435ec0 {
     u8 _0[0x88];
     u64 field_88;

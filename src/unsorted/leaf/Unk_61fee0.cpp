@@ -186,6 +186,48 @@ void Unk_63bf10_set(Unk_63bf10* self, const Unk_63bf10_arg1* value) {
     self->field_6c8 = value->field_0;
 }
 
+struct Unk_6469e0 {
+    u64 field_0;
+    u8 _8[0x48];
+    u64 field_50;
+    u64 field_58;
+    u64 field_60;
+    u64 field_68;
+    u64 field_70;
+    u64 field_78;
+    u64 field_80;
+    u64 field_88;
+    u8 _90[0x40];
+    u64 field_d0;
+    u32 field_d8;
+};
+PKMN_OFFSET_ASSERT(Unk_6469e0, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_6469e0, field_50, 0x50);
+PKMN_OFFSET_ASSERT(Unk_6469e0, field_58, 0x58);
+PKMN_OFFSET_ASSERT(Unk_6469e0, field_60, 0x60);
+PKMN_OFFSET_ASSERT(Unk_6469e0, field_68, 0x68);
+PKMN_OFFSET_ASSERT(Unk_6469e0, field_70, 0x70);
+PKMN_OFFSET_ASSERT(Unk_6469e0, field_78, 0x78);
+PKMN_OFFSET_ASSERT(Unk_6469e0, field_80, 0x80);
+PKMN_OFFSET_ASSERT(Unk_6469e0, field_88, 0x88);
+PKMN_OFFSET_ASSERT(Unk_6469e0, field_d0, 0xd0);
+PKMN_OFFSET_ASSERT(Unk_6469e0, field_d8, 0xd8);
+
+// 0x71006469e0
+void Unk_6469e0_set(Unk_6469e0* self) {
+    self->field_80 = 0;
+    self->field_88 = 0;
+    self->field_0 = 0x45bb800042000000;
+    self->field_d0 = 0;
+    self->field_70 = 0;
+    self->field_78 = 0;
+    self->field_d8 = 0x3ecccccd;
+    self->field_60 = 0;
+    self->field_68 = 0;
+    self->field_50 = 0;
+    self->field_58 = 0;
+}
+
 struct Unk_64d770 {
     u8 _0[0x270];
     f32 field_270;
