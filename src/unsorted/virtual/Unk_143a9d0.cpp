@@ -74,6 +74,34 @@ u32 Unk_243b648::vf8() {
 // 0x710143b850
 void Unk_243b648::vf9() {}
 
+struct Unk_243b730_78 {
+    u8 _0[0x5cc];
+    u8 field_5cc;
+};
+PKMN_OFFSET_ASSERT(Unk_243b730_78, field_5cc, 0x5cc);
+
+class Unk_243b730 {
+public:
+    virtual ~Unk_243b730();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual bool vf8();
+    virtual void vf9();
+    virtual void vf10();
+    u8 _8[0x70];
+    Unk_243b730_78* field_78;
+};
+PKMN_OFFSET_ASSERT(Unk_243b730, field_78, 0x78);
+
+// 0x710143bb10
+bool Unk_243b730::vf8() {
+    return field_78->field_5cc != 0;
+}
+
 class Unk_243b800 {
 public:
     virtual void vf0();

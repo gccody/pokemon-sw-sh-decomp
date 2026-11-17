@@ -149,6 +149,12 @@ public:
 // 0x7100adcb90
 void Unk_23ca160::vf4() {}
 
+struct Unk_23ca1a8_5f0 {
+    u8 _0[0x58];
+    u8 field_58;
+};
+PKMN_OFFSET_ASSERT(Unk_23ca1a8_5f0, field_58, 0x58);
+
 class Unk_23ca1a8 {
 public:
     virtual void vf0();
@@ -169,7 +175,10 @@ public:
     virtual void vf15();
     virtual u32 vf16();
     virtual void vf17();
+    u8 _8[0x5e8];
+    Unk_23ca1a8_5f0* field_5f0;
 };
+PKMN_OFFSET_ASSERT(Unk_23ca1a8, field_5f0, 0x5f0);
 
 // 0x7100add3c0
 void Unk_23ca1a8::vf6() {
@@ -179,6 +188,11 @@ void Unk_23ca1a8::vf6() {
 // 0x7100add260
 u32 Unk_23ca1a8::vf16() {
     return 0;
+}
+
+// 0x7100add3d0
+void Unk_23ca1a8::vf17() {
+    field_5f0->field_58 = field_5f0->field_58 & 0xfe;
 }
 
 class Unk_23ca248 {
