@@ -8,6 +8,20 @@ u32 Unk_d29850() {
     return 0;
 }
 
+extern bool Unk_23e1048;
+
+// 0x7100d29c40
+void Unk_d29c40_set(bool self) {
+    Unk_23e1048 = self;
+}
+
+extern bool Unk_27da7a9;
+
+// 0x7100d29e50
+void Unk_d29e50_set(bool self) {
+    Unk_27da7a9 = self;
+}
+
 struct Unk_d369a0_4c0 {
     u8 _0[0x170];
     f32 field_170;

@@ -293,6 +293,13 @@ u8* Unk_895550_getField220Ptr(Unk_895550* self) {
     return &self->field_220;
 }
 
+extern u32 Unk_27d1040;
+
+// 0x7100896170
+void Unk_896170_set() {
+    Unk_27d1040 = Unk_27d1040 + 1;
+}
+
 struct Unk_896c60 {
     u8 _0[0x360];
     u64 field_360;
