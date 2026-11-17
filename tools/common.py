@@ -183,6 +183,34 @@ def read_areas_csv(path: Path | None = None) -> list[Area]:
     return out
 
 
+def in_area(name: str | None, query: str) -> bool:
+    """Whether area `name` is `query` or inside it: area names are paths, and
+    "game" covers "game/pokecamp" and "game/net_contents/live"."""
+    return name is not None and (name == query or name.startswith(query + "/"))
+
+
+def area_names(areas: list[Area]) -> set[str]:
+    """Every area name and every group above one ("game" for "game/bag")."""
+    out = set()
+    for a in areas:
+        parts = a.name.split("/")
+        out.update("/".join(parts[:i]) for i in range(1, len(parts) + 1))
+    return out
+
+
+def area_span(areas: list[Area], query: str, version: str) -> tuple[int, int] | None:
+    """[start, end) of the area or group `query` in one game (relative to BASE),
+    None if it isn't in that game. A group's rows must be contiguous."""
+    rows = sorted(a.range(version) for a in areas if in_area(a.name, query) and a.in_version(version))
+    if not rows:
+        return None
+    for (_, end), (start, _) in zip(rows, rows[1:]):
+        if end != start:
+            raise ValueError(f"the rows of {query} aren't contiguous in {version} "
+                             f"(gap at 0x{end + BASE:x}-0x{start + BASE:x}): name one of them")
+    return rows[0][0], rows[-1][1]
+
+
 class AreaMap:
     """Look up which area of one game an address (relative to BASE) falls in."""
 

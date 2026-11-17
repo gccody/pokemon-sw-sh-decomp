@@ -241,6 +241,20 @@ def test_read_areas_per_game(write_csv):
                                    "swonly": {"sword": (0x7101570900, 0x7101571000)}}
 
 
+def test_read_areas_groups(write_csv):
+    path = write_csv("areas.csv", "SwordStart,SwordEnd,ShieldStart,ShieldEnd,Area,Kind,Confidence,Evidence\n"
+                     "0x7100001000,0x7100002000,0x7100001000,0x7100002010,game/a,game,low,x\n"
+                     "0x7100002000,0x7100003000,0x7100002010,0x7100003010,game/b,game,low,x\n"
+                     "0x7100003000,0x7100004000,0x7100003010,0x7100004010,lua,library,high,x\n"
+                     "0x7100004000,0x7100005000,0x7100004010,0x7100005010,net/a,game,low,x\n"
+                     "0x7100006000,0x7100007000,0x7100006010,0x7100007010,net/b,game,low,x\n")
+    areas = fp.read_areas(path)
+    assert areas["game"] == {"sword": (0x7100001000, 0x7100003000), "shield": (0x7100001000, 0x7100003010)}
+    assert areas["game/b"]["shield"] == (0x7100002010, 0x7100003010)
+    assert "net" not in areas  # its rows have a gap: only each row is a target
+    assert set(areas) == {"game", "game/a", "game/b", "lua", "net/a", "net/b"}
+
+
 def test_parse_target():
     areas = {"lua": {"sword": (1, 2)}}
     assert fp.parse_target("lua", areas) == ("lua", {"sword": (1, 2)})

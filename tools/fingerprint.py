@@ -82,7 +82,7 @@ from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import BASE, ROOT, VERSIONS, read_areas_csv  # noqa: E402
+from common import BASE, ROOT, VERSIONS, area_names, area_span, read_areas_csv  # noqa: E402
 
 AREAS = ROOT / "data" / "areas.csv"
 SHIFT_WINDOW = 4
@@ -367,11 +367,22 @@ def fingerprint(mod: dict, lo: int, hi: int) -> Counter:
 
 
 def read_areas(path: Path = AREAS) -> dict[str, dict[str, tuple[int, int]]]:
-    """area -> {game: (lo, hi)} (absolute addresses) for the games the area is in."""
+    """area -> {game: (lo, hi)} (absolute addresses) for the games the area is in.
+
+    Groups of areas ("game" for "game/bag", "game/pokecamp", ...) are there too,
+    as one range, when their rows are contiguous."""
+    areas = read_areas_csv(path)
     out: dict[str, dict[str, tuple[int, int]]] = {}
-    for a in read_areas_csv(path):
-        ranges = {v: (a.range(v)[0] + BASE, a.range(v)[1] + BASE) for v in VERSIONS if a.in_version(v)}
-        out.setdefault(a.name, ranges)  # lint keeps area names unique
+    for name in sorted(area_names(areas)):
+        ranges = {}
+        try:
+            for v in VERSIONS:
+                span = area_span(areas, name, v)
+                if span is not None:
+                    ranges[v] = (span[0] + BASE, span[1] + BASE)
+        except ValueError:
+            continue
+        out[name] = ranges
     return out
 
 

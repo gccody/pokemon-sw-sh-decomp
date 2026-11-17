@@ -122,6 +122,27 @@ def test_list_by_area_uses_each_games_columns(write_csv, functions_csv, capsys):
         funcs.cmd_list(list_args(area="c", areas_csv=path), rows)
 
 
+def test_list_by_area_group(write_csv, functions_csv, capsys):
+    path = write_csv("areas.csv", (
+        "SwordStart,SwordEnd,ShieldStart,ShieldEnd,Area,Kind,Confidence,Evidence\n"
+        "0x7100000000,0x7100001000,0x7100000000,0x7100001000,game/a,game,low,x\n"
+        "0x7100001000,0x7100002000,0x7100001000,0x7100002000,game/b/c,game,low,y\n"
+        "0x7100002000,0x7100003000,0x7100002000,0x7100003000,gamex,game,low,z\n"
+    ))
+    rows = read_functions_csv(functions_csv(
+        "0x0000007100000100,8,0x0000007100000100,8,common,U,",
+        "0x0000007100001000,8,0x0000007100001000,8,common,U,",
+        "0x0000007100002000,8,0x0000007100002000,8,common,U,",
+    ))
+    funcs.cmd_list(list_args(area="game", areas_csv=path), rows)
+    assert [line.split()[0] for line in capsys.readouterr().out.splitlines()] == [
+        "0x0000007100000100", "0x0000007100001000"]  # not gamex
+    funcs.cmd_list(list_args(area="game/b", areas_csv=path), rows)
+    assert [line.split()[0] for line in capsys.readouterr().out.splitlines()] == ["0x0000007100001000"]
+    with pytest.raises(SystemExit, match="no area 'game/'"):
+        funcs.cmd_list(list_args(area="game/", areas_csv=path), rows)
+
+
 def words(*w: int) -> bytes:
     import struct
     return struct.pack(f"<{len(w)}I", *w)
