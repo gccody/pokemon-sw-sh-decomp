@@ -704,8 +704,17 @@ else has that shape). 47 more match that way, one of them a base above
 constructor a derived class calls under another address, is left out:
 only one function can be its C2.
 
-Left are about 50 of other shapes, which store more than one vptr
-(multiple inheritance) or initialise a field as well.
+A derived class's constructor may also zero fields (`str xzr|wzr` or
+`stp xzr, xzr` to `[x19, #N]` around the vptr store, `ctor_fields`): they
+become the class's own, after its base's (8 bytes for a placeholder base,
+more if it zeroes fields of its own), typed by the store's width, and
+`Unk_D::Unk_D() : field_10(0) {}`. A constructor that a constructor in the
+same file calls is left out: clang would inline it there, and the original
+calls it, so it's another TU's. 16 more match (check.py: 25,642 matching,
+107 not matching).
+
+Left are about 30 constructors of other shapes, which store more than one
+vptr (multiple inheritance).
 
 ## What's left of the small functions
 
