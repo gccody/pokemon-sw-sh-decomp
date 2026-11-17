@@ -193,6 +193,46 @@ def test_forwarder():
     assert "\nvoid Unk_170(void* self);\n" in text
 
 
+def lifted_model(words):
+    """build(), with A's slot 3 (0x130) replaced by `words`."""
+    img, slots, starts, sizes = build()
+    img = bytearray(img)
+    struct.pack_into(f"<{len(words)}I", img, 0x130, *words)
+    sizes[0x130] = 4 * len(words)
+    vts, tables = V.find_vtables(bytes(img), slots, starts, DATA, len(img))
+    return V.Model("sword", bytes(img), sorted(sizes.items()), vts, tables, sizes, {}, {}, lambda a: "game", DELETE)
+
+
+def test_lifted_member():
+    """A setter in a vtable becomes a member that sets the class's own field."""
+    m = lifted_model([0xB9001001, RET])                      # str w1, [x0, #0x10] ; ret
+    x = V.lift_member(m, 0x130)
+    assert x == V.Lifted("void", ("u32 value",), "    field_10 = value;\n", ((0x10, "u32"),))
+    a = m.vtables[0]
+    own = V.owners(m.vtables)
+    members = V.placeholder_members(m, a, own, lambda f: True, None, lambda f: V.lift_member(m, f))
+    spec = V.class_specs(m, {a.addr: members}, own, lambda f: 0, lambda f: True)[a.addr]
+    decl, names, defs = V.render_class(m, spec)
+    assert "    virtual void vf3(u32 value);\n    u8 _8[0x8];\n    u32 field_10;\n};\n" in decl
+    assert "PKMN_OFFSET_ASSERT(Unk_1000, field_10, 0x10);" in decl
+    assert "void Unk_1000::vf3(u32 value) {\n    field_10 = value;\n}" in defs
+    assert names[-1] == (0x130, "_ZN8Unk_10003vf3Ej")
+
+
+def test_lifted_member_refuses_the_vptr_and_pointers():
+    assert V.lift_member(lifted_model([0xB9400000, RET]), 0x130) is None     # ldr w0, [x0] (the vptr)
+    assert V.lift_member(lifted_model([0xF9400800, 0xB9401000, RET]), 0x130) is None  # a loaded pointer
+
+
+def test_merge_fields():
+    fields = {0x10: "u32"}
+    assert V.merge_fields(fields, [(0x10, "u32"), (0x18, "u8")]) and fields == {0x10: "u32", 0x18: "u8"}
+    assert not V.merge_fields(fields, [(0x10, "f32")])          # another type
+    assert not V.merge_fields(fields, [(0x12, "u16")])          # inside field_10
+    assert not V.merge_fields(fields, [(0x1a, "u32")])          # misaligned
+    assert fields == {0x10: "u32", 0x18: "u8"}
+
+
 def test_derived_order():
     """Overrides can move to the front; a new function only when no new one is before it."""
     base = V.Vtable(0, 0, None, [1, 2, 3, 4])

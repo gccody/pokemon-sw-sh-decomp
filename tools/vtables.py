@@ -351,10 +351,11 @@ class Member:
     addr: int                       # the function (relative), for both games through functions.csv
     kind: str                       # "dtor" (slots 0+1), "d0" (a derived class's D0), "ret", "constant", ...
     value: int = 0
+    lifted: Lifted | None = None    # kind "lifted"
 
 
 RTYPE = {"ret": "void", "constant": "u32", "zero": "u32", "null": "void*", "forward": "void"}
-WRITTEN = re.compile(r"_ZN\d+(Unk_[0-9a-f]+)(?:D0|D2|\d+vf\d+)Ev")  # the names write gives
+WRITTEN = re.compile(r"_ZN\d+(Unk_[0-9a-f]+)(?:D0|D2|\d+vf\d+)E[a-z]+")  # the names write gives
 
 
 @dataclass
@@ -367,11 +368,36 @@ class ClassSpec:
     base: ClassSpec | None = None   # a derived class: its D2 is the base's, only its D0 is its own
     inline_dtor: bool = False       # `virtual ~X() {}` in the class, for a derived D0 in another TU
     order: list[int] = field(default_factory=list)  # a derived class's declared slots, key function first
-    rtypes: dict[int, str] = field(default_factory=dict)  # slot -> return type (a base's are its family's)
+    sigs: dict[int, tuple[str, tuple[str, ...]]] = field(default_factory=dict)  # slot -> (return type, params)
+    fields: dict[int, str] = field(default_factory=dict)  # offset -> type, what lifted members use
 
     @property
     def name(self) -> str:
         return class_name(self.v)
+
+
+def signature(x: Member) -> tuple[str, tuple[str, ...]] | None:
+    """(return type, parameters) of a member write defines, None for destructors."""
+    if x.kind == "lifted":
+        return x.lifted.rtype, x.lifted.params
+    return (RTYPE[x.kind], ()) if x.kind in RTYPE else None
+
+
+def merge_fields(fields: dict[int, str], new) -> bool:
+    """Add a member's (offset, type) fields to its class's, unless one
+    conflicts with them (another type at the offset, or overlapping)."""
+    from leafgen import WIDTH
+
+    out = dict(fields)
+    for off, t in new:
+        w = WIDTH[t]
+        if off % w or out.get(off, t) != t:
+            return False
+        if any(o != off and o < off + w and off < o + WIDTH[u] for o, u in out.items()):
+            return False
+        out[off] = t
+    fields.update(out)
+    return True
 
 
 def class_name(v: Vtable) -> str:
@@ -379,10 +405,11 @@ def class_name(v: Vtable) -> str:
     return f"Unk_{v.start:x}"
 
 
-def mangle(cls: str, member: str) -> str:
-    """Itanium name of a no-argument member: vfN, or D0/D2 for the destructors."""
+def mangle(cls: str, member: str, params: str = "v") -> str:
+    """Itanium name of a member, vfN or D0/D2 for the destructors, with its
+    parameters' codes (`v` for none)."""
     m = member if member in ("D0", "D2") else f"{len(member)}{member}"
-    return f"_ZN{len(cls)}{cls}{m}Ev"
+    return f"_ZN{len(cls)}{cls}{m}E{params}"
 
 
 def _mov_w0(m: Model, f: int) -> int:
@@ -426,8 +453,61 @@ def callee_name(t: int) -> tuple[str, str]:
     return name, f"_Z{len(name)}{name}Pv"
 
 
+PARAM_CODES = {"bool": "b", "u8": "h", "s8": "a", "u16": "t", "s16": "s", "u32": "j", "s32": "i",
+               "u64": "m", "s64": "l", "f32": "f", "f64": "d"}
+_LIFTED = re.compile(r"(.+) Unk_\w+\((.*)\) \{\n((?:.*\n)*)\}\n")
+
+
+@dataclass(frozen=True)
+class Lifted:
+    """A small virtual function as a member: tools/leafgen.py's C++, with
+    `self->field_N` as the class's own field_N."""
+    rtype: str
+    params: tuple[str, ...]         # "u32 value", "f32 /*unused*/", ...
+    body: str                       # the statements, indented
+    fields: tuple[tuple[int, str], ...]  # (offset, type) of the class's fields it uses
+
+    @property
+    def codes(self) -> str:
+        return "".join(PARAM_CODES[p.split()[0]] for p in self.params) or "v"
+
+
+def lift_member(m: Model, f: int) -> Lifted | None:
+    """Lifted for f if leafgen can lift it and it touches nothing but fields
+    of `this` (after the vptr) and scalar arguments."""
+    import leafgen as L
+
+    if m.sizes.get(f, 0) > 32:
+        return None
+    try:
+        lf = L.lift(m.img[f:f + m.sizes[f]])
+        first = L.Emitter(f + BASE, lf)
+        first.render()
+        e = L.Emitter(f + BASE, lf)
+        e.structs, e.arg_types, e.fp_types = first.structs, first.arg_types, first.fp_types
+        _, func = e.render()
+    except (L.LiftError, ValueError, KeyError):
+        return None
+    if any(not (isinstance(b, L.Arg) and b.index == 0 and not b.fp) for b in e.structs):
+        return None
+    fields = e.structs[L.Arg(0)].fields if L.Arg(0) in e.structs else {}
+    if any(off < 8 or t.endswith("*") for off, t in fields.items()):
+        return None
+    x = _LIFTED.fullmatch(func)
+    if x is None:
+        return None
+    params = [p.strip() for p in x.group(2).split(",")]
+    if not params[0].endswith(" self") and params[0] != "void* /*unused*/":
+        return None
+    params = params[1:]
+    if any(p.split()[0] not in PARAM_CODES for p in params):
+        return None
+    rtype = x.group(1).replace("const ", "") if "*" in x.group(1) else x.group(1)
+    return Lifted(rtype, tuple(params), x.group(3).replace("self->", ""), tuple(sorted(fields.items())))
+
+
 def placeholder_members(m: Model, v: Vtable, own: dict[int, tuple[int, int]], pickable,
-                        callee=None) -> list[Member]:
+                        callee=None, lifter=None) -> list[Member]:
     """The members of v's class that write defines: the simple functions it owns.
 
     A forwarder (`b T`) is one when callee(f) gives its target: it passes all
@@ -450,6 +530,8 @@ def placeholder_members(m: Model, v: Vtable, own: dict[int, tuple[int, int]], pi
             out.append(Member(i, f, k, _mov_w0(m, f)))
         elif k == "forward" and callee is not None and (t := callee(f)) is not None:
             out.append(Member(i, f, k, t))
+        elif k in ("small", "other") and lifter is not None and (x := lifter(f)) is not None:
+            out.append(Member(i, f, "lifted", lifted=x))
     return out
 
 
@@ -465,7 +547,7 @@ def derived_order(d: Vtable, base: Vtable, members: list[Member], seg) -> list[i
     any order, new functions only in slot order, so a new function can only
     move to the front when no other new function is declared before it."""
     order = [i for i in range(2, len(d.slots)) if i >= len(base.slots) or d.slots[i] != base.slots[i]]
-    here = {x.slot for x in members if x.kind in RTYPE and seg(x.addr) == seg(d.slots[1])}
+    here = {x.slot for x in members if signature(x) is not None and seg(x.addr) == seg(d.slots[1])}
     for n, i in enumerate(order):
         new_before = any(j >= len(base.slots) for j in order[:n])
         if i in here and (i < len(base.slots) or not new_before):
@@ -486,45 +568,66 @@ def class_specs(m: Model, picked: dict[int, list[Member]], own: dict[int, tuple[
     whose D0 is that, whose base is a picked class with its empty destructor
     pair, and that define a function in the D0's TU to be their key function.
     The base's destructor becomes inline when such a D0 is in another TU; then
-    the base needs a key function of its own in the TU of its destructors."""
+    the base needs a key function of its own in the TU of its destructors.
+
+    Lifted members use fields of their class: one whose fields conflict with
+    those of an earlier one (in slot order) is left out, and so are a derived
+    class's (its fields would follow its base's)."""
     by = {v.addr: v for v in m.vtables}
-    specs = {a: ClassSpec(by[a], ms, destructor_pair(m, by[a])) for a, ms in picked.items()}
-    for s in specs.values():
-        s.rtypes = {x.slot: RTYPE[x.kind] for x in s.members if x.kind in RTYPE}
+    specs = {}
+    for a, ms in picked.items():
+        s = specs[a] = ClassSpec(by[a], [], destructor_pair(m, by[a]))
+        s.members = [x for x in ms if x.kind != "lifted" or merge_fields(s.fields, x.lifted.fields)]
+        s.sigs = {x.slot: sig for x in s.members if (sig := signature(x)) is not None}
     guess = bases(m.vtables)
     has_secondary = {v.group for v in m.vtables if v.group != v.addr}
-    families: dict[int, dict[int, str]] = {}
+    families: dict[int, dict[int, tuple[str, tuple[str, ...]]]] = {}
     for a, d in sorted(specs.items()):
-        v = d.v
-        if v.offset_to_top != 0 or a in has_secondary or d.pair != "empty" or len(v.slots) < 2:
-            continue
-        s0, s1 = v.slots[:2]
-        if own.get(s0, (None,))[0] == a or own.get(s1) != (a, 1) or not pickable(s1):
-            continue
-        r = specs.get(own.get(s0, (None,))[0])
-        if r is None or guess.get(a, (None,))[0] != r.v.addr or not any(x.kind == "dtor" for x in r.members):
-            continue
-        order = derived_order(v, r.v, d.members, seg)
-        if order is None:
-            continue
-        inline = seg(r.v.slots[0]) != seg(s1)
-        if inline and not r.inline_dtor:
-            key = next((i for i in range(2, len(r.v.slots)) if isinstance(r.v.slots[i], int)), None)
-            if key is None or not any(x.slot == key and seg(x.addr) == seg(r.v.slots[0]) for x in r.members):
+        if any(x.kind == "lifted" for x in d.members):
+            simple = ClassSpec(d.v, [x for x in d.members if x.kind != "lifted"], d.pair)
+            if not _derive(m, simple, specs, own, guess, has_secondary, families, seg, pickable):
                 continue
-        family = families.setdefault(r.v.addr, r.rtypes)
-        mine = {x.slot: RTYPE[x.kind] for x in d.members if x.kind in RTYPE and x.slot < len(r.v.slots)}
-        if any(family.get(i, t) != t for i, t in mine.items()):
-            continue
-        family.update(mine)
-        d.base, d.order = r, order
-        d.members = [*d.members, Member(1, s1, "d0")]
-        r.inline_dtor |= inline
+            specs[a] = d = simple
+            d.sigs = {x.slot: sig for x in d.members if (sig := signature(x)) is not None}
+        else:
+            _derive(m, d, specs, own, guess, has_secondary, families, seg, pickable)
     for d in specs.values():
         if d.base is not None:
-            d.rtypes = {**{i: t for i, t in d.rtypes.items() if i >= len(d.base.v.slots)},
-                        **{i: t for i, t in d.base.rtypes.items() if i < len(d.base.v.slots)}}
+            n = len(d.base.v.slots)
+            d.sigs = {**{i: t for i, t in d.sigs.items() if i >= n},
+                      **{i: t for i, t in d.base.sigs.items() if i < n}}
     return specs
+
+
+def _derive(m: Model, d: ClassSpec, specs: dict[int, ClassSpec], own, guess, has_secondary, families, seg,
+            pickable) -> bool:
+    """Model d as derived from its base (class_specs), if it is one."""
+    a, v = d.v.addr, d.v
+    if v.offset_to_top != 0 or a in has_secondary or d.pair != "empty" or len(v.slots) < 2:
+        return False
+    s0, s1 = v.slots[:2]
+    if own.get(s0, (None,))[0] == a or own.get(s1) != (a, 1) or not pickable(s1):
+        return False
+    r = specs.get(own.get(s0, (None,))[0])
+    if r is None or guess.get(a, (None,))[0] != r.v.addr or not any(x.kind == "dtor" for x in r.members):
+        return False
+    order = derived_order(v, r.v, d.members, seg)
+    if order is None:
+        return False
+    inline = seg(r.v.slots[0]) != seg(s1)
+    if inline and not r.inline_dtor:
+        key = next((i for i in range(2, len(r.v.slots)) if isinstance(r.v.slots[i], int)), None)
+        if key is None or not any(x.slot == key and seg(x.addr) == seg(r.v.slots[0]) for x in r.members):
+            return False
+    family = families.setdefault(r.v.addr, r.sigs)
+    mine = {x.slot: sig for x in d.members if (sig := signature(x)) is not None and x.slot < len(r.v.slots)}
+    if any(family.get(i, t) != t for i, t in mine.items()):
+        return False
+    family.update(mine)
+    d.base, d.order = r, order
+    d.members = [*d.members, Member(1, s1, "d0")]
+    r.inline_dtor |= inline
+    return True
 
 
 def render_class(m: Model, spec: ClassSpec,
@@ -553,26 +656,40 @@ def render_class(m: Model, spec: ClassSpec,
                 names += [(v.slots[0], mangle(cls, "D2")), (v.slots[1], mangle(cls, "D0"))]
     for i in slots:
         f = v.slots[i]
-        rt = spec.rtypes.get(i, "void")
-        sig = f"{rt} vf{i}() override" if base is not None and i < len(base.v.slots) else f"virtual {rt} vf{i}()"
+        rt, params = spec.sigs.get(i, ("void", ()))
+        ps = ", ".join(params)
+        sig = (f"{rt} vf{i}({ps}) override" if base is not None and i < len(base.v.slots)
+               else f"virtual {rt} vf{i}({ps})")
         if isinstance(f, str):
             decl.append(f"    {sig} = 0;")
             continue
         decl.append(f"    {sig};")
         x = defined.get(i)
-        if x is None or x.kind not in RTYPE:
+        if x is None or signature(x) is None:
             continue
-        if x.kind == "forward":
+        if x.kind == "lifted":
+            body = "{\n" + x.lifted.body + "}"
+        elif x.kind == "forward":
             body = f"{{\n    {callee_name(x.value)[0]}(this);\n}}"
         else:
             body = {"ret": "{}", "constant": f"{{\n    return {x.value if x.value < 10 else hex(x.value)};\n}}",
                     "zero": "{\n    return 0;\n}", "null": "{\n    return nullptr;\n}"}[x.kind]
-        defs.append(f"// 0x{f + BASE:x}\n{rt} {cls}::vf{i}() {body}")
-        names.append((f, mangle(cls, f"vf{i}")))
+        defs.append(f"// 0x{f + BASE:x}\n{rt} {cls}::vf{i}({ps}) {body}")
+        names.append((f, mangle(cls, f"vf{i}", x.lifted.codes if x.kind == "lifted" else "v")))
         if x.kind == "forward":
             names.append((x.value, callee_name(x.value)[1]))
+    asserts = []
+    if spec.fields:
+        from leafgen import WIDTH
+        pos = 8  # the vptr
+        for off, t in sorted(spec.fields.items()):
+            if off > pos:
+                decl.append(f"    u8 _{pos:x}[0x{off - pos:x}];")
+            decl.append(f"    {t} field_{off:x};")
+            asserts.append(f"PKMN_OFFSET_ASSERT({cls}, field_{off:x}, 0x{off:x});")
+            pos = off + WIDTH[t]
     decl.append("};")
-    return "\n".join(decl) + "\n", names, "\n\n".join(defs) + "\n"
+    return "\n".join(decl + asserts) + "\n", names, "\n\n".join(defs) + "\n"
 
 
 def render_file(m: Model, entries: list[tuple[ClassSpec, list[Member]]]) -> tuple[str, list[tuple[int, str]]]:
@@ -668,7 +785,8 @@ def cmd_write(m: Model, args) -> None:
     for v in m.vtables:
         if not any(in_area(vtable_area(m, v), g) for g in groups):
             continue
-        members = placeholder_members(m, v, own, kept, None if args.no_forward else callee)
+        members = placeholder_members(m, v, own, kept, None if args.no_forward else callee,
+                                      None if args.no_lift else (lambda f: lift_member(m, f)))
         if members:
             picked[v.addr] = members
     seg_starts = segment_starts(m)
@@ -726,6 +844,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--names", type=Path, required=True, help="where to write Name,Sword,Shield")
     p.add_argument("--only", type=Path, help="file of Sword addresses: of the unnamed functions, write only these")
     p.add_argument("--no-forward", action="store_true", help="leave out forwarders (b T)")
+    p.add_argument("--no-lift", action="store_true", help="leave out what leafgen.py lifts")
     args = ap.parse_args(argv)
     if args.cmd == "write" and args.game != "sword":
         raise SystemExit("write works from Sword's vtables (the names cover both games)")
