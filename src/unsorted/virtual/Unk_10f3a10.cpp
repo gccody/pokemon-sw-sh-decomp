@@ -4,10 +4,10 @@
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
 
-// Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_f42da0(void* self);
+// Tail-called by lifted functions. Placeholders, like the forwarders' callees.
+void Unk_6a1ee0(u64);
 
-class Unk_23fd850 {
+class Unk_2417870 {
 public:
     virtual void vf0();
     virtual void vf1();
@@ -20,36 +20,29 @@ public:
     virtual void vf8();
     virtual void vf9();
     virtual void vf10();
+    virtual void vf11();
+    u8 _8[0x70];
+    u64 field_78;
 };
+PKMN_OFFSET_ASSERT(Unk_2417870, field_78, 0x78);
 
-// 0x7100f429e0
-void Unk_23fd850::vf6() {
-    Unk_f42da0(this);
+// 0x71010f3a10
+void Unk_2417870::vf8() {
+    Unk_6a1ee0(field_78);
 }
 
-class Unk_23fd8b8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100f42ab0
-void Unk_23fd8b8::vf5() {
-    Unk_f42da0(this);
-}
-
-class Unk_23fd8f8 {
+class Unk_2417970 {
 public:
     virtual void vf0();
     virtual void vf1();
     virtual void vf2();
 };
 
-// 0x7100f42ac0
-void Unk_23fd8f8::vf0() {
-    Unk_f42da0(this);
-}
+// 0x71010f42c0
+void Unk_2417970::vf0() {}
+
+// 0x71010f42d0
+void Unk_2417970::vf1() {}
+
+// 0x71010f42e0
+void Unk_2417970::vf2() {}

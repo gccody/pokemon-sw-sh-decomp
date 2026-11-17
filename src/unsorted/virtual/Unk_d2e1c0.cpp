@@ -4,6 +4,9 @@
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
 
+// Tail-called by lifted functions. Placeholders, like the forwarders' callees.
+void Unk_d33e50(u64);
+
 class Unk_23e8f48 {
 public:
     virtual ~Unk_23e8f48();
@@ -36,8 +39,16 @@ public:
     virtual void vf16();
     u8 _8[0x60];
     u8 field_68;
+    u8 _69[0xf];
+    u64 field_78;
 };
 PKMN_OFFSET_ASSERT(Unk_23e9280, field_68, 0x68);
+PKMN_OFFSET_ASSERT(Unk_23e9280, field_78, 0x78);
+
+// 0x7100d33e40
+void Unk_23e9280::vf10() {
+    Unk_d33e50(field_78);
+}
 
 // 0x7100d337f0
 void Unk_23e9280::vf11() {

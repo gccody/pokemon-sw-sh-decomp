@@ -4,6 +4,12 @@
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
 
+struct Unk_23be978_7a0 {
+    u8 _0[0xa8];
+    u64 field_a8;
+};
+PKMN_OFFSET_ASSERT(Unk_23be978_7a0, field_a8, 0xa8);
+
 class Unk_23be978 {
 public:
     virtual void vf0();
@@ -25,7 +31,10 @@ public:
     virtual void vf16();
     virtual void vf17();
     virtual void vf18();
+    u8 _8[0x798];
+    Unk_23be978_7a0* field_7a0;
 };
+PKMN_OFFSET_ASSERT(Unk_23be978, field_7a0, 0x7a0);
 
 // 0x710091b5f0
 void Unk_23be978::vf17() {}
