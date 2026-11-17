@@ -418,12 +418,19 @@ What's left in game code, gflib3 and gflnet3, and why:
   disagrees, a base that defines nothing simple).
 - **Virtual-to-virtual forwarders** (about 100): `b T` where T is another
   class's virtual function, called through that class's name.
-- **One template, 106 times.** 106 classes have the same 4 slots: a
-  constant count, two getters `x0 + 32 * index + 8` / `+ 0x10` (a 64-bit
-  index into 32-byte entries right after the vptr) and a function that
-  calls slot 16 of the entry's object with the entry's argument. Their
-  counts differ (1 to 28), so it looks like a class template instantiated
-  106 times. That's 318 functions once the entry array is modelled.
+- **One template, 106 times: now written.** 106 classes have the same 4
+  slots: a constant count, two getters `x0 + 32 * index + 8` / `+ 0x10` (a
+  64-bit index into 32-byte entries right after the vptr) and a function
+  that calls slot 16 of the entry's object with the entry's argument.
+  Their counts differ (1 to 28), so it looks like a class template
+  instantiated 106 times. `write` models the entries as an array
+  (`m_entries[<count>]`, the count from slot 0) of `Unk_<_ZTV>_Entry`, and
+  the three functions as element members:
+  `void* vf1(u64 index) { return m_entries[index].field_0; }` and
+  `if (Unk_<_ZTV>_Obj* obj = m_entries[index].field_8) obj->vf16(m_entries[index].field_10);`.
+  The 312 of them in game code, gflib3 and gflnet3 (104 classes) match in
+  both games; the other 2 classes are in `startup`. `--no-elements` leaves
+  them out.
 
 ```sh
 python tools/vtables.py summary --area game
