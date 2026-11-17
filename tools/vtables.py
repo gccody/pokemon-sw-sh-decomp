@@ -391,6 +391,10 @@ EXTERNAL_BASES = (
                   (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7"), (8, "u32", "vf8"), (9, "void", "vf9"),
                   (10, "u32", "vf10")),
                  6, "Unk_23f43c8::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0))),
+    ExternalBase(0x23f4328, "Unk_23f4318", "unsorted/Unk_23f43c8.h",
+                 ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
+                  (5, "void", "vf5"), (6, TYPE, "vf_type")),
+                 6, "Unk_23f4318::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0))),
     # gflib3's reference-counted object: its destructor is inline, and it has no type slot of
     # its own (a class that overrides the interfaces' getter gets slot 6 for it).
     ExternalBase(0x239a428, "Unk_239a418", "gflib3/Unk_239a418.h",
@@ -835,7 +839,9 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
                         for _, w, _, tt in decode(m.img, a, n):
                             if tt is not None and is_b_bl(w):
                                 callers[tt].add(a)
-                if callers[t] - {f6, *thunks}:
+                # Other code of the class may call its getter too; another
+                # class's vtable function may not (then T isn't this class's).
+                if (callers[t] - {f6, *thunks}) & in_vtables:
                     ok = False
                 extra.append(Member(e.type_slot, f6, "ext_type", t))
                 extra.append(Member(-1, t, "ext_getter"))
