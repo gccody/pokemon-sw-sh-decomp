@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package net_contents.battle.nbr.protocol_buffers;
+
+message SendRefusalForRegulation {
+  uint32 trialCount = 1;
+}
+
+message AcceptRefusalForRegulation {
+}

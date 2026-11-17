@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package net_contents.battle.live.protocol_buffers;
+
+message LiveRegulation {
+  bytes data = 1;
+}

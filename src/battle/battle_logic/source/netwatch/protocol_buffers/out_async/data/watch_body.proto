@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package btl.net.watch.protocol_buffers;
+
+message WatchBody {
+  uint64 stationId = 1;
+  uint64 randomSeed = 2;
+  uint32 clientId = 3;
+  uint32 version = 4;
+  uint32 debugFlagBit = 5;
+  uint32 LimitTimeGame = 6;
+  uint32 LimitTimeClient = 7;
+  uint32 LimitTimeCommand = 8;
+  uint32 msgSpeed = 9;
+  uint32 fWazaEffectEnable = 10;
+  uint32 fCommTag = 11;
+  uint32 isNotifiedParam = 12;
+  bytes memberIndex1 = 13;
+  bytes memberIndex2 = 14;
+  bytes myStatus1 = 15;
+  bytes myStatus2 = 16;
+}

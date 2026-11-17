@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package contents.btl_spot.protocol_buffers;
+
+import "btl_spot_empty.proto";
+
+message BtlSpotDataHolder {
+  oneof message {
+    .contents.btl_spot.protocol_buffers.BtlSpotMathingOK btlSpotMathingOK = 1;
+  }
+}

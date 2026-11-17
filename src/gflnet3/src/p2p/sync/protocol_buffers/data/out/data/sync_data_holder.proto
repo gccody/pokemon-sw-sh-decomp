@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package gflnet.p2p.sync.pb;
+
+import "data.proto";
+
+message SyncDataHolder {
+  oneof message {
+    .gflnet.p2p.sync.pb.Data data = 1;
+  }
+}

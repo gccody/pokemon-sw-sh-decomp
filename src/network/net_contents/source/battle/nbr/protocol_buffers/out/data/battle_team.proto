@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package net_contents.battle.nbr.protocol_buffers;
+
+message SendBattleTeam {
+  bytes serialized = 1;
+  bytes signature = 2;
+}
+
+message BattleTeamCheckResult {
+  bool isValid = 1;
+}

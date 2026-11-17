@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package net_contents.battle.nbr.protocol_buffers;
+
+import "player_position_async.proto";
+import "player_ready_async.proto";
+import "will_left_async.proto";
+
+message NbrAsyncDataHolder {
+  oneof message {
+    .net_contents.battle.nbr.protocol_buffers.PlayerPositionAsync playerPositionAsync = 1;
+    .net_contents.battle.nbr.protocol_buffers.PlayerReadyAsync playerReadyAsync = 2;
+    .net_contents.battle.nbr.protocol_buffers.WillLeftAsync willLeftAsync = 3;
+  }
+}

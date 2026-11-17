@@ -1,0 +1,6 @@
+syntax = "proto3";
+
+package contents.btl_spot.protocol_buffers;
+
+message BtlSpotMathingOK {
+}

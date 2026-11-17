@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package btl.net.protocol_buffers;
+
+import "battle_command.proto";
+import "raid_action_command.proto";
+import "timer.proto";
+import "trainer_action_command.proto";
+
+message BtlCmdDataHolder {
+  oneof message {
+    .btl.net.protocol_buffers.BattleCommand battleCommand = 1;
+    .btl.net.protocol_buffers.InvalidCommand invalidCommand = 2;
+    .btl.net.protocol_buffers.RaidAction raidAction = 3;
+    .btl.net.protocol_buffers.Timer timer = 4;
+    .btl.net.protocol_buffers.TrainerAction trainerAction = 5;
+  }
+}

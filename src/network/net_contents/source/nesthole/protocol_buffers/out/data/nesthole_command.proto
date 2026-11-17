@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package net_contents.nesthole.protocol_buffers;
+
+message NestholeTimeLimit {
+  bytes timeLimit = 1;
+}
+
+message NestholePlayerInfo {
+  bytes playerInfo = 1;
+}
+
+message NestholeBattleReady {
+  bytes battleReady = 1;
+}
+
+message NestholeSelectPokemon {
+  bytes selectPokemon = 1;
+}
+
+message NestholeBattleStart {
+  bytes battleStart = 1;
+}
+
+message NestholeBossPokemon {
+  bytes bossPokemon = 1;
+}
+
+message NestholeRewards {
+  bytes raidRewards = 1;
+}
+
+message NestholeBattleSeed {
+  bytes battleSeed = 1;
+}

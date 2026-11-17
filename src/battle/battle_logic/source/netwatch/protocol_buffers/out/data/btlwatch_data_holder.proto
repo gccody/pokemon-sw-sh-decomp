@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package btl.net.watch.protocol_buffers;
+
+import "watch_cmd.proto";
+
+message BtlwatchDataHolder {
+  oneof message {
+    .btl.net.watch.protocol_buffers.WatchCmd watchCmd = 1;
+  }
+}

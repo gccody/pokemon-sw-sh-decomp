@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package btl.net.protocol_buffers;
+
+message PokeParty {
+  bytes serialized = 1;
+  uint32 clientId = 2;
+}

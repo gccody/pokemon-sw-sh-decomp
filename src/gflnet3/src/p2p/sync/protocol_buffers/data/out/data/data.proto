@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package gflnet.p2p.sync.pb;
+
+message Data {
+  uint32 syncId = 1;
+  uint32 elementId = 2;
+  uint64 ownerId = 3;
+  uint64 clock = 4;
+  bytes body = 5;
+}

@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package btl.net.protocol_buffers;
+
+message Timer {
+  uint32 focusMode = 1;
+  uint32 timer = 2;
+}

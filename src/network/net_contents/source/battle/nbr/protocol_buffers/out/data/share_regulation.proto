@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package net_contents.battle.nbr.protocol_buffers;
+
+message ShareRegulation {
+  bytes serialized = 1;
+}

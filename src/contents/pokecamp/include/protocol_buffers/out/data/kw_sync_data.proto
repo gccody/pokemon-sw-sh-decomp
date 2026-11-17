@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+package contents.pokecamp.pb;
+
+message KwSyncData {
+  .contents.pokecamp.pb.KwSyncData.MessageType messageType = 1;
+  repeated .contents.pokecamp.pb.KwSyncData.RequestData requestData = 2;
+  repeated .contents.pokecamp.pb.KwSyncData.PokemonChangeParamData pokemonChangeParamData = 3;
+  repeated .contents.pokecamp.pb.KwSyncData.PokemonParamData pokemonParamData = 4;
+  repeated .contents.pokecamp.pb.KwSyncData.PokemonStatusData pokemonStatusData = 5;
+  repeated .contents.pokecamp.pb.KwSyncData.PokeCampEnvData pokeCampEnvData = 6;
+  repeated .contents.pokecamp.pb.KwSyncData.EventData eventData = 7;
+  repeated .contents.pokecamp.pb.KwSyncData.PlayerInfoData playerInfoData = 8;
+  message RequestData {
+    .contents.pokecamp.pb.KwSyncData.RequestData.Type type = 1;
+    uint32 pokemonId = 2;
+    enum Type {
+      FetchAll = 0;
+      ComeNear = 1;
+      Byebye = 2;
+      Heal = 3;
+      MoveKw = 4;
+      Monohiroi = 5;
+      StopBattle = 6;
+      KwMode = 7;
+      EventReady = 8;
+    }
+  }
+  message PokemonChangeParamData {
+    uint32 pokemonId = 1;
+    int32 reason = 2;
+  }
+  message PokemonParamData {
+    uint32 pokemonId = 1;
+    int32 daisuki = 2;
+    int32 friendship = 3;
+    int32 enjoy = 4;
+    int32 exp = 5;
+    int32 mealExp = 6;
+  }
+  message PokemonStatusData {
+    uint32 pokemonId = 1;
+    uint64 nowKwPlayer = 2;
+    .contents.pokecamp.pb.KwSyncData.PokemonStatusData.KwReason kwReason = 3;
+    uint32 sick = 4;
+    enum KwReason {
+      None = 0;
+      ComeNear = 1;
+      Place = 2;
+      Move = 3;
+      Monohiroi = 4;
+    }
+  }
+  message PokeCampEnvData {
+    int32 timezone = 1;
+    int32 weather = 2;
+  }
+  message EventData {
+    .contents.pokecamp.pb.KwSyncData.EventData.Type type = 1;
+    uint32 pokemonId1 = 3;
+    uint32 pokemonId2 = 4;
+    uint32 pokemonId3 = 5;
+    float eventPosX = 6;
+    float eventPosY = 7;
+    float eventPosZ = 8;
+    enum Type {
+      None = 0;
+      TalkPrepare = 1;
+      TalkStart = 2;
+      TalkEnd = 3;
+      BattleStart = 4;
+      BattleStop = 5;
+      BattleEnd = 6;
+      RacePrepare = 7;
+      RaceStart = 8;
+    }
+  }
+  message PlayerInfoData {
+    uint64 stationId = 1;
+    .contents.pokecamp.pb.KwSyncData.PlayerInfoData.Type type = 2;
+    .contents.pokecamp.pb.KwSyncData.PlayerInfoData.Status status = 3;
+    .contents.pokecamp.pb.KwSyncData.PlayerInfoData.Event event = 4;
+    enum Type {
+      UpdateStatus = 0;
+      FireEvent = 1;
+    }
+    enum Status {
+      None = 0;
+      Busy = 1;
+      Cooking = 2;
+    }
+    enum Event {
+      Ball = 0;
+      Byebye = 1;
+    }
+  }
+  enum MessageType {
+    Signal = 0;
+    Request = 1;
+    NotifyPokemonChangeParam = 2;
+    AllData = 3;
+    ParamData = 4;
+    StatusData = 5;
+    UpdateEvent = 6;
+    PlayerInfo = 7;
+  }
+}

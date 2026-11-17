@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package contents.pokecamp.pb;
+
+message Spice {
+  bool isEnable = 1;
+  float x = 2;
+  float y = 3;
+  float z = 4;
+  float w = 5;
+}

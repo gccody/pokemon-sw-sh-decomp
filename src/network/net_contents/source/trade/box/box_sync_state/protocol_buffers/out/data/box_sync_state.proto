@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package net_contents.trade.box.box_sync_state.protocol_buffers;
+
+message BoxSyncStateCommand {
+  int32 data = 1;
+}

@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package gflnet.p2p.sync.ping.pb;
+
+message Ping {
+}
+
+message PingReply {
+}
+
+message PingSynced {
+}

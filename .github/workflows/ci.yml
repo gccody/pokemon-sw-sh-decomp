@@ -129,6 +129,16 @@ jobs:
           key: physx-${{ hashFiles('data/physx_v342.csv', 'tools/get_physx.py') }}
       - name: Generate lib/physx's v3.4.2 files
         run: python tools/get_physx.py
+      # The protoc 3.0.0 output for src/**/*.proto isn't in the repository (it
+      # embeds the game's serialized descriptors). protos.py downloads Google's
+      # protoc 3.0.0 release (SHA-256 pinned) and generates it.
+      - name: Cache protoc 3.0.0
+        uses: actions/cache@v6
+        with:
+          path: toolchain/protoc-3.0.0
+          key: protoc-3.0.0-${{ runner.os }}-${{ hashFiles('tools/protos.py') }}
+      - name: Generate the protobuf messages
+        run: python tools/protos.py generate
       - name: Configure
         shell: bash  # -eo pipefail, so a failing cmake isn't hidden by tee
         run: |

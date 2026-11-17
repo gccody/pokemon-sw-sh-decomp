@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package gflnet.p2p.framework.pb;
+
+message RequestForcedProceed {
+  int32 currentSeqNo = 1;
+  int32 targetSeqNo = 2;
+}

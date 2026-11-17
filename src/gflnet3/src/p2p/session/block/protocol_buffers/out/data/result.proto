@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package gflnet.p2p.block.pb;
+
+message Result {
+  bool isBlocking = 1;
+}
+
+message ImReady {
+  bool isReady = 1;
+}

@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package net_contents.trade.common.pokemon_trade.protocol_buffers;
+
+import "pokemon_trade.proto";
+
+message PokemonTradeDataHolder {
+  oneof message {
+    .net_contents.trade.common.pokemon_trade.protocol_buffers.Pokemon pokemon = 1;
+  }
+}

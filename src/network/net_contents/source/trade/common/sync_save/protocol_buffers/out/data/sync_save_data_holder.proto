@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package net_contents.trade.common.sync_save.protocol_buffers;
+
+import "sync_command.proto";
+
+message SyncSaveDataHolder {
+  oneof message {
+    .net_contents.trade.common.sync_save.protocol_buffers.SyncCommand syncCommand = 1;
+  }
+}

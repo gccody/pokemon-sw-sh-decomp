@@ -188,6 +188,42 @@ pkmn_library_settings(lib/protobuf
   INCLUDES lib/protobuf
   SYSTEM_INCLUDES include/libcxx)
 
+# Game Freak's protobuf messages: protoc 3.0.0 output for the .proto files
+# under src/ (gflnet3's and the game's), which `python tools/protos.py generate`
+# writes next to each .proto. It isn't committed: each .pb.cc embeds its file's
+# serialized descriptor, a copy of the game's rodata. The generated code was
+# built like the runtime above (NDEBUG keeps the runtime headers' DCHECKs out),
+# and includes the .pb.h of the files it imports by bare name, so every
+# directory with .proto files is on the include path. One entry per directory.
+file(GLOB_RECURSE PKMN_PROTOS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.proto")
+set(PKMN_PROTO_DIRS "")
+set(_pkmn_protos_stale "")
+foreach(_proto IN LISTS PKMN_PROTOS)
+  get_filename_component(_dir "${_proto}" DIRECTORY)
+  string(REGEX REPLACE "\\.proto$" "" _stem "${_proto}")
+  foreach(_out IN ITEMS "${_stem}.pb.cc" "${_stem}.pb.h")
+    if(NOT EXISTS "${_out}" OR "${_proto}" IS_NEWER_THAN "${_out}")
+      list(APPEND _pkmn_protos_stale "${_out}")
+    endif()
+  endforeach()
+  file(RELATIVE_PATH _rel "${CMAKE_CURRENT_SOURCE_DIR}" "${_dir}")
+  list(APPEND PKMN_PROTO_DIRS "${_rel}")
+endforeach()
+if(_pkmn_protos_stale)
+  list(LENGTH _pkmn_protos_stale _n)
+  message(FATAL_ERROR "${_n} files generated from src/**/*.proto are missing or older than their "
+    ".proto. Run `python tools/protos.py generate` (protoc 3.0.0).")
+endif()
+list(REMOVE_DUPLICATES PKMN_PROTO_DIRS)
+foreach(_dir IN LISTS PKMN_PROTO_DIRS)
+  pkmn_library_settings(${_dir}
+    EVIDENCE "docs/compiler.md, section Generated protobuf messages"
+    DEFINES NDEBUG HAVE_PTHREAD GOOGLE_PROTOBUF_NO_RTTI _GNU_SOURCE _LIBCPP_HAS_MUSL_LIBC
+      _LIBCPP_HAS_THREAD_API_PTHREAD
+    INCLUDES lib/protobuf ${PKMN_PROTO_DIRS}
+    SYSTEM_INCLUDES include/libcxx)
+endforeach()
+
 # lib/physx's files with PhysX v3.4.2's code (see the entry above) aren't in
 # the repository, because that code isn't BSD-licensed. tools/get_physx.py
 # generates them from NVIDIA's public repository. Stop here until they're all
