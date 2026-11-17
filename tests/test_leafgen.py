@@ -219,6 +219,14 @@ def test_guard_refused(words, why):
         leafgen.generate(ADDR, code(*words))
 
 
+def test_wide_constant():
+    """mov w8, #0x5678 ; movk w8, #0x1234, lsl #16 ; str w8, [x0, #4] ; ret."""
+    out = gen(movz_w(8, 0x5678), 0x72A00000 | 0x1234 << 5 | 8, str_w(8, 0, 4), RET)
+    assert "    self->field_4 = 0x12345678;\n" in out
+    with pytest.raises(leafgen.LiftError, match="movk of a computed"):  # movk w1, #1, lsl #16: an argument
+        leafgen.generate(ADDR, code(0x72A00021, str_w(1, 0, 4), RET))
+
+
 def test_misaligned_field_is_refused():
     # ldur w0, [x0, #2]: a u32 at offset 2 can't be a plain struct member.
     ldur_w = 0xB8400000 | 2 << 12 | 0 << 5 | 0
