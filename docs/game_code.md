@@ -409,7 +409,8 @@ What's left in game code, gflib3 and gflnet3, and why:
 - **D0s that tail-call their D2** (974, slot 1 `b <slot 0>`). The D0 runs the
   D2 and then `operator delete`, so a D0 with no delete means the class
   has an empty class-specific `operator delete` (or one that inlines to
-  nothing). They wait for their D2s.
+  nothing). They wait for their D2s; batch 5 (below) does the biggest
+  group, 238 classes that share one D2.
 - **Bare `b operator delete` D0s** (644). 80 have the shape above but their
   base's destructor is in another file and their base's key function isn't
   decompiled yet. 245 own nothing but their D0, so their vtable (and D0)
@@ -470,4 +471,58 @@ Next in this code: the pool resource's other virtual functions (25 slots
 in its primary vtable, most of them inherited from `0x710236d0c8`, and the
 leak dump `0x710065f360`), the TLSF pool itself (`0x710065ed00`, its
 `deactivate` at `0x710065efa0`) and the heap class that slot 22 names.
+
+### Batch 5: classes derived from a hand-written base
+
+238 classes share one D2 (`0x7100e7c4c0`): their D0 is `b <it>`, with no
+`operator delete`. It belongs to `Unk_23f43c8`
+(`src/unsorted/Unk_23f43c8.h`), a class on gflib3's reference-counted
+object (`src/gflib3/Unk_239a418.h`, whose vtable 3,006 functions
+reference). Both are written by hand:
+
+- **The object** has a 0x48-byte primary base, interfaces at `+0x48` and
+  `+0x50`, and its count in a handle at `+0x58`. Its primary base and its
+  `+0x48` interface declare the same functions (get the handle, add a
+  reference, drop one), so one override fills both vtables, with
+  this-adjusting thunks that have the body inlined. The family's
+  `operator delete` is empty: `vf3` destroys an object and gives its memory
+  back to its allocator.
+- **Types.** Each class has a static type descriptor whose parent is its
+  base's, from an inline static member (`Unk_GetType`). A class that
+  overrides the interfaces' type getter gets a primary-vtable slot for it
+  too (slot 6 of `Unk_23f43c8`).
+
+`vtables.py write` derives classes from such a base (`EXTERNAL_BASES`): a
+class whose slot 0 is the base's D2 and whose D0 is `b <it>` has an implicit
+destructor. Its secondary vtables' destructor slots are then
+`sub x0, x0, #N ; b <D2>` thunks, and when its type slot is a `b T` to a
+function nothing else calls, T is its own `Unk_GetType` and the secondary
+type slots are thunks of `vf_type` (their adjustment is dead). Such a
+class gets a file of its own: the base's getter is only inlined into the
+class's getter (T is 0x128 bytes, three levels of statics) when it's the
+base getter's one caller in the TU. With two classes, it's called twice,
+stays out of line, and then the class's getter is small enough to be
+inlined into `vf_type`. So these classes were one TU each, as Game Freak
+writes them.
+
+| | Functions |
+|---|---:|
+| the object: its functions, destructors, thunks, interface type getters | 15 |
+| `Unk_23f43c8`: destructors, thunks, type getter and its thunks, `vf7`-`vf10` | 13 (4 renamed) |
+| 224 derived classes: D0 and 4 destructor thunks each | 1,120 |
+| the 212 of them that override the type getter: `Unk_GetType` | 212 |
+| their `vf_type` and its 2 thunks (written as forwarders before) | 636 renamed |
+
+All of them match in both games. `vf7`-`vf10` of `Unk_23f43c8` and the
+classes' type getters had been placed in other classes by the owner
+heuristic (a tie) or written as forwarders; write now leaves the
+hand-written classes' functions alone (`HANDWRITTEN`).
+
+check.py: 23,337 matching (21,959 before this batch), 106 not matching.
+
+Left of these families: 22 derived classes (18 have their type getter
+inline in `vf_type`, the others no key function write can define), the
+113 classes derived from the object directly, and the other groups of D0s
+that tail-call a shared D2 (63, 50, 21, ... classes), each waiting for its
+base to be written by hand the same way.
 
