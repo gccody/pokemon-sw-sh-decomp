@@ -14,6 +14,32 @@ void Unk_fcd060_setField700(Unk_fcd060* self, u64 value) {
     self->field_700 = value;
 }
 
+struct Unk_fce9c0 {
+    u8 _0[0x750];
+    u64 field_750;
+};
+PKMN_OFFSET_ASSERT(Unk_fce9c0, field_750, 0x750);
+
+void Unk_14bd880(u64, u32);
+
+// 0x7100fce9c0
+void Unk_fce9c0_call(const Unk_fce9c0* self, u32 value) {
+    Unk_14bd880(self->field_750, value);
+}
+
+struct Unk_fce9d0 {
+    u8 _0[0x750];
+    u64 field_750;
+};
+PKMN_OFFSET_ASSERT(Unk_fce9d0, field_750, 0x750);
+
+void Unk_14bd880(u64, u32);
+
+// 0x7100fce9d0
+void Unk_fce9d0_call(const Unk_fce9d0* self, u32 value) {
+    Unk_14bd880(self->field_750, (value & 0xff) + 6);
+}
+
 struct Unk_fcec80_738 {
     u8 _0[0x58];
     u8 field_58;

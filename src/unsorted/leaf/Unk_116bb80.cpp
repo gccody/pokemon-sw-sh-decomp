@@ -25,6 +25,13 @@ u8 Unk_116ccd0_getFielde(const Unk_116ccd0* self) {
     return self->field_e;
 }
 
+void Unk_116f1d0(void*, u32);
+
+// 0x710116f1c0
+void Unk_116f1c0_call(void* self) {
+    Unk_116f1d0(self, 0xd);
+}
+
 struct Unk_1171010 {
     u8 _0[0x10];
     u32 field_10;

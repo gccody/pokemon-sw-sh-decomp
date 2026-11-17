@@ -336,6 +336,12 @@ gets its type, so a field becomes an `Unk_<T>*` with `struct Unk_<T>;`
 declared, and the other arguments have to match. 28 more leaf functions
 match (check.py: 25,386 matching, 107 not matching).
 
+Callers of one placeholder that write fewer argument registers than
+another, with the same types otherwise, pass the rest on as they got them,
+so they say so (`unify_arity`): `Unk_<T>(self->field_8, value);`, `value`
+typed as the longest caller has it. 18 more match (check.py: 25,404
+matching, 107 not matching).
+
 ## Vtables and classes (`tools/vtables.py`)
 
 Most of the tiny functions are virtual (see "The tiny functions"), and
