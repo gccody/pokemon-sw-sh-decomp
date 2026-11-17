@@ -446,51 +446,6 @@ void Unk_23f0568::vf0() {
     Unk_dcf2b0(this);
 }
 
-struct Unk_23f05a8_70 {
-    u8 _0[0x682];
-    u8 field_682;
-};
-PKMN_OFFSET_ASSERT(Unk_23f05a8_70, field_682, 0x682);
-
-class Unk_23f05a8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15();
-    virtual void vf16();
-    u8 _8[0x60];
-    u8 field_68;
-    u8 _69[0x7];
-    Unk_23f05a8_70* field_70;
-};
-PKMN_OFFSET_ASSERT(Unk_23f05a8, field_68, 0x68);
-PKMN_OFFSET_ASSERT(Unk_23f05a8, field_70, 0x70);
-
-// 0x7100dd3cc0
-void Unk_23f05a8::vf11() {
-    field_68 = 0;
-    field_70->field_682 = 1;
-}
-
-// 0x7100dd3ce0
-void Unk_23f05a8::vf12() {
-    field_68 = 1;
-    field_70->field_682 = 0;
-}
-
 class Unk_23f06c0 {
 public:
     virtual ~Unk_23f06c0();

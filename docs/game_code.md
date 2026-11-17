@@ -661,8 +661,17 @@ type getter takes, which say how its TU was put together:
   store a type created by an out-of-line function (`0x7100603810`), and 14
   have another type in between. Those 14 are the `Unk_23d4470` shape
   (`intermediate_type`), but the getter their in-between type calls,
-  `0x7100c657d0`, is another class's out-of-line getter, not written yet.
-  Hand-writing that class as a base (like `Unk_23d4470`) is what they wait for.
+  `0x7100c657d0`, is another class's out-of-line getter: a sibling of
+  `Unk_23d4470` (`static type(Unk_239a418_GetType())`), with 93 callers.
+  Two placeholder structs stand in: the in-between class, holding its
+  inline getter, and the class above it, which only declares its getter.
+  That getter stays undefined but named, so these classes call it as the
+  original does. They had matched lifted members already, which a class
+  on a hand-written base couldn't keep. Now it can, when the members'
+  fields come after the base's (`ExternalBase.size`) and an override is
+  declared as the base declares it. So the 14 are written on the base: 112
+  functions match (their `vf_type`s, the copies in the secondary vtables,
+  the destructors and their thunks).
 
 A class's getter may now be called by other code of the class; it only
 isn't its own when another vtable function calls it.

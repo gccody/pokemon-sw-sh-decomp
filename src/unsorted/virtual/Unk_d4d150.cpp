@@ -3,16 +3,29 @@
 // Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
+#include "gflib3/Unk_239a418.h"
 
-class Unk_23ea598 {
+// A class on Unk_239a418 whose type getter (0x7100c657d0) is out of line.
+struct Unk_27effd0 {
+    static const Unk_239a418_Type* Unk_GetType();
+};
+
+// The type between Unk_239a418 and Unk_23ea598 (its class isn't known yet).
+struct Unk_27da210 {
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_27effd0::Unk_GetType());
+        return &type;
+    }
+};
+
+class Unk_23ea598 : public Unk_239a418 {
 public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_27da210::Unk_GetType());
+        return &type;
+    }
+
+    const Unk_239a418_Type* vf_type() override;
     virtual void vf7();
     virtual void vf8();
     virtual void vf9();
@@ -23,7 +36,7 @@ public:
     virtual void vf14();
     virtual void vf15();
     virtual void vf16();
-    u8 _8[0x60];
+    u8 _60[0x8];
     u8 field_68;
 };
 PKMN_OFFSET_ASSERT(Unk_23ea598, field_68, 0x68);
@@ -36,4 +49,9 @@ void Unk_23ea598::vf11() {
 // 0x7100d4d160
 void Unk_23ea598::vf12() {
     field_68 = 1;
+}
+
+// 0x7100d4d1c0
+const Unk_239a418_Type* Unk_23ea598::vf_type() {
+    return Unk_GetType();
 }
