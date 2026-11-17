@@ -2737,7 +2737,13 @@ headers (`SYSTEM_INCLUDES include/libcxx`) and the defines they need on musl
   gflib3's asserts are in `main` (`lib/gflib3/src/mem/internal/tlsf_pool.cpp`
   with `deactivate`, `mem/tlsf_pool_resource.cpp` with `do_dump_no_lock`).
 
-With this entry, the 31 functions of `src/gflib3` match in both games.
+With this entry, the functions of `src/gflib3` match in both games.
+
+`src/unsorted` has the same entry: game code that isn't placed in a
+directory yet includes gflib3's headers (its reference-counted object uses
+`std::atomic`) and instantiates libc++ like the rest of Game Freak's code.
+The entry changes no object of the code already there: with it, every
+function of `src/unsorted` that matched still matches.
 
 ## Codegen fingerprints
 
