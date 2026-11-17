@@ -342,6 +342,11 @@ so they say so (`unify_arity`): `Unk_<T>(self->field_8, value);`, `value`
 typed as the longest caller has it. 18 more match (check.py: 25,404
 matching, 107 not matching).
 
+The guard's other path may return any constant (`mov w0, #N ; ret`), and
+stores before it are done either way, so they go before the `if`. 12 more
+leaf functions and 12 virtual ones match (check.py: 25,428 matching, 107
+not matching).
+
 ## Vtables and classes (`tools/vtables.py`)
 
 Most of the tiny functions are virtual (see "The tiny functions"), and
