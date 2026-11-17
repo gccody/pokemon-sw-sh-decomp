@@ -53,6 +53,14 @@ struct ThreadType {
 static_assert(sizeof(ThreadType) == 0x1a8, "ThreadType");
 static_assert(offsetof(ThreadType, field_44) == 0x44, "ThreadType::field_44");
 
+// Only passed by pointer so far: no caller shows their size.
+struct EventType;
+struct LightEventType;
+
+// How an event clears: an enum, from the imports' mangled names. Its
+// enumerators aren't known.
+enum EventClearMode : int {};
+
 // nn::os::Tick, passed in one register: a 64-bit system tick count.
 struct Tick {
     int64_t field_0;
@@ -81,6 +89,17 @@ void WaitConditionVariable(ConditionVariableType* cv, MutexType* mutex) noexcept
 int TimedWaitConditionVariable(ConditionVariableType* cv,
                                MutexType* mutex,
                                TimeSpan timeout) noexcept;
+
+void InitializeEvent(EventType* event, bool signaled, EventClearMode clearMode) noexcept;
+void FinalizeEvent(EventType* event) noexcept;
+void SignalEvent(EventType* event) noexcept;
+void ClearEvent(EventType* event) noexcept;
+bool TryWaitEvent(EventType* event) noexcept;
+
+void InitializeLightEvent(LightEventType* event, bool signaled, EventClearMode clearMode) noexcept;
+void FinalizeLightEvent(LightEventType* event) noexcept;
+void SignalLightEvent(LightEventType* event) noexcept;
+void WaitLightEvent(LightEventType* event) noexcept;
 
 int64_t GetSystemTickFrequency() noexcept;
 Tick GetSystemTick() noexcept;
