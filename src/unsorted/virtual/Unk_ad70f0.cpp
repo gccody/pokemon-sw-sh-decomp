@@ -49,6 +49,12 @@ public:
 // 0x7100ad72e0
 void Unk_23c9940::vf4() {}
 
+struct Unk_23c9ab0_8 {
+    u8 _0[0xb40];
+    u32 field_b40;
+};
+PKMN_OFFSET_ASSERT(Unk_23c9ab0_8, field_b40, 0xb40);
+
 class Unk_23c9ab0 {
 public:
     virtual ~Unk_23c9ab0();
@@ -57,7 +63,9 @@ public:
     virtual void vf4();
     virtual void vf5();
     virtual void vf6();
+    Unk_23c9ab0_8* field_8;
 };
+PKMN_OFFSET_ASSERT(Unk_23c9ab0, field_8, 0x8);
 
 // 0x7100ad9320, 0x7100ad9330
 Unk_23c9ab0::~Unk_23c9ab0() {}
@@ -276,6 +284,12 @@ void Unk_23ca508::vf0() {
     Unk_ae43b0(this);
 }
 
+struct Unk_23ca530_8 {
+    u8 _0[0xb44];
+    u8 field_b44;
+};
+PKMN_OFFSET_ASSERT(Unk_23ca530_8, field_b44, 0xb44);
+
 class Unk_23ca530 {
 public:
     virtual ~Unk_23ca530();
@@ -284,7 +298,9 @@ public:
     virtual void vf4();
     virtual void vf5();
     virtual void vf6();
+    Unk_23ca530_8* field_8;
 };
+PKMN_OFFSET_ASSERT(Unk_23ca530, field_8, 0x8);
 
 // 0x7100ae71b0, 0x7100ae47a0
 Unk_23ca530::~Unk_23ca530() {}
@@ -304,6 +320,11 @@ public:
 // 0x7100ae48e0
 void Unk_23ca578::vf4() {}
 
+// 0x7100ae4900
+void Unk_23ca578::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23ca5c0 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -315,6 +336,11 @@ public:
 
 // 0x7100ae4980
 void Unk_23ca5c0::vf4() {}
+
+// 0x7100ae49a0
+void Unk_23ca5c0::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23ca608 : public Unk_23ca530 {
 public:
@@ -328,6 +354,11 @@ public:
 // 0x7100ae4a20
 void Unk_23ca608::vf4() {}
 
+// 0x7100ae4a40
+void Unk_23ca608::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23ca650 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -339,6 +370,11 @@ public:
 
 // 0x7100ae4ac0
 void Unk_23ca650::vf4() {}
+
+// 0x7100ae4ae0
+void Unk_23ca650::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23ca698 : public Unk_23c9ab0 {
 public:
@@ -352,6 +388,11 @@ public:
 // 0x7100ae4b60
 void Unk_23ca698::vf4() {}
 
+// 0x7100ae4b80
+void Unk_23ca698::vf6() {
+    field_8->field_b40 = 0;
+}
+
 class Unk_23ca6e0 : public Unk_23c9ab0 {
 public:
     void vf4() override;
@@ -363,6 +404,11 @@ public:
 
 // 0x7100ae4c00
 void Unk_23ca6e0::vf4() {}
+
+// 0x7100ae4c20
+void Unk_23ca6e0::vf6() {
+    field_8->field_b40 = 1;
+}
 
 class Unk_23ca728 : public Unk_23c9ab0 {
 public:
@@ -376,6 +422,11 @@ public:
 // 0x7100ae4ca0
 void Unk_23ca728::vf4() {}
 
+// 0x7100ae4cc0
+void Unk_23ca728::vf6() {
+    field_8->field_b40 = 2;
+}
+
 class Unk_23ca770 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -387,6 +438,11 @@ public:
 
 // 0x7100ae4d40
 void Unk_23ca770::vf4() {}
+
+// 0x7100ae4d60
+void Unk_23ca770::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23ca7b8 : public Unk_23ca530 {
 public:
@@ -400,6 +456,11 @@ public:
 // 0x7100ae4de0
 void Unk_23ca7b8::vf4() {}
 
+// 0x7100ae4e00
+void Unk_23ca7b8::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23ca800 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -411,6 +472,11 @@ public:
 
 // 0x7100ae4e80
 void Unk_23ca800::vf4() {}
+
+// 0x7100ae4ea0
+void Unk_23ca800::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23ca848 : public Unk_23c9ab0 {
 public:
@@ -424,6 +490,11 @@ public:
 // 0x7100ae4f20
 void Unk_23ca848::vf4() {}
 
+// 0x7100ae4f40
+void Unk_23ca848::vf6() {
+    field_8->field_b40 = 0;
+}
+
 class Unk_23ca890 : public Unk_23c9ab0 {
 public:
     void vf4() override;
@@ -435,6 +506,11 @@ public:
 
 // 0x7100ae4fc0
 void Unk_23ca890::vf4() {}
+
+// 0x7100ae4fe0
+void Unk_23ca890::vf6() {
+    field_8->field_b40 = 1;
+}
 
 class Unk_23ca8d8 : public Unk_23c9ab0 {
 public:
@@ -448,6 +524,11 @@ public:
 // 0x7100ae5060
 void Unk_23ca8d8::vf4() {}
 
+// 0x7100ae5080
+void Unk_23ca8d8::vf6() {
+    field_8->field_b40 = 2;
+}
+
 class Unk_23ca920 : public Unk_23c9ab0 {
 public:
     void vf4() override;
@@ -459,6 +540,11 @@ public:
 
 // 0x7100ae5100
 void Unk_23ca920::vf4() {}
+
+// 0x7100ae5120
+void Unk_23ca920::vf6() {
+    field_8->field_b40 = 0;
+}
 
 class Unk_23ca968 : public Unk_23c9ab0 {
 public:
@@ -472,6 +558,11 @@ public:
 // 0x7100ae51a0
 void Unk_23ca968::vf4() {}
 
+// 0x7100ae51c0
+void Unk_23ca968::vf6() {
+    field_8->field_b40 = 1;
+}
+
 class Unk_23ca9b0 : public Unk_23c9ab0 {
 public:
     void vf4() override;
@@ -483,6 +574,11 @@ public:
 
 // 0x7100ae5240
 void Unk_23ca9b0::vf4() {}
+
+// 0x7100ae5260
+void Unk_23ca9b0::vf6() {
+    field_8->field_b40 = 2;
+}
 
 class Unk_23ca9f8 : public Unk_23c9ab0 {
 public:
@@ -496,6 +592,11 @@ public:
 // 0x7100ae52e0
 void Unk_23ca9f8::vf4() {}
 
+// 0x7100ae5300
+void Unk_23ca9f8::vf6() {
+    field_8->field_b40 = 0;
+}
+
 class Unk_23caa40 : public Unk_23c9ab0 {
 public:
     void vf4() override;
@@ -507,6 +608,11 @@ public:
 
 // 0x7100ae5380
 void Unk_23caa40::vf4() {}
+
+// 0x7100ae53a0
+void Unk_23caa40::vf6() {
+    field_8->field_b40 = 1;
+}
 
 class Unk_23caa88 : public Unk_23c9ab0 {
 public:
@@ -520,6 +626,11 @@ public:
 // 0x7100ae5420
 void Unk_23caa88::vf4() {}
 
+// 0x7100ae5440
+void Unk_23caa88::vf6() {
+    field_8->field_b40 = 0;
+}
+
 class Unk_23caad0 : public Unk_23c9ab0 {
 public:
     void vf4() override;
@@ -531,6 +642,11 @@ public:
 
 // 0x7100ae54c0
 void Unk_23caad0::vf4() {}
+
+// 0x7100ae54e0
+void Unk_23caad0::vf6() {
+    field_8->field_b40 = 1;
+}
 
 class Unk_23cab18 : public Unk_23ca530 {
 public:
@@ -544,6 +660,11 @@ public:
 // 0x7100ae5560
 void Unk_23cab18::vf4() {}
 
+// 0x7100ae5580
+void Unk_23cab18::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23cab60 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -555,6 +676,11 @@ public:
 
 // 0x7100ae5600
 void Unk_23cab60::vf4() {}
+
+// 0x7100ae5620
+void Unk_23cab60::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23caba8 : public Unk_23ca530 {
 public:
@@ -568,6 +694,11 @@ public:
 // 0x7100ae56a0
 void Unk_23caba8::vf4() {}
 
+// 0x7100ae56c0
+void Unk_23caba8::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23cabf0 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -579,6 +710,11 @@ public:
 
 // 0x7100ae5740
 void Unk_23cabf0::vf4() {}
+
+// 0x7100ae5760
+void Unk_23cabf0::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23cac38 : public Unk_23ca530 {
 public:
@@ -592,6 +728,11 @@ public:
 // 0x7100ae57e0
 void Unk_23cac38::vf4() {}
 
+// 0x7100ae5800
+void Unk_23cac38::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23cac80 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -603,6 +744,11 @@ public:
 
 // 0x7100ae5880
 void Unk_23cac80::vf4() {}
+
+// 0x7100ae58a0
+void Unk_23cac80::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23cacc8 : public Unk_23ca530 {
 public:
@@ -616,6 +762,11 @@ public:
 // 0x7100ae5920
 void Unk_23cacc8::vf4() {}
 
+// 0x7100ae5940
+void Unk_23cacc8::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23cad10 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -627,6 +778,11 @@ public:
 
 // 0x7100ae59c0
 void Unk_23cad10::vf4() {}
+
+// 0x7100ae59e0
+void Unk_23cad10::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23cad58 : public Unk_23ca530 {
 public:
@@ -640,6 +796,11 @@ public:
 // 0x7100ae5a60
 void Unk_23cad58::vf4() {}
 
+// 0x7100ae5a80
+void Unk_23cad58::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23cada0 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -651,6 +812,11 @@ public:
 
 // 0x7100ae5b00
 void Unk_23cada0::vf4() {}
+
+// 0x7100ae5b20
+void Unk_23cada0::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23cade8 : public Unk_23ca530 {
 public:
@@ -664,6 +830,11 @@ public:
 // 0x7100ae5ba0
 void Unk_23cade8::vf4() {}
 
+// 0x7100ae5bc0
+void Unk_23cade8::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23cae30 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -675,6 +846,11 @@ public:
 
 // 0x7100ae5c40
 void Unk_23cae30::vf4() {}
+
+// 0x7100ae5c60
+void Unk_23cae30::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23cae78 : public Unk_23ca530 {
 public:
@@ -688,6 +864,11 @@ public:
 // 0x7100ae5ce0
 void Unk_23cae78::vf4() {}
 
+// 0x7100ae5d00
+void Unk_23cae78::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23caec0 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -699,6 +880,11 @@ public:
 
 // 0x7100ae5d80
 void Unk_23caec0::vf4() {}
+
+// 0x7100ae5da0
+void Unk_23caec0::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23caf08 : public Unk_23ca530 {
 public:
@@ -712,6 +898,11 @@ public:
 // 0x7100ae5e20
 void Unk_23caf08::vf4() {}
 
+// 0x7100ae5e40
+void Unk_23caf08::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23caf50 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -723,6 +914,11 @@ public:
 
 // 0x7100ae5ec0
 void Unk_23caf50::vf4() {}
+
+// 0x7100ae5ee0
+void Unk_23caf50::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23caf98 : public Unk_23ca530 {
 public:
@@ -736,6 +932,11 @@ public:
 // 0x7100ae5f60
 void Unk_23caf98::vf4() {}
 
+// 0x7100ae5f80
+void Unk_23caf98::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23cafe0 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -747,6 +948,11 @@ public:
 
 // 0x7100ae6000
 void Unk_23cafe0::vf4() {}
+
+// 0x7100ae6020
+void Unk_23cafe0::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23cb028 : public Unk_23ca530 {
 public:
@@ -760,6 +966,11 @@ public:
 // 0x7100ae60a0
 void Unk_23cb028::vf4() {}
 
+// 0x7100ae60c0
+void Unk_23cb028::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23cb070 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -771,6 +982,11 @@ public:
 
 // 0x7100ae6140
 void Unk_23cb070::vf4() {}
+
+// 0x7100ae6160
+void Unk_23cb070::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23cb0b8 : public Unk_23c9ab0 {
 public:
@@ -784,6 +1000,11 @@ public:
 // 0x7100ae61e0
 void Unk_23cb0b8::vf4() {}
 
+// 0x7100ae6200
+void Unk_23cb0b8::vf6() {
+    field_8->field_b40 = 0;
+}
+
 class Unk_23cb100 : public Unk_23c9ab0 {
 public:
     void vf4() override;
@@ -795,6 +1016,11 @@ public:
 
 // 0x7100ae6280
 void Unk_23cb100::vf4() {}
+
+// 0x7100ae62a0
+void Unk_23cb100::vf6() {
+    field_8->field_b40 = 1;
+}
 
 class Unk_23cb148 : public Unk_23c9ab0 {
 public:
@@ -808,6 +1034,11 @@ public:
 // 0x7100ae6320
 void Unk_23cb148::vf4() {}
 
+// 0x7100ae6340
+void Unk_23cb148::vf6() {
+    field_8->field_b40 = 0;
+}
+
 class Unk_23cb190 : public Unk_23c9ab0 {
 public:
     void vf4() override;
@@ -819,6 +1050,11 @@ public:
 
 // 0x7100ae63c0
 void Unk_23cb190::vf4() {}
+
+// 0x7100ae63e0
+void Unk_23cb190::vf6() {
+    field_8->field_b40 = 1;
+}
 
 class Unk_23cb1d8 : public Unk_23ca530 {
 public:
@@ -832,6 +1068,11 @@ public:
 // 0x7100ae6460
 void Unk_23cb1d8::vf4() {}
 
+// 0x7100ae6480
+void Unk_23cb1d8::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23cb220 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -843,6 +1084,11 @@ public:
 
 // 0x7100ae6500
 void Unk_23cb220::vf4() {}
+
+// 0x7100ae6520
+void Unk_23cb220::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23cb268 : public Unk_23ca530 {
 public:
@@ -856,6 +1102,11 @@ public:
 // 0x7100ae65a0
 void Unk_23cb268::vf4() {}
 
+// 0x7100ae65c0
+void Unk_23cb268::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23cb2b0 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -867,6 +1118,11 @@ public:
 
 // 0x7100ae6640
 void Unk_23cb2b0::vf4() {}
+
+// 0x7100ae6660
+void Unk_23cb2b0::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23cb2f8 : public Unk_23ca530 {
 public:
@@ -880,6 +1136,11 @@ public:
 // 0x7100ae66e0
 void Unk_23cb2f8::vf4() {}
 
+// 0x7100ae6700
+void Unk_23cb2f8::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23cb340 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -891,6 +1152,11 @@ public:
 
 // 0x7100ae6780
 void Unk_23cb340::vf4() {}
+
+// 0x7100ae67a0
+void Unk_23cb340::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23cb388 : public Unk_23ca530 {
 public:
@@ -904,6 +1170,11 @@ public:
 // 0x7100ae6820
 void Unk_23cb388::vf4() {}
 
+// 0x7100ae6840
+void Unk_23cb388::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23cb3d0 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -915,6 +1186,11 @@ public:
 
 // 0x7100ae68c0
 void Unk_23cb3d0::vf4() {}
+
+// 0x7100ae68e0
+void Unk_23cb3d0::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23cb418 : public Unk_23ca530 {
 public:
@@ -928,6 +1204,11 @@ public:
 // 0x7100ae6960
 void Unk_23cb418::vf4() {}
 
+// 0x7100ae6980
+void Unk_23cb418::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23cb460 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -939,6 +1220,11 @@ public:
 
 // 0x7100ae6a00
 void Unk_23cb460::vf4() {}
+
+// 0x7100ae6a20
+void Unk_23cb460::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23cb4a8 : public Unk_23ca530 {
 public:
@@ -952,6 +1238,11 @@ public:
 // 0x7100ae6aa0
 void Unk_23cb4a8::vf4() {}
 
+// 0x7100ae6ac0
+void Unk_23cb4a8::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23cb4f0 : public Unk_23c9ab0 {
 public:
     void vf4() override;
@@ -963,6 +1254,11 @@ public:
 
 // 0x7100ae6b40
 void Unk_23cb4f0::vf4() {}
+
+// 0x7100ae6b60
+void Unk_23cb4f0::vf6() {
+    field_8->field_b40 = 0;
+}
 
 class Unk_23cb538 : public Unk_23c9ab0 {
 public:
@@ -976,6 +1272,11 @@ public:
 // 0x7100ae6be0
 void Unk_23cb538::vf4() {}
 
+// 0x7100ae6c00
+void Unk_23cb538::vf6() {
+    field_8->field_b40 = 1;
+}
+
 class Unk_23cb580 : public Unk_23c9ab0 {
 public:
     void vf4() override;
@@ -987,6 +1288,11 @@ public:
 
 // 0x7100ae6c80
 void Unk_23cb580::vf4() {}
+
+// 0x7100ae6ca0
+void Unk_23cb580::vf6() {
+    field_8->field_b40 = 0;
+}
 
 class Unk_23cb5c8 : public Unk_23c9ab0 {
 public:
@@ -1000,6 +1306,11 @@ public:
 // 0x7100ae6d20
 void Unk_23cb5c8::vf4() {}
 
+// 0x7100ae6d40
+void Unk_23cb5c8::vf6() {
+    field_8->field_b40 = 1;
+}
+
 class Unk_23cb610 : public Unk_23c9ab0 {
 public:
     void vf4() override;
@@ -1011,6 +1322,11 @@ public:
 
 // 0x7100ae6dc0
 void Unk_23cb610::vf4() {}
+
+// 0x7100ae6de0
+void Unk_23cb610::vf6() {
+    field_8->field_b40 = 2;
+}
 
 class Unk_23cb658 : public Unk_23ca530 {
 public:
@@ -1024,6 +1340,11 @@ public:
 // 0x7100ae6e60
 void Unk_23cb658::vf4() {}
 
+// 0x7100ae6e80
+void Unk_23cb658::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23cb6a0 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -1035,6 +1356,11 @@ public:
 
 // 0x7100ae6f00
 void Unk_23cb6a0::vf4() {}
+
+// 0x7100ae6f20
+void Unk_23cb6a0::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23cb6e8 : public Unk_23c9ab0 {
 public:
@@ -1048,6 +1374,11 @@ public:
 // 0x7100ae6fa0
 void Unk_23cb6e8::vf4() {}
 
+// 0x7100ae6fc0
+void Unk_23cb6e8::vf6() {
+    field_8->field_b40 = 0;
+}
+
 class Unk_23cb730 : public Unk_23c9ab0 {
 public:
     void vf4() override;
@@ -1059,6 +1390,11 @@ public:
 
 // 0x7100ae7040
 void Unk_23cb730::vf4() {}
+
+// 0x7100ae7060
+void Unk_23cb730::vf6() {
+    field_8->field_b40 = 1;
+}
 
 class Unk_23cb778 : public Unk_23ca530 {
 public:
@@ -1072,6 +1408,11 @@ public:
 // 0x7100ae70e0
 void Unk_23cb778::vf4() {}
 
+// 0x7100ae7100
+void Unk_23cb778::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23cb7c0 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -1083,6 +1424,11 @@ public:
 
 // 0x7100ae7180
 void Unk_23cb7c0::vf4() {}
+
+// 0x7100ae71a0
+void Unk_23cb7c0::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23cb808 : public Unk_23ca530 {
 public:
@@ -1096,6 +1442,11 @@ public:
 // 0x7100ae7230
 void Unk_23cb808::vf4() {}
 
+// 0x7100ae7250
+void Unk_23cb808::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23cb850 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -1107,6 +1458,11 @@ public:
 
 // 0x7100ae72d0
 void Unk_23cb850::vf4() {}
+
+// 0x7100ae72f0
+void Unk_23cb850::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23cb898 : public Unk_23ca530 {
 public:
@@ -1120,6 +1476,11 @@ public:
 // 0x7100ae7370
 void Unk_23cb898::vf4() {}
 
+// 0x7100ae7390
+void Unk_23cb898::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23cb8e0 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -1131,6 +1492,11 @@ public:
 
 // 0x7100ae7410
 void Unk_23cb8e0::vf4() {}
+
+// 0x7100ae7430
+void Unk_23cb8e0::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23cb928 : public Unk_23ca530 {
 public:
@@ -1144,6 +1510,11 @@ public:
 // 0x7100ae74b0
 void Unk_23cb928::vf4() {}
 
+// 0x7100ae74d0
+void Unk_23cb928::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23cb970 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -1155,6 +1526,11 @@ public:
 
 // 0x7100ae7550
 void Unk_23cb970::vf4() {}
+
+// 0x7100ae7570
+void Unk_23cb970::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23cb9b8 : public Unk_23ca530 {
 public:
@@ -1168,6 +1544,11 @@ public:
 // 0x7100ae75f0
 void Unk_23cb9b8::vf4() {}
 
+// 0x7100ae7610
+void Unk_23cb9b8::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23cba00 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -1179,6 +1560,11 @@ public:
 
 // 0x7100ae7690
 void Unk_23cba00::vf4() {}
+
+// 0x7100ae76b0
+void Unk_23cba00::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23cba48 : public Unk_23ca530 {
 public:
@@ -1192,6 +1578,11 @@ public:
 // 0x7100ae7730
 void Unk_23cba48::vf4() {}
 
+// 0x7100ae7750
+void Unk_23cba48::vf6() {
+    field_8->field_b44 = 1;
+}
+
 class Unk_23cba90 : public Unk_23ca530 {
 public:
     void vf4() override;
@@ -1203,6 +1594,11 @@ public:
 
 // 0x7100ae77d0
 void Unk_23cba90::vf4() {}
+
+// 0x7100ae77f0
+void Unk_23cba90::vf6() {
+    field_8->field_b44 = 1;
+}
 
 class Unk_23cbcf0 : public Unk_23c98b0 {
 public:
