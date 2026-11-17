@@ -107,3 +107,10 @@ void Unk_67c4e0();
 void Unk_130ac20_call() {
     Unk_67c4e0();
 }
+
+void Unk_130adb0(void*, u64, u64, u32, u32);
+
+// 0x710130ada0
+void Unk_130ada0_call(void* self, u64 value, u32 arg2, u32 arg3) {
+    Unk_130adb0(self, value, 0, arg2, arg3);
+}
