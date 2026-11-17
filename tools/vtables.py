@@ -1296,7 +1296,49 @@ class Ctor:
     base_ctor: int | None  # what it calls first (None: a class without a base)
     cls: str
     base: str | None
+    fields: tuple = ()  # ((offset, type), ...): the fields it zeroes, after the base
 
+
+ZERO_STORES = {("str", "xzr"): ("u64",), ("str", "wzr"): ("u32",), ("strh", "wzr"): ("u16",),
+               ("strb", "wzr"): ("u8",), ("stp", "xzr"): ("u64", "u64")}
+
+
+def ctor_fields(m: Model, f: int) -> tuple | None:
+    """The fields a CTOR_PATTERN constructor with zeroed fields zeroes:
+    `bl <base> ; adrp x8 ; ldr x8` (the _ZTV) then `str/stp xzr|wzr, [x19, #N]`
+    stores around the vptr's `add x8, x8, #16 ; str x8, [x19]`. None if it's
+    another shape."""
+    import leafgen as L
+
+    n = m.sizes.get(f, 0)
+    if not 52 <= n <= 96:
+        return None
+    try:
+        insns = L.disassemble(m.img[f:f + n], f + BASE)
+    except L.LiftError:
+        return None
+    head = [mn for mn, _ in insns[:7]]
+    tail = [mn for mn, _ in insns[-3:]]
+    if head != ["str", "stp", "add", "mov", "bl", "adrp", "ldr"] or tail != ["ldp", "ldr", "ret"] \
+            or insns[3][1] != ["x19", "x0"] or insns[5][1][0] != "x8" or insns[6][1][0] != "x8":
+        return None
+    fields, vptr = [], 0
+    for mn, ops in insns[7:-3]:
+        if mn == "add" and ops[:2] == ["x8", "x8"] and ops[2] == "#0x10":
+            continue
+        if mn == "str" and ops == ["x8", "[x19]"]:
+            vptr += 1
+            continue
+        m_ = re.fullmatch(r"\[x19, #(0x[0-9a-f]+|\d+)\]", ops[-1])
+        key = (mn, ops[0])
+        if m_ is None or key not in ZERO_STORES or (mn == "stp" and ops[1] != "xzr"):
+            return None
+        off = int(m_.group(1), 0)
+        for i, t in enumerate(ZERO_STORES[key]):
+            fields.append((off + 8 * i, t))
+    if vptr != 1 or not fields:
+        return None
+    return tuple(sorted(fields))
 
 def find_ctors(m: Model, rows: dict, taken: set[str]) -> list[Ctor]:
     """The constructors of CTOR_PATTERN: common, unnamed and U in both games;
@@ -1325,8 +1367,11 @@ def find_ctors(m: Model, rows: dict, taken: set[str]) -> list[Ctor]:
                     (r.name == ctor_name(cls) or not r.name and r.status == "U"):
                 out.append(Ctor(f, None, cls, None))
             continue
+        fields = ()
         if size != 48 or pattern_of(m.img[f:f + size], f + BASE) != CTOR_PATTERN:
-            continue
+            fields = ctor_fields(m, f)
+            if fields is None:
+                continue
         t = branch_target_at(m, f + 16)
         rt = rows.get(t)
         if r is None or r.scope != "common" or r.shield is None:
@@ -1342,7 +1387,7 @@ def find_ctors(m: Model, rows: dict, taken: set[str]) -> list[Ctor]:
             continue
         if not (rt.name == ctor_name(base) or not rt.name and rt.status == "U"):
             continue
-        out.append(Ctor(f, t, cls, base))
+        out.append(Ctor(f, t, cls, base, fields))
     # A class with more than one constructor (a copy constructor too, say) can't
     # have them both as C2: not the one it defines here and the one a derived
     # class calls, nor two that derived classes call.
@@ -1363,9 +1408,31 @@ def branch_target_at(m: Model, at: int) -> int | None:
     return at + 4 * (((w & 0x3FFFFFF) ^ 0x2000000) - 0x2000000)
 
 
-def render_ctor_file(ctors: list[Ctor], base_of: dict[str, str]) -> str:
+def ctor_layout(base_of: dict[str, str], fields_of: dict[str, tuple]) -> dict[str, int]:
+    """Where each class's own fields may start: after its base's (8, the vptr,
+    for a class without one)."""
+    from leafgen import WIDTH
+
+    end: dict[str, int] = {}
+
+    def extent(c: str, depth: int = 0) -> int:
+        if c not in end:
+            start = extent(base_of[c], depth + 1) if c in base_of and depth < 32 else 8
+            fs = fields_of.get(c, ())
+            end[c] = max([start] + [o + WIDTH[t] for o, t in fs])
+        return end[c]
+
+    for c in set(base_of) | set(fields_of):
+        extent(c)
+    return end
+
+
+def render_ctor_file(ctors: list[Ctor], base_of: dict[str, str], fields_of: dict[str, tuple] | None = None) -> str:
     """One TU of constructors, with the classes they need declared: each the
-    same way in every file (from base_of), bases first."""
+    same way in every file (from base_of and fields_of), bases first."""
+    from leafgen import WIDTH
+
+    fields_of = fields_of or {}
     out = ["// Scope: common",
            "// Constructors that call their base's and set the vptr: `Unk_D::Unk_D() {}`.",
            "// Placeholder classes, named after their vtables: only what the constructors",
@@ -1383,13 +1450,27 @@ def render_ctor_file(ctors: list[Ctor], base_of: dict[str, str]) -> str:
 
     for c in sorted(ctors, key=lambda x: x.addr):
         add(c.cls)
+    if any(c in fields_of for c in need):
+        out[-1:] = ["#include <types.h>", ""]
+    layout = ctor_layout(base_of, fields_of)
     for c in need:
+        fs = fields_of.get(c, ())
+        members = []
+        pos = layout[base_of[c]] if c in base_of else 8
+        for off, t in fs:
+            if off > pos:
+                members.append(f"    u8 _{pos:x}[0x{off - pos:x}];")
+            members.append(f"    {t} field_{off:x};")
+            pos = off + WIDTH[t]
+        asserts = [f"PKMN_OFFSET_ASSERT({c}, field_{off:x}, 0x{off:x});" for off, _ in fs]
         if c in base_of:
-            out += [f"class {c} : public {base_of[c]} {{", "public:", f"    {c}();", f"    ~{c}() override;", "};", ""]
+            out += [f"class {c} : public {base_of[c]} {{", "public:", f"    {c}();", f"    ~{c}() override;",
+                    *members, "};", *asserts, ""]
         else:
-            out += [f"class {c} {{", "public:", f"    {c}();", f"    virtual ~{c}();", "};", ""]
+            out += [f"class {c} {{", "public:", f"    {c}();", f"    virtual ~{c}();", *members, "};", *asserts, ""]
     for c in sorted(ctors, key=lambda x: x.addr):
-        out += [f"// {c.addr + BASE:#x}", f"{c.cls}::{c.cls}() {{}}", ""]
+        init = ", ".join(f"field_{off:x}(0)" for off, _ in c.fields)
+        out += [f"// {c.addr + BASE:#x}", f"{c.cls}::{c.cls}(){' : ' + init if init else ''} {{}}", ""]
     return "\n".join(out[:-1]) + "\n"
 
 
@@ -1404,16 +1485,33 @@ def cmd_ctors(m: Model, args) -> None:
         only = {int(x, 16) - BASE for x in args.only.read_text(encoding="utf-8").split()}
         ctors = [c for c in ctors if c.addr in only]
     base_of = {c.cls: c.base for c in ctors if c.base is not None}
+    fields_of = {c.cls: c.fields for c in ctors if c.fields}
+    # A class's fields go after its base's: a constructor that zeroes one
+    # inside them (the base's own) is left out.
+    layout = ctor_layout(base_of, fields_of)
+    bad = {c for c, fs in fields_of.items() if fs[0][0] < (layout[base_of[c]] if c in base_of else 8)}
+    if bad:
+        ctors = [c for c in ctors if c.cls not in bad and c.base not in bad]
+        base_of = {c.cls: c.base for c in ctors if c.base is not None}
+        fields_of = {c.cls: c.fields for c in ctors if c.fields}
     seg_starts = segment_starts(m)
+
+    def seg_of(a: int) -> int:
+        return seg_starts[bisect.bisect_right(seg_starts, a) - 1]
+
+    # A base's constructor in the same file as one that calls it would be
+    # inlined there; the original calls it, so it's another TU's: leave it out.
+    called_here = {(seg_of(c.addr), c.base) for c in ctors if c.base is not None}
+    ctors = [c for c in ctors if (seg_of(c.addr), c.cls) not in called_here]
     files: dict[int, list[Ctor]] = defaultdict(list)
     for c in ctors:
-        files[seg_starts[bisect.bisect_right(seg_starts, c.addr) - 1]].append(c)
+        files[seg_of(c.addr)].append(c)
     args.out.mkdir(parents=True, exist_ok=True)
     for old in args.out.glob("*.cpp"):
         old.unlink()
     for cs in files.values():
         name = f"Unk_{min(c.addr for c in cs):x}.cpp"
-        (args.out / name).write_text(render_ctor_file(cs, base_of), encoding="utf-8", newline="\n")
+        (args.out / name).write_text(render_ctor_file(cs, base_of, fields_of), encoding="utf-8", newline="\n")
     from common import clang_format
     if not clang_format(sorted(args.out.glob("*.cpp"))):
         print("clang-format isn't on PATH: format the written files before committing them", file=sys.stderr)
@@ -1426,7 +1524,7 @@ def cmd_ctors(m: Model, args) -> None:
         fh.write("Name,Sword,Shield\n")
         for a, n in sorted(names.items()):
             fh.write(f"{n},{rows[a].sword_str},{rows[a].shield_str}\n")
-    print(f"{len(ctors)} constructors ({len(ctors) - len(base_of)} without a base) in {len(files)} files; "
+    print(f"{len(ctors)} constructors ({sum(c.base is None for c in ctors)} without a base) in {len(files)} files; "
           f"{len(names)} names in {args.names}", file=sys.stderr)
 
 

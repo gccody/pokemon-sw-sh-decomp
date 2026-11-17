@@ -463,3 +463,23 @@ def test_derived_class_lifted_members_use_the_base_fields():
     d2 = V.ClassSpec(b, [], "empty", base=base)
     V._readd_lifted(d2, [other, clash, named], families)
     assert d2.members == []
+
+
+def test_constructor_that_zeroes_fields():
+    """bl <base> ; adrp x8 ; ldr x8 ; str xzr, [x19, #0x10] ; add x8, x8, #16 ;
+    str x8, [x19] ; stp xzr, xzr, [x19, #0x20]: `Unk_D() : field_10(0), ... {}`."""
+    img = bytearray(0x1100)
+    words = [0xF81E0FF3, 0xA9017BFD, 0x910043FD, 0xAA0003F3, 0x94000000 | ((0x300 - 0x210) >> 2),
+             0x90000008, 0xF9405108, 0xF9000A7F, 0x91004108, 0xF9000268, 0xA9027E7F,
+             0xA9417BFD, 0xF84207F3, RET]
+    struct.pack_into(f"<{len(words)}I", img, 0x200, *words)
+    sizes = {0x200: 4 * len(words)}
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), [], [], sizes, {}, {}, lambda a: "game", DELETE)
+    assert V.ctor_fields(m, 0x200) == ((0x10, "u64"), (0x20, "u64"), (0x28, "u64"))
+    c = V.Ctor(0x200, 0x300, "Unk_1000", "Unk_1040", V.ctor_fields(m, 0x200))
+    text = V.render_ctor_file([c], {"Unk_1000": "Unk_1040"}, {"Unk_1000": c.fields})
+    assert "#include <types.h>\n" in text
+    assert ("    ~Unk_1000() override;\n    u8 _8[0x8];\n    u64 field_10;\n    u8 _18[0x8];\n"
+            "    u64 field_20;\n    u64 field_28;\n};\nPKMN_OFFSET_ASSERT(Unk_1000, field_10, 0x10);\n") in text
+    assert text.endswith("Unk_1000::Unk_1000() : field_10(0), field_20(0), field_28(0) {}\n")
+    assert V.ctor_layout({"Unk_1000": "Unk_1040"}, {"Unk_1000": c.fields}) == {"Unk_1000": 0x30, "Unk_1040": 8}
