@@ -123,23 +123,6 @@ void Unk_23c0240::vf0() {
     Unk_939c20(this);
 }
 
-class Unk_23c0390 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual u32 vf7();
-};
-
-// 0x710093ccc0
-u32 Unk_23c0390::vf7() {
-    return 0;
-}
-
 class Unk_23c0448 {
 public:
     virtual ~Unk_23c0448();

@@ -697,6 +697,22 @@ type getter takes, which say how its TU was put together:
   belong to classes with destructors of their own, which write doesn't
   model.
 
+  Of the object's direct descendants with destructors of their own, 30
+  only release one reference member (`Unk_239a418_Ref`) before the
+  object's D2, inlined. Their destructor is implicit, with that member
+  (`ref_members`: the D2's pattern is the object's with the release
+  spliced in, `ref_dtor_pattern`, and it stores the class's own vtable).
+  So the class declares the member, at its offset, and nothing else.
+  The vtable check matters because a derived class with nothing to destroy
+  shares its base's D2 (clang aliases it), and the owner heuristic may give
+  that D2 to the derived class's vtable. check.py doesn't check a
+  placeholder vtable that data_symbols.csv doesn't list yet, so the D2
+  "matched" anyway. With the types the classes already had, 20 of the 30
+  are written and all their functions match: 171 functions, the D2s, D0s
+  and their thunks with the D2 inlined (check.py: 26,227 matching, 107 not
+  matching). The rest have other type shapes, or their D2 is in another
+  vtable.
+
 A class's getter may now be called by other code of the class; it only
 isn't its own when another vtable function calls it.
 
