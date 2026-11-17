@@ -13,3 +13,14 @@ PKMN_OFFSET_ASSERT(Unk_fb9120, field_154, 0x154);
 void Unk_fb9120_setField154(Unk_fb9120* self, u32 value) {
     self->field_154 = value;
 }
+
+struct Unk_fb9130 {
+    u8 _0[0x154];
+    u32 field_154;
+};
+PKMN_OFFSET_ASSERT(Unk_fb9130, field_154, 0x154);
+
+// 0x7100fb9130
+void Unk_fb9130_set(Unk_fb9130* self) {
+    self->field_154 = 0xffffffff;
+}

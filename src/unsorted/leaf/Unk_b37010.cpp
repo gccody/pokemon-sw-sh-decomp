@@ -14,6 +14,17 @@ u64 Unk_b37010_getField48(const Unk_b37010* self) {
     return self->field_48;
 }
 
+struct Unk_b4a380 {
+    u8 _0[0x198];
+    bool field_198;
+};
+PKMN_OFFSET_ASSERT(Unk_b4a380, field_198, 0x198);
+
+// 0x7100b4a380
+void Unk_b4a380_set(Unk_b4a380* self, bool value) {
+    self->field_198 = value;
+}
+
 struct Unk_b4a450 {
     u8 _0[0x8];
     u64 field_8;

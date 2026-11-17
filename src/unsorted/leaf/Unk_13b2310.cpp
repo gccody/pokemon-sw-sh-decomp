@@ -14,6 +14,22 @@ u8* Unk_13b2310_getField68Ptr(Unk_13b2310* self) {
     return &self->field_68;
 }
 
+struct Unk_13b2320_arg1 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_13b2320_arg1, field_0, 0x0);
+
+struct Unk_13b2320 {
+    u8 _0[0x70];
+    u64 field_70;
+};
+PKMN_OFFSET_ASSERT(Unk_13b2320, field_70, 0x70);
+
+// 0x71013b2320
+void Unk_13b2320_set(Unk_13b2320* self, const Unk_13b2320_arg1* value) {
+    self->field_70 = value->field_0;
+}
+
 struct Unk_13b2330 {
     u8 _0[0x70];
     u8 field_70;

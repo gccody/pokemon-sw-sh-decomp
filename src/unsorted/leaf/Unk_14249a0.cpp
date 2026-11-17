@@ -35,3 +35,14 @@ PKMN_OFFSET_ASSERT(Unk_14249c0, field_c0, 0xc0);
 u8* Unk_14249c0_getFieldc0Ptr(Unk_14249c0* self) {
     return &self->field_c0;
 }
+
+struct Unk_142a1b0 {
+    u8 _0[0x74];
+    u8 field_74;
+};
+PKMN_OFFSET_ASSERT(Unk_142a1b0, field_74, 0x74);
+
+// 0x710142a1b0
+void Unk_142a1b0_set(Unk_142a1b0* self) {
+    self->field_74 = 1;
+}

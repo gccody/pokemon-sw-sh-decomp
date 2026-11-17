@@ -244,3 +244,29 @@ PKMN_OFFSET_ASSERT(Unk_7fe370, field_2e8, 0x2e8);
 u8* Unk_7fe370_getField2e8Ptr(Unk_7fe370* self) {
     return &self->field_2e8;
 }
+
+struct Unk_7fe830 {
+    u64 field_0;
+    u32 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_7fe830, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_7fe830, field_8, 0x8);
+
+// 0x71007fe830
+void Unk_7fe830_set(Unk_7fe830* self) {
+    self->field_8 = 0;
+    self->field_0 = 0;
+}
+
+struct Unk_7fe840 {
+    u64 field_0;
+    u32 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_7fe840, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_7fe840, field_8, 0x8);
+
+// 0x71007fe840
+void Unk_7fe840_set(Unk_7fe840* self) {
+    self->field_8 = 0;
+    self->field_0 = 0;
+}

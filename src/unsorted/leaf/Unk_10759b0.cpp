@@ -25,6 +25,16 @@ f32 Unk_10759c0_getField20(const Unk_10759c0* self) {
     return self->field_20;
 }
 
+struct Unk_1076130 {
+    u8 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_1076130, field_0, 0x0);
+
+// 0x7101076130
+bool Unk_1076130_check(const Unk_1076130* self) {
+    return self->field_0 != 0;
+}
+
 struct Unk_1076140 {
     u8 field_0;
 };

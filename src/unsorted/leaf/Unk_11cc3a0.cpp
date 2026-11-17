@@ -25,6 +25,17 @@ void Unk_11cd2e0_setFieldb8(Unk_11cd2e0* self, u32 value) {
     self->field_b8 = value;
 }
 
+struct Unk_11ceb20 {
+    u8 _0[0xb0];
+    bool field_b0;
+};
+PKMN_OFFSET_ASSERT(Unk_11ceb20, field_b0, 0xb0);
+
+// 0x71011ceb20
+void Unk_11ceb20_set(Unk_11ceb20* self, bool value) {
+    self->field_b0 = value;
+}
+
 struct Unk_11d18f0 {
     u8 _0[0xb0];
     f32 field_b0;
@@ -78,6 +89,17 @@ PKMN_OFFSET_ASSERT(Unk_11d26a0, field_80, 0x80);
 // 0x71011d26a0
 u8 Unk_11d26a0_getField80(const Unk_11d26a0* self) {
     return self->field_80;
+}
+
+struct Unk_11d26b0 {
+    u8 _0[0x80];
+    bool field_80;
+};
+PKMN_OFFSET_ASSERT(Unk_11d26b0, field_80, 0x80);
+
+// 0x71011d26b0
+void Unk_11d26b0_set(Unk_11d26b0* self, bool value) {
+    self->field_80 = value;
 }
 
 struct Unk_11d7390 {

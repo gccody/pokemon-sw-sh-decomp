@@ -135,6 +135,17 @@ u32 Unk_151d590_getField740(const Unk_151d590* self) {
     return self->field_740;
 }
 
+struct Unk_151d5a0 {
+    u8 _0[0xa5c];
+    bool field_a5c;
+};
+PKMN_OFFSET_ASSERT(Unk_151d5a0, field_a5c, 0xa5c);
+
+// 0x710151d5a0
+void Unk_151d5a0_set(Unk_151d5a0* self, bool value) {
+    self->field_a5c = value;
+}
+
 struct Unk_151d5b0 {
     u8 _0[0xa5c];
     u8 field_a5c;
@@ -144,6 +155,17 @@ PKMN_OFFSET_ASSERT(Unk_151d5b0, field_a5c, 0xa5c);
 // 0x710151d5b0
 u8 Unk_151d5b0_getFielda5c(const Unk_151d5b0* self) {
     return self->field_a5c;
+}
+
+struct Unk_151d5c0 {
+    u8 _0[0xc20];
+    u16 field_c20;
+};
+PKMN_OFFSET_ASSERT(Unk_151d5c0, field_c20, 0xc20);
+
+// 0x710151d5c0
+bool Unk_151d5c0_check(const Unk_151d5c0* self) {
+    return self->field_c20 > 7;
 }
 
 struct Unk_151e0d0 {
@@ -212,6 +234,31 @@ u32 Unk_1525940_getField5d4(const Unk_1525940* self) {
     return self->field_5d4;
 }
 
+struct Unk_1527bd0 {
+    u8 _0[0xa18];
+    u64 field_a18;
+    u32 field_a20;
+};
+PKMN_OFFSET_ASSERT(Unk_1527bd0, field_a18, 0xa18);
+PKMN_OFFSET_ASSERT(Unk_1527bd0, field_a20, 0xa20);
+
+// 0x7101527bd0
+void Unk_1527bd0_set(Unk_1527bd0* self, u64 value, u32 arg2) {
+    self->field_a18 = value;
+    self->field_a20 = arg2;
+}
+
+struct Unk_1527be0 {
+    u8 _0[0xa24];
+    bool field_a24;
+};
+PKMN_OFFSET_ASSERT(Unk_1527be0, field_a24, 0xa24);
+
+// 0x7101527be0
+void Unk_1527be0_set(Unk_1527be0* self, bool value) {
+    self->field_a24 = value;
+}
+
 struct Unk_15288d0 {
     u8 _0[0x5cc];
     u32 field_5cc;
@@ -276,6 +323,20 @@ PKMN_OFFSET_ASSERT(Unk_1531900, field_5cc, 0x5cc);
 // 0x7101531900
 u32 Unk_1531900_getField5cc(const Unk_1531900* self) {
     return self->field_5cc;
+}
+
+struct Unk_1531910 {
+    u8 _0[0x5d4];
+    u32 field_5d4;
+    u64 field_5d8;
+};
+PKMN_OFFSET_ASSERT(Unk_1531910, field_5d4, 0x5d4);
+PKMN_OFFSET_ASSERT(Unk_1531910, field_5d8, 0x5d8);
+
+// 0x7101531910
+void Unk_1531910_set(Unk_1531910* self, u32 value, u64 arg2) {
+    self->field_5d4 = value;
+    self->field_5d8 = arg2;
 }
 
 struct Unk_1532790 {

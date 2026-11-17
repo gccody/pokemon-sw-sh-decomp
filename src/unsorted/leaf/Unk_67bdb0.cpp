@@ -39,6 +39,84 @@ u16 Unk_67bdd0_getField78(const Unk_67bdd0* self) {
 // 0x710067c960
 void Unk_67c960() {}
 
+struct Unk_67d360_90 {
+    u8 _0[0x2];
+    u16 field_2;
+};
+PKMN_OFFSET_ASSERT(Unk_67d360_90, field_2, 0x2);
+
+struct Unk_67d360 {
+    u8 _0[0x90];
+    Unk_67d360_90* field_90;
+};
+PKMN_OFFSET_ASSERT(Unk_67d360, field_90, 0x90);
+
+// 0x710067d360
+u16 Unk_67d360_get(const Unk_67d360* self) {
+    return self->field_90->field_2;
+}
+
+struct Unk_67e9f0 {
+    u8 _0[0x9d];
+    u8 field_9d;
+    u8 _9e[0x6];
+    u8 field_a4;
+    u8 field_a5;
+    u8 field_a6;
+};
+PKMN_OFFSET_ASSERT(Unk_67e9f0, field_9d, 0x9d);
+PKMN_OFFSET_ASSERT(Unk_67e9f0, field_a4, 0xa4);
+PKMN_OFFSET_ASSERT(Unk_67e9f0, field_a5, 0xa5);
+PKMN_OFFSET_ASSERT(Unk_67e9f0, field_a6, 0xa6);
+
+// 0x710067e9f0
+void Unk_67e9f0_set(Unk_67e9f0* self, u8 value, u8 arg2) {
+    self->field_9d = value;
+    self->field_a5 = value;
+    self->field_a4 = arg2;
+    self->field_a6 = arg2;
+}
+
+struct Unk_67ea10 {
+    u8 _0[0x9d];
+    u8 field_9d;
+    u8 _9e[0x6];
+    u8 field_a4;
+};
+PKMN_OFFSET_ASSERT(Unk_67ea10, field_9d, 0x9d);
+PKMN_OFFSET_ASSERT(Unk_67ea10, field_a4, 0xa4);
+
+// 0x710067ea10
+void Unk_67ea10_set(Unk_67ea10* self, u8 value, u8 arg2) {
+    self->field_9d = value;
+    self->field_a4 = arg2;
+}
+
+struct Unk_67ea20_arg1 {
+    u32 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_67ea20_arg1, field_0, 0x0);
+
+struct Unk_67ea20_arg2 {
+    u32 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_67ea20_arg2, field_0, 0x0);
+
+struct Unk_67ea20 {
+    u8 _0[0x9d];
+    u8 field_9d;
+    u8 _9e[0x6];
+    u8 field_a4;
+};
+PKMN_OFFSET_ASSERT(Unk_67ea20, field_9d, 0x9d);
+PKMN_OFFSET_ASSERT(Unk_67ea20, field_a4, 0xa4);
+
+// 0x710067ea20
+void Unk_67ea20_set(const Unk_67ea20* self, Unk_67ea20_arg1* value, Unk_67ea20_arg2* arg2) {
+    value->field_0 = self->field_9d;
+    arg2->field_0 = self->field_a4;
+}
+
 struct Unk_67ea40 {
     u8 _0[0x94];
     u16 field_94;
@@ -59,6 +137,17 @@ PKMN_OFFSET_ASSERT(Unk_67ea50, field_96, 0x96);
 // 0x710067ea50
 void Unk_67ea50_setField96(Unk_67ea50* self, u16 value) {
     self->field_96 = value;
+}
+
+struct Unk_67f4a0 {
+    u8 _0[0xa8];
+    u32 field_a8;
+};
+PKMN_OFFSET_ASSERT(Unk_67f4a0, field_a8, 0xa8);
+
+// 0x710067f4a0
+void Unk_67f4a0_set(Unk_67f4a0* self) {
+    self->field_a8 = 2;
 }
 
 struct Unk_67f4b0 {
@@ -151,6 +240,22 @@ u8* Unk_681620_getField58Ptr(Unk_681620* self) {
 // 0x7100681fa0
 void Unk_681fa0() {}
 
+struct Unk_683670_arg1 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_683670_arg1, field_0, 0x0);
+
+struct Unk_683670 {
+    u8 _0[0xd0];
+    u64 field_d0;
+};
+PKMN_OFFSET_ASSERT(Unk_683670, field_d0, 0xd0);
+
+// 0x7100683670
+void Unk_683670_set(Unk_683670* self, const Unk_683670_arg1* value) {
+    self->field_d0 = value->field_0;
+}
+
 struct Unk_683680 {
     u8 _0[0xd0];
     u8 field_d0;
@@ -193,6 +298,38 @@ PKMN_OFFSET_ASSERT(Unk_683cd0, field_50, 0x50);
 // 0x7100683cd0
 u8* Unk_683cd0_getField50Ptr(Unk_683cd0* self) {
     return &self->field_50;
+}
+
+struct Unk_685230 {
+    u8 _0[0xb9];
+    u8 field_b9;
+    u8 _ba[0x1c6];
+    u64 field_280;
+};
+PKMN_OFFSET_ASSERT(Unk_685230, field_b9, 0xb9);
+PKMN_OFFSET_ASSERT(Unk_685230, field_280, 0x280);
+
+// 0x7100685230
+void Unk_685230_set(Unk_685230* self, u64 value) {
+    self->field_280 = value;
+    self->field_b9 = 0;
+}
+
+struct Unk_685240_c0 {
+    u8 _0[0x18];
+    u64 field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_685240_c0, field_18, 0x18);
+
+struct Unk_685240 {
+    u8 _0[0xc0];
+    Unk_685240_c0* field_c0;
+};
+PKMN_OFFSET_ASSERT(Unk_685240, field_c0, 0xc0);
+
+// 0x7100685240
+u64 Unk_685240_get(const Unk_685240* self) {
+    return self->field_c0->field_18;
 }
 
 struct Unk_685810 {
@@ -247,6 +384,17 @@ PKMN_OFFSET_ASSERT(Unk_687270, field_1, 0x1);
 // 0x7100687270
 u8 Unk_687270_getField1(const Unk_687270* self) {
     return self->field_1;
+}
+
+struct Unk_687280 {
+    u8 _0[0x1];
+    bool field_1;
+};
+PKMN_OFFSET_ASSERT(Unk_687280, field_1, 0x1);
+
+// 0x7100687280
+void Unk_687280_set(Unk_687280* self, bool value) {
+    self->field_1 = value;
 }
 
 struct Unk_687290 {
