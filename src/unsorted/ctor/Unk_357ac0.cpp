@@ -3,6 +3,7 @@
 // Placeholder classes, named after their vtables: only what the constructors
 // need (a base constructor to call, and a key function elsewhere, so that the
 // vtable is another TU's).
+#include <types.h>
 
 class Unk_237eb18 {
 public:
@@ -15,6 +16,21 @@ public:
     Unk_2380608();
     ~Unk_2380608() override;
 };
+
+class Unk_23836c0 {
+public:
+    Unk_23836c0();
+    virtual ~Unk_23836c0();
+};
+
+class Unk_2380c68 : public Unk_23836c0 {
+public:
+    Unk_2380c68();
+    ~Unk_2380c68() override;
+    u8 _8[0x8];
+    u64 field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_2380c68, field_10, 0x10);
 
 class Unk_2380db0 {
 public:
@@ -60,6 +76,9 @@ public:
 
 // 0x7100357ac0
 Unk_2380608::Unk_2380608() {}
+
+// 0x71003629e0
+Unk_2380c68::Unk_2380c68() : field_10(0) {}
 
 // 0x7100363530
 Unk_2380db0::Unk_2380db0() {}

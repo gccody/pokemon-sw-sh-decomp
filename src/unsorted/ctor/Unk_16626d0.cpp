@@ -3,6 +3,7 @@
 // Placeholder classes, named after their vtables: only what the constructors
 // need (a base constructor to call, and a key function elsewhere, so that the
 // vtable is another TU's).
+#include <types.h>
 
 class Unk_245f4a8 {
 public:
@@ -64,6 +65,21 @@ public:
     ~Unk_2457e38() override;
 };
 
+class Unk_245f6a8 {
+public:
+    Unk_245f6a8();
+    virtual ~Unk_245f6a8();
+};
+
+class Unk_2457fe8 : public Unk_245f6a8 {
+public:
+    Unk_2457fe8();
+    ~Unk_2457fe8() override;
+    u8 _8[0x2a0];
+    u64 field_2a8;
+};
+PKMN_OFFSET_ASSERT(Unk_2457fe8, field_2a8, 0x2a8);
+
 class Unk_245b868 {
 public:
     Unk_245b868();
@@ -75,6 +91,21 @@ public:
     Unk_24580c8();
     ~Unk_24580c8() override;
 };
+
+class Unk_2460028 {
+public:
+    Unk_2460028();
+    virtual ~Unk_2460028();
+};
+
+class Unk_2458138 : public Unk_2460028 {
+public:
+    Unk_2458138();
+    ~Unk_2458138() override;
+    u8 _8[0x90];
+    u64 field_98;
+};
+PKMN_OFFSET_ASSERT(Unk_2458138, field_98, 0x98);
 
 // 0x71016626d0
 Unk_24573a8::Unk_24573a8() {}
@@ -88,5 +119,11 @@ Unk_2457d08::Unk_2457d08() {}
 // 0x710166ae70
 Unk_2457e38::Unk_2457e38() {}
 
+// 0x710166cb00
+Unk_2457fe8::Unk_2457fe8() : field_2a8(0) {}
+
 // 0x710166d3c0
 Unk_24580c8::Unk_24580c8() {}
+
+// 0x710166d8a0
+Unk_2458138::Unk_2458138() : field_98(0) {}
