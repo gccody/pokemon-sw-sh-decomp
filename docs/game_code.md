@@ -681,10 +681,21 @@ type getter takes, which say how its TU was put together:
   such getters; 22 classes are on the one at `0x710089b390`. Written with
   the placeholder above for the class that getter belongs to (its getter
   named, not defined), 33 classes match: 264 functions (check.py: 26,034
-  matching, 107 not matching). `Unk_239c050` (`0x7100603810`) is one of
-  those classes, but its getter already has a forwarder callee's name
-  (`_Z10Unk_603810Pv`, from its `vf_type`, `b <getter>`), so its 2 classes
-  wait until it is written as a base.
+  matching, 107 not matching). The getter at `0x7100603810` is
+  `Unk_239c050`'s: a direct descendant with the tail shape (`vf_type` is
+  `b <getter>`, its secondary type slots too) and an implicit destructor.
+  The tail shape now applies to the object when the getter is three
+  statics deep and calls nothing else (`direct_getter`). Classes whose
+  getters call it are allowed, and it is named after its type object as
+  they name it (`Unk_27771e8::Unk_GetType`, inline, at the top of the
+  file). It matches only with one of those classes in its file: when
+  `vf_type` is the getter's one caller in the TU, clang inlines the getter
+  into it. So the class is written with the one in its segment
+  (`Unk_239bfa0`) and dropped when there's none. 3 classes match: 22
+  functions (check.py: 26,056 matching, 107 not matching). The other 20
+  getters with that shape (`b <getter>` slots, still forwarder callees)
+  belong to classes with destructors of their own, which write doesn't
+  model.
 
 A class's getter may now be called by other code of the class; it only
 isn't its own when another vtable function calls it.
