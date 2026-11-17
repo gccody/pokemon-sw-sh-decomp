@@ -163,9 +163,9 @@ def bases(vtables: list[Vtable]) -> dict[int, tuple[int, int]]:
     A derived class's vtable starts with its base's slots, and every slot it
     doesn't override holds the base's function. So the base is the other,
     no longer, vtable that holds the most of the same functions at the same
-    indices. That includes the destructor: clang emits an empty destructor
-    that only destroys its base as an alias of the base's, so a derived
-    class's slot 0 often is its base's D2."""
+    indices. That includes the destructor: when both destructors are inline
+    and empty, clang uses the base's D2 for the derived class's, so a derived
+    class's slot 0 often is its base's D2 (docs/game_code.md, "Bases")."""
     at: dict[tuple[int, int], list[Vtable]] = defaultdict(list)
     for v in vtables:
         for i, f in enumerate(v.slots):

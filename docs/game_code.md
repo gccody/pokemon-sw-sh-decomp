@@ -266,12 +266,28 @@ marks inherited slots with the vtable they come from.
 
 **Bases.** `show` and `csv` also guess each class's base: the other, no
 longer, vtable that holds the most of the same functions at the same
-indices. Destructors are strong evidence. Clang emits an empty destructor
-that only destroys its base as an alias of the base's D2, so a derived
-class's slot 0 is its base's D2. 539 game classes with an empty destructor
-pair show this. Their own D0 (`b operator delete`) can be matched once the
-placeholder classes have those bases (`class D : public B`, with `B`'s
-destructor inline), which this tool doesn't write yet.
+indices. Destructors are strong evidence. When a class's destructor is
+inline (or implicit) and empty and its base's is inline and empty too, clang
+7 with the game's flags doesn't emit the derived D2 at all: it uses the
+base's D2 in its place. So the derived vtable's slot 0 is the base's D2,
+and only its D0 (a weak `b operator delete`, emitted with the vtable) is the
+class's own. 539 game classes show this pattern. It was checked with this
+reproducer, compiled with the flags `compile_commands.json` gives a TU:
+
+```cpp
+class B { public: virtual ~B() {} virtual void f(); };
+class D : public B { public: void f() override; virtual void g(); };
+void D::f() {}  // D's key function: D's vtable is emitted here
+void D::g() {}
+// _ZTV1D: slot 0 = B::~B() (weak, ret), slot 1 = D::~D() D0 (weak, b operator delete)
+```
+
+Those destructors were inline in Game Freak's headers, so their D0 is
+emitted in the TU of the class's key function. Matching them needs the
+placeholder classes modelled with their bases (`class D : public B`, with
+`B`'s destructor inline) and a key function of D defined in the same file.
+This tool doesn't write that yet. Batch 3's own destructor pairs (below) are
+out of line, which compiles to the same code.
 
 ### Batch 3: simple virtual functions
 
