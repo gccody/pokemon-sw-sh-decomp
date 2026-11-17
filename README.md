@@ -102,6 +102,7 @@ python tools/setup.py [--sword X.xci] [--shield Y.xci] [--keys ~/.switch/prod.ke
 python tools/get_llvm.py        # -> toolchain/clang, toolchain/llvm-19
 python tools/get_llvm.py --library-compilers   # clang 6.0.1, for PhysX
 python tools/get_physx.py       # lib/physx's files with v3.4.2 code (not in git; lib/physx/README.md)
+python tools/protos.py generate # protoc 3.0.0 output for src/**/*.proto (not in git; rerun after a .proto changes)
 
 # 4. Build both games and check every decompiled function against both originals
 python tools/check.py
