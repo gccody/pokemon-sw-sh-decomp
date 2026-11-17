@@ -62,6 +62,7 @@ import shutil
 import struct
 import subprocess
 import sys
+from bisect import bisect_left
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
@@ -72,10 +73,8 @@ from nx.nso import Nso  # noqa: E402
 from nx.refs import decode, ldst_scale  # noqa: E402
 import symbols  # noqa: E402
 from source_paths import SourcePaths, read_source_paths  # noqa: E402
-
-from elftools.elf.elffile import ELFFile  # noqa: E402
-from elftools.elf.sections import SymbolTableSection  # noqa: E402
-from elftools.elf.relocation import RelocationSection  # noqa: E402
+import elfobj  # noqa: E402
+from elfobj import ObjFile  # noqa: E402
 
 # AArch64 ELF relocation types
 CALL26, JUMP26 = 283, 282
@@ -144,7 +143,7 @@ def load_symbol_tables(funcs: list[Function]):
 
 
 # --------------------------------------------------------------------------- compiled objects
-@dataclass
+@dataclass(slots=True)
 class Reloc:
     type: int
     sym: str          # CSV name: file-qualified for local symbols
@@ -160,7 +159,7 @@ class CompiledFunc:
     obj: Path
     code: bytes
     relocs: dict[int, Reloc]
-    elf: ELFFile = field(repr=False)
+    elf: ObjFile | None = field(repr=False)
     source: str = ""
     # relocations of every section of the object: section index -> offset -> Reloc
     obj_relocs: dict[int, dict[int, Reloc]] = field(default_factory=dict, repr=False)
@@ -218,18 +217,19 @@ def add_definition(out: dict[str, CompiledFunc], cf: CompiledFunc) -> str | None
             f"(different flags or compiler?): every copy is checked against the original")
 
 
-def _comdat_sections(elf: ELFFile) -> set[int]:
+def _comdat_sections(elf: ObjFile) -> set[int]:
     """Indices of the sections that are members of a COMDAT group."""
     out: set[int] = set()
-    for sec in elf.iter_sections():
-        if sec["sh_type"] == "SHT_GROUP":
-            words = struct.unpack(f"<{sec['sh_size'] // 4}I", sec.data())
+    for sec in elf.sections:
+        if sec.type == "SHT_GROUP":
+            data = sec.data()
+            words = struct.unpack(f"<{len(data) // 4}I", data[:len(data) - len(data) % 4])
             if words and words[0] & GRP_COMDAT:
                 out.update(words[1:])
     return out
 
 
-def _fingerprint(code: bytes, relocs: dict[int, Reloc], elf: ELFFile | None) -> tuple:
+def _fingerprint(code: bytes, relocs: dict[int, Reloc], elf: ObjFile | None) -> tuple:
     """Code bytes plus relocations, with section-relative targets described
     independently of the object's layout: the string itself for a merged-string
     section, the constant's bytes for a merged-constant section (.rodata.cst16),
@@ -240,12 +240,12 @@ def _fingerprint(code: bytes, relocs: dict[int, Reloc], elf: ELFFile | None) -> 
         if elf is not None and r.sym_type == "STT_SECTION" and isinstance(r.sym_shndx, int):
             sec = elf.get_section(r.sym_shndx)
             start = r.sym_value + r.addend
-            if sec["sh_flags"] & SHF_STRINGS and sec["sh_type"] != "SHT_NOBITS":
+            if sec.flags & SHF_STRINGS and sec.type != "SHT_NOBITS":
                 blob = sec.data()
                 end = blob.find(b"\0", start)
                 target = ("string", _path_key(blob[start:end if end >= 0 else len(blob)]))
-            elif sec["sh_flags"] & SHF_MERGE and sec["sh_entsize"] and sec["sh_type"] != "SHT_NOBITS":
-                target = ("const", sec.data()[start:start + sec["sh_entsize"]])
+            elif sec.flags & SHF_MERGE and sec.entsize and sec.type != "SHT_NOBITS":
+                target = ("const", sec.data()[start:start + sec.entsize])
             else:
                 target = (sec.name, start)
         rs.append((off, r.type, target))
@@ -264,9 +264,9 @@ def _path_key(s: bytes) -> bytes:
     return key if key.lower().startswith(_ROOT_KEY) else s
 
 
-def _symbol_name(s, source: str) -> str:
+def _symbol_name(s: elfobj.Symbol, source: str) -> str:
     """CSV name of an ELF symbol of the object compiled from `source`."""
-    local = s["st_info"]["bind"] == "STB_LOCAL" and s["st_info"]["type"] in ("STT_FUNC", "STT_OBJECT")
+    local = s.bind == "STB_LOCAL" and s.type in ("STT_FUNC", "STT_OBJECT")
     return symbols.qualify(s.name, source, local and bool(s.name))
 
 
@@ -366,45 +366,59 @@ def alias_groups(syms: list[tuple[str, object, int, int]]) -> dict[str, tuple[st
     return {n: tuple(o for o in names if o != n) for names in at.values() if len(names) > 1 for n in names}
 
 
+def _kept_contents(sec: elfobj.Section) -> bool:
+    """Sections whose contents read_object needs: the loaded ones (code, data,
+    literals) and the COMDAT group tables. Not the debug info."""
+    return bool(sec.flags & elfobj.SHF_ALLOC) or sec.type == "SHT_GROUP"
+
+
+def read_object(obj: Path, source: str) -> list[CompiledFunc]:
+    """The functions defined by object `obj`, compiled from `source`, in symbol
+    table order. Only the relocations of loaded sections are read: those of the
+    debug info (most of an object's relocations) can't be what code refers to."""
+    try:
+        elf = elfobj.parse(obj.read_bytes(), keep_contents=_kept_contents)
+    except elfobj.ElfError as e:
+        raise elfobj.ElfError(f"{obj}: {e}") from None
+    comdat = _comdat_sections(elf)
+    syms = elf.symbols
+    names = [_symbol_name(s, source) for s in syms]
+    rel_by_sec: dict[int, dict[int, Reloc]] = {}
+    for shndx, rels in elf.relocations.items():
+        rs = rel_by_sec[shndx] = {}
+        for off, typ, si, addend in rels:
+            s = syms[si]
+            rs[off] = Reloc(typ, names[si], s.type, s.shndx, s.value, addend)
+    func_syms = [(names[i], s) for i, s in enumerate(syms) if s.type == "STT_FUNC" and isinstance(s.shndx, int)]
+    aliases = alias_groups([(name, s.shndx, s.value, s.size) for name, s in func_syms])
+    offsets: dict[int, list[int]] = {}
+    out = []
+    for name, s in func_syms:
+        v, n = s.value, s.size
+        rs = rel_by_sec.get(s.shndx, {})
+        offs = offsets.get(s.shndx)
+        if offs is None:
+            offs = offsets[s.shndx] = sorted(rs)
+        relocs = {o - v: rs[o] for o in offs[bisect_left(offs, v):bisect_left(offs, v + n)]}
+        code = elf.get_section(s.shndx).data()[v:v + n]
+        mergeable = s.bind == "STB_WEAK" or (s.bind == "STB_GLOBAL" and s.shndx in comdat)
+        out.append(CompiledFunc(name, obj, code, relocs, elf, source, rel_by_sec, mergeable,
+                                _fingerprint(code, relocs, elf), aliases=aliases.get(name, ())))
+    return out
+
+
 def load_objects(build_dir: Path) -> dict[str, CompiledFunc]:
+    """Every function compiled in `build_dir`, by CSV name."""
     out: dict[str, CompiledFunc] = {}
     # Only objects of sources that currently exist (stale .o files of deleted
     # sources linger in the build dir), taken from compile_commands.json.
     cc = json.loads((build_dir / "compile_commands.json").read_text())
     sources = {(Path(e["directory"]) / e["output"]).resolve(): e["file"] for e in cc if "output" in e}
-    for obj in sorted(sources):
-        source = sources[obj]
+    for obj in sorted(sources):  # sorted: which copy of a weak function comes first (add_definition)
         if not obj.exists():
             continue
-        fh = open(obj, "rb")
-        elf = ELFFile(fh)
-        symtab = elf.get_section_by_name(".symtab")
-        if not isinstance(symtab, SymbolTableSection):
-            continue
-        comdat = _comdat_sections(elf)
-        rel_by_sec: dict[int, dict[int, Reloc]] = {}
-        for sec in elf.iter_sections():
-            if isinstance(sec, RelocationSection) and sec.is_RELA():
-                rs = rel_by_sec.setdefault(sec["sh_info"], {})
-                for r in sec.iter_relocations():
-                    s = symtab.get_symbol(r["r_info_sym"])
-                    rs[r["r_offset"]] = Reloc(r["r_info_type"], _symbol_name(s, source), s["st_info"]["type"],
-                                              s["st_shndx"], s["st_value"], r["r_addend"])
-        func_syms = [s for s in symtab.iter_symbols()
-                     if s["st_info"]["type"] == "STT_FUNC" and s["st_shndx"] not in ("SHN_UNDEF", "SHN_ABS")]
-        aliases = alias_groups([(_symbol_name(s, source), s["st_shndx"], s["st_value"], s["st_size"])
-                                for s in func_syms])
-        for s in func_syms:
-            sec = elf.get_section(s["st_shndx"])
-            v, n = s["st_value"], s["st_size"]
-            relocs = {off - v: r for off, r in rel_by_sec.get(s["st_shndx"], {}).items() if v <= off < v + n}
-            name = _symbol_name(s, source)
-            code = sec.data()[v:v + n]
-            bind = s["st_info"]["bind"]
-            mergeable = bind == "STB_WEAK" or (bind == "STB_GLOBAL" and s["st_shndx"] in comdat)
-            w = add_definition(out, CompiledFunc(name, obj, code, relocs, elf, source, rel_by_sec,
-                                                 mergeable, _fingerprint(code, relocs, elf),
-                                                 aliases=aliases.get(name, ())))
+        for cf in read_object(obj, sources[obj]):
+            w = add_definition(out, cf)
             if w:
                 print(f"warning ({build_dir.name}): {w}")
     return out
@@ -518,16 +532,15 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name,
         name = r.sym
         if r.sym_type == "STT_SECTION" or (not name or name.startswith(".L")):
             sec = cf.elf.get_section(r.sym_shndx) if isinstance(r.sym_shndx, int) else None
-            if sec is not None and not sec["sh_flags"] & SHF_STRINGS:
+            if sec is not None and not sec.flags & SHF_STRINGS:
                 # reference into a section of the same object: find the function
                 # (code) or object (data) symbol covering the target there
-                want = "STT_FUNC" if sec["sh_flags"] & SHF_EXECINSTR else "STT_OBJECT"
-                symtab = cf.elf.get_section_by_name(".symtab")
-                for s in symtab.iter_symbols():
-                    if s["st_shndx"] == r.sym_shndx and s["st_info"]["type"] == want \
-                            and s["st_value"] <= r.addend + r.sym_value < s["st_value"] + max(1, s["st_size"]):
+                want = "STT_FUNC" if sec.flags & SHF_EXECINSTR else "STT_OBJECT"
+                for s in cf.elf.symbols:
+                    if s.shndx == r.sym_shndx and s.type == want \
+                            and s.value <= r.addend + r.sym_value < s.value + max(1, s.size):
                         sname = _symbol_name(s, cf.source)
-                        delta = r.addend + r.sym_value - s["st_value"]
+                        delta = r.addend + r.sym_value - s.value
                         f = by_name.get(sname)
                         if f is not None and f.addr(v) is not None:
                             return f.addr(v) + delta, sname
@@ -554,11 +567,11 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name,
         if not isinstance(r.sym_shndx, int):
             raise LookupError
         sec = cf.elf.get_section(r.sym_shndx)
-        if sec["sh_type"] == "SHT_NOBITS":
+        if sec.type == "SHT_NOBITS":
             raise LookupError
         blob = sec.data()
         start = r.sym_value + r.addend
-        if sec["sh_flags"] & SHF_STRINGS:
+        if sec.flags & SHF_STRINGS:
             end = blob.find(b"\0", start)
             end = end + 1 if end >= 0 else len(blob)
             if paths is not None:
@@ -569,7 +582,7 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name,
                 if same is not None:
                     return None if same else f"source path {mine!r} names another file than the original's {theirs!r}"
         else:
-            end = start + (sec["sh_entsize"] or min(MAX_LITERAL, len(blob) - start))
+            end = start + (sec.entsize or min(MAX_LITERAL, len(blob) - start))
         ptrs = data_relocs(r.sym_shndx)
         label = verbose_name(r.sym) if r.sym else sec.name
         i = start
@@ -599,7 +612,7 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name,
                 if target != exp:
                     return f"{where}: pointer to {verbose_name(desc)} differs"
             elif target is not None and isinstance(dr.sym_shndx, int) \
-                    and cf.elf.get_section(dr.sym_shndx)["sh_flags"] & SHF_STRINGS:
+                    and cf.elf.get_section(dr.sym_shndx).flags & SHF_STRINGS:
                 err = literal_error(dr, target)  # pointer to a string: compare the string
                 if err:
                     return f"{where}: {err}"
@@ -681,7 +694,7 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name,
                     bad(off, f"low bits of {verbose_name(desc)} differ")
                 continue
             sec = cf.elf.get_section(r.sym_shndx) if isinstance(r.sym_shndx, int) else None
-            if otgt is not None and (r.sym_type == "STT_FUNC" or sec is not None and sec["sh_flags"] & SHF_EXECINSTR):
+            if otgt is not None and (r.sym_type == "STT_FUNC" or sec is not None and sec.flags & SHF_EXECINSTR):
                 hint = by_addr[v].get(otgt)
                 bad(off, f"address of unknown function {verbose_name(desc)} - original uses {otgt + BASE:#x} "
                          f"({hint.display_name if hint else '?'}); name it with tools/funcs.py name")
