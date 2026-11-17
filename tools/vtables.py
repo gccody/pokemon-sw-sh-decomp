@@ -832,6 +832,28 @@ def class_specs(m: Model, picked: dict[int, list[Member]], own: dict[int, tuple[
 SIMPLE_KINDS = ("ret", "constant", "zero", "null", "forward", "string")
 
 
+def intermediate_type(m: Model, f: int) -> int | None:
+    """The type object of the class between a hand-written base and the class
+    whose vf_type f is, when f inlines that class's getter too: five calls (two
+    guarded statics, then the base's getter out of line) instead of three. Its
+    type is the fourth static f loads from the GOT (guard, type, guard, type)."""
+    from nx.refs import decode, is_b_bl
+
+    n = m.sizes.get(f, 0)
+    calls, statics = [], []
+    for _, w, _, t in decode(m.img, f, n):
+        if t is None:
+            continue
+        if is_b_bl(w):
+            if not f <= t < f + n:  # not a branch within f
+                calls.append(t)
+        elif t in m.got and m.got[t] not in statics:
+            statics.append(m.got[t])
+    if len(calls) != 5 or len(statics) != 4 or not any(m.names.get(t, "").endswith("11Unk_GetTypeEv") for t in calls):
+        return None
+    return statics[3]
+
+
 def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], picked: dict[int, list[Member]],
                     own: dict[int, tuple[int, int]], seg, pickable, getter_ok) -> None:
     """Model the classes derived from hand-written base e (see ExternalBase)."""
@@ -889,7 +911,8 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
                     m.pattern(f) != m.pattern(f6) or not pickable(f) for f in thunks):
                 ok = False
             else:
-                extra.append(Member(e.type_slot, f6, "ext_type", "copy"))
+                inter = intermediate_type(m, f6)
+                extra.append(Member(e.type_slot, f6, "ext_type", "copy" if inter is None else ("copy", inter)))
                 extra += [Member(-1, f, "ext_thunk", (off, "vf_type"))
                           for f, (off, _, _) in zip(thunks, e.secondaries)]
         elif ok and overrides and t is None:
@@ -1160,10 +1183,20 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
     decl = [f"class {cls} : public {e.name} {{", "public:"]
     names: list[tuple[int, str]] = []
     defs: list[str] = []
+    inter = next((x.value[1] for x in spec.members if x.kind == "ext_type" and isinstance(x.value, tuple)), None)
+    parent = e.get_type
+    if inter is not None:
+        # A class between the base and this one, whose getter this one's
+        # inlines: only that getter is known, named after its type object.
+        parent = f"Unk_{inter:x}::Unk_GetType"
+        decl[:0] = [f"// The type between {e.name} and {cls} (its class isn't known yet).",
+                    f"struct Unk_{inter:x} {{", f"    static {TYPE} Unk_GetType() {{",
+                    f"        static Unk_239a418_Type type({e.get_type}());", "        return &type;", "    }",
+                    "};", ""]
     if e.type_slot in spec.order:
         # Its type, whose parent is the base's: inline, but too big to be
         # inlined into vf_type, which tail-calls it.
-        decl += [f"    static {TYPE} Unk_GetType() {{", f"        static Unk_239a418_Type type({e.get_type}());",
+        decl += [f"    static {TYPE} Unk_GetType() {{", f"        static Unk_239a418_Type type({parent}());",
                  "        return &type;", "    }", ""]
     inline_type = any(x.kind == "ext_type" and x.value is None for x in spec.members)
     for i in spec.order:
