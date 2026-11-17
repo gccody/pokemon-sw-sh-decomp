@@ -9,9 +9,9 @@ extern "C" {
 
 #include <bits/errno.h>
 
-#ifdef __GNUC__
-__attribute__((const))
-#endif
+/* NX: no __attribute__((const)). The SDK's libc doesn't declare
+ * __errno_location const: protobuf's FloatToBuffer (Sword 0x71006fee00) calls
+ * it again to read errno after strtof. See include/libc/README.md. */
 int *__errno_location(void);
 #define errno (*__errno_location())
 

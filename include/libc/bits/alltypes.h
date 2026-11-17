@@ -71,7 +71,10 @@ typedef struct { union { int __i[14]; volatile int __vi[14]; unsigned long __s[7
 #endif
 
 #if defined(__NEED_pthread_mutex_t) && !defined(__DEFINED_pthread_mutex_t)
-typedef struct { union { int __i[10]; volatile int __vi[10]; volatile void *volatile __p[5]; } __u; } pthread_mutex_t;
+/* NX: 0x20 bytes, not musl's 40. protobuf's Mutex::Mutex (Sword 0x71006fff70)
+ * allocates its Internal, which holds only a pthread_mutex_t, with
+ * operator new(0x20). See include/libc/README.md. */
+typedef struct { union { int __i[8]; volatile int __vi[8]; volatile void *volatile __p[4]; } __u; } pthread_mutex_t;
 #define __DEFINED_pthread_mutex_t
 #endif
 
