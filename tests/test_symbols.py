@@ -35,7 +35,7 @@ def test_split_round_trips():
 @pytest.mark.parametrize(
     "name",
     ["luaL_error", "_ZN4pkmn10GetVersionEv", "getfield@lauxlib", "utf8_decode.limits@lutf8lib",
-     "_ZN12_GLOBAL__N_13fooEv@Unk_7eef40"],
+     "_ZN12_GLOBAL__N_13fooEv@Unk_7eef40", ".L_MergedGlobals@descriptor.pb", ".L_MergedGlobals.3@lstrlib"],
 )
 def test_valid_names(name):
     assert symbols.is_valid_name(name)
@@ -43,7 +43,8 @@ def test_valid_names(name):
 
 @pytest.mark.parametrize(
     "name",
-    ["", "pkmn::GetVersion()", "get field", "getfield@", "@lauxlib", "a@b@c", "1abc", "getfield@lua/lauxlib"],
+    ["", "pkmn::GetVersion()", "get field", "getfield@", "@lauxlib", "a@b@c", "1abc", "getfield@lua/lauxlib",
+     ".L_MergedGlobals", ".L_str@lstrlib", ".rodata@lstrlib"],
 )
 def test_invalid_names(name):
     assert not symbols.is_valid_name(name)
