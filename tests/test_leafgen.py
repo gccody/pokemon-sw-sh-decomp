@@ -226,6 +226,15 @@ def test_global(monkeypatch):
         leafgen.generate(ADDR, code(adrp, ldr_x(8, 8, 0x18), ldr_w(0, 8, 0), RET))
 
 
+def test_guard_with_a_constant_and_a_store_before_it():
+    """str w1, [x0, #0x10] ; ldr x8, [x0, #8] ; cbz x8, L ; ldr w0, [x8] ; ret ; L: mov w0, #1 ; ret."""
+    _, func = leafgen.generate(ADDR, code(str_w(1, 0, 0x10), ldr_x(8, 0, 8), cbz_x(8, 3), ldr_w(0, 8, 0), RET,
+                                          0x52800020, RET))
+    assert func == ("u32 Unk_123450_update(Unk_123450* self, u32 value) {\n    self->field_10 = value;\n"
+                    "    if (self->field_8 == nullptr) {\n        return 1;\n    }\n"
+                    "    return self->field_8->field_0;\n}\n")
+
+
 def cbz_x(rt, insns):
     return 0xB4000000 | insns << 5 | rt  # cbz xN, +4*insns
 
@@ -249,8 +258,8 @@ def test_guarded_getter_returns_0_otherwise():
 
 
 @pytest.mark.parametrize("words, why", [
-    ((ldr_x(8, 0, 8), cbz_x(8, 2), ldr_w(0, 8, 0), 0x52800020, RET), "other code"),   # L: mov w0, #1
-    ((str_w(1, 0, 0x10), ldr_x(8, 0, 8), cbz_x(8, 2), str_w(1, 8, 0), RET), "after a store"),
+    ((ldr_x(8, 0, 8), cbz_x(8, 2), ldr_w(0, 8, 0), 0x52800020, RET), "falls"),   # into L: mov w0, #1
+    ((ldr_x(8, 0, 8), cbz_x(8, 2), ldr_w(0, 8, 0), 0xAA0103E0, RET), "other code"),  # L: mov x0, x1
     ((ldr_x(8, 0, 8), cbz_x(8, 3), cbz_x(8, 2), str_w(1, 8, 0), RET), "more than one"),
     ((cbz_x(1, 2), 0x14000000 | 0x40, 0x2A1F03E0, RET), "tail call"),   # 0, or what the tail call returns
 ])

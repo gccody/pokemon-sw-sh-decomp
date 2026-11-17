@@ -219,7 +219,9 @@ class Lifted:
     tail: int | None = None   # a final `b T`: T (absolute)
     args: list = field(default_factory=list)  # then: x0.. at the branch, up to the last one written
     guard: tuple | None = None  # (value, nonzero): the rest runs only if value != 0 (nonzero) or == 0
-    zero_else: bool = False   # if it doesn't, the function returns 0 (else nothing)
+    zero_else: bool = False   # if it doesn't, the function returns else_value (else nothing)
+    else_value: int = 0
+    guard_stores: int = 0     # the stores before the guard: they're done either way
 
 
 CALL_CODES = {"void*": "Pv", "bool": "b", "u8": "h", "s8": "a", "u16": "t", "s16": "s", "u32": "j", "s32": "i",
@@ -235,7 +237,7 @@ def callee_name(target: int, types: list[str]) -> tuple[str, str]:
 GUARDS = ("cbz", "cbnz")
 
 
-def guard_shape(insns: list[tuple[str, list[str]]], addr: int | None) -> tuple[int, list, bool] | None:
+def guard_shape(insns: list[tuple[str, list[str]]], addr: int | None) -> tuple[int, list, int | None] | None:
     """For one `cbz`/`cbnz r, L` that skips the rest of the function:
     (its index, the path that doesn't branch, whether the other returns 0).
 
@@ -253,17 +255,23 @@ def guard_shape(insns: list[tuple[str, list[str]]], addr: int | None) -> tuple[i
     if not k + 1 < to < len(insns):
         raise LiftError(f"{mn} out of the function")
     rest = [(m, [o.strip() for o in ops]) for m, ops in insns[to:]]
+    zero: int | None = None  # what the other path returns (None: nothing)
     if rest == [("ret", [])]:
-        zero = False
-    elif len(rest) == 2 and rest[1] == ("ret", []) and rest[0][0] == "mov" and rest[0][1] in (["w0", "wzr"],
-                                                                                               ["x0", "xzr"]):
-        zero = True
+        pass
+    elif len(rest) == 2 and rest[1] == ("ret", []) and rest[0][0] == "mov" and rest[0][1][0] in ("w0", "x0"):
+        src = rest[0][1][1]
+        if src in ("wzr", "xzr"):
+            zero = 0
+        elif src.startswith("#"):
+            zero = _imm(src) & ((1 << (32 if rest[0][1][0] == "w0" else 64)) - 1)
+        else:
+            raise LiftError(f"{mn} to other code")
     else:
         raise LiftError(f"{mn} to other code")
     path = insns[:to]
-    if zero and path[-1][0] != "ret":
-        # falls into the zero return, or returns a tail call's result (void here)
-        raise LiftError(f"{mn}: 0 or {'a tail call' if path[-1][0] == 'b' else 'more'}")
+    if zero is not None and path[-1][0] != "ret":
+        # falls into the other return, or returns a tail call's result (void here)
+        raise LiftError(f"{mn}: {'a tail call' if path[-1][0] == 'b' else 'the path falls'} or a constant")
     if path[-1][0] not in ("ret", "b"):
         path = path + [("ret", [])]
     return k, path, zero
@@ -278,7 +286,7 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
     also skip all that with one `cbz`/`cbnz` (guard_shape)."""
     insns = disassemble(code, addr or 0) if len(code) >= 4 and len(code) % 4 == 0 else []
     shape = guard_shape(insns, addr) if insns and insns[-1][0] == "ret" else None
-    k, zero = None, False
+    k, zero = None, None
     if shape is not None:
         k, insns, zero = shape
     tail = None
@@ -321,13 +329,13 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
 
     for idx, (mn, ops) in enumerate(insns[:-1]):
         if idx == k:
-            if out.stores:
-                raise LiftError(f"{mn} after a store")
             v = get(ops[0])
             if not isinstance(v, (Load, Arg)) or (isinstance(v, Load) and width_of(ops[0]) < WIDTH[v.type]):
                 raise LiftError(f"{mn} of a computed value")
             out.guard = (v, mn == "cbz")
-            out.zero_else = zero
+            out.guard_stores = len(out.stores)
+            out.zero_else = zero is not None
+            out.else_value = zero or 0
             continue
         if mn == "adrp" and addr is not None:
             dst, page = ops
@@ -897,12 +905,13 @@ class Emitter:
             return body
         v, nonzero = lf.guard
         w = 8 if self.is_pointer(v) or WIDTH.get(self.type_of(v), 8) == 8 else 4
+        before, body = body[:lf.guard_stores], body[lf.guard_stores:]  # done either way
         if lf.zero_else:
             test = self.cond(Cmp("eq" if nonzero else "ne", v, Const(0, w)))
-            zero = _const(0, ret_type)
-            return [f"    if ({test}) {{", f"        return {zero};", "    }", *body]
+            other = _const(lf.else_value, ret_type)
+            return [*before, f"    if ({test}) {{", f"        return {other};", "    }", *body]
         test = self.cond(Cmp("ne" if nonzero else "eq", v, Const(0, w)))
-        return [f"    if ({test}) {{", *("    " + line for line in body), "    }"]
+        return [*before, f"    if ({test}) {{", *("    " + line for line in body), "    }"]
 
     def function_name(self, ret_type: str) -> str:
         lf = self.lifted
