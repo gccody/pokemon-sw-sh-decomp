@@ -9,7 +9,6 @@ void Unk_f49c60(void* self);
 void Unk_f4a7a0(void* self);
 void Unk_f4ba90(void* self);
 void Unk_f4ce50(void* self);
-void Unk_f4dd20(void* self);
 
 class Unk_23fdce0 {
 public:
@@ -231,50 +230,4 @@ public:
 // 0x7100f4ce20
 void Unk_23fe130::vf0() {
     Unk_f4ce50(this);
-}
-
-class Unk_23fe1a0 {
-public:
-    virtual ~Unk_23fe1a0();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x7100f4dcb0
-void Unk_23fe1a0::vf6() {
-    Unk_f4dd20(this);
-}
-
-class Unk_23fe208 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100f4dce0
-void Unk_23fe208::vf5() {
-    Unk_f4dd20(this);
-}
-
-class Unk_23fe248 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100f4dcf0
-void Unk_23fe248::vf0() {
-    Unk_f4dd20(this);
 }
