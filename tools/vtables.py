@@ -39,6 +39,7 @@ from __future__ import annotations
 import argparse
 import bisect
 import csv
+import re
 import struct
 import sys
 from collections import Counter, defaultdict
@@ -348,8 +349,29 @@ def cmd_csv(m: Model, args) -> None:
 class Member:
     slot: int
     addr: int                       # the function (relative), for both games through functions.csv
-    kind: str                       # "dtor" (slots 0+1), "ret", "constant", "zero", "null"
+    kind: str                       # "dtor" (slots 0+1), "d0" (a derived class's D0), "ret", "constant", ...
     value: int = 0
+
+
+RTYPE = {"ret": "void", "constant": "u32", "zero": "u32", "null": "void*"}
+WRITTEN = re.compile(r"_ZN\d+(Unk_[0-9a-f]+)(?:D0|D2|\d+vf\d+)Ev")  # the names write gives
+
+
+@dataclass
+class ClassSpec:
+    """How `write` declares one placeholder class. Every file that declares
+    it declares it the same way, so this is decided once for all of them."""
+    v: Vtable
+    members: list[Member]           # the functions it defines, in one file or another
+    pair: str | None                # destructor_pair()
+    base: ClassSpec | None = None   # a derived class: its D2 is the base's, only its D0 is its own
+    inline_dtor: bool = False       # `virtual ~X() {}` in the class, for a derived D0 in another TU
+    order: list[int] = field(default_factory=list)  # a derived class's declared slots, key function first
+    rtypes: dict[int, str] = field(default_factory=dict)  # slot -> return type (a base's are its family's)
+
+    @property
+    def name(self) -> str:
+        return class_name(self.v)
 
 
 def class_name(v: Vtable) -> str:
@@ -391,6 +413,7 @@ def destructor_pair(m: Model, v: Vtable) -> str | None:
     return None
 
 
+
 def placeholder_members(m: Model, v: Vtable, own: dict[int, tuple[int, int]], pickable) -> list[Member]:
     """The members of v's class that write defines: the simple functions it owns."""
     out = []
@@ -412,49 +435,168 @@ def placeholder_members(m: Model, v: Vtable, own: dict[int, tuple[int, int]], pi
     return out
 
 
-def render_class(m: Model, v: Vtable, members: list[Member],
+def derived_order(d: Vtable, base: Vtable, members: list[Member], seg) -> list[int] | None:
+    """The slots a class derived from `base` declares, its key function first,
+    or None if none of its defined functions can be the key function.
+
+    It declares the slots where it differs from its base: overrides (slots
+    the base has) and new virtual functions (after them). Its key function,
+    the first non-pure virtual function it declares out of line, decides where
+    its vtable, and with it its implicit D0, is emitted: so it has to be one of
+    the functions it defines, in the D0's file. Overrides can be declared in
+    any order, new functions only in slot order, so a new function can only
+    move to the front when no other new function is declared before it."""
+    order = [i for i in range(2, len(d.slots)) if i >= len(base.slots) or d.slots[i] != base.slots[i]]
+    here = {x.slot for x in members if x.kind in RTYPE and seg(x.addr) == seg(d.slots[1])}
+    for n, i in enumerate(order):
+        new_before = any(j >= len(base.slots) for j in order[:n])
+        if i in here and (i < len(base.slots) or not new_before):
+            return [i, *order[:n], *order[n + 1:]]
+    return None
+
+
+def class_specs(m: Model, picked: dict[int, list[Member]], own: dict[int, tuple[int, int]],
+                seg, pickable) -> dict[int, ClassSpec]:
+    """A ClassSpec for every picked vtable, with the derived classes modelled.
+
+    A derived class is one whose destructor is implicit (or inline and empty)
+    and whose base's destructor is user-declared: clang uses the base's D2 for
+    its D2 (its slot 0 holds the base's), and its D0 is weak, emitted with its
+    vtable in the TU of its key function. When the base's D2 is empty and
+    visible there (inline, or defined in that TU) the D0 is a bare
+    `b operator delete` (docs/game_code.md, "Bases"). This models the classes
+    whose D0 is that, whose base is a picked class with its empty destructor
+    pair, and that define a function in the D0's TU to be their key function.
+    The base's destructor becomes inline when such a D0 is in another TU; then
+    the base needs a key function of its own in the TU of its destructors."""
+    by = {v.addr: v for v in m.vtables}
+    specs = {a: ClassSpec(by[a], ms, destructor_pair(m, by[a])) for a, ms in picked.items()}
+    for s in specs.values():
+        s.rtypes = {x.slot: RTYPE[x.kind] for x in s.members if x.kind in RTYPE}
+    guess = bases(m.vtables)
+    has_secondary = {v.group for v in m.vtables if v.group != v.addr}
+    families: dict[int, dict[int, str]] = {}
+    for a, d in sorted(specs.items()):
+        v = d.v
+        if v.offset_to_top != 0 or a in has_secondary or d.pair != "empty" or len(v.slots) < 2:
+            continue
+        s0, s1 = v.slots[:2]
+        if own.get(s0, (None,))[0] == a or own.get(s1) != (a, 1) or not pickable(s1):
+            continue
+        r = specs.get(own.get(s0, (None,))[0])
+        if r is None or guess.get(a, (None,))[0] != r.v.addr or not any(x.kind == "dtor" for x in r.members):
+            continue
+        order = derived_order(v, r.v, d.members, seg)
+        if order is None:
+            continue
+        inline = seg(r.v.slots[0]) != seg(s1)
+        if inline and not r.inline_dtor:
+            key = next((i for i in range(2, len(r.v.slots)) if isinstance(r.v.slots[i], int)), None)
+            if key is None or not any(x.slot == key and seg(x.addr) == seg(r.v.slots[0]) for x in r.members):
+                continue
+        family = families.setdefault(r.v.addr, r.rtypes)
+        mine = {x.slot: RTYPE[x.kind] for x in d.members if x.kind in RTYPE and x.slot < len(r.v.slots)}
+        if any(family.get(i, t) != t for i, t in mine.items()):
+            continue
+        family.update(mine)
+        d.base, d.order = r, order
+        d.members = [*d.members, Member(1, s1, "d0")]
+        r.inline_dtor |= inline
+    for d in specs.values():
+        if d.base is not None:
+            d.rtypes = {**{i: t for i, t in d.rtypes.items() if i >= len(d.base.v.slots)},
+                        **{i: t for i, t in d.base.rtypes.items() if i < len(d.base.v.slots)}}
+    return specs
+
+
+def render_class(m: Model, spec: ClassSpec,
                  here: list[Member] | None = None) -> tuple[str, list[tuple[int, str]], str]:
     """(class declaration, [(function, mangled name)], definitions).
 
-    The declaration comes from all of the class's `members`, so that every file
-    declaring the class declares it the same way; only `here` (default: all)
-    are defined."""
-    cls = class_name(v)
-    declared = {x.slot: x for x in members}
-    defined = {x.slot: x for x in (members if here is None else here)}
-    pair = destructor_pair(m, v)
-    decl = [f"class {cls} {{", "public:"]
+    The declaration comes from the spec alone, so that every file declaring
+    the class declares it the same way; only `here` (default: all of its
+    members) are defined, and named."""
+    v, cls, base = spec.v, spec.name, spec.base
+    defined = {x.slot: x for x in (spec.members if here is None else here)}
+    decl = [f"class {cls} : public {base.name} {{" if base else f"class {cls} {{", "public:"]
     names: list[tuple[int, str]] = []
     defs: list[str] = []
-    rtype = {"ret": "void", "constant": "u32", "zero": "u32", "null": "void*"}
-    start = 0
-    if pair is not None:
-        decl.append(f"    virtual ~{cls}();")
-        start = 2
-        if 0 in defined:
-            defs.append(f"// 0x{v.slots[0] + BASE:x}, 0x{v.slots[1] + BASE:x}\n{cls}::~{cls}() {{}}")
-            names += [(v.slots[0], mangle(cls, "D2")), (v.slots[1], mangle(cls, "D0"))]
-    for i in range(start, len(v.slots)):
+    if base is not None:
+        slots = spec.order
+        if 1 in defined:  # implicit: the D2 is the base's, the D0 comes with the vtable
+            names.append((v.slots[1], mangle(cls, "D0")))
+    else:
+        slots = list(range(2 if spec.pair is not None else 0, len(v.slots)))
+        if spec.pair is not None:
+            decl.append(f"    virtual ~{cls}() {{}}" if spec.inline_dtor else f"    virtual ~{cls}();")
+            if 0 in defined:
+                if not spec.inline_dtor:
+                    defs.append(f"// 0x{v.slots[0] + BASE:x}, 0x{v.slots[1] + BASE:x}\n{cls}::~{cls}() {{}}")
+                names += [(v.slots[0], mangle(cls, "D2")), (v.slots[1], mangle(cls, "D0"))]
+    for i in slots:
         f = v.slots[i]
+        rt = spec.rtypes.get(i, "void")
+        sig = f"{rt} vf{i}() override" if base is not None and i < len(base.v.slots) else f"virtual {rt} vf{i}()"
         if isinstance(f, str):
-            decl.append(f"    virtual void vf{i}() = 0;")
+            decl.append(f"    {sig} = 0;")
             continue
-        d = declared.get(i)
-        decl.append(f"    virtual {rtype[d.kind] if d else 'void'} vf{i}();")
+        decl.append(f"    {sig};")
         x = defined.get(i)
-        if x is None:
+        if x is None or x.kind not in RTYPE:
             continue
         body = {"ret": "{}", "constant": f"{{\n    return {x.value if x.value < 10 else hex(x.value)};\n}}",
                 "zero": "{\n    return 0;\n}", "null": "{\n    return nullptr;\n}"}[x.kind]
-        defs.append(f"// 0x{f + BASE:x}\n{rtype[x.kind]} {cls}::vf{i}() {body}")
+        defs.append(f"// 0x{f + BASE:x}\n{rt} {cls}::vf{i}() {body}")
         names.append((f, mangle(cls, f"vf{i}")))
     decl.append("};")
     return "\n".join(decl) + "\n", names, "\n\n".join(defs) + "\n"
 
 
+def render_file(m: Model, entries: list[tuple[ClassSpec, list[Member]]]) -> tuple[str, list[tuple[int, str]]]:
+    """One file's source and names: its classes in address order of what they
+    define here, each base declared before its first derived class."""
+    parts = ["// Scope: common",
+             "// Simple virtual functions between two static initialisers (one or more TUs).",
+             "// Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename",
+             "// them, and give the functions real signatures, once the classes are known.",
+             "#include <types.h>", ""]
+    here = {spec.v.addr: xs for spec, xs in entries}
+    done: set[int] = set()
+    names: list[tuple[int, str]] = []
+
+    def emit(spec: ClassSpec) -> None:
+        if spec.v.addr in done:
+            return
+        if spec.base is not None:
+            emit(spec.base)
+        done.add(spec.v.addr)
+        decl, ns, defs = render_class(m, spec, here.get(spec.v.addr, []))
+        parts.append(decl)
+        if defs.strip():
+            parts.append(defs)
+        names.extend(ns)
+
+    for spec, _ in sorted(entries, key=lambda e: min(x.addr for x in e[1])):
+        emit(spec)
+    return "\n".join(parts).rstrip("\n") + "\n", names
+
+
+def segment_starts(m: Model) -> list[int]:
+    """Where the static-initialiser segments of Sword's code start (tools/segments.py)."""
+    import segments
+    from common import load_module, nso_path
+    from nx.module import DynInfo
+    from nx.nso import Nso
+
+    nso = Nso(nso_path("sword").read_bytes())
+    dyn = DynInfo(nso, m.img, load_module("sword")["text_end"])
+    inits = set(segments.init_array_targets(segments.dynamic_tags(m.img, nso.mod0.dynamic), dyn.slots))
+    starts = [s for s, _ in m.funcs]
+    return sorted({starts[i + 1] for i, s in enumerate(starts[:-1]) if s in inits} | {0})
+
+
 def cmd_write(m: Model, args) -> None:
     """Placeholder classes for the simple virtual functions of game code."""
-    import segments
     from common import in_area, read_functions_csv
 
     rows = {f.sword: f for f in read_functions_csv() if f.sword is not None}
@@ -463,62 +605,63 @@ def cmd_write(m: Model, args) -> None:
         r = rows.get(f)
         return r is not None and r.status == "U" and not r.name and r.scope == "common"
 
+    holders: dict[int, set[str]] = defaultdict(set)
+    for v in m.vtables:
+        for f in v.slots:
+            holders[f].add(class_name(v))
+
+    def written(f: int) -> bool:
+        """Picked again: unnamed and undecompiled, or named by an earlier write
+        (a member of the class of a vtable that holds it)."""
+        r = rows.get(f)
+        if pickable(f):
+            return True
+        w = WRITTEN.fullmatch(r.name) if r is not None and r.scope == "common" else None
+        return w is not None and w.group(1) in holders[f]
+
     own = owners(m.vtables)
     groups = args.area or ["game", "gflib3", "gflnet3"]
-    picked: list[tuple[Vtable, list[Member]]] = []
+    picked: dict[int, list[Member]] = {}
     for v in m.vtables:
         if not any(in_area(vtable_area(m, v), g) for g in groups):
             continue
-        members = placeholder_members(m, v, own, pickable)
+        members = placeholder_members(m, v, own, written)
         if members:
-            picked.append((v, members))
-    # One file per static-initialiser segment, like src/unsorted/leaf: a class
-    # whose functions span segments is declared in each of their files.
-    from nx.module import DynInfo
-    from nx.nso import Nso
-    from common import load_module, nso_path
-    nso = Nso(nso_path("sword").read_bytes())
-    dyn = DynInfo(nso, m.img, load_module("sword")["text_end"])
-    inits = set(segments.init_array_targets(segments.dynamic_tags(m.img, nso.mod0.dynamic), dyn.slots))
-    starts = [s for s, _ in m.funcs]
-    seg_starts = sorted({starts[i + 1] for i, s in enumerate(starts[:-1]) if s in inits} | {0})
+            picked[v.addr] = members
+    seg_starts = segment_starts(m)
 
     def seg(f: int) -> int:
         return seg_starts[bisect.bisect_right(seg_starts, f) - 1]
 
-    files: dict[int, list[tuple[Vtable, list[Member], list[Member]]]] = defaultdict(list)
-    for v, members in picked:
+    specs = class_specs(m, picked, own, seg, written)
+    # One file per static-initialiser segment, like src/unsorted/leaf: a class
+    # whose functions span segments is declared in each of their files.
+    files: dict[int, list[tuple[ClassSpec, list[Member]]]] = defaultdict(list)
+    for spec in specs.values():
         by_seg: dict[int, list[Member]] = defaultdict(list)
-        for x in members:
+        for x in spec.members:
             by_seg[seg(x.addr)].append(x)
         for s, xs in by_seg.items():
-            files[s].append((v, members, xs))
+            files[s].append((spec, xs))
     out_dir = args.out
     out_dir.mkdir(parents=True, exist_ok=True)
+    for old in out_dir.glob("Unk_*.cpp"):  # everything here is written again (a file's name can change)
+        old.unlink()
     name_rows = []
-    n_funcs = 0
     for _, entries in sorted(files.items()):
-        entries.sort(key=lambda e: min(x.addr for x in e[2]))
-        first = min(x.addr for _, _, xs in entries for x in xs)
-        parts = ["// Scope: common",
-                 "// Simple virtual functions between two static initialisers (one or more TUs).",
-                 "// Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename",
-                 "// them, and give the functions real signatures, once the classes are known.",
-                 "#include <types.h>", ""]
-        for v, members, xs in entries:
-            decl, names, defs = render_class(m, v, members, xs)
-            parts += [decl, defs]
-            name_rows += names
-            n_funcs += len(names)
-        (out_dir / f"Unk_{first:x}.cpp").write_text("\n".join(parts).rstrip("\n") + "\n", encoding="utf-8",
-                                                     newline="\n")
+        first = min(x.addr for _, xs in entries for x in xs)
+        text, names = render_file(m, entries)
+        name_rows += names
+        (out_dir / f"Unk_{first:x}.cpp").write_text(text, encoding="utf-8", newline="\n")
     with open(args.names, "w", encoding="utf-8", newline="\n") as fh:
         fh.write("Name,Sword,Shield\n")
         for f, n in sorted(name_rows):
             r = rows[f]
             fh.write(f"{n},{r.sword_str},{r.shield_str}\n")
-    print(f"{n_funcs} functions of {len(picked)} classes in {len(files)} files; names in {args.names}",
-          file=sys.stderr)
+    derived = sum(s.base is not None for s in specs.values())
+    print(f"{len(name_rows)} functions of {len(specs)} classes ({derived} derived, "
+          f"{sum(s.inline_dtor for s in specs.values())} bases with an inline destructor) in {len(files)} files; "
+          f"names in {args.names}", file=sys.stderr)
 
 
 def main(argv: list[str] | None = None) -> int:

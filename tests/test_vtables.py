@@ -110,13 +110,20 @@ def test_destructor_pairs():
     assert V.destructor_pair(m, m.vtables[1]) is None
 
 
+def specs(m, seg=lambda f: 0):
+    own = V.owners(m.vtables)
+    picked = {v.addr: ms for v in m.vtables if (ms := V.placeholder_members(m, v, own, lambda f: True))}
+    return V.class_specs(m, picked, own, seg, lambda f: True)
+
+
 def test_placeholder_class():
     m = model()
     a, _, bvt = m.vtables
     own = V.owners(m.vtables)
     members = V.placeholder_members(m, a, own, lambda f: True)
     assert [(x.slot, x.kind, x.value) for x in members] == [(0, "dtor", 0), (2, "constant", 5)]
-    decl, names, defs = V.render_class(m, a, members)
+    spec = V.class_specs(m, {a.addr: members}, own, lambda f: 0, lambda f: True)[a.addr]
+    decl, names, defs = V.render_class(m, spec)
     assert decl == ("class Unk_1000 {\npublic:\n    virtual ~Unk_1000();\n    virtual u32 vf2();\n"
                     "    virtual void vf3();\n};\n")
     assert "Unk_1000::~Unk_1000() {}" in defs
@@ -125,9 +132,54 @@ def test_placeholder_class():
     # B doesn't own its slot 0 (A's D2), so its destructors aren't written; its own ret is.
     members = V.placeholder_members(m, bvt, own, lambda f: True)
     assert [(x.slot, x.kind) for x in members] == [(3, "ret")]
-    decl, names, _ = V.render_class(m, bvt, members)
-    assert "    virtual void vf4() = 0;\n" in decl
-    assert names == [(0x160, "_ZN8Unk_10483vf3Ev")]
+
+
+def test_derived_class():
+    """B's slot 0 is A's D2 and its D0 is `b operator delete`: B derives from A,
+    its destructor is implicit and its D0 is named. It declares only what
+    differs from A: slot 3 (an override, its key function) and slot 4 (new)."""
+    m = model()
+    a, _, bvt = m.vtables
+    s = specs(m)
+    b, base = s[bvt.addr], s[a.addr]
+    assert b.base is base and b.order == [3, 4] and not base.inline_dtor
+    assert [(x.slot, x.kind) for x in b.members] == [(3, "ret"), (1, "d0")]
+    decl, names, defs = V.render_class(m, b)
+    assert decl == ("class Unk_1048 : public Unk_1000 {\npublic:\n    void vf3() override;\n"
+                    "    virtual void vf4() = 0;\n};\n")
+    assert names == [(0x150, "_ZN8Unk_1048D0Ev"), (0x160, "_ZN8Unk_10483vf3Ev")]
+    assert "void Unk_1048::vf3() {}" in defs
+    text, names = V.render_file(m, [(b, b.members)])
+    assert text.index("class Unk_1000 {") < text.index("class Unk_1048 : public Unk_1000 {")
+    assert "~Unk_1000() {}" not in text      # A is only declared here: its destructor is defined elsewhere
+
+
+def test_derived_class_in_another_file_makes_the_base_destructor_inline():
+    m = model()
+    a, _, bvt = m.vtables
+    s = specs(m, seg=lambda f: 1 if f in (0x150, 0x160) else 0)
+    assert s[bvt.addr].base is s[a.addr] and s[a.addr].inline_dtor
+    decl, names, defs = V.render_class(m, s[a.addr])
+    assert "    virtual ~Unk_1000() {}\n" in decl and "~Unk_1000() {}" not in defs
+    # Still named in A's file: A's key function (vf2, defined there) emits its vtable and destructors.
+    assert names[:2] == [(0x100, "_ZN8Unk_1000D2Ev"), (0x110, "_ZN8Unk_1000D0Ev")]
+
+
+def test_derived_class_needs_a_key_function_in_its_d0s_file():
+    m = model()
+    _, _, bvt = m.vtables
+    assert specs(m, seg=lambda f: 1 if f == 0x150 else 0)[bvt.addr].base is None
+
+
+def test_derived_order():
+    """Overrides can move to the front; a new function only when no new one is before it."""
+    base = V.Vtable(0, 0, None, [1, 2, 3, 4])
+    d = V.Vtable(0, 0, None, [1, 9, 3, 13, 14, 15])
+    ms = [V.Member(3, 13, "ret"), V.Member(5, 15, "ret")]
+    assert V.derived_order(d, base, ms, lambda f: 0) == [3, 4, 5]
+    assert V.derived_order(d, base, ms[1:], lambda f: 0) is None
+    d = V.Vtable(0, 0, None, [1, 9, 3, 13, 14])
+    assert V.derived_order(d, base, [V.Member(4, 14, "ret")], lambda f: 0) == [4, 3]
 
 
 def test_mangle():
@@ -137,11 +189,10 @@ def test_mangle():
 
 def test_a_class_split_over_files_is_declared_the_same_in_each():
     m = model()
-    a = m.vtables[0]
-    members = V.placeholder_members(m, a, V.owners(m.vtables), lambda f: True)
-    dtor, constant = members
-    decl_1, names_1, defs_1 = V.render_class(m, a, members, [dtor])
-    decl_2, names_2, defs_2 = V.render_class(m, a, members, [constant])
+    spec = specs(m)[m.vtables[0].addr]
+    dtor, constant = spec.members
+    decl_1, names_1, defs_1 = V.render_class(m, spec, [dtor])
+    decl_2, names_2, defs_2 = V.render_class(m, spec, [constant])
     assert decl_1 == decl_2 and "    virtual u32 vf2();\n" in decl_1
     assert "~Unk_1000() {}" in defs_1 and "vf2" not in defs_1
     assert "vf2() {" in defs_2 and "~" not in defs_2
