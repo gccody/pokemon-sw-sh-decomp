@@ -520,3 +520,28 @@ def test_lifted_member_of_a_class_on_a_hand_written_base():
     assert not V._ext_lifted_ok(e, ev, inside, fields)          # a field of the base's
     other = V.Member(3, 0x130, "lifted", lifted=V.Lifted("bool", (), "    return field_78;\n", ((0x78, "u8"),), "Unk_130"))
     assert not V._ext_lifted_ok(e, ev, other, fields)           # the base declares vf3 as u32
+
+
+def test_out_of_line_parent():
+    """vf_type at 0x200: one guarded static, three calls (guard, getter, guard).
+    The getter at 0x700 has the object's shape (three guarded statics), so the
+    class is on another direct descendant of the object."""
+    img = bytearray(0x1100)
+
+    def got_loads(slots):
+        return [w for slot in slots for w in (0xB0000008, 0xF9400000 | ((slot - 0x1000) // 8) << 10 | 8 << 5 | 8)]
+
+    f = got_loads((0x1010, 0x1018))
+    pc = 0x200 + 4 * len(f)
+    f += [0x94000000 | ((t - (pc + 4 * i)) >> 2) for i, t in enumerate((0x400, 0x700, 0x500))] + [RET]
+    g = got_loads((0x1020, 0x1028, 0x1030, 0x1038, 0x1040, 0x1048)) + [RET]
+    struct.pack_into(f"<{len(f)}I", img, 0x200, *f)
+    struct.pack_into(f"<{len(g)}I", img, 0x700, *g)
+    sizes = {0x200: 4 * len(f), 0x700: 4 * len(g)}
+    got = {0x1010 + 8 * i: 0x3000 + 8 * i for i in range(8)}
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), [], [], sizes, {}, {}, lambda a: "game", DELETE, got)
+    e = V.ExternalBase(0x1010, "Unk_239a418", "h", (), 6, "Unk_239a418_GetType", ())
+    assert V.out_of_line_parent(m, 0x200, e) == 0x700
+    assert V.getter_type(m, 0x700) == 0x3018                  # its type: the second static it loads
+    other = V.ExternalBase(0x1010, "Unk_B", "h", (), 6, "Unk_B::Unk_GetType", ())
+    assert V.out_of_line_parent(m, 0x200, other) is None      # only for the object's family

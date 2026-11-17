@@ -864,6 +864,22 @@ def intermediate_type(m: Model, f: int) -> tuple[int, int] | None:
     return statics[3], once[0]
 
 
+def out_of_line_parent(m: Model, f: int, e: ExternalBase) -> int | None:
+    """The getter a vf_type f of a class on the object calls for its type's
+    parent, when that's another direct descendant's getter, out of line:
+    three calls (guard, getter, guard) and one guarded static, the getter one
+    whose type's parent is the object's (three statics deep, like
+    Unk_23d4470::Unk_GetType)."""
+    if e.get_type != "Unk_239a418_GetType":
+        return None
+    calls, statics = _calls_and_statics(m, f)
+    if len(calls) != 3 or len(statics) != 2 or len(set(calls)) != 3:
+        return None
+    g = calls[1]
+    _, gstatics = _calls_and_statics(m, g)
+    return g if len(gstatics) == 6 else None
+
+
 def getter_type(m: Model, g: int) -> int | None:
     """The type object getter g returns: the second static it loads (its guard first)."""
     _, statics = _calls_and_statics(m, g)
@@ -959,6 +975,19 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
                 ok = False
             else:
                 extra.append(Member(e.type_slot, f6, "ext_type", ("copy", it[0], x, it[1])))
+                extra += [Member(-1, f, "ext_thunk", (off, "vf_type"))
+                          for f, (off, _, _) in zip(thunks, e.secondaries)]
+        elif ok and overrides and t is None and isinstance(f6, int) and (g := out_of_line_parent(m, f6, e)) \
+                and (x := getter_type(m, g)) is not None \
+                and m.names.get(g, "") in ("", mangle(f"Unk_{x:x}", "Unk_GetType")) \
+                and all(m.pattern(f) == m.pattern(f6) for f in thunks):
+            # On another direct descendant of the object, whose getter is out
+            # of line: vf_type inlines its own getter, which calls that one,
+            # and its secondary type slots are copies of it.
+            if not pickable(f6) or any(not pickable(f) for f in thunks):
+                ok = False
+            else:
+                extra.append(Member(e.type_slot, f6, "ext_type", ("copy", None, x, g)))
                 extra += [Member(-1, f, "ext_thunk", (off, "vf_type"))
                           for f, (off, _, _) in zip(thunks, e.secondaries)]
         elif ok and overrides and t is None:
@@ -1249,11 +1278,15 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
             pre = [f"// A class on {e.name} whose type getter (0x{getter + BASE:x}) is out of line.",
                    f"struct Unk_{above:x} {{", f"    static {TYPE} Unk_GetType();", "};", ""]
             names.append((getter, mangle(f"Unk_{above:x}", "Unk_GetType")))
-        parent = f"Unk_{it:x}::Unk_GetType"
-        decl[:0] = [*pre, f"// The type between {e.name} and {cls} (its class isn't known yet).",
-                    f"struct Unk_{it:x} {{", f"    static {TYPE} Unk_GetType() {{",
-                    f"        static Unk_239a418_Type type({it_parent}());", "        return &type;", "    }",
-                    "};", ""]
+        if it is None:  # directly on that class
+            parent = it_parent
+            decl[:0] = pre
+        else:
+            parent = f"Unk_{it:x}::Unk_GetType"
+            decl[:0] = [*pre, f"// The type between {e.name} and {cls} (its class isn't known yet).",
+                        f"struct Unk_{it:x} {{", f"    static {TYPE} Unk_GetType() {{",
+                        f"        static Unk_239a418_Type type({it_parent}());", "        return &type;", "    }",
+                        "};", ""]
     if e.type_slot in spec.order:
         # Its type, whose parent is the base's: inline, but too big to be
         # inlined into vf_type, which tail-calls it.
