@@ -115,3 +115,28 @@ PKMN_OFFSET_ASSERT(Unk_ea4810, field_b0, 0xb0);
 u8* Unk_ea4810_getFieldb0Ptr(Unk_ea4810* self) {
     return &self->field_b0;
 }
+
+struct Unk_ea5d60 {
+    u8 _0[0x8];
+    u32 field_8;
+    u8 _c[0x4];
+    u32 field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_ea5d60, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_ea5d60, field_10, 0x10);
+
+// 0x7100ea5d60
+void Unk_ea5d60_set(Unk_ea5d60* self) {
+    self->field_10 = self->field_8;
+}
+
+struct Unk_ea5d70 {
+    u8 _0[0x10];
+    u32 field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_ea5d70, field_10, 0x10);
+
+// 0x7100ea5d70
+bool Unk_ea5d70_check(const Unk_ea5d70* self) {
+    return self->field_10 == 0;
+}

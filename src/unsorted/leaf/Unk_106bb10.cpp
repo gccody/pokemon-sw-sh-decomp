@@ -49,3 +49,30 @@ PKMN_OFFSET_ASSERT(Unk_106bb50, field_180, 0x180);
 u8* Unk_106bb50_getField180Ptr(Unk_106bb50* self) {
     return &self->field_180;
 }
+
+struct Unk_106c0e0 {
+    u8 _0[0x48];
+    u64 field_48;
+    u8 _50[0x58];
+    u64 field_a8;
+    u8 _b0[0x58];
+    u64 field_108;
+    u8 _110[0x58];
+    u64 field_168;
+    u8 _170[0x58];
+    u64 field_1c8;
+};
+PKMN_OFFSET_ASSERT(Unk_106c0e0, field_48, 0x48);
+PKMN_OFFSET_ASSERT(Unk_106c0e0, field_a8, 0xa8);
+PKMN_OFFSET_ASSERT(Unk_106c0e0, field_108, 0x108);
+PKMN_OFFSET_ASSERT(Unk_106c0e0, field_168, 0x168);
+PKMN_OFFSET_ASSERT(Unk_106c0e0, field_1c8, 0x1c8);
+
+// 0x710106c0e0
+void Unk_106c0e0_set(Unk_106c0e0* self) {
+    self->field_48 = 0;
+    self->field_a8 = 0;
+    self->field_108 = 0;
+    self->field_168 = 0;
+    self->field_1c8 = 0;
+}

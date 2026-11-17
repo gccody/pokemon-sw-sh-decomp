@@ -13,3 +13,14 @@ PKMN_OFFSET_ASSERT(Unk_117bf10, field_a0, 0xa0);
 u64 Unk_117bf10_getFielda0(const Unk_117bf10* self) {
     return self->field_a0;
 }
+
+struct Unk_117bf20 {
+    u8 _0[0xa0];
+    u64 field_a0;
+};
+PKMN_OFFSET_ASSERT(Unk_117bf20, field_a0, 0xa0);
+
+// 0x710117bf20
+u64 Unk_117bf20_get(const Unk_117bf20* self) {
+    return self->field_a0 - 1;
+}

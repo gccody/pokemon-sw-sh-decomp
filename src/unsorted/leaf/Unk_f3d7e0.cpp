@@ -36,6 +36,17 @@ void Unk_f3d800_setField6c(Unk_f3d800* self, u32 value) {
     self->field_6c = value;
 }
 
+struct Unk_f3d810 {
+    u8 _0[0x70];
+    u32 field_70;
+};
+PKMN_OFFSET_ASSERT(Unk_f3d810, field_70, 0x70);
+
+// 0x7100f3d810
+bool Unk_f3d810_check(const Unk_f3d810* self) {
+    return self->field_70 == 0;
+}
+
 struct Unk_f3db40 {
     u8 _0[0x760];
     u64 field_760;

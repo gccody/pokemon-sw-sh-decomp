@@ -135,6 +135,17 @@ void Unk_8c2610_clearField288(Unk_8c2610* self) {
     self->field_288 = 0;
 }
 
+struct Unk_8c2620 {
+    u8 _0[0x288];
+    u8 field_288;
+};
+PKMN_OFFSET_ASSERT(Unk_8c2620, field_288, 0x288);
+
+// 0x71008c2620
+void Unk_8c2620_set(Unk_8c2620* self) {
+    self->field_288 = 1;
+}
+
 struct Unk_8c2630 {
     u8 _0[0x288];
     u8 field_288;

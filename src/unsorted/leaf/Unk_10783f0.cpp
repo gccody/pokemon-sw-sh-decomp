@@ -135,5 +135,37 @@ u8* Unk_10784a0_getField230Ptr(Unk_10784a0* self) {
     return &self->field_230;
 }
 
+struct Unk_1078500_arg1 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_1078500_arg1, field_0, 0x0);
+
+struct Unk_1078500 {
+    u8 _0[0x210];
+    u64 field_210;
+};
+PKMN_OFFSET_ASSERT(Unk_1078500, field_210, 0x210);
+
+// 0x7101078500
+void Unk_1078500_set(Unk_1078500* self, const Unk_1078500_arg1* value) {
+    self->field_210 = value->field_0;
+}
+
+struct Unk_1078510_arg1 {
+    u32 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_1078510_arg1, field_0, 0x0);
+
+struct Unk_1078510 {
+    u8 _0[0x218];
+    u32 field_218;
+};
+PKMN_OFFSET_ASSERT(Unk_1078510, field_218, 0x218);
+
+// 0x7101078510
+void Unk_1078510_set(Unk_1078510* self, const Unk_1078510_arg1* value) {
+    self->field_218 = value->field_0;
+}
+
 // 0x7101078630
 void Unk_1078630() {}

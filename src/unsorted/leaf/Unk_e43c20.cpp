@@ -6,6 +6,17 @@
 // 0x7100e43c20
 void Unk_e43c20() {}
 
+struct Unk_e44e00 {
+    u8 _0[0x90];
+    u64 field_90;
+};
+PKMN_OFFSET_ASSERT(Unk_e44e00, field_90, 0x90);
+
+// 0x7100e44e00
+bool Unk_e44e00_check(const Unk_e44e00* self) {
+    return self->field_90 != 0;
+}
+
 // 0x7100e4cc50
 void Unk_e4cc50() {}
 

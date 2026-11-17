@@ -13,3 +13,14 @@ PKMN_OFFSET_ASSERT(Unk_8d7c80, field_6b4, 0x6b4);
 u32 Unk_8d7c80_getField6b4(const Unk_8d7c80* self) {
     return self->field_6b4;
 }
+
+struct Unk_8e04b0 {
+    u8 _0[0x188];
+    u64 field_188;
+};
+PKMN_OFFSET_ASSERT(Unk_8e04b0, field_188, 0x188);
+
+// 0x71008e04b0
+bool Unk_8e04b0_check(const Unk_8e04b0* self) {
+    return self->field_188 != 0;
+}
