@@ -520,9 +520,42 @@ hand-written classes' functions alone (`HANDWRITTEN`).
 
 check.py: 23,337 matching (21,959 before this batch), 106 not matching.
 
-Left of these families: 22 derived classes (18 have their type getter
-inline in `vf_type`, the others no key function write can define), the
-113 classes derived from the object directly, and the other groups of D0s
-that tail-call a shared D2 (63, 50, 21, ... classes), each waiting for its
-base to be written by hand the same way.
+### Batch 6: more hand-written bases, and the shapes of their families
 
+Three more bases (`EXTERNAL_BASES`), and the three shapes a derived class's
+type getter takes, which say how its TU was put together:
+
+| Shape | Its slot 6 and the secondary type slots | Written as |
+|---|---|---|
+| tail | `b T` and `b T`: T, its getter, isn't inlined (its parent's is) | `vf_type` out of line, the key function |
+| inline | the getter inlined into `vf_type`; `sub x0, x0, #N ; b <vf_type>` thunks | `vf_type` inline in the class (out of line, clang inlines it into the thunks); another function is the key |
+| copy | `vf_type` with the getter inlined, calling its base's getter out of line; the secondary slots are copies of it | `vf_type` out of line; the base and all its derived classes are one TU |
+
+- **`Unk_23f4318`** (in `Unk_23f43c8`'s TU): the object with its own type and
+  an out-of-line destructor, nothing else. 6 classes derive from it.
+- **`Unk_23d4470`**: three references, five 0x80-byte callables (a manager
+  that disposes of their storage) and a fourth reference, in one TU with
+  its 63 derived classes (`0x7100bba3d0`-`0x7100c23050`), which is why its
+  getter is called, not inlined, by theirs (`shared_tu`). Its own
+  definitions are `src/unsorted/Unk_23d4470.inl`, which the TU's generated
+  file includes (`source`). 61 classes derive from it; the other 2 have
+  another type in between (a 168-byte `vf_type`).
+- **The object itself** (`inline_dtor`: its destructor is inline, so a
+  derived D0 and its thunks are copies of it). Of its 113 direct
+  descendants, 58 have the inline shape, but only 1 defines a function write
+  can make its key function; the others only have undecompiled ones. 35
+  store a type created by an out-of-line function (`0x7100603810`), and 14
+  have another type in between.
+
+A class's getter may now be called by other code of the class; it only
+isn't its own when another vtable function calls it.
+
+check.py: 23,869 matching (23,337 before this batch), 106 not matching.
+
+Left of these families: the classes above that have no key function write
+can define, the object's direct descendants with other type shapes, and
+the bases of the remaining groups of D0s that tail-call a shared D2 (50,
+21, 16, 14, 12, ... classes). Those bases are bigger: 17 to 69 slots, and
+destructors that release owned objects, hashed-name handles (the FNV-1a
+hash of "", `0xcbf29ce484222645`) and members with out-of-line
+destructors.
