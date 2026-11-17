@@ -278,6 +278,24 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
             else:
                 t = int_type(8 if kind == "x" else 4)
             out.stores.append((get(f"x{base}"), off, t, get(src)))
+        elif mn in ("ldp", "stp"):
+            # A pair: two loads or stores of adjacent fields (base + immediate only:
+            # writeback and sp, a frame, are refused by _mem).
+            r1, r2, mem = ops
+            base, off = _mem(mem)
+            kind = _reg(r1)[0]
+            if kind not in ("w", "x"):
+                raise LiftError(f"{mn} of {kind} registers")
+            w = 8 if kind == "x" else 4
+            t = int_type(w)
+            b = get(f"x{base}")
+            if mn == "ldp":
+                first, second = Load(b, off, t), Load(b, off + w, t)
+                put(r1, first)
+                put(r2, second)
+            else:
+                out.stores.append((b, off, t, get(r1)))
+                out.stores.append((b, off + w, t, get(r2)))
         elif mn == "mov":
             dst, src = ops
             if src.startswith("#"):
