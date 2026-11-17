@@ -50,6 +50,17 @@ def test_overwriting_the_page_register_ends_the_pair():
     assert add[2] == 0x91004100
 
 
+def test_a_load_into_the_page_register_ends_the_pair():
+    """adrp x8 ; ldr x8, [x8, #8] (a GOT slot) ; add x8, x8, #0x10: the add is
+    on what the slot held (a vtable's _ZTV + 16), not on the page."""
+    _, ldr, add = run([0xB0000008, 0xF9400508, 0x91004108])
+    assert ldr[3] == 0x2008
+    assert add[3] is None
+    # a load into another register keeps it
+    _, ldr, add = run([0xB0000008, 0xF9400509, 0x91004108])  # ldr x9, [x8, #8] ; add x8, x8, #0x10
+    assert add[3] == 0x2010
+
+
 def test_moved_code_masks_identically():
     """Same function with different call/page offsets, as when it moved between games."""
     a = run([0x94000040, 0xB0000008, 0x91004100, RET])
