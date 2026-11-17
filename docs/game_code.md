@@ -17,7 +17,7 @@ in link order:
 | `gflib3` | `0x7100596d20`-`0x710069d6e0` | 4,587 | `lib/gflib3/src/mem/...` source paths, heap names (`GlobalHeap`, `DebugHeap`), FileManager, render paths and shaders, movie player, hid |
 | `gflnet3` | `0x710069d6e0`-`0x71006dea00` | 1,521 | `lib/gflnet3/src/p2p/...` source paths (its protobuf messages), bcat, nifm, Pia sessions, an HTTP thread on libcurl |
 | `protobuf` | `0x71006dea00`-`0x7100761f70` | 1,622 | Protocol Buffers **3.0.0**, from `lib/gflnet3/external/include/google/protobuf/*.cc` |
-| `game` | `0x7100761f70`-`0x7101548410` | 67,162 | everything from `prog/`, starting with pml (`bin/pml/...` loaders) |
+| `game/...` | `0x7100761f70`-`0x7101548410` | 67,162 | everything from `prog/`, starting with pml (`bin/pml/...` loaders). Split into subsystems below |
 
 How the boundaries were placed:
 
@@ -57,14 +57,72 @@ few libc++/NEX templates. None of the 2,218 vtables that have one is a Game
 Freak class. So class names can't come from typeinfo. Vtables still exist,
 with a null typeinfo slot.
 
-The `game` area is still one row. Inside `prog/`, the string evidence is
-sparse and interleaved: only 3,879 of its ~75,000 functions reference a
-string at all. It does show clusters: `bin/appli/bag` around `0x71007952f0`,
-`prog/battle/battle_logic` at `0x710089db10`-`0x71008bf2e0`,
-`prog/network/net_contents` at `0x7100fea950`-`0x7101042f70`,
-`prog/contents/pokecamp` at `0x710114a650`-`0x7101156e40`, and the Pokédex
-app at the end. Their edges still need TU-level evidence before they can
-become rows.
+## Subsystems
+
+The `prog/` code (`0x7100761f70`-`0x7101548410`, 67,162 functions) is split
+into rows named `game/<subsystem>`, and `game/unk_<address>` for the stretches
+between them that aren't placed yet. `--area game` (`funcs.py`,
+`fingerprint.py`, `segments.py`) still covers all of it.
+
+Strings alone can't do this. Only 3,879 of these functions reference a string,
+`__FILE__` paths appear only in the generated protobuf code, and resource
+paths are referenced from all over (every app loads the common fonts and
+message windows, and several load another app's layouts). Two more kinds of
+evidence make it work:
+
+- **Segments.** clang emits a TU's static initialiser after the TU's other
+  functions, so each `.init_array` entry ends a TU. `tools/segments.py`
+  splits code at those entries: 1,089 segments in `prog/`, the same in both
+  games. A segment is one or more whole TUs, so a boundary between two
+  segments can't split a TU. Every boundary below is one. Many of Game
+  Freak's TUs have an initialiser: the box app's states, for example, are a
+  segment of about 13 functions each (`View_Top` and the state's name).
+- **Names and calls.** The generated protobuf TUs are named (see
+  "Generated protobuf messages" in docs/compiler.md), each between two
+  initialisers, and their namespaces say which `prog/` directory they're
+  from. Their callers are the subsystem's own code. `segments.py` lists each
+  segment's named namespaces (`own`) and the named namespaces it calls.
+
+A row is a run of segments in which every segment that references anything
+names the subsystem: its `.pb.cc` namespace, calls into it, its layouts
+(`bin/appli/<app>/...`), its state and view names (`BagStateStart`,
+`StateBtlSpotTop`, `PokeStatusInfoView`), sound events or message labels.
+Strings that six or more segments reference (fonts, `CommonOptionBar`,
+`anime_in`, the shared skybox and PC-door models) don't count either way.
+A segment at either end that also holds another subsystem's code stays out
+of the row, even when the subsystem starts inside it: the boundary can only
+go between segments. The `Evidence` column of each row says what it found.
+
+| Area | Sword | Functions | Evidence |
+|---|---|---:|---|
+| `game/bag` | `0x710079d210`-`0x71007bf610` | 610 | `bin/appli/bag`, `BagState*`/`BagView*` in all 3 segments. The bag's first functions (from `0x71007952f0`) share a segment with Wwise bank and font setup |
+| `game/battle_logic` | `0x7100891a20`-`0x71008bf520` | 1,487 | 20 `.pb.cc` TUs (`btl::net`, `source/net` and `source/netwatch`), the segments between them, and 2 before them that only call `btl::net` |
+| `game/pokebox` | `0x7100a77140`-`0x7100ab9140` | 995 | `common/box.dat`, the box's views, one segment per box state (`boxtray_in`, `pokeicon_get`, `wallpaper`, ...), `bin/appli/pokebox` |
+| `game/btl_spot` | `0x7100ac15f0`-`0x7100b2b110` | 2,422 | 2 `.pb.cc` TUs (`contents::btl_spot`), `bin/appli/btl_spot`, `StateBtlSpot*`/`ViewBtlSpot*` in 20 of 21 segments |
+| `game/comp_organize` | `0x7100ba5d90`-`0x7100bba3d0` | 394 | 3 `.pb.cc` TUs (`ontents::comp_organize`, Game Freak's spelling) and the competition app before them, which calls them |
+| `game/net_contents/live` | `0x7100fe3340`-`0x7100ff22f0` | 398 | `.pb.cc` TUs of `battle/live` and `battle/poke_select` (`net_contents::battle`) and the segment that calls them |
+| `game/net_contents/nbr` | `0x7100ff91e0`-`0x71010431f0` | 1,950 | `.pb.cc` TUs of `battle/nbr`, `nesthole`, `trade/box`, `trade/common`, the segments between them and the one before them (105 calls into `net_contents::battle`) |
+| `game/pokecamp` | `0x7101114050`-`0x7101290e40` | 7,311 | 6 `.pb.cc` TUs (`contents::pokecamp`) and 102 segments around them: 56 name camp things (`Play_Camp_*`, `msg_pokecamp_*`, `bin/appli/pokecamp*`, curry and cooking), the other evidenced ones are camp scenes (tent, ball throw, greetings, the ingredient bag) |
+| `game/status` | `0x71012ca770`-`0x71012ed1a0` | 469 | `common/status.dat`, `PokeStatus*`, `bin/appli/status` in 16 of 17 segments |
+| `game/pokedex` | `0x710151bfb0`-`0x7101548410` | 845 | `bin/appli/pokedex`, `ZKN_*` labels; the segment before starts with `xmenu_net` |
+
+Shield's boundaries are the same functions (from `game/net_contents/live` on,
+`0x30` later; the end is Lua's start, `0x71015484b0`). The confidence is
+medium: inside a row every evidenced segment names the subsystem, but the
+subsystem can extend past it into a mixed or silent segment, and a silent
+segment inside a row (no strings, no names, no calls) is assumed to belong.
+
+`net_contents` is two rows because the 5 segments between them
+(`0x7100ff22f0`-`0x7100ff91e0`) reference `Play_UI_common_report` and
+`gpoke` and nothing of `net_contents`. They may well be its code, but nothing
+says so.
+
+What isn't placed yet (the 10 `game/unk_*` rows, 50,281 functions) needs the same kind of
+evidence. `segments.py game/unk_bba3d0 --grep <pattern>` finds the segments
+that name a candidate, and the runs above came from exactly that. Clear
+candidates with fewer or less uniform segments are the battle app
+(`bin/appli/battle`), xmenu, the live tournament, mystery gift, the trainer
+license apps and the Poké Job (`pw`) app.
 
 ## The tiny functions
 

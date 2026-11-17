@@ -68,6 +68,7 @@ python tools/get_physx.py                                # once: lib/physx's v3.
 python tools/protos.py generate                          # protoc 3.0.0 output for src/**/*.proto (not in git)
 python tools/funcs.py list --status U --max 64 -n 20     # find small undecompiled functions
 python tools/funcs.py patterns --area game --status U --max 8   # group by pattern + how reached (docs/game_code.md)
+python tools/segments.py game/pokecamp                   # TU runs between static initialisers + their evidence
 python tools/funcs.py show 0x7100bc0b00                  # original asm (both games if diverged)
 python tools/funcs.py name 0x7100bc0b00 _ZN4pkmn3FooEv   # assign a mangled name
 python tools/check.py _ZN4pkmn3FooEv --diff              # build both games, compare, show diff
@@ -117,7 +118,9 @@ Write it only through the tools (`funcs.py`, `check.py --update`,
 
 `data/areas.csv` is small and edited by hand. Each row has a range per game
 (`SwordStart,SwordEnd,ShieldStart,ShieldEnd`), with boundaries at function
-starts. Move a boundary in both games, then run `tools/lint.py`.
+starts. Move a boundary in both games, then run `tools/lint.py`. Names are
+paths (`game/pokecamp`; `--area game` covers every `game/...` row). Put a
+game-code boundary between `tools/segments.py` segments, and give the evidence.
 
 ## Workflow for decompiling a function
 
