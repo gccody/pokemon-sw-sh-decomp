@@ -37,3 +37,56 @@ public:
 
 // 0x71010cb4d0
 void Unk_24142a0::vf9() {}
+
+class Unk_2414428 {
+public:
+    virtual ~Unk_2414428();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6(u64 value);
+    virtual u64 vf7();
+    virtual u8 vf8();
+    virtual void vf9(u32 value);
+    virtual u32 vf10();
+    virtual void vf11();
+    u64 field_8;
+    u8 field_10;
+    u8 _11[0x3];
+    u32 field_14;
+};
+PKMN_OFFSET_ASSERT(Unk_2414428, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_2414428, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_2414428, field_14, 0x14);
+
+// 0x71010cc8f0
+void Unk_2414428::vf5() {
+    field_14 = 0;
+    field_10 = 1;
+}
+
+// 0x71010cc900
+void Unk_2414428::vf6(u64 value) {
+    field_8 = value;
+}
+
+// 0x71010cc910
+u64 Unk_2414428::vf7() {
+    return field_8;
+}
+
+// 0x71010cc920
+u8 Unk_2414428::vf8() {
+    return field_10;
+}
+
+// 0x71010cba70
+void Unk_2414428::vf9(u32 value) {
+    field_14 = value;
+}
+
+// 0x71010cba60
+u32 Unk_2414428::vf10() {
+    return field_14;
+}

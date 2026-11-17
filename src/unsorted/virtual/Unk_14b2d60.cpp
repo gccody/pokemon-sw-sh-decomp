@@ -356,11 +356,13 @@ public:
     virtual void vf3();
     virtual void vf4();
     virtual u32 vf5();
-    virtual void vf6();
+    virtual bool vf6();
     virtual void* vf7();
     virtual void* vf8();
     virtual void* vf9();
+    u64 field_8;
 };
+PKMN_OFFSET_ASSERT(Unk_24430f0, field_8, 0x8);
 
 // 0x71014bcf80
 void Unk_24430f0::vf1() {}
@@ -371,6 +373,11 @@ void Unk_24430f0::vf3() {}
 // 0x71014bcf40
 u32 Unk_24430f0::vf5() {
     return 0;
+}
+
+// 0x71014bacc0
+bool Unk_24430f0::vf6() {
+    return field_8 != 0xffffffffffffffff;
 }
 
 // 0x71014bcf50

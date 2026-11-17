@@ -19,9 +19,21 @@ public:
     virtual void vf11();
     virtual void vf12();
     virtual void vf13();
+    u8 _8[0xc];
+    u32 field_14;
+    u8 _18[0x2a];
+    u8 field_42;
 };
+PKMN_OFFSET_ASSERT(Unk_2416118, field_14, 0x14);
+PKMN_OFFSET_ASSERT(Unk_2416118, field_42, 0x42);
 
 // 0x71010e4410
 u32 Unk_2416118::vf3() {
     return 1;
+}
+
+// 0x71010e4420
+void Unk_2416118::vf12() {
+    field_42 = 1;
+    field_14 = 2;
 }

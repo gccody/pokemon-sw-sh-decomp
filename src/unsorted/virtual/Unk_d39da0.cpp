@@ -20,10 +20,18 @@ public:
     virtual void vf11();
     virtual void vf12();
     virtual void vf13();
-    virtual void vf14();
+    virtual bool vf14();
+    u8 _8[0xd0];
+    u32 field_d8;
 };
+PKMN_OFFSET_ASSERT(Unk_23e99f0, field_d8, 0xd8);
 
 // 0x7100d39da0
 u32 Unk_23e99f0::vf9() {
     return 0;
+}
+
+// 0x7100d3a350
+bool Unk_23e99f0::vf14() {
+    return field_d8 != 0xffffffff;
 }

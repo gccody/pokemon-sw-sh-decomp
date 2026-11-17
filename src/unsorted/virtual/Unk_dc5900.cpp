@@ -437,11 +437,26 @@ public:
     virtual void vf10();
     virtual void vf11();
     virtual void vf12();
+    u8 _8[0x218];
+    u32 field_220;
+    u32 field_224;
 };
+PKMN_OFFSET_ASSERT(Unk_23f06c0, field_220, 0x220);
+PKMN_OFFSET_ASSERT(Unk_23f06c0, field_224, 0x224);
+
+// 0x7100dd7460
+void Unk_23f06c0::vf2() {
+    field_220 = 0;
+}
 
 // 0x7100dd7470
 void Unk_23f06c0::vf3() {
     Unk_dcf560(this);
+}
+
+// 0x7100dd7480
+void Unk_23f06c0::vf4() {
+    field_224 = 0;
 }
 
 // 0x7100dd7490

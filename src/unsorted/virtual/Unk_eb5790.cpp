@@ -80,11 +80,19 @@ public:
     virtual void vf14();
     virtual void vf15();
     virtual void vf16();
+    u8 _8[0x5d8];
+    u8 field_5e0;
 };
+PKMN_OFFSET_ASSERT(Unk_23f5fa8, field_5e0, 0x5e0);
 
 // 0x7100eb6090
 void Unk_23f5fa8::vf6() {
     Unk_eb6100(this);
+}
+
+// 0x7100eb5f60
+void Unk_23f5fa8::vf10() {
+    field_5e0 = 1;
 }
 
 class Unk_23f6040 {

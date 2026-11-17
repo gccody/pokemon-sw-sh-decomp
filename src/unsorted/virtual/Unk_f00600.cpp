@@ -961,11 +961,19 @@ public:
     virtual void vf14();
     virtual void vf15();
     virtual void vf16();
+    u8 _8[0x5c4];
+    u32 field_5cc;
 };
+PKMN_OFFSET_ASSERT(Unk_23fb0b8, field_5cc, 0x5cc);
 
 // 0x7100f0cbb0
 void Unk_23fb0b8::vf6() {
     Unk_f05610(this);
+}
+
+// 0x7100f0c810
+void Unk_23fb0b8::vf10() {
+    field_5cc = 1;
 }
 
 class Unk_23fb150 {

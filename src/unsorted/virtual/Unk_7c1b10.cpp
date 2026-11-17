@@ -36,6 +36,21 @@ u32 Unk_23aa418::vf0() {
     return 2;
 }
 
+class Unk_23aa448 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual bool vf5(u32 value);
+};
+
+// 0x71007c2270
+bool Unk_23aa448::vf5(u32 value) {
+    return value == 0xe5;
+}
+
 class Unk_23aa4b8 {
 public:
     virtual void vf0();

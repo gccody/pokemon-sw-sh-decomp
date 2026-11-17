@@ -66,6 +66,23 @@ void Unk_240b280::vf0() {
     Unk_104ca50(this);
 }
 
+class Unk_240b2a8 {
+public:
+    virtual ~Unk_240b2a8();
+    virtual void vf2();
+    virtual u64 vf3();
+    virtual void vf4();
+    virtual void vf5();
+    u8 _8[0x50];
+    u64 field_58;
+};
+PKMN_OFFSET_ASSERT(Unk_240b2a8, field_58, 0x58);
+
+// 0x710104d1c0
+u64 Unk_240b2a8::vf3() {
+    return field_58;
+}
+
 class Unk_240b2e8 {
 public:
     virtual u32 vf0();

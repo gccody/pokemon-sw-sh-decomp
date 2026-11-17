@@ -77,11 +77,19 @@ public:
     virtual void vf8();
     virtual void vf9();
     virtual void vf10();
+    u8 _8[0x60];
+    u32 field_68;
 };
+PKMN_OFFSET_ASSERT(Unk_23eebc0, field_68, 0x68);
 
 // 0x7100da3240
 u32 Unk_23eebc0::vf7() {
     return 1;
+}
+
+// 0x7100da3250
+void Unk_23eebc0::vf8() {
+    field_68 = 0;
 }
 
 // 0x7100da34a0

@@ -211,12 +211,20 @@ public:
     virtual void vf3();
     virtual void vf4();
     virtual void vf5();
-    virtual void vf6();
+    virtual u64 vf6();
     virtual void vf7();
+    u8 _8[0x1b0];
+    u64 field_1b8;
 };
+PKMN_OFFSET_ASSERT(Unk_2444020, field_1b8, 0x1b8);
 
 // 0x71014dbcc0
 void Unk_2444020::vf5() {}
+
+// 0x71014dbb60
+u64 Unk_2444020::vf6() {
+    return field_1b8;
+}
 
 class Unk_24440a0 {
 public:
@@ -244,6 +252,23 @@ public:
 
 // 0x71014dd690
 void Unk_2444238::vf5() {}
+
+class Unk_2444280 {
+public:
+    virtual ~Unk_2444280();
+    virtual void vf2();
+    virtual u64 vf3();
+    virtual void vf4();
+    virtual void vf5();
+    u8 _8[0x70];
+    u64 field_78;
+};
+PKMN_OFFSET_ASSERT(Unk_2444280, field_78, 0x78);
+
+// 0x71014dde20
+u64 Unk_2444280::vf3() {
+    return field_78;
+}
 
 class Unk_24442c0 {
 public:
@@ -286,6 +311,23 @@ u32 Unk_24442f0::vf7() {
     return 1;
 }
 
+class Unk_2444400 {
+public:
+    virtual ~Unk_2444400();
+    virtual void vf2();
+    virtual u64 vf3();
+    virtual void vf4();
+    virtual void vf5();
+    u8 _8[0x50];
+    u64 field_58;
+};
+PKMN_OFFSET_ASSERT(Unk_2444400, field_58, 0x58);
+
+// 0x71014deda0
+u64 Unk_2444400::vf3() {
+    return field_58;
+}
+
 class Unk_2444440 {
 public:
     virtual u32 vf0();
@@ -311,6 +353,23 @@ public:
 
 // 0x71014e0aa0
 void Unk_2444470::vf5() {}
+
+class Unk_24444b8 {
+public:
+    virtual ~Unk_24444b8();
+    virtual void vf2();
+    virtual u64 vf3();
+    virtual void vf4();
+    virtual void vf5();
+    u8 _8[0x50];
+    u64 field_58;
+};
+PKMN_OFFSET_ASSERT(Unk_24444b8, field_58, 0x58);
+
+// 0x71014e11c0
+u64 Unk_24444b8::vf3() {
+    return field_58;
+}
 
 class Unk_24444f8 {
 public:
