@@ -4,6 +4,11 @@
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
 
+// Called by forwarders. Placeholders: their real signatures aren't known.
+void Unk_da87b0(void* self);
+void Unk_da9070(void* self);
+void Unk_dab2e0(void* self);
+
 class Unk_23ef248 {
 public:
     virtual ~Unk_23ef248();
@@ -18,6 +23,11 @@ public:
     virtual void vf10();
 };
 
+// 0x7100da8740
+void Unk_23ef248::vf6() {
+    Unk_da87b0(this);
+}
+
 // 0x7100da8580
 u32 Unk_23ef248::vf7() {
     return 1;
@@ -28,6 +38,33 @@ void Unk_23ef248::vf8() {}
 
 // 0x7100da8720
 void Unk_23ef248::vf10() {}
+
+class Unk_23ef2b0 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+};
+
+// 0x7100da8770
+void Unk_23ef2b0::vf5() {
+    Unk_da87b0(this);
+}
+
+class Unk_23ef2f0 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+};
+
+// 0x7100da8780
+void Unk_23ef2f0::vf0() {
+    Unk_da87b0(this);
+}
 
 class Unk_23ef318 {
 public:
@@ -44,6 +81,11 @@ public:
     virtual void vf10();
 };
 
+// 0x7100da8ec0
+void Unk_23ef318::vf6() {
+    Unk_da9070(this);
+}
+
 // 0x7100da8b40
 u32 Unk_23ef318::vf7() {
     return 1;
@@ -54,3 +96,53 @@ void Unk_23ef318::vf8() {}
 
 // 0x7100da8df0
 void Unk_23ef318::vf10() {}
+
+class Unk_23ef380 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+};
+
+// 0x7100da8f90
+void Unk_23ef380::vf5() {
+    Unk_da9070(this);
+}
+
+class Unk_23ef3c0 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+};
+
+// 0x7100da8fa0
+void Unk_23ef3c0::vf0() {
+    Unk_da9070(this);
+}
+
+class Unk_23ef3e8 {
+public:
+    virtual ~Unk_23ef3e8();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+};
+
+// 0x7100dac4d0
+void Unk_23ef3e8::vf11() {
+    Unk_dab2e0(this);
+}
