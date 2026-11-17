@@ -244,6 +244,33 @@ def test_lifted_member_through_a_pointer_field():
     assert spec.fields == {0x10: {0x10: "u32", 0x18: "u8"}}
 
 
+def test_element_member():
+    """add x8, x0, x1, lsl #5 ; ldr x0, [x8, #8] ; ret: field_0 of 32-byte entries right after the vptr."""
+    m = lifted_model([0x8B011408, 0xF9400500, RET])
+    x = V.element_member(m, 0x130, 3)
+    assert (x.slot, x.kind, x.value) == (3, "element", (5, 8))
+    a = m.vtables[0]
+    own = V.owners(m.vtables)
+    members = V.placeholder_members(m, a, own, lambda f: True, None, None, True)
+    assert members[-1].kind == "element"
+    spec = V.class_specs(m, {a.addr: members}, own, lambda f: 0, lambda f: True)[a.addr]
+    decl, names, defs = V.render_class(m, spec)
+    assert "struct Unk_1000_Entry {\n    void* field_0;\n    u8 _8[0x18];\n};\n" in decl
+    assert "    virtual void* vf3(u64 index);\n    Unk_1000_Entry m_entries[1];\n};\n" in decl
+    assert "void* Unk_1000::vf3(u64 index) {\n    return m_entries[index].field_0;\n}" in defs
+    assert names[-1] == (0x130, "_ZN8Unk_10003vf3Em")
+    assert V.element_member(lifted_model([0x8B011408, 0xF9400100, RET]), 0x130, 3) is None  # [x8]: the vptr
+
+
+def test_table_merge():
+    t = V.Table(0x20)
+    assert t.merge(V.Member(1, 0, "element", (5, 0x10)))
+    assert t.merge(V.Member(3, 0, "element_call", (5, 0x10, 0x18, 0x80)))
+    assert t.fields == {8: "obj", 0x10: "u64"} and t.obj_slot == 16
+    assert not t.merge(V.Member(4, 0, "element", (4, 0x10)))              # another stride
+    assert not t.merge(V.Member(5, 0, "element_call", (5, 0x10, 0x18, 0x88)))  # another slot
+
+
 def test_merge_fields():
     fields = {0x10: "u32"}
     assert V.merge_fields(fields, [(0x10, "u32"), (0x18, "u8")]) and fields == {0x10: "u32", 0x18: "u8"}

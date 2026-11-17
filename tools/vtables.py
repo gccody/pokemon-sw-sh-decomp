@@ -370,10 +370,44 @@ class ClassSpec:
     order: list[int] = field(default_factory=list)  # a derived class's declared slots, key function first
     sigs: dict[int, tuple[str, tuple[str, ...]]] = field(default_factory=dict)  # slot -> (return type, params)
     fields: dict[int, str] = field(default_factory=dict)  # offset -> type, what lifted members use
+    table: Table | None = None      # the entry array that element members index
 
     @property
     def name(self) -> str:
         return class_name(self.v)
+
+
+@dataclass
+class Table:
+    """An array of entries right after the vptr, which element members index:
+    `m_entries[index].field_N`. The entries' fields are what the members
+    read: pointers, an object pointer whose virtual function `obj_slot` an
+    element call makes (with an entry field as its argument), u64 arguments."""
+    stride: int
+    count: int = 1                  # the class's constant slot 0, when it has one (its entry count)
+    fields: dict[int, str] = field(default_factory=dict)  # entry offset -> "void*", "obj" or "u64"
+    obj_slot: int | None = None
+
+    def merge(self, x: Member) -> bool:
+        shift, *offs = x.value
+        if 1 << shift != self.stride:
+            return False
+        want = ({offs[0] - 8: "void*"} if x.kind == "element"
+                else {offs[0] - 8: "obj", offs[1] - 8: "u64"})
+        if x.kind == "element_call" and self.obj_slot not in (None, offs[2] // 8):
+            return False
+        out = dict(self.fields)
+        for off, t in want.items():
+            old = out.get(off)
+            if old == "obj" and t == "void*":
+                continue                # read as the object pointer it is
+            if old not in (None, t) and not (old == "void*" and t == "obj"):
+                return False
+            out[off] = t
+        if x.kind == "element_call":
+            self.obj_slot = offs[2] // 8
+        self.fields = out
+        return True
 
 
 def signature(x: Member, cls: str = "") -> tuple[str, tuple[str, ...]] | None:
@@ -381,7 +415,39 @@ def signature(x: Member, cls: str = "") -> tuple[str, tuple[str, ...]] | None:
     (a lifted one's struct names are its class's, `cls`)."""
     if x.kind == "lifted":
         return x.lifted.named(x.lifted.rtype, cls), x.lifted.params
+    if x.kind == "element":
+        return "void*", ("u64 index",)
+    if x.kind == "element_call":
+        return "void", ("u64 index",)
     return (RTYPE[x.kind], ()) if x.kind in RTYPE else None
+
+
+FIELD_KINDS = ("lifted", "element", "element_call")  # members that use fields of their class
+ELEMENT = re.compile(r"add x8, x0, x1, lsl #(\d+) ; ldr x0, \[x8, #(\w+)\] ; ret")
+ELEMENT_CALL = re.compile(r"add x8, x0, x1, lsl #(\d+) ; ldr x0, \[x8, #(\w+)\] ; cbz x0, #\w+ ; "
+                          r"ldr x1, \[x8, #(\w+)\] ; ldr x8, \[x0\] ; ldr x2, \[x8, #(\w+)\] ; br x2 ; ret")
+
+
+def element_member(m: Model, f: int, slot: int) -> Member | None:
+    """An element member: `return m_entries[index].field_N;` (the entries
+    right after the vptr, `index` a 64-bit argument), or one that calls a
+    virtual function of an entry's object, if it's there, with another of
+    the entry's fields: `if (obj) obj->vfK(field);`."""
+    import capstone
+
+    md = capstone.Cs(capstone.CS_ARCH_ARM64, capstone.CS_MODE_ARM)
+    text = " ; ".join(f"{i.mnemonic} {i.op_str}".strip() for i in md.disasm(m.img[f:f + m.sizes.get(f, 0)], f))
+    if x := ELEMENT.fullmatch(text):
+        value, kind = (int(x.group(1)), int(x.group(2), 0)), "element"
+    elif x := ELEMENT_CALL.fullmatch(text):
+        value, kind = (int(x.group(1)), *(int(g, 0) for g in x.groups()[1:])), "element_call"
+    else:
+        return None
+    shift, *offs = value
+    entry = [o - 8 for o in offs[:2]]
+    if not 3 <= shift <= 8 or any(o < 0 or o % 8 or o >= 1 << shift for o in entry) or offs[-1] % 8:
+        return None
+    return Member(slot, f, kind, value)
 
 
 def _width(t) -> int:
@@ -551,7 +617,7 @@ def lift_member(m: Model, f: int) -> Lifted | None:
 
 
 def placeholder_members(m: Model, v: Vtable, own: dict[int, tuple[int, int]], pickable,
-                        callee=None, lifter=None) -> list[Member]:
+                        callee=None, lifter=None, elements: bool = False) -> list[Member]:
     """The members of v's class that write defines: the simple functions it owns.
 
     A forwarder (`b T`) is one when callee(f) gives its target: it passes all
@@ -576,6 +642,8 @@ def placeholder_members(m: Model, v: Vtable, own: dict[int, tuple[int, int]], pi
             out.append(Member(i, f, k, t))
         elif k in ("small", "other") and lifter is not None and (x := lifter(f)) is not None:
             out.append(Member(i, f, "lifted", lifted=x))
+        elif k in ("small", "other") and elements and (x := element_member(m, f, i)) is not None:
+            out.append(x)
     return out
 
 
@@ -622,13 +690,14 @@ def class_specs(m: Model, picked: dict[int, list[Member]], own: dict[int, tuple[
     for a, ms in picked.items():
         s = specs[a] = ClassSpec(by[a], [], destructor_pair(m, by[a]))
         s.members = [x for x in ms if x.kind != "lifted" or merge_fields(s.fields, x.lifted.fields)]
+        s.members = [x for x in s.members if x.kind not in ("element", "element_call") or _table(s, x)]
         s.sigs = {x.slot: sig for x in s.members if (sig := signature(x, s.name)) is not None}
     guess = bases(m.vtables)
     has_secondary = {v.group for v in m.vtables if v.group != v.addr}
     families: dict[int, dict[int, tuple[str, tuple[str, ...]]]] = {}
     for a, d in sorted(specs.items()):
-        if any(x.kind == "lifted" for x in d.members):
-            simple = ClassSpec(d.v, [x for x in d.members if x.kind != "lifted"], d.pair)
+        if any(x.kind in FIELD_KINDS for x in d.members):
+            simple = ClassSpec(d.v, [x for x in d.members if x.kind not in FIELD_KINDS], d.pair)
             if not _derive(m, simple, specs, own, guess, has_secondary, families, seg, pickable):
                 continue
             specs[a] = d = simple
@@ -641,6 +710,17 @@ def class_specs(m: Model, picked: dict[int, list[Member]], own: dict[int, tuple[
             d.sigs = {**{i: t for i, t in d.sigs.items() if i >= n},
                       **{i: t for i, t in d.base.sigs.items() if i < n}}
     return specs
+
+
+def _table(s: ClassSpec, x: Member) -> bool:
+    """Add element member x's entry fields to s's table, unless they conflict
+    (or the class has lifted fields, which the entries would overlap)."""
+    if s.fields:
+        return False
+    if s.table is None:
+        count = next((y.value for y in s.members if y.slot == 0 and y.kind == "constant"), 1)
+        s.table = Table(1 << x.value[0], max(count, 1))
+    return s.table.merge(x)
 
 
 def _derive(m: Model, d: ClassSpec, specs: dict[int, ClassSpec], own, guess, has_secondary, families, seg,
@@ -713,19 +793,50 @@ def render_class(m: Model, spec: ClassSpec,
             continue
         if x.kind == "lifted":
             body = "{\n" + x.lifted.named(x.lifted.body, cls) + "}"
+        elif x.kind == "element":
+            body = f"{{\n    return m_entries[index].field_{x.value[1] - 8:x};\n}}"
+        elif x.kind == "element_call":
+            o, a = x.value[1] - 8, x.value[2] - 8
+            body = (f"{{\n    if ({cls}_Obj* obj = m_entries[index].field_{o:x})\n"
+                    f"        obj->vf{spec.table.obj_slot}(m_entries[index].field_{a:x});\n}}")
         elif x.kind == "forward":
             body = f"{{\n    {callee_name(x.value)[0]}(this);\n}}"
         else:
             body = {"ret": "{}", "constant": f"{{\n    return {x.value if x.value < 10 else hex(x.value)};\n}}",
                     "zero": "{\n    return 0;\n}", "null": "{\n    return nullptr;\n}"}[x.kind]
         defs.append(f"// 0x{f + BASE:x}\n{rt} {cls}::vf{i}({ps}) {body}")
-        names.append((f, mangle(cls, f"vf{i}", x.lifted.codes if x.kind == "lifted" else "v")))
+        codes = x.lifted.codes if x.kind == "lifted" else "m" if x.kind in ("element", "element_call") else "v"
+        names.append((f, mangle(cls, f"vf{i}", codes)))
         if x.kind == "forward":
             names.append((x.value, callee_name(x.value)[1]))
     decl += field_lines(spec.fields, cls, 8)  # after the vptr
+    pre = structs(spec.fields, cls)
+    if spec.table is not None:
+        pre += table_structs(spec.table, cls)
+        decl.append(f"    {cls}_Entry m_entries[{spec.table.count}];")
     decl.append("};")
     decl += [f"PKMN_OFFSET_ASSERT({cls}, field_{off:x}, 0x{off:x});" for off in sorted(spec.fields)]
-    return "\n".join(structs(spec.fields, cls) + decl) + "\n", names, "\n\n".join(defs) + "\n"
+    if spec.table is not None:
+        decl.append(f"PKMN_OFFSET_ASSERT({cls}, m_entries, 0x8);")
+    return "\n".join(pre + decl) + "\n", names, "\n\n".join(defs) + "\n"
+
+
+def table_structs(t: Table, cls: str) -> list[str]:
+    """The entry struct of a class's table, and the class of its entries'
+    objects when an element member calls one."""
+    out = []
+    if t.obj_slot is not None:
+        out += [f"class {cls}_Obj {{", "public:", *(f"    virtual void vf{i}();" for i in range(t.obj_slot)),
+                f"    virtual void vf{t.obj_slot}(u64 value);", "};", ""]
+    lines, pos = [f"struct {cls}_Entry {{"], 0
+    for off, kind in sorted(t.fields.items()):
+        if off > pos:
+            lines.append(f"    u8 _{pos:x}[0x{off - pos:x}];")
+        lines.append(f"    {dict(obj=f'{cls}_Obj*').get(kind, kind)} field_{off:x};")
+        pos = off + 8
+    if pos < t.stride:
+        lines.append(f"    u8 _{pos:x}[0x{t.stride - pos:x}];")
+    return out + lines + ["};", f"PKMN_SIZE_ASSERT({cls}_Entry, 0x{t.stride:x});", ""]
 
 
 def field_lines(fields: dict, name: str, pos: int) -> list[str]:
@@ -847,7 +958,8 @@ def cmd_write(m: Model, args) -> None:
         if not any(in_area(vtable_area(m, v), g) for g in groups):
             continue
         members = placeholder_members(m, v, own, kept, None if args.no_forward else callee,
-                                      None if args.no_lift else (lambda f: lift_member(m, f)))
+                                      None if args.no_lift else (lambda f: lift_member(m, f)),
+                                      not args.no_elements)
         if members:
             picked[v.addr] = members
     seg_starts = segment_starts(m)
@@ -906,6 +1018,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--only", type=Path, help="file of Sword addresses: of the unnamed functions, write only these")
     p.add_argument("--no-forward", action="store_true", help="leave out forwarders (b T)")
     p.add_argument("--no-lift", action="store_true", help="leave out what leafgen.py lifts")
+    p.add_argument("--no-elements", action="store_true", help="leave out element members (entry arrays)")
     args = ap.parse_args(argv)
     if args.cmd == "write" and args.game != "sword":
         raise SystemExit("write works from Sword's vtables (the names cover both games)")
