@@ -794,3 +794,83 @@ Larger shapes have their own blockers:
 - constructors with several vptrs (multiple inheritance);
 - 16-byte values returned in `x0`:`x1`;
 - functions that read a field after storing to it.
+
+## Handoff (2026-11-17)
+
+State after #54: check.py reports 26,227 matching and 107 not matching, in
+both games. Every batch above came from `tools/leafgen.py` and
+`tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
+`src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
+generator and rewrite them, don't edit them by hand.
+
+### How a generator batch is run
+
+`vtables.py write` rewrites every file in `src/unsorted/virtual`. It writes
+all candidates unless `--only` lists the functions not named yet to keep:
+
+```sh
+python tools/vtables.py write --names trial.csv            # every candidate
+python tools/funcs.py name --force --from-file trial.csv
+python tools/check.py > trial.log                          # builds both games
+# keep: trial.csv's addresses minus the BAD lines' sword addresses (only.txt)
+git checkout -- src/unsorted/virtual data/functions.csv && git clean -fdq src/unsorted/virtual
+python tools/vtables.py write --names keep.csv --only only.txt
+python tools/funcs.py name --force --from-file keep.csv
+python tools/check.py --update
+python tools/check.py --no-build --record-data
+```
+
+Before committing a change to `vtables.py`, check that:
+
+- `write --only <empty file>` leaves `src/unsorted/virtual` unchanged on
+  master. Named functions are always kept, so that's the same sources, or
+  the change broke a class.
+- check.py reports no REGRESSION or STALE line. STALE means an O row that
+  nothing compiles any more: a class was refused or rewritten without one
+  of its matched functions.
+- every new `_ZTV<n>Unk_<addr>` row in `data_symbols.csv` sits at `<addr>`.
+  A placeholder class is named after its Sword vtable. check.py doesn't
+  check a vtable reference until the symbol is recorded, so a function given
+  to the wrong class "matches", and `--record-data` then records the wrong
+  address. That happened in #54 (a D2 shared with a derived class through an
+  alias).
+
+Other pitfalls:
+
+- A trial's BAD list always includes a few lifted members, such as
+  `Unk_2399140::vf2`, that never match. `--only` leaves them out.
+- The guarded type getters are sensitive to how many callers they have in
+  the TU. clang inlines an inline getter into its only caller, so a class
+  whose getter other classes call must share its file with one of them
+  (#53). A class whose getter inlines the object's getter needs a file of
+  its own.
+- Each PR is two commits, the tool change and then the generated sources
+  with the CSVs and docs. PRs land with `gh pr merge --rebase`.
+
+### Next steps, by expected yield
+
+1. **check.py: check unrecorded placeholder vtables.** In Sword, compare a
+   reference to an unrecorded `_ZTV<n>Unk_<hex>` against `0x71<hex>`, for
+   data addresses only (some hand-written classes are named after a
+   function). Shield needs the recorded row. This closes the gap described
+   above. All 358 rows recorded now are consistent.
+2. **More destructor members on the object** (`ref_members`, Batch 6
+   paragraph). In the object's family (slots 2-5 are the object's), 1,578
+   classes have a D2 of their own: 30 have one reference member (20 written), 116 release a
+   reference and then tail-call another base's D2 (`b 0x7100e7c4c0` 36
+   times, `0x7100e9d210` 33, `0x7100e7feb0` 14, `0x7100bd0880` 13), and the
+   larger groups release several references or allocator-backed arrays
+   (`{begin, end, capacity, allocator}`, freed with `allocator->vf3(begin,
+   capacity - begin, 8)`). Generalise `ref_dtor_pattern` member by member,
+   and hand-write the 4 bases of the tail-calling group as ExternalBases,
+   like `Unk_23d4470`.
+3. **The 20 other tail-shaped getter owners** (`b <getter>` in their type
+   slots, getters still forwarder callees `_Z..Unk_<addr>Pv`). They wait
+   for item 2, because their destructors release members. Once written,
+   the classes on them follow the way #53's did.
+4. **The 57 inline-shape classes** of the object family. They need a key
+   function write can define, so at least one bigger member decompiled.
+5. Beyond the generators: the thunks, forwarders and copy operations in the
+   table above wait for their targets. From here, most progress is
+   decompiling bigger functions by hand, starting with the class families
+   in `game/unk_bba3d0` (Batch 6).
