@@ -208,6 +208,11 @@ and string/constant literals are compared by content. If your code calls a
 function that has no name yet, the checker prints the address the original
 calls, so you can name it.
 
+A data reference whose symbol neither CSV has is only a warning (`GOT ref to
+unknown symbol`). `python tools/check.py --record-data` adds the ones that
+matching functions make to `data_symbols.csv`, at the original's addresses,
+so every later reference to them is checked.
+
 **Functions that aren't in the executable.** Library code (Lua, ...) is
 vendored unchanged, so it can contain functions that aren't in the game: the
 linker dropped them as unreferenced (`lua_setallocf`), or a whole file isn't
