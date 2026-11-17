@@ -1584,9 +1584,10 @@ with the game's clang 7.0.x and global flags plus `NDEBUG`, `HAVE_PTHREAD` and
 `GOOGLE_PROTOBUF_NO_RTTI`.** The 32 TUs that have code in `main` are vendored
 unchanged in `lib/protobuf` (BSD-3-Clause, `lib/protobuf/README.md`), and the
 `pkmn_library_settings(lib/protobuf ...)` entry is this section's
-configuration. **`check.py` reports 1,618 of the area's 1,622 functions `OK`
-in both games**, with three linkonce functions the linker kept in gflnet3's
-code. The other four are `M` (see "What doesn't match").
+configuration. **`check.py` reports all 1,622 of the area's functions `OK`
+in both games**, and seven protobuf inlines the linker kept in gflnet3's code.
+Four of them needed `include/libc` to follow the SDK's headers instead of
+musl's in two places (see "The SDK's libc headers").
 
 ### Where it is
 
@@ -1690,31 +1691,68 @@ the call graph whose code differs. Five are named by hand:
   vtables point there.
 - `MessageLite::SerializeToArray` (`0x710070b2e0`). With `NDEBUG` it and
   `SerializePartialToArray` compile to the same 160 bytes, and `main` has one
-  copy. The linker doesn't fold identical code (the two `__lower_bound`
-  copies below are both there), so the other one was unreferenced and dropped.
-  Nothing in protobuf calls either. `SerializeToArray` is the API callers
-  normally use, so the row has that name, and `SerializePartialToArray` is in
-  `data/absent_functions.csv`. That is a choice, not evidence.
+  copy. The linker doesn't fold identical code (thousands of byte-identical
+  functions, such as the bare `ret`s, keep their own addresses), so the other
+  one was unreferenced and dropped. Which one can't be told from the binary:
+  nothing in protobuf calls either, and its 20 callers are one Game Freak
+  helper inlined into 20 functions (`0x71006b8c00`, ...). The helper gets the
+  message's `ByteSize()`, allocates and clears a buffer, and calls this
+  function, and its code is the same with either call. The row has
+  `SerializeToArray`, the name callers normally use, and
+  `SerializePartialToArray` is in `data/absent_functions.csv`. Nothing
+  depends on the choice: both compile to these bytes, and a decompiled caller
+  calls whatever name the row has.
 - `descriptor_database.cc`'s const and non-const `__tree::__lower_bound` for
   `map<pair<string, int>, pair<const void*, int>>` (`0x71007617e0`,
   `0x71007619d0`): the same code, so they go in the TU's section order.
 
-Two protobuf inlines are in gflnet3's code, because a gflnet3 TU emitted them
-first: `InternalMetadataWithArena::mutable_unknown_fields_slow`
-(`0x71006bd410`), which the generated `Merge` functions call 66 times, and the
-`arena_destruct_object<InternalMetadataWithArena::Container>` whose address
-it takes. A sweep over gflnet3's range pins a few more names by unique code
-alone (`Message::GetReflection` at `0x71006bd340`, an 8-byte
-`StringOutputStream::SetString` at `0x71006dd740`). That isn't evidence
-enough, and `SetString` is a strong function of
-`zero_copy_stream_impl_lite.cc`, which would sit in that TU's code. They stay
-unnamed.
+Seven protobuf inlines are in gflnet3's code, because a gflnet3 TU emitted
+them first. Each is named from a reference in matched code:
+
+| Address | Function | Evidence |
+|---|---|---|
+| `0x71006a54a0` | `std::__tree_balance_after_insert` | 73 calls from matched protobuf code (`DescriptorBuilder`, the `std::map` instances, ...) |
+| `0x71006bd2f0` | `MessageLite::GetArena` | vtable slot 5 of the `descriptor.pb.cc` messages, after `New(Arena*)` |
+| `0x71006bd300` | `MessageLite::GetMaybeArenaPointer` | vtable slot 6 |
+| `0x71006bd340` | `Message::GetReflection` | a vtable slot of the same messages |
+| `0x71006bd410` | `InternalMetadataWithArena::mutable_unknown_fields_slow` | 66 calls from the generated `Merge` functions |
+| `0x71006bd4a0` | `arena_destruct_object<InternalMetadataWithArena::Container>` | its address is taken in `mutable_unknown_fields_slow` |
+| `0x71006bd4b0` | `arena_delete_object<Message>` | every `Arena::Own<T>` of a message type passes it (`arena.h`'s `OwnInternal`), and the 26 matched `Own` instances load it from one GOT slot |
+
+`0x71006bd300` has the same code as `GenericTypeHandler<Message>::GetArena`,
+and `0x71006bd4b0` the same as `arena_delete_object<MessageLite>`. But the
+first is reached only through vtables (122 slots, no direct call), and the
+second through the GOT slot that `Own<Message>` loads. The vtable slots come
+from `data/data_symbols.csv` (below): each compiled slot's relocation names
+the function, and the original's slot at the same offset gives the address.
+A sweep over gflnet3's range by unique code alone also pins
+`StringOutputStream::SetString` to an 8-byte setter at `0x71006dd740`. That
+isn't evidence, and `SetString` is a strong function of
+`zero_copy_stream_impl_lite.cc`, which would sit in that TU's code, so the
+setter stays unnamed.
+
+**Data.** `data/data_symbols.csv` gets protobuf's 154 data objects (vtables,
+`default_instance_`s, `empty_string_`, `kTypeToCppTypeMap`, ...), placed
+with `docs/physx/physx_data_symbols.py --prefix lib/protobuf/ --range
+0x71006dea00-0x7100761f70`. `check.py` then verifies the GOT loads of them,
+which were warnings before, and every one agrees. The script now uses only
+the name `functions.csv` gives an address (or a C1/D1 alias of it). A
+function that isn't in `main` can have the same code as one that is: the
+structors of `SimpleDescriptorDatabase` have `EncodedDescriptorDatabase`'s,
+and `DescriptorPoolDatabase`'s constructor has `StringOutputStream`'s. Their
+references put those classes' vtables at the other classes' addresses. For
+PhysX the script gives the same 566 rows as before, plus
+`RayRTreeCallback<0,false>`'s vtable, which an absent `collide<0,0>` used to
+contradict.
 
 Of the other compiled functions, the 753 strong ones that aren't in `main`
 are in `data/absent_functions.csv`. Every original in the area has a name,
 so a strong function of these TUs that isn't one of them was dropped or
-inlined. The 73 weak copies (inline functions, templates) with no original are
-in `data/unidentified_functions.csv`. Some may be among gflnet3's code.
+inlined. The 69 weak copies (inline functions, templates) with no original
+are in `data/unidentified_functions.csv`. No matched function calls one,
+loads one or has one in a vtable. So each was inlined everywhere, or `main`
+has the copy of a TU that isn't built here (gflnet3's or the game's generated
+messages, see "Next").
 
 ### `check.py`
 
@@ -1739,35 +1777,39 @@ Two cases needed `check.py` changes:
   the NSO has no TLS segment table. `Arena::AddListNode`, `AllocateAligned`
   and `SlowAlloc` match with it.
 
+### The SDK's libc headers
+
+musl 1.1.24's headers stand in for the SDK's libc (`include/libc`), and four
+protobuf functions showed two places where the SDK's differ.
+`include/libc/README.md` lists the changes, and each has an `NX:` comment:
+
+- **`errno.h`: `__errno_location` isn't `const`.** `FloatToBuffer`
+  (`0x71006fee00`) calls `__errno_location` again after `strtof` to read
+  `errno`, where musl's `__attribute__((const))` lets the compiler reuse the
+  first call's result. Without the attribute it matches, and so does
+  libcurl's `curl_getdate` (`0x7101764750`, `parsedate.c`), which was `M`.
+- **`bits/alltypes.h`: `pthread_mutex_t` is `0x20` bytes.** `Mutex::Mutex`
+  (`0x71006fff70`), `InitLogSilencerCount` (`0x71006ffc20`) and
+  `InitShutdownFunctions` (`0x7100700140`) allocate `Mutex::Internal`, which
+  holds only a `pthread_mutex_t`, with `operator new(0x20)`. musl's is 40.
+  The layout beyond the size isn't visible, so the union keeps musl's shape
+  with 8 ints.
+
+With both changes, a full rebuild and `check.py` give every other function
+the same result as before, in both games.
+
 `check.py --update` (both games), with everything before:
 
 ```
-12815 matching, 87 not matching
+12824 matching, 82 not matching
 (2628 compiled functions skipped as not in the executable: data/absent_functions.csv)
-(282 compiled functions skipped, their original not identified yet: data/unidentified_functions.csv)
+(278 compiled functions skipped, their original not identified yet: data/unidentified_functions.csv)
 (1 weak/COMDAT functions skipped: the executable keeps another library's copy, data/foreign_copies.csv)
 (405 compiled aliases of checked functions skipped, e.g. D1 = D2 destructors)
 ```
 
-Before protobuf, 11,194 matched. The 87 that don't match are the 83 libcurl
-and sol2 `M` functions as before, and protobuf's four.
-
-### What doesn't match
-
-All four come from the SDK's libc headers, for which musl 1.1.24's stand in
-(`include/libc`):
-
-- **`FloatToBuffer` (`0x71006fee00`).** The original calls
-  `__errno_location` again after `strtof` to read `errno`; the compiled code
-  reuses the first call's result. musl declares `__errno_location`
-  `__attribute__((const))`, and the SDK's header evidently doesn't.
-- **`Mutex::Mutex` (`0x71006fff70`), `InitLogSilencerCount`
-  (`0x71006ffc20`), `InitShutdownFunctions` (`0x7100700140`).** They
-  allocate `Mutex::Internal`, which holds just a `pthread_mutex_t`: `0x20`
-  bytes in the original, 40 with musl's aarch64 `pthread_mutex_t`.
-
-Both would mean changing `include/libc` for every TU (Lua, libcurl and PhysX
-read `errno.h` too), which is out of scope here; see "What's left open".
+Before protobuf, 11,194 matched and 83 didn't. The 82 that don't match now
+are libcurl's and sol2's `M` functions, less `curl_getdate`.
 
 ### Reproducing
 
@@ -1793,22 +1835,21 @@ python tools/sweep_attribute.py build/sword --source-prefix lib/protobuf/ \
     --range 0x71006dea00-0x7100761f70 --game sword --out attr_sword.csv   # and shield
 ```
 
-### What's left open
+### Next: the generated messages
 
-- **The SDK's libc.** `errno` and `pthread_mutex_t` above. Fixing them means
-  making `include/libc` follow the SDK's headers rather than musl's where the
-  binary shows a difference. That needs checking against every library that
-  already matches.
-- **`SerializeToArray` or `SerializePartialToArray`.** See "Names".
-- **Two pairs in gflnet3's code with the same code**: `0x71006bd300`
-  (`GenericTypeHandler<Message>::GetArena` or
-  `MessageLite::GetMaybeArenaPointer`) and `0x71006bd4b0`
-  (`arena_delete_object<MessageLite>` or `<Message>`). They stay unnamed
-  until gflnet3's own code pins them.
-- **gflnet3's generated messages.** `lib/gflnet3/src/p2p/*.pb.cc` is
-  `protoc` 3.0.0 output for Game Freak's own `.proto` files. With the runtime
-  matched, their message classes can be reconstructed from the descriptors
-  embedded in `main`, and the generated code compared.
+Protobuf itself is done; what uses it is the next project. Besides
+`descriptor.proto`, 221 generated `.proto` files register their descriptor
+with `DescriptorPool::InternalAddGeneratedFile` (`0x71006e1400`): gflnet3's
+own (`lib/gflnet3/src/p2p/*`, registered from `0x71006bc290` to
+`0x71006dd1d0`) and the game's (battle from `0x710089db10`,
+`prog/network/net_contents`). Their code is `protoc` 3.0.0 output, so it can
+be matched by regenerating it from the `.proto` files, which the embedded
+descriptors spell out completely, and the 69 unidentified inlines would likely
+turn up among it. But `protoc` embeds each serialized descriptor in its
+`.pb.cc` as a byte-string literal, a verbatim copy of the game's rodata, and
+the project doesn't commit bulk rodata (AGENTS.md, rule 1). How to handle
+that (commit `.proto` files and run `protoc` at build time, or something else)
+is a project decision.
 
 ## Wwise
 
@@ -2359,7 +2400,11 @@ The names come from `sweep_attribute.py` over the build (`build/sword` and
   `curl_easy_init` (it calls `Curl_open` and inlines `global_init`) and
   `Curl_open` (`calloc(1, 0x5140)` and the `0xc0dedbad` magic).
 
-The 82 named functions that don't match have status `M`. The other 209 compiled
+The 82 named functions that didn't match got status `M`. Two have matched
+since: `Curl_unencode_cleanup` once YEBIS's zlib was named, and
+`curl_getdate` once `include/libc`'s `errno.h` stopped declaring
+`__errno_location` `const`, as the SDK's doesn't ("Protocol Buffers 3.0.0",
+"The SDK's libc headers"). So 80 are `M` now. The other 209 compiled
 functions have no original identified (inlined, dropped by the linker, or
 changed by Nintendo too far to recognise). They're in
 `data/unidentified_functions.csv`, which `check.py` skips and counts apart
@@ -2462,8 +2507,7 @@ zlib one about 3.
 - **The rest of libcurl.** The configuration is reconstructed (see
   "libcurl 7.55.1"). What's left needs Nintendo's changes to curl's own
   files (`urldata.h`, `curl_memory.h`, the `nn::ssl` backend, the socket,
-  time and resolver glue), which aren't public. `Curl_unencode_cleanup` only
-  needs YEBIS's zlib named (`inflateEnd`, `0x7100593530`).
+  time and resolver glue), which aren't public.
 - **`-g`.** Neither corpus distinguishes it.
 
 ## Codegen fingerprints
