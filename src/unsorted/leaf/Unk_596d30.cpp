@@ -189,6 +189,36 @@ u8 Unk_59a530_getField401(const Unk_59a530* self) {
     return self->field_401;
 }
 
+struct Unk_59a650_230 {
+    u8 _0[0x40];
+    u64 field_40;
+    u64 field_48;
+};
+PKMN_OFFSET_ASSERT(Unk_59a650_230, field_40, 0x40);
+PKMN_OFFSET_ASSERT(Unk_59a650_230, field_48, 0x48);
+
+struct Unk_59a650_arg1 {
+    u64 field_0;
+    u64 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_59a650_arg1, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_59a650_arg1, field_8, 0x8);
+
+struct Unk_59a650 {
+    u8 _0[0x230];
+    Unk_59a650_230* field_230;
+};
+PKMN_OFFSET_ASSERT(Unk_59a650, field_230, 0x230);
+
+// 0x710059a650
+void Unk_59a650_set(const Unk_59a650* self, const Unk_59a650_arg1* value) {
+    Unk_59a650_230* p0 = self->field_230;
+    if (p0 != nullptr) {
+        p0->field_48 = value->field_8;
+        p0->field_40 = value->field_0;
+    }
+}
+
 struct Unk_59b060 {
     u8 _0[0x270];
     u64 field_270;
