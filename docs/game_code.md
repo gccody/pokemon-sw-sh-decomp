@@ -96,33 +96,65 @@ go between segments. The `Evidence` column of each row says what it found.
 | Area | Sword | Functions | Evidence |
 |---|---|---:|---|
 | `game/bag` | `0x710079d210`-`0x71007bf610` | 610 | `bin/appli/bag`, `BagState*`/`BagView*` in all 3 segments. The bag's first functions (from `0x71007952f0`) share a segment with Wwise bank and font setup |
+| `game/battle_engine` | `0x71007c2d80`-`0x710082e410` | 2,802 | low confidence: 4 of its 49 segments have strings, all battle ones (effect sequences `ee501`..., battle BGM labels, `bin/battle/talk`, battle event labels `INEFFECTIVE_SKILL`, `BATTLE_DAIMAX`) |
 | `game/battle_logic` | `0x7100891a20`-`0x71008bf520` | 1,487 | 20 `.pb.cc` TUs (`btl::net`, `source/net` and `source/netwatch`), the segments between them, and 2 before them that only call `btl::net` |
+| `game/battle_app` | `0x71008ede90`-`0x710095b4b0` | 1,480 | `bin/appli/battle` layouts, `TopView`, `BossView`, `WazaSelectSubView`, `RaidResultView`, ... in 50 of 60 segments |
+| `game/battle_scene` | `0x710095b4b0`-`0x7100a6e240` | 2,930 | `bin/battle/waza` particles, models and `.bseq` sequences, battle cameras, battle motions (`to_ba10_waitA01`), `Play_PV_Btl_*`, in all 7 segments |
+| `game/blacklist` | `0x7100a6e240`-`0x7100a77140` | 177 | `common/blacklist.dat`, `bin/appli/blacklist` |
 | `game/pokebox` | `0x7100a77140`-`0x7100ab9140` | 995 | `common/box.dat`, the box's views, one segment per box state (`boxtray_in`, `pokeicon_get`, `wallpaper`, ...), `bin/appli/pokebox` |
 | `game/btl_spot` | `0x7100ac15f0`-`0x7100b2b110` | 2,422 | 2 `.pb.cc` TUs (`contents::btl_spot`), `bin/appli/btl_spot`, `StateBtlSpot*`/`ViewBtlSpot*` in 20 of 21 segments |
 | `game/comp_organize` | `0x7100ba5d90`-`0x7100bba3d0` | 394 | 3 `.pb.cc` TUs (`ontents::comp_organize`, Game Freak's spelling) and the competition app before them, which calls them |
+| `game/xmenu` | `0x7100e63560`-`0x7100e66990` | 66 | `FieldMenuRotomView`, `bin/appli/xmenu` in both segments; the one before (`FieldMenuView`) also holds nest-hole effects |
+| `game/live_comm` | `0x7100f1fc50`-`0x7100f3b120` | 376 | Y-Comm: `common/live_comm.dat`, `LiveCommState*`/`LiveCommView*`, `bin/appli/live_comm` in all 10 segments |
+| `game/live_tournament` | `0x7100f3d7e0`-`0x7100f590c0` | 497 | `common/live_tournament.dat`, `bin/appli/live_tournament`, its views, in all 11 segments |
+| `game/mystery` | `0x7100f590c0`-`0x7100f97380` | 1,224 | Mystery Gift: `bin/appli/mystery`, `StateReceive*`, `sd9150_mysterygift`, in all 11 segments |
+| `game/nesthole` | `0x7100f97380`-`0x7100fb2de0` | 733 | Max Raid dens: `common/nest.dat`, `View_NestHole`, `Play_UI_Gnest_*`, host/guest states, in 9 of 15 segments |
+| `game/net_btl` | `0x7100fc5de0`-`0x7100fd7eb0` | 591 | link battles: `common/net_btl.dat`, `ViewNetBtl*`, `bin/appli/net_btl`, in all 3 segments |
 | `game/net_contents/live` | `0x7100fe3340`-`0x7100ff22f0` | 398 | `.pb.cc` TUs of `battle/live` and `battle/poke_select` (`net_contents::battle`) and the segment that calls them |
 | `game/net_contents/nbr` | `0x7100ff91e0`-`0x71010431f0` | 1,950 | `.pb.cc` TUs of `battle/nbr`, `nesthole`, `trade/box`, `trade/common`, the segments between them and the one before them (105 calls into `net_contents::battle`) |
+| `game/net_request` | `0x710107beb0`-`0x7101104c80` | 3,741 | low confidence: `Request*` names (`RequestUploadCompetitionTeam`, `RequestSerialAuth`, `RequestPokemonValidation`, ...), the serial-code and validation URLs, in 14 of 86 segments |
 | `game/pokecamp` | `0x7101114050`-`0x7101290e40` | 7,311 | 6 `.pb.cc` TUs (`contents::pokecamp`) and 102 segments around them: 56 name camp things (`Play_Camp_*`, `msg_pokecamp_*`, `bin/appli/pokecamp*`, curry and cooking), the other evidenced ones are camp scenes (tent, ball throw, greetings, the ingredient bag) |
+| `game/pw` | `0x710129e040`-`0x71012b7bf0` | 457 | Poké Jobs: the job table's fields (`jobList`, `company_txt`), `sd8030_pokejob`, `bin/appli/pw`, in 10 of 12 segments |
+| `game/pokelist` | `0x71012b7bf0`-`0x71012c9b90` | 261 | `common/pokelist.dat`, `PokeListView*`, `bin/appli/pokelist` |
 | `game/status` | `0x71012ca770`-`0x71012ed1a0` | 469 | `common/status.dat`, `PokeStatus*`, `bin/appli/status` in 16 of 17 segments |
+| `game/regulation` | `0x7101320670`-`0x7101323a60` | 76 | `bin/appli/regulation`, `ViewProgress` |
+| `game/rental_team` | `0x7101323a60`-`0x710133d350` | 593 | `common/rental_team.dat`, `UploadTeamView`/`DownloadTeamView`, `StateSelectBattleTeam`, in all 6 segments |
+| `game/btlteam_select` | `0x710142d4a0`-`0x710143a7a0` | 265 | `common/btl_team.dat`, `ViewTeamSelect`, `bin/appli/btlteam_select` |
+| `game/trainer_license` | `0x7101455520`-`0x71014b14a0` | 1,903 | League Cards: `common/trainer_license*.dat`, `bin/appli/trlicense_album`, `ViewCard`, `StateAlbumList`, ... in all 12 segments |
+| `game/waza_remember` | `0x7101507290`-`0x71015106d0` | 153 | move reminder: `common/waza_remember.dat`, `WazaRemenberView` (sic), in both segments |
+| `game/xmenu_net` | `0x71015106d0`-`0x7101514310` | 48 | `common/xmenu_net.dat` |
 | `game/pokedex` | `0x710151bfb0`-`0x7101548410` | 845 | `bin/appli/pokedex`, `ZKN_*` labels; the segment before starts with `xmenu_net` |
 
-Shield's boundaries are the same functions (from `game/net_contents/live` on,
-`0x30` later; the end is Lua's start, `0x71015484b0`). The confidence is
-medium: inside a row every evidenced segment names the subsystem, but the
-subsystem can extend past it into a mixed or silent segment, and a silent
-segment inside a row (no strings, no names, no calls) is assumed to belong.
+Shield's boundaries are the same functions, at its own addresses (the
+`ShieldStart`/`ShieldEnd` columns; from `game/xmenu` on they are `0x30` to
+`0xa0` later). The confidence is medium: inside a row every evidenced
+segment names the subsystem, but the subsystem can extend past it into a
+mixed or silent segment, and a silent segment inside a row (no strings, no
+names, no calls) is assumed to belong. `battle_engine` and `net_request` are
+low: most of their segments are silent.
+
+Rows end at their last evidenced segment, and a segment that also holds
+another subsystem's code stays out even when the subsystem plainly goes on
+inside it. That is why the battle tower app (its segment also registers
+the battle app's views), the report app (its segment also sets the option
+volumes), the shop (its segment also holds the credits) and the League
+Card renderer (after a segment that loads every language's message windows)
+aren't rows. The `unk_*` row before `battle_logic` (`0x710082e410`) is about
+200 segments of 4 to 6 functions, each TU with its own static initialiser,
+and no strings at all: probably battle code too, but nothing says so.
 
 `net_contents` is two rows because the 5 segments between them
 (`0x7100ff22f0`-`0x7100ff91e0`) reference `Play_UI_common_report` and
 `gpoke` and nothing of `net_contents`. They may well be its code, but nothing
 says so.
 
-What isn't placed yet (the 10 `game/unk_*` rows, 50,281 functions) needs the same kind of
-evidence. `segments.py game/unk_bba3d0 --grep <pattern>` finds the segments
-that name a candidate, and the runs above came from exactly that. Clear
-candidates with fewer or less uniform segments are the battle app
-(`bin/appli/battle`), xmenu, the live tournament, mystery gift, the trainer
-license apps and the Poké Job (`pw`) app.
+What isn't placed yet (the 21 `game/unk_*` rows, 31,908 functions) needs the
+same kind of evidence. `segments.py game/unk_bba3d0 --grep <pattern>` finds
+the segments that name a candidate, and the runs above came from exactly
+that. The biggest unplaced rows are `game/unk_bba3d0` (11,053 functions:
+demos, field, script events, weather) and `game/unk_133d350` (4,505: the
+report app, flags and works, scripts, cut scenes); both are a mix of field
+code whose strings rarely name one subsystem.
 
 ## The tiny functions
 
