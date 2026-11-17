@@ -1445,7 +1445,7 @@ def cmd_write(m: Model, args) -> None:
         return written(f) and f not in handwritten and (only is None or f in only or bool(rows[f].name))
 
     own = owners(m.vtables)
-    groups = args.area or ["game", "gflib3", "gflnet3"]
+    groups = args.area or ["game", "gflib3", "gflnet3", "startup"]
     picked: dict[int, list[Member]] = {}
     for v in m.vtables:
         if not any(in_area(vtable_area(m, v), g) for g in groups) or v.group in skipped:
@@ -1560,7 +1560,7 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("csv")
     p.add_argument("out", type=Path)
     p = sub.add_parser("write", help="placeholder classes for simple virtual functions (Sword's vtables)")
-    p.add_argument("--area", action="append", help="area or group (default: game, gflib3, gflnet3)")
+    p.add_argument("--area", action="append", help="area or group (default: game, gflib3, gflnet3, startup)")
     p.add_argument("--out", type=Path, default=ROOT / "src" / "unsorted" / "virtual")
     p.add_argument("--names", type=Path, required=True, help="where to write Name,Sword,Shield")
     p.add_argument("--only", type=Path, help="file of Sword addresses: of the unnamed functions, write only these")
