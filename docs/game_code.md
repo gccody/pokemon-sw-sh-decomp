@@ -659,7 +659,10 @@ type getter takes, which say how its TU was put together:
   descendants, 58 have the inline shape, but only 1 defines a function write
   can make its key function; the others only have undecompiled ones. 35
   store a type created by an out-of-line function (`0x7100603810`), and 14
-  have another type in between.
+  have another type in between. Those 14 are the `Unk_23d4470` shape
+  (`intermediate_type`), but the getter their in-between type calls,
+  `0x7100c657d0`, is another class's out-of-line getter, not written yet.
+  Hand-writing that class as a base (like `Unk_23d4470`) is what they wait for.
 
 A class's getter may now be called by other code of the class; it only
 isn't its own when another vtable function calls it.
