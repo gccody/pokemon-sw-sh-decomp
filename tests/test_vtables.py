@@ -271,6 +271,60 @@ def test_table_merge():
     assert not t.merge(V.Member(5, 0, "element_call", (5, 0x10, 0x18, 0x88)))  # another slot
 
 
+def test_derived_from_an_external_base():
+    """D derives from hand-written E: its slot 0 is E's D2, its D0 is `b <E's D2>`,
+    its secondary vtable's destructor slots are `sub x0, x0, #8 ; b <E's D2>`, and
+    its type slot and the secondary one are `b T` to its own type getter."""
+    img = bytearray(0x1200)
+    sub8 = 0xD1002000                                       # sub x0, x0, #8
+    code = {0x100: [0xAA0003E8, 0xAA0003E9, RET],           # E's D2
+            0x120: [RET], 0x130: [0xAA0003E8, RET],         # E's slot 2, its type getter
+            0x140: [b(0x140, 0x100)],                        # D's D0
+            0x150: [sub8, b(0x154, 0x100)], 0x160: [sub8, b(0x164, 0x100)],
+            0x170: [b(0x170, 0x300)], 0x180: [b(0x180, 0x300)],  # D's type slot, its thunk
+            0x300: [0xAA0003E8, 0xAA0003E9, RET],           # D's type getter
+            0x110: [RET], 0x190: [RET], 0x1a0: [RET], 0x1b0: [RET]}
+    for a, w in code.items():
+        struct.pack_into(f"<{len(w)}I", img, a, *w)
+    slots = {}
+
+    def vt(start, ott, fns):
+        struct.pack_into("<q", img, start, ott)
+        for i, f in enumerate(fns):
+            slots[start + 16 + 8 * i] = f
+        return start + 16 + 8 * len(fns)
+
+    end = vt(0x1000, 0, [0x100, 0x110, 0x120, 0x130])           # E
+    end = vt(end, -8, [0x190, 0x1a0, 0x1b0])                    # E at +8
+    end = vt(end, 0, [0x100, 0x140, 0x120, 0x170])              # D
+    vt(end, -8, [0x150, 0x160, 0x180])                          # D at +8
+    sizes = {a: 4 * len(w) for a, w in code.items()}
+    vts, tables = V.find_vtables(bytes(img), slots, set(code), DATA, len(img))
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), vts, tables, sizes, {}, {}, lambda a: "game", DELETE)
+    e = V.ExternalBase(vts[0].addr, "Unk_E", "unsorted/Unk_E.h", ((2, "void", "vf2"), (3, V.TYPE, "vf_type")), 3,
+                       "Unk_E::Unk_GetType", ((8, (0, 1), 2),))
+    d = vts[2]
+    specs = {}
+    V.derive_external(m, e, specs, {}, V.owners(vts), lambda f: 0, lambda f: True, lambda t: True)
+    spec = specs[d.addr]
+    assert spec.ext is e and spec.order == [3]
+    decl, names, defs = V.render_class(m, spec)
+    assert decl.startswith(f"class {spec.name} : public Unk_E {{\npublic:\n    static const Unk_239a418_Type* "
+                           "Unk_GetType() {\n        static Unk_239a418_Type type(Unk_E::Unk_GetType());")
+    assert "    const Unk_239a418_Type* vf_type() override;\n};\n" in decl
+    assert f"{spec.name}::vf_type() {{\n    return Unk_GetType();\n}}" in defs
+    cls = f"{len(spec.name)}{spec.name}"
+    assert sorted(names) == [(0x140, f"_ZN{cls}D0Ev"), (0x150, f"_ZThn8_N{cls}D1Ev"), (0x160, f"_ZThn8_N{cls}D0Ev"),
+                             (0x170, f"_ZN{cls}7vf_typeEv"), (0x180, f"_ZThn8_N{cls}7vf_typeEv"),
+                             (0x300, f"_ZN{cls}11Unk_GetTypeEv")]
+    # T called from anywhere else isn't its own type getter: D isn't derived.
+    specs = {}
+    struct.pack_into("<I", img, 0x110, 0x94000000 | ((0x300 - 0x110) >> 2))  # bl T in E's D0
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), vts, tables, sizes, {}, {}, lambda a: "game", DELETE)
+    V.derive_external(m, e, specs, {}, V.owners(vts), lambda f: 0, lambda f: True, lambda t: True)
+    assert d.addr not in specs
+
+
 def test_merge_fields():
     fields = {0x10: "u32"}
     assert V.merge_fields(fields, [(0x10, "u32"), (0x18, "u8")]) and fields == {0x10: "u32", 0x18: "u8"}

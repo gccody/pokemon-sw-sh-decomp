@@ -358,6 +358,42 @@ RTYPE = {"ret": "void", "constant": "u32", "zero": "u32", "null": "void*", "forw
 WRITTEN = re.compile(r"_ZN\d+(Unk_[0-9a-f]+)(?:D0|D2|\d+vf\d+)E[a-z]+")  # the names write gives
 
 
+@dataclass(frozen=True)
+class ExternalBase:
+    """A class written by hand (in `header`) that write's classes derive from.
+
+    A class derives from it when its slot 0 is the base's D2 and its D0 is
+    `b <that D2>`: its destructor is implicit, so clang uses the base's D2,
+    and the family's operator delete is empty. Its secondary vtables'
+    destructor slots are then `sub x0, x0, #N ; b <D2>` thunks. When it
+    overrides the type getter (`type_slot`, also in the secondary vtables)
+    with a `b T`, T is its own inline type getter, whose type has the base's
+    (`get_type`) as its parent, and the secondary slots are thunks of the
+    override (the adjustment is dead, T takes no `this`)."""
+    vtable: int                     # its primary vtable's address point (relative)
+    name: str
+    header: str
+    slots: tuple                    # (slot, return type, name) of its virtual functions from slot 2
+    type_slot: int
+    get_type: str
+    secondaries: tuple              # (offset in the object, its 2 destructor slots, its type slot) each
+
+    def slot(self, i: int) -> tuple[str, str]:
+        return next(((rt, n) for j, rt, n in self.slots if j == i), ("void", f"vf{i}"))
+
+
+TYPE = "const Unk_239a418_Type*"
+EXTERNAL_BASES = (
+    ExternalBase(0x23f43d8, "Unk_23f43c8", "unsorted/Unk_23f43c8.h",
+                 ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
+                  (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7"), (8, "u32", "vf8"), (9, "void", "vf9"),
+                  (10, "u32", "vf10")),
+                 6, "Unk_23f43c8::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0))),
+)
+# Vtable groups whose classes are written by hand: write leaves their functions alone.
+HANDWRITTEN = {0x239a428, *(e.vtable for e in EXTERNAL_BASES)}
+
+
 @dataclass
 class ClassSpec:
     """How `write` declares one placeholder class. Every file that declares
@@ -371,6 +407,7 @@ class ClassSpec:
     sigs: dict[int, tuple[str, tuple[str, ...]]] = field(default_factory=dict)  # slot -> (return type, params)
     fields: dict[int, str] = field(default_factory=dict)  # offset -> type, what lifted members use
     table: Table | None = None      # the entry array that element members index
+    ext: ExternalBase | None = None  # a hand-written base (EXTERNAL_BASES) it derives from
 
     @property
     def name(self) -> str:
@@ -668,7 +705,7 @@ def derived_order(d: Vtable, base: Vtable, members: list[Member], seg) -> list[i
 
 
 def class_specs(m: Model, picked: dict[int, list[Member]], own: dict[int, tuple[int, int]],
-                seg, pickable) -> dict[int, ClassSpec]:
+                seg, pickable, getter_ok=lambda t: False) -> dict[int, ClassSpec]:
     """A ClassSpec for every picked vtable, with the derived classes modelled.
 
     A derived class is one whose destructor is implicit (or inline and empty)
@@ -704,12 +741,103 @@ def class_specs(m: Model, picked: dict[int, list[Member]], own: dict[int, tuple[
             d.sigs = {x.slot: sig for x in d.members if (sig := signature(x)) is not None}
         else:
             _derive(m, d, specs, own, guess, has_secondary, families, seg, pickable)
+    for e in EXTERNAL_BASES:
+        derive_external(m, e, specs, picked, own, seg, pickable, getter_ok)
     for d in specs.values():
         if d.base is not None:
             n = len(d.base.v.slots)
             d.sigs = {**{i: t for i, t in d.sigs.items() if i >= n},
                       **{i: t for i, t in d.base.sigs.items() if i < n}}
     return specs
+
+
+SIMPLE_KINDS = ("ret", "constant", "zero", "null", "forward")
+
+
+def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], picked: dict[int, list[Member]],
+                    own: dict[int, tuple[int, int]], seg, pickable, getter_ok) -> None:
+    """Model the classes derived from hand-written base e (see ExternalBase)."""
+    from nx.refs import decode, is_b_bl
+
+    by = {v.addr: v for v in m.vtables}
+    ev = by.get(e.vtable)
+    if ev is None:
+        return
+    groups: dict[int, list[Vtable]] = defaultdict(list)
+    for v in m.vtables:
+        groups[v.group].append(v)
+    in_vtables = {f for v in m.vtables for f in v.slots if isinstance(f, int)}
+    callers: dict[int, set[int]] = defaultdict(set)
+    d2 = ev.slots[0]
+    esecs = [w for w in groups[ev.addr] if w is not ev]
+    for v in m.vtables:
+        if v.group != v.addr or v.offset_to_top or v.addr == ev.addr or len(v.slots) < len(ev.slots):
+            continue
+        s1 = v.slots[1]
+        if v.slots[0] != d2 or not isinstance(s1, int) or own.get(s1) != (v.addr, 1) or not pickable(s1) \
+                or m.pattern(s1) != "b T" or branch_target(m, s1) != d2:
+            continue
+        secs = [w for w in groups[v.addr] if w is not v]
+        if [(w.offset_to_top, len(w.slots)) for w in secs] != [(w.offset_to_top, len(w.slots)) for w in esecs] \
+                or any(isinstance(f, str) for f in v.slots):
+            continue
+        extra = [Member(1, s1, "d0")]
+        ok = True
+        for w, (off, dslots, _) in zip(secs, e.secondaries):
+            for j, which in zip(dslots, ("D1", "D0")):
+                f = w.slots[j]
+                if m.pattern(f) != "sub x0, x0, #N ; b T" or branch_target(m, f) != d2 \
+                        or own.get(f) != (w.addr, j) or not pickable(f):
+                    ok = False
+                extra.append(Member(j, f, "ext_thunk", (off, which)))
+        f6 = v.slots[e.type_slot]
+        if ok and f6 != ev.slots[e.type_slot]:
+            t = branch_target(m, f6) if m.pattern(f6) == "b T" else None
+            thunks = [w.slots[ts] for w, (_, _, ts) in zip(secs, e.secondaries)]
+            if t is None or t in in_vtables or not getter_ok(t) or not pickable(f6) \
+                    or any(branch_target(m, f) != t or m.pattern(f) != "b T" or not pickable(f) for f in thunks):
+                ok = False
+            else:
+                if not callers:
+                    for a, n in m.funcs:
+                        for _, w, _, tt in decode(m.img, a, n):
+                            if tt is not None and is_b_bl(w):
+                                callers[tt].add(a)
+                if callers[t] - {f6, *thunks}:
+                    ok = False
+                extra.append(Member(e.type_slot, f6, "ext_type", t))
+                extra.append(Member(-1, t, "ext_getter"))
+                extra += [Member(-1, f, "ext_thunk", (off, "vf_type"))
+                          for f, (off, _, _) in zip(thunks, e.secondaries)]
+        if not ok or any(seg(x.addr) != seg(s1) for x in extra):
+            continue
+        mine = []
+        for x in picked.get(v.addr, []):
+            if x.kind not in SIMPLE_KINDS or x.slot < 2 or x.slot == e.type_slot:
+                continue
+            if x.slot < len(ev.slots):
+                if v.slots[x.slot] == ev.slots[x.slot]:
+                    continue
+                if e.slot(x.slot)[0] != RTYPE[x.kind]:
+                    ok = False
+            mine.append(x)
+        declared = [i for i in range(2, len(v.slots)) if i >= len(ev.slots) or v.slots[i] != ev.slots[i]]
+        if not ok:
+            continue
+        if e.type_slot in declared:
+            order = [e.type_slot, *(i for i in declared if i != e.type_slot)]
+        else:
+            order = derived_order(v, ev, mine, seg)
+            if order is None:
+                continue
+        d = specs[v.addr] = ClassSpec(v, mine + extra, None, ext=e, order=order)
+        d.sigs = {x.slot: (RTYPE[x.kind], ()) for x in mine}
+        gone = {x.addr for x in extra}
+        for w in secs:              # its secondary vtables' functions are its own now
+            if w.addr in specs:
+                specs[w.addr].members = [x for x in specs[w.addr].members if x.addr not in gone]
+                if not specs[w.addr].members:
+                    del specs[w.addr]
 
 
 def _table(s: ClassSpec, x: Member) -> bool:
@@ -761,6 +889,8 @@ def render_class(m: Model, spec: ClassSpec,
     The declaration comes from the spec alone, so that every file declaring
     the class declares it the same way; only `here` (default: all of its
     members) are defined, and named."""
+    if spec.ext is not None:
+        return render_external(m, spec, spec.members if here is None else here)
     v, cls, base = spec.v, spec.name, spec.base
     defined = {x.slot: x for x in (spec.members if here is None else here)}
     decl = [f"class {cls} : public {base.name} {{" if base else f"class {cls} {{", "public:"]
@@ -864,6 +994,51 @@ def structs(fields: dict, name: str) -> list[str]:
     return out
 
 
+def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str, list[tuple[int, str]], str]:
+    """render_class for a class derived from a hand-written base."""
+    cls, e = spec.name, spec.ext
+    decl = [f"class {cls} : public {e.name} {{", "public:"]
+    names: list[tuple[int, str]] = []
+    defs: list[str] = []
+    if e.type_slot in spec.order:
+        # Its type, whose parent is the base's: inline, but too big to be
+        # inlined into vf_type, which tail-calls it.
+        decl += [f"    static {TYPE} Unk_GetType() {{", f"        static Unk_239a418_Type type({e.get_type}());",
+                 "        return &type;", "    }", ""]
+    for i in spec.order:
+        if i == e.type_slot:
+            decl.append(f"    {TYPE} vf_type() override;")
+            continue
+        base_slot = any(j == i for j, _, _ in e.slots)
+        rt = e.slot(i)[0] if base_slot else spec.sigs.get(i, ("void", ()))[0]
+        decl.append(f"    {rt} {e.slot(i)[1]}() override;" if base_slot else f"    virtual {rt} vf{i}();")
+    decl.append("};")
+    for x in sorted(here, key=lambda x: (x.kind != "ext_getter", x.addr)):  # the getter before its use
+        if x.kind == "d0":
+            names.append((x.addr, mangle(cls, "D0")))
+        elif x.kind == "ext_thunk":
+            off, which = x.value
+            inner = f"{len(cls)}{cls}" + (which if which in ("D0", "D1") else f"{len(which)}{which}")
+            names.append((x.addr, f"_ZThn{off}_N{inner}Ev"))
+        elif x.kind == "ext_getter":  # Unk_GetType, emitted where vf_type calls it
+            names.append((x.addr, mangle(cls, "Unk_GetType")))
+        elif x.kind == "ext_type":
+            defs.append(f"// 0x{x.addr + BASE:x}; its type 0x{x.value + BASE:x}\n{TYPE} {cls}::vf_type() {{\n"
+                        f"    return Unk_GetType();\n}}")
+            names.append((x.addr, mangle(cls, "vf_type")))
+        else:
+            rt, name = RTYPE[x.kind], e.slot(x.slot)[1]
+            if x.kind == "forward":
+                body = f"{{\n    {callee_name(x.value)[0]}(this);\n}}"
+                names.append((x.value, callee_name(x.value)[1]))
+            else:
+                body = {"ret": "{}", "constant": f"{{\n    return {x.value if x.value < 10 else hex(x.value)};\n}}",
+                        "zero": "{\n    return 0;\n}", "null": "{\n    return nullptr;\n}"}[x.kind]
+            defs.append(f"// 0x{x.addr + BASE:x}\n{rt} {cls}::{name}() {body}")
+            names.append((x.addr, mangle(cls, name)))
+    return "\n".join(decl) + "\n", names, "\n\n".join(defs) + "\n"
+
+
 def render_file(m: Model, entries: list[tuple[ClassSpec, list[Member]]]) -> tuple[str, list[tuple[int, str]]]:
     """One file's source and names: its classes in address order of what they
     define here, each base declared before its first derived class."""
@@ -872,6 +1047,9 @@ def render_file(m: Model, entries: list[tuple[ClassSpec, list[Member]]]) -> tupl
              "// Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename",
              "// them, and give the functions real signatures, once the classes are known.",
              "#include <types.h>", ""]
+    headers = sorted({spec.ext.header for spec, _ in entries if spec.ext is not None})
+    if headers:
+        parts[-1:] = [*(f'#include "{h}"' for h in headers), ""]
     callees = sorted({x.value for _, xs in entries for x in xs if x.kind == "forward"})
     if callees:
         parts += ["// Called by forwarders. Placeholders: their real signatures aren't known.",
@@ -948,14 +1126,18 @@ def cmd_write(m: Model, args) -> None:
     # --only: of the functions not named yet, only these (the ones that matched in a trial run).
     only = {int(x, 16) - BASE for x in args.only.read_text(encoding="utf-8").split()} if args.only else None
 
+    # The functions of the hand-written classes' vtables are theirs, whatever
+    # vtable the owner heuristic gives them to.
+    handwritten = {f for v in m.vtables if v.group in HANDWRITTEN for f in v.slots}
+
     def kept(f: int) -> bool:
-        return written(f) and (only is None or f in only or bool(rows[f].name))
+        return written(f) and f not in handwritten and (only is None or f in only or bool(rows[f].name))
 
     own = owners(m.vtables)
     groups = args.area or ["game", "gflib3", "gflnet3"]
     picked: dict[int, list[Member]] = {}
     for v in m.vtables:
-        if not any(in_area(vtable_area(m, v), g) for g in groups):
+        if not any(in_area(vtable_area(m, v), g) for g in groups) or v.group in HANDWRITTEN:
             continue
         members = placeholder_members(m, v, own, kept, None if args.no_forward else callee,
                                       None if args.no_lift else (lambda f: lift_member(m, f)),
@@ -967,16 +1149,30 @@ def cmd_write(m: Model, args) -> None:
     def seg(f: int) -> int:
         return seg_starts[bisect.bisect_right(seg_starts, f) - 1]
 
-    specs = class_specs(m, picked, own, seg, kept)
+    def getter_ok(t: int) -> bool:
+        """A derived class's type getter: unnamed, or named as a forwarder's
+        callee (`Unk_<T>(void*)`) or as the getter (`Unk_<T>()`)."""
+        r = rows.get(t)
+        if r is None or r.shield is None or r.scope != "common":
+            return False
+        name = callee_name(t)[0]
+        return (not r.name or r.name in (f"_Z{len(name)}{name}Pv", f"_Z{len(name)}{name}v")) and \
+            (only is None or t in only or bool(r.name))
+
+    specs = class_specs(m, picked, own, seg, kept, getter_ok)
     # One file per static-initialiser segment, like src/unsorted/leaf: a class
     # whose functions span segments is declared in each of their files.
-    files: dict[int, list[tuple[ClassSpec, list[Member]]]] = defaultdict(list)
+    # A class derived from a hand-written base with a type getter of its own
+    # gets a file of its own: its base's getter is inlined into its getter
+    # only when that is the base getter's one caller in the TU.
+    files: dict[tuple[int, int], list[tuple[ClassSpec, list[Member]]]] = defaultdict(list)
     for spec in specs.values():
+        own_file = spec.ext is not None and spec.ext.type_slot in spec.order
         by_seg: dict[int, list[Member]] = defaultdict(list)
         for x in spec.members:
             by_seg[seg(x.addr)].append(x)
         for s, xs in by_seg.items():
-            files[s].append((spec, xs))
+            files[(s, spec.v.addr if own_file else 0)].append((spec, xs))
     out_dir = args.out
     out_dir.mkdir(parents=True, exist_ok=True)
     for old in out_dir.glob("Unk_*.cpp"):  # everything here is written again (a file's name can change)
@@ -993,10 +1189,12 @@ def cmd_write(m: Model, args) -> None:
             r = rows[f]
             fh.write(f"{n},{r.sword_str},{r.shield_str}\n")
     derived = sum(s.base is not None for s in specs.values())
-    n_callees = sum(n.startswith("_Z") and not n.startswith("_ZN") for n in name_rows.values())
+    n_callees = len({x.value for s in specs.values() for x in s.members if x.kind == "forward"})
+    n_ext = sum(s.ext is not None for s in specs.values())
     print(f"{len(name_rows) - n_callees} functions of {len(specs)} classes ({derived} derived, "
-          f"{sum(s.inline_dtor for s in specs.values())} bases with an inline destructor) in {len(files)} files, "
-          f"{n_callees} forwarders' callees; names in {args.names}", file=sys.stderr)
+          f"{sum(s.inline_dtor for s in specs.values())} bases with an inline destructor, {n_ext} derived from "
+          f"hand-written bases) in {len(files)} files, {n_callees} forwarders' callees; names in {args.names}",
+          file=sys.stderr)
 
 
 def main(argv: list[str] | None = None) -> int:
