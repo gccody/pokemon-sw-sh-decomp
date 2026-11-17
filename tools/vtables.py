@@ -612,6 +612,7 @@ class Lifted:
     body: str                       # the statements, indented
     fields: tuple                   # ((offset, type or ("*", fields of the struct it points to)), ...)
     prefix: str = ""                # leafgen's name of the first argument's struct (Unk_<addr>)
+    callee: tuple | None = None     # a final tail call: (its target, its parameter types)
 
     def named(self, text: str, cls: str) -> str:
         """`text` with leafgen's names of the structs the class's fields point
@@ -631,12 +632,13 @@ def lift_member(m: Model, f: int) -> Lifted | None:
     if m.sizes.get(f, 0) > 32:
         return None
     try:
-        lf = L.lift(m.img[f:f + m.sizes[f]])
+        lf = L.lift(m.img[f:f + m.sizes[f]], f + BASE)
+        render = L.Emitter.render_tail if lf.tail is not None else L.Emitter.render
         first = L.Emitter(f + BASE, lf)
-        first.render()
+        render(first)
         e = L.Emitter(f + BASE, lf)
         e.structs, e.arg_types, e.fp_types = first.structs, first.arg_types, first.fp_types
-        _, func = e.render()
+        _, func = render(e)
     except (L.LiftError, ValueError, KeyError):
         return None
     if any(isinstance(b, L.Arg) and (b.index != 0 or b.fp) for b in e.structs):
@@ -669,7 +671,16 @@ def lift_member(m: Model, f: int) -> Lifted | None:
     if any(p.split()[0] not in PARAM_CODES for p in params):
         return None
     rtype = x.group(1).replace("const ", "") if "*" in x.group(1) else x.group(1)
-    return Lifted(rtype, tuple(params), x.group(3).replace("self->", ""), fields, f"Unk_{e.short}")
+    body = re.sub(r"\bself\b", "this", x.group(3).replace("self->", ""))  # passed on to a tail call
+    callee = (lf.tail - BASE, e.callee[1]) if lf.tail is not None else None
+    return Lifted(rtype, tuple(params), body, fields, f"Unk_{e.short}", callee)
+
+
+def tail_callee(callee: tuple) -> tuple[int, str]:
+    """(function, mangled name) of a lifted member's tail-call target."""
+    import leafgen as L
+    t, types = callee
+    return t, L.callee_name(t + BASE, list(types))[1]
 
 
 def placeholder_members(m: Model, v: Vtable, own: dict[int, tuple[int, int]], pickable,
@@ -1010,6 +1021,8 @@ def render_class(m: Model, spec: ClassSpec,
         names.append((f, mangle(cls, f"vf{i}", codes)))
         if x.kind == "forward":
             names.append((x.value, callee_name(x.value)[1]))
+        if x.kind == "lifted" and x.lifted.callee is not None:
+            names.append(tail_callee(x.lifted.callee))
     decl += field_lines(spec.fields, cls, 8)  # after the vptr
     pre = structs(spec.fields, cls)
     if spec.table is not None:
@@ -1132,6 +1145,11 @@ def render_file(m: Model, entries: list[tuple[ClassSpec, list[Member]]],
     if callees:
         parts += ["// Called by forwarders. Placeholders: their real signatures aren't known.",
                   *(f"void {callee_name(t)[0]}(void* self);" for t in callees), ""]
+    tails = sorted({x.lifted.callee for _, xs in entries for x in xs
+                    if x.kind == "lifted" and x.lifted.callee is not None} - {(t, ("void*",)) for t in callees})
+    if tails:
+        parts += ["// Tail-called by lifted functions. Placeholders, like the forwarders' callees.",
+                  *(f"void {callee_name(t)[0]}({', '.join(types)});" for t, types in tails), ""]
     here = {spec.v.addr: xs for spec, xs in entries}
     done: set[int] = set()
     names: list[tuple[int, str]] = []
@@ -1240,6 +1258,27 @@ def cmd_write(m: Model, args) -> None:
         return (not r.name or named) and \
             (only is None or t in only or bool(r.name))
 
+    # A lifted member's tail call: its target in no vtable, unnamed or named as
+    # this callee, and called with the same types by every caller (forwarders
+    # call theirs with one void*).
+    sigs: dict[int, set] = defaultdict(set)
+    for ms in picked.values():
+        for x in ms:
+            if x.kind == "forward":
+                sigs[x.value].add(("void*",))
+            elif x.kind == "lifted" and x.lifted.callee is not None:
+                sigs[x.lifted.callee[0]].add(x.lifted.callee[1])
+
+    def tail_ok(c: tuple) -> bool:
+        t = c[0]
+        r = rows.get(t)
+        return (t not in holders and r is not None and r.shield is not None and len(sigs[t]) == 1
+                and (not r.name or r.name == tail_callee(c)[1]))
+
+    for a, ms in list(picked.items()):
+        picked[a] = [x for x in ms if x.kind != "lifted" or x.lifted.callee is None or tail_ok(x.lifted.callee)]
+        if not picked[a]:
+            del picked[a]
     specs = class_specs(m, picked, own, seg, kept, getter_ok)
     # One file per static-initialiser segment, like src/unsorted/leaf: a class
     # whose functions span segments is declared in each of their files.

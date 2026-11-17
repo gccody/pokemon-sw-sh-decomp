@@ -244,6 +244,16 @@ def test_lifted_member_through_a_pointer_field():
     assert spec.fields == {0x10: {0x10: "u32", 0x18: "u8"}}
 
 
+def test_lifted_member_with_a_tail_call():
+    """ldr x0, [x0, #0x10] ; b +0x100: field_10 passed to the tail call's target."""
+    m = lifted_model([0xF9400800, b(0x134, 0x234)])
+    x = V.lift_member(m, 0x130)
+    assert x.callee == (0x234, ("u64",)) and x.body == "    Unk_234(field_10);\n"
+    assert V.tail_callee(x.callee) == (0x234, "_Z7Unk_234m")
+    m = lifted_model([0x528000A1, b(0x134, 0x234)])        # mov w1, #5: this is passed on
+    assert V.lift_member(m, 0x130).body == "    Unk_234(this, 5);\n"
+
+
 def test_element_member():
     """add x8, x0, x1, lsl #5 ; ldr x0, [x8, #8] ; ret: field_0 of 32-byte entries right after the vptr."""
     m = lifted_model([0x8B011408, 0xF9400500, RET])
