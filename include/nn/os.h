@@ -99,10 +99,27 @@ void WaitThread(ThreadType* thread) noexcept;
 void YieldThread() noexcept;
 void SleepThread(TimeSpan time) noexcept;
 ThreadType* GetCurrentThread() noexcept;
+uint64_t GetThreadId(const ThreadType* thread) noexcept;
 void SetThreadNamePointer(ThreadType* thread, const char* name) noexcept;
 void SetThreadCoreMask(ThreadType* thread, int idealCore, uint64_t affinityMask) noexcept;
 void GetThreadCoreMask(int* idealCore, uint64_t* affinityMask, const ThreadType* thread) noexcept;
 uint64_t GetThreadAvailableCoreMask() noexcept;
+
+// nn::os::Mutex, the SDK's inline wrapper of a MutexType. Its destructor is
+// emitted where its address is taken: _ZN2nn2os5MutexD2Ev at 0x710065d670,
+// `b FinalizeMutex`, registered with __cxa_atexit for gflib3's static mutex.
+class Mutex {
+public:
+    explicit Mutex(bool recursive) noexcept { InitializeMutex(&m_mutex, recursive, 0); }
+    ~Mutex() noexcept { FinalizeMutex(&m_mutex); }
+
+    void Lock() noexcept { LockMutex(&m_mutex); }
+    void Unlock() noexcept { UnlockMutex(&m_mutex); }
+
+private:
+    MutexType m_mutex;
+};
+static_assert(sizeof(Mutex) == 0x20, "Mutex");
 
 typedef void (*TlsDestructor)(uintptr_t value);
 Result AllocateTlsSlot(TlsSlot* slot, TlsDestructor destructor) noexcept;
