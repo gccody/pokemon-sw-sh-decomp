@@ -379,6 +379,8 @@ class ExternalBase:
     get_type: str
     secondaries: tuple              # (offset in the object, its 2 destructor slots, its type slot) each
     inline_dtor: bool = False       # its D2 is inline: the D0s and thunks are copies of it, not `b`s
+    shared_tu: bool = False         # it and its derived classes are one TU: no file of their own
+    source: str | None = None       # its own definitions, included in its TU's file (a shared TU)
 
     def slot(self, i: int) -> tuple[str, str]:
         return next(((rt, n) for j, rt, n in self.slots if j == i), ("void", f"vf{i}"))
@@ -395,6 +397,11 @@ EXTERNAL_BASES = (
                  ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
                   (5, "void", "vf5"), (6, TYPE, "vf_type")),
                  6, "Unk_23f4318::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0))),
+    ExternalBase(0x23d4480, "Unk_23d4470", "unsorted/Unk_23d4470.h",
+                 ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
+                  (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7"), (8, "u32", "vf8")),
+                 6, "Unk_23d4470::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)),
+                 shared_tu=True, source="unsorted/Unk_23d4470.inl"),
     # gflib3's reference-counted object: its destructor is inline, and it has no type slot of
     # its own (a class that overrides the interfaces' getter gets slot 6 for it).
     ExternalBase(0x239a428, "Unk_239a418", "gflib3/Unk_239a418.h",
@@ -815,7 +822,18 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         thunks = [w.slots[ts] for w, (_, _, ts) in zip(secs, e.secondaries)]
         overrides = any(f != ew.slots[ts] for f, ew, (_, _, ts) in zip(thunks, esecs, e.secondaries))
         t = branch_target(m, f6) if isinstance(f6, int) and m.pattern(f6) == "b T" else None
-        if ok and overrides and t is None:
+        if ok and overrides and t is None and e.shared_tu:
+            # In a TU with many classes: its getter is inlined into vf_type (out
+            # of line, its key function) and calls the base's out of line, and
+            # the secondary type slots are copies of vf_type (thunks with it inlined).
+            if not isinstance(f6, int) or not pickable(f6) or any(
+                    m.pattern(f) != m.pattern(f6) or not pickable(f) for f in thunks):
+                ok = False
+            else:
+                extra.append(Member(e.type_slot, f6, "ext_type", "copy"))
+                extra += [Member(-1, f, "ext_thunk", (off, "vf_type"))
+                          for f, (off, _, _) in zip(thunks, e.secondaries)]
+        elif ok and overrides and t is None:
             # Its getter is inlined into vf_type (the one caller in its TU), and
             # the secondary type slots are thunks that tail-call vf_type.
             if not isinstance(f6, int) or not pickable(f6) or any(
@@ -1079,7 +1097,8 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
             names.append((x.addr, mangle(cls, "Unk_GetType")))
         elif x.kind == "ext_type":
             if x.value is not None:     # out of line, its key function; inline in the class otherwise
-                defs.append(f"// 0x{x.addr + BASE:x}; its type 0x{x.value + BASE:x}\n{TYPE} {cls}::vf_type() {{\n"
+                where = f"; its type 0x{x.value + BASE:x}" if isinstance(x.value, int) else ""
+                defs.append(f"// 0x{x.addr + BASE:x}{where}\n{TYPE} {cls}::vf_type() {{\n"
                             f"    return Unk_GetType();\n}}")
             names.append((x.addr, mangle(cls, "vf_type")))
         else:
@@ -1095,7 +1114,8 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
     return "\n".join(decl) + "\n", names, "\n\n".join(defs) + "\n"
 
 
-def render_file(m: Model, entries: list[tuple[ClassSpec, list[Member]]]) -> tuple[str, list[tuple[int, str]]]:
+def render_file(m: Model, entries: list[tuple[ClassSpec, list[Member]]],
+                source: str | None = None) -> tuple[str, list[tuple[int, str]]]:
     """One file's source and names: its classes in address order of what they
     define here, each base declared before its first derived class."""
     parts = ["// Scope: common",
@@ -1106,6 +1126,8 @@ def render_file(m: Model, entries: list[tuple[ClassSpec, list[Member]]]) -> tupl
     headers = sorted({spec.ext.header for spec, _ in entries if spec.ext is not None})
     if headers:
         parts[-1:] = [*(f'#include "{h}"' for h in headers), ""]
+    if source:  # the base's own definitions: one TU with the classes derived from it
+        parts += [f'#include "{source}"', ""]
     callees = sorted({x.value for _, xs in entries for x in xs if x.kind == "forward"})
     if callees:
         parts += ["// Called by forwarders. Placeholders: their real signatures aren't known.",
@@ -1226,7 +1248,7 @@ def cmd_write(m: Model, args) -> None:
     # only when that is the base getter's one caller in the TU.
     files: dict[tuple[int, int], list[tuple[ClassSpec, list[Member]]]] = defaultdict(list)
     for spec in specs.values():
-        own_file = spec.ext is not None and spec.ext.type_slot in spec.order
+        own_file = spec.ext is not None and spec.ext.type_slot in spec.order and not spec.ext.shared_tu
         by_seg: dict[int, list[Member]] = defaultdict(list)
         for x in spec.members:
             by_seg[seg(x.addr)].append(x)
@@ -1236,10 +1258,14 @@ def cmd_write(m: Model, args) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     for old in out_dir.glob("Unk_*.cpp"):  # everything here is written again (a file's name can change)
         old.unlink()
+    # A shared TU's file includes its base's hand-written definitions.
+    by_addr = {v.addr: v for v in m.vtables}
+    sources = {(seg(by_addr[e.vtable].slots[0]), 0): e.source for e in EXTERNAL_BASES
+               if e.source and e.vtable in by_addr}
     name_rows: dict[int, str] = {}  # a forwarders' callee is named once
-    for _, entries in sorted(files.items()):
+    for key, entries in sorted(files.items()):
         first = min(x.addr for _, xs in entries for x in xs)
-        text, names = render_file(m, entries)
+        text, names = render_file(m, entries, sources.get(key))
         name_rows.update(names)
         (out_dir / f"Unk_{first:x}.cpp").write_text(text, encoding="utf-8", newline="\n")
     with open(args.names, "w", encoding="utf-8", newline="\n") as fh:
