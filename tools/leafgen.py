@@ -389,7 +389,17 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
             else:
                 put(dst, get(src))
         elif mn in ("movz", "movk"):
-            raise LiftError(mn)
+            # A wide constant, 16 bits at a time: movk keeps the others.
+            dst, imm, *shift = ops
+            sh = int(shift[0].split("#")[1], 0) if shift else 0
+            w = width_of(dst)
+            part = _imm(imm) << sh
+            if mn == "movk":
+                old = get(dst)
+                if not isinstance(old, Const):
+                    raise LiftError("movk of a computed value")
+                part |= old.value & ~(0xFFFF << sh)
+            put(dst, Const(part & ((1 << (8 * w)) - 1), w))
         elif mn in ("and", "orr", "eor", "add", "sub", "lsl", "lsr", "asr"):
             if len(ops) != 3:
                 raise LiftError(f"{mn} with a shifted operand")
