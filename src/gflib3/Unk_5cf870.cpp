@@ -5,8 +5,7 @@
 // field is the nn::os object; the classes aren't known, so these are
 // placeholder functions of the object. The initializers take the clear mode
 // before the initial state, the other way round from the SDK.
-#include <nn/os.h>
-#include <types.h>
+#include "gflib3/Unk_5cf870.h"
 
 struct Unk_5cf910 {
     u8 _0[0x80];

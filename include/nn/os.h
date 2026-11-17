@@ -53,9 +53,15 @@ struct ThreadType {
 static_assert(sizeof(ThreadType) == 0x1a8, "ThreadType");
 static_assert(offsetof(ThreadType, field_44) == 0x44, "ThreadType::field_44");
 
-// Only passed by pointer so far: no caller shows their size.
+// Only passed by pointer so far: no caller shows its size.
 struct EventType;
-struct LightEventType;
+
+// 0xc bytes, 4-aligned: gflib3 keeps one at +0x4 with a pointer at +0x10
+// (0x710065f110) and one at +0xa4 with a pointer at +0xb0 (0x710065f1c0).
+struct LightEventType {
+    uint32_t field_0[3];
+};
+static_assert(sizeof(LightEventType) == 0xc, "LightEventType");
 
 // How an event clears: an enum, from the imports' mangled names. Its
 // enumerators aren't known.
