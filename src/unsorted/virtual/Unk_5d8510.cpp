@@ -1,0 +1,97 @@
+// Scope: common
+// Simple virtual functions between two static initialisers (one or more TUs).
+// Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename
+// them, and give the functions real signatures, once the classes are known.
+#include <types.h>
+
+class Unk_2399a38 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+};
+
+// 0x71005d8510
+void Unk_2399a38::vf2() {}
+
+class Unk_2399a68 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+};
+
+// 0x71005d8590
+void Unk_2399a68::vf0() {}
+
+class Unk_2399bf0 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+};
+
+// 0x71005db430
+void Unk_2399bf0::vf12() {}
+
+// 0x71005db450
+void Unk_2399bf0::vf13() {}
+
+class Unk_2399c70 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+};
+
+// 0x71005db440
+void Unk_2399c70::vf10() {}
+
+// 0x71005db460
+void Unk_2399c70::vf11() {}
+
+class Unk_2399d08 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual u32 vf16();
+};
+
+// 0x71005dba50
+u32 Unk_2399d08::vf16() {
+    return 0;
+}

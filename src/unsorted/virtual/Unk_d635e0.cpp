@@ -1,0 +1,53 @@
+// Scope: common
+// Simple virtual functions between two static initialisers (one or more TUs).
+// Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename
+// them, and give the functions real signatures, once the classes are known.
+#include <types.h>
+
+class Unk_23ec918 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual u32 vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+};
+
+// 0x7100d635e0
+u32 Unk_23ec918::vf7() {
+    return 1;
+}
+
+// 0x7100d635f0
+void Unk_23ec918::vf8() {}
+
+// 0x7100d63820
+void Unk_23ec918::vf10() {}
+
+class Unk_23ec9e8 {
+public:
+    virtual ~Unk_23ec9e8();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual u32 vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+};
+
+// 0x7100d63ce0
+u32 Unk_23ec9e8::vf7() {
+    return 1;
+}
+
+// 0x7100d64200
+void Unk_23ec9e8::vf10() {}
