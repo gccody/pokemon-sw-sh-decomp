@@ -1991,6 +1991,15 @@ That's 19 static initialisers and 5 `AddDesc` functions, `M`. The other 54
 generated TUs have no such statics, and their static initialisers match.
 Matching these needs the header, which isn't known.
 
+The merged objects are in `data/data_symbols.csv` as
+`.L_MergedGlobals@<stem>` (`check.py --record-data`). Every reference to one
+has to agree on where it starts in each game, which checks the layout
+inside it. That holds for 79 TUs. In 5 it doesn't: `request_cancel`,
+`request_cancel_all`, `request_forced_proceed`, `cancel_accepted` and
+`btl_spot_empty`, whose matching functions put the object 0x15 or 0x2d
+bytes apart. Their layout isn't the original's (the header's statics again,
+perhaps), so those references stay unverified.
+
 ### Reproducing
 
 ```sh
