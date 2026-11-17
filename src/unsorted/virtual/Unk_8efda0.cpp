@@ -6,12 +6,9 @@
 
 class Unk_23bd320 {
 public:
-    virtual ~Unk_23bd320();
+    virtual ~Unk_23bd320() {}
     virtual void vf2();
 };
-
-// 0x71008efdb0, 0x71008efdc0
-Unk_23bd320::~Unk_23bd320() {}
 
 // 0x71008efda0
 void Unk_23bd320::vf2() {}

@@ -4,10 +4,15 @@
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
 
-class Unk_23be2d8 {
+class Unk_23bd320 {
 public:
-    virtual ~Unk_23be2d8();
+    virtual ~Unk_23bd320() {}
     virtual void vf2();
+};
+
+class Unk_23be2d8 : public Unk_23bd320 {
+public:
+    void vf2() override;
 };
 
 // 0x7100919f80
