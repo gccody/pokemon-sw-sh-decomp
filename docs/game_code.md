@@ -321,7 +321,9 @@ function, to its final `ret` (`if (x != 0) { ... }`) or to a
 `mov w0, wzr ; ret` after the path's own `ret` (`if (x == nullptr) return
 0; return ...;`). It has to test a field or an argument before any store.
 Commonest are a null-checked tail call and a getter through a pointer that
-may be null. 119 more leaf functions match (check.py: 24,964 matching).
+may be null. 119 more leaf functions match (check.py: 24,964 matching), and
+53 more virtual ones, which `vtables.py write` lifts the same way
+(check.py: 25,017 matching, 107 not matching).
 
 ## Vtables and classes (`tools/vtables.py`)
 

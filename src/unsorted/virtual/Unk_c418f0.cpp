@@ -10,6 +10,9 @@ void Unk_c48ff0(void* self);
 void Unk_c49140(void* self);
 void Unk_c4ea00(void* self);
 
+// Tail-called by lifted functions. Placeholders, like the forwarders' callees.
+void Unk_685b20(u64);
+
 class Unk_23db268 {
 public:
     virtual ~Unk_23db268();
@@ -127,9 +130,12 @@ public:
     virtual void vf20();
     virtual u8 vf21();
     virtual void vf22();
-    u8 _8[0x64a];
+    u8 _8[0x5c0];
+    u64 field_5c8;
+    u8 _5d0[0x82];
     u8 field_652;
 };
+PKMN_OFFSET_ASSERT(Unk_23db5a0, field_5c8, 0x5c8);
 PKMN_OFFSET_ASSERT(Unk_23db5a0, field_652, 0x652);
 
 // 0x7100c46fc0
@@ -149,6 +155,13 @@ void Unk_23db5a0::vf17() {}
 // 0x7100c46ff0
 u32 Unk_23db5a0::vf18() {
     return 0;
+}
+
+// 0x7100c461d0
+void Unk_23db5a0::vf20() {
+    if (field_5c8 != 0) {
+        Unk_685b20(field_5c8);
+    }
 }
 
 // 0x7100c47000
@@ -263,10 +276,13 @@ public:
     virtual void vf22();
     u8 _8[0x138];
     u32 field_140;
-    u8 _144[0x220];
+    u8 _144[0x214];
+    u64 field_358;
+    u8 _360[0x4];
     u32 field_364;
 };
 PKMN_OFFSET_ASSERT(Unk_23dbb10, field_140, 0x140);
+PKMN_OFFSET_ASSERT(Unk_23dbb10, field_358, 0x358);
 PKMN_OFFSET_ASSERT(Unk_23dbb10, field_364, 0x364);
 
 // 0x7100c4b1c0
@@ -295,6 +311,13 @@ u32 Unk_23dbb10::vf18() {
     return 0;
 }
 
+// 0x7100c4bb60
+void Unk_23dbb10::vf20() {
+    if (field_358 != 0) {
+        Unk_685b20(field_358);
+    }
+}
+
 class Unk_23dbde0 {
 public:
     virtual ~Unk_23dbde0();
@@ -319,9 +342,12 @@ public:
     virtual void vf20();
     virtual void vf21();
     virtual void vf22();
-    u8 _8[0x2ac];
+    u8 _8[0x2a0];
+    u64 field_2a8;
+    u8 _2b0[0x4];
     u32 field_2b4;
 };
+PKMN_OFFSET_ASSERT(Unk_23dbde0, field_2a8, 0x2a8);
 PKMN_OFFSET_ASSERT(Unk_23dbde0, field_2b4, 0x2b4);
 
 // 0x7100c4ce80
@@ -343,6 +369,13 @@ void Unk_23dbde0::vf17() {}
 // 0x7100c4d4f0
 u32 Unk_23dbde0::vf18() {
     return 0;
+}
+
+// 0x7100c4d040
+void Unk_23dbde0::vf20() {
+    if (field_2a8 != 0) {
+        Unk_685b20(field_2a8);
+    }
 }
 
 class Unk_23dbfd0 {

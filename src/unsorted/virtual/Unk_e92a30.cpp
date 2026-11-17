@@ -268,3 +268,75 @@ public:
 void Unk_23f4be8::vf0() {
     Unk_e94c10(this);
 }
+
+struct Unk_23f4d20_18 {
+    u8 _0[0x170];
+    u8 field_170;
+};
+PKMN_OFFSET_ASSERT(Unk_23f4d20_18, field_170, 0x170);
+
+class Unk_23f4d20 {
+public:
+    virtual ~Unk_23f4d20();
+    virtual bool vf2();
+    virtual void vf3();
+    u8 _8[0x10];
+    Unk_23f4d20_18* field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_23f4d20, field_18, 0x18);
+
+// 0x7100e9ab10
+bool Unk_23f4d20::vf2() {
+    if (field_18 == nullptr) {
+        return false;
+    }
+    return field_18->field_170 != 0;
+}
+
+struct Unk_23f4d50_18 {
+    u8 _0[0x170];
+    u8 field_170;
+};
+PKMN_OFFSET_ASSERT(Unk_23f4d50_18, field_170, 0x170);
+
+class Unk_23f4d50 {
+public:
+    virtual ~Unk_23f4d50();
+    virtual bool vf2();
+    virtual void vf3();
+    u8 _8[0x10];
+    Unk_23f4d50_18* field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_23f4d50, field_18, 0x18);
+
+// 0x7100e9b0b0
+bool Unk_23f4d50::vf2() {
+    if (field_18 == nullptr) {
+        return false;
+    }
+    return field_18->field_170 != 0;
+}
+
+struct Unk_23f4d80_18 {
+    u8 _0[0x170];
+    u8 field_170;
+};
+PKMN_OFFSET_ASSERT(Unk_23f4d80_18, field_170, 0x170);
+
+class Unk_23f4d80 {
+public:
+    virtual ~Unk_23f4d80();
+    virtual bool vf2();
+    virtual void vf3();
+    u8 _8[0x10];
+    Unk_23f4d80_18* field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_23f4d80, field_18, 0x18);
+
+// 0x7100e9b280
+bool Unk_23f4d80::vf2() {
+    if (field_18 == nullptr) {
+        return false;
+    }
+    return field_18->field_170 != 0;
+}

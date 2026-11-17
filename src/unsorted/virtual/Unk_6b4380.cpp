@@ -4,6 +4,9 @@
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
 
+// Globals other TUs define, named after their addresses.
+extern u64 Unk_27fc0a8;
+
 class Unk_23a3108 {
 public:
     virtual ~Unk_23a3108();
@@ -46,6 +49,38 @@ u32 Unk_23a3108::vf2() {
 // 0x71006b4380
 u8 Unk_23a3108::vf22() {
     return field_4f5;
+}
+
+class Unk_23a32b8 {
+public:
+    virtual u32 vf0();
+    virtual void vf1();
+    virtual u32 vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual const char* vf5();
+    u8 _8[0x8];
+    u32 field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_23a32b8, field_10, 0x10);
+
+// 0x71006b4f60
+u32 Unk_23a32b8::vf0() {
+    if (Unk_27fc0a8 == 0) {
+        return 0;
+    }
+    field_10 = 0;
+    return 1;
+}
+
+// 0x71006b6450
+u32 Unk_23a32b8::vf2() {
+    return 0;
+}
+
+// 0x71006b6460
+const char* Unk_23a32b8::vf5() {
+    return "BrowseJoinSession";
 }
 
 class Unk_23a31f8 {
@@ -96,26 +131,6 @@ public:
 // 0x71006b6440
 const char* Unk_23a3278::vf5() {
     return "JoinSession";
-}
-
-class Unk_23a32b8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual u32 vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual const char* vf5();
-};
-
-// 0x71006b6450
-u32 Unk_23a32b8::vf2() {
-    return 0;
-}
-
-// 0x71006b6460
-const char* Unk_23a32b8::vf5() {
-    return "BrowseJoinSession";
 }
 
 class Unk_23a32f8 {

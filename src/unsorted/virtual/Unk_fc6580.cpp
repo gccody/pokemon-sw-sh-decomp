@@ -6,6 +6,7 @@
 
 // Tail-called by lifted functions. Placeholders, like the forwarders' callees.
 void Unk_ec88c0(u64);
+void Unk_fcb180(u64);
 
 struct Unk_2403178_740 {
     u8 _0[0x708];
@@ -42,10 +43,19 @@ public:
     virtual void vf25();
     u8 _8[0x738];
     Unk_2403178_740* field_740;
+    u64 field_748;
 };
 PKMN_OFFSET_ASSERT(Unk_2403178, field_740, 0x740);
+PKMN_OFFSET_ASSERT(Unk_2403178, field_748, 0x748);
 
 // 0x7100fc6580
 void Unk_2403178::vf20() {
     Unk_ec88c0(field_740->field_708);
+}
+
+// 0x7100fc6ba0
+void Unk_2403178::vf22() {
+    if (field_748 != 0) {
+        Unk_fcb180(field_748);
+    }
 }

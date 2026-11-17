@@ -10,6 +10,7 @@ void Unk_11cdcf0(void* self);
 void Unk_11deb20(void* self);
 
 // Tail-called by lifted functions. Placeholders, like the forwarders' callees.
+void Unk_68d9b0(u64);
 void Unk_112e3e0(void*, u32);
 
 class Unk_24202e0 {
@@ -246,6 +247,39 @@ void Unk_2421120::vf11() {
 
 // 0x71011d7e40
 void Unk_2421120::vf17() {}
+
+class Unk_24213a0 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    u8 _8[0x78];
+    u64 field_80;
+};
+PKMN_OFFSET_ASSERT(Unk_24213a0, field_80, 0x80);
+
+// 0x71011da7e0
+void Unk_24213a0::vf18() {
+    if (field_80 != 0) {
+        Unk_68d9b0(field_80);
+    }
+}
 
 class Unk_2421620 {
 public:

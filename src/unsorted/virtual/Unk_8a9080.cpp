@@ -4,6 +4,18 @@
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
 
+// Tail-called by lifted functions. Placeholders, like the forwarders' callees.
+void Unk_7caf10(u64);
+void Unk_7cafe0(u64);
+void Unk_7cb860(u64);
+void Unk_7cb8c0(u64);
+void Unk_7cc170(u64);
+void Unk_7ccf60(u64);
+void Unk_7ccfa0(u64);
+void Unk_7ccfc0(u64);
+void Unk_7cd090(u64);
+void Unk_7d7cd0(u64);
+
 class Unk_23b9048 {
 public:
     virtual void vf0();
@@ -332,12 +344,14 @@ public:
     virtual void vf323();
     virtual void vf324();
     virtual void vf325();
-    u8 _8[0x58];
+    u8 _8[0x50];
+    u64 field_58;
     u64 field_60;
     u64 field_68;
     u32 field_70;
     u32 field_74;
 };
+PKMN_OFFSET_ASSERT(Unk_23b9048, field_58, 0x58);
 PKMN_OFFSET_ASSERT(Unk_23b9048, field_60, 0x60);
 PKMN_OFFSET_ASSERT(Unk_23b9048, field_68, 0x68);
 PKMN_OFFSET_ASSERT(Unk_23b9048, field_70, 0x70);
@@ -1200,6 +1214,48 @@ u64 Unk_23b9048::vf261() {
     return field_60;
 }
 
+// 0x71008a9540
+void Unk_23b9048::vf277() {
+    if (field_58 != 0) {
+        Unk_7cb860(field_58);
+    }
+}
+
+// 0x71008a9550
+void Unk_23b9048::vf278() {
+    if (field_58 != 0) {
+        Unk_7cb8c0(field_58);
+    }
+}
+
+// 0x71008a9740
+void Unk_23b9048::vf286() {
+    if (field_58 != 0) {
+        Unk_7ccf60(field_58);
+    }
+}
+
+// 0x71008a9750
+void Unk_23b9048::vf287() {
+    if (field_58 != 0) {
+        Unk_7ccfa0(field_58);
+    }
+}
+
+// 0x71008a9760
+void Unk_23b9048::vf288() {
+    if (field_58 != 0) {
+        Unk_7ccfc0(field_58);
+    }
+}
+
+// 0x71008a9870
+void Unk_23b9048::vf291() {
+    if (field_58 != 0) {
+        Unk_7cd090(field_58);
+    }
+}
+
 // 0x71008abb50
 u32 Unk_23b9048::vf294() {
     return field_70;
@@ -1208,6 +1264,34 @@ u32 Unk_23b9048::vf294() {
 // 0x71008a9880
 u32 Unk_23b9048::vf295() {
     return field_74;
+}
+
+// 0x71008a9a20
+void Unk_23b9048::vf301() {
+    if (field_58 != 0) {
+        Unk_7cafe0(field_58);
+    }
+}
+
+// 0x71008a9a40
+void Unk_23b9048::vf303() {
+    if (field_58 != 0) {
+        Unk_7cc170(field_58);
+    }
+}
+
+// 0x71008a9b20
+void Unk_23b9048::vf308() {
+    if (field_60 != 0) {
+        Unk_7d7cd0(field_60);
+    }
+}
+
+// 0x71008a9af0
+void Unk_23b9048::vf311() {
+    if (field_58 != 0) {
+        Unk_7caf10(field_58);
+    }
 }
 
 // 0x71008abb60

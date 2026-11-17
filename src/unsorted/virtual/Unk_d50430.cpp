@@ -151,6 +151,13 @@ void Unk_23ead78::vf40() {
     Unk_27dcbd8 = Unk_27dcbd8 + 1;
 }
 
+// 0x7100d50f30
+void Unk_23ead78::vf41() {
+    if (Unk_27dcbd8 != 0) {
+        Unk_27dcbd8 = Unk_27dcbd8 - 1;
+    }
+}
+
 // 0x7100d50f50
 void Unk_23ead78::vf42() {
     Unk_27dcbd8 = 0;
