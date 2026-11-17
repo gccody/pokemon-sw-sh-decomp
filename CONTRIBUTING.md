@@ -35,6 +35,14 @@ each one's SHA-256 (`data/physx_v342.csv`). CMake won't configure without
 them. Never commit them: `lib/physx/.gitignore` and `tools/lint.py` keep them
 out (see `lib/physx/README.md`).
 
+Game Freak's protobuf messages need `python tools/protos.py generate`, after a
+checkout and whenever a `.proto` under `src/` changes. It runs Google's protoc
+3.0.0 (downloaded into `toolchain/`, SHA-256 checked) on every `.proto`, and
+writes the generated `.pb.cc`/`.pb.h` next to it. Those embed the game's
+serialized descriptors, so they're never committed (`src/.gitignore`, lint),
+and CMake won't configure while one is missing or out of date
+(`docs/compiler.md`, "Generated protobuf messages").
+
 On macOS, clang 6.0.1 isn't available (LLVM never published a macOS build of it),
 so PhysX code can't be matched there: use Linux or Windows (or WSL, or a Linux
 container), or configure with `-DPKMN_ALLOW_LIBRARY_COMPILER_FALLBACK=ON`

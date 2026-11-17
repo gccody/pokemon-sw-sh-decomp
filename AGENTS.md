@@ -23,7 +23,9 @@ count. A function is done only when `tools/check.py` reports `OK`.
    Don't commit the 83 `lib/physx` files listed in `data/physx_v342.csv`
    either: they hold PhysX v3.4.2 code, which isn't BSD-licensed.
    `tools/get_physx.py` generates them, and `lib/physx/.gitignore` and lint
-   keep them out.
+   keep them out. Nor the `*.pb.cc`/`*.pb.h` that `tools/protos.py generate`
+   writes next to each `src/**/*.proto`: they embed the game's serialized
+   descriptors. Commit the `.proto` (`src/.gitignore` and lint keep the rest out).
 2. **Never hand-edit the `Status` column of `data/functions.csv`.** `O` comes
    only from `python tools/check.py --update`. Use `tools/funcs.py status <addr> m|M`
    for non-matching submissions.
@@ -63,6 +65,7 @@ elsewhere. `ninja` must be on `PATH` for builds.
 
 ```sh
 python tools/get_physx.py                                # once: lib/physx's v3.4.2 files (not in git)
+python tools/protos.py generate                          # protoc 3.0.0 output for src/**/*.proto (not in git)
 python tools/funcs.py list --status U --max 64 -n 20     # find small undecompiled functions
 python tools/funcs.py patterns --area game --status U --max 8   # group by pattern + how reached (docs/game_code.md)
 python tools/funcs.py show 0x7100bc0b00                  # original asm (both games if diverged)

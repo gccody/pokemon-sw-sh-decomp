@@ -1835,21 +1835,182 @@ python tools/sweep_attribute.py build/sword --source-prefix lib/protobuf/ \
     --range 0x71006dea00-0x7100761f70 --game sword --out attr_sword.csv   # and shield
 ```
 
-### Next: the generated messages
+### The generated messages
 
-Protobuf itself is done; what uses it is the next project. Besides
-`descriptor.proto`, 221 generated `.proto` files register their descriptor
-with `DescriptorPool::InternalAddGeneratedFile` (`0x71006e1400`): gflnet3's
-own (`lib/gflnet3/src/p2p/*`, registered from `0x71006bc290` to
-`0x71006dd1d0`) and the game's (battle from `0x710089db10`,
-`prog/network/net_contents`). Their code is `protoc` 3.0.0 output, so it can
-be matched by regenerating it from the `.proto` files, which the embedded
-descriptors spell out completely, and the 69 unidentified inlines would likely
-turn up among it. But `protoc` embeds each serialized descriptor in its
-`.pb.cc` as a byte-string literal, a verbatim copy of the game's rodata, and
-the project doesn't commit bulk rodata (AGENTS.md, rule 1). How to handle
-that (commit `.proto` files and run `protoc` at build time, or something else)
-is a project decision.
+Game Freak's own messages, which use this runtime, are matched too: see
+"Generated protobuf messages", next.
+
+## Generated protobuf messages
+
+**Result: Game Freak's own messages are protoc 3.0.0 output for 73 `.proto`
+files, built like the runtime (the game's clang 7.0.x and flags, `NDEBUG`).**
+The `.proto` files are in `src/`, reconstructed from the descriptors in
+`main` by `tools/protos.py extract`, and `tools/protos.py generate` regenerates
+their code (`src/**/<name>.pb.cc`, `.pb.h`, not committed). **`check.py`
+reports 2,414 of their functions `OK` in both games.** 24 are `M` (see "What
+doesn't match"), and eight are another TU's copies.
+
+### The `.proto` files
+
+Every generated file registers its serialized `FileDescriptorProto` with
+`DescriptorPool::InternalAddGeneratedFile` (`0x71006e1400`). Besides
+protobuf's own `descriptor.proto` there are 73, called from 221 places (clang
+inlines `protobuf_AddDesc_<file>` into some callers). All are proto3, without
+file options, and they have 96 messages in 18 packages. The descriptor is the
+`.proto` in full (messages, fields, oneofs, maps, enums, imports), except for
+comments and formatting, which the code doesn't depend on.
+
+`extract` decodes each descriptor with a schema of the fields it knows (an
+unknown field is an error), prints proto3 source, and checks it: protoc 3.0.0
+compiles the file back, and its descriptor must equal the original. All 73
+do. `--descriptor_set_out` adds `json_name`, which the C++ generator's embedded
+descriptor (`FileDescriptor::CopyTo`) leaves out, so it's ignored there. The
+descriptor literal in each generated `.pb.cc` is then compared byte for byte by
+`check.py`, like any literal.
+
+Each file goes where its code was compiled. The `__FILE__` literal of each
+`.pb.cc` (`MergeFromFail`'s `GOOGLE_CHECK`) gives the directory, e.g.
+`.../RomBuild/program/prog/network/net_contents/source/battle/nbr/protocol_buffers/out/data/`
+and `.../lib/gflnet3/src/p2p/sync/protocol_buffers/ping/out/data/`. The 73
+names are unique, so all 74 literals (with `descriptor.pb.cc`'s) map one to
+one. `data/source_paths.csv` maps `src/battle/`, `src/contents/` and
+`src/network/` onto `RomBuild/program/prog/`, and `src/gflnet3/` onto
+`RomBuild/program/lib/gflnet3/`. So the files are in 20 directories:
+gflnet3's 11 (framework, session block, sync data and ping), and the game's
+62 (`battle_logic`'s net and netwatch, `net_contents`' battle, nesthole and
+trade, `pokecamp`, `comp_organize`, `btl_spot`).
+
+### Building them
+
+`generate` runs protoc on each file by its bare name, from its directory, with
+every directory on the import path: the code says `// source: <name>.proto`
+and includes `"<dep>.pb.h"`, as Game Freak's did. The output embeds the
+serialized descriptor, a copy of the game's rodata, so it isn't committed
+(`src/.gitignore`, and lint rejects a tracked `.pb.cc`/`.pb.h` under `src/`).
+protoc is Google's v3.0.0 release, downloaded into `toolchain/protoc-3.0.0`
+and checked against its SHA-256 (Windows, Linux x86-64, macOS x86-64). CI
+generates the code before it configures, and `CMakeLists.txt` refuses to
+configure while a generated file is missing or older than its `.proto` or
+`tools/protos.py`.
+
+The build settings are the runtime's (`pkmn_library_settings`, one entry per
+directory). A sweep of the 73 generated TUs over gflnet3 and the game
+(`0x710069d6e0`-`0x7101548410`, 70,305 originals, clang 7.0.1):
+
+| Variant | Compiled | Hits | Hit bytes | Mapped | Exact |
+|---|---:|---:|---:|---:|---:|
+| **`-DNDEBUG`** | 3,872 | **2,469** | **328,964** | 781 | **781** |
+| without `NDEBUG` | 3,882 | 2,112 | 254,360 | 781 | 661 |
+
+As for the runtime, `NDEBUG` keeps the protobuf headers' `DCHECK`s out.
+
+**One virtual function more.** Each of the 96 generated classes in `main` has
+a 27th vtable slot (offset `0xd0`, after `GetMetadata`), which protoc 3.0.0's
+classes don't have, and neither do protobuf's own `descriptor.pb.cc` classes
+(their vtables end at `GetMetadata`). It points to `mov w0, #1; ret`, a
+function of the class emitted at the end of its `.pb.cc`, right after
+`GetCachedSize`, the way protoc's header-inline virtuals are. So Game
+Freak's generator adds an inline `bool ... const { return true; }` to every
+message class, presumably at protoc's `class_scope` insertion point. The name
+isn't in the binary (no strings, no RTTI). `generate` inserts `virtual bool
+Unk_vfunc_d0() const { return true; }` at each `class_scope` insertion point,
+and the vtables then have the original's slots: data/data_symbols.csv places
+them, and their slot relocations name all 96 overrides at the original's
+addresses.
+
+### Names
+
+`sweep_attribute.py` over both builds (`--source-prefix src/`, gflnet3 and the
+game) names 2,305 originals of the generated TUs, the same in both games.
+A name placed by link order is kept only inside its TU's code (between its
+first and last pinned function) or where `check.py` verifies the code's
+references. That drops `CookingData::SharedDtor`, a `ret` placed among
+thousands of identical ones at `0x71006de7d0`, and two static initialisers
+placed on other TUs' 4-byte `b` stubs. Then:
+
+- 12 callees of matched functions that were pinned by calls but differ: the
+  `protobuf_AddDesc_*` of four `*_data_holder` files and eight
+  `NewFromPrototype` instances. `btl_spot_data_holder`'s `AddDesc` is
+  `0x7100b0f3a0`, which registers its descriptor and calls its dependency's.
+- 19 static initialisers: the function that tail-calls the TU's
+  `protobuf_AddDesc_*` (or inlines it and registers the descriptor), at the
+  end of the TU's code.
+- 16 functions of the `*_data_holder` TUs (`SetCachedSize`, `New(Arena*)`,
+  `Arena::Own`, `clear_message`), the only same-code candidates of the TU.
+- The 96 `Unk_vfunc_d0`: 92 by their vtable slots, and the four of the
+  `*_data_holder` classes (whose vtables nothing pins) at the same place in
+  their TU, after `GetCachedSize`.
+
+`data/data_symbols.csv` gets the generated code's 287 data objects (vtables,
+`default_instance_`s, descriptors, reflection pointers, ...), placed by
+`docs/physx/physx_data_symbols.py` with `--prefix src/<dir>/`, and every GOT
+load of them agrees. With every original in the generated TUs' code named,
+the 862 compiled functions that aren't in `main` (inlined or dropped:
+`SharedCtor`, `descriptor()`, `InternalSwap`, ...) are in
+`data/absent_functions.csv`, and eight weak copies without an original in
+`data/unidentified_functions.csv`.
+
+The eight `GenericTypeHandler<T>::NewFromPrototype` of `PlayerPosition` and
+seven `KwSyncData_*` messages are another TU's copies
+(`data/foreign_copies.csv`): the copy in `main` is before the code of the
+`.pb.cc` that defines `T`, and calls `T`'s constructor out of line, which that
+`.pb.cc` inlines. So the linker kept the copy of a Game Freak TU that uses the
+message, which isn't built here.
+
+`check.py --update` (both games), with everything before:
+
+```
+15238 matching, 106 not matching
+(3490 compiled functions skipped as not in the executable: data/absent_functions.csv)
+(286 compiled functions skipped, their original not identified yet: data/unidentified_functions.csv)
+(9 weak/COMDAT functions skipped: the executable keeps another library's copy, data/foreign_copies.csv)
+(598 compiled aliases of checked functions skipped, e.g. D1 = D2 destructors)
+```
+
+Before the generated messages, 12,824 matched and 82 didn't. The 106 are those
+82 and the 24 below.
+
+### What doesn't match
+
+24 functions, all from a Game Freak header that some TUs include before the
+generated code, whose dynamically initialised constants are TU-local statics:
+
+- **gflnet3's 11 `.pb.cc`.** Their static initialisers (`0x71006bd4d0`, ...)
+  first build colour constants (three calls of `0x71017e8f30` with 0x7f/0xff/0
+  components) and then tail-call or inline `protobuf_AddDesc_*`. In the four
+  `*_data_holder` TUs (and `btl_spot_data_holder`'s, below) those statics are
+  also merged with the TU's own (`.L_MergedGlobals`), so `protobuf_AddDesc_*`
+  addresses its `already_here` flag and the oneof-case pointer at other
+  offsets (`+0x33` and `+0x60`, not `+0` and `+0x18`).
+- **pokecamp's 6.** The static initialisers copy a 48-byte constant (three
+  `q` loads) into a TU-local object first.
+- **btl_spot's 2.** The static initialisers store 600,000 and 7,000 (two
+  millisecond timeouts?) three times into a TU-local object first.
+
+That's 19 static initialisers and 5 `AddDesc` functions, `M`. The other 54
+generated TUs have no such statics, and their static initialisers match.
+Matching these needs the header, which isn't known.
+
+### Reproducing
+
+```sh
+python tools/protos.py extract     # rewrites src/**/*.proto and checks each with protoc
+python tools/protos.py generate    # the .pb.cc/.pb.h
+# the sweep: protoc's output for the 73 files, one config with and one without NDEBUG
+P=lib/protobuf X=include/libcxx
+python tools/compiler_sweep.py --compiler toolchain/candidates/clang-7.0.1 \
+    --variant "nd=-DNDEBUG" --variant "debug=" --range 0x710069d6e0-0x7101548410 \
+    --src "src/**/*.pb.cc" -- -O3 -fno-exceptions -fno-rtti -nostdinc++ -std=c++14 \
+    -isystem $X -I $P $(for d in $(dirname $(find src -name '*.proto') | sort -u); do echo -I $d; done) \
+    -isystem include/libc -DHAVE_PTHREAD -DGOOGLE_PROTOBUF_NO_RTTI -D_GNU_SOURCE \
+    -D_LIBCPP_HAS_MUSL_LIBC -D_LIBCPP_HAS_THREAD_API_PTHREAD
+# names: build both games, then (Sword; Shield: --game shield --range 0x710069d6e0-0x71015484b0)
+python tools/sweep_attribute.py build/sword --source-prefix src/ \
+    --range 0x710069d6e0-0x7101548410 --game sword --out attr_sword.csv
+for d in gflnet3 network battle contents; do
+  python docs/physx/physx_data_symbols.py ds_$d.csv --prefix src/$d/ --range 0x710069d6e0-0x7101548410
+done
+```
 
 ## Wwise
 
