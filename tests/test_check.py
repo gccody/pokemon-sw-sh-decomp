@@ -5,15 +5,11 @@ import struct
 from pathlib import Path
 
 import check
+import elfobj
 
 
-class FakeSymbol:
-    def __init__(self, name: str, bind: str, typ: str = "STT_FUNC"):
-        self.name = name
-        self._d = {"st_info": {"bind": bind, "type": typ}}
-
-    def __getitem__(self, key):
-        return self._d[key]
+def FakeSymbol(name: str, bind: str, typ: str = "STT_FUNC") -> elfobj.Symbol:
+    return elfobj.Symbol(name, bind, typ, 1, 0, 0)
 
 
 def test_local_symbols_are_file_qualified():
