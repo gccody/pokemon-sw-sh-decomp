@@ -689,17 +689,64 @@ public:
 // 0x7100c0c0c0
 void Unk_23d8ca8::vf4() {}
 
-class Unk_23d9740 {
+class Unk_23d9740_Obj {
 public:
-    virtual u32 vf0();
+    virtual void vf0();
     virtual void vf1();
     virtual void vf2();
     virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16(u64 value);
 };
+
+struct Unk_23d9740_Entry {
+    void* field_0;
+    Unk_23d9740_Obj* field_8;
+    u64 field_10;
+    u8 _18[0x8];
+};
+PKMN_SIZE_ASSERT(Unk_23d9740_Entry, 0x20);
+
+class Unk_23d9740 {
+public:
+    virtual u32 vf0();
+    virtual void* vf1(u64 index);
+    virtual void* vf2(u64 index);
+    virtual void vf3(u64 index);
+    Unk_23d9740_Entry m_entries[2];
+};
+PKMN_OFFSET_ASSERT(Unk_23d9740, m_entries, 0x8);
 
 // 0x7100c18a10
 u32 Unk_23d9740::vf0() {
     return 2;
+}
+
+// 0x7100c18a20
+void* Unk_23d9740::vf1(u64 index) {
+    return m_entries[index].field_0;
+}
+
+// 0x7100c18a30
+void* Unk_23d9740::vf2(u64 index) {
+    return m_entries[index].field_8;
+}
+
+// 0x7100c18a40
+void Unk_23d9740::vf3(u64 index) {
+    if (Unk_23d9740_Obj* obj = m_entries[index].field_8)
+        obj->vf16(m_entries[index].field_10);
 }
 
 class Unk_23d9770 {
@@ -773,17 +820,64 @@ void Unk_23d98e8::vf0() {
     Unk_bc7540(this);
 }
 
-class Unk_23d9978 {
+class Unk_23d9978_Obj {
 public:
-    virtual u32 vf0();
+    virtual void vf0();
     virtual void vf1();
     virtual void vf2();
     virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16(u64 value);
 };
+
+struct Unk_23d9978_Entry {
+    void* field_0;
+    Unk_23d9978_Obj* field_8;
+    u64 field_10;
+    u8 _18[0x8];
+};
+PKMN_SIZE_ASSERT(Unk_23d9978_Entry, 0x20);
+
+class Unk_23d9978 {
+public:
+    virtual u32 vf0();
+    virtual void* vf1(u64 index);
+    virtual void* vf2(u64 index);
+    virtual void vf3(u64 index);
+    Unk_23d9978_Entry m_entries[1];
+};
+PKMN_OFFSET_ASSERT(Unk_23d9978, m_entries, 0x8);
 
 // 0x7100c1c170
 u32 Unk_23d9978::vf0() {
     return 1;
+}
+
+// 0x7100c1c180
+void* Unk_23d9978::vf1(u64 index) {
+    return m_entries[index].field_0;
+}
+
+// 0x7100c1c190
+void* Unk_23d9978::vf2(u64 index) {
+    return m_entries[index].field_8;
+}
+
+// 0x7100c1c1a0
+void Unk_23d9978::vf3(u64 index) {
+    if (Unk_23d9978_Obj* obj = m_entries[index].field_8)
+        obj->vf16(m_entries[index].field_10);
 }
 
 class Unk_23d9ab8 {
@@ -911,15 +1005,62 @@ u64 Unk_23d9dd0::vf3() {
     return field_58;
 }
 
-class Unk_23d9e10 {
+class Unk_23d9e10_Obj {
 public:
-    virtual u32 vf0();
+    virtual void vf0();
     virtual void vf1();
     virtual void vf2();
     virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16(u64 value);
 };
+
+struct Unk_23d9e10_Entry {
+    void* field_0;
+    Unk_23d9e10_Obj* field_8;
+    u64 field_10;
+    u8 _18[0x8];
+};
+PKMN_SIZE_ASSERT(Unk_23d9e10_Entry, 0x20);
+
+class Unk_23d9e10 {
+public:
+    virtual u32 vf0();
+    virtual void* vf1(u64 index);
+    virtual void* vf2(u64 index);
+    virtual void vf3(u64 index);
+    Unk_23d9e10_Entry m_entries[1];
+};
+PKMN_OFFSET_ASSERT(Unk_23d9e10, m_entries, 0x8);
 
 // 0x7100c22db0
 u32 Unk_23d9e10::vf0() {
     return 1;
+}
+
+// 0x7100c22dc0
+void* Unk_23d9e10::vf1(u64 index) {
+    return m_entries[index].field_0;
+}
+
+// 0x7100c22dd0
+void* Unk_23d9e10::vf2(u64 index) {
+    return m_entries[index].field_8;
+}
+
+// 0x7100c22de0
+void Unk_23d9e10::vf3(u64 index) {
+    if (Unk_23d9e10_Obj* obj = m_entries[index].field_8)
+        obj->vf16(m_entries[index].field_10);
 }

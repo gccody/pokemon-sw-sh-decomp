@@ -8,17 +8,64 @@
 void Unk_14d39f0(void* self);
 void Unk_14d4880(void* self);
 
-class Unk_24432a8 {
+class Unk_24432a8_Obj {
 public:
-    virtual u32 vf0();
+    virtual void vf0();
     virtual void vf1();
     virtual void vf2();
     virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16(u64 value);
 };
+
+struct Unk_24432a8_Entry {
+    void* field_0;
+    Unk_24432a8_Obj* field_8;
+    u64 field_10;
+    u8 _18[0x8];
+};
+PKMN_SIZE_ASSERT(Unk_24432a8_Entry, 0x20);
+
+class Unk_24432a8 {
+public:
+    virtual u32 vf0();
+    virtual void* vf1(u64 index);
+    virtual void* vf2(u64 index);
+    virtual void vf3(u64 index);
+    Unk_24432a8_Entry m_entries[1];
+};
+PKMN_OFFSET_ASSERT(Unk_24432a8, m_entries, 0x8);
 
 // 0x71014c4b80
 u32 Unk_24432a8::vf0() {
     return 1;
+}
+
+// 0x71014c4b90
+void* Unk_24432a8::vf1(u64 index) {
+    return m_entries[index].field_0;
+}
+
+// 0x71014c4ba0
+void* Unk_24432a8::vf2(u64 index) {
+    return m_entries[index].field_8;
+}
+
+// 0x71014c4bb0
+void Unk_24432a8::vf3(u64 index) {
+    if (Unk_24432a8_Obj* obj = m_entries[index].field_8)
+        obj->vf16(m_entries[index].field_10);
 }
 
 class Unk_2443340 {
@@ -47,30 +94,124 @@ public:
 // 0x71014c6970
 void Unk_2443388::vf4() {}
 
-class Unk_24433f0 {
+class Unk_24433f0_Obj {
 public:
-    virtual u32 vf0();
+    virtual void vf0();
     virtual void vf1();
     virtual void vf2();
     virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16(u64 value);
 };
+
+struct Unk_24433f0_Entry {
+    void* field_0;
+    Unk_24433f0_Obj* field_8;
+    u64 field_10;
+    u8 _18[0x8];
+};
+PKMN_SIZE_ASSERT(Unk_24433f0_Entry, 0x20);
+
+class Unk_24433f0 {
+public:
+    virtual u32 vf0();
+    virtual void* vf1(u64 index);
+    virtual void* vf2(u64 index);
+    virtual void vf3(u64 index);
+    Unk_24433f0_Entry m_entries[1];
+};
+PKMN_OFFSET_ASSERT(Unk_24433f0, m_entries, 0x8);
 
 // 0x71014c6c60
 u32 Unk_24433f0::vf0() {
     return 1;
 }
 
-class Unk_2443680 {
+// 0x71014c6c70
+void* Unk_24433f0::vf1(u64 index) {
+    return m_entries[index].field_0;
+}
+
+// 0x71014c6c80
+void* Unk_24433f0::vf2(u64 index) {
+    return m_entries[index].field_8;
+}
+
+// 0x71014c6c90
+void Unk_24433f0::vf3(u64 index) {
+    if (Unk_24433f0_Obj* obj = m_entries[index].field_8)
+        obj->vf16(m_entries[index].field_10);
+}
+
+class Unk_2443680_Obj {
 public:
-    virtual u32 vf0();
+    virtual void vf0();
     virtual void vf1();
     virtual void vf2();
     virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16(u64 value);
 };
+
+struct Unk_2443680_Entry {
+    void* field_0;
+    Unk_2443680_Obj* field_8;
+    u64 field_10;
+    u8 _18[0x8];
+};
+PKMN_SIZE_ASSERT(Unk_2443680_Entry, 0x20);
+
+class Unk_2443680 {
+public:
+    virtual u32 vf0();
+    virtual void* vf1(u64 index);
+    virtual void* vf2(u64 index);
+    virtual void vf3(u64 index);
+    Unk_2443680_Entry m_entries[3];
+};
+PKMN_OFFSET_ASSERT(Unk_2443680, m_entries, 0x8);
 
 // 0x71014caaf0
 u32 Unk_2443680::vf0() {
     return 3;
+}
+
+// 0x71014cab00
+void* Unk_2443680::vf1(u64 index) {
+    return m_entries[index].field_0;
+}
+
+// 0x71014cab10
+void* Unk_2443680::vf2(u64 index) {
+    return m_entries[index].field_8;
+}
+
+// 0x71014cab20
+void Unk_2443680::vf3(u64 index) {
+    if (Unk_2443680_Obj* obj = m_entries[index].field_8)
+        obj->vf16(m_entries[index].field_10);
 }
 
 class Unk_2443818 {
@@ -270,17 +411,64 @@ u64 Unk_2444280::vf3() {
     return field_78;
 }
 
-class Unk_24442c0 {
+class Unk_24442c0_Obj {
 public:
-    virtual u32 vf0();
+    virtual void vf0();
     virtual void vf1();
     virtual void vf2();
     virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16(u64 value);
 };
+
+struct Unk_24442c0_Entry {
+    void* field_0;
+    Unk_24442c0_Obj* field_8;
+    u64 field_10;
+    u8 _18[0x8];
+};
+PKMN_SIZE_ASSERT(Unk_24442c0_Entry, 0x20);
+
+class Unk_24442c0 {
+public:
+    virtual u32 vf0();
+    virtual void* vf1(u64 index);
+    virtual void* vf2(u64 index);
+    virtual void vf3(u64 index);
+    Unk_24442c0_Entry m_entries[2];
+};
+PKMN_OFFSET_ASSERT(Unk_24442c0, m_entries, 0x8);
 
 // 0x71014ddfb0
 u32 Unk_24442c0::vf0() {
     return 2;
+}
+
+// 0x71014ddfc0
+void* Unk_24442c0::vf1(u64 index) {
+    return m_entries[index].field_0;
+}
+
+// 0x71014ddfd0
+void* Unk_24442c0::vf2(u64 index) {
+    return m_entries[index].field_8;
+}
+
+// 0x71014ddfe0
+void Unk_24442c0::vf3(u64 index) {
+    if (Unk_24442c0_Obj* obj = m_entries[index].field_8)
+        obj->vf16(m_entries[index].field_10);
 }
 
 class Unk_24442f0 {
@@ -328,17 +516,64 @@ u64 Unk_2444400::vf3() {
     return field_58;
 }
 
-class Unk_2444440 {
+class Unk_2444440_Obj {
 public:
-    virtual u32 vf0();
+    virtual void vf0();
     virtual void vf1();
     virtual void vf2();
     virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16(u64 value);
 };
+
+struct Unk_2444440_Entry {
+    void* field_0;
+    Unk_2444440_Obj* field_8;
+    u64 field_10;
+    u8 _18[0x8];
+};
+PKMN_SIZE_ASSERT(Unk_2444440_Entry, 0x20);
+
+class Unk_2444440 {
+public:
+    virtual u32 vf0();
+    virtual void* vf1(u64 index);
+    virtual void* vf2(u64 index);
+    virtual void vf3(u64 index);
+    Unk_2444440_Entry m_entries[1];
+};
+PKMN_OFFSET_ASSERT(Unk_2444440, m_entries, 0x8);
 
 // 0x71014def10
 u32 Unk_2444440::vf0() {
     return 1;
+}
+
+// 0x71014def20
+void* Unk_2444440::vf1(u64 index) {
+    return m_entries[index].field_0;
+}
+
+// 0x71014def30
+void* Unk_2444440::vf2(u64 index) {
+    return m_entries[index].field_8;
+}
+
+// 0x71014def40
+void Unk_2444440::vf3(u64 index) {
+    if (Unk_2444440_Obj* obj = m_entries[index].field_8)
+        obj->vf16(m_entries[index].field_10);
 }
 
 class Unk_2444470 {
@@ -371,15 +606,62 @@ u64 Unk_24444b8::vf3() {
     return field_58;
 }
 
-class Unk_24444f8 {
+class Unk_24444f8_Obj {
 public:
-    virtual u32 vf0();
+    virtual void vf0();
     virtual void vf1();
     virtual void vf2();
     virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16(u64 value);
 };
+
+struct Unk_24444f8_Entry {
+    void* field_0;
+    Unk_24444f8_Obj* field_8;
+    u64 field_10;
+    u8 _18[0x8];
+};
+PKMN_SIZE_ASSERT(Unk_24444f8_Entry, 0x20);
+
+class Unk_24444f8 {
+public:
+    virtual u32 vf0();
+    virtual void* vf1(u64 index);
+    virtual void* vf2(u64 index);
+    virtual void vf3(u64 index);
+    Unk_24444f8_Entry m_entries[1];
+};
+PKMN_OFFSET_ASSERT(Unk_24444f8, m_entries, 0x8);
 
 // 0x71014e1330
 u32 Unk_24444f8::vf0() {
     return 1;
+}
+
+// 0x71014e1340
+void* Unk_24444f8::vf1(u64 index) {
+    return m_entries[index].field_0;
+}
+
+// 0x71014e1350
+void* Unk_24444f8::vf2(u64 index) {
+    return m_entries[index].field_8;
+}
+
+// 0x71014e1360
+void Unk_24444f8::vf3(u64 index) {
+    if (Unk_24444f8_Obj* obj = m_entries[index].field_8)
+        obj->vf16(m_entries[index].field_10);
 }
