@@ -354,7 +354,7 @@ class Member:
     lifted: Lifted | None = None    # kind "lifted"
 
 
-RTYPE = {"ret": "void", "constant": "u32", "zero": "u32", "null": "void*", "forward": "void"}
+RTYPE = {"ret": "void", "constant": "u32", "zero": "u32", "null": "void*", "forward": "void", "string": "const char*"}
 # The names write gives: members (vfN, vf_type, Unk_GetType, destructors) and thunks.
 WRITTEN = re.compile(r"_Z(?:Thn\d+_)?N\d+(Unk_[0-9a-f]+)(?:D0|D1|D2|\d+vf\d+|7vf_type|11Unk_GetType)E[a-z]+")
 
@@ -676,6 +676,34 @@ def lift_member(m: Model, f: int) -> Lifted | None:
     return Lifted(rtype, tuple(params), body, fields, f"Unk_{e.short}", callee)
 
 
+def simple_body(x: Member) -> str:
+    """The body of a member of a simple kind (ret, constant, zero, null, string)."""
+    if x.kind == "ret":
+        return "{}"
+    if x.kind == "constant":
+        return f"{{\n    return {x.value if x.value < 10 else hex(x.value)};\n}}"
+    if x.kind == "string":
+        return f'{{\n    return "{x.value}";\n}}'
+    return {"zero": "{\n    return 0;\n}", "null": "{\n    return nullptr;\n}"}[x.kind]
+
+
+def string_return(m: Model, f: int) -> str | None:
+    """The C++ spelling of the string literal f returns, if it is
+    `adrp x0, S ; add x0, x0, S ; ret` with S a string (check.py compares
+    literals by their contents)."""
+    from common import load_module
+    from nx.refs import decode
+    from segments import c_string
+
+    if m.pattern(f) != "adrp x0, #N ; add x0, x0, #N ; ret":
+        return None
+    targets = [t for _, _, _, t in decode(m.img, f, m.sizes[f]) if t is not None]
+    if not hasattr(m, "_rodata"):
+        m._rodata = load_module(m.game)["rodata"]
+    text = c_string(m.img, targets[-1], *m._rodata) if targets else None
+    return text.replace("\\", "\\\\").replace('"', '\\"') if text is not None else None
+
+
 def tail_callee(callee: tuple) -> tuple[int, str]:
     """(function, mangled name) of a lifted member's tail-call target."""
     import leafgen as L
@@ -707,6 +735,8 @@ def placeholder_members(m: Model, v: Vtable, own: dict[int, tuple[int, int]], pi
             out.append(Member(i, f, k, _mov_w0(m, f)))
         elif k == "forward" and callee is not None and (t := callee(f)) is not None:
             out.append(Member(i, f, k, t))
+        elif k == "small" and (text := string_return(m, f)) is not None:
+            out.append(Member(i, f, "string", text))
         elif k in ("small", "other") and lifter is not None and (x := lifter(f)) is not None:
             out.append(Member(i, f, "lifted", lifted=x))
         elif k in ("small", "other") and elements and (x := element_member(m, f, i)) is not None:
@@ -781,7 +811,7 @@ def class_specs(m: Model, picked: dict[int, list[Member]], own: dict[int, tuple[
     return specs
 
 
-SIMPLE_KINDS = ("ret", "constant", "zero", "null", "forward")
+SIMPLE_KINDS = ("ret", "constant", "zero", "null", "forward", "string")
 
 
 def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], picked: dict[int, list[Member]],
@@ -1014,8 +1044,7 @@ def render_class(m: Model, spec: ClassSpec,
         elif x.kind == "forward":
             body = f"{{\n    {callee_name(x.value)[0]}(this);\n}}"
         else:
-            body = {"ret": "{}", "constant": f"{{\n    return {x.value if x.value < 10 else hex(x.value)};\n}}",
-                    "zero": "{\n    return 0;\n}", "null": "{\n    return nullptr;\n}"}[x.kind]
+            body = simple_body(x)
         defs.append(f"// 0x{f + BASE:x}\n{rt} {cls}::vf{i}({ps}) {body}")
         codes = x.lifted.codes if x.kind == "lifted" else "m" if x.kind in ("element", "element_call") else "v"
         names.append((f, mangle(cls, f"vf{i}", codes)))
@@ -1120,8 +1149,7 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
                 body = f"{{\n    {callee_name(x.value)[0]}(this);\n}}"
                 names.append((x.value, callee_name(x.value)[1]))
             else:
-                body = {"ret": "{}", "constant": f"{{\n    return {x.value if x.value < 10 else hex(x.value)};\n}}",
-                        "zero": "{\n    return 0;\n}", "null": "{\n    return nullptr;\n}"}[x.kind]
+                body = simple_body(x)
             defs.append(f"// 0x{x.addr + BASE:x}\n{rt} {cls}::{name}() {body}")
             names.append((x.addr, mangle(cls, name)))
     return "\n".join(decl) + "\n", names, "\n\n".join(defs) + "\n"

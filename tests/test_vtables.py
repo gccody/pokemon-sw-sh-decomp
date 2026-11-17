@@ -254,6 +254,20 @@ def test_lifted_member_with_a_tail_call():
     assert V.lift_member(m, 0x130).body == "    Unk_234(this, 5);\n"
 
 
+def test_string_member():
+    """adrp x0, S ; add x0, x0, S ; ret with S a string: `return "...";`."""
+    m = lifted_model([0x90000000, 0x91100000, RET])        # adrp x0, 0 ; add x0, x0, #0x400
+    img = bytearray(m.img)
+    img[0x400:0x40e] = b'Say "hi" \\ 1\0'
+    m = V.Model("sword", bytes(img), m.funcs, m.vtables, m.tables, m.sizes, {}, {}, lambda a: "game", DELETE)
+    m._rodata = (0x400, 0x500)
+    assert V.string_return(m, 0x130) == 'Say \\"hi\\" \\\\ 1'
+    x = V.Member(3, 0x130, "string", V.string_return(m, 0x130))
+    assert V.simple_body(x) == '{\n    return "Say \\"hi\\" \\\\ 1";\n}'
+    m._rodata = (0x500, 0x600)                              # not a string there
+    assert V.string_return(m, 0x130) is None
+
+
 def test_element_member():
     """add x8, x0, x1, lsl #5 ; ldr x0, [x8, #8] ; ret: field_0 of 32-byte entries right after the vptr."""
     m = lifted_model([0x8B011408, 0xF9400500, RET])
