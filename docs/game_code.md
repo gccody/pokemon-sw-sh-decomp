@@ -367,6 +367,12 @@ An argument a function moves on with a 32-bit move (`mov w2, w3`) is a
 (which compiles to `mov x2, x3`). 33 more leaf functions and 21 virtual
 ones match (check.py: 25,617 matching, 107 not matching).
 
+With `-fno-strict-aliasing` a store may change what `self->field_N` reads,
+so the compiler reads it again after one: a pointer the original loads
+once but uses after a store was in a local. The lifter counts the loads,
+and holds such a pointer in one (`Unk_<addr>_<off>* p0 = self->field_N;`).
+9 more leaf functions match (check.py: 25,626 matching, 107 not matching).
+
 ## Vtables and classes (`tools/vtables.py`)
 
 Most of the tiny functions are virtual (see "The tiny functions"), and
