@@ -880,6 +880,14 @@ def out_of_line_parent(m: Model, f: int, e: ExternalBase) -> int | None:
     return g if len(gstatics) == 6 else None
 
 
+def direct_getter(m: Model, g: int) -> bool:
+    """Whether g is the type getter of a direct descendant of the object, its
+    parent's getter inlined: three guarded statics (its type, the object's,
+    the root's) and no other call."""
+    calls, statics = _calls_and_statics(m, g)
+    return len(statics) == 6 and len(calls) == 6 and len(set(calls)) == 2
+
+
 def getter_type(m: Model, g: int) -> int | None:
     """The type object getter g returns: the second static it loads (its guard first)."""
     _, statics = _calls_and_statics(m, g)
@@ -917,7 +925,17 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
     callers: dict[int, set[int]] = defaultdict(set)
     d2 = ev.slots[0]
     esecs = [w for w in groups[ev.addr] if w is not ev]
-    for v in m.vtables:
+
+    def tail(v: Vtable) -> bool:
+        f = v.slots[e.type_slot] if e.type_slot < len(v.slots) else None
+        return isinstance(f, int) and m.pattern(f) == "b T"
+
+    # A class whose getter other classes call (on the object: see the tail
+    # shape below) goes first, so that they know it's written: getter -> class.
+    owners: dict[int, int] = {}
+    gone_of: dict[int, tuple[list[Vtable], set[int]]] = {}
+    before: dict[int, ClassSpec | None] = {}  # what a class was, if it isn't written on e after all
+    for v in sorted(m.vtables, key=lambda v: not tail(v)):
         if v.group != v.addr or v.offset_to_top or v.addr == ev.addr or len(v.slots) < len(ev.slots):
             continue
         s1 = v.slots[1]
@@ -965,7 +983,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
                           for f, (off, _, _) in zip(thunks, e.secondaries)]
         elif ok and overrides and t is None and isinstance(f6, int) and (it := intermediate_type(m, f6)) \
                 and (x := getter_type(m, it[1])) is not None \
-                and m.names.get(it[1], "") in ("", mangle(f"Unk_{x:x}", "Unk_GetType")) \
+                and (it[1] in owners or m.names.get(it[1], "") in ("", mangle(f"Unk_{x:x}", "Unk_GetType"))) \
                 and all(m.pattern(f) == m.pattern(f6) for f in thunks):
             # Two below the base, under a class whose getter (out of line: it
             # has many callers) isn't the base's: vf_type inlines its getter
@@ -979,7 +997,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
                           for f, (off, _, _) in zip(thunks, e.secondaries)]
         elif ok and overrides and t is None and isinstance(f6, int) and (g := out_of_line_parent(m, f6, e)) \
                 and (x := getter_type(m, g)) is not None \
-                and m.names.get(g, "") in ("", mangle(f"Unk_{x:x}", "Unk_GetType")) \
+                and (g in owners or m.names.get(g, "") in ("", mangle(f"Unk_{x:x}", "Unk_GetType"))) \
                 and all(m.pattern(f) == m.pattern(f6) for f in thunks):
             # On another direct descendant of the object, whose getter is out
             # of line: vf_type inlines its own getter, which calls that one,
@@ -1002,10 +1020,15 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
                 extra += [Member(-1, f, "ext_thunk", (off, "vf_type"))
                           for f, (off, _, _) in zip(thunks, e.secondaries)]
         elif ok and overrides:
-            # T's type has the base's as its parent: only known for a base with
-            # a type slot of its own (the object's direct descendants have an
-            # intermediate type in between).
-            if e.type_slot >= len(ev.slots) or t in in_vtables or not getter_ok(t) or not pickable(f6) \
+            # T's type has the base's as its parent. On the object (no type
+            # slot of its own), T is a direct descendant's getter, three
+            # statics deep, and other classes' getters may call it: it's named
+            # after its type object (x), as they name it (out_of_line_parent).
+            x = None
+            if e.type_slot >= len(ev.slots):
+                x = getter_type(m, t) if direct_getter(m, t) else None
+            if (e.type_slot >= len(ev.slots) and x is None) or t in in_vtables or not getter_ok(t) \
+                    or not pickable(f6) \
                     or any(branch_target(m, f) != t or m.pattern(f) != "b T" or not pickable(f) for f in thunks):
                 ok = False
             else:
@@ -1015,11 +1038,16 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
                             if tt is not None and is_b_bl(w):
                                 callers[tt].add(a)
                 # Other code of the class may call its getter too; another
-                # class's vtable function may not (then T isn't this class's).
-                if (callers[t] - {f6, *thunks}) & in_vtables:
+                # class's vtable function may not (then T isn't this class's),
+                # unless it's the getter of a class derived from this one,
+                # inlined: its type's parent is T's.
+                foreign = {c for c in (callers[t] - {f6, *thunks}) & in_vtables
+                           if x is None or (out_of_line_parent(m, c, e) != t
+                                            and (intermediate_type(m, c) or (0, None))[1] != t)}
+                if foreign:
                     ok = False
                 extra.append(Member(e.type_slot, f6, "ext_type", t))
-                extra.append(Member(-1, t, "ext_getter"))
+                extra.append(Member(-1, t, "ext_getter", x or 0))
                 extra += [Member(-1, f, "ext_thunk", (off, "vf_type"))
                           for f, (off, _, _) in zip(thunks, e.secondaries)]
         if not ok or any(seg(x.addr) != seg(s1) for x in extra):
@@ -1064,9 +1092,26 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             order = derived_order(v, ev, mine, seg)
             if order is None:
                 continue
+        before[v.addr] = specs.get(v.addr)
         d = specs[v.addr] = ClassSpec(v, mine + extra, None, ext=e, order=order, fields=fields)
         d.sigs = {x.slot: signature(x) if x.kind == "lifted" else (RTYPE[x.kind], ()) for x in mine}
-        gone = {x.addr for x in extra}
+        gone_of[v.addr] = (secs, {x.addr for x in extra})
+        owners.update((x.addr, v.addr) for x in extra if x.kind == "ext_getter" and x.value)
+    # A class whose getter other classes call is written only with one of them
+    # in its TU: with no other caller there, clang inlines the getter.
+    used = {(seg(x.value[3]), x.value[3]) for d in specs.values() if d.ext is e for x in d.members
+            if x.kind == "ext_type" and isinstance(x.value, tuple) and x.value[3] is not None
+            and seg(x.addr) == seg(x.value[3])}
+    dropped = {g for g, a in owners.items() if (seg(g), g) not in used}
+    for d in [d for d in specs.values() if d.ext is e and (any(owners.get(g) == d.v.addr for g in dropped) or any(
+            x.kind == "ext_type" and isinstance(x.value, tuple) and x.value[3] in dropped for x in d.members))]:
+        # (on such a class: its getter keeps its old name)
+        del gone_of[d.v.addr]
+        if before[d.v.addr] is None:
+            del specs[d.v.addr]
+        else:
+            specs[d.v.addr] = before[d.v.addr]
+    for secs, gone in gone_of.values():
         for w in secs:              # its secondary vtables' functions are its own now
             if w.addr in specs:
                 specs[w.addr].members = [x for x in specs[w.addr].members if x.addr not in gone]
@@ -1287,7 +1332,16 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
                         f"struct Unk_{it:x} {{", f"    static {TYPE} Unk_GetType() {{",
                         f"        static Unk_239a418_Type type({it_parent}());", "        return &type;", "    }",
                         "};", ""]
-    if e.type_slot in spec.order:
+    own_type = next((x.value for x in spec.members if x.kind == "ext_getter" and x.value), None)
+    if own_type is not None:
+        # Its getter, which other classes' getters call: named after its type
+        # object, as they name it (they can't name this class). Inline, like
+        # Unk_23d4470's (render_file moves it to the top of the file).
+        decl[:0] = [f"// The type of {cls}: other classes' getters call its getter.",
+                    f"struct Unk_{own_type:x} {{", f"    static {TYPE} Unk_GetType() {{",
+                    f"        static Unk_239a418_Type type({parent}());", "        return &type;", "    }",
+                    "};", ""]
+    elif e.type_slot in spec.order:
         # Its type, whose parent is the base's: inline, but too big to be
         # inlined into vf_type, which tail-calls it.
         decl += [f"    static {TYPE} Unk_GetType() {{", f"        static Unk_239a418_Type type({parent}());",
@@ -1315,13 +1369,16 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
             off, which = x.value
             inner = f"{len(cls)}{cls}" + (which if which in ("D0", "D1") else f"{len(which)}{which}")
             names.append((x.addr, f"_ZThn{off}_N{inner}Ev"))
+        elif x.kind == "ext_getter" and x.value:  # inline in its struct, emitted where vf_type calls it
+            names.append((x.addr, mangle(f"Unk_{x.value:x}", "Unk_GetType")))
         elif x.kind == "ext_getter":  # Unk_GetType, emitted where vf_type calls it
             names.append((x.addr, mangle(cls, "Unk_GetType")))
         elif x.kind == "ext_type":
             if x.value is not None:     # out of line, its key function; inline in the class otherwise
                 where = f"; its type 0x{x.value + BASE:x}" if isinstance(x.value, int) else ""
+                getter = "Unk_GetType" if own_type is None else f"Unk_{own_type:x}::Unk_GetType"
                 defs.append(f"// 0x{x.addr + BASE:x}{where}\n{TYPE} {cls}::vf_type() {{\n"
-                            f"    return Unk_GetType();\n}}")
+                            f"    return {getter}();\n}}")
             names.append((x.addr, mangle(cls, "vf_type")))
         elif x.kind == "lifted":
             name = e.slot(x.slot)[1]
@@ -1338,6 +1395,11 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
             defs.append(f"// 0x{x.addr + BASE:x}\n{rt} {cls}::{name}() {body}")
             names.append((x.addr, mangle(cls, name)))
     return "\n".join(decl) + "\n", names, "\n\n".join(defs) + "\n"
+
+
+GETTER_STRUCT = re.compile(r"(// .*\n)struct (Unk_[0-9a-f]+) \{\n    static .* Unk_GetType\(\);\n\};\n\n")
+# A class's own type, defined in a struct named after the type object (render_external).
+TYPE_STRUCT = re.compile(r"// The type of .*\nstruct Unk_[0-9a-f]+ \{\n    static .* Unk_GetType\(\) \{\n(?:.*\n)*?\};\n\n")
 
 
 def render_file(m: Model, entries: list[tuple[ClassSpec, list[Member]]],
@@ -1371,6 +1433,18 @@ def render_file(m: Model, entries: list[tuple[ClassSpec, list[Member]]],
     done: set[int] = set()
     names: list[tuple[int, str]] = []
 
+    # A getter's placeholder struct is declared by each class that calls it:
+    # only the file's first declares it, and none where the file defines it
+    # (the class whose getter it is: its struct goes before every class).
+    declared = {f"Unk_{x.value:x}" for _, xs in entries for x in xs if x.kind == "ext_getter" and x.value}
+    top = len(parts)
+
+    def once(match: re.Match) -> str:
+        if match[2] in declared:
+            return ""
+        declared.add(match[2])
+        return match[0]
+
     def emit(spec: ClassSpec) -> None:
         if spec.v.addr in done:
             return
@@ -1378,7 +1452,10 @@ def render_file(m: Model, entries: list[tuple[ClassSpec, list[Member]]],
             emit(spec.base)
         done.add(spec.v.addr)
         decl, ns, defs = render_class(m, spec, here.get(spec.v.addr, []))
-        parts.append(decl)
+        decl = GETTER_STRUCT.sub(once, decl)
+        for match in TYPE_STRUCT.finditer(decl):
+            parts.insert(top, match[0])
+        parts.append(TYPE_STRUCT.sub("", decl))
         if defs.strip():
             parts.append(defs)
         names.extend(ns)
@@ -1783,14 +1860,21 @@ def cmd_write(m: Model, args) -> None:
     # A class derived from a hand-written base with a type getter of its own
     # gets a file of its own: its base's getter is inlined into its getter
     # only when that is the base getter's one caller in the TU.
+    # A class whose getter other classes call shares its file with those in
+    # its segment (else clang inlines the getter: derive_external).
+    owner_of = {x.addr: spec.v.addr for spec in specs.values() for x in spec.members
+                if x.kind == "ext_getter" and x.value}
     files: dict[tuple[int, int], list[tuple[ClassSpec, list[Member]]]] = defaultdict(list)
     for spec in specs.values():
         own_file = spec.ext is not None and spec.ext.type_slot in spec.order and not spec.ext.shared_tu
+        on = next((x.value[3] for x in spec.members if x.kind == "ext_type" and isinstance(x.value, tuple)
+                   and x.value[3] in owner_of and seg(x.value[3]) == seg(x.addr)), None)
         by_seg: dict[int, list[Member]] = defaultdict(list)
         for x in spec.members:
             by_seg[seg(x.addr)].append(x)
         for s, xs in by_seg.items():
-            files[(s, spec.v.addr if own_file else 0)].append((spec, xs))
+            key = owner_of[on] if on is not None and s == seg(on) else spec.v.addr if own_file else 0
+            files[(s, key)].append((spec, xs))
     out_dir = args.out
     out_dir.mkdir(parents=True, exist_ok=True)
     for old in out_dir.glob("Unk_*.cpp"):  # everything here is written again (a file's name can change)

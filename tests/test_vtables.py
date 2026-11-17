@@ -545,3 +545,40 @@ def test_out_of_line_parent():
     assert V.getter_type(m, 0x700) == 0x3018                  # its type: the second static it loads
     other = V.ExternalBase(0x1010, "Unk_B", "h", (), 6, "Unk_B::Unk_GetType", ())
     assert V.out_of_line_parent(m, 0x200, other) is None      # only for the object's family
+
+
+def test_direct_getter():
+    """Three guarded statics (its type, the object's, the root's) and only the
+    guard calls: a direct descendant's getter, its parent's inlined."""
+    img = bytearray(0x1100)
+    words = [w for slot in range(0x1010, 0x1040, 8) for w in (0xB0000008, 0xF9400000 | ((slot - 0x1000) // 8) << 10 | 8 << 5 | 8)]
+    pc = 0x200 + 4 * len(words)
+    words += [0x94000000 | ((t - (pc + 4 * i)) >> 2) for i, t in enumerate((0x400, 0x500) * 3)] + [RET]
+    struct.pack_into(f"<{len(words)}I", img, 0x200, *words)
+    sizes = {0x200: 4 * len(words)}
+    got = {0x1010 + 8 * i: 0x3000 + 8 * i for i in range(6)}
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), [], [], sizes, {}, {}, lambda a: "game", DELETE, got)
+    assert V.direct_getter(m, 0x200)
+    assert V.getter_type(m, 0x200) == 0x3008
+    struct.pack_into("<I", img, pc + 4, 0x94000000 | ((0x600 - (pc + 4)) >> 2))  # another call: not this shape
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), [], [], sizes, {}, {}, lambda a: "game", DELETE, got)
+    assert not V.direct_getter(m, 0x200)
+
+
+def test_render_file_with_a_class_whose_getter_others_call():
+    """A's getter (0x700) is named after its type object (0x3008) and defined
+    first; B, on A, declares that struct too, but the file has it once."""
+    m = model()
+    a, _, b = m.vtables
+    e = V.ExternalBase(0x1010, "Unk_239a418", "gflib3/Unk_239a418.h", (), 6, "Unk_239a418_GetType", (),
+                       inline_dtor=True)
+    owner = V.ClassSpec(a, [V.Member(6, 0x200, "ext_type", 0x700), V.Member(-1, 0x700, "ext_getter", 0x3008)],
+                        None, ext=e, order=[6])
+    derived = V.ClassSpec(b, [V.Member(6, 0x300, "ext_type", ("copy", None, 0x3008, 0x700))], None, ext=e, order=[6])
+    text, names = V.render_file(m, [(derived, derived.members), (owner, owner.members)])
+    assert text.count("struct Unk_3008 {") == 1
+    assert text.index("struct Unk_3008 {") < text.index(f"class {derived.name}")
+    assert "        static Unk_239a418_Type type(Unk_239a418_GetType());\n" in text
+    assert f"{V.TYPE} {owner.name}::vf_type() {{\n    return Unk_3008::Unk_GetType();\n}}" in text
+    assert "static Unk_239a418_Type type(Unk_3008::Unk_GetType());" in text
+    assert (0x700, "_ZN8Unk_300811Unk_GetTypeEv") in names
