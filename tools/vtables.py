@@ -806,15 +806,19 @@ def class_specs(m: Model, picked: dict[int, list[Member]], own: dict[int, tuple[
     guess = bases(m.vtables)
     has_secondary = {v.group for v in m.vtables if v.group != v.addr}
     families: dict[int, dict[int, tuple[str, tuple[str, ...]]]] = {}
+    dropped: dict[int, list[Member]] = {}
     for a, d in sorted(specs.items()):
         if any(x.kind in FIELD_KINDS for x in d.members):
             simple = ClassSpec(d.v, [x for x in d.members if x.kind not in FIELD_KINDS], d.pair)
             if not _derive(m, simple, specs, own, guess, has_secondary, families, seg, pickable):
                 continue
+            dropped[a] = [x for x in d.members if x.kind == "lifted"]
             specs[a] = d = simple
             d.sigs = {x.slot: sig for x in d.members if (sig := signature(x)) is not None}
         else:
             _derive(m, d, specs, own, guess, has_secondary, families, seg, pickable)
+    for a, xs in dropped.items():
+        _readd_lifted(specs[a], xs, families)
     for e in EXTERNAL_BASES:
         derive_external(m, e, specs, picked, own, seg, pickable, getter_ok)
     for d in specs.values():
@@ -975,6 +979,35 @@ def _table(s: ClassSpec, x: Member) -> bool:
         count = next((y.value for y in s.members if y.slot == 0 and y.kind == "constant"), 1)
         s.table = Table(1 << x.value[0], max(count, 1))
     return s.table.merge(x)
+
+
+def _readd_lifted(d: ClassSpec, xs: list[Member], families) -> None:
+    """A derived class's lifted members, which class_specs left out to derive
+    it: their fields are at the same offsets of the object if its base
+    declares them, so they go to the base's fields (unless they conflict), and
+    an override's signature to the base's family (unless it has another).
+    A field may point to a placeholder struct: the base declares it, named
+    after itself, and the member's body doesn't name it. One whose return or
+    parameter type names it stays out."""
+    r = d.base
+    if r is None or r.table is not None or r.ext is not None:
+        return
+    family = families.setdefault(r.v.addr, r.sigs)
+    n = len(r.v.slots)
+    for x in sorted(xs, key=lambda y: y.slot):
+        lf = x.lifted
+        if lf.prefix and any(lf.prefix + "_" in t for t in (lf.rtype, *lf.params)):
+            continue
+        sig = signature(x)
+        if x.slot < n and family.get(x.slot, sig) != sig:
+            continue
+        if not merge_fields(r.fields, x.lifted.fields):
+            continue
+        if x.slot < n:
+            family[x.slot] = sig
+        else:
+            d.sigs[x.slot] = sig
+        d.members.append(x)
 
 
 def _derive(m: Model, d: ClassSpec, specs: dict[int, ClassSpec], own, guess, has_secondary, families, seg,
