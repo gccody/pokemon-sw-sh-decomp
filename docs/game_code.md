@@ -434,3 +434,33 @@ python tools/check.py                                # its OK lines are the ones
 python tools/vtables.py write --names ok_map.csv --only ok.txt
 python tools/check.py --update
 ```
+
+## gflib3's memory code (`src/gflib3`)
+
+The first hand-decompiled gflib3 code, built with gflib3's library settings
+(docs/compiler.md, "gflib3"). All of it matches in both games, with
+placeholder names:
+
+| File | Functions | What |
+|---|---:|---|
+| `Unk_65d670.cpp` | 11 | the heap globals: the global, debug and default heaps (named `GlobalHeap`/`DebugHeap` through vtable slot 22), and a heap that takes the default's place for one thread or all of them while it's set, under a static `nn::os::Mutex` whose destructor is emitted here |
+| `Unk_5cf850.cpp` | 13 | one-call wrappers of `nn::os` events, light events and TLS (called up to 1,095 times each), an `atomic<bool>` getter |
+| `Unk_65f110.cpp` | 7 | the TLSF pool resource's constructor, destructors and their two thunks; a static object of the same code |
+
+`include/nn/os.h` gained `nn::os::Mutex` (the SDK's inline wrapper, its
+destructor already named), `GetThreadId`, the event imports and the size of
+`LightEventType` (0xc bytes: two layouts put it exactly before an 8-aligned
+field). The globals are in `data/data_symbols.csv`, so `check.py` verifies
+the references to them.
+
+The pool resource shows how a class with a secondary base gets its thunks:
+modelled with the secondary base at `+0x8` (whose fields, initialized
+before the derived vptrs, are its own), the destructor's definition emits
+the `_ZThn8_` thunks, and they match. The 4,306 thunks of batch 4's
+"what's left" follow their destructors and overrides like that.
+
+Next in this code: the pool resource's other virtual functions (25 slots
+in its primary vtable, most of them inherited from `0x710236d0c8`, and the
+leak dump `0x710065f360`), the TLSF pool itself (`0x710065ed00`, its
+`deactivate` at `0x710065efa0`) and the heap class that slot 22 names.
+
