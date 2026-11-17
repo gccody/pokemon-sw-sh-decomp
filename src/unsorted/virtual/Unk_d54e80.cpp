@@ -8,6 +8,10 @@
 void Unk_cdc0d0(void* self);
 void Unk_d54e90(void* self);
 
+// Globals other TUs define, named after their addresses.
+extern u32 Unk_27dcdd8;
+extern u32 Unk_27dcddc;
+
 class Unk_23ebb88 {
 public:
     virtual void vf0();
@@ -53,10 +57,10 @@ public:
     virtual void vf40();
     virtual void vf41();
     virtual void vf42();
-    virtual void vf43();
+    virtual bool vf43();
     virtual void vf44();
     virtual void vf45();
-    virtual void vf46();
+    virtual bool vf46();
 };
 
 // 0x7100d55ba0
@@ -67,6 +71,36 @@ void Unk_23ebb88::vf6() {
 // 0x7100d54e80
 void Unk_23ebb88::vf8() {
     Unk_d54e90(this);
+}
+
+// 0x7100d55bd0
+void Unk_23ebb88::vf40() {
+    Unk_27dcdd8 = Unk_27dcdd8 + 1;
+}
+
+// 0x7100d55c10
+void Unk_23ebb88::vf42() {
+    Unk_27dcdd8 = 0;
+}
+
+// 0x7100d55c20
+bool Unk_23ebb88::vf43() {
+    return Unk_27dcdd8 > 4;
+}
+
+// 0x7100d55c40
+void Unk_23ebb88::vf44() {
+    Unk_27dcddc = Unk_27dcddc + 1;
+}
+
+// 0x7100d55c60
+void Unk_23ebb88::vf45() {
+    Unk_27dcddc = 0;
+}
+
+// 0x7100d55c70
+bool Unk_23ebb88::vf46() {
+    return Unk_27dcddc > 4;
 }
 
 class Unk_23ebd10 {

@@ -7,6 +7,9 @@
 // Called by forwarders. Placeholders: their real signatures aren't known.
 void Unk_6b1000(void* self);
 
+// Globals other TUs define, named after their addresses.
+extern u64 Unk_27fc0a8;
+
 class Unk_23a2cd8 {
 public:
     virtual ~Unk_23a2cd8();
@@ -93,6 +96,56 @@ u32 Unk_23a2cd8::vf23() {
 // 0x71006b2fd0
 void Unk_23a2cd8::vf24() {}
 
+class Unk_23a2e08 {
+public:
+    virtual bool vf0();
+    virtual void vf1();
+    virtual u32 vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual const char* vf5();
+};
+
+// 0x71006b1750
+bool Unk_23a2e08::vf0() {
+    return Unk_27fc0a8 != 0;
+}
+
+// 0x71006b3010
+u32 Unk_23a2e08::vf2() {
+    return 0;
+}
+
+// 0x71006b3020
+const char* Unk_23a2e08::vf5() {
+    return "StartSession";
+}
+
+class Unk_23a2e48 {
+public:
+    virtual bool vf0();
+    virtual void vf1();
+    virtual u32 vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual const char* vf5();
+};
+
+// 0x71006b1960
+bool Unk_23a2e48::vf0() {
+    return Unk_27fc0a8 != 0;
+}
+
+// 0x71006b3030
+u32 Unk_23a2e48::vf2() {
+    return 0;
+}
+
+// 0x71006b3040
+const char* Unk_23a2e48::vf5() {
+    return "CleanupSession";
+}
+
 class Unk_23a2fc8 {
 public:
     virtual u32 vf0();
@@ -141,46 +194,6 @@ void* Unk_23a2dc8::vf3() {
 // 0x71006b3000
 const char* Unk_23a2dc8::vf5() {
     return "LeaveSession";
-}
-
-class Unk_23a2e08 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual u32 vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual const char* vf5();
-};
-
-// 0x71006b3010
-u32 Unk_23a2e08::vf2() {
-    return 0;
-}
-
-// 0x71006b3020
-const char* Unk_23a2e08::vf5() {
-    return "StartSession";
-}
-
-class Unk_23a2e48 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual u32 vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual const char* vf5();
-};
-
-// 0x71006b3030
-u32 Unk_23a2e48::vf2() {
-    return 0;
-}
-
-// 0x71006b3040
-const char* Unk_23a2e48::vf5() {
-    return "CleanupSession";
 }
 
 class Unk_23a2e88 {
