@@ -188,52 +188,6 @@ public:
 // 0x7100e7cc60
 void Unk_23a7e78::vf23() {}
 
-class Unk_23bcdf0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual u32 vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x7100e7cea0
-void Unk_23bcdf0::vf7() {}
-
-// 0x7100e7ceb0
-u32 Unk_23bcdf0::vf8() {
-    return 1;
-}
-
-// 0x7100e7cec0
-void Unk_23bcdf0::vf9() {}
-
-class Unk_23a7fe0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual u32 vf10();
-};
-
-// 0x7100e7ced0
-u32 Unk_23a7fe0::vf10() {
-    return 0xffffffff;
-}
-
 class Unk_23a8bd8 {
 public:
     virtual ~Unk_23a8bd8();

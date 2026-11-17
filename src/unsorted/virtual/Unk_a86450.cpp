@@ -3,55 +3,25 @@
 // Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
+#include "unsorted/Unk_23f43c8.h"
 
-// Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_a864e0(void* self);
-
-class Unk_23c7270 {
+class Unk_23c7270 : public Unk_23f43c8 {
 public:
-    virtual ~Unk_23c7270();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23f43c8::Unk_GetType());
+        return &type;
+    }
 
-// 0x7100a86470
-void Unk_23c7270::vf6() {
-    Unk_a864e0(this);
-}
+    const Unk_239a418_Type* vf_type() override;
+    void vf7() override;
+    u32 vf8() override;
+    void vf9() override;
+};
 
 // 0x7100a86450
 void Unk_23c7270::vf9() {}
 
-class Unk_23c72d8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100a864a0
-void Unk_23c72d8::vf5() {
-    Unk_a864e0(this);
-}
-
-class Unk_23c7318 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100a864b0
-void Unk_23c7318::vf0() {
-    Unk_a864e0(this);
+// 0x7100a86470; its type 0x7100a864e0
+const Unk_239a418_Type* Unk_23c7270::vf_type() {
+    return Unk_GetType();
 }

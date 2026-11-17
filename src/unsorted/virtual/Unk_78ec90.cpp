@@ -120,7 +120,7 @@ public:
     virtual void vf7();
     virtual void vf8();
     virtual void vf9();
-    virtual u32 vf10();
+    virtual void vf10();
 };
 
 // 0x7100790cb0

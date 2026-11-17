@@ -6,14 +6,10 @@
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
 void Unk_c42080(void* self);
-void Unk_c42930(void* self);
-void Unk_c43920(void* self);
 void Unk_c48ff0(void* self);
 void Unk_c49140(void* self);
 void Unk_c4deb0(void* self);
 void Unk_c4ea00(void* self);
-void Unk_c4ec20(void* self);
-void Unk_c4f090(void* self);
 
 class Unk_23db268 {
 public:
@@ -87,104 +83,6 @@ public:
 // 0x7100c41c50
 void Unk_23db240::vf0() {
     Unk_c42080(this);
-}
-
-class Unk_23db3b0 {
-public:
-    virtual ~Unk_23db3b0();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x7100c428c0
-void Unk_23db3b0::vf6() {
-    Unk_c42930(this);
-}
-
-// 0x7100c428a0
-void Unk_23db3b0::vf9() {}
-
-class Unk_23db418 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100c428f0
-void Unk_23db418::vf5() {
-    Unk_c42930(this);
-}
-
-class Unk_23db458 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100c42900
-void Unk_23db458::vf0() {
-    Unk_c42930(this);
-}
-
-class Unk_23db480 {
-public:
-    virtual ~Unk_23db480();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x7100c438b0
-void Unk_23db480::vf6() {
-    Unk_c43920(this);
-}
-
-// 0x7100c43890
-void Unk_23db480::vf9() {}
-
-class Unk_23db4e8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100c438e0
-void Unk_23db4e8::vf5() {
-    Unk_c43920(this);
-}
-
-class Unk_23db528 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100c438f0
-void Unk_23db528::vf0() {
-    Unk_c43920(this);
 }
 
 class Unk_23db550 {
@@ -588,109 +486,4 @@ public:
 // 0x7100c4e910
 void Unk_23dc1c0::vf0() {
     Unk_c4ea00(this);
-}
-
-class Unk_23dc1e8 {
-public:
-    virtual ~Unk_23dc1e8();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual u32 vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x7100c4ebb0
-void Unk_23dc1e8::vf6() {
-    Unk_c4ec20(this);
-}
-
-// 0x7100c4eb80
-u32 Unk_23dc1e8::vf8() {
-    return 0;
-}
-
-// 0x7100c4eb90
-void Unk_23dc1e8::vf9() {}
-
-class Unk_23dc250 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100c4ebe0
-void Unk_23dc250::vf5() {
-    Unk_c4ec20(this);
-}
-
-class Unk_23dc290 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100c4ebf0
-void Unk_23dc290::vf0() {
-    Unk_c4ec20(this);
-}
-
-class Unk_23dc2b8 {
-public:
-    virtual ~Unk_23dc2b8();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual u32 vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x7100c4f020
-void Unk_23dc2b8::vf6() {
-    Unk_c4f090(this);
-}
-
-// 0x7100c4eec0
-u32 Unk_23dc2b8::vf8() {
-    return 0;
-}
-
-class Unk_23dc320 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100c4f050
-void Unk_23dc320::vf5() {
-    Unk_c4f090(this);
-}
-
-class Unk_23dc360 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100c4f060
-void Unk_23dc360::vf0() {
-    Unk_c4f090(this);
 }

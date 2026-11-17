@@ -7,9 +7,7 @@
 // Called by forwarders. Placeholders: their real signatures aren't known.
 void Unk_a6e930(void* self);
 void Unk_a70780(void* self);
-void Unk_a71770(void* self);
 void Unk_a73040(void* self);
-void Unk_a741e0(void* self);
 void Unk_a76020(void* self);
 
 class Unk_23c5c28 {
@@ -234,55 +232,6 @@ void Unk_23c5df0::vf0() {
     Unk_a70780(this);
 }
 
-class Unk_23c5f60 {
-public:
-    virtual ~Unk_23c5f60();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x7100a71700
-void Unk_23c5f60::vf6() {
-    Unk_a71770(this);
-}
-
-// 0x7100a716e0
-void Unk_23c5f60::vf9() {}
-
-class Unk_23c5fc8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100a71730
-void Unk_23c5fc8::vf5() {
-    Unk_a71770(this);
-}
-
-class Unk_23c6008 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100a71740
-void Unk_23c6008::vf0() {
-    Unk_a71770(this);
-}
-
 class Unk_23c6030 {
 public:
     virtual void vf0();
@@ -339,55 +288,6 @@ public:
 // 0x7100a72ef0
 void Unk_23c6108::vf0() {
     Unk_a73040(this);
-}
-
-class Unk_23c6148 {
-public:
-    virtual ~Unk_23c6148();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x7100a74170
-void Unk_23c6148::vf6() {
-    Unk_a741e0(this);
-}
-
-// 0x7100a74150
-void Unk_23c6148::vf9() {}
-
-class Unk_23c61b0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100a741a0
-void Unk_23c61b0::vf5() {
-    Unk_a741e0(this);
-}
-
-class Unk_23c61f0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100a741b0
-void Unk_23c61f0::vf0() {
-    Unk_a741e0(this);
 }
 
 class Unk_23c6218 {
