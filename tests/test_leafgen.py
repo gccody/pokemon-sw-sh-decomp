@@ -162,6 +162,16 @@ def test_tail_call_passes_unwritten_arguments_through():
         leafgen.lift(code(0x528000A1, 0x14000000 | 0x100 >> 2))
 
 
+def test_pairs():
+    """ldp x8, x9, [x0, #0x10] ; stp x9, x8, [x0, #0x20] ; ret: two loads, two stores."""
+    ldp = 0xA9400000 | (0x10 // 8) << 15 | 9 << 10 | 0 << 5 | 8
+    stp = 0xA9000000 | (0x20 // 8) << 15 | 8 << 10 | 0 << 5 | 9
+    _, func = leafgen.generate(ADDR, code(ldp, stp, RET))
+    assert "    self->field_20 = self->field_18;\n    self->field_28 = self->field_10;\n" in func
+    with pytest.raises(leafgen.LiftError, match="address"):  # stp x29, x30, [sp, #-0x10]!: a frame
+        leafgen.generate(ADDR, code(0xA9BF7BFD, RET))
+
+
 def test_misaligned_field_is_refused():
     # ldur w0, [x0, #2]: a u32 at offset 2 can't be a plain struct member.
     ldur_w = 0xB8400000 | 2 << 12 | 0 << 5 | 0
