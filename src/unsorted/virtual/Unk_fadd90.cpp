@@ -4,6 +4,9 @@
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
 
+// Called by forwarders. Placeholders: their real signatures aren't known.
+void Unk_fadfe0(void* self);
+
 class Unk_2402800 {
 public:
     virtual ~Unk_2402800();
@@ -18,5 +21,37 @@ public:
     virtual void vf10();
 };
 
+// 0x7100fadf70
+void Unk_2402800::vf6() {
+    Unk_fadfe0(this);
+}
+
 // 0x7100fadd90
 void Unk_2402800::vf9() {}
+
+class Unk_2402868 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+};
+
+// 0x7100fadfa0
+void Unk_2402868::vf5() {
+    Unk_fadfe0(this);
+}
+
+class Unk_24028a8 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+};
+
+// 0x7100fadfb0
+void Unk_24028a8::vf0() {
+    Unk_fadfe0(this);
+}

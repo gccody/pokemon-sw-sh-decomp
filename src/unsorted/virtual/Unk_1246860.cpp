@@ -4,6 +4,10 @@
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
 
+// Called by forwarders. Placeholders: their real signatures aren't known.
+void Unk_12470e0(void* self);
+void Unk_1249000(void* self);
+
 class Unk_2426638 {
 public:
     virtual ~Unk_2426638();
@@ -41,6 +45,48 @@ u32 Unk_2426638::vf25() {
     return 1;
 }
 
+class Unk_2426780 {
+public:
+    virtual ~Unk_2426780();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+};
+
+// 0x7101247070
+void Unk_2426780::vf6() {
+    Unk_12470e0(this);
+}
+
+class Unk_24267c8 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+};
+
+// 0x71012470a0
+void Unk_24267c8::vf5() {
+    Unk_12470e0(this);
+}
+
+class Unk_2426808 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+};
+
+// 0x71012470b0
+void Unk_2426808::vf0() {
+    Unk_12470e0(this);
+}
+
 class Unk_2426830 {
 public:
     virtual void vf0();
@@ -56,5 +102,37 @@ public:
     virtual void vf10();
 };
 
+// 0x7101248e50
+void Unk_2426830::vf6() {
+    Unk_1249000(this);
+}
+
 // 0x71012485f0
 void Unk_2426830::vf9() {}
+
+class Unk_2426898 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+};
+
+// 0x7101248f20
+void Unk_2426898::vf5() {
+    Unk_1249000(this);
+}
+
+class Unk_24268d8 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+};
+
+// 0x7101248f30
+void Unk_24268d8::vf0() {
+    Unk_1249000(this);
+}

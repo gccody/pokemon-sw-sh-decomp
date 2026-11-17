@@ -4,6 +4,14 @@
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
 
+// Called by forwarders. Placeholders: their real signatures aren't known.
+void Unk_a6e930(void* self);
+void Unk_a70780(void* self);
+void Unk_a71770(void* self);
+void Unk_a73040(void* self);
+void Unk_a741e0(void* self);
+void Unk_a76020(void* self);
+
 class Unk_23c5c28 {
 public:
     virtual void vf0();
@@ -19,6 +27,11 @@ public:
     virtual void vf10();
 };
 
+// 0x7100a6e900
+void Unk_23c5c28::vf6() {
+    Unk_a6e930(this);
+}
+
 // 0x7100a6e6d0
 u32 Unk_23c5c28::vf7() {
     return 1;
@@ -29,6 +42,33 @@ void Unk_23c5c28::vf8() {}
 
 // 0x7100a6e6f0
 void Unk_23c5c28::vf10() {}
+
+class Unk_23c5c90 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+};
+
+// 0x7100a6e910
+void Unk_23c5c90::vf5() {
+    Unk_a6e930(this);
+}
+
+class Unk_23c5cd0 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+};
+
+// 0x7100a6e920
+void Unk_23c5cd0::vf0() {
+    Unk_a6e930(this);
+}
 
 class Unk_23c5d38 {
 public:
@@ -88,6 +128,48 @@ u32 Unk_23c5e18::vf25() {
     return 1;
 }
 
+class Unk_23c5d68 {
+public:
+    virtual ~Unk_23c5d68();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+};
+
+// 0x7100a70480
+void Unk_23c5d68::vf6() {
+    Unk_a70780(this);
+}
+
+class Unk_23c5db0 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+};
+
+// 0x7100a704b0
+void Unk_23c5db0::vf5() {
+    Unk_a70780(this);
+}
+
+class Unk_23c5df0 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+};
+
+// 0x7100a704c0
+void Unk_23c5df0::vf0() {
+    Unk_a70780(this);
+}
+
 class Unk_23c5f60 {
 public:
     virtual ~Unk_23c5f60();
@@ -102,8 +184,40 @@ public:
     virtual void vf10();
 };
 
+// 0x7100a71700
+void Unk_23c5f60::vf6() {
+    Unk_a71770(this);
+}
+
 // 0x7100a716e0
 void Unk_23c5f60::vf9() {}
+
+class Unk_23c5fc8 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+};
+
+// 0x7100a71730
+void Unk_23c5fc8::vf5() {
+    Unk_a71770(this);
+}
+
+class Unk_23c6008 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+};
+
+// 0x7100a71740
+void Unk_23c6008::vf0() {
+    Unk_a71770(this);
+}
 
 class Unk_23c6030 {
 public:
@@ -126,9 +240,41 @@ public:
     virtual u32 vf16();
 };
 
+// 0x7100a72d90
+void Unk_23c6030::vf6() {
+    Unk_a73040(this);
+}
+
 // 0x7100a72850
 u32 Unk_23c6030::vf16() {
     return 0;
+}
+
+class Unk_23c60c8 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+};
+
+// 0x7100a72ee0
+void Unk_23c60c8::vf5() {
+    Unk_a73040(this);
+}
+
+class Unk_23c6108 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+};
+
+// 0x7100a72ef0
+void Unk_23c6108::vf0() {
+    Unk_a73040(this);
 }
 
 class Unk_23c6148 {
@@ -145,8 +291,40 @@ public:
     virtual void vf10();
 };
 
+// 0x7100a74170
+void Unk_23c6148::vf6() {
+    Unk_a741e0(this);
+}
+
 // 0x7100a74150
 void Unk_23c6148::vf9() {}
+
+class Unk_23c61b0 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+};
+
+// 0x7100a741a0
+void Unk_23c61b0::vf5() {
+    Unk_a741e0(this);
+}
+
+class Unk_23c61f0 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+};
+
+// 0x7100a741b0
+void Unk_23c61f0::vf0() {
+    Unk_a741e0(this);
+}
 
 class Unk_23c6218 {
 public:
@@ -162,9 +340,41 @@ public:
     virtual void vf10();
 };
 
+// 0x7100a75fb0
+void Unk_23c6218::vf6() {
+    Unk_a76020(this);
+}
+
 // 0x7100a74c10
 u32 Unk_23c6218::vf7() {
     return 1;
+}
+
+class Unk_23c6280 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+};
+
+// 0x7100a75fc0
+void Unk_23c6280::vf5() {
+    Unk_a76020(this);
+}
+
+class Unk_23c62c0 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+};
+
+// 0x7100a75fd0
+void Unk_23c62c0::vf0() {
+    Unk_a76020(this);
 }
 
 class Unk_23c6328 {

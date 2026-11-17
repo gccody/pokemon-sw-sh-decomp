@@ -4,6 +4,10 @@
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
 
+// Called by forwarders. Placeholders: their real signatures aren't known.
+void Unk_113d0f0(void* self);
+void Unk_113d1e0(void* self);
+
 class Unk_2419550 {
 public:
     virtual ~Unk_2419550();
@@ -124,3 +128,107 @@ public:
 
 // 0x7101130b50
 void Unk_2419800::vf15() {}
+
+class Unk_2419c38 {
+public:
+    virtual ~Unk_2419c38();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+};
+
+// 0x710113c630
+void Unk_2419c38::vf6() {
+    Unk_113d0f0(this);
+}
+
+class Unk_2419ce8 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+};
+
+// 0x710113c660
+void Unk_2419ce8::vf5() {
+    Unk_113d0f0(this);
+}
+
+class Unk_2419d58 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+};
+
+// 0x710113c670
+void Unk_2419d58::vf0() {
+    Unk_113d0f0(this);
+}
+
+class Unk_2419fb8 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+};
+
+// 0x710113d550
+void Unk_2419fb8::vf6() {
+    Unk_113d1e0(this);
+}
+
+class Unk_241a000 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+};
+
+// 0x710113d660
+void Unk_241a000::vf5() {
+    Unk_113d1e0(this);
+}
+
+class Unk_241a040 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+};
+
+// 0x710113d670
+void Unk_241a040::vf0() {
+    Unk_113d1e0(this);
+}

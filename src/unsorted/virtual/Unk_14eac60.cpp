@@ -4,6 +4,11 @@
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
 
+// Called by forwarders. Placeholders: their real signatures aren't known.
+void Unk_14f5220(void* self);
+void Unk_14f90c0(void* self);
+void Unk_1500210(void* self);
+
 class Unk_2444f50 {
 public:
     virtual void vf0();
@@ -112,6 +117,11 @@ public:
     virtual void vf13();
 };
 
+// 0x71014f5050
+void Unk_24455f0::vf6() {
+    Unk_14f5220(this);
+}
+
 // 0x71014f5060
 u32 Unk_24455f0::vf8() {
     return 0;
@@ -125,6 +135,33 @@ u32 Unk_24455f0::vf9() {
 // 0x71014f5080
 u32 Unk_24455f0::vf10() {
     return 0;
+}
+
+class Unk_2445670 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+};
+
+// 0x71014f5160
+void Unk_2445670::vf5() {
+    Unk_14f5220(this);
+}
+
+class Unk_24456b0 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+};
+
+// 0x71014f5170
+void Unk_24456b0::vf0() {
+    Unk_14f5220(this);
 }
 
 class Unk_24456d8 {
@@ -147,6 +184,56 @@ public:
 
 // 0x71014f8bc0, 0x71014f8bd0
 Unk_24458c0::~Unk_24458c0() {}
+
+class Unk_24458e0 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+};
+
+// 0x71014f8f20
+void Unk_24458e0::vf6() {
+    Unk_14f90c0(this);
+}
+
+class Unk_2445960 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+};
+
+// 0x71014f9000
+void Unk_2445960::vf5() {
+    Unk_14f90c0(this);
+}
+
+class Unk_24459a0 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+};
+
+// 0x71014f9010
+void Unk_24459a0::vf0() {
+    Unk_14f90c0(this);
+}
 
 class Unk_24459c8 {
 public:
@@ -445,6 +532,46 @@ void Unk_2446368::vf0() {}
 
 // 0x71015000a0
 void Unk_2446368::vf1() {}
+
+class Unk_2446398 {
+public:
+    virtual ~Unk_2446398();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+    virtual void vf25();
+    virtual void vf26();
+    virtual void vf27();
+    virtual void vf28();
+    virtual void vf29();
+    virtual void vf30();
+    virtual void vf31();
+};
+
+// 0x7101500200
+void Unk_2446398::vf16() {
+    Unk_1500210(this);
+}
 
 class Unk_24465c0 {
 public:
