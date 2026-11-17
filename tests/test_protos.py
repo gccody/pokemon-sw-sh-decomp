@@ -185,3 +185,17 @@ def test_protoc_command_uses_the_bare_name():
 def test_every_asset_is_pinned():
     for asset, sha in protos.PROTOC_ASSETS.values():
         assert asset.startswith("protoc-3.0.0-") and len(sha) == 64
+
+
+def test_add_extra_virtual_at_each_class_scope():
+    h = ("class Ping : public ::google::protobuf::Message {\n public:\n"
+         "  ::google::protobuf::Metadata GetMetadata() const;\n"
+         "  // @@protoc_insertion_point(class_scope:gfl.pb.Ping)\n private:\n};\n"
+         "class Pong {\n  // @@protoc_insertion_point(class_scope:gfl.pb.Pong)\n};\n"
+         "// @@protoc_insertion_point(namespace_scope)\n")
+    out = protos.add_extra_virtual(h)
+    assert out.count(protos.EXTRA_VIRTUAL) == 2
+    assert protos.EXTRA_VIRTUAL + "  // @@protoc_insertion_point(class_scope:gfl.pb.Ping)" in out
+    assert "namespace_scope" in out and protos.EXTRA_VIRTUAL + "// @@protoc_insertion_point(namespace" not in out
+    with pytest.raises(SystemExit):
+        protos.add_extra_virtual("// no classes\n")
