@@ -171,6 +171,28 @@ def test_derived_class_needs_a_key_function_in_its_d0s_file():
     assert specs(m, seg=lambda f: 1 if f == 0x150 else 0)[bvt.addr].base is None
 
 
+def test_forwarder():
+    """A `b T` slot becomes `Unk_<T>(this);` when callee() accepts T, and T is named too."""
+    img, slots, starts, sizes = build()
+    img = bytearray(img)
+    struct.pack_into("<I", img, 0x130, b(0x130, 0x170))     # A's slot 3: b 0x170
+    sizes[0x130] = 4
+    vts, tables = V.find_vtables(bytes(img), slots, starts, DATA, len(img))
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), vts, tables, sizes, {}, {}, lambda a: "game", DELETE)
+    a = m.vtables[0]
+    own = V.owners(m.vtables)
+    assert [x.kind for x in V.placeholder_members(m, a, own, lambda f: True)] == ["dtor", "constant"]
+    assert V.branch_target(m, 0x130) == 0x170
+    members = V.placeholder_members(m, a, own, lambda f: True, lambda f: V.branch_target(m, f))
+    assert [(x.slot, x.kind, x.value) for x in members][-1] == (3, "forward", 0x170)
+    spec = V.class_specs(m, {a.addr: members}, own, lambda f: 0, lambda f: True)[a.addr]
+    _, names, defs = V.render_class(m, spec)
+    assert "void Unk_1000::vf3() {\n    Unk_170(this);\n}" in defs
+    assert names[-2:] == [(0x130, "_ZN8Unk_10003vf3Ev"), (0x170, "_Z7Unk_170Pv")]
+    text, _ = V.render_file(m, [(spec, members)])
+    assert "\nvoid Unk_170(void* self);\n" in text
+
+
 def test_derived_order():
     """Overrides can move to the front; a new function only when no new one is before it."""
     base = V.Vtable(0, 0, None, [1, 2, 3, 4])
