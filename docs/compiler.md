@@ -2028,9 +2028,10 @@ clang 6.0.0 or 6.0.1  --target=aarch64-none-elf -mcpu=cortex-a57+fp+simd+crypto+
 Wwise (`0x71003035e0`-`0x710040f550`, 4,179 functions) is proprietary. It
 contains one piece of public code that compiles to identical machine code:
 Matthew Conte's **TLSF** allocator, which backs Wwise's memory manager.
-Compiled with clang 6.0.0 or 6.0.1, it reproduces **all 8 TLSF functions in
-the binary (2,596 bytes) byte-for-byte, in both games**. No other version gets
-more than 6.
+Compiled with clang 6.0.0 or 6.0.1, it reproduces **all 8 TLSF functions the
+sweep maps (2,596 bytes) byte-for-byte, in both games**. No other version gets
+more than 6. It's vendored in `lib/tlsf` and built with clang 6.0.1, and all
+9 of its functions in the binary match (see "`lib/tlsf`" below).
 
 Confidence:
 
@@ -2084,6 +2085,10 @@ The binary's TLSF is the **2.0** release with one fix from 3.x:
   3.x misses `tlsf_create` and `block_locate_free`.
 - `tlsf_realloc`, `tlsf_check_heap` and `tlsf_walk_heap` aren't in the binary
   (presumably dropped by `--gc-sections`).
+- The fix's author is Martin Dufour of Audiokinetic (`mdufour@audiokinetic.com`
+  in the commit), Wwise's vendor. So the patch most likely went upstream from
+  Wwise's copy, not the other way round, which explains a 2.0 release with one
+  3.x function.
 
 The Wwise side of TLSF is `0x71003045e0`-`0x7100305450`: allocator wrappers
 called from 1,024 Wwise functions (and 3 game functions), including the bank
@@ -2212,6 +2217,45 @@ For the flags table, use `--compiler toolchain/candidates/clang-6.0.1` with
 variants such as `"strict=$B -fstrict-aliasing"`. Keep every flag that changes
 in the variants and only the include path after `--`. Add `--game shield` to
 check Shield. Each configuration takes about a second.
+
+### `lib/tlsf`
+
+`lib/tlsf` holds the source the sweep used: TLSF 2.0 from `samplecount/tlsf`
+with 2b73b8a's `adjust_request_size`, and nothing else changed (provenance and
+both licenses in `lib/tlsf/COPYRIGHT`). `pkmn_library_settings(lib/tlsf ...)`
+builds it with `COMPILER_VERSION 6.0.1` and `NDEBUG`, on top of the global
+flags, which are the game's (`-fno-strict-aliasing`, `-fno-exceptions`, `-g`).
+6.0.1 rather than 6.0.0 only because PhysX needs 6.0.1 already: the two give
+the same TLSF.
+
+| Function | Sword = Shield | Size |
+|---|---|---:|
+| `tlsf_block_size` | `0x71003049b0` | 16 |
+| `tlsf_overhead` | `0x71003049c0` | 8 |
+| `tlsf_create` | `0x71003049d0` | 456 |
+| `tlsf_malloc` | `0x7100304ba0` | 88 |
+| `block_locate_free@tlsf` | `0x7100304c00` | 392 |
+| `block_prepare_used@tlsf` | `0x7100304d90` | 360 |
+| `tlsf_memalign` | `0x7100304f00` | 536 |
+| `tlsf_free` | `0x7100305120` | 492 |
+| `block_merge_next@tlsf` | `0x7100305310` | 256 |
+
+The sweep skips functions under 16 bytes, so it didn't map `tlsf_overhead`
+(`mov w0, #0x1998 ; ret`: `sizeof(pool_t)` is 6,536 on 64-bit, plus two
+8-byte block headers). Its place is the evidence: between `tlsf_block_size`
+and `tlsf_create`, in source order. The rest of the TU is in
+`data/absent_functions.csv`: `tlsf_destroy` (an empty function),
+`tlsf_realloc`, `tlsf_check_heap`, `tlsf_walk_heap` and `default_walker`.
+`integrity_walker` is inlined into `tlsf_check_heap`. The other static
+functions are inlined everywhere.
+
+This is the only TLSF in `main`. Swept over the whole executable with clang 5
+to 11, TLSF 2.0, the Wwise source and mattconte's current 3.x (`deff9ab`)
+hit nothing larger than 8 bytes outside these functions. gflib3 has a TLSF
+heap of its own (`lib/gflib3/src/mem/internal/tlsf_pool.cpp`, the `__FILE__`
+of `0x710065efa0`), but it isn't this code: over gflib3's range, both sources
+give no hit with clang 6.0.1 or 7.0.1, as C or as C++ (`-x c++
+-std=gnu++14`), with or without `NDEBUG`.
 
 ### What's left open
 

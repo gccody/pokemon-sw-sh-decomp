@@ -136,7 +136,7 @@ data/areas.csv          Sword/Shield address ranges -> library/subsystem
 data/version_diff.json  details for every non-common function
 include/pkmn/version.h  PKMN_VERSION, PKMN_SW_SH(), PKMN_IS_SWORD
 src/                    Game Freak code (by subsystem; src/unsorted/ until placed)
-lib/                    third-party code (lua/, sol/, physx/, zlib/, ...)
+lib/                    third-party code (lua/, sol/, physx/, zlib/, tlsf/, ...)
 tools/                  python tooling (tools/nx/ = XCI/NCA/NSO/eh_frame readers)
 tests/                  pytest suite for tools/ (no game files needed)
 cmake/                  NX64 toolchain; CMakePresets.json has sword + shield presets
