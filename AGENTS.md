@@ -75,6 +75,7 @@ python tools/funcs.py show 0x7100bc0b00                  # original asm (both ga
 python tools/funcs.py name 0x7100bc0b00 _ZN4pkmn3FooEv   # assign a mangled name
 python tools/check.py _ZN4pkmn3FooEv --diff              # build both games, compare, show diff
 python tools/check.py --update                           # record matches in functions.csv
+python tools/check.py --record-data                      # record matched functions' unknown data symbols
 python tools/lint.py                                     # CSV + tracked-files validation
 python -m pytest                                         # tooling tests (no game files needed)
 ruff check .                                             # Python lint

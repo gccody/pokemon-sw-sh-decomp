@@ -19,6 +19,13 @@ data/data_symbols.csv; string/constant literals are compared by content. A
 data/source_paths.csv) is compared by the file it names, because it spells the
 vendor's checkout (see tools/source_paths.py).
 
+A reference to a data symbol neither CSV knows is only a warning. With
+--record-data, the ones matching functions make (GOT loads, adrp pairs) are
+added to data/data_symbols.csv at the original's addresses in each game, so
+every other reference to them is checked from then on. A symbol referenced at
+two addresses in one game is reported instead, and so is a function's address
+(it belongs in functions.csv: name it with tools/funcs.py name).
+
 Local (static) symbols are looked up by their file-qualified name,
 `<symbol>@<file stem>` (see tools/symbols.py). Compiled functions listed in
 data/absent_functions.csv are not in the executable and are skipped. Those in
@@ -431,6 +438,7 @@ class Result:
     errors: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     first_bad: int | None = None
+    unknown: list[tuple[str, int]] = field(default_factory=list)  # data symbol -> where the original has it
 
 
 def _imm12(w: int) -> int:
@@ -511,6 +519,7 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name,
     v = orig.version
     addr, size = fn.addr(v), fn.size(v)
     res = Result(True)
+    deltas: dict[str, int] = {}  # an unknown symbol -> the reference's offset from it
 
     def bad(off: int, msg: str):
         res.ok = False
@@ -546,6 +555,7 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name,
                             return f.addr(v) + delta, sname
                         if sname in data_syms[v]:
                             return data_syms[v][sname] + delta, sname
+                        deltas[sname] = delta
                         return None, sname
             return None, name or (sec.name if sec is not None else "<section>")
         f = by_name.get(name)
@@ -553,6 +563,7 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name,
             return (f.addr(v) + r.addend if f.addr(v) is not None else None), name
         if name in data_syms[v]:
             return data_syms[v][name] + r.addend, name
+        deltas[name] = r.addend
         return None, name
 
     def data_relocs(shndx: int) -> dict[int, Reloc]:
@@ -673,6 +684,7 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name,
                 if target != r.sym:
                     bad(off, f"GOT import {target} != {verbose_name(desc)}")
             elif exp is None:
+                res.unknown.append((desc, target - deltas.get(desc, 0)))
                 res.warnings.append(f"+{off:#05x}: GOT ref to unknown symbol {verbose_name(desc)} "
                                     f"(original -> {target + BASE:#x}); add it to data_symbols.csv/functions.csv")
             elif exp != target:
@@ -704,6 +716,8 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name,
                     raise LookupError
                 err = literal_error(r, otgt)
             except LookupError:
+                if otgt is not None and desc in deltas:
+                    res.unknown.append((desc, otgt - deltas[desc]))
                 res.warnings.append(f"+{off:#05x}: unverified ref to {verbose_name(desc)}")
             else:
                 if err:
@@ -786,9 +800,51 @@ def merge_results(per_copy: list[tuple[CompiledFunc, Result]]) -> Result:
     for c, r in per_copy:
         out.errors += [f"[copy from {c.source}] {e}" for e in r.errors]
         out.warnings += [f"[copy from {c.source}] {w}" for w in r.warnings]
+        out.unknown += r.unknown
         if out.first_bad is None:
             out.first_bad = r.first_bad
     return out
+
+
+def data_symbol_rows(seen: dict[str, dict[str, set[int]]], functions: dict[str, set[int]]
+                     ) -> tuple[dict[str, dict[str, int]], list[str], list[str]]:
+    """The data symbols to record, as name -> {version: address}, from what
+    matching functions reference (name -> version -> the original's addresses).
+    Left out: names referenced at two addresses in a game (conflicts), names
+    of a function start in `functions` (version -> addresses; those go in
+    functions.csv), and what isn't a symbol name (a section)."""
+    rows: dict[str, dict[str, int]] = {}
+    conflicts: list[str] = []
+    funcs: list[str] = []
+    for name, by_v in sorted(seen.items()):
+        if not symbols.is_valid_name(name):
+            continue
+        if any(len(a) > 1 for a in by_v.values()):
+            conflicts.append(name)
+        elif any(a & functions.get(v, set()) for v, a in by_v.items()):
+            funcs.append(name)
+        else:
+            rows[name] = {v: next(iter(a)) for v, a in by_v.items() if a}
+    return rows, conflicts, funcs
+
+
+def record_data_symbols(path: Path, rows: dict[str, dict[str, int]]) -> int:
+    """Add `rows` (name -> {version: relative address}) to data_symbols.csv,
+    sorted by address. Returns how many were new."""
+    have: list[dict[str, str]] = []
+    if path.exists():
+        with open(path, newline="", encoding="utf-8") as fh:
+            have = list(csv.DictReader(fh))
+    names = {r["Name"] for r in have}
+    new = [{"Sword": f"{a['sword'] + BASE:#x}" if "sword" in a else "",
+            "Shield": f"{a['shield'] + BASE:#x}" if "shield" in a else "",
+            "Size": "", "Name": n} for n, a in rows.items() if n not in names]
+    out = sorted(have + new, key=lambda r: int(r["Sword"] or r["Shield"], 16))
+    with open(path, "w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=["Sword", "Shield", "Size", "Name"], lineterminator="\n")
+        w.writeheader()
+        w.writerows(out)
+    return len(new)
 
 
 # --------------------------------------------------------------------------- output
@@ -865,6 +921,9 @@ def main() -> int:
     ap.add_argument("--update", action="store_true", help="update Status in data/functions.csv")
     ap.add_argument("--no-build", action="store_true")
     ap.add_argument("-v", "--verbose", action="store_true", help="also print warnings for matching functions")
+    ap.add_argument("--record-data", action="store_true",
+                    help="add the unknown data symbols matching functions reference to data/data_symbols.csv, "
+                         "at the original's addresses (every later reference is then checked against them)")
     args = ap.parse_args()
 
     if not args.no_build:
@@ -907,6 +966,7 @@ def main() -> int:
     unidentified = read_absent(UNIDENTIFIED_CSV)
     n_ok = n_bad = n_absent = n_alias = n_foreign = n_unidentified = 0
     status_updates: dict[str, str] = {}
+    seen: dict[str, dict[str, set[int]]] = {}
     for name in all_names:
         fn = by_name.get(name)
         if fn is None and name in absent:
@@ -965,6 +1025,10 @@ def main() -> int:
                         print(side_by_side(c, fn, origs[v], cr))
         n_ok += ok
         n_bad += not ok
+        if ok:
+            for v, r in results.items():
+                for sym, a in r.unknown:
+                    seen.setdefault(sym, {}).setdefault(v, set()).add(a)
         if ok and fn.status != "O":
             status_updates[fn.key] = "O"
         elif not ok and fn.status == "O":
@@ -982,6 +1046,16 @@ def main() -> int:
               f"data/foreign_copies.csv)")
     if n_alias and wanted is None:
         print(f"({n_alias} compiled aliases of checked functions skipped, e.g. D1 = D2 destructors)")
+    if args.record_data:
+        rows, conflicts, fnames = data_symbol_rows(seen, {v: set(syms[1][v]) for v in VERSIONS})
+        n = record_data_symbols(ROOT / "data" / "data_symbols.csv", rows)
+        print(f"recorded {n} data symbols in data/data_symbols.csv")
+        for c in conflicts:
+            print(f"  not recorded: {dm(c)} is referenced at more than one address: "
+                  + "; ".join(f"{v} " + ", ".join(f"{a + BASE:#x}" for a in sorted(x)) for v, x in seen[c].items()))
+        for c in fnames:
+            a = next(iter(seen[c].get("sword") or seen[c]["shield"]))
+            print(f"  not recorded: {dm(c)} is a function: tools/funcs.py name {a + BASE:#x} {c}")
     if args.update and status_updates:
         for f in funcs:
             if f.key in status_updates:

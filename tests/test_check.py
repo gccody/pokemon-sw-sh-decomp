@@ -71,3 +71,25 @@ def test_tls_accesses_must_load_one_offset():
     other = (0xD2A00000, 0xF2800400, check.NOP, check.NOP)  # movk x0, #0x20
     res = _tls_compare(relaxed + other, accesses=2)
     assert not res.ok and "different offsets (0x10, 0x20)" in res.errors[0]
+
+
+def test_data_symbol_rows():
+    seen = {
+        "_ZZ3FoovE1x": {"sword": {0x2000}, "shield": {0x2010}},
+        "Unk_3000": {"sword": {0x3000, 0x3008}, "shield": {0x3000}},     # two addresses: a conflict
+        "_Z3Barv": {"sword": {0x1000}},                                  # a function start
+        ".rodata": {"sword": {0x4000}},                                  # a section, not a symbol
+    }
+    rows, conflicts, funcs = check.data_symbol_rows(seen, {"sword": {0x1000}, "shield": set()})
+    assert rows == {"_ZZ3FoovE1x": {"sword": 0x2000, "shield": 0x2010}}
+    assert conflicts == ["Unk_3000"] and funcs == ["_Z3Barv"]
+
+
+def test_record_data_symbols(tmp_path):
+    path = tmp_path / "data_symbols.csv"
+    path.write_text("Sword,Shield,Size,Name\n0x7100003000,0x7100003000,8,Unk_3000\n", encoding="utf-8")
+    n = check.record_data_symbols(path, {"Unk_3000": {"sword": 0x3000}, "a": {"sword": 0x2000, "shield": 0x2010},
+                                         "b": {"shield": 0x4000}})
+    assert n == 2
+    assert path.read_bytes() == (b"Sword,Shield,Size,Name\n0x7100002000,0x7100002010,,a\n"
+                                 b"0x7100003000,0x7100003000,8,Unk_3000\n,0x7100004000,,b\n")
