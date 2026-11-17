@@ -126,6 +126,7 @@ python tools/progress.py
 | `tools/funcs.py list --status U --max 64 --area game` | Find work |
 | `tools/funcs.py patterns --area game --status U --max 8` | Group functions by instruction pattern and how they're reached (vtable, call, neither), to find batches ([docs/game_code.md](docs/game_code.md)) |
 | `tools/leafgen.py scan\|write\|names` | Lift small straight-line leaf functions to placeholder C++, for check.py to judge ([docs/game_code.md](docs/game_code.md), "Batch 2") |
+| `tools/vtables.py summary\|show\|of\|write` | Find the vtables, group them into classes (owners, base guesses, constructors) and write the simple virtual functions ([docs/game_code.md](docs/game_code.md), "Vtables and classes") |
 | `tools/segments.py <area>` | The runs of TUs that static initialisers end, with the strings and namespaces in each, to place area boundaries ([docs/game_code.md](docs/game_code.md)) |
 | `tools/funcs.py show <addr>` | Original assembly, with both games side by side for `diverged` |
 | `tools/funcs.py name <addr> <mangled>` | Assign a symbol name to a function |

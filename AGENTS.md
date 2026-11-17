@@ -70,6 +70,7 @@ python tools/funcs.py list --status U --max 64 -n 20     # find small undecompil
 python tools/funcs.py patterns --area game --status U --max 8   # group by pattern + how reached (docs/game_code.md)
 python tools/segments.py game/pokecamp                   # TU runs between static initialisers + their evidence
 python tools/leafgen.py scan --max 32                    # straight-line leaf functions it can write as C++
+python tools/vtables.py show 0x7102418858                # a vtable group: slots, owners, base guess, ctors
 python tools/funcs.py show 0x7100bc0b00                  # original asm (both games if diverged)
 python tools/funcs.py name 0x7100bc0b00 _ZN4pkmn3FooEv   # assign a mangled name
 python tools/check.py _ZN4pkmn3FooEv --diff              # build both games, compare, show diff

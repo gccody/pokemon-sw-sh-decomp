@@ -230,3 +230,88 @@ python tools/leafgen.py write --max 32 --only ok.txt  # the OK addresses, one pe
 python tools/funcs.py name --from-file ok_map.csv     # map.csv's rows for them
 python tools/check.py --update
 ```
+
+## Vtables and classes (`tools/vtables.py`)
+
+Most of the tiny functions are virtual (see "The tiny functions"), and
+without RTTI their classes can only come from the vtables. `tools/vtables.py`
+finds them. With the Itanium ABI a vtable is an offset-to-top word, a
+typeinfo word (0 with `-fno-rtti`) and then one function pointer per slot:
+`R_AARCH64_RELATIVE` relocations to function starts, or
+`__cxa_pure_virtual`. The address point an object's vptr holds is slot 0. A
+run of such slots after that header is a vtable. A run that follows another
+directly, with a negative offset-to-top, is a secondary vtable of the same
+class (one per secondary base). Function-pointer runs without the header are
+plain tables.
+
+| | Whole `main` | Game code (`game/...`) | gflib3 |
+|---|---:|---:|---:|
+| vtables (the same in Shield) | 10,123 | 7,322 | 607 |
+| groups (classes with a vtable) | 5,584 | 3,425 | 342 |
+| secondary vtables | 4,539 | 4,000 | 277 |
+| with typeinfo | 1,129 | 5 | 2 |
+| without a referrer | 66 | 10 | 2 |
+
+**Referrers** are the functions that reference a vtable: its class's
+constructors and destructors. Game code loads the `_ZTV` symbol from the GOT
+and adds 16 to get the address point. A secondary vtable is reached from
+the same `_ZTV`, so its referrers are its group's.
+
+**Owners.** A derived class's vtable starts with its base's slots, and every
+slot it doesn't override holds the base's function. So the same function
+appears in several vtables, and the shortest of them is the best guess at
+the class that defines it. That is the function's owner, and only owned
+functions are written as members of a class. `vtables.py show <vtable>`
+marks inherited slots with the vtable they come from.
+
+**Bases.** `show` and `csv` also guess each class's base: the other, no
+longer, vtable that holds the most of the same functions at the same
+indices. Destructors are strong evidence. Clang emits an empty destructor
+that only destroys its base as an alias of the base's D2, so a derived
+class's slot 0 is its base's D2. 539 game classes with an empty destructor
+pair show this. Their own D0 (`b operator delete`) can be matched once the
+placeholder classes have those bases (`class D : public B`, with `B`'s
+destructor inline), which this tool doesn't write yet.
+
+### Batch 3: simple virtual functions
+
+`vtables.py write` declares a placeholder class per vtable that owns
+something simple. The class is named `Unk_<address of its _ZTV>`, so it
+lines up with the vtable symbol once that is named. Its virtual functions
+are declared in slot order (`vf<slot>`, `= 0` where the slot is
+`__cxa_pure_virtual`, a destructor for slots 0 and 1 when they are a
+destructor pair). The simple functions it owns are defined:
+
+| Kind | Functions | Source |
+|---|---:|---|
+| empty override | 1,726 | `void Unk_2418848::vf6() {}` |
+| constant | 721 | `u32 vf3() { return 1; }`, `return 0;`, `void* vf5() { return nullptr; }` |
+| empty destructor | 202 (101 pairs) | `Unk_X::~Unk_X() {}`: D2 is `ret`, D0 tail-calls `operator delete(void*)`, or traps for an abstract class |
+
+That's 2,649 functions in 1,541 classes, all common, and all of them match in
+both games. The return types (`void`, `u32`, `void*`) and the empty
+parameter lists are placeholders. A function's mangled name doesn't include
+its return type, but it does include its parameters, so give a function its
+real signature (and rename it with `funcs.py name --force`) when its class
+is known. Like the leaf batches, one file holds the functions between two
+static initialisers (`src/unsorted/virtual/Unk_<first>.cpp`). A class with
+functions in several such runs is declared, identically, in each file.
+
+Not written yet, and the next steps:
+
+- **Thunks** (4,060 in game code: `sub x0, x0, #N ; b T`). The compiler
+  emits one with the override it adjusts for, so the class needs its
+  secondary bases at the right offsets (the offset-to-top of its secondary
+  vtables).
+- **Derived destructors** (the 539 above), with the base guess.
+- **Forwarders** (`b T`, 3,899) and small getters and setters (877). They
+  need the callee's name, or fields in the class. `tools/leafgen.py`'s lifter
+  can produce the latter as member functions.
+
+```sh
+python tools/vtables.py summary --area game
+python tools/vtables.py show 0x7102418858            # a vtable group: slots, owners, base guess, referrers
+python tools/vtables.py write --names map.csv        # into src/unsorted/virtual (Sword's vtables)
+python tools/funcs.py name --from-file map.csv
+python tools/check.py --update
+```
