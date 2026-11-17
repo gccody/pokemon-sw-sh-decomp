@@ -207,7 +207,7 @@ def test_lifted_member():
     """A setter in a vtable becomes a member that sets the class's own field."""
     m = lifted_model([0xB9001001, RET])                      # str w1, [x0, #0x10] ; ret
     x = V.lift_member(m, 0x130)
-    assert x == V.Lifted("void", ("u32 value",), "    field_10 = value;\n", ((0x10, "u32"),))
+    assert x == V.Lifted("void", ("u32 value",), "    field_10 = value;\n", ((0x10, "u32"),), "Unk_130")
     a = m.vtables[0]
     own = V.owners(m.vtables)
     members = V.placeholder_members(m, a, own, lambda f: True, None, lambda f: V.lift_member(m, f))
@@ -219,9 +219,29 @@ def test_lifted_member():
     assert names[-1] == (0x130, "_ZN8Unk_10003vf3Ej")
 
 
-def test_lifted_member_refuses_the_vptr_and_pointers():
-    assert V.lift_member(lifted_model([0xB9400000, RET]), 0x130) is None     # ldr w0, [x0] (the vptr)
-    assert V.lift_member(lifted_model([0xF9400800, 0xB9401000, RET]), 0x130) is None  # a loaded pointer
+def test_lifted_member_refuses_the_vptr():
+    assert V.lift_member(lifted_model([0xB9400000, RET]), 0x130) is None     # ldr w0, [x0]
+
+
+def test_lifted_member_through_a_pointer_field():
+    """ldr x0, [x0, #0x10] ; ldr w0, [x0, #0x10]: field_10 points to the struct Unk_1000_10."""
+    m = lifted_model([0xF9400800, 0xB9401000, RET])
+    x = V.lift_member(m, 0x130)
+    assert x.fields == ((0x10, ("*", ((0x10, "u32"),))),)
+    a = m.vtables[0]
+    own = V.owners(m.vtables)
+    members = V.placeholder_members(m, a, own, lambda f: True, None, lambda f: V.lift_member(m, f))
+    spec = V.class_specs(m, {a.addr: members}, own, lambda f: 0, lambda f: True)[a.addr]
+    assert spec.fields == {0x10: {0x10: "u32"}}
+    decl, names, defs = V.render_class(m, spec)
+    assert decl.startswith("struct Unk_1000_10 {\n    u8 _0[0x10];\n    u32 field_10;\n};\n"
+                           "PKMN_OFFSET_ASSERT(Unk_1000_10, field_10, 0x10);\n\nclass Unk_1000 {")
+    assert "    u8 _8[0x8];\n    Unk_1000_10* field_10;\n};\n" in decl
+    assert "u32 Unk_1000::vf3() {\n    return field_10->field_10;\n}" in defs
+    # Another member reading field_10 as a plain integer conflicts with it.
+    assert not V.merge_fields(spec.fields, [(0x10, "u64")])
+    assert V.merge_fields(spec.fields, [(0x10, ("*", ((0x18, "u8"),)))])
+    assert spec.fields == {0x10: {0x10: "u32", 0x18: "u8"}}
 
 
 def test_merge_fields():

@@ -376,26 +376,49 @@ class ClassSpec:
         return class_name(self.v)
 
 
-def signature(x: Member) -> tuple[str, tuple[str, ...]] | None:
-    """(return type, parameters) of a member write defines, None for destructors."""
+def signature(x: Member, cls: str = "") -> tuple[str, tuple[str, ...]] | None:
+    """(return type, parameters) of a member write defines, None for destructors
+    (a lifted one's struct names are its class's, `cls`)."""
     if x.kind == "lifted":
-        return x.lifted.rtype, x.lifted.params
+        return x.lifted.named(x.lifted.rtype, cls), x.lifted.params
     return (RTYPE[x.kind], ()) if x.kind in RTYPE else None
 
 
-def merge_fields(fields: dict[int, str], new) -> bool:
-    """Add a member's (offset, type) fields to its class's, unless one
-    conflicts with them (another type at the offset, or overlapping)."""
+def _width(t) -> int:
     from leafgen import WIDTH
+    return WIDTH[t] if isinstance(t, str) else 8
 
+
+def _merge(fields: dict, new) -> dict | None:
     out = dict(fields)
     for off, t in new:
-        w = WIDTH[t]
-        if off % w or out.get(off, t) != t:
-            return False
-        if any(o != off and o < off + w and off < o + WIDTH[u] for o, u in out.items()):
-            return False
-        out[off] = t
+        w = _width(t)
+        old = out.get(off)
+        if off % w:
+            return None
+        if old is None:
+            if any(o < off + w and off < o + _width(u) for o, u in out.items()):
+                return None
+            old = {} if isinstance(t, tuple) else t
+        if isinstance(t, tuple) and isinstance(old, dict):
+            old = _merge(old, t[1])
+            if old is None:
+                return None
+        elif old != t:
+            return None
+        out[off] = old
+    return out
+
+
+def merge_fields(fields: dict, new) -> bool:
+    """Add a member's fields to its class's, unless one conflicts with them
+    (another type at the offset, or overlapping). A field is a type, or
+    ("*", fields) for a pointer to a placeholder struct: in `fields` that is
+    the struct's own fields dict, merged the same way."""
+    out = _merge(fields, new)
+    if out is None:
+        return False
+    fields.clear()
     fields.update(out)
     return True
 
@@ -465,7 +488,13 @@ class Lifted:
     rtype: str
     params: tuple[str, ...]         # "u32 value", "f32 /*unused*/", ...
     body: str                       # the statements, indented
-    fields: tuple[tuple[int, str], ...]  # (offset, type) of the class's fields it uses
+    fields: tuple                   # ((offset, type or ("*", fields of the struct it points to)), ...)
+    prefix: str = ""                # leafgen's name of the first argument's struct (Unk_<addr>)
+
+    def named(self, text: str, cls: str) -> str:
+        """`text` with leafgen's names of the structs the class's fields point
+        to renamed after the class: Unk_<addr>_1a8 -> <cls>_1a8."""
+        return text.replace(self.prefix + "_", cls + "_") if self.prefix else text
 
     @property
     def codes(self) -> str:
@@ -474,7 +503,7 @@ class Lifted:
 
 def lift_member(m: Model, f: int) -> Lifted | None:
     """Lifted for f if leafgen can lift it and it touches nothing but fields
-    of `this` (after the vptr) and scalar arguments."""
+    of `this` (after the vptr), the fields they point to, and scalar arguments."""
     import leafgen as L
 
     if m.sizes.get(f, 0) > 32:
@@ -488,10 +517,25 @@ def lift_member(m: Model, f: int) -> Lifted | None:
         _, func = e.render()
     except (L.LiftError, ValueError, KeyError):
         return None
-    if any(not (isinstance(b, L.Arg) and b.index == 0 and not b.fp) for b in e.structs):
+    if any(isinstance(b, L.Arg) and (b.index != 0 or b.fp) for b in e.structs):
         return None
-    fields = e.structs[L.Arg(0)].fields if L.Arg(0) in e.structs else {}
-    if any(off < 8 or t.endswith("*") for off, t in fields.items()):
+    byname = {s.name: s for s in e.structs.values()}
+
+    def tree(s) -> tuple:
+        out = []
+        for off, t in sorted(s.fields.items()):
+            if t.endswith("*"):
+                if t[:-1] not in byname:
+                    raise LookupError(t)
+                t = ("*", tree(byname[t[:-1]]))
+            out.append((off, t))
+        return tuple(out)
+
+    try:
+        fields = tree(e.structs[L.Arg(0)]) if L.Arg(0) in e.structs else ()
+    except LookupError:
+        return None
+    if any(off < 8 for off, _ in fields):
         return None
     x = _LIFTED.fullmatch(func)
     if x is None:
@@ -503,7 +547,7 @@ def lift_member(m: Model, f: int) -> Lifted | None:
     if any(p.split()[0] not in PARAM_CODES for p in params):
         return None
     rtype = x.group(1).replace("const ", "") if "*" in x.group(1) else x.group(1)
-    return Lifted(rtype, tuple(params), x.group(3).replace("self->", ""), tuple(sorted(fields.items())))
+    return Lifted(rtype, tuple(params), x.group(3).replace("self->", ""), fields, f"Unk_{e.short}")
 
 
 def placeholder_members(m: Model, v: Vtable, own: dict[int, tuple[int, int]], pickable,
@@ -578,7 +622,7 @@ def class_specs(m: Model, picked: dict[int, list[Member]], own: dict[int, tuple[
     for a, ms in picked.items():
         s = specs[a] = ClassSpec(by[a], [], destructor_pair(m, by[a]))
         s.members = [x for x in ms if x.kind != "lifted" or merge_fields(s.fields, x.lifted.fields)]
-        s.sigs = {x.slot: sig for x in s.members if (sig := signature(x)) is not None}
+        s.sigs = {x.slot: sig for x in s.members if (sig := signature(x, s.name)) is not None}
     guess = bases(m.vtables)
     has_secondary = {v.group for v in m.vtables if v.group != v.addr}
     families: dict[int, dict[int, tuple[str, tuple[str, ...]]]] = {}
@@ -668,7 +712,7 @@ def render_class(m: Model, spec: ClassSpec,
         if x is None or signature(x) is None:
             continue
         if x.kind == "lifted":
-            body = "{\n" + x.lifted.body + "}"
+            body = "{\n" + x.lifted.named(x.lifted.body, cls) + "}"
         elif x.kind == "forward":
             body = f"{{\n    {callee_name(x.value)[0]}(this);\n}}"
         else:
@@ -678,18 +722,35 @@ def render_class(m: Model, spec: ClassSpec,
         names.append((f, mangle(cls, f"vf{i}", x.lifted.codes if x.kind == "lifted" else "v")))
         if x.kind == "forward":
             names.append((x.value, callee_name(x.value)[1]))
-    asserts = []
-    if spec.fields:
-        from leafgen import WIDTH
-        pos = 8  # the vptr
-        for off, t in sorted(spec.fields.items()):
-            if off > pos:
-                decl.append(f"    u8 _{pos:x}[0x{off - pos:x}];")
-            decl.append(f"    {t} field_{off:x};")
-            asserts.append(f"PKMN_OFFSET_ASSERT({cls}, field_{off:x}, 0x{off:x});")
-            pos = off + WIDTH[t]
+    decl += field_lines(spec.fields, cls, 8)  # after the vptr
     decl.append("};")
-    return "\n".join(decl + asserts) + "\n", names, "\n\n".join(defs) + "\n"
+    decl += [f"PKMN_OFFSET_ASSERT({cls}, field_{off:x}, 0x{off:x});" for off in sorted(spec.fields)]
+    return "\n".join(structs(spec.fields, cls) + decl) + "\n", names, "\n\n".join(defs) + "\n"
+
+
+def field_lines(fields: dict, name: str, pos: int) -> list[str]:
+    """The members of the placeholder class or struct `name`, from offset
+    `pos`: padding, then each field (a pointer field points to `<name>_<offset>`)."""
+    out = []
+    for off, t in sorted(fields.items()):
+        if off > pos:
+            out.append(f"    u8 _{pos:x}[0x{off - pos:x}];")
+        out.append(f"    {t if isinstance(t, str) else f'{name}_{off:x}*'} field_{off:x};")
+        pos = off + _width(t)
+    return out
+
+
+def structs(fields: dict, name: str) -> list[str]:
+    """Definitions of the structs the pointer fields of `name` point to, each
+    before the struct that points to it."""
+    out = []
+    for off, t in sorted(fields.items()):
+        if isinstance(t, dict):
+            sub = f"{name}_{off:x}"
+            out += structs(t, sub)
+            out += [f"struct {sub} {{", *field_lines(t, sub, 0), "};",
+                    *(f"PKMN_OFFSET_ASSERT({sub}, field_{o:x}, 0x{o:x});" for o in sorted(t)), ""]
+    return out
 
 
 def render_file(m: Model, entries: list[tuple[ClassSpec, list[Member]]]) -> tuple[str, list[tuple[int, str]]]:
