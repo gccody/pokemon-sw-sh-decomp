@@ -6,6 +6,8 @@
     python tools/vtables.py show 0x71024a6390           # one vtable group: slots, patterns, referrers
     python tools/vtables.py of 0x7100dee870             # the vtables a function is in, and its slot
     python tools/vtables.py csv vtables.csv             # one row per vtable
+    python tools/vtables.py write --names n.csv         # placeholder classes for simple virtual functions
+    python tools/vtables.py ctors --names n.csv         # constructors that only call their base's
 
 Game Freak's code has no RTTI (docs/game_code.md), so a class's name can't
 come from its typeinfo, but its vtables are still there. With the Itanium C++
@@ -1229,6 +1231,149 @@ def segment_starts(m: Model) -> list[int]:
     return sorted({starts[i + 1] for i, s in enumerate(starts[:-1]) if s in inits} | {0})
 
 
+# --------------------------------------------------------------------------- constructors
+# `Derived::Derived() : Base() {}` for a polymorphic class with nothing else to
+# initialise: call the base's constructor, then store the class's vptr (its
+# _ZTV, from the GOT, + 16).
+CTOR_PATTERN = ("str x19, [sp, #N]! ; stp x29, x30, [sp, #N] ; add x29, sp, #N ; mov x19, x0 ; bl T ; "
+                "adrp x8, #N ; ldr x8, [x8, #N] ; add x8, x8, #N ; str x8, [x19] ; ldp x29, x30, [sp, #N] ; "
+                "ldr x19, [sp], #N ; ret")
+CTOR_DIR = ROOT / "src" / "unsorted" / "ctor"
+_CLASS_DEF = re.compile(r"^(?:class|struct) (Unk_[0-9a-f]+)\b", re.M)
+
+
+def ctor_name(cls: str) -> str:
+    """The base-object constructor (C2; the complete one, C1, is its alias)."""
+    return f"_ZN{len(cls)}{cls}C2Ev"
+
+
+def defined_classes(root: Path, skip: Path | None = None) -> set[str]:
+    """The placeholder classes the sources under root define, outside `skip`."""
+    out: set[str] = set()
+    for f in root.rglob("*"):
+        if f.suffix in (".cpp", ".h", ".inl") and (skip is None or skip not in f.parents):
+            out |= set(_CLASS_DEF.findall(f.read_text(encoding="utf-8")))
+    return out
+
+
+@dataclass(frozen=True)
+class Ctor:
+    addr: int       # the constructor
+    base_ctor: int  # what it calls first
+    cls: str
+    base: str
+
+
+def find_ctors(m: Model, rows: dict, taken: set[str]) -> list[Ctor]:
+    """The constructors of CTOR_PATTERN: common, unnamed and U in both games;
+    the function a referrer of one vtable group only (its class's) and the base
+    constructor of another; neither group with a secondary vtable, a
+    hand-written base, or a class defined elsewhere (`taken`). Both are
+    unnamed and U, or named as constructors already (by an earlier run)."""
+    from funcs import pattern_of
+
+    by = {v.addr: v for v in m.vtables}
+    refs: dict[int, set[int]] = defaultdict(set)
+    for v in m.vtables:
+        for f in v.referrers:
+            refs[f].add(v.group)
+    secondary = {v.group for v in m.vtables if v.group != v.addr}
+    out = []
+    for f, size in m.funcs:
+        if size != 48 or pattern_of(m.img[f:f + size], f + BASE) != CTOR_PATTERN:
+            continue
+        r = rows.get(f)
+        t = branch_target_at(m, f + 16)
+        rt = rows.get(t)
+        if r is None or r.scope != "common" or r.shield is None:
+            continue
+        if rt is None or rt.scope != "common" or rt.shield is None or len(refs[f]) != 1 or len(refs[t]) != 1:
+            continue
+        (d,), (b,) = refs[f], refs[t]
+        cls, base = class_name(by[d]), class_name(by[b])
+        if d == b or {d, b} & (secondary | HANDWRITTEN) or {cls, base} & taken:
+            continue
+        # unnamed and undecompiled, or named so by an earlier run
+        if not (r.name == ctor_name(cls) or not r.name and r.status == "U"):
+            continue
+        if not (rt.name == ctor_name(base) or not rt.name and rt.status == "U"):
+            continue
+        out.append(Ctor(f, t, cls, base))
+    return out
+
+
+def branch_target_at(m: Model, at: int) -> int | None:
+    """The target of the b/bl at `at`."""
+    w = struct.unpack_from("<I", m.img, at)[0]
+    if w >> 26 not in (0b000101, 0b100101):
+        return None
+    return at + 4 * (((w & 0x3FFFFFF) ^ 0x2000000) - 0x2000000)
+
+
+def render_ctor_file(ctors: list[Ctor], base_of: dict[str, str]) -> str:
+    """One TU of constructors, with the classes they need declared: each the
+    same way in every file (from base_of), bases first."""
+    out = ["// Scope: common",
+           "// Constructors that call their base's and set the vptr: `Unk_D::Unk_D() {}`.",
+           "// Placeholder classes, named after their vtables: only what the constructors",
+           "// need (a base constructor to call, and a key function elsewhere, so that the",
+           "// vtable is another TU's).",
+           ""]
+    need: list[str] = []
+
+    def add(c: str, seen: tuple = ()) -> None:
+        if c in need or c in seen:
+            return
+        if c in base_of:
+            add(base_of[c], seen + (c,))
+        need.append(c)
+
+    for c in sorted(ctors, key=lambda x: x.addr):
+        add(c.cls)
+    for c in need:
+        if c in base_of:
+            out += [f"class {c} : public {base_of[c]} {{", "public:", f"    {c}();", f"    ~{c}() override;", "};", ""]
+        else:
+            out += [f"class {c} {{", "public:", f"    {c}();", f"    virtual ~{c}();", "};", ""]
+    for c in sorted(ctors, key=lambda x: x.addr):
+        out += [f"// {c.addr + BASE:#x}", f"{c.cls}::{c.cls}() {{}}", ""]
+    return "\n".join(out[:-1]) + "\n"
+
+
+def cmd_ctors(m: Model, args) -> None:
+    """Constructors of placeholder classes that only call their base's (find_ctors)."""
+    from common import read_functions_csv
+
+    rows = {f.sword: f for f in read_functions_csv() if f.sword is not None}
+    taken = defined_classes(ROOT / "src", skip=args.out)
+    ctors = find_ctors(m, rows, taken)
+    if args.only:
+        only = {int(x, 16) - BASE for x in args.only.read_text(encoding="utf-8").split()}
+        ctors = [c for c in ctors if c.addr in only]
+    base_of = {c.cls: c.base for c in ctors}
+    seg_starts = segment_starts(m)
+    files: dict[int, list[Ctor]] = defaultdict(list)
+    for c in ctors:
+        files[seg_starts[bisect.bisect_right(seg_starts, c.addr) - 1]].append(c)
+    args.out.mkdir(parents=True, exist_ok=True)
+    for old in args.out.glob("*.cpp"):
+        old.unlink()
+    for cs in files.values():
+        name = f"Unk_{min(c.addr for c in cs):x}.cpp"
+        (args.out / name).write_text(render_ctor_file(cs, base_of), encoding="utf-8", newline="\n")
+    names: dict[int, str] = {}
+    for c in ctors:
+        names[c.addr] = ctor_name(c.cls)
+        if not rows[c.base_ctor].name:
+            names[c.base_ctor] = ctor_name(c.base)
+    with open(args.names, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write("Name,Sword,Shield\n")
+        for a, n in sorted(names.items()):
+            fh.write(f"{n},{rows[a].sword_str},{rows[a].shield_str}\n")
+    print(f"{len(ctors)} constructors of {len(base_of)} classes in {len(files)} files; "
+          f"{len(names)} names in {args.names}", file=sys.stderr)
+
+
 def cmd_write(m: Model, args) -> None:
     """Placeholder classes for the simple virtual functions of game code."""
     from common import in_area, read_functions_csv
@@ -1270,6 +1415,11 @@ def cmd_write(m: Model, args) -> None:
     # The functions of the hand-written classes' vtables are theirs, whatever
     # vtable the owner heuristic gives them to.
     handwritten = {f for v in m.vtables if v.group in HANDWRITTEN for f in v.slots}
+    # The constructor files' classes (cmd_ctors), declared there for a
+    # constructor only, aren't written here. (What their vtables inherit still
+    # is, by the classes that own it.)
+    ctor_classes = defined_classes(CTOR_DIR) if CTOR_DIR.exists() else set()
+    skipped = HANDWRITTEN | {v.addr for v in m.vtables if class_name(v) in ctor_classes}
 
     def kept(f: int) -> bool:
         return written(f) and f not in handwritten and (only is None or f in only or bool(rows[f].name))
@@ -1278,7 +1428,7 @@ def cmd_write(m: Model, args) -> None:
     groups = args.area or ["game", "gflib3", "gflnet3"]
     picked: dict[int, list[Member]] = {}
     for v in m.vtables:
-        if not any(in_area(vtable_area(m, v), g) for g in groups) or v.group in HANDWRITTEN:
+        if not any(in_area(vtable_area(m, v), g) for g in groups) or v.group in skipped:
             continue
         members = placeholder_members(m, v, own, kept, None if args.no_forward else callee,
                                       None if args.no_lift else (lambda f: lift_member(m, f)),
@@ -1397,11 +1547,16 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--no-forward", action="store_true", help="leave out forwarders (b T)")
     p.add_argument("--no-lift", action="store_true", help="leave out what leafgen.py lifts")
     p.add_argument("--no-elements", action="store_true", help="leave out element members (entry arrays)")
+    p = sub.add_parser("ctors", help="constructors that only call their base's (Sword's vtables)")
+    p.add_argument("--out", type=Path, default=CTOR_DIR)
+    p.add_argument("--names", type=Path, required=True, help="where to write Name,Sword,Shield")
+    p.add_argument("--only", type=Path, help="file of Sword addresses: write only these constructors")
     args = ap.parse_args(argv)
-    if args.cmd == "write" and args.game != "sword":
+    if args.cmd in ("write", "ctors") and args.game != "sword":
         raise SystemExit("write works from Sword's vtables (the names cover both games)")
     m = load(args.game)
-    {"summary": cmd_summary, "show": cmd_show, "of": cmd_of, "csv": cmd_csv, "write": cmd_write}[args.cmd](m, args)
+    {"summary": cmd_summary, "show": cmd_show, "of": cmd_of, "csv": cmd_csv, "write": cmd_write,
+     "ctors": cmd_ctors}[args.cmd](m, args)
     return 0
 
 

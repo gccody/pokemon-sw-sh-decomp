@@ -401,3 +401,36 @@ def test_a_class_split_over_files_is_declared_the_same_in_each():
     assert "~Unk_1000() {}" in defs_1 and "vf2" not in defs_1
     assert "vf2() {" in defs_2 and "~" not in defs_2
     assert [n for _, n in names_1 + names_2] == ["_ZN8Unk_1000D2Ev", "_ZN8Unk_1000D0Ev", "_ZN8Unk_10003vf2Ev"]
+
+
+def test_constructors():
+    """At 0x200, `Unk_1000::Unk_1000() {}`: call the base's constructor (0x300,
+    which stores Unk_1040's vptr), then store Unk_1000's vptr from the GOT."""
+    from types import SimpleNamespace
+
+    img = bytearray(0x1100)
+    bl = 0x94000000 | ((0x300 - 0x210) >> 2)
+    ctor = [0xF81E0FF3, 0xA9017BFD, 0x910043FD, 0xAA0003F3, bl,  # str x19 ; stp ; add x29 ; mov x19, x0 ; bl
+            0x90000008, 0xF9405108, 0x91004108, 0xF9000268,      # adrp x8 ; ldr x8, [x8, #0xa0] ; add #16 ; str
+            0xA9417BFD, 0xF84207F3, RET]                         # ldp ; ldr x19, [sp], #0x20 ; ret
+    struct.pack_into("<12I", img, 0x200, *ctor)
+    struct.pack_into("<I", img, 0x300, RET)
+    struct.pack_into("<I", img, 0x400, RET)
+    slots = {0x1010: 0x400, 0x1050: 0x400}                       # vtables at 0x1000 and 0x1040, one slot each
+    vts, tables = V.find_vtables(bytes(img), slots, {0x200, 0x300, 0x400}, DATA, len(img))
+    vts[0].referrers, vts[1].referrers = {0x200}, {0x300}
+    sizes = {0x200: 48, 0x300: 4, 0x400: 4}
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), vts, tables, sizes, {}, {}, lambda a: "game", DELETE)
+    rows = {a: SimpleNamespace(name="", status="U", scope="common", shield=a) for a in sizes}
+    ctors = V.find_ctors(m, rows, set())
+    assert ctors == [V.Ctor(0x200, 0x300, "Unk_1000", "Unk_1040")]
+    assert V.find_ctors(m, rows, {"Unk_1040"}) == []             # a class defined elsewhere
+    rows[0x300].name = "_ZN8Unk_1040C2Ev"                        # the base constructor named as that: fine
+    assert V.find_ctors(m, rows, set()) == ctors
+    rows[0x300].name = "_Z3foov"
+    assert V.find_ctors(m, rows, set()) == []
+    text = V.render_ctor_file(ctors, {"Unk_1000": "Unk_1040"})
+    assert "class Unk_1040 {\npublic:\n    Unk_1040();\n    virtual ~Unk_1040();\n};\n\n" \
+           "class Unk_1000 : public Unk_1040 {\npublic:\n    Unk_1000();\n    ~Unk_1000() override;\n};\n" in text
+    assert text.endswith("// 0x7100000200\nUnk_1000::Unk_1000() {}\n")
+    assert V.ctor_name("Unk_1000") == "_ZN8Unk_1000C2Ev"
