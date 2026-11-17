@@ -176,6 +176,24 @@ def test_tail_call_to_a_known_function(monkeypatch):
         leafgen.generate(ADDR, code(ldr_x(0, 0, 8), 0x14000000 | 0x100 >> 2))
 
 
+def test_callers_that_pass_fewer_arguments_on():
+    """One caller writes x0 and w1 for Unk_123554, another only x0: the
+    second passes its w1 on, typed as the first sets it."""
+    lifted = {1: ("void Unk_123554(u64, u32);\n", "void Unk_1_call() {}\n"),
+              2: ("void Unk_123554(u64);\n", "void Unk_2_call() {}\n"),
+              3: ("void Unk_123560(u64);\n", "void Unk_3_call() {}\n")}
+    assert leafgen.unify_arity(lifted) == {ADDR + 0x104: ["u64", "u32"]}
+    lifted[4] = ("void Unk_123554(u32);\n", "void Unk_4_call() {}\n")  # another type: no
+    assert leafgen.unify_arity(lifted) == {}
+    leafgen.TAIL_TYPES[ADDR + 0x104] = ["u64", "u32"]
+    try:
+        structs, func = leafgen.generate(ADDR, code(ldr_x(0, 0, 8), 0x14000000 | 0x100 >> 2))
+    finally:
+        del leafgen.TAIL_TYPES[ADDR + 0x104]
+    assert "void Unk_123554(u64, u32);" in structs
+    assert func == "void Unk_123450_call(const Unk_123450* self, u32 value) {\n    Unk_123554(self->field_8, value);\n}\n"
+
+
 def test_mangle_and_param_types():
     assert leafgen.param_types("const Unk_1* self, u32 value, void* /*unused*/") == ["const Unk_1*", "u32", "void*"]
     assert leafgen.mangle("Unk_1_set", ["Unk_1*", "bool"]) == "_Z9Unk_1_setP5Unk_1b"
