@@ -314,6 +314,21 @@ void Unk_113a1b0_clearField508(Unk_113a1b0* self) {
     self->field_508 = 0;
 }
 
+struct Unk_113a530 {
+    u8 _0[0x838];
+    u64 field_838;
+};
+PKMN_OFFSET_ASSERT(Unk_113a530, field_838, 0x838);
+
+void Unk_1165d10(u64);
+
+// 0x710113a530
+void Unk_113a530_call(const Unk_113a530* self) {
+    if (self->field_838 != 0) {
+        Unk_1165d10(self->field_838);
+    }
+}
+
 struct Unk_113a540 {
     u8 _0[0x840];
     u8 field_840;

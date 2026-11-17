@@ -30,3 +30,23 @@ PKMN_OFFSET_ASSERT(Unk_8f2890, field_120, 0x120);
 void Unk_8f2890_set(Unk_8f2890* self, bool value) {
     self->field_120 = value;
 }
+
+struct Unk_8f28e0_158 {
+    u8 _0[0xf5];
+    u8 field_f5;
+};
+PKMN_OFFSET_ASSERT(Unk_8f28e0_158, field_f5, 0xf5);
+
+struct Unk_8f28e0 {
+    u8 _0[0x158];
+    Unk_8f28e0_158* field_158;
+};
+PKMN_OFFSET_ASSERT(Unk_8f28e0, field_158, 0x158);
+
+// 0x71008f28e0
+bool Unk_8f28e0_check(const Unk_8f28e0* self) {
+    if (self->field_158 == nullptr) {
+        return false;
+    }
+    return self->field_158->field_f5 != 0;
+}

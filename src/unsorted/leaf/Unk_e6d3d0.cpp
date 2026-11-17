@@ -19,6 +19,21 @@ void Unk_e6d490_call(const Unk_e6d490* self) {
     Unk_ec6220(self->field_18);
 }
 
+struct Unk_e6da00 {
+    u8 _0[0x18];
+    u64 field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_e6da00, field_18, 0x18);
+
+void Unk_e6e330(u64);
+
+// 0x7100e6da00
+void Unk_e6da00_call(const Unk_e6da00* self) {
+    if (self->field_18 != 0) {
+        Unk_e6e330(self->field_18);
+    }
+}
+
 // 0x7100e6da10
 u32 Unk_e6da10_get() {
     return 1;

@@ -102,6 +102,40 @@ u8 Unk_1179f60_getField5b(const Unk_1179f60* self) {
     return self->field_5b;
 }
 
+struct Unk_1179f70 {
+    u8 _0[0x59];
+    u8 field_59;
+    u8 _5a[0x1];
+    u8 field_5b;
+};
+PKMN_OFFSET_ASSERT(Unk_1179f70, field_59, 0x59);
+PKMN_OFFSET_ASSERT(Unk_1179f70, field_5b, 0x5b);
+
+// 0x7101179f70
+bool Unk_1179f70_check(const Unk_1179f70* self) {
+    if (self->field_59 == 0) {
+        return false;
+    }
+    return self->field_5b == 0;
+}
+
+struct Unk_1179f90 {
+    u8 _0[0x59];
+    u8 field_59;
+    u8 _5a[0x1];
+    u8 field_5b;
+};
+PKMN_OFFSET_ASSERT(Unk_1179f90, field_59, 0x59);
+PKMN_OFFSET_ASSERT(Unk_1179f90, field_5b, 0x5b);
+
+// 0x7101179f90
+bool Unk_1179f90_check(const Unk_1179f90* self) {
+    if (self->field_59 == 0) {
+        return false;
+    }
+    return self->field_5b >= 1 && self->field_5b <= 2;
+}
+
 struct Unk_1179fc0 {
     u8 _0[0x78];
     u8 field_78;

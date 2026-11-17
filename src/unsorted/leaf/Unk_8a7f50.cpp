@@ -80,6 +80,19 @@ void Unk_8a8020_set(Unk_8a8020* self) {
     self->field_11 = 1;
 }
 
+struct Unk_8a80e0 {
+    u8 _0[0x31];
+    u8 field_31;
+};
+PKMN_OFFSET_ASSERT(Unk_8a80e0, field_31, 0x31);
+
+// 0x71008a80e0
+void Unk_8a80e0_set(Unk_8a80e0* self) {
+    if (self->field_31 != 0) {
+        self->field_31 = self->field_31 - 1;
+    }
+}
+
 struct Unk_8a8100 {
     u8 _0[0x33];
     bool field_33;
