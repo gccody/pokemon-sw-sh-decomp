@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package btl.net.watch.protocol_buffers;
+
+message WatchTargetParty {
+  bytes partyData = 1;
+}

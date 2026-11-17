@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package net_contents.battle.poke_select.protocol_buffers;
+
+message Datas {
+  bytes datas = 1;
+}
+
+message Enter {
+}

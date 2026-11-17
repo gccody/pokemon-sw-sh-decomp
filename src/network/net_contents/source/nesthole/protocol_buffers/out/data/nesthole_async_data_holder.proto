@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package net_contents.nesthole.protocol_buffers;
+
+import "nesthole_command.proto";
+
+message NestholeAsyncDataHolder {
+  oneof message {
+    .net_contents.nesthole.protocol_buffers.NestholeTimeLimit nestholeTimeLimit = 1;
+    .net_contents.nesthole.protocol_buffers.NestholePlayerInfo nestholePlayerInfo = 2;
+    .net_contents.nesthole.protocol_buffers.NestholeBattleReady nestholeBattleReady = 3;
+    .net_contents.nesthole.protocol_buffers.NestholeSelectPokemon nestholeSelectPokemon = 4;
+    .net_contents.nesthole.protocol_buffers.NestholeBattleStart nestholeBattleStart = 5;
+    .net_contents.nesthole.protocol_buffers.NestholeBossPokemon nestholeBossPokemon = 6;
+    .net_contents.nesthole.protocol_buffers.NestholeRewards nestholeRewards = 7;
+    .net_contents.nesthole.protocol_buffers.NestholeBattleSeed nestholeBattleSeed = 8;
+  }
+}

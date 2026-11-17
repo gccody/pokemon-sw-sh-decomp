@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package net_contents.battle.nbr.protocol_buffers;
+
+message PlayerPosition {
+  uint64 stationId = 1;
+  uint32 position = 2;
+}
+
+message ConfirmPlayerPosition {
+  repeated .net_contents.battle.nbr.protocol_buffers.PlayerPosition positions = 1;
+}
+
+message WaitConfirmPlayerPosition {
+}

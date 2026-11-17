@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package btl.net.watch.protocol_buffers;
+
+import "watch_body.proto";
+import "watch_clienttimer.proto";
+import "watch_command.proto";
+import "watch_party.proto";
+import "watch_seq.proto";
+import "watch_target_party.proto";
+import "watch_timer.proto";
+import "watch_winlose.proto";
+
+message BtlwatchAsyncDataHolder {
+  oneof message {
+    .btl.net.watch.protocol_buffers.WatchBody watchBody = 1;
+    .btl.net.watch.protocol_buffers.WatchClientTimer watchClientTimer = 2;
+    .btl.net.watch.protocol_buffers.WatchCommand watchCommand = 3;
+    .btl.net.watch.protocol_buffers.WatchParty watchParty = 4;
+    .btl.net.watch.protocol_buffers.WatchSeq watchSeq = 5;
+    .btl.net.watch.protocol_buffers.WatchTargetParty watchTargetParty = 6;
+    .btl.net.watch.protocol_buffers.WatchTimer watchTimer = 7;
+    .btl.net.watch.protocol_buffers.WatchWinLose watchWinLose = 8;
+  }
+}

@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package net_contents.trade.common.pokemon_trade.protocol_buffers;
+
+message Pokemon {
+  bytes serializePokemonParam = 1;
+}

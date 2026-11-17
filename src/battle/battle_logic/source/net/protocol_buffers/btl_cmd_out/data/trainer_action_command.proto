@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package btl.net.protocol_buffers;
+
+message TrainerAction {
+  uint32 clientId = 1;
+}

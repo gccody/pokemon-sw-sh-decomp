@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package btl.net.protocol_buffers;
+
+import "others.proto";
+import "poke_party.proto";
+import "server_version.proto";
+
+message BtlDataHolder {
+  oneof message {
+    .btl.net.protocol_buffers.EmptyCommand emptyCommand = 1;
+    .btl.net.protocol_buffers.PokeParty pokeParty = 2;
+    .btl.net.protocol_buffers.ServerVersion serverVersion = 3;
+  }
+}

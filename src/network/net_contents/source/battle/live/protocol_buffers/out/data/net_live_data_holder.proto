@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package net_contents.battle.live.protocol_buffers;
+
+import "live_empty.proto";
+import "live_regulation.proto";
+
+message NetLiveDataHolder {
+  oneof message {
+    .net_contents.battle.live.protocol_buffers.LiveEmpty liveEmpty = 1;
+    .net_contents.battle.live.protocol_buffers.LiveRegulation liveRegulation = 2;
+  }
+}

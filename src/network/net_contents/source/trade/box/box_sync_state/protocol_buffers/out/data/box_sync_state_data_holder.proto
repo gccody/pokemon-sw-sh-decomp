@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package net_contents.trade.box.box_sync_state.protocol_buffers;
+
+import "box_send_pokemon.proto";
+import "box_sync_state.proto";
+
+message BoxSyncStateDataHolder {
+  oneof message {
+    .net_contents.trade.box.box_sync_state.protocol_buffers.BoxSendPokemon boxSendPokemon = 1;
+    .net_contents.trade.box.box_sync_state.protocol_buffers.BoxSyncStateCommand boxSyncStateCommand = 2;
+  }
+}

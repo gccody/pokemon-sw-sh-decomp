@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package net_contents.battle.poke_select.protocol_buffers;
+
+import "poke_select_command.proto";
+
+message PokeSelectAsyncDataHolder {
+  oneof message {
+    .net_contents.battle.poke_select.protocol_buffers.Datas datas = 1;
+    .net_contents.battle.poke_select.protocol_buffers.Enter enter = 2;
+  }
+}

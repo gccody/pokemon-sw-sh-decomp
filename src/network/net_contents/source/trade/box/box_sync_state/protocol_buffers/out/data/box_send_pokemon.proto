@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package net_contents.trade.box.box_sync_state.protocol_buffers;
+
+message BoxSendPokemon {
+  bytes serializePokemonParam = 1;
+}

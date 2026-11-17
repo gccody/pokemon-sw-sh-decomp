@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package gflnet.p2p.framework.pb;
+
+message RequestCancelAll {
+  int32 currentSeqNo = 1;
+}

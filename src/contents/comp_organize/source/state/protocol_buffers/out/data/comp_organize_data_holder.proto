@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package ontents.comp_organize.protocol_buffers;
+
+import "empty_cmd.proto";
+import "regulation.proto";
+
+message CompOrganizeDataHolder {
+  oneof message {
+    .contents.comp_organize.protocol_buffers.EmptyCmd emptyCmd = 1;
+    .contents.comp_organize.protocol_buffers.Regulation regulation = 2;
+  }
+}

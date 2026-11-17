@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package contents.pokecamp.pb;
+
+message CookingToolsSyncParam {
+  .contents.pokecamp.pb.CookingToolsSyncParam.Tools toolType = 1;
+  float value = 2;
+  enum Tools {
+    Utiwa = 0;
+    Ladle = 1;
+    Spice = 2;
+  }
+}

@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package gflnet.p2p.framework.pb;
+
+import "cancel_accepted.proto";
+import "request_cancel.proto";
+import "request_cancel_all.proto";
+import "request_forced_proceed.proto";
+
+message SequenceDataHolder {
+  oneof message {
+    .gflnet.p2p.framework.pb.CancelAccepted cancelAccepted = 1;
+    .gflnet.p2p.framework.pb.RequestCancel requestCancel = 2;
+    .gflnet.p2p.framework.pb.RequestCancelAll requestCancelAll = 3;
+    .gflnet.p2p.framework.pb.RequestForcedProceed requestForcedProceed = 4;
+  }
+}

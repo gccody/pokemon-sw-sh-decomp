@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package contents.pokecamp.pb;
+
+message CookingData {
+  int32 sequence = 1;
+  int32 ingredientsId = 2;
+  repeated int32 berriesId = 3;
+  uint32 tentColor = 4;
+  bool useGolden = 5;
+}

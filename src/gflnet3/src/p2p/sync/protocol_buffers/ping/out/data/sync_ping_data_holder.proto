@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package gflnet.p2p.sync.ping.pb;
+
+import "ping.proto";
+
+message SyncPingDataHolder {
+  oneof message {
+    .gflnet.p2p.sync.ping.pb.Ping ping = 1;
+    .gflnet.p2p.sync.ping.pb.PingReply pingReply = 2;
+    .gflnet.p2p.sync.ping.pb.PingSynced pingSynced = 3;
+  }
+}

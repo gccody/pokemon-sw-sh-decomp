@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package gflnet.p2p.block.pb;
+
+import "result.proto";
+
+message BlockDataHolder {
+  oneof message {
+    .gflnet.p2p.block.pb.Result result = 1;
+    .gflnet.p2p.block.pb.ImReady imReady = 2;
+  }
+}

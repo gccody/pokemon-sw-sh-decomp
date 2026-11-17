@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package contents.pokecamp.pb;
+
+import "cooking_data.proto";
+import "cooking_matching_data.proto";
+import "cooking_spiece.proto";
+import "cooking_transform.proto";
+import "kw_sync_data.proto";
+
+message PokecampDataHolder {
+  oneof message {
+    .contents.pokecamp.pb.CookingData cookingData = 1;
+    .contents.pokecamp.pb.CookingMatchingData cookingMatchingData = 2;
+    .contents.pokecamp.pb.Spice spice = 3;
+    .contents.pokecamp.pb.CookingToolsSyncParam cookingToolsSyncParam = 4;
+    .contents.pokecamp.pb.KwSyncData kwSyncData = 5;
+  }
+}

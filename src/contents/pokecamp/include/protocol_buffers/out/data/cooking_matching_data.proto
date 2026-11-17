@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package contents.pokecamp.pb;
+
+message CookingMatchingData {
+  .contents.pokecamp.pb.CookingMatchingData.Type message_type = 1;
+  bool message_flg = 2;
+  .contents.pokecamp.pb.CookingMatchingData.Status status_p0 = 3;
+  .contents.pokecamp.pb.CookingMatchingData.Status status_p1 = 4;
+  .contents.pokecamp.pb.CookingMatchingData.Status status_p2 = 5;
+  .contents.pokecamp.pb.CookingMatchingData.Status status_p3 = 6;
+  enum Type {
+    REQUEST = 0;
+    ANSWER = 1;
+    CLOSE = 2;
+    CANCEL = 3;
+    APPEAL = 4;
+    RESPONSE = 5;
+  }
+  enum Status {
+    WAIT = 0;
+    YES = 1;
+    NO = 2;
+  }
+}

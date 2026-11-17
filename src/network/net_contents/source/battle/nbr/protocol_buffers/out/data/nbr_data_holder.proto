@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package net_contents.battle.nbr.protocol_buffers;
+
+import "accept_privilege.proto";
+import "battle_team.proto";
+import "bgm.proto";
+import "continue_request.proto";
+import "empty.proto";
+import "pass_action.proto";
+import "player_position.proto";
+import "refusal_for_regulation.proto";
+import "regulation_check_result.proto";
+import "share_regulation.proto";
+
+message NbrDataHolder {
+  oneof message {
+    .net_contents.battle.nbr.protocol_buffers.AcceptPrivilege acceptPrivilege = 1;
+    .net_contents.battle.nbr.protocol_buffers.SendBattleTeam sendBattleTeam = 2;
+    .net_contents.battle.nbr.protocol_buffers.BattleTeamCheckResult battleTeamCheckResult = 3;
+    .net_contents.battle.nbr.protocol_buffers.Bgm bgm = 4;
+    .net_contents.battle.nbr.protocol_buffers.ContinueRequest continueRequest = 5;
+    .net_contents.battle.nbr.protocol_buffers.Empty empty = 6;
+    .net_contents.battle.nbr.protocol_buffers.PassAction passAction = 7;
+    .net_contents.battle.nbr.protocol_buffers.PlayerPosition playerPosition = 8;
+    .net_contents.battle.nbr.protocol_buffers.ConfirmPlayerPosition confirmPlayerPosition = 9;
+    .net_contents.battle.nbr.protocol_buffers.WaitConfirmPlayerPosition waitConfirmPlayerPosition = 10;
+    .net_contents.battle.nbr.protocol_buffers.SendRefusalForRegulation sendRefusalForRegulation = 11;
+    .net_contents.battle.nbr.protocol_buffers.AcceptRefusalForRegulation acceptRefusalForRegulation = 12;
+    .net_contents.battle.nbr.protocol_buffers.RegulationCheckResult regulationCheckResult = 13;
+    .net_contents.battle.nbr.protocol_buffers.ShareRegulation shareRegulation = 14;
+  }
+}

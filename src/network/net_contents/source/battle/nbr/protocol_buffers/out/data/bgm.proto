@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package net_contents.battle.nbr.protocol_buffers;
+
+message Bgm {
+  bytes name = 1;
+  uint32 size = 2;
+}

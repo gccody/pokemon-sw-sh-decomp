@@ -1,0 +1,6 @@
+syntax = "proto3";
+
+package contents.comp_organize.protocol_buffers;
+
+message EmptyCmd {
+}

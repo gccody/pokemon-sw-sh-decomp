@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package btl.net.watch.protocol_buffers;
+
+message WatchCmd {
+  uint32 commandType = 1;
+  uint32 clientId = 2;
+  bytes body = 3;
+}

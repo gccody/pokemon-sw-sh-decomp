@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package btl.net.protocol_buffers;
+
+message BattleCommand {
+  uint32 commandType = 1;
+  uint32 clientId = 2;
+  uint32 cmdSeqNo = 3;
+  bytes body = 4;
+}
+
+message InvalidCommand {
+}

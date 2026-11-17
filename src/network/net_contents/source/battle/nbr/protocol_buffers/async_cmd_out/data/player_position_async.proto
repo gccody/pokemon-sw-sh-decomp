@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package net_contents.battle.nbr.protocol_buffers;
+
+message PlayerPositionAsync {
+  uint64 stationId = 1;
+  uint32 position = 2;
+}

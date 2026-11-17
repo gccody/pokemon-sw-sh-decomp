@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package net_contents.trade.common.sync_save.protocol_buffers;
+
+message SyncCommand {
+  int32 data = 1;
+}
