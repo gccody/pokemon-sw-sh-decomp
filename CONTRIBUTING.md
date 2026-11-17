@@ -160,9 +160,10 @@ pkmn_library_settings(lib/lua
   `max_align_t` redefinition.) Paths are relative to the repo root and may
   point into `toolchain/`. They must exist once the directory has sources.
   libc++ 7.0.1's headers are vendored unchanged in `include/libcxx/` (the ones
-  PhysX, sol2 and protobuf read), the way musl's are in `include/libc/`. It
-  works the same for sources built with the main clang and for
-  `COMPILER_VERSION` libraries.
+  PhysX, sol2 and protobuf read), the way musl's are in `include/libc/`.
+  musl's follow the SDK's headers only where the binary shows they differ,
+  with the evidence in `include/libc/README.md`. It works the same for sources
+  built with the main clang and for `COMPILER_VERSION` libraries.
 - Don't set flags anywhere else: no per-file properties, no
   `target_compile_options` for one library.
 - A library built with another clang version gets `COMPILER_VERSION`. PhysX

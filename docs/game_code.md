@@ -48,7 +48,7 @@ How the boundaries were placed:
   go to instantiations like that (libc++, sol2).
 - **Protobuf's version.** Each generated message's `AddDescriptors` calls
   `VerifyVersion` (`0x71006ff450`) with `3000000`, i.e. 3.0.0. It's vendored
-  in `lib/protobuf`, and 1,618 of the area's 1,622 functions match
+  in `lib/protobuf`, and all of the area's 1,622 functions match
   (docs/compiler.md, "Protocol Buffers 3.0.0").
 
 **Game Freak code has no RTTI.** The 1,264 typeinfo objects in `main` all

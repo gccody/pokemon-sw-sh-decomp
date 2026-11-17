@@ -93,6 +93,7 @@ data/physx_v342.csv    lib/physx files tools/get_physx.py generates (v3.4.2 code
 cmake/                 toolchain (global flags) + LibrarySettings.cmake (per-library flags)
 include/types.h        u8..u64, f32, PKMN_SIZE_ASSERT, PKMN_OFFSET_ASSERT
 include/pkmn/version.h PKMN_SW_SH, PKMN_IS_SWORD, PKMN_IS_SHIELD
+include/libc, libcxx/  musl 1.1.24 headers for the SDK's libc (NX changes, with evidence: include/libc/README.md), libc++ 7.0.1
 src/                   Game Freak code (src/unsorted/ until a subsystem is known)
 lib/                   third-party code (lua, sol2, physx, zlib...): upstream formatting and license, not clang-formatted
 tools/                 Python tooling; tools/nx/ = XCI/NCA/NSO/eh_frame/AArch64 helpers
