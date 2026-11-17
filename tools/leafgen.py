@@ -222,6 +222,7 @@ class Lifted:
     zero_else: bool = False   # if it doesn't, the function returns else_value (else nothing)
     else_value: int = 0
     guard_stores: int = 0     # the stores before the guard: they're done either way
+    narrow: set = field(default_factory=set)  # tail-call arguments an argument's 32 bits were moved into
 
 
 CALL_CODES = {"void*": "Pv", "bool": "b", "u8": "h", "s8": "a", "u16": "t", "s16": "s", "u32": "j", "s32": "i",
@@ -316,6 +317,8 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
             return Const(v.value & 0xFFFFFFFF, 4)
         return v
 
+    narrow: set[int] = set()
+
     def put(r: str, v: object) -> None:
         kind, n = _reg(r)
         if n is None:
@@ -323,6 +326,8 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
         key = ("f", n) if kind in "sd" else ("x", n)
         regs[key] = v
         written.add(key)
+        if key[0] == "x":
+            narrow.discard(n)
 
     def width_of(r: str) -> int:
         return 8 if _reg(r)[0] in "xd" else 4
@@ -405,7 +410,10 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
             if src.startswith("#"):
                 put(dst, Const(_imm(src) & ((1 << (8 * width_of(dst))) - 1), width_of(dst)))
             else:
-                put(dst, get(src))
+                v = get(src)
+                put(dst, v)
+                if isinstance(v, Arg) and not v.fp and _reg(dst)[0] == "w" and _reg(src)[0] == "w":
+                    narrow.add(_reg(dst)[1])  # `mov w2, w3`: a 32-bit argument passed on
         elif mn in ("movz", "movk"):
             # A wide constant, 16 bits at a time: movk keeps the others.
             dst, imm, *shift = ops
@@ -482,6 +490,7 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
         n = max((i + 1 for i in range(8) if ("x", i) in written), default=0)
         n = max(n, len(TAIL_TYPES.get(tail, ())))  # the registers it passes on, as other callers set them
         out.tail, out.args = tail, [regs[("x", i)] for i in range(n)]
+        out.narrow = {i for i in narrow if i < n}
         return out
     # The result: whatever the function left in w0/x0 or s0, if it wrote it.
     if ("x", 0) in written and ("f", 0) in written:
@@ -862,11 +871,15 @@ class Emitter:
         args, types = [], []
         for e in lf.args:
             if isinstance(e, Arg) and not e.fp:
+                pos = len(args)
                 t = self.arg_types.get(e.index)
                 if t is None:
                     padded = TAIL_TYPES.get(lf.tail, ())
-                    t = padded[len(args)] if len(args) < len(padded) else "void*" if e.index == 0 else "u64"
+                    t = padded[pos] if pos < len(padded) else "u32" if pos in lf.narrow else \
+                        "void*" if e.index == 0 else "u64"
                     self.arg_types[e.index] = t
+                if pos in lf.narrow and (t.endswith("*") or WIDTH.get(t, 8) > 4):
+                    raise LiftError("tail-call argument narrowed from 64 bits")
                 args.append(self.arg_name(e.index))
                 types.append("void*" if t.endswith("*") else t)
             elif self.is_pointer(e) or self.type_of(e) == "ptr":
