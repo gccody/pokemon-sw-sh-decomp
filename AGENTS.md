@@ -82,6 +82,12 @@ clang-format -i src/path/File.cpp                        # format C/C++ (v19.1.7
 `data/original/`. If they're missing, say so and stop. Don't try to obtain
 game files.
 
+With the objects built, `check.py --no-build` takes seconds, even for every
+function. The first build takes about 10 minutes. If your harness can run a
+command in the background and tell you when it's done, run long builds that
+way and wait for the notice. Don't poll in `sleep` loops, and don't wait for
+other sessions' processes to exit.
+
 ## Layout
 
 ```
