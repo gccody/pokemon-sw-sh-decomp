@@ -647,6 +647,11 @@ names agree with where the original loads them from (`check.py
 --record-data` put them in `data_symbols.csv`). check.py: 25,193
 matching, 107 not matching.
 
-Left: 113 more of the shape whose class has a secondary vtable, and about
-50 constructors of other shapes that store more than one vptr (multiple
-inheritance) or initialise a field as well.
+Another 118 looked like classes with a secondary vtable, but only
+because of a bug: `nx.refs.decode` kept `adrp`'s page in a register that
+`ldr x8, [x8, #lo]` (the GOT load) had just overwritten, so the
+`add x8, x8, #0x10` after it seemed to address the next GOT slot, another
+vtable's. With that fixed (nothing check.py compares changes), they're
+written too, and all match: 271 constructors, check.py: 25,311 matching.
+Left are about 50 of other shapes, which store more than one vptr
+(multiple inheritance) or initialise a field as well.
