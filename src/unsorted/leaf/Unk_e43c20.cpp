@@ -17,6 +17,30 @@ bool Unk_e44e00_check(const Unk_e44e00* self) {
     return self->field_90 != 0;
 }
 
+struct Unk_e47200 {
+    u8 _0[0x54];
+    u32 field_54;
+    u8 field_58;
+    u8 _59[0x2];
+    bool field_5b;
+    u32 field_5c;
+    u32 field_60;
+};
+PKMN_OFFSET_ASSERT(Unk_e47200, field_54, 0x54);
+PKMN_OFFSET_ASSERT(Unk_e47200, field_58, 0x58);
+PKMN_OFFSET_ASSERT(Unk_e47200, field_5b, 0x5b);
+PKMN_OFFSET_ASSERT(Unk_e47200, field_5c, 0x5c);
+PKMN_OFFSET_ASSERT(Unk_e47200, field_60, 0x60);
+
+// 0x7100e47200
+void Unk_e47200_set(Unk_e47200* self, u32 value, bool arg2) {
+    self->field_5c = 0;
+    self->field_60 = value;
+    self->field_58 = 0;
+    self->field_54 = 1;
+    self->field_5b = arg2;
+}
+
 void Unk_e4c3c0();
 
 // 0x7100e4c3b0

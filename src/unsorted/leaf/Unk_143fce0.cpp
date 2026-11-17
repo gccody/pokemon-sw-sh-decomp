@@ -21,6 +21,35 @@ void Unk_1442c40_call(void* self) {
     Unk_eb6230(self, 3);
 }
 
+struct Unk_1443160 {
+    u64 field_0;
+    u64 field_8;
+    u64 field_10;
+    u64 field_18;
+    u32 field_20;
+    u8 _24[0x4];
+    u64 field_28;
+    u64 field_30;
+};
+PKMN_OFFSET_ASSERT(Unk_1443160, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_1443160, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_1443160, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_1443160, field_18, 0x18);
+PKMN_OFFSET_ASSERT(Unk_1443160, field_20, 0x20);
+PKMN_OFFSET_ASSERT(Unk_1443160, field_28, 0x28);
+PKMN_OFFSET_ASSERT(Unk_1443160, field_30, 0x30);
+
+// 0x7101443160
+void Unk_1443160_set(Unk_1443160* self) {
+    self->field_20 = 0;
+    self->field_10 = 0;
+    self->field_18 = 0;
+    self->field_0 = 0;
+    self->field_8 = 0;
+    self->field_28 = 0;
+    self->field_30 = 0;
+}
+
 struct Unk_1448b60 {
     u8 _0[0x3198];
     u64 field_3198;

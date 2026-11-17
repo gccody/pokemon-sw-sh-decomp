@@ -55,6 +55,18 @@ u32 Unk_813b20_getField4(const Unk_813b20* self) {
     return self->field_4;
 }
 
+struct Unk_813b30 {
+    u32 field_0;
+    u32 field_4;
+};
+PKMN_OFFSET_ASSERT(Unk_813b30, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_813b30, field_4, 0x4);
+
+// 0x7100813b30
+bool Unk_813b30_check(const Unk_813b30* self) {
+    return self->field_4 == self->field_0;
+}
+
 struct Unk_813d50 {
     u8 _0[0x4];
     u32 field_4;

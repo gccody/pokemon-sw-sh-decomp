@@ -91,6 +91,22 @@ void Unk_151c340_setField78(Unk_151c340* self, u32 value) {
     self->field_78 = value;
 }
 
+struct Unk_151c350 {
+    u8 _0[0x74];
+    u32 field_74;
+    u32 field_78;
+    u32 field_7c;
+};
+PKMN_OFFSET_ASSERT(Unk_151c350, field_74, 0x74);
+PKMN_OFFSET_ASSERT(Unk_151c350, field_78, 0x78);
+PKMN_OFFSET_ASSERT(Unk_151c350, field_7c, 0x7c);
+
+// 0x710151c350
+void Unk_151c350_set(Unk_151c350* self) {
+    self->field_7c = self->field_74;
+    self->field_74 = self->field_78;
+}
+
 struct Unk_151ca40 {
     u8 _0[0xa8];
     u8 field_a8;

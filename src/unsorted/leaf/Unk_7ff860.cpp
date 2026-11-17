@@ -84,6 +84,29 @@ u32 Unk_7ffb30_getField8(const Unk_7ffb30* self) {
     return self->field_8;
 }
 
+struct Unk_7ffb40 {
+    u8 field_0;
+    u8 _1[0x3];
+    u32 field_4;
+    u32 field_8;
+    u32 field_c;
+    u8 field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_7ffb40, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_7ffb40, field_4, 0x4);
+PKMN_OFFSET_ASSERT(Unk_7ffb40, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_7ffb40, field_c, 0xc);
+PKMN_OFFSET_ASSERT(Unk_7ffb40, field_10, 0x10);
+
+// 0x71007ffb40
+void Unk_7ffb40_set(Unk_7ffb40* self, u8 value, u32 arg2, u32 arg3, u8 arg4) {
+    self->field_0 = value;
+    self->field_4 = arg2 & 0xffff;
+    self->field_8 = arg3 & 0xffff;
+    self->field_c = 0;
+    self->field_10 = arg4;
+}
+
 struct Unk_7ffb60 {
     u8 field_0;
     u8 _1[0x3];

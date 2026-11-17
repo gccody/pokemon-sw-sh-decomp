@@ -298,6 +298,12 @@ data, 215 of them, stores a vtable and one captured word into the caller's
 buffer: libc++'s `std::function` `__clone(p)` for lambdas whose types aren't
 known, left alone.
 
+The lifter also takes `ldp`/`stp` (two loads or stores of adjacent
+fields; `sp` and writeback forms, a frame, are still refused), and
+functions up to 64 bytes: 68 more match. Most of the others that compile
+read a field after the function stored to it, which the lifter doesn't
+model; they compile to other code and are left out.
+
 ## Vtables and classes (`tools/vtables.py`)
 
 Most of the tiny functions are virtual (see "The tiny functions"), and

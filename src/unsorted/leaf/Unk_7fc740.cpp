@@ -16,6 +16,41 @@ void Unk_7fc740_set(Unk_7fc740* self) {
     self->field_0 = 0;
 }
 
+struct Unk_7fc750_arg1 {
+    u8 field_0;
+    u8 field_1;
+    u8 field_2;
+    u8 field_3;
+    u8 field_4;
+};
+PKMN_OFFSET_ASSERT(Unk_7fc750_arg1, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_7fc750_arg1, field_1, 0x1);
+PKMN_OFFSET_ASSERT(Unk_7fc750_arg1, field_2, 0x2);
+PKMN_OFFSET_ASSERT(Unk_7fc750_arg1, field_3, 0x3);
+PKMN_OFFSET_ASSERT(Unk_7fc750_arg1, field_4, 0x4);
+
+struct Unk_7fc750 {
+    u8 field_0;
+    u8 field_1;
+    u8 field_2;
+    u8 field_3;
+    u8 field_4;
+};
+PKMN_OFFSET_ASSERT(Unk_7fc750, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_7fc750, field_1, 0x1);
+PKMN_OFFSET_ASSERT(Unk_7fc750, field_2, 0x2);
+PKMN_OFFSET_ASSERT(Unk_7fc750, field_3, 0x3);
+PKMN_OFFSET_ASSERT(Unk_7fc750, field_4, 0x4);
+
+// 0x71007fc750
+void Unk_7fc750_set(Unk_7fc750* self, const Unk_7fc750_arg1* value) {
+    self->field_0 = value->field_0;
+    self->field_1 = value->field_1;
+    self->field_2 = value->field_2;
+    self->field_3 = value->field_3;
+    self->field_4 = value->field_4;
+}
+
 struct Unk_7fc7d0 {
     u8 _0[0x4];
     u8 field_4;
