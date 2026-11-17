@@ -1318,6 +1318,9 @@ def write_files(out_dir: Path, lifted: dict[int, tuple[str, str]]) -> None:
     file_for_seg: dict[int, Path] = {}
     for p, addrs in existing.items():
         file_for_seg[seg_of_existing[addrs[0]]] = p
+    from common import clang_format
+
+    written = []
     for s, addrs in sorted(by_seg.items()):
         entries = [(a, *lifted[a]) for a in addrs]
         old = file_for_seg.get(s)
@@ -1327,6 +1330,9 @@ def write_files(out_dir: Path, lifted: dict[int, tuple[str, str]]) -> None:
         first = min(a for a, _, _ in entries)
         path = out_dir / f"Unk_{first - BASE:x}.cpp"
         path.write_text(render_file(entries), encoding="utf-8", newline="\n")
+        written.append(path)
+    if not clang_format(written):
+        print("clang-format isn't on PATH: format the written files before committing them", file=sys.stderr)
     print(f"wrote {len(lifted)} functions into {len(by_seg)} files", file=sys.stderr)
 
 

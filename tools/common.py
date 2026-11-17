@@ -18,6 +18,21 @@ VERSION_INFO = json.loads((ROOT / "tools" / "versions.json").read_text())
 
 
 # --------------------------------------------------------------------------- module loading
+def clang_format(paths: list[Path]) -> bool:
+    """Format generated sources in place with clang-format (requirements-dev.txt),
+    if it is on PATH. False if it isn't: run it before committing them."""
+    import shutil
+    import subprocess
+
+    exe = shutil.which("clang-format")
+    if exe is None:
+        return False
+    names = [str(p) for p in paths]
+    for i in range(0, len(names), 100):  # keep the command line short (Windows)
+        subprocess.run([exe, "-i", *names[i:i + 100]], check=True)
+    return True
+
+
 def nso_path(version: str) -> Path:
     return ORIGINAL / version / "main"
 
