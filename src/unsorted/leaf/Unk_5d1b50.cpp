@@ -13,3 +13,10 @@ PKMN_OFFSET_ASSERT(Unk_5d1b50, field_130, 0x130);
 void Unk_5d1b50_set(Unk_5d1b50* self) {
     self->field_130 = self->field_130 | 0x10;
 }
+
+extern u64 Unk_2773640;
+
+// 0x71005d42e0
+u64 Unk_5d42e0_get() {
+    return Unk_2773640;
+}

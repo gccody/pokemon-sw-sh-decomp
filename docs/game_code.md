@@ -304,6 +304,12 @@ functions up to 64 bytes: 68 more match. Most of the others that compile
 read a field after the function stored to it, which the lifter doesn't
 model; they compile to other code and are left out.
 
+Globals too: `adrp x8, P ; ldr x8, [x8, #lo]` loads a GOT slot, the address
+of a global another TU defines, and the lifter reads and writes it as an
+`extern <type> Unk_<addr>;` (at offset 0 only: a field of a global is still
+refused). 20 more match: 9 getters and 5 setters of a global, and 6 tail
+calls that pass one on (check.py: 24,714 matching, 106 not matching).
+
 ## Vtables and classes (`tools/vtables.py`)
 
 Most of the tiny functions are virtual (see "The tiny functions"), and

@@ -104,3 +104,10 @@ bool Unk_8a8110_check(const Unk_8a8110* self) {
 
 // 0x71008a8250
 void Unk_8a8250() {}
+
+extern u64 Unk_27d1300;
+
+// 0x71008a82d0
+u64 Unk_8a82d0_get() {
+    return Unk_27d1300;
+}

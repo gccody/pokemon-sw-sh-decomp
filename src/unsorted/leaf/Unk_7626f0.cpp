@@ -646,3 +646,10 @@ void Unk_7693a0() {}
 
 // 0x71007693b0
 void Unk_7693b0() {}
+
+extern u64 Unk_2779b60;
+
+// 0x710076a5c0
+u64 Unk_76a5c0_get() {
+    return Unk_2779b60;
+}

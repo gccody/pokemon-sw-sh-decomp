@@ -12,3 +12,10 @@ PKMN_OFFSET_ASSERT(Unk_10ba080, field_0, 0x0);
 bool Unk_10ba080_check(const Unk_10ba080* self) {
     return self->field_0 != 0;
 }
+
+extern u64 Unk_24ba150;
+
+// 0x71010ba090
+u64 Unk_10ba090_get() {
+    return Unk_24ba150;
+}
