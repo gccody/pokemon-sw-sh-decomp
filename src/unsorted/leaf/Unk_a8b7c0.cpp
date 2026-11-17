@@ -111,6 +111,21 @@ void Unk_a96ae0_call(void* self) {
     Unk_eb6230(self, 3);
 }
 
+struct Unk_a96b10 {
+    u8 _0[0x4c0];
+    u64 field_4c0;
+};
+PKMN_OFFSET_ASSERT(Unk_a96b10, field_4c0, 0x4c0);
+
+void Unk_1500c40(u64);
+
+// 0x7100a96b10
+void Unk_a96b10_call(const Unk_a96b10* self) {
+    if (self->field_4c0 != 0) {
+        Unk_1500c40(self->field_4c0);
+    }
+}
+
 struct Unk_a96b20 {
     u8 _0[0x608];
     u32 field_608;

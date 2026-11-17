@@ -88,6 +88,21 @@ void Unk_b4a450_setField8(Unk_b4a450* self, u64 value) {
     self->field_8 = value;
 }
 
+struct Unk_b4c050 {
+    u8 _0[0x3830];
+    u64 field_3830;
+};
+PKMN_OFFSET_ASSERT(Unk_b4c050, field_3830, 0x3830);
+
+void Unk_b565e0(u64);
+
+// 0x7100b4c050
+void Unk_b4c050_call(const Unk_b4c050* self) {
+    if (self->field_3830 != 0) {
+        Unk_b565e0(self->field_3830);
+    }
+}
+
 struct Unk_b4c060 {
     u8 _0[0x3830];
     u64 field_3830;

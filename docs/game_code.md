@@ -316,6 +316,13 @@ increment, reset or test a global, or pass one to a tail-called function
 `check.py --record-data` puts the globals in `data/data_symbols.csv`, so
 every reference to one is checked against the same address.
 
+One branch is allowed too: a `cbz`/`cbnz` that skips the rest of the
+function, to its final `ret` (`if (x != 0) { ... }`) or to a
+`mov w0, wzr ; ret` after the path's own `ret` (`if (x == nullptr) return
+0; return ...;`). It has to test a field or an argument before any store.
+Commonest are a null-checked tail call and a getter through a pointer that
+may be null. 119 more leaf functions match (check.py: 24,964 matching).
+
 ## Vtables and classes (`tools/vtables.py`)
 
 Most of the tiny functions are virtual (see "The tiny functions"), and

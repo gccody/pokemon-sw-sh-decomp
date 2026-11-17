@@ -62,6 +62,85 @@ void Unk_93a2a0_call(const Unk_93a2a0* self) {
     Unk_93d6e0(self->field_20);
 }
 
+struct Unk_93cbb0 {
+    u8 _0[0x68];
+    u64 field_68;
+};
+PKMN_OFFSET_ASSERT(Unk_93cbb0, field_68, 0x68);
+
+void Unk_67db60(u64);
+
+// 0x710093cbb0
+void Unk_93cbb0_call(const Unk_93cbb0* self) {
+    if (self->field_68 != 0) {
+        Unk_67db60(self->field_68);
+    }
+}
+
+struct Unk_93cbe0 {
+    u8 _0[0x68];
+    u64 field_68;
+};
+PKMN_OFFSET_ASSERT(Unk_93cbe0, field_68, 0x68);
+
+void Unk_1309ba0(u64);
+
+// 0x710093cbe0
+void Unk_93cbe0_call(const Unk_93cbe0* self) {
+    if (self->field_68 != 0) {
+        Unk_1309ba0(self->field_68);
+    }
+}
+
+struct Unk_93cc10_70 {
+    u8 _0[0x58];
+    u8 field_58;
+};
+PKMN_OFFSET_ASSERT(Unk_93cc10_70, field_58, 0x58);
+
+struct Unk_93cc10 {
+    u8 _0[0x70];
+    Unk_93cc10_70* field_70;
+};
+PKMN_OFFSET_ASSERT(Unk_93cc10, field_70, 0x70);
+
+// 0x710093cc10
+void Unk_93cc10_set(const Unk_93cc10* self, bool value) {
+    if (self->field_70 != nullptr) {
+        self->field_70->field_58 = (self->field_70->field_58 & 0xfffffffe) | (value);
+    }
+}
+
+struct Unk_93cc30 {
+    u8 _0[0x68];
+    u64 field_68;
+};
+PKMN_OFFSET_ASSERT(Unk_93cc30, field_68, 0x68);
+
+void Unk_1308930(u64, u64, u32);
+
+// 0x710093cc30
+void Unk_93cc30_call(const Unk_93cc30* self, u64 value) {
+    if (self->field_68 != 0) {
+        Unk_1308930(self->field_68, value, 0);
+    }
+}
+
+struct Unk_93cc80 {
+    u8 _0[0x68];
+    u64 field_68;
+};
+PKMN_OFFSET_ASSERT(Unk_93cc80, field_68, 0x68);
+
+void Unk_67e9d0(u64);
+
+// 0x710093cc80
+void Unk_93cc80_call(const Unk_93cc80* self) {
+    if (self->field_68 != 0) {
+        Unk_67e9d0(self->field_68);
+    }
+}
+
 struct Unk_93cc90_78 {
     u8 _0[0x58];
     u8 field_58;
@@ -81,6 +160,21 @@ PKMN_OFFSET_ASSERT(Unk_93cc90, field_90, 0x90);
 void Unk_93cc90_set(Unk_93cc90* self, bool value, bool arg2) {
     self->field_90 = value;
     self->field_78->field_58 = (self->field_78->field_58 & 0xfffffffe) | (arg2);
+}
+
+struct Unk_93ccb0 {
+    u8 _0[0x68];
+    u64 field_68;
+};
+PKMN_OFFSET_ASSERT(Unk_93ccb0, field_68, 0x68);
+
+void Unk_67ea60(u64);
+
+// 0x710093ccb0
+void Unk_93ccb0_call(const Unk_93ccb0* self) {
+    if (self->field_68 != 0) {
+        Unk_67ea60(self->field_68);
+    }
 }
 
 void Unk_eb6230(void*, u32);

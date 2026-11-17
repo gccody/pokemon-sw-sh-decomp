@@ -14,6 +14,45 @@ void Unk_c5a8d0_set(Unk_c5a8d0* self, bool value) {
     self->field_85 = value;
 }
 
+struct Unk_c63670_2c0 {
+    u8 _0[0x84];
+    bool field_84;
+};
+PKMN_OFFSET_ASSERT(Unk_c63670_2c0, field_84, 0x84);
+
+struct Unk_c63670 {
+    u8 _0[0x2c0];
+    Unk_c63670_2c0* field_2c0;
+};
+PKMN_OFFSET_ASSERT(Unk_c63670, field_2c0, 0x2c0);
+
+// 0x7100c63670
+void Unk_c63670_set(const Unk_c63670* self, bool value) {
+    if (self->field_2c0 != nullptr) {
+        self->field_2c0->field_84 = value;
+    }
+}
+
+struct Unk_c63690_2c0 {
+    u8 _0[0x84];
+    u8 field_84;
+};
+PKMN_OFFSET_ASSERT(Unk_c63690_2c0, field_84, 0x84);
+
+struct Unk_c63690 {
+    u8 _0[0x2c0];
+    Unk_c63690_2c0* field_2c0;
+};
+PKMN_OFFSET_ASSERT(Unk_c63690, field_2c0, 0x2c0);
+
+// 0x7100c63690
+bool Unk_c63690_check(const Unk_c63690* self) {
+    if (self->field_2c0 == nullptr) {
+        return false;
+    }
+    return self->field_2c0->field_84 != 0;
+}
+
 extern bool Unk_23dc938;
 
 // 0x7100c64770

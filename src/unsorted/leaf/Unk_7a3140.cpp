@@ -8,6 +8,21 @@ bool Unk_7a3140_check(void* /*unused*/, u32 value) {
     return value >= 0x4ff && value <= 0x62a;
 }
 
+struct Unk_7a3810 {
+    u8 _0[0x698];
+    u64 field_698;
+};
+PKMN_OFFSET_ASSERT(Unk_7a3810, field_698, 0x698);
+
+void Unk_14e1a00(u64, u32);
+
+// 0x71007a3810
+void Unk_7a3810_call(const Unk_7a3810* self, bool value) {
+    if (self->field_698 != 0) {
+        Unk_14e1a00(self->field_698, value);
+    }
+}
+
 struct Unk_7a7e60 {
     u8 _0[0x120];
     u32 field_120;

@@ -805,6 +805,7 @@ Sword,Shield,Size,Name
 0x710244ac40,0x710244ac40,112,funcs@lutf8lib
 0x7102461410,0x7102461410,,Curl_wkday
 0x71024ba150,0x71024ba150,,Unk_24ba150
+0x71024ba170,0x71024ba170,,Unk_24ba170
 0x71024ba550,0x71024ba550,8,_ZZ20Unk_239a418_RootTypevE4type
 0x71024ba558,0x71024ba558,8,_ZGVZ20Unk_239a418_RootTypevE4type
 0x71024ba5b8,0x71024ba5b8,,Unk_24ba5b8
@@ -926,6 +927,7 @@ Sword,Shield,Size,Name
 0x7102779090,0x7102779090,8,_ZN6gflnet3p2p5block2pb7ImReady17default_instance_E
 0x7102779098,0x7102779098,1,_ZZN6gflnet3p2p5block2pb31protobuf_AddDesc_result_2eprotoEvE12already_here@result.pb
 0x71027790c0,0x71027790c0,,.L_MergedGlobals@result.pb
+0x71027790f0,0x71027790f0,,Unk_27790f0
 0x71027792b0,0x71027792b0,8,_ZN6gflnet3p2p4sync2pb14SyncDataHolder17default_instance_E
 0x71027792d0,0x71027792d0,,.L_MergedGlobals@sync_data_holder.pb
 0x7102779308,0x7102779308,8,_ZN6gflnet3p2p4sync2pb4Data17default_instance_E

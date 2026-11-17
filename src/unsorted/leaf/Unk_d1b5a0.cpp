@@ -44,6 +44,24 @@ void Unk_d1b6a0_clearField9e(Unk_d1b6a0* self) {
     self->field_9e = 0;
 }
 
+struct Unk_d1ba50 {
+    u8 _0[0x9c];
+    u8 field_9c;
+    u8 _9d[0x1];
+    u8 field_9e;
+    u8 field_9f;
+};
+PKMN_OFFSET_ASSERT(Unk_d1ba50, field_9c, 0x9c);
+PKMN_OFFSET_ASSERT(Unk_d1ba50, field_9e, 0x9e);
+PKMN_OFFSET_ASSERT(Unk_d1ba50, field_9f, 0x9f);
+
+// 0x7100d1ba50
+void Unk_d1ba50_set(Unk_d1ba50* self) {
+    if (self->field_9e != 0) {
+        self->field_9c = self->field_9f;
+    }
+}
+
 struct Unk_d1d280 {
     u8 _0[0x9e];
     u8 field_9e;

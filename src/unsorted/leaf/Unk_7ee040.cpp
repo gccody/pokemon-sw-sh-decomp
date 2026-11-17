@@ -669,6 +669,19 @@ void Unk_7f3730_setField3d(Unk_7f3730* self, u8 value) {
     self->field_3d = value;
 }
 
+struct Unk_7f3740 {
+    u8 _0[0x3d];
+    u8 field_3d;
+};
+PKMN_OFFSET_ASSERT(Unk_7f3740, field_3d, 0x3d);
+
+// 0x71007f3740
+void Unk_7f3740_set(Unk_7f3740* self) {
+    if (self->field_3d != 0) {
+        self->field_3d = self->field_3d - 1;
+    }
+}
+
 struct Unk_7f3760 {
     u8 _0[0x25];
     u8 field_25;
@@ -689,6 +702,19 @@ PKMN_OFFSET_ASSERT(Unk_7f3770, field_24, 0x24);
 // 0x71007f3770
 u8 Unk_7f3770_getField24(const Unk_7f3770* self) {
     return self->field_24;
+}
+
+struct Unk_7f37b0 {
+    u8 _0[0x3f];
+    u8 field_3f;
+};
+PKMN_OFFSET_ASSERT(Unk_7f37b0, field_3f, 0x3f);
+
+// 0x71007f37b0
+void Unk_7f37b0_set(Unk_7f37b0* self) {
+    if (self->field_3f != 0) {
+        self->field_3f = self->field_3f - 1;
+    }
 }
 
 struct Unk_7f37d0 {
