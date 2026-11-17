@@ -283,6 +283,13 @@ The others pass an argument with another width than the guess (a `u64`
 where the original moves a 32-bit register) and were left out with
 `--only`. check.py: 24,299 matching (23,869 before), 106 not matching.
 
+The same lifter writes virtual functions as members (batch 4's
+accessors): `vtables.py write` now takes those that end in a tail call
+too, with `this` for a passed-on `self`, and declares their targets the
+same way, unless a target is a virtual function, already has another name,
+or is called with other types (forwarders call theirs with one `void*`).
+269 match in both games (check.py: 24,568 matching, 106 not matching).
+
 ## Vtables and classes (`tools/vtables.py`)
 
 Most of the tiny functions are virtual (see "The tiny functions"), and

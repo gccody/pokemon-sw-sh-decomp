@@ -9,6 +9,12 @@ void Unk_cffc00(void* self);
 void Unk_d00210(void* self);
 void Unk_d02730(void* self);
 
+// Tail-called by lifted functions. Placeholders, like the forwarders' callees.
+void Unk_cf4fc0(u64);
+void Unk_cf5bd0(u64);
+void Unk_cf5ee0(u64);
+void Unk_cf72e0(u64);
+
 class Unk_23e4758 {
 public:
     virtual void vf0();
@@ -147,10 +153,18 @@ public:
     virtual void vf11();
     virtual void vf12();
     virtual void vf13();
+    u8 _8[0x70];
+    u64 field_78;
 };
+PKMN_OFFSET_ASSERT(Unk_23e4ba0, field_78, 0x78);
 
 // 0x7100cf4f90
 void Unk_23e4ba0::vf12() {}
+
+// 0x7100cf4fb0
+void Unk_23e4ba0::vf13() {
+    Unk_cf4fc0(field_78);
+}
 
 class Unk_23e4c20 {
 public:
@@ -166,10 +180,128 @@ public:
     virtual void vf9();
     virtual void vf10();
     virtual void vf11();
+    u8 _8[0x28];
+    u64 field_30;
 };
+PKMN_OFFSET_ASSERT(Unk_23e4c20, field_30, 0x30);
 
 // 0x7100cf4fa0
 void Unk_23e4c20::vf10() {}
+
+// 0x7100cf5110
+void Unk_23e4c20::vf11() {
+    Unk_cf4fc0(field_30);
+}
+
+class Unk_23e4cb8 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    u8 _8[0x70];
+    u64 field_78;
+};
+PKMN_OFFSET_ASSERT(Unk_23e4cb8, field_78, 0x78);
+
+// 0x7100cf5bc0
+void Unk_23e4cb8::vf12() {
+    Unk_cf5bd0(field_78);
+}
+
+// 0x7100cf5ed0
+void Unk_23e4cb8::vf13() {
+    Unk_cf5ee0(field_78);
+}
+
+class Unk_23e4d38 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    u8 _8[0x28];
+    u64 field_30;
+};
+PKMN_OFFSET_ASSERT(Unk_23e4d38, field_30, 0x30);
+
+// 0x7100cf5ec0
+void Unk_23e4d38::vf10() {
+    Unk_cf5bd0(field_30);
+}
+
+// 0x7100cf6c70
+void Unk_23e4d38::vf11() {
+    Unk_cf5ee0(field_30);
+}
+
+class Unk_23e4dd8 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    u8 _8[0x70];
+    u64 field_78;
+};
+PKMN_OFFSET_ASSERT(Unk_23e4dd8, field_78, 0x78);
+
+// 0x7100cf72d0
+void Unk_23e4dd8::vf13() {
+    Unk_cf72e0(field_78);
+}
+
+class Unk_23e4e58 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    u8 _8[0x28];
+    u64 field_30;
+};
+PKMN_OFFSET_ASSERT(Unk_23e4e58, field_30, 0x30);
+
+// 0x7100cf78d0
+void Unk_23e4e58::vf11() {
+    Unk_cf72e0(field_30);
+}
 
 class Unk_23e4fa0 {
 public:

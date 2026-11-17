@@ -8,6 +8,19 @@
 void Unk_14b70f0(void* self);
 void Unk_14b8030(void* self);
 
+// Tail-called by lifted functions. Placeholders, like the forwarders' callees.
+void Unk_685c60(u64, u32);
+void Unk_14a9520(void*, u32);
+void Unk_14ab040(u64, u64, u32);
+void Unk_14ab080(u64);
+void Unk_14ab0c0(u64);
+void Unk_14ab200(u64);
+void Unk_14ab2b0(u64);
+void Unk_14ab380(u64);
+void Unk_14ab440(u64);
+void Unk_14ab9a0(u64);
+void Unk_14ac040(u64, u64, u64, u32);
+
 class Unk_24422d8 {
 public:
     virtual void vf0();
@@ -20,7 +33,7 @@ public:
     virtual void vf7();
     virtual void vf8();
     virtual void vf9();
-    virtual void vf10();
+    virtual void vf10(u64 value, bool arg2);
     virtual void vf11();
     virtual void vf12();
     virtual void vf13();
@@ -32,17 +45,65 @@ public:
     virtual void vf19();
     virtual void vf20();
     virtual void vf21();
-    virtual void vf22();
+    virtual void vf22(u64 value, u64 arg2);
     virtual void vf23();
     virtual void vf24();
     virtual void vf25();
     virtual void vf26();
     virtual void vf27();
+    u8 _8[0x50];
+    u64 field_58;
 };
+PKMN_OFFSET_ASSERT(Unk_24422d8, field_58, 0x58);
+
+// 0x71014b2cc0
+void Unk_24422d8::vf10(u64 value, bool arg2) {
+    Unk_14ab040(field_58, value, arg2);
+}
+
+// 0x71014b2cd0
+void Unk_24422d8::vf11() {
+    Unk_14ab080(field_58);
+}
+
+// 0x71014b2ce0
+void Unk_24422d8::vf12() {
+    Unk_14ab0c0(field_58);
+}
+
+// 0x71014b2cf0
+void Unk_24422d8::vf13() {
+    Unk_14ab200(field_58);
+}
+
+// 0x71014b2d00
+void Unk_24422d8::vf14() {
+    Unk_14ab2b0(field_58);
+}
+
+// 0x71014b2d10
+void Unk_24422d8::vf15() {
+    Unk_14ab380(field_58);
+}
+
+// 0x71014b2d20
+void Unk_24422d8::vf16() {
+    Unk_14ab440(field_58);
+}
 
 // 0x71014b2d60
 u32 Unk_24422d8::vf18() {
     return 0;
+}
+
+// 0x71014b2f00
+void Unk_24422d8::vf22(u64 value, u64 arg2) {
+    Unk_14ac040(field_58, value, arg2, 0xa);
+}
+
+// 0x71014b3050
+void Unk_24422d8::vf27() {
+    Unk_14ab9a0(field_58);
 }
 
 class Unk_24423f8 {
@@ -98,10 +159,23 @@ public:
     virtual void vf20();
     virtual void vf21();
     virtual u32 vf22();
+    u8 _8[0xb8];
+    u64 field_c0;
 };
+PKMN_OFFSET_ASSERT(Unk_2442460, field_c0, 0xc0);
 
 // 0x71014b5a40
 void Unk_2442460::vf8() {}
+
+// 0x71014b5870
+void Unk_2442460::vf13() {
+    Unk_685c60(field_c0, 1);
+}
+
+// 0x71014b59b0
+void Unk_2442460::vf21() {
+    Unk_14a9520(this, 0);
+}
 
 // 0x71014b5880
 u32 Unk_2442460::vf22() {
@@ -132,10 +206,23 @@ public:
     virtual void vf20();
     virtual void vf21();
     virtual u32 vf22();
+    u8 _8[0xb8];
+    u64 field_c0;
 };
+PKMN_OFFSET_ASSERT(Unk_24425f8, field_c0, 0xc0);
 
 // 0x71014b6040
 void Unk_24425f8::vf8() {}
+
+// 0x71014b5f20
+void Unk_24425f8::vf13() {
+    Unk_685c60(field_c0, 1);
+}
+
+// 0x71014b5fb0
+void Unk_24425f8::vf21() {
+    Unk_14a9520(this, 0);
+}
 
 // 0x71014b5f30
 u32 Unk_24425f8::vf22() {
@@ -167,7 +254,10 @@ public:
     virtual void vf20();
     virtual void vf21();
     virtual u32 vf22();
+    u8 _8[0xb8];
+    u64 field_c0;
 };
+PKMN_OFFSET_ASSERT(Unk_2442750, field_c0, 0xc0);
 
 // 0x71014b64d0
 void Unk_2442750::vf8() {}
@@ -175,6 +265,16 @@ void Unk_2442750::vf8() {}
 // 0x71014b64e0
 u32 Unk_2442750::vf9() {
     return 5;
+}
+
+// 0x71014b6310
+void Unk_2442750::vf13() {
+    Unk_685c60(field_c0, 1);
+}
+
+// 0x71014b6450
+void Unk_2442750::vf21() {
+    Unk_14a9520(this, 0);
 }
 
 // 0x71014b6320
@@ -207,7 +307,20 @@ public:
     virtual void vf20();
     virtual void vf21();
     virtual u32 vf22();
+    u8 _8[0xb8];
+    u64 field_c0;
 };
+PKMN_OFFSET_ASSERT(Unk_24428a8, field_c0, 0xc0);
+
+// 0x71014b67a0
+void Unk_24428a8::vf13() {
+    Unk_685c60(field_c0, 1);
+}
+
+// 0x71014b6900
+void Unk_24428a8::vf21() {
+    Unk_14a9520(this, 0);
+}
 
 // 0x71014b67b0
 u32 Unk_24428a8::vf22() {
@@ -364,11 +477,24 @@ public:
     virtual void vf20();
     virtual void vf21();
     virtual u32 vf22();
+    u8 _8[0xb8];
+    u64 field_c0;
 };
+PKMN_OFFSET_ASSERT(Unk_2442cf0, field_c0, 0xc0);
 
 // 0x71014b87d0
 void Unk_2442cf0::vf8() {
     Unk_14b8030(this);
+}
+
+// 0x71014b81e0
+void Unk_2442cf0::vf13() {
+    Unk_685c60(field_c0, 1);
+}
+
+// 0x71014b8370
+void Unk_2442cf0::vf21() {
+    Unk_14a9520(this, 0);
 }
 
 // 0x71014b81f0

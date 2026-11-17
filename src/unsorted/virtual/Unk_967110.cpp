@@ -350,7 +350,13 @@ public:
     virtual void vf337();
     virtual void vf338();
     virtual void vf339();
+    u8 _8[0x5c0];
+    u64 field_5c8;
+    u8 _5d0[0x38];
+    u64 field_608;
 };
+PKMN_OFFSET_ASSERT(Unk_23c0960, field_5c8, 0x5c8);
+PKMN_OFFSET_ASSERT(Unk_23c0960, field_608, 0x608);
 
 // 0x7100967110
 u32 Unk_23c0960::vf7() {

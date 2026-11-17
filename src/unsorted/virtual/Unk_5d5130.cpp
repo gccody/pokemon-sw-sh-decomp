@@ -10,6 +10,30 @@ void Unk_5d8db0(void* self);
 void Unk_5eca40(void* self);
 void Unk_619640(void* self);
 
+// Tail-called by lifted functions. Placeholders, like the forwarders' callees.
+void Unk_5d4350(u64);
+
+class Unk_2399648 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    u8 _8[0x158];
+    u64 field_160;
+};
+PKMN_OFFSET_ASSERT(Unk_2399648, field_160, 0x160);
+
+// 0x71005d5130
+void Unk_2399648::vf8() {
+    Unk_5d4350(field_160);
+}
+
 class Unk_2399708 {
 public:
     virtual ~Unk_2399708();

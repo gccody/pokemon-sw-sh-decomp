@@ -7,6 +7,12 @@
 // Called by forwarders. Placeholders: their real signatures aren't known.
 void Unk_5eb880(void* self);
 
+// Tail-called by lifted functions. Placeholders, like the forwarders' callees.
+void Unk_5f5570(void*);
+void Unk_5f5660(void*);
+void Unk_5f5770(void*);
+void Unk_5f5780(void*);
+
 class Unk_239a840_Obj {
 public:
     virtual void vf0();
@@ -157,10 +163,33 @@ public:
     virtual void vf11();
     virtual u8* vf12();
     virtual void vf13();
-    u8 _8[0x160];
+    u8 _8[0x60];
+    u8 field_68;
+    u8 _69[0xff];
     u8 field_168;
 };
+PKMN_OFFSET_ASSERT(Unk_239ac50, field_68, 0x68);
 PKMN_OFFSET_ASSERT(Unk_239ac50, field_168, 0x168);
+
+// 0x71005ee470
+void Unk_239ac50::vf7() {
+    Unk_5f5570(&field_68);
+}
+
+// 0x71005ee480
+void Unk_239ac50::vf8() {
+    Unk_5f5660(&field_68);
+}
+
+// 0x71005ee4a0
+void Unk_239ac50::vf10() {
+    Unk_5f5770(&field_68);
+}
+
+// 0x71005ee4b0
+void Unk_239ac50::vf11() {
+    Unk_5f5780(&field_68);
+}
 
 // 0x71005ee4c0
 u8* Unk_239ac50::vf12() {
