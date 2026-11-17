@@ -726,7 +726,7 @@ bigger rather than on the lifters:
 | Shape | Count | What it waits for |
 |---|---|---|
 | `sub x0, x0, #N ; b T` | 2,921 | Non-virtual thunks. The compiler emits one with the override it adjusts for, so its target has to be written first, in a class declared with its secondary bases. |
-| `ret` | 2,869 | 953 are in data but in no vtable (plain tables, or vtables not found), 1,915 are referenced nowhere: nothing says what they belong to. |
+| `ret` | 2,869 | 952 are single function pointers inside static data objects, after data pointers: no-op callbacks in static records, not vtables. 1,915 are referenced nowhere. Nothing says what either belongs to. |
 | `ldr x8, [x0] ; str x8, [x1] ; ret` | 2,703 | Copy operations of type-erased callables, one per lambda type. A caller builds a table of them (invoke, copy, ...) on its stack. They're template instances: one template covers them once the wrapper is known. `ldp`/`stp` (281) and `str xzr` (107) are their 16-byte and move variants. |
 | `b T` | 1,426 | Forwarders, nearly all in data: `vtables.py` writes one only when its target can be a placeholder (in no vtable, unnamed). The others go to virtual functions, D2s or `operator delete` of classes not written yet. |
 | `trap` | 115 | In vtables (an abstract class's deleting destructor, for one) of classes not written yet. |
