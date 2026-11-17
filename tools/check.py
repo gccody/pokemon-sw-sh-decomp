@@ -19,6 +19,10 @@ data/data_symbols.csv; string/constant literals are compared by content. A
 data/source_paths.csv) is compared by the file it names, because it spells the
 vendor's checkout (see tools/source_paths.py).
 
+A row marked O whose function nothing compiles any more (its source was
+removed or changed shape) is reported as STALE, and --update sets it to U:
+otherwise it would stay O, since only compiled functions are compared.
+
 A reference to a data symbol neither CSV knows is only a warning. With
 --record-data, the ones matching functions make (GOT loads, adrp pairs) are
 added to data/data_symbols.csv at the original's addresses in each game, so
@@ -806,6 +810,13 @@ def merge_results(per_copy: list[tuple[CompiledFunc, Result]]) -> Result:
     return out
 
 
+def stale_rows(funcs: list[Function], compiled: set[str]) -> list[Function]:
+    """The rows marked O whose function nothing compiles any more (its source
+    went away or was renamed): the loop over compiled functions never sees
+    them, so they'd stay O. `compiled` has every compiled name and alias."""
+    return [f for f in funcs if f.status == "O" and f.name and f.name not in compiled]
+
+
 def data_symbol_rows(seen: dict[str, dict[str, set[int]]], functions: dict[str, set[int]]
                      ) -> tuple[dict[str, dict[str, int]], list[str], list[str]]:
     """The data symbols to record, as name -> {version: address}, from what
@@ -1035,7 +1046,15 @@ def main() -> int:
             status_updates[fn.key] = "M"
             print("      REGRESSION: was marked O in functions.csv")
 
-    print(f"\n{n_ok} matching, {n_bad} not matching")
+    stale = []
+    if wanted is None:
+        names_here = set(all_names) | {a for c in compiled.values() for cf in c.values() for a in cf.aliases}
+        stale = stale_rows(funcs, names_here)
+        for f in stale:
+            print(f"BAD {f.scope:11} {dm(f.name)}  is O in data/functions.csv, but nothing compiles it any more "
+                  f"(STALE; --update sets it to U)")
+            status_updates[f.key] = "U"
+    print(f"\n{n_ok} matching, {n_bad + len(stale)} not matching")
     if n_absent:
         print(f"({n_absent} compiled functions skipped as not in the executable: data/absent_functions.csv)")
     if n_unidentified:
@@ -1064,7 +1083,7 @@ def main() -> int:
         print(f"updated {len(status_updates)} status entries in data/functions.csv")
     elif status_updates and not args.update:
         print(f"({len(status_updates)} status changes pending - rerun with --update)")
-    return 0 if n_bad == 0 else 1
+    return 0 if n_bad == 0 and not stale else 1
 
 
 if __name__ == "__main__":

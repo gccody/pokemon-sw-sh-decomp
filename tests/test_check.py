@@ -93,3 +93,13 @@ def test_record_data_symbols(tmp_path):
     assert n == 2
     assert path.read_bytes() == (b"Sword,Shield,Size,Name\n0x7100002000,0x7100002010,,a\n"
                                  b"0x7100003000,0x7100003000,8,Unk_3000\n,0x7100004000,,b\n")
+
+
+def test_stale_rows():
+    from common import Function
+
+    def row(name, status):
+        return Function(sword=0x100, shield=0x100, sword_size=4, shield_size=4, scope="common", status=status, name=name)
+
+    funcs = [row("_Z1av", "O"), row("_Z1bv", "O"), row("_Z1cv", "U"), row("", "O")]
+    assert [f.name for f in check.stale_rows(funcs, {"_Z1av"})] == ["_Z1bv"]
