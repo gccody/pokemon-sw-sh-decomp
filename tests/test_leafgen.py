@@ -202,6 +202,13 @@ def test_mangle_and_param_types():
     assert leafgen.mangle("Unk_1_set", ["Unk_1*", "const Unk_1*"]) is None  # needs a substitution
 
 
+def test_tail_call_argument_moved_as_32_bits():
+    """mov x0, x1 ; mov w1, w2 ; b +0x100: the second argument is a u32 (a w move)."""
+    structs, func = leafgen.generate(ADDR, code(0xAA0103E0, 0x2A0203E1, 0x14000000 | 0x100 >> 2))
+    assert "void Unk_123558(u64, u32);" in structs
+    assert func == "void Unk_123450_call(void* /*unused*/, u64 value, u32 arg2) {\n    Unk_123558(value, arg2);\n}\n"
+
+
 def test_pairs():
     """ldp x8, x9, [x0, #0x10] ; stp x9, x8, [x0, #0x20] ; ret: two loads, two stores."""
     ldp = 0xA9400000 | (0x10 // 8) << 15 | 9 << 10 | 0 << 5 | 8
