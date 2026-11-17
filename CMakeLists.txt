@@ -193,16 +193,19 @@ pkmn_library_settings(lib/protobuf
 # writes next to each .proto. It isn't committed: each .pb.cc embeds its file's
 # serialized descriptor, a copy of the game's rodata. The generated code was
 # built like the runtime above (NDEBUG keeps the runtime headers' DCHECKs out),
+# and protos.py adds the one virtual function Game Freak's classes have more,
 # and includes the .pb.h of the files it imports by bare name, so every
 # directory with .proto files is on the include path. One entry per directory.
 file(GLOB_RECURSE PKMN_PROTOS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.proto")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS tools/protos.py)
 set(PKMN_PROTO_DIRS "")
 set(_pkmn_protos_stale "")
 foreach(_proto IN LISTS PKMN_PROTOS)
   get_filename_component(_dir "${_proto}" DIRECTORY)
   string(REGEX REPLACE "\\.proto$" "" _stem "${_proto}")
   foreach(_out IN ITEMS "${_stem}.pb.cc" "${_stem}.pb.h")
-    if(NOT EXISTS "${_out}" OR "${_proto}" IS_NEWER_THAN "${_out}")
+    if(NOT EXISTS "${_out}" OR "${_proto}" IS_NEWER_THAN "${_out}"
+        OR "${CMAKE_CURRENT_SOURCE_DIR}/tools/protos.py" IS_NEWER_THAN "${_out}")
       list(APPEND _pkmn_protos_stale "${_out}")
     endif()
   endforeach()
@@ -211,8 +214,8 @@ foreach(_proto IN LISTS PKMN_PROTOS)
 endforeach()
 if(_pkmn_protos_stale)
   list(LENGTH _pkmn_protos_stale _n)
-  message(FATAL_ERROR "${_n} files generated from src/**/*.proto are missing or older than their "
-    ".proto. Run `python tools/protos.py generate` (protoc 3.0.0).")
+  message(FATAL_ERROR "${_n} files generated from src/**/*.proto are missing, or older than their "
+    ".proto or tools/protos.py. Run `python tools/protos.py generate` (protoc 3.0.0).")
 endif()
 list(REMOVE_DUPLICATES PKMN_PROTO_DIRS)
 foreach(_dir IN LISTS PKMN_PROTO_DIRS)

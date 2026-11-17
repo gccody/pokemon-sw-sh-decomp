@@ -18,7 +18,8 @@ maps, reserved ranges), anything else is an error. Each file is then checked by
 compiling it with protoc and comparing the descriptor with the original.
 
 `generate` runs protoc 3.0.0 on every committed `.proto` under src/, writing
-the `.pb.cc` and `.pb.h` next to it. Those aren't committed (src/.gitignore):
+the `.pb.cc` and `.pb.h` next to it, and adds the one virtual function Game
+Freak's generator puts in every message class (EXTRA_VIRTUAL). Those aren't committed (src/.gitignore):
 protoc embeds the serialized descriptor, a copy of the game's rodata, in the
 `.pb.cc`. protoc is downloaded from Google's v3.0.0 release into
 toolchain/protoc-3.0.0, checked against SHA256 below. CMakeLists.txt refuses to
@@ -446,13 +447,34 @@ def run_protoc(protoc: Path, proto: Path, dirs: list[Path], extra: list[str]) ->
         raise SystemExit(f"protoc failed on {proto}:\n{r.stderr}")
 
 
+# Game Freak's generated message classes have one virtual function more than
+# protoc 3.0.0's: vtable slot 26 (offset 0xd0, after GetMetadata) of every one
+# of their 96 classes points to an inline `return true;` emitted with the class,
+# and protobuf's own descriptor.pb.cc classes don't have it. Its name isn't in
+# the binary, so it gets a placeholder (docs/compiler.md, "Generated protobuf
+# messages").
+EXTRA_VIRTUAL = "  virtual bool Unk_vfunc_d0() const { return true; }\n"
+_CLASS_SCOPE = re.compile(r"^  // @@protoc_insertion_point\(class_scope:[\w.]+\)$", re.M)
+
+
+def add_extra_virtual(header: str) -> str:
+    """protoc's .pb.h with EXTRA_VIRTUAL at every class_scope insertion point,
+    the end of each message class's public members."""
+    out, n = _CLASS_SCOPE.subn(lambda m: EXTRA_VIRTUAL + m.group(), header)
+    if not n:
+        raise SystemExit("no class_scope insertion point in a generated header")
+    return out
+
+
 def cmd_generate(args) -> int:
     protos = proto_files()
     if not protos:
         print("no .proto files under src/")
         return 0
+    # stale: older than its .proto, or than this script (which post-processes it)
+    tool = Path(__file__).stat().st_mtime
     stale = [p for p in protos if args.force or any(
-        not o.exists() or o.stat().st_mtime < p.stat().st_mtime for o in outputs(p))]
+        not o.exists() or o.stat().st_mtime < max(p.stat().st_mtime, tool) for o in outputs(p))]
     if not stale:
         print(f"{len(protos)} .proto files, generated code up to date")
         return 0
@@ -460,6 +482,8 @@ def cmd_generate(args) -> int:
     dirs = sorted({p.parent for p in protos})
     for p in stale:
         run_protoc(protoc, p, dirs, ["--cpp_out=."])
+        h = outputs(p)[1]
+        h.write_text(add_extra_virtual(h.read_text(encoding="utf-8")), encoding="utf-8", newline="\n")
     print(f"generated {len(stale)} of {len(protos)} .proto files with protoc 3.0.0")
     return 0
 
