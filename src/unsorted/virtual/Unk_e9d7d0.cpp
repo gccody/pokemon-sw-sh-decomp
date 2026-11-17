@@ -155,34 +155,6 @@ u32 Unk_23d99a8::vf11() {
     return 1;
 }
 
-class Unk_23f5318 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual u32 vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15();
-    virtual void vf16();
-    virtual void vf17();
-    virtual void vf18();
-};
-
-// 0x7100ea0980
-u32 Unk_23f5318::vf8() {
-    return 0;
-}
-
 class Unk_23aa1b8 {
 public:
     virtual void vf0();
