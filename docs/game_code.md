@@ -653,5 +653,12 @@ because of a bug: `nx.refs.decode` kept `adrp`'s page in a register that
 `add x8, x8, #0x10` after it seemed to address the next GOT slot, another
 vtable's. With that fixed (nothing check.py compares changes), they're
 written too, and all match: 271 constructors, check.py: 25,311 matching.
+The constructor of a class without a base is only the vptr store
+(`ROOT_CTOR_PATTERN`; an empty destructor doesn't store it, so nothing
+else has that shape). 47 more match that way, one of them a base above
+(check.py: 25,358 matching). A class with two constructors, or whose
+constructor a derived class calls under another address, is left out:
+only one function can be its C2.
+
 Left are about 50 of other shapes, which store more than one vptr
 (multiple inheritance) or initialise a field as well.

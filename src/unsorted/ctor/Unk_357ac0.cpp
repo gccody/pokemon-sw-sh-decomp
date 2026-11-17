@@ -16,5 +16,68 @@ public:
     ~Unk_2380608() override;
 };
 
+class Unk_2380db0 {
+public:
+    Unk_2380db0();
+    virtual ~Unk_2380db0();
+};
+
+class Unk_2381750 {
+public:
+    Unk_2381750();
+    virtual ~Unk_2381750();
+};
+
+class Unk_23817c8 {
+public:
+    Unk_23817c8();
+    virtual ~Unk_23817c8();
+};
+
+class Unk_2381808 {
+public:
+    Unk_2381808();
+    virtual ~Unk_2381808();
+};
+
+class Unk_2381848 {
+public:
+    Unk_2381848();
+    virtual ~Unk_2381848();
+};
+
+class Unk_2381888 {
+public:
+    Unk_2381888();
+    virtual ~Unk_2381888();
+};
+
+class Unk_23818c8 {
+public:
+    Unk_23818c8();
+    virtual ~Unk_23818c8();
+};
+
 // 0x7100357ac0
 Unk_2380608::Unk_2380608() {}
+
+// 0x7100363530
+Unk_2380db0::Unk_2380db0() {}
+
+// 0x710036a9c0
+Unk_2381750::Unk_2381750() {}
+
+// 0x710036ff90
+Unk_23817c8::Unk_23817c8() {}
+
+// 0x71003705b0
+Unk_2381808::Unk_2381808() {}
+
+// 0x7100370b10
+Unk_2381848::Unk_2381848() {}
+
+// 0x7100371050
+Unk_2381888::Unk_2381888() {}
+
+// 0x71003714f0
+Unk_23818c8::Unk_23818c8() {}

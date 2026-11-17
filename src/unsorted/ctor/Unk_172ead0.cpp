@@ -4,6 +4,12 @@
 // need (a base constructor to call, and a key function elsewhere, so that the
 // vtable is another TU's).
 
+class Unk_245f898 {
+public:
+    Unk_245f898();
+    virtual ~Unk_245f898();
+};
+
 class Unk_24603f8 {
 public:
     Unk_24603f8();
@@ -34,17 +40,32 @@ public:
     ~Unk_2460358() override;
 };
 
+class Unk_2460d78 {
+public:
+    Unk_2460d78();
+    virtual ~Unk_2460d78();
+};
+
 class Unk_2460f78 : public Unk_2460778 {
 public:
     Unk_2460f78();
     ~Unk_2460f78() override;
 };
 
+// 0x710172ead0
+Unk_245f898::Unk_245f898() {}
+
 // 0x71017315f0
 Unk_245fb18::Unk_245fb18() {}
 
 // 0x7101739c30
 Unk_2460358::Unk_2460358() {}
+
+// 0x7101739cf0
+Unk_24603f8::Unk_24603f8() {}
+
+// 0x710174a680
+Unk_2460d78::Unk_2460d78() {}
 
 // 0x710174e3c0
 Unk_2460f78::Unk_2460f78() {}

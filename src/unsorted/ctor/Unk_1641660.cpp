@@ -4,17 +4,11 @@
 // need (a base constructor to call, and a key function elsewhere, so that the
 // vtable is another TU's).
 
-class Unk_24937a0 {
+class Unk_2455720 {
 public:
-    Unk_24937a0();
-    virtual ~Unk_24937a0();
+    Unk_2455720();
+    virtual ~Unk_2455720();
 };
 
-class Unk_2493bf0 : public Unk_24937a0 {
-public:
-    Unk_2493bf0();
-    ~Unk_2493bf0() override;
-};
-
-// 0x71017b2ff0
-Unk_2493bf0::Unk_2493bf0() {}
+// 0x7101641660
+Unk_2455720::Unk_2455720() {}
