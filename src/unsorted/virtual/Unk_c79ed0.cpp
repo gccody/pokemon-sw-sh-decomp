@@ -49,6 +49,54 @@ void Unk_23dd630::vf11() {}
 // 0x7100c7a030
 void Unk_23dd630::vf13() {}
 
+struct Unk_23dd760_18 {
+    u8 _0[0x170];
+    u8 field_170;
+};
+PKMN_OFFSET_ASSERT(Unk_23dd760_18, field_170, 0x170);
+
+class Unk_23dd760 {
+public:
+    virtual ~Unk_23dd760();
+    virtual bool vf2();
+    virtual void vf3();
+    u8 _8[0x10];
+    Unk_23dd760_18* field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_23dd760, field_18, 0x18);
+
+// 0x7100c7e8c0
+bool Unk_23dd760::vf2() {
+    if (field_18 == nullptr) {
+        return false;
+    }
+    return field_18->field_170 != 0;
+}
+
+struct Unk_23dd790_18 {
+    u8 _0[0x170];
+    u8 field_170;
+};
+PKMN_OFFSET_ASSERT(Unk_23dd790_18, field_170, 0x170);
+
+class Unk_23dd790 {
+public:
+    virtual ~Unk_23dd790();
+    virtual bool vf2();
+    virtual void vf3();
+    u8 _8[0x10];
+    Unk_23dd790_18* field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_23dd790, field_18, 0x18);
+
+// 0x7100c7f630
+bool Unk_23dd790::vf2() {
+    if (field_18 == nullptr) {
+        return false;
+    }
+    return field_18->field_170 != 0;
+}
+
 class Unk_23dd820 {
 public:
     virtual ~Unk_23dd820();

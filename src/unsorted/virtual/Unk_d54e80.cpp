@@ -78,6 +78,13 @@ void Unk_23ebb88::vf40() {
     Unk_27dcdd8 = Unk_27dcdd8 + 1;
 }
 
+// 0x7100d55bf0
+void Unk_23ebb88::vf41() {
+    if (Unk_27dcdd8 != 0) {
+        Unk_27dcdd8 = Unk_27dcdd8 - 1;
+    }
+}
+
 // 0x7100d55c10
 void Unk_23ebb88::vf42() {
     Unk_27dcdd8 = 0;

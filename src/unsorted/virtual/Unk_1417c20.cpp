@@ -154,6 +154,12 @@ void Unk_2438e40::vf3(u64 index) {
         obj->vf16(m_entries[index].field_10);
 }
 
+struct Unk_2438f20_708 {
+    u8 _0[0x170];
+    u8 field_170;
+};
+PKMN_OFFSET_ASSERT(Unk_2438f20_708, field_170, 0x170);
+
 class Unk_2438f20 {
 public:
     virtual ~Unk_2438f20();
@@ -175,20 +181,31 @@ public:
     virtual void vf17();
     virtual void vf18();
     virtual void vf19();
-    virtual void vf20();
+    virtual bool vf20();
     virtual void vf21();
     virtual void vf22();
     virtual void vf23();
     virtual void vf24();
     virtual u32 vf25();
-    u8 _8[0x818];
+    u8 _8[0x700];
+    Unk_2438f20_708* field_708;
+    u8 _710[0x110];
     u64 field_820;
     u64 field_828;
     u64 field_830;
 };
+PKMN_OFFSET_ASSERT(Unk_2438f20, field_708, 0x708);
 PKMN_OFFSET_ASSERT(Unk_2438f20, field_820, 0x820);
 PKMN_OFFSET_ASSERT(Unk_2438f20, field_828, 0x828);
 PKMN_OFFSET_ASSERT(Unk_2438f20, field_830, 0x830);
+
+// 0x7101419010
+bool Unk_2438f20::vf20() {
+    if (field_708 == nullptr) {
+        return false;
+    }
+    return field_708->field_170 != 0;
+}
 
 // 0x7101419450
 void Unk_2438f20::vf22() {}

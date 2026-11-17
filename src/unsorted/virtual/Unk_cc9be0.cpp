@@ -77,6 +77,78 @@ extern u32 Unk_27da9dc;
 extern u32 Unk_27da9e0;
 extern u32 Unk_27da9e4;
 
+struct Unk_23e1318_18 {
+    u8 _0[0x170];
+    u8 field_170;
+};
+PKMN_OFFSET_ASSERT(Unk_23e1318_18, field_170, 0x170);
+
+class Unk_23e1318 {
+public:
+    virtual ~Unk_23e1318();
+    virtual bool vf2();
+    virtual void vf3();
+    u8 _8[0x10];
+    Unk_23e1318_18* field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_23e1318, field_18, 0x18);
+
+// 0x7100cc9be0
+bool Unk_23e1318::vf2() {
+    if (field_18 == nullptr) {
+        return false;
+    }
+    return field_18->field_170 != 0;
+}
+
+struct Unk_23e1348_18 {
+    u8 _0[0x170];
+    u8 field_170;
+};
+PKMN_OFFSET_ASSERT(Unk_23e1348_18, field_170, 0x170);
+
+class Unk_23e1348 {
+public:
+    virtual ~Unk_23e1348();
+    virtual bool vf2();
+    virtual void vf3();
+    u8 _8[0x10];
+    Unk_23e1348_18* field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_23e1348, field_18, 0x18);
+
+// 0x7100cc9db0
+bool Unk_23e1348::vf2() {
+    if (field_18 == nullptr) {
+        return false;
+    }
+    return field_18->field_170 != 0;
+}
+
+struct Unk_23e1378_18 {
+    u8 _0[0x170];
+    u8 field_170;
+};
+PKMN_OFFSET_ASSERT(Unk_23e1378_18, field_170, 0x170);
+
+class Unk_23e1378 {
+public:
+    virtual ~Unk_23e1378();
+    virtual bool vf2();
+    virtual void vf3();
+    u8 _8[0x10];
+    Unk_23e1378_18* field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_23e1378, field_18, 0x18);
+
+// 0x7100cc9f80
+bool Unk_23e1378::vf2() {
+    if (field_18 == nullptr) {
+        return false;
+    }
+    return field_18->field_170 != 0;
+}
+
 class Unk_23e13a8 {
 public:
     virtual ~Unk_23e13a8();
@@ -2371,4 +2443,28 @@ void Unk_23e35c8::vf28() {
 // 0x7100cda910
 bool Unk_23e35c8::vf29() {
     return Unk_27da9e4 > 9;
+}
+
+struct Unk_23e36c8_18 {
+    u8 _0[0x170];
+    u8 field_170;
+};
+PKMN_OFFSET_ASSERT(Unk_23e36c8_18, field_170, 0x170);
+
+class Unk_23e36c8 {
+public:
+    virtual ~Unk_23e36c8();
+    virtual bool vf2();
+    virtual void vf3();
+    u8 _8[0x10];
+    Unk_23e36c8_18* field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_23e36c8, field_18, 0x18);
+
+// 0x7100cdc4b0
+bool Unk_23e36c8::vf2() {
+    if (field_18 == nullptr) {
+        return false;
+    }
+    return field_18->field_170 != 0;
 }

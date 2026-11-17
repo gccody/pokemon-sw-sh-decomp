@@ -8,6 +8,9 @@
 void Unk_ba5440(void* self);
 void Unk_bb4d40(void* self);
 
+// Tail-called by lifted functions. Placeholders, like the forwarders' callees.
+void Unk_6d7ac0(u64, u64, u32);
+
 class Unk_23d3130 {
 public:
     virtual void vf0();
@@ -151,6 +154,12 @@ u32 Unk_23d3490::vf10() {
     return field_e8;
 }
 
+struct Unk_23d3560_1d0 {
+    u8 _0[0x2a0];
+    u64 field_2a0;
+};
+PKMN_OFFSET_ASSERT(Unk_23d3560_1d0, field_2a0, 0x2a0);
+
 class Unk_23d3560 {
 public:
     virtual void vf0();
@@ -168,7 +177,7 @@ public:
     virtual void vf12();
     virtual void vf13();
     virtual void vf14();
-    virtual void vf15();
+    virtual void vf15(u64 /*unused*/, u64 arg2);
     virtual void vf16();
     virtual void vf17();
     u8 _8[0x1a8];
@@ -176,10 +185,13 @@ public:
     u8 _1b4[0x16];
     u8 field_1ca;
     u8 field_1cb;
+    u8 _1cc[0x4];
+    Unk_23d3560_1d0* field_1d0;
 };
 PKMN_OFFSET_ASSERT(Unk_23d3560, field_1b0, 0x1b0);
 PKMN_OFFSET_ASSERT(Unk_23d3560, field_1ca, 0x1ca);
 PKMN_OFFSET_ASSERT(Unk_23d3560, field_1cb, 0x1cb);
+PKMN_OFFSET_ASSERT(Unk_23d3560, field_1d0, 0x1d0);
 
 // 0x7100bb4070
 void Unk_23d3560::vf11() {
@@ -199,6 +211,13 @@ void Unk_23d3560::vf13() {}
 // 0x7100bb4110
 void Unk_23d3560::vf14() {
     field_1cb = 1;
+}
+
+// 0x7100bb4130
+void Unk_23d3560::vf15(u64 /*unused*/, u64 arg2) {
+    if (field_1d0 != nullptr) {
+        Unk_6d7ac0(field_1d0->field_2a0, arg2, 1);
+    }
 }
 
 class Unk_23d3668 {
@@ -273,6 +292,28 @@ void Unk_23d36c8::vf6() {}
 
 // 0x7100bb4d30
 void Unk_23d36c8::vf7() {}
+
+struct Unk_23d3718_30 {
+    u8 _0[0x2a0];
+    u64 field_2a0;
+};
+PKMN_OFFSET_ASSERT(Unk_23d3718_30, field_2a0, 0x2a0);
+
+class Unk_23d3718 {
+public:
+    virtual void vf0(u64 /*unused*/, u64 arg2);
+    virtual void vf1();
+    u8 _8[0x28];
+    Unk_23d3718_30* field_30;
+};
+PKMN_OFFSET_ASSERT(Unk_23d3718, field_30, 0x30);
+
+// 0x7100bb4150
+void Unk_23d3718::vf0(u64 /*unused*/, u64 arg2) {
+    if (field_30 != nullptr) {
+        Unk_6d7ac0(field_30->field_2a0, arg2, 1);
+    }
+}
 
 class Unk_23d3e88 {
 public:

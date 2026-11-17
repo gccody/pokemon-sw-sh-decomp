@@ -206,7 +206,10 @@ public:
     virtual void vf14();
     virtual void vf15();
     virtual u32 vf16();
+    u8 _8[0x4b8];
+    u64 field_4c0;
 };
+PKMN_OFFSET_ASSERT(Unk_23a8bd8, field_4c0, 0x4c0);
 
 // 0x7100e7f510
 u32 Unk_23a8bd8::vf7() {
@@ -274,7 +277,10 @@ public:
     virtual void vf14();
     virtual void vf15();
     virtual void vf16();
+    u8 _8[0x4b8];
+    u64 field_4c0;
 };
+PKMN_OFFSET_ASSERT(Unk_23a9048, field_4c0, 0x4c0);
 
 // 0x7100e7f540
 void Unk_23a9048::vf11() {}
