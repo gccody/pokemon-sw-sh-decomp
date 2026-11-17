@@ -354,3 +354,32 @@ def test_adrp_pairs_survive_a_simd_write_to_the_same_number():
     # a pairing needs the lo12's base register: none for ldr x9, [x8, #0x18]
     img2 = img[:-4] + struct.pack("<I", 0xF9400D09)
     assert check.adrp_pairs(relocs, img2, 0x1000) == {}
+
+
+# --- demangling in one llvm-cxxfilt ---
+
+def test_demangler_primes_a_batch_with_one_process(monkeypatch):
+    calls = []
+
+    def run(cmd, input=None, **kw):
+        calls.append((cmd, input))
+        out = "".join(f"demangled({w})\n" for w in input.split()) if input else f"one({cmd[1]})\n"
+        return type("P", (), {"stdout": out})()
+    monkeypatch.setattr(check.subprocess, "run", run)
+    dm = check.Demangler("cxxfilt")
+    dm.prime(["_Z1fv", "_Z1gv@a", "plain", "_Z1fv"])
+    assert calls == [(["cxxfilt"], "_Z1fv\n_Z1gv\n")]
+    assert dm("_Z1fv") == "demangled(_Z1fv)" and dm("_Z1gv@a") == "demangled(_Z1gv)@a" and dm("plain") == "plain"
+    assert len(calls) == 1
+    assert dm("_Z1hv") == "one(_Z1hv)" and len(calls) == 2  # not primed: one process for it
+    dm.prime(["_Z1fv"])
+    assert len(calls) == 2  # nothing new to demangle
+
+
+def test_demangler_falls_back_when_the_batch_output_doesnt_line_up(monkeypatch):
+    monkeypatch.setattr(check.subprocess, "run", lambda cmd, input=None, **kw: type(
+        "P", (), {"stdout": "x\n" if input else f"one({cmd[1]})\n"})())
+    dm = check.Demangler("cxxfilt")
+    dm.prime(["_Z1fv", "_Z1gv"])
+    assert dm("_Z1gv") == "one(_Z1gv)"
+    assert check.Demangler(None)("_Z1fv") == "_Z1fv"

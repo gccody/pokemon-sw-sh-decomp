@@ -811,21 +811,42 @@ def side_by_side(cf: CompiledFunc, fn: Function, orig: Original, res: Result) ->
     return "\n".join(lines)
 
 
-def demangler():
-    exe = shutil.which("llvm-cxxfilt") or next((str(p) for p in ROOT.glob("toolchain/*/bin/llvm-cxxfilt*")), None)
-    cache: dict[str, str] = {}
+class Demangler:
+    """Demangles CSV names with llvm-cxxfilt (names it can't run on stay as
+    they are). prime() demangles a batch of names with one llvm-cxxfilt: one
+    process per name took minutes in a full check on Windows."""
 
-    def dm(name: str) -> str:
+    def __init__(self, exe: str | None):
+        self.exe = exe
+        self.cache: dict[str, str] = {}
+
+    def prime(self, names) -> None:
+        todo = sorted({sym for sym, _ in map(symbols.split, names) if sym.startswith("_Z")} - self.cache.keys())
+        if not self.exe or not todo:
+            return
+        try:
+            out = subprocess.run([self.exe], input="\n".join(todo) + "\n", capture_output=True,
+                                 text=True).stdout.splitlines()
+        except OSError:
+            return
+        if len(out) == len(todo):  # one line per name; otherwise leave them to __call__
+            self.cache.update((sym, line.strip() or sym) for sym, line in zip(todo, out))
+
+    def __call__(self, name: str) -> str:
         sym, stem = symbols.split(name)
-        if not exe or not sym.startswith("_Z"):
+        if not self.exe or not sym.startswith("_Z"):
             return name
-        if sym not in cache:
+        if sym not in self.cache:
             try:
-                cache[sym] = subprocess.run([exe, sym], capture_output=True, text=True).stdout.strip() or sym
+                self.cache[sym] = subprocess.run([self.exe, sym], capture_output=True, text=True).stdout.strip() or sym
             except OSError:
-                cache[sym] = sym
-        return cache[sym] if stem is None else f"{cache[sym]}{symbols.LOCAL_SEP}{stem}"
-    return dm
+                self.cache[sym] = sym
+        return self.cache[sym] if stem is None else f"{self.cache[sym]}{symbols.LOCAL_SEP}{stem}"
+
+
+def demangler() -> Demangler:
+    exe = shutil.which("llvm-cxxfilt") or next((str(p) for p in ROOT.glob("toolchain/*/bin/llvm-cxxfilt*")), None)
+    return Demangler(exe)
 
 
 def build(versions: list[str]) -> None:
@@ -876,6 +897,11 @@ def main() -> int:
                     wanted.add(f.key)
 
     all_names = sorted(set().union(*(c.keys() for c in compiled.values())))
+    # one llvm-cxxfilt for the names the output can show: the functions checked
+    # and what they refer to
+    checked = [n for n in all_names if wanted is None or (n in by_name and by_name[n].key in wanted)]
+    dm.prime(checked + [r.sym for c in compiled.values() for n in checked if n in c
+                        for cf in c[n].copies() for r in cf.relocs.values()])
     absent = read_absent()
     foreign = read_absent(FOREIGN_CSV)
     unidentified = read_absent(UNIDENTIFIED_CSV)
