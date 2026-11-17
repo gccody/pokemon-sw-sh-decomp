@@ -198,7 +198,7 @@ public:
     virtual void vf30();
     virtual u8 vf31();
     virtual void vf32();
-    virtual void vf33();
+    virtual bool vf33();
     virtual void vf34();
     virtual void vf35();
     virtual void vf36();
@@ -243,9 +243,12 @@ public:
     virtual void vf75();
     virtual void vf76();
     virtual void vf77();
-    u8 _8[0xaa0];
+    u8 _8[0x608];
+    u64 field_610;
+    u8 _618[0x490];
     u8 field_aa8;
 };
+PKMN_OFFSET_ASSERT(Unk_23e8290, field_610, 0x610);
 PKMN_OFFSET_ASSERT(Unk_23e8290, field_aa8, 0xaa8);
 
 // 0x7100d13680

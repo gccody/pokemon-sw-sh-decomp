@@ -39,7 +39,7 @@ public:
     virtual void vf30();
     virtual void vf31();
     virtual void vf32();
-    virtual void vf33();
+    virtual bool vf33();
     virtual void vf34();
     virtual void vf35();
     virtual void vf36();
@@ -84,7 +84,15 @@ public:
     virtual void vf75();
     virtual void vf76();
     virtual void vf77();
+    u8 _8[0x5f8];
+    u64 field_600;
 };
+PKMN_OFFSET_ASSERT(Unk_23e8958, field_600, 0x600);
+
+// 0x7100d17a80
+bool Unk_23e8958::vf33() {
+    return field_600 == 0xcbf29ce484222645;
+}
 
 // 0x7100d17e70
 u32 Unk_23e8958::vf69() {

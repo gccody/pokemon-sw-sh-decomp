@@ -742,6 +742,23 @@ void Unk_7f37e0_set(Unk_7f37e0* self, u8 value) {
     self->field_3f = value;
 }
 
+struct Unk_7f4fb0 {
+    u8 _0[0x310];
+    u8 field_310;
+    u8 _311[0x94];
+    u8 field_3a5;
+};
+PKMN_OFFSET_ASSERT(Unk_7f4fb0, field_310, 0x310);
+PKMN_OFFSET_ASSERT(Unk_7f4fb0, field_3a5, 0x3a5);
+
+void Unk_e87fe0(u64, void*);
+
+// 0x71007f4fb0
+void Unk_7f4fb0_call(Unk_7f4fb0* self) {
+    self->field_3a5 = 1;
+    Unk_e87fe0(0xcdb8b54649071c03, &self->field_310);
+}
+
 void Unk_7870a0();
 
 // 0x71007f7140

@@ -38,14 +38,63 @@ public:
     virtual void vf14();
     virtual void vf15();
     virtual void vf16();
-    virtual void vf17();
+    virtual u64 vf17();
     virtual void vf18();
+    u8 _8[0x688];
+    u64 field_690;
+    u64 field_698;
+    u64 field_6a0;
 };
+PKMN_OFFSET_ASSERT(Unk_23c0158, field_690, 0x690);
+PKMN_OFFSET_ASSERT(Unk_23c0158, field_698, 0x698);
+PKMN_OFFSET_ASSERT(Unk_23c0158, field_6a0, 0x6a0);
 
 // 0x710093c1b0
 void Unk_23c0158::vf6() {
     Unk_939c20(this);
 }
+
+// 0x710093a6e0
+u64 Unk_23c0158::vf17() {
+    return 0x94d2e5df4573018a;
+}
+
+// 0x710093bf30
+void Unk_23c0158::vf18() {
+    field_690 = 0xd26177439617e483;
+    field_698 = 0xcde1df2adb781f3d;
+    field_6a0 = 0x815946d80013b0f0;
+}
+
+class Unk_23c0268 {
+public:
+    virtual ~Unk_23c0268();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual u64 vf17();
+    virtual void vf18();
+};
+
+// 0x710093c150
+u64 Unk_23c0268::vf17() {
+    return 0x9009c7d009d2e8a7;
+}
+
+// 0x710093c440
+void Unk_23c0268::vf18() {}
 
 class Unk_23c0200 {
 public:
@@ -73,31 +122,6 @@ public:
 void Unk_23c0240::vf0() {
     Unk_939c20(this);
 }
-
-class Unk_23c0268 {
-public:
-    virtual ~Unk_23c0268();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15();
-    virtual void vf16();
-    virtual void vf17();
-    virtual void vf18();
-};
-
-// 0x710093c440
-void Unk_23c0268::vf18() {}
 
 class Unk_23c0390 {
 public:
