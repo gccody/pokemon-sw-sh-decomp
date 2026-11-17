@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Write placeholder C++ for small straight-line leaf functions.
 
-    python tools/leafgen.py scan --max 32               # what it can lift, by kind (game, gflib3, gflnet3)
+    python tools/leafgen.py scan --max 32               # what it can lift, by kind (Game Freak code)
     python tools/leafgen.py write --max 32              # into src/unsorted/leaf
     python tools/leafgen.py names --out map.csv         # after a build: the mangled names, for funcs.py
 
@@ -1021,7 +1021,7 @@ def candidates(args) -> list[tuple[int, bytes]]:
     GOT.update({slot: v for slot, v in dyn.slots.items() if isinstance(v, int)})
     called = F.branch_targets(img, 0, mod["text_end"] & ~3)
     areas = read_areas_csv()
-    groups = args.area or ["game", "gflib3", "gflnet3"]
+    groups = args.area or ["game", "gflib3", "gflnet3", "startup"]
     for g in groups:
         if g not in area_names(areas):
             raise SystemExit(f"no area {g!r}")
@@ -1047,7 +1047,7 @@ def main(argv: list[str] | None = None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     for name in ("scan", "write"):
         p = sub.add_parser(name)
-        p.add_argument("--area", action="append", help="area or group (default: game, gflib3, gflnet3)")
+        p.add_argument("--area", action="append", help="area or group (default: game, gflib3, gflnet3, startup)")
         p.add_argument("--max", type=int, default=32, help="largest function, in bytes (default 32)")
         if name == "write":
             p.add_argument("--out", type=Path, default=ROOT / "src" / "unsorted" / "leaf")
