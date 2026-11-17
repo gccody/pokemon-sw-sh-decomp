@@ -34,6 +34,13 @@ void Unk_7ff870_set(Unk_7ff870* self, const Unk_7ff870_arg1* value) {
 // 0x71007ffa70
 void Unk_7ffa70() {}
 
+void Unk_7ff8f0();
+
+// 0x71007ffa80
+void Unk_7ffa80_call() {
+    Unk_7ff8f0();
+}
+
 struct Unk_7ffaa0 {
     u8 field_0;
 };

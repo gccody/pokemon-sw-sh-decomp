@@ -268,6 +268,13 @@ u32 Unk_136b860() {
     return 0x110;
 }
 
+void Unk_136d010();
+
+// 0x710136d000
+void Unk_136d000_call() {
+    Unk_136d010();
+}
+
 struct Unk_136f5a0 {
     u8 _0[0x60];
     u16 field_60;

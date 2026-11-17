@@ -39,6 +39,19 @@ void Unk_ca07d0_set(Unk_ca07d0* self, const Unk_ca07d0_arg1* value, u32 arg2) {
     self->field_b4 = arg2;
 }
 
+struct Unk_ca4e10 {
+    u8 _0[0x60];
+    u64 field_60;
+};
+PKMN_OFFSET_ASSERT(Unk_ca4e10, field_60, 0x60);
+
+void Unk_785960(u64);
+
+// 0x7100ca4e10
+void Unk_ca4e10_call(const Unk_ca4e10* self) {
+    Unk_785960(self->field_60);
+}
+
 struct Unk_ca4e20 {
     u8 _0[0xf0];
     u32 field_f0;

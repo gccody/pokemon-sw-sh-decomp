@@ -48,3 +48,16 @@ PKMN_OFFSET_ASSERT(Unk_10f7c20, field_320, 0x320);
 void Unk_10f7c20_set(Unk_10f7c20* self) {
     self->field_320 = self->field_318;
 }
+
+struct Unk_10f7c30 {
+    u8 _0[0x310];
+    u64 field_310;
+};
+PKMN_OFFSET_ASSERT(Unk_10f7c30, field_310, 0x310);
+
+void Unk_10f95c0(u64);
+
+// 0x71010f7c30
+void Unk_10f7c30_call(const Unk_10f7c30* self) {
+    Unk_10f95c0(self->field_310);
+}

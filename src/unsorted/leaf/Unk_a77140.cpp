@@ -58,6 +58,25 @@ u32 Unk_a775e0_getField88(const Unk_a775e0* self) {
     return self->field_88;
 }
 
+struct Unk_a77780_70 {
+    u8 _0[0x170];
+    u64 field_170;
+};
+PKMN_OFFSET_ASSERT(Unk_a77780_70, field_170, 0x170);
+
+struct Unk_a77780 {
+    u8 _0[0x70];
+    Unk_a77780_70* field_70;
+};
+PKMN_OFFSET_ASSERT(Unk_a77780, field_70, 0x70);
+
+void Unk_a77610(void*, u64);
+
+// 0x7100a77780
+void Unk_a77780_call(Unk_a77780* self) {
+    Unk_a77610(self, self->field_70->field_170);
+}
+
 struct Unk_a77790 {
     u8 _0[0xb0];
     u64 field_b0;

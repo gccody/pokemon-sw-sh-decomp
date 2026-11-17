@@ -73,6 +73,20 @@ void Unk_7e8a10_setField4(Unk_7e8a10* self, u32 value) {
     self->field_4 = value;
 }
 
+void Unk_7e8f70(void*, u64, u32, u32);
+
+// 0x71007e8f60
+void Unk_7e8f60_call(void* self, u64 value) {
+    Unk_7e8f70(self, value, 9, 1);
+}
+
+void Unk_7e8f70(void*, u64, u32, u32);
+
+// 0x71007e9050
+void Unk_7e9050_call(void* self, u64 value) {
+    Unk_7e8f70(self, value, 9, 0);
+}
+
 struct Unk_7e99e0 {
     u8 _0[0x8];
     u16 field_8;
@@ -493,4 +507,11 @@ PKMN_OFFSET_ASSERT(Unk_7eaf40, field_1588, 0x1588);
 // 0x71007eaf40
 u64 Unk_7eaf40_getField1588(const Unk_7eaf40* self) {
     return self->field_1588;
+}
+
+void Unk_7eb3d0();
+
+// 0x71007eb460
+void Unk_7eb460_call() {
+    Unk_7eb3d0();
 }

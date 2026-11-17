@@ -53,6 +53,57 @@ bool Unk_eb5c70_check(const Unk_eb5c70* self) {
     return (self->field_40 | 1) == 3;
 }
 
+void Unk_eb6230(void*, u32);
+
+// 0x7100eb6070
+void Unk_eb6070_call(void* self) {
+    Unk_eb6230(self, 3);
+}
+
+struct Unk_eb76a0 {
+    u8 _0[0x5d0];
+    u64 field_5d0;
+};
+PKMN_OFFSET_ASSERT(Unk_eb76a0, field_5d0, 0x5d0);
+
+void Unk_14eaa70(u64);
+
+// 0x7100eb76a0
+void Unk_eb76a0_call(const Unk_eb76a0* self) {
+    Unk_14eaa70(self->field_5d0);
+}
+
+struct Unk_eb7720 {
+    u8 _0[0x5d0];
+    u64 field_5d0;
+};
+PKMN_OFFSET_ASSERT(Unk_eb7720, field_5d0, 0x5d0);
+
+void Unk_14eaaf0(u64);
+
+// 0x7100eb7720
+void Unk_eb7720_call(const Unk_eb7720* self) {
+    Unk_14eaaf0(self->field_5d0);
+}
+
+struct Unk_ebc2f0_arg1 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_ebc2f0_arg1, field_0, 0x0);
+
+struct Unk_ebc2f0 {
+    u8 _0[0x6b8];
+    u64 field_6b8;
+};
+PKMN_OFFSET_ASSERT(Unk_ebc2f0, field_6b8, 0x6b8);
+
+void Unk_67bc30(u64, u64);
+
+// 0x7100ebc2f0
+void Unk_ebc2f0_call(const Unk_ebc2f0* self, const Unk_ebc2f0_arg1* value) {
+    Unk_67bc30(self->field_6b8, value->field_0);
+}
+
 struct Unk_ebcbf0_arg1 {
     u64 field_0;
 };
@@ -66,6 +117,20 @@ PKMN_OFFSET_ASSERT(Unk_ebcbf0, field_0, 0x0);
 // 0x7100ebcbf0
 void Unk_ebcbf0_set(const Unk_ebcbf0* self, Unk_ebcbf0_arg1* value) {
     value->field_0 = self->field_0;
+}
+
+void Unk_eb6230(void*, u32);
+
+// 0x7100ec2fb0
+void Unk_ec2fb0_call(void* self) {
+    Unk_eb6230(self, 3);
+}
+
+void Unk_eb6230(void*, u32);
+
+// 0x7100ec6e20
+void Unk_ec6e20_call(void* self) {
+    Unk_eb6230(self, 3);
 }
 
 struct Unk_ec6e30_5d0 {

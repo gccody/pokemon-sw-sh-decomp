@@ -57,3 +57,21 @@ PKMN_OFFSET_ASSERT(Unk_14e4190, field_480, 0x480);
 void Unk_14e4190_set(Unk_14e4190* self, bool value) {
     self->field_480 = value;
 }
+
+struct Unk_14e62b0_arg1 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_14e62b0_arg1, field_0, 0x0);
+
+struct Unk_14e62b0 {
+    u8 _0[0x408];
+    u64 field_408;
+};
+PKMN_OFFSET_ASSERT(Unk_14e62b0, field_408, 0x408);
+
+void Unk_14f4530(u64, u64);
+
+// 0x71014e62b0
+void Unk_14e62b0_call(const Unk_14e62b0* self, const Unk_14e62b0_arg1* value) {
+    Unk_14f4530(self->field_408, value->field_0);
+}

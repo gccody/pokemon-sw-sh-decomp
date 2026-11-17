@@ -30,9 +30,23 @@ u8 Unk_7847d0_getField88(const Unk_7847d0* self) {
     return self->field_88;
 }
 
+void Unk_784800(void*, u64, u32);
+
+// 0x71007847f0
+void Unk_7847f0_call(void* self, u64 value) {
+    Unk_784800(self, value, 0);
+}
+
 // 0x7100784f30
 u32 Unk_784f30() {
     return 0x810;
+}
+
+void Unk_785330(void*, u64, u32);
+
+// 0x7100785320
+void Unk_785320_call(void* self, u64 value) {
+    Unk_785330(self, value, 1);
 }
 
 struct Unk_785fe0_160 {

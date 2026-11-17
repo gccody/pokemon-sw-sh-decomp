@@ -25,6 +25,13 @@ u64 Unk_1305db0_getField58(const Unk_1305db0* self) {
     return self->field_58;
 }
 
+void Unk_1306cf0();
+
+// 0x7101306ce0
+void Unk_1306ce0_call() {
+    Unk_1306cf0();
+}
+
 struct Unk_13077f0 {
     u8 _0[0xaf8];
     u32 field_af8;
@@ -34,6 +41,13 @@ PKMN_OFFSET_ASSERT(Unk_13077f0, field_af8, 0xaf8);
 // 0x71013077f0
 bool Unk_13077f0_check(const Unk_13077f0* self, u32 value) {
     return ((self->field_af8 == 3) | value) != 1;
+}
+
+void Unk_1307de0(void*, u64, u32, u32);
+
+// 0x7101307dd0
+void Unk_1307dd0_call(void* self, u64 value, bool arg2) {
+    Unk_1307de0(self, value, 0xa, arg2);
 }
 
 struct Unk_13091c0 {
@@ -86,3 +100,10 @@ void Unk_1309a80_set(Unk_1309a80* self) {
 
 // 0x710130abe0
 void Unk_130abe0() {}
+
+void Unk_67c4e0();
+
+// 0x710130ac20
+void Unk_130ac20_call() {
+    Unk_67c4e0();
+}

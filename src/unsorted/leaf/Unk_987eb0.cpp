@@ -133,3 +133,10 @@ PKMN_OFFSET_ASSERT(Unk_9a78c0, field_100, 0x100);
 void Unk_9a78c0_clearField100(Unk_9a78c0* self) {
     self->field_100 = 0;
 }
+
+void Unk_9a78d0();
+
+// 0x71009a8a10
+void Unk_9a8a10_call() {
+    Unk_9a78d0();
+}

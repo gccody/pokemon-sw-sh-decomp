@@ -180,3 +180,10 @@ PKMN_OFFSET_ASSERT(Unk_7dfdc0, field_230, 0x230);
 u64 Unk_7dfdc0_getField230(const Unk_7dfdc0* self) {
     return self->field_230;
 }
+
+void Unk_7d64a0(void*, u64, u64, u64);
+
+// 0x71007dfdd0
+void Unk_7dfdd0_call(void* self, u64 value, u64 arg2) {
+    Unk_7d64a0(self, value, arg2, 0);
+}

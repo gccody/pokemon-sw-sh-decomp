@@ -33,6 +33,19 @@ u32 Unk_eeb410_getField0(const Unk_eeb410* self) {
     return self->field_0;
 }
 
+struct Unk_ef4580 {
+    u8 _0[0x688];
+    u64 field_688;
+};
+PKMN_OFFSET_ASSERT(Unk_ef4580, field_688, 0x688);
+
+void Unk_eb75e0(u64);
+
+// 0x7100ef4580
+void Unk_ef4580_call(const Unk_ef4580* self) {
+    Unk_eb75e0(self->field_688);
+}
+
 struct Unk_efcb80 {
     u8 _0[0x6c];
     u32 field_6c;
