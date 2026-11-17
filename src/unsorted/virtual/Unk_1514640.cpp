@@ -365,6 +365,23 @@ void Unk_2447a60::vf0() {
     Unk_151b530(this);
 }
 
+class Unk_2447a88 {
+public:
+    virtual ~Unk_2447a88();
+    virtual void vf2();
+    virtual u64 vf3();
+    virtual void vf4();
+    virtual void vf5();
+    u8 _8[0xd0];
+    u64 field_d8;
+};
+PKMN_OFFSET_ASSERT(Unk_2447a88, field_d8, 0xd8);
+
+// 0x710151bc50
+u64 Unk_2447a88::vf3() {
+    return field_d8;
+}
+
 class Unk_2447ac8 {
 public:
     virtual u32 vf0();

@@ -43,6 +43,23 @@ u32 Unk_2401fc8::vf25() {
     return 1;
 }
 
+class Unk_2402110 {
+public:
+    virtual ~Unk_2402110();
+    virtual void vf2();
+    virtual u64 vf3();
+    virtual void vf4();
+    virtual void vf5();
+    u8 _8[0x50];
+    u64 field_58;
+};
+PKMN_OFFSET_ASSERT(Unk_2402110, field_58, 0x58);
+
+// 0x7100fa0e80
+u64 Unk_2402110::vf3() {
+    return field_58;
+}
+
 class Unk_2402150 {
 public:
     virtual u32 vf0();

@@ -261,9 +261,9 @@ public:
     virtual void vf253();
     virtual void vf254();
     virtual void vf255();
-    virtual void vf256();
+    virtual u64 vf256();
     virtual void* vf257();
-    virtual void vf258();
+    virtual u64 vf258();
     virtual void vf259();
     virtual void vf260();
     virtual void vf261();
@@ -272,11 +272,11 @@ public:
     virtual void vf264();
     virtual void vf265();
     virtual u32 vf266();
-    virtual void vf267();
+    virtual u32 vf267();
     virtual void vf268();
     virtual void vf269();
     virtual void vf270();
-    virtual void vf271();
+    virtual bool vf271();
     virtual void vf272();
     virtual void vf273();
     virtual void vf274();
@@ -331,11 +331,11 @@ public:
     virtual void vf323();
     virtual void vf324();
     virtual void vf325();
-    virtual void vf326();
+    virtual u8* vf326();
     virtual void vf327();
     virtual void vf328();
     virtual void vf329();
-    virtual void vf330();
+    virtual u8* vf330();
     virtual u32 vf331();
     virtual void vf332();
     virtual void vf333();
@@ -345,11 +345,31 @@ public:
     virtual void vf337();
     virtual void vf338();
     virtual void vf339();
+    u8 _8[0x2038];
+    u8 field_2040;
+    u8 _2041[0x15f];
+    u32 field_21a0;
+    u8 _21a4[0x34];
+    u64 field_21d8;
+    u8 _21e0[0x20];
+    u64 field_2200;
+    u8 _2208[0x18];
+    u8 field_2220;
 };
+PKMN_OFFSET_ASSERT(Unk_23c5148, field_2040, 0x2040);
+PKMN_OFFSET_ASSERT(Unk_23c5148, field_21a0, 0x21a0);
+PKMN_OFFSET_ASSERT(Unk_23c5148, field_21d8, 0x21d8);
+PKMN_OFFSET_ASSERT(Unk_23c5148, field_2200, 0x2200);
+PKMN_OFFSET_ASSERT(Unk_23c5148, field_2220, 0x2220);
 
 // 0x7100a6d010
 void* Unk_23c5148::vf252() {
     return nullptr;
+}
+
+// 0x7100a6d400
+u64 Unk_23c5148::vf256() {
+    return field_21d8;
 }
 
 // 0x7100a6d410
@@ -357,9 +377,34 @@ void* Unk_23c5148::vf257() {
     return nullptr;
 }
 
+// 0x7100a6d420
+u64 Unk_23c5148::vf258() {
+    return field_2200;
+}
+
 // 0x7100a6df80
 u32 Unk_23c5148::vf266() {
     return 0;
+}
+
+// 0x7100a6df90
+u32 Unk_23c5148::vf267() {
+    return field_21a0;
+}
+
+// 0x7100a6dfa0
+bool Unk_23c5148::vf271() {
+    return field_21a0 == 1;
+}
+
+// 0x7100a6d260
+u8* Unk_23c5148::vf326() {
+    return &field_2040;
+}
+
+// 0x7100a6d270
+u8* Unk_23c5148::vf330() {
+    return &field_2220;
 }
 
 // 0x7100a6dfb0

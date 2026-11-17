@@ -19,7 +19,9 @@ public:
     virtual void vf10();
     virtual void vf11();
     virtual void vf12();
+    u16 field_8;
 };
+PKMN_OFFSET_ASSERT(Unk_240fdb0, field_8, 0x8);
 
 // 0x710109d960
 void Unk_240fdb0::vf0() {}

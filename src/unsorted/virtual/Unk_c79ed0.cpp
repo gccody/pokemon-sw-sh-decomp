@@ -26,14 +26,22 @@ public:
     virtual void vf5();
     virtual void vf6();
     virtual void vf7();
-    virtual void vf8();
+    virtual bool vf8();
     virtual void vf9();
     virtual void vf10();
     virtual void vf11();
     virtual void vf12();
     virtual void vf13();
     virtual void vf14();
+    u8 _8[0x17c];
+    s32 field_184;
 };
+PKMN_OFFSET_ASSERT(Unk_23dd630, field_184, 0x184);
+
+// 0x7100c7bec0
+bool Unk_23dd630::vf8() {
+    return field_184 > 3;
+}
 
 // 0x7100c79ed0
 void Unk_23dd630::vf11() {}
@@ -56,7 +64,7 @@ public:
     virtual void vf11();
     virtual void vf12();
     virtual void vf13();
-    virtual void vf14();
+    virtual u8 vf14();
     virtual void vf15();
     virtual void vf16();
     virtual void vf17();
@@ -116,11 +124,19 @@ public:
     virtual void vf71();
     virtual void vf72();
     virtual void vf73();
+    u8 _8[0x4c0];
+    u8 field_4c8;
 };
+PKMN_OFFSET_ASSERT(Unk_23dd820, field_4c8, 0x4c8);
 
 // 0x7100c836d0
 void Unk_23dd820::vf6() {
     Unk_13b1c90(this);
+}
+
+// 0x7100c836e0
+u8 Unk_23dd820::vf14() {
+    return field_4c8;
 }
 
 // 0x7100c836f0
@@ -294,6 +310,78 @@ public:
 // 0x7100c85c10
 void Unk_23ddfe8::vf0() {
     Unk_96c590(this);
+}
+
+class Unk_23de060 {
+public:
+    virtual ~Unk_23de060();
+    virtual void vf2();
+    virtual void vf3();
+    virtual u8 vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    u8 _8[0x138];
+    u8 field_140;
+};
+PKMN_OFFSET_ASSERT(Unk_23de060, field_140, 0x140);
+
+// 0x7100c87440
+u8 Unk_23de060::vf4() {
+    return field_140;
+}
+
+// 0x7100c87450
+void Unk_23de060::vf5() {
+    field_140 = 1;
+}
+
+class Unk_23de0b0 {
+public:
+    virtual ~Unk_23de0b0();
+    virtual void vf2();
+    virtual void vf3();
+    virtual u8 vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    u8 _8[0x138];
+    u8 field_140;
+};
+PKMN_OFFSET_ASSERT(Unk_23de0b0, field_140, 0x140);
+
+// 0x7100c87e80
+u8 Unk_23de0b0::vf4() {
+    return field_140;
+}
+
+// 0x7100c87e90
+void Unk_23de0b0::vf5() {
+    field_140 = 1;
+}
+
+class Unk_23de100 {
+public:
+    virtual ~Unk_23de100();
+    virtual void vf2();
+    virtual void vf3();
+    virtual u8 vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    u8 _8[0x138];
+    u8 field_140;
+};
+PKMN_OFFSET_ASSERT(Unk_23de100, field_140, 0x140);
+
+// 0x7100c88810
+u8 Unk_23de100::vf4() {
+    return field_140;
+}
+
+// 0x7100c88820
+void Unk_23de100::vf5() {
+    field_140 = 1;
 }
 
 class Unk_23de358 {

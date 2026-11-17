@@ -43,6 +43,23 @@ public:
 // 0x7100f5e390
 void Unk_23fed58::vf22() {}
 
+class Unk_23fef90 {
+public:
+    virtual ~Unk_23fef90();
+    virtual void vf2();
+    virtual u64 vf3();
+    virtual void vf4();
+    virtual void vf5();
+    u8 _8[0x50];
+    u64 field_58;
+};
+PKMN_OFFSET_ASSERT(Unk_23fef90, field_58, 0x58);
+
+// 0x7100f5fa20
+u64 Unk_23fef90::vf3() {
+    return field_58;
+}
+
 class Unk_23fefd0 {
 public:
     virtual u32 vf0();

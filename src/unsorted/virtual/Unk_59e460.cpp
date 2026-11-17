@@ -220,6 +220,27 @@ void Unk_2398c18::vf0() {
     Unk_5b2f90(this);
 }
 
+class Unk_2398d98 {
+public:
+    virtual ~Unk_2398d98();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual u64 vf7();
+    virtual void vf8();
+    virtual void vf9();
+    u8 _8[0x40];
+    u64 field_48;
+};
+PKMN_OFFSET_ASSERT(Unk_2398d98, field_48, 0x48);
+
+// 0x71005bc060
+u64 Unk_2398d98::vf7() {
+    return field_48;
+}
+
 class Unk_2398df8 {
 public:
     virtual ~Unk_2398df8();

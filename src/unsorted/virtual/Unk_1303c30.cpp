@@ -267,3 +267,36 @@ public:
 
 // 0x7101307a20
 void Unk_242f478::vf0() {}
+
+class Unk_242f550 {
+public:
+    virtual ~Unk_242f550();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    u8 _8[0x138];
+    u8 field_140;
+    u8 _141[0xf];
+    u64 field_150;
+};
+PKMN_OFFSET_ASSERT(Unk_242f550, field_140, 0x140);
+PKMN_OFFSET_ASSERT(Unk_242f550, field_150, 0x150);
+
+// 0x7101309aa0
+void Unk_242f550::vf16() {
+    field_150 = 0;
+    field_140 = 0;
+}

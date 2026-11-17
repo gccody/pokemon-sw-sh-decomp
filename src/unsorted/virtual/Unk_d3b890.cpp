@@ -44,7 +44,7 @@ public:
     virtual void vf35();
     virtual void vf36();
     virtual void vf37();
-    virtual void vf38();
+    virtual f32 vf38();
     virtual void vf39();
     virtual void vf40();
     virtual void vf41();
@@ -76,7 +76,15 @@ public:
     virtual void vf67();
     virtual void vf68();
     virtual void vf69();
+    u8 _8[0x518];
+    f32 field_520;
 };
+PKMN_OFFSET_ASSERT(Unk_23e9cd0, field_520, 0x520);
 
 // 0x7100d3b890
 void Unk_23e9cd0::vf29() {}
+
+// 0x7100d3b960
+f32 Unk_23e9cd0::vf38() {
+    return field_520;
+}

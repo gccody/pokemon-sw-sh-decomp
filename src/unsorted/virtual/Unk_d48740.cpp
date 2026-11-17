@@ -105,3 +105,37 @@ Unk_23ea450::~Unk_23ea450() {}
 
 // 0x7100d4a8f0
 void Unk_23ea450::vf4() {}
+
+class Unk_23ea498 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    u8 _8[0x60];
+    u8 field_68;
+};
+PKMN_OFFSET_ASSERT(Unk_23ea498, field_68, 0x68);
+
+// 0x7100d4c360
+void Unk_23ea498::vf11() {
+    field_68 = 0;
+}
+
+// 0x7100d4c370
+void Unk_23ea498::vf12() {
+    field_68 = 1;
+}
