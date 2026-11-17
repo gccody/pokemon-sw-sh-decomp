@@ -143,6 +143,25 @@ def test_refused(words, why):
         leafgen.generate(ADDR, code(*words))
 
 
+def test_tail_call():
+    """ldr x0, [x0, #8] ; b +0x100: the call gets the field (a u64: nothing
+    dereferences it). Pointer arguments are void*, so the callee's name
+    doesn't depend on its callers' placeholder structs."""
+    structs, func = leafgen.generate(ADDR, code(ldr_x(0, 0, 8), 0x14000000 | 0x100 >> 2))
+    assert "void Unk_123554(u64);\n" in structs
+    assert func == "void Unk_123450_call(const Unk_123450* self) {\n    Unk_123554(self->field_8);\n}\n"
+    assert leafgen.callee_name(ADDR + 0x104, ["void*"]) == ("Unk_123554", "_Z10Unk_123554Pv")
+
+
+def test_tail_call_passes_unwritten_arguments_through():
+    """mov w1, #5 ; b +0x100: x0 is passed on as it came."""
+    structs, func = leafgen.generate(ADDR, code(0x528000A1, 0x14000000 | 0x100 >> 2))
+    assert "void Unk_123554(void*, u32);\n" in structs
+    assert func == "void Unk_123450_call(void* self) {\n    Unk_123554(self, 5);\n}\n"
+    with pytest.raises(leafgen.LiftError, match="ret"):  # without an address, no tail call
+        leafgen.lift(code(0x528000A1, 0x14000000 | 0x100 >> 2))
+
+
 def test_misaligned_field_is_refused():
     # ldur w0, [x0, #2]: a u32 at offset 2 can't be a plain struct member.
     ldur_w = 0xB8400000 | 2 << 12 | 0 << 5 | 0
