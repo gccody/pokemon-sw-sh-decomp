@@ -1,12 +1,17 @@
-"""Original addresses of lib/physx's data objects (vtables, tables, globals),
-from the adrp/lo12 and GOT references of functions attributed in both games.
+"""Original addresses of a vendored library's data objects (vtables, tables,
+globals), from the adrp/lo12 and GOT references of functions attributed in
+both games. lib/physx by default:
 
     python docs/physx/physx_data_symbols.py <out.csv>      (from the repo root,
                                                             after building both games)
+    python docs/physx/physx_data_symbols.py <out.csv> --prefix lib/protobuf/ --range 0x71006dea00-0x7100761f70
+                                                           (another library: its TUs and
+                                                            functions, Sword = Shield)
 
 A data object is placed where every attributed reference to it agrees. The
 output is Sword,Shield,Size,Name rows for data/data_symbols.csv.
 """
+import argparse
 import csv
 import sys
 from collections import defaultdict
@@ -15,40 +20,59 @@ from pathlib import Path
 sys.path.insert(0, "tools")
 import sweep_attribute as sa  # noqa: E402
 import symbols  # noqa: E402
-from common import BASE  # noqa: E402
+from common import BASE, read_functions_csv  # noqa: E402
 from elftools.elf.elffile import ELFFile  # noqa: E402
 
-LO, HI = 0x10A90, 0x3035E0  # offsets from the module base
-OUT = Path(sys.argv[1])
+ap = argparse.ArgumentParser()
+ap.add_argument("out", type=Path)
+ap.add_argument("--prefix", default="lib/physx/", help="repository directory of the library's TUs")
+ap.add_argument("--range", default="0x7100010a90-0x71003035e0", help="the library's functions (Sword = Shield)")
+args = ap.parse_args()
+LO, HI = (int(x, 16) - BASE for x in args.range.split("-"))  # offsets from the module base
+OUT, PREFIX = args.out, args.prefix
 
 
 def objects_info(build: Path):
-    """Data symbols: qualified name -> size; section key -> [(value, size, name)]."""
-    sizes, by_sec = {}, defaultdict(list)
-    for obj, stem in sa.build_objects(build, "lib/physx/"):
+    """Data symbols: qualified name -> size; section key -> [(value, size, name)];
+    function name -> the names at its address in its object (C1/C2, D1/D2 aliases)."""
+    sizes, by_sec, aliases = {}, defaultdict(list), defaultdict(set)
+    for obj, stem in sa.build_objects(build, PREFIX):
         src = Path(stem + ".cpp")
         with open(obj, "rb") as fh:
             elf = ELFFile(fh)
+            at = defaultdict(set)
             for s in elf.get_section_by_name(".symtab").iter_symbols():
+                if s["st_info"]["type"] == "STT_FUNC" and isinstance(s["st_shndx"], int):
+                    at[s["st_shndx"], s["st_value"]].add(
+                        symbols.qualify(s.name, src, s["st_info"]["bind"] == "STB_LOCAL"))
                 if s["st_info"]["type"] != "STT_OBJECT" or not isinstance(s["st_shndx"], int):
                     continue
                 q = symbols.qualify(s.name, src, s["st_info"]["bind"] == "STB_LOCAL")
                 sizes[q] = s["st_size"]
                 by_sec[f"<{elf.get_section(s['st_shndx']).name}@{stem}>"].append((s["st_value"], s["st_size"], q))
-    return sizes, by_sec
+            for names in at.values():
+                for n in names:
+                    aliases[n] |= names
+    return sizes, by_sec, aliases
 
 
 def places(game: str):
     build = Path("build") / game
-    copies, tables = sa.read_objects(build, "lib/physx/")
+    copies, tables = sa.read_objects(build, PREFIX)
     orig = sa.load_original(game, LO, HI)
     res = sa.attribute(copies, tables, orig)
-    sizes, by_sec = objects_info(build)
     by_name = defaultdict(list)
     for c in copies:
         by_name[c.name].append(c)
     found: dict[str, set[int]] = defaultdict(set)
+    # Only the name functions.csv gives the original: a function that isn't in
+    # the binary can have the same code as one that is (a class's structors and
+    # its twin's), and its references would place its own data there.
+    row = {f.addr(game): f.name for f in read_functions_csv() if f.in_version(game)}
+    sizes, by_sec, aliases = objects_info(build)
     for name, a in res.pinned.items():
+        if row.get(a) not in aliases.get(name, {name}):
+            continue
         for c in by_name.get(name, ()):
             if a not in res.matches.get(name, ()):
                 continue
