@@ -209,6 +209,20 @@ def test_tail_call_argument_moved_as_32_bits():
     assert func == "void Unk_123450_call(void* /*unused*/, u64 value, u32 arg2) {\n    Unk_123558(value, arg2);\n}\n"
 
 
+def test_pointer_loaded_once_is_a_local():
+    """ldr x8, [x0, #0x230] ; cbz x8, L ; ldr x9, [x1, #8] ; str x9, [x8, #0x48] ;
+    ldr x9, [x1] ; str x9, [x8, #0x40] ; L: ret. With -fno-strict-aliasing the first
+    store could change self->field_230, so the source held it in a local."""
+    _, func = leafgen.generate(ADDR, code(ldr_x(8, 0, 0x230), cbz_x(8, 5), ldr_x(9, 1, 8), str_x(9, 8, 0x48),
+                                          ldr_x(9, 1, 0), str_x(9, 8, 0x40), RET))
+    assert func == ("void Unk_123450_set(const Unk_123450* self, const Unk_123450_arg1* value) {\n"
+                    "    Unk_123450_230* p0 = self->field_230;\n    if (p0 != nullptr) {\n"
+                    "        p0->field_48 = value->field_8;\n        p0->field_40 = value->field_0;\n    }\n}\n")
+    # loaded again after the first store: written as it reads
+    _, func = leafgen.generate(ADDR, code(ldr_x(8, 0, 0x10), str_w(1, 8, 0), ldr_x(8, 0, 0x10), str_w(1, 8, 4), RET))
+    assert "    self->field_10->field_0 = value;\n    self->field_10->field_4 = value;\n" in func
+
+
 def test_pairs():
     """ldp x8, x9, [x0, #0x10] ; stp x9, x8, [x0, #0x20] ; ret: two loads, two stores."""
     ldp = 0xA9400000 | (0x10 // 8) << 15 | 9 << 10 | 0 << 5 | 8

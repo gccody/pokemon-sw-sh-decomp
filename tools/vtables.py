@@ -987,8 +987,8 @@ def _readd_lifted(d: ClassSpec, xs: list[Member], families) -> None:
     declares them, so they go to the base's fields (unless they conflict), and
     an override's signature to the base's family (unless it has another).
     A field may point to a placeholder struct: the base declares it, named
-    after itself, and the member's body doesn't name it. One whose return or
-    parameter type names it stays out."""
+    after itself. One whose return or parameter type or body (a local's type)
+    names it stays out."""
     r = d.base
     if r is None or r.table is not None or r.ext is not None:
         return
@@ -996,7 +996,7 @@ def _readd_lifted(d: ClassSpec, xs: list[Member], families) -> None:
     n = len(r.v.slots)
     for x in sorted(xs, key=lambda y: y.slot):
         lf = x.lifted
-        if lf.prefix and any(lf.prefix + "_" in t for t in (lf.rtype, *lf.params)):
+        if lf.prefix and any(lf.prefix + "_" in t for t in (lf.rtype, *lf.params, lf.body)):
             continue
         sig = signature(x)
         if x.slot < n and family.get(x.slot, sig) != sig:
