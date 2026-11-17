@@ -1,11 +1,20 @@
 // Scope: common
 //
-// gflib3's thin wrappers around nn::os events, light events and TLS. Each
-// passes its object straight on, so it is a member of a class whose first
-// field is the nn::os object; the classes aren't known, so these are
-// placeholder functions of the object. The initializers take the clear mode
-// before the initial state, the other way round from the SDK.
+// gflib3's thin wrappers around nn::os events, light events and TLS, and an
+// atomic flag getter. Each wrapper passes its object straight on, so it is a
+// member of a class whose first field is the nn::os object; the classes
+// aren't known, so these are placeholder functions of the object. The
+// initializers take the clear mode before the initial state, the other way
+// round from the SDK.
+#include <atomic>
+
 #include "gflib3/Unk_5cf870.h"
+
+struct Unk_5cf850 {
+    u8 _0[0x2fa];
+    std::atomic<bool> field_2fa;
+};
+PKMN_OFFSET_ASSERT(Unk_5cf850, field_2fa, 0x2fa);
 
 struct Unk_5cf910 {
     u8 _0[0x80];
@@ -18,6 +27,11 @@ PKMN_OFFSET_ASSERT(Unk_5cf910, field_88, 0x88);
 PKMN_OFFSET_ASSERT(Unk_5cf910, field_90, 0x90);
 
 nn::os::TlsSlot Unk_2771620;
+
+// 0x71005cf850
+bool Unk_5cf850_get(const Unk_5cf850* self) {
+    return self->field_2fa.load(std::memory_order_acquire);
+}
 
 // 0x71005cf870
 void Unk_5cf870(nn::os::EventType* event, nn::os::EventClearMode clearMode, bool signaled) {
