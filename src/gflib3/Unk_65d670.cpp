@@ -8,8 +8,7 @@
 // Placeholder names: rename once the class and functions are identified. The
 // segment (0x710065b490-0x710067a530) also holds gflib3's TLSF pool
 // (lib/gflib3/src/mem/internal/tlsf_pool.cpp, mem/tlsf_pool_resource.cpp).
-#include <nn/os.h>
-#include <types.h>
+#include "gflib3/Unk_5cf870.h"
 
 // A heap: its vtable slot 22 (+0xb0) takes the heap's name.
 class Unk_65d680_Heap {
