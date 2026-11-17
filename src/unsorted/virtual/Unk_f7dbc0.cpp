@@ -24,7 +24,7 @@ public:
     virtual void vf15();
     virtual void vf16();
     virtual void vf17();
-    virtual void vf18();
+    virtual u32 vf18();
 };
 
 // 0x7100f7dbc0

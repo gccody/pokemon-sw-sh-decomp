@@ -122,8 +122,8 @@ public:
     virtual void vf4();
     virtual void vf5();
     virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
+    virtual u32 vf7();
+    virtual u32 vf8();
     virtual void vf9();
     virtual void vf10();
     virtual void vf11();
@@ -142,7 +142,7 @@ public:
     virtual void vf24();
     virtual void vf25();
     virtual void vf26();
-    virtual void vf27();
+    virtual u32 vf27();
     virtual void vf28();
     virtual void vf29();
     virtual void vf30();
@@ -247,9 +247,9 @@ public:
     virtual void vf129();
     virtual void vf130();
     virtual void vf131();
-    virtual void vf132();
+    virtual u32 vf132();
     virtual void vf133();
-    virtual void vf134();
+    virtual u32 vf134();
     virtual void vf135();
     virtual void vf136();
     virtual void vf137();
@@ -269,7 +269,7 @@ public:
     virtual void vf151();
     virtual void vf152();
     virtual void vf153();
-    virtual void vf154();
+    virtual u32 vf154();
     virtual void vf155();
     virtual void vf156();
     virtual void vf157();
@@ -310,7 +310,7 @@ public:
     virtual void vf192();
     virtual void vf193();
     virtual void vf194();
-    virtual void vf195();
+    virtual u32 vf195();
     virtual void vf196();
     virtual void vf197();
     virtual void vf198();
@@ -446,7 +446,7 @@ public:
     virtual void vf328();
     virtual void vf329();
     virtual void vf330();
-    virtual void vf331();
+    virtual u32 vf331();
     virtual void vf332();
     virtual void vf333();
     virtual u32 vf334();

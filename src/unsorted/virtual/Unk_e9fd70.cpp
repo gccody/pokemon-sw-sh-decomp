@@ -100,7 +100,7 @@ public:
     virtual void vf4();
     virtual void vf5();
     virtual void vf6();
-    virtual void vf7();
+    virtual u32 vf7();
     virtual void vf8();
     virtual void vf9();
     virtual void vf10();
@@ -110,7 +110,7 @@ public:
     virtual void vf14();
     virtual void vf15();
     virtual void vf16();
-    virtual void vf17();
+    virtual u32 vf17();
     virtual void vf18();
 };
 

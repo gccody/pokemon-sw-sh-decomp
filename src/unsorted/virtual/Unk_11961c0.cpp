@@ -17,7 +17,7 @@ public:
     virtual void vf8();
     virtual void vf9();
     virtual void vf10();
-    virtual void vf11();
+    virtual u32 vf11();
     virtual void vf12();
     virtual void vf13();
 };

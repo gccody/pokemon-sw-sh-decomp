@@ -133,3 +133,16 @@ def test_placeholder_class():
 def test_mangle():
     assert V.mangle("Unk_23b8650", "vf12") == "_ZN11Unk_23b86504vf12Ev"
     assert V.mangle("Unk_23b8650", "D0") == "_ZN11Unk_23b8650D0Ev"
+
+
+def test_a_class_split_over_files_is_declared_the_same_in_each():
+    m = model()
+    a = m.vtables[0]
+    members = V.placeholder_members(m, a, V.owners(m.vtables), lambda f: True)
+    dtor, constant = members
+    decl_1, names_1, defs_1 = V.render_class(m, a, members, [dtor])
+    decl_2, names_2, defs_2 = V.render_class(m, a, members, [constant])
+    assert decl_1 == decl_2 and "    virtual u32 vf2();\n" in decl_1
+    assert "~Unk_1000() {}" in defs_1 and "vf2" not in defs_1
+    assert "vf2() {" in defs_2 and "~" not in defs_2
+    assert [n for _, n in names_1 + names_2] == ["_ZN8Unk_1000D2Ev", "_ZN8Unk_1000D0Ev", "_ZN8Unk_10003vf2Ev"]

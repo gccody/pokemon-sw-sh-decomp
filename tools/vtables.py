@@ -412,10 +412,16 @@ def placeholder_members(m: Model, v: Vtable, own: dict[int, tuple[int, int]], pi
     return out
 
 
-def render_class(m: Model, v: Vtable, members: list[Member]) -> tuple[str, list[tuple[int, str]], str]:
-    """(class declaration, [(function, mangled name)], definitions)."""
+def render_class(m: Model, v: Vtable, members: list[Member],
+                 here: list[Member] | None = None) -> tuple[str, list[tuple[int, str]], str]:
+    """(class declaration, [(function, mangled name)], definitions).
+
+    The declaration comes from all of the class's `members`, so that every file
+    declaring the class declares it the same way; only `here` (default: all)
+    are defined."""
     cls = class_name(v)
-    defined = {x.slot: x for x in members}
+    declared = {x.slot: x for x in members}
+    defined = {x.slot: x for x in (members if here is None else here)}
     pair = destructor_pair(m, v)
     decl = [f"class {cls} {{", "public:"]
     names: list[tuple[int, str]] = []
@@ -430,11 +436,12 @@ def render_class(m: Model, v: Vtable, members: list[Member]) -> tuple[str, list[
             names += [(v.slots[0], mangle(cls, "D2")), (v.slots[1], mangle(cls, "D0"))]
     for i in range(start, len(v.slots)):
         f = v.slots[i]
-        x = defined.get(i)
         if isinstance(f, str):
             decl.append(f"    virtual void vf{i}() = 0;")
             continue
-        decl.append(f"    virtual {rtype[x.kind] if x else 'void'} vf{i}();")
+        d = declared.get(i)
+        decl.append(f"    virtual {rtype[d.kind] if d else 'void'} vf{i}();")
+        x = defined.get(i)
         if x is None:
             continue
         body = {"ret": "{}", "constant": f"{{\n    return {x.value if x.value < 10 else hex(x.value)};\n}}",
@@ -469,9 +476,9 @@ def cmd_write(m: Model, args) -> None:
     # whose functions span segments is declared in each of their files.
     from nx.module import DynInfo
     from nx.nso import Nso
-    from common import nso_path
+    from common import load_module, nso_path
     nso = Nso(nso_path("sword").read_bytes())
-    dyn = DynInfo(nso, m.img, len(m.img))
+    dyn = DynInfo(nso, m.img, load_module("sword")["text_end"])
     inits = set(segments.init_array_targets(segments.dynamic_tags(m.img, nso.mod0.dynamic), dyn.slots))
     starts = [s for s, _ in m.funcs]
     seg_starts = sorted({starts[i + 1] for i, s in enumerate(starts[:-1]) if s in inits} | {0})
@@ -479,27 +486,27 @@ def cmd_write(m: Model, args) -> None:
     def seg(f: int) -> int:
         return seg_starts[bisect.bisect_right(seg_starts, f) - 1]
 
-    files: dict[int, list[tuple[Vtable, list[Member]]]] = defaultdict(list)
+    files: dict[int, list[tuple[Vtable, list[Member], list[Member]]]] = defaultdict(list)
     for v, members in picked:
         by_seg: dict[int, list[Member]] = defaultdict(list)
         for x in members:
             by_seg[seg(x.addr)].append(x)
         for s, xs in by_seg.items():
-            files[s].append((v, xs))
+            files[s].append((v, members, xs))
     out_dir = args.out
     out_dir.mkdir(parents=True, exist_ok=True)
     name_rows = []
     n_funcs = 0
     for _, entries in sorted(files.items()):
-        entries.sort(key=lambda e: min(x.addr for x in e[1]))
-        first = min(x.addr for _, xs in entries for x in xs)
+        entries.sort(key=lambda e: min(x.addr for x in e[2]))
+        first = min(x.addr for _, _, xs in entries for x in xs)
         parts = ["// Scope: common",
                  "// Simple virtual functions between two static initialisers (one or more TUs).",
                  "// Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename",
                  "// them, and give the functions real signatures, once the classes are known.",
                  "#include <types.h>", ""]
-        for v, xs in entries:
-            decl, names, defs = render_class(m, v, xs)
+        for v, members, xs in entries:
+            decl, names, defs = render_class(m, v, members, xs)
             parts += [decl, defs]
             name_rows += names
             n_funcs += len(names)
