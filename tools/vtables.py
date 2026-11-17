@@ -355,7 +355,8 @@ class Member:
 
 
 RTYPE = {"ret": "void", "constant": "u32", "zero": "u32", "null": "void*", "forward": "void"}
-WRITTEN = re.compile(r"_ZN\d+(Unk_[0-9a-f]+)(?:D0|D2|\d+vf\d+)E[a-z]+")  # the names write gives
+# The names write gives: members (vfN, vf_type, Unk_GetType, destructors) and thunks.
+WRITTEN = re.compile(r"_Z(?:Thn\d+_)?N\d+(Unk_[0-9a-f]+)(?:D0|D1|D2|\d+vf\d+|7vf_type|11Unk_GetType)E[a-z]+")
 
 
 @dataclass(frozen=True)
@@ -377,6 +378,7 @@ class ExternalBase:
     type_slot: int
     get_type: str
     secondaries: tuple              # (offset in the object, its 2 destructor slots, its type slot) each
+    inline_dtor: bool = False       # its D2 is inline: the D0s and thunks are copies of it, not `b`s
 
     def slot(self, i: int) -> tuple[str, str]:
         return next(((rt, n) for j, rt, n in self.slots if j == i), ("void", f"vf{i}"))
@@ -389,9 +391,15 @@ EXTERNAL_BASES = (
                   (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7"), (8, "u32", "vf8"), (9, "void", "vf9"),
                   (10, "u32", "vf10")),
                  6, "Unk_23f43c8::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0))),
+    # gflib3's reference-counted object: its destructor is inline, and it has no type slot of
+    # its own (a class that overrides the interfaces' getter gets slot 6 for it).
+    ExternalBase(0x239a428, "Unk_239a418", "gflib3/Unk_239a418.h",
+                 ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
+                  (5, "void", "vf5")),
+                 6, "Unk_239a418_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), inline_dtor=True),
 )
 # Vtable groups whose classes are written by hand: write leaves their functions alone.
-HANDWRITTEN = {0x239a428, *(e.vtable for e in EXTERNAL_BASES)}
+HANDWRITTEN = {e.vtable for e in EXTERNAL_BASES}
 
 
 @dataclass
@@ -774,8 +782,13 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         if v.group != v.addr or v.offset_to_top or v.addr == ev.addr or len(v.slots) < len(ev.slots):
             continue
         s1 = v.slots[1]
-        if v.slots[0] != d2 or not isinstance(s1, int) or own.get(s1) != (v.addr, 1) or not pickable(s1) \
-                or m.pattern(s1) != "b T" or branch_target(m, s1) != d2:
+        if v.slots[0] != d2 or not isinstance(s1, int) or s1 == ev.slots[1] or own.get(s1) != (v.addr, 1) \
+                or not pickable(s1):
+            continue
+        if e.inline_dtor:           # the D0 is the base's D2, inlined (the operator delete is empty)
+            if m.pattern(s1) != m.pattern(d2):
+                continue
+        elif m.pattern(s1) != "b T" or branch_target(m, s1) != d2:
             continue
         secs = [w for w in groups[v.addr] if w is not v]
         if [(w.offset_to_top, len(w.slots)) for w in secs] != [(w.offset_to_top, len(w.slots)) for w in esecs] \
@@ -783,18 +796,37 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             continue
         extra = [Member(1, s1, "d0")]
         ok = True
-        for w, (off, dslots, _) in zip(secs, e.secondaries):
+        for w, ew, (off, dslots, _) in zip(secs, esecs, e.secondaries):
             for j, which in zip(dslots, ("D1", "D0")):
                 f = w.slots[j]
-                if m.pattern(f) != "sub x0, x0, #N ; b T" or branch_target(m, f) != d2 \
-                        or own.get(f) != (w.addr, j) or not pickable(f):
+                if e.inline_dtor:       # thunks with the D2 inlined, like the base's
+                    same = m.pattern(f) == m.pattern(ew.slots[j])
+                else:
+                    same = m.pattern(f) == "sub x0, x0, #N ; b T" and branch_target(m, f) == d2
+                if not same or own.get(f) != (w.addr, j) or not pickable(f):
                     ok = False
                 extra.append(Member(j, f, "ext_thunk", (off, which)))
-        f6 = v.slots[e.type_slot]
-        if ok and f6 != ev.slots[e.type_slot]:
-            t = branch_target(m, f6) if m.pattern(f6) == "b T" else None
-            thunks = [w.slots[ts] for w, (_, _, ts) in zip(secs, e.secondaries)]
-            if t is None or t in in_vtables or not getter_ok(t) or not pickable(f6) \
+        # It overrides the type getter when its secondary type slots differ from the base's.
+        f6 = v.slots[e.type_slot] if e.type_slot < len(v.slots) else None
+        thunks = [w.slots[ts] for w, (_, _, ts) in zip(secs, e.secondaries)]
+        overrides = any(f != ew.slots[ts] for f, ew, (_, _, ts) in zip(thunks, esecs, e.secondaries))
+        t = branch_target(m, f6) if isinstance(f6, int) and m.pattern(f6) == "b T" else None
+        if ok and overrides and t is None:
+            # Its getter is inlined into vf_type (the one caller in its TU), and
+            # the secondary type slots are thunks that tail-call vf_type.
+            if not isinstance(f6, int) or not pickable(f6) or any(
+                    m.pattern(f) != "sub x0, x0, #N ; b T" or branch_target(m, f) != f6 or not pickable(f)
+                    for f in thunks):
+                ok = False
+            else:
+                extra.append(Member(e.type_slot, f6, "ext_type", None))
+                extra += [Member(-1, f, "ext_thunk", (off, "vf_type"))
+                          for f, (off, _, _) in zip(thunks, e.secondaries)]
+        elif ok and overrides:
+            # T's type has the base's as its parent: only known for a base with
+            # a type slot of its own (the object's direct descendants have an
+            # intermediate type in between).
+            if e.type_slot >= len(ev.slots) or t in in_vtables or not getter_ok(t) or not pickable(f6) \
                     or any(branch_target(m, f) != t or m.pattern(f) != "b T" or not pickable(f) for f in thunks):
                 ok = False
             else:
@@ -824,7 +856,22 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         declared = [i for i in range(2, len(v.slots)) if i >= len(ev.slots) or v.slots[i] != ev.slots[i]]
         if not ok:
             continue
-        if e.type_slot in declared:
+        inline_type = any(x.kind == "ext_type" and x.value is None for x in extra)
+        if inline_type:
+            # vf_type is inline in the class (else clang inlines it into its
+            # thunks), so the key function is the first other function it
+            # declares: one it defines in the D0's file. An override can move
+            # to the front; a new function only stays where it is.
+            here = {x.slot for x in mine if seg(x.addr) == seg(s1)}
+            rest = [i for i in declared if i != e.type_slot]
+            key = next((i for i in rest if i in here and i < len(ev.slots)), None)
+            if key is not None:
+                order = [key, *(i for i in declared if i != key)]
+            elif rest and rest[0] in here:
+                order = declared
+            else:
+                continue
+        elif e.type_slot in declared:
             order = [e.type_slot, *(i for i in declared if i != e.type_slot)]
         else:
             order = derived_order(v, ev, mine, seg)
@@ -1005,9 +1052,11 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
         # inlined into vf_type, which tail-calls it.
         decl += [f"    static {TYPE} Unk_GetType() {{", f"        static Unk_239a418_Type type({e.get_type}());",
                  "        return &type;", "    }", ""]
+    inline_type = any(x.kind == "ext_type" and x.value is None for x in spec.members)
     for i in spec.order:
         if i == e.type_slot:
-            decl.append(f"    {TYPE} vf_type() override;")
+            decl.append(f"    {TYPE} vf_type() override {{ return Unk_GetType(); }}" if inline_type
+                        else f"    {TYPE} vf_type() override;")
             continue
         base_slot = any(j == i for j, _, _ in e.slots)
         rt = e.slot(i)[0] if base_slot else spec.sigs.get(i, ("void", ()))[0]
@@ -1023,8 +1072,9 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
         elif x.kind == "ext_getter":  # Unk_GetType, emitted where vf_type calls it
             names.append((x.addr, mangle(cls, "Unk_GetType")))
         elif x.kind == "ext_type":
-            defs.append(f"// 0x{x.addr + BASE:x}; its type 0x{x.value + BASE:x}\n{TYPE} {cls}::vf_type() {{\n"
-                        f"    return Unk_GetType();\n}}")
+            if x.value is not None:     # out of line, its key function; inline in the class otherwise
+                defs.append(f"// 0x{x.addr + BASE:x}; its type 0x{x.value + BASE:x}\n{TYPE} {cls}::vf_type() {{\n"
+                            f"    return Unk_GetType();\n}}")
             names.append((x.addr, mangle(cls, "vf_type")))
         else:
             rt, name = RTYPE[x.kind], e.slot(x.slot)[1]
@@ -1100,9 +1150,10 @@ def cmd_write(m: Model, args) -> None:
         return r is not None and r.status == "U" and not r.name and r.scope == "common"
 
     holders: dict[int, set[str]] = defaultdict(set)
+    by_addr = {v.addr: v for v in m.vtables}
     for v in m.vtables:
         for f in v.slots:
-            holders[f].add(class_name(v))
+            holders[f] |= {class_name(v), class_name(by_addr[v.group])}  # a secondary's: its group's too
 
     def written(f: int) -> bool:
         """Picked again: unnamed and undecompiled, or named by an earlier write
@@ -1156,7 +1207,9 @@ def cmd_write(m: Model, args) -> None:
         if r is None or r.shield is None or r.scope != "common":
             return False
         name = callee_name(t)[0]
-        return (not r.name or r.name in (f"_Z{len(name)}{name}Pv", f"_Z{len(name)}{name}v")) and \
+        named = r.name in (f"_Z{len(name)}{name}Pv", f"_Z{len(name)}{name}v") or (
+            r.name.endswith("11Unk_GetTypeEv") and WRITTEN.fullmatch(r.name) is not None)
+        return (not r.name or named) and \
             (only is None or t in only or bool(r.name))
 
     specs = class_specs(m, picked, own, seg, kept, getter_ok)
