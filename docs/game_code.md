@@ -267,27 +267,30 @@ marks inherited slots with the vtable they come from.
 **Bases.** `show` and `csv` also guess each class's base: the other, no
 longer, vtable that holds the most of the same functions at the same
 indices. Destructors are strong evidence. When a class's destructor is
-inline (or implicit) and empty and its base's is inline and empty too, clang
-7 with the game's flags doesn't emit the derived D2 at all: it uses the
-base's D2 in its place. So the derived vtable's slot 0 is the base's D2,
-and only its D0 (a weak `b operator delete`, emitted with the vtable) is the
-class's own. 539 game classes show this pattern. It was checked with this
+implicit (or inline and empty), none of its fields has a destructor, and its
+only base with a non-trivial destructor is at offset 0, clang 7 with the
+game's flags doesn't emit the class's D2: it uses the base's D2 in its place
+(`TryEmitBaseDestructorAsAlias` in clang's `CGCXX.cpp`; constructor aliases
+are on at `-O3`). So the derived vtable's slot 0 is the base's D2, and only
+its D0 is the class's own: weak, emitted with the vtable in the TU of the
+class's key function. The D0 calls the D2 and then `operator delete`, so it
+is a bare `b operator delete` only when the base's D2 is empty and visible in
+that TU: inline in a header, or defined in the same TU. Checked with this
 reproducer, compiled with the flags `compile_commands.json` gives a TU:
 
 ```cpp
-class B { public: virtual ~B() {} virtual void f(); };
-class D : public B { public: void f() override; virtual void g(); };
-void D::f() {}  // D's key function: D's vtable is emitted here
-void D::g() {}
-// _ZTV1D: slot 0 = B::~B() (weak, ret), slot 1 = D::~D() D0 (weak, b operator delete)
+class B { public: virtual ~B(); virtual void f(); };
+B::~B() {}      // without it (B's destructor in another TU): D0 = bl B::~B() D2 ; b operator delete
+class D : public B { public: void f() override; };
+void D::f() {}  // D's key function: D's vtable and its D0 are emitted here
+// _ZTV1D: slot 0 = B::~B() D2 (ret), slot 1 = D::~D() D0 (weak, b operator delete)
 ```
 
-Those destructors were inline in Game Freak's headers, so their D0 is
-emitted in the TU of the class's key function. Matching them needs the
-placeholder classes modelled with their bases (`class D : public B`, with
-`B`'s destructor inline) and a key function of D defined in the same file.
-This tool doesn't write that yet. Batch 3's own destructor pairs (below) are
-out of line, which compiles to the same code.
+541 game classes have that shape: slot 0 inherited from a class that owns an
+empty D2, slot 1 their own `b operator delete`. 268 of them also own
+something batch 3 defined, and in every one of the 268 the D0 lies in the
+same static-initialiser segment as the first of those functions, as their
+key function would put it. Batch 4 (below) matches them.
 
 ### Batch 3: simple virtual functions
 
@@ -313,21 +316,89 @@ is known. Like the leaf batches, one file holds the functions between two
 static initialisers (`src/unsorted/virtual/Unk_<first>.cpp`). A class with
 functions in several such runs is declared, identically, in each file.
 
-Not written yet, and the next steps:
+### Batch 4: derived classes, forwarders and accessors
 
-- **Thunks** (4,060 in game code: `sub x0, x0, #N ; b T`). The compiler
-  emits one with the override it adjusts for, so the class needs its
-  secondary bases at the right offsets (the offset-to-top of its secondary
-  vtables).
-- **Derived destructors** (the 539 above), with the base guess.
-- **Forwarders** (`b T`, 3,899) and small getters and setters (877). They
-  need the callee's name, or fields in the class. `tools/leafgen.py`'s lifter
-  can produce the latter as member functions.
+`vtables.py write` also writes:
+
+| Kind | Functions | Source |
+|---|---:|---|
+| derived D0 | 189 | `class Unk_23bd490 : public Unk_23bd320 { public: void vf2() override; };`: no destructor, the D0 comes with the vtable |
+| forwarder | 2,096 | `void Unk_2409c28::vf5() { Unk_1034d10(this); }`, the callee declared `void Unk_1034d10(void* self);` |
+| field accessor | 720 | `void vf22() { field_351 = 1; }`, `void vf3(u32 value) { field_10 = value; }`, `return field_60;` |
+| nested accessor | 152 | `return field_1a8->field_a0->field_c8;` |
+
+That's 3,157 functions, all common, all matching in both games (game code,
+gflib3 and gflnet3). Five more lifted functions compiled to other code (a
+different instruction order or register, a 32-bit argument returned
+through `x0`) and were left out with `--only`, like batch 2's.
+
+- **Derived classes.** A class with the shape above derives from the class
+  that owns its slot 0, when the base guess agrees, its group has no
+  secondary vtables, and it defines a function in its D0's file that can be
+  its key function. It declares only the slots where it differs from its
+  base, with the key function first: overrides can be declared in any
+  order, new virtual functions only in slot order. When the base's
+  destructor is defined in another file, the base's destructor becomes
+  inline (one class so far), which is only done when the base has a key
+  function of its own in its destructors' file, so that its own D2 and D0
+  are still emitted there. A derived override uses its base's signature;
+  a class whose own functions would need another one stays underived.
+- **Forwarders.** A virtual function that is a bare `b T` passes all of its
+  arguments on, so `Unk_<T>(this);` is the same tail call whatever T
+  takes. It's written when T is in both games, in no vtable, isn't
+  `operator delete` and has no name yet. The 721 callees are named
+  `_Z<n>Unk_<addr>Pv` and stay undecompiled: rename the callers' calls with
+  them.
+- **Accessors.** What `tools/leafgen.py`'s lifter turns into a function of
+  `self` and scalar arguments becomes a member: `self->field_N` is the
+  class's own field, declared after the virtual functions, from offset 8
+  (the vptr), with offset asserts. Pointers it loads from `this` are fields
+  that point to placeholder structs named after the class and offset
+  (`Unk_<_ZTV>_1a8`, `Unk_<_ZTV>_1a8_a0`), declared before the class. All of
+  a class's accessors share its fields, so one that reads a field with
+  another type, as an integer where another follows it as a pointer, or
+  overlapping another field, is left out. The arguments are in the mangled
+  name (`_ZN11Unk_24067f83vf3Ej`). A derived class's accessors are left out,
+  because its fields would follow its base's.
+
+`write` rewrites all of `src/unsorted/virtual`: a function it named before
+(`_ZN<n>Unk_<_ZTV>...`, of the class of a vtable that holds it) is picked
+again.
+
+What's left in game code, gflib3 and gflnet3, and why:
+
+- **Thunks** (4,306: `sub x0, x0, #N ; b T`). A thunk is emitted with the
+  override it adjusts `this` for, so it can only be compiled with its
+  target, and only 4 of the targets are decompiled. 2,923 are in the
+  destructor slots of secondary vtables: their targets are the destructors
+  of classes with several bases, which reset vptrs and destroy members.
+  Each then needs its class modelled with its secondary bases at the
+  offsets the secondary vtables' offset-to-top gives.
+- **D0s that tail-call their D2** (974, slot 1 `b <slot 0>`). The D0 runs the
+  D2 and then `operator delete`, so a D0 with no delete means the class
+  has an empty class-specific `operator delete` (or one that inlines to
+  nothing). They wait for their D2s.
+- **Bare `b operator delete` D0s** (644). 80 have the shape above but their
+  base's destructor is in another file and their base's key function isn't
+  decompiled yet. 245 own nothing but their D0, so their vtable (and D0)
+  was emitted in the TU of a constructor or a function that creates them.
+  The rest have other shapes (secondary bases, a base guess that
+  disagrees, a base that defines nothing simple).
+- **Virtual-to-virtual forwarders** (about 100): `b T` where T is another
+  class's virtual function, called through that class's name.
+- **One template, 106 times.** 106 classes have the same 4 slots: a
+  constant count, two getters `x0 + 32 * index + 8` / `+ 0x10` (a 64-bit
+  index into 32-byte entries right after the vptr) and a function that
+  calls slot 16 of the entry's object with the entry's argument. Their
+  counts differ (1 to 28), so it looks like a class template instantiated
+  106 times. That's 318 functions once the entry array is modelled.
 
 ```sh
 python tools/vtables.py summary --area game
 python tools/vtables.py show 0x7102418858            # a vtable group: slots, owners, base guess, referrers
 python tools/vtables.py write --names map.csv        # into src/unsorted/virtual (Sword's vtables)
 python tools/funcs.py name --from-file map.csv
+python tools/check.py                                # its OK lines are the ones to keep; then, as in batch 2:
+python tools/vtables.py write --names ok_map.csv --only ok.txt
 python tools/check.py --update
 ```
