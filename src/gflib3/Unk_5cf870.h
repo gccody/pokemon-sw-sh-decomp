@@ -1,5 +1,5 @@
 #pragma once
-// gflib3's nn::os event and TLS wrappers (src/gflib3/Unk_5cf870.cpp).
+// gflib3's nn::os event and TLS wrappers (src/gflib3/Unk_5cf850.cpp).
 #include <nn/os.h>
 #include <types.h>
 

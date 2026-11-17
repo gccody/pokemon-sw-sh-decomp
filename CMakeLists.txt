@@ -84,6 +84,16 @@ pkmn_library_settings(src/field/content
   INCLUDES lib/lua
   SYSTEM_INCLUDES include/libcxx)
 
+# gflib3, Game Freak's engine library, was built against libc++ 7.0.1 like the
+# rest of Game Freak's code: it calls libc++ instantiations, and its memory
+# code uses std::atomic. libc++ supplies the headers; the defines make them
+# build on musl, as for src/field/content. gflib3 keeps its asserts (their
+# __FILE__ and __func__ strings are in main), so no NDEBUG.
+pkmn_library_settings(src/gflib3
+  EVIDENCE "docs/compiler.md, section gflib3"
+  DEFINES _GNU_SOURCE _LIBCPP_HAS_MUSL_LIBC _LIBCPP_HAS_THREAD_API_PTHREAD
+  SYSTEM_INCLUDES include/libcxx)
+
 # PhysX 3.4.2, built by NVIDIA: full C++ exceptions (its FDEs have personality
 # and LSDA), strict aliasing, -fno-builtin (fabsf/sqrtf stay library calls),
 # gnu++14 (gnu++11/14/17 give identical code; strict c++17 breaks musl's

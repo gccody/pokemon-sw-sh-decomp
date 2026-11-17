@@ -2715,6 +2715,30 @@ zlib one about 3.
   time and resolver glue), which aren't public.
 - **`-g`.** Neither corpus distinguishes it.
 
+## gflib3
+
+**Result: gflib3, Game Freak's engine library, was built like the rest of
+Game Freak's code (clang 7.0.1, the global flags), against libc++ 7.0.1's
+headers and with its asserts on.** `src/gflib3` has its own
+`pkmn_library_settings` entry in `CMakeLists.txt` for that. It adds libc++'s
+headers (`SYSTEM_INCLUDES include/libcxx`) and the defines they need on musl
+(`_GNU_SOURCE _LIBCPP_HAS_MUSL_LIBC _LIBCPP_HAS_THREAD_API_PTHREAD`, as for
+`src/field/content`), and nothing else: no codegen flag differs.
+
+- **libc++.** gflib3 calls libc++ template instantiations: all 70 of its calls
+  into code after it go to instantiations like `std::__tree_balance_after_insert`
+  (docs/game_code.md, "Areas"). Its memory code uses `std::atomic`: the TLSF
+  pool resource's destructor (`0x710065f220`) locks with a
+  `compare_exchange_strong` loop (`ldaxr`/`stxr`, acquire), waiting on a light
+  event between tries, and unlocks with an `exchange(nullptr, release)`
+  (`ldxr`/`stlxr`). Compiled with libc++ 7.0.1's `<atomic>` it matches in both
+  games, and so does an acquire `load` of an `atomic<bool>` (`0x71005cf850`).
+- **Asserts on, so no `NDEBUG`.** The `__FILE__` and `__func__` strings of
+  gflib3's asserts are in `main` (`lib/gflib3/src/mem/internal/tlsf_pool.cpp`
+  with `deactivate`, `mem/tlsf_pool_resource.cpp` with `do_dump_no_lock`).
+
+With this entry, the 31 functions of `src/gflib3` match in both games.
+
 ## Codegen fingerprints
 
 `tools/fingerprint.py` counts compiler idioms over an address range, per game,
