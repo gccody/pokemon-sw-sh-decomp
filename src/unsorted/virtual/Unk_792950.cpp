@@ -7,6 +7,12 @@
 // Called by forwarders. Placeholders: their real signatures aren't known.
 void Unk_799dd0(void* self);
 
+// Tail-called by lifted functions. Placeholders, like the forwarders' callees.
+void Unk_793ac0(u64, u64, u64);
+
+// Globals other TUs define, named after their addresses.
+extern u64 Unk_27ce848;
+
 class Unk_23a80b0 {
 public:
     virtual void vf0();
@@ -35,12 +41,17 @@ public:
     virtual void vf4();
     virtual void vf5();
     virtual void vf6();
-    virtual void vf7();
+    virtual void vf7(u64 value);
     virtual void vf8();
 };
 
 // 0x71007944a0, 0x71007944b0
 Unk_23a8100::~Unk_23a8100() {}
+
+// 0x7100794470
+void Unk_23a8100::vf7(u64 value) {
+    Unk_793ac0(Unk_27ce848, value, 0xffffffffffffffff);
+}
 
 class Unk_23a81a8 {
 public:

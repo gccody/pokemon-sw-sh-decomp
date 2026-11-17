@@ -309,6 +309,12 @@ of a global another TU defines, and the lifter reads and writes it as an
 `extern <type> Unk_<addr>;` (at offset 0 only: a field of a global is still
 refused). 20 more match: 9 getters and 5 setters of a global, and 6 tail
 calls that pass one on (check.py: 24,714 matching, 106 not matching).
+`vtables.py write` lifts them in virtual functions too, along with members
+that use no argument at all (`this` included). 131 more match: they
+increment, reset or test a global, or pass one to a tail-called function
+(check.py: 24,845 matching).
+`check.py --record-data` puts the globals in `data/data_symbols.csv`, so
+every reference to one is checked against the same address.
 
 ## Vtables and classes (`tools/vtables.py`)
 

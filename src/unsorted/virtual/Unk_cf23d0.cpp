@@ -15,6 +15,12 @@ void Unk_cf5bd0(u64);
 void Unk_cf5ee0(u64);
 void Unk_cf72e0(u64);
 
+// Globals other TUs define, named after their addresses.
+extern u32 Unk_27dbaf8;
+extern u32 Unk_27dbafc;
+extern u32 Unk_27dbdb0;
+extern u32 Unk_27dbdb4;
+
 class Unk_23e4758 {
 public:
     virtual void vf0();
@@ -60,10 +66,10 @@ public:
     virtual void vf40();
     virtual void vf41();
     virtual void vf42();
-    virtual void vf43();
+    virtual bool vf43();
     virtual void vf44();
     virtual void vf45();
-    virtual void vf46();
+    virtual bool vf46();
     virtual void vf47();
     virtual void vf48();
     virtual void vf49();
@@ -111,6 +117,36 @@ u32 Unk_23e4758::vf33() {
 // 0x7100cf25c0
 f32 Unk_23e4758::vf38() {
     return field_5ac;
+}
+
+// 0x7100cf25f0
+void Unk_23e4758::vf40() {
+    Unk_27dbaf8 = Unk_27dbaf8 + 1;
+}
+
+// 0x7100cf2630
+void Unk_23e4758::vf42() {
+    Unk_27dbaf8 = 0;
+}
+
+// 0x7100cf2640
+bool Unk_23e4758::vf43() {
+    return Unk_27dbaf8 != 0;
+}
+
+// 0x7100cf2660
+void Unk_23e4758::vf44() {
+    Unk_27dbafc = Unk_27dbafc + 1;
+}
+
+// 0x7100cf2680
+void Unk_23e4758::vf45() {
+    Unk_27dbafc = 0;
+}
+
+// 0x7100cf2690
+bool Unk_23e4758::vf46() {
+    return Unk_27dbafc > 1;
 }
 
 // 0x7100cf26b0
@@ -559,10 +595,10 @@ public:
     virtual void vf40();
     virtual void vf41();
     virtual void vf42();
-    virtual void vf43();
+    virtual bool vf43();
     virtual void vf44();
     virtual void vf45();
-    virtual void vf46();
+    virtual bool vf46();
     virtual void vf47();
     virtual void vf48();
     virtual void vf49();
@@ -590,6 +626,36 @@ public:
 // 0x7100cff110
 u32 Unk_23e55c0::vf9() {
     return 1;
+}
+
+// 0x7100cff120
+void Unk_23e55c0::vf40() {
+    Unk_27dbdb0 = Unk_27dbdb0 + 1;
+}
+
+// 0x7100cff160
+void Unk_23e55c0::vf42() {
+    Unk_27dbdb0 = 0;
+}
+
+// 0x7100cff170
+bool Unk_23e55c0::vf43() {
+    return Unk_27dbdb0 > 9;
+}
+
+// 0x7100cff190
+void Unk_23e55c0::vf44() {
+    Unk_27dbdb4 = Unk_27dbdb4 + 1;
+}
+
+// 0x7100cff1b0
+void Unk_23e55c0::vf45() {
+    Unk_27dbdb4 = 0;
+}
+
+// 0x7100cff1c0
+bool Unk_23e55c0::vf46() {
+    return Unk_27dbdb4 > 9;
 }
 
 class Unk_23e5860 {

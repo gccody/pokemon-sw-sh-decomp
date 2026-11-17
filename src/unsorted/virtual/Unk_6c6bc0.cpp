@@ -4,6 +4,12 @@
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
 
+// Tail-called by lifted functions. Placeholders, like the forwarders' callees.
+void Unk_16c67f0(u64);
+
+// Globals other TUs define, named after their addresses.
+extern u64 Unk_27fb310;
+
 class Unk_23a3f28 {
 public:
     virtual ~Unk_23a3f28();
@@ -46,6 +52,11 @@ u32 Unk_23a3f28::vf2() {
 // 0x71006c6bc0
 u8 Unk_23a3f28::vf22() {
     return field_4f5;
+}
+
+// 0x71006c84b0
+void Unk_23a3f28::vf24() {
+    Unk_16c67f0(Unk_27fb310);
 }
 
 class Unk_23a4018 {
