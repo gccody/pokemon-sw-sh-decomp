@@ -25,9 +25,15 @@ public:
     u8 field_a4;
     u8 _a5[0x3];
     u32 field_a8;
+    u8 _ac[0x1];
+    u8 field_ad;
+    u8 _ae[0x1a2];
+    u8 field_250;
 };
 PKMN_OFFSET_ASSERT(Unk_23cd948, field_a4, 0xa4);
 PKMN_OFFSET_ASSERT(Unk_23cd948, field_a8, 0xa8);
+PKMN_OFFSET_ASSERT(Unk_23cd948, field_ad, 0xad);
+PKMN_OFFSET_ASSERT(Unk_23cd948, field_250, 0x250);
 
 // 0x7100b0ade0
 void Unk_23cd948::vf9() {}
@@ -35,6 +41,13 @@ void Unk_23cd948::vf9() {}
 // 0x7100b0caa0
 void Unk_23cd948::vf11() {
     field_a8 = 2;
+    field_a4 = 1;
+}
+
+// 0x7100b0cb20
+void Unk_23cd948::vf13() {
+    field_ad = field_ad + 1;
+    field_a8 = field_250 == 0 ? 0xb : 0x15;
     field_a4 = 1;
 }
 
@@ -60,13 +73,26 @@ public:
     u8 field_1c;
     u8 _1d[0x3];
     u32 field_20;
+    u8 _24[0x1];
+    u8 field_25;
+    u8 _26[0x1a2];
+    u8 field_1c8;
 };
 PKMN_OFFSET_ASSERT(Unk_23cda40, field_1c, 0x1c);
 PKMN_OFFSET_ASSERT(Unk_23cda40, field_20, 0x20);
+PKMN_OFFSET_ASSERT(Unk_23cda40, field_25, 0x25);
+PKMN_OFFSET_ASSERT(Unk_23cda40, field_1c8, 0x1c8);
 
 // 0x7100b0cac0
 void Unk_23cda40::vf2() {
     field_20 = 2;
+    field_1c = 1;
+}
+
+// 0x7100b0cb50
+void Unk_23cda40::vf4() {
+    field_25 = field_25 + 1;
+    field_20 = field_1c8 == 0 ? 0xb : 0x15;
     field_1c = 1;
 }
 

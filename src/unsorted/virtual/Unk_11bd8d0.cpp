@@ -83,9 +83,15 @@ public:
     u8 field_1c;
     u8 _1d[0x3];
     u32 field_20;
+    u8 _24[0x1];
+    u8 field_25;
+    u8 _26[0x1a2];
+    u8 field_1c8;
 };
 PKMN_OFFSET_ASSERT(Unk_23cda40, field_1c, 0x1c);
 PKMN_OFFSET_ASSERT(Unk_23cda40, field_20, 0x20);
+PKMN_OFFSET_ASSERT(Unk_23cda40, field_25, 0x25);
+PKMN_OFFSET_ASSERT(Unk_23cda40, field_1c8, 0x1c8);
 
 // 0x71011bdaf0
 void Unk_23cda40::vf6() {}

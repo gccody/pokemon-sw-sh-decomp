@@ -181,6 +181,12 @@ PKMN_OFFSET_ASSERT(Unk_23d3560, field_1b0, 0x1b0);
 PKMN_OFFSET_ASSERT(Unk_23d3560, field_1ca, 0x1ca);
 PKMN_OFFSET_ASSERT(Unk_23d3560, field_1cb, 0x1cb);
 
+// 0x7100bb4070
+void Unk_23d3560::vf11() {
+    field_1b0 = field_1b0 == 0xc ? 6 : (field_1b0 == 0x17 ? 0x1a : 0x18);
+    field_1ca = 0;
+}
+
 // 0x7100bb40d0
 void Unk_23d3560::vf12() {
     field_1b0 = 0x1a;
@@ -214,6 +220,12 @@ public:
 };
 PKMN_OFFSET_ASSERT(Unk_23d3668, field_20, 0x20);
 PKMN_OFFSET_ASSERT(Unk_23d3668, field_3a, 0x3a);
+
+// 0x7100bb40a0
+void Unk_23d3668::vf4() {
+    field_20 = field_20 == 0xc ? 6 : (field_20 == 0x17 ? 0x1a : 0x18);
+    field_3a = 0;
+}
 
 // 0x7100bb40e0
 void Unk_23d3668::vf5() {
