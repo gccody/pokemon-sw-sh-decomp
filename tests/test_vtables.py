@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import struct
 
+import pytest
+
 import vtables as V
 
 RET = 0xD65F03C0
@@ -551,6 +553,10 @@ def test_derived_from_an_external_base_slot_with_a_parameter():
     lifted = V.Member(2, 0x1c0, "lifted", lifted=V.Lifted("void", (), "", (), "Unk_1c0"))
     assert not V._ext_lifted_ok(e, vts[0], lifted, {})
     assert V.param_codes("") == "v" and V.param_codes("Unk_2399590_Arg*") == "P15Unk_2399590_Arg"
+    # scalars of include/types.h: s32 is int, u64 unsigned long
+    assert V.param_codes("s32") == "i" and V.param_codes("u64") == "m" and V.param_codes("bool") == "b"
+    with pytest.raises(ValueError):
+        V.param_codes("int")
 
 
 def test_lifted_member_of_a_class_on_a_hand_written_base():
