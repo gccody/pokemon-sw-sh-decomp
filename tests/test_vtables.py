@@ -780,3 +780,21 @@ def test_ref_dtor_pattern_with_an_interface():
     assert got.startswith(four + " ; ldr x0, [x0, #N]" + release) and got.endswith(epi)
     assert V.ref_dtor_pattern(base, 1) != got
     assert V.ref_dtor_pattern("ret", 1, iface=True) is None
+
+
+def test_render_external_with_a_written_out_destructor():
+    """An inline-shaped class on the object with nothing else to be its key
+    function: its destructor is declared first, and defined only in the file
+    that holds its D2."""
+    m = model()
+    a = m.vtables[0]
+    e = V.ExternalBase(0x1010, "Unk_239a418", "gflib3/Unk_239a418.h", (), 6, "Unk_239a418_GetType", (),
+                       inline_dtor=True, size=0x60)
+    members = [V.Member(0, 0x100, "d2"), V.Member(1, 0x110, "d0"), V.Member(6, 0x120, "ext_type", None)]
+    spec = V.ClassSpec(a, members, None, ext=e, order=[6, 7], fields={0x68: V.REF}, explicit_dtor=True)
+    decl, names, defs = V.render_external(m, spec, members)
+    lines = decl.splitlines()
+    assert lines.index(f"    ~{spec.name}() override;") < lines.index("    virtual void vf7();")
+    assert f"{spec.name}::~{spec.name}() {{}}" in defs
+    decl, names, defs = V.render_external(m, spec, [])     # another file that declares it
+    assert f"    ~{spec.name}() override;" in decl and "::~" not in defs

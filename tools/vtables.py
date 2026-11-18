@@ -557,6 +557,7 @@ class ClassSpec:
     ext: ExternalBase | None = None  # a hand-written base (EXTERNAL_BASES) it derives from
     scalar_tail: bool = False       # padding near its end is u64 fields (tail_padding_start)
     iface: ClassSpec | None = None  # the placeholder class of an interface right after the base (+e.size)
+    explicit_dtor: bool = False     # its destructor is written out, out of line: its key function
 
     @property
     def name(self) -> str:
@@ -1439,10 +1440,16 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             here = {x.slot for x in mine if seg(x.addr) == seg(s1)}
             rest = [i for i in declared if i != e.type_slot]
             key = next((i for i in rest if i in here and i < len(ev.slots)), None)
+            explicit = False
             if key is not None:
                 order = [key, *(i for i in declared if i != key)]
             elif rest and rest[0] in here:
                 order = declared
+            elif refs and e.inline_dtor:
+                # Nothing else to be its key function, but a D2 of its own
+                # (members to destroy before the object's D2): its destructor,
+                # written out, declared first and defined in its file.
+                order, explicit = declared, True
             else:
                 continue
         elif e.type_slot in declared:
@@ -1458,7 +1465,8 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         scalar_tail = bool(refs) and not e.inline_dtor and all(
             m.sizes.get(x.addr) == m.sizes.get(s0) for x in extra if x.kind == "ext_thunk" and x.value[1] in ("D0", "D1"))
         d = specs[v.addr] = ClassSpec(v, mine + extra, None, ext=e, order=order, fields=fields,
-                                      scalar_tail=scalar_tail, iface=iface)
+                                      scalar_tail=scalar_tail, iface=iface,
+                                      explicit_dtor=inline_type and explicit)
         d.sigs = {x.slot: signature(x) if x.kind == "lifted" else
                   (RTYPE[x.kind], (e.params(x.slot),) if e.params(x.slot) else ()) for x in mine}
         gone_of[v.addr] = (secs, {x.addr for x in extra})
@@ -1753,6 +1761,11 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
         decl += [f"    static {TYPE} Unk_GetType() {{", f"        static Unk_239a418_Type type({parent}());",
                  "        return &type;", "    }", ""]
     inline_type = any(x.kind == "ext_type" and x.value is None for x in spec.members)
+    if spec.explicit_dtor:
+        decl.append(f"    ~{cls}() override;")
+        d2 = next((x.addr for x in here if x.kind == "d2"), None)
+        if d2 is not None:      # defined in its D2's file only
+            defs.append(f"// 0x{d2 + BASE:x}: its key function\n{cls}::~{cls}() {{}}")
     for i in spec.order:
         if i == e.type_slot:
             decl.append(f"    {TYPE} vf_type() override {{ return Unk_GetType(); }}" if inline_type
