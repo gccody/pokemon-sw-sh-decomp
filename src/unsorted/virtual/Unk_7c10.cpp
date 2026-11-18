@@ -320,15 +320,3 @@ public:
 
 // 0x710000cb30
 void Unk_236d868::vf0() {}
-
-class Unk_2399470 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-};
-
-// 0x710000d500
-void Unk_2399470::vf0() {}
