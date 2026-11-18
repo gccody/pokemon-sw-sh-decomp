@@ -6,8 +6,6 @@
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
 void Unk_1478660(void* self);
-void Unk_147ba90(void* self);
-void Unk_147ddb0(void* self);
 
 class Unk_243e520 {
 public:
@@ -60,104 +58,6 @@ public:
 // 0x7101478530
 void Unk_243e5f8::vf0() {
     Unk_1478660(this);
-}
-
-class Unk_243eb18 {
-public:
-    virtual ~Unk_243eb18();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x710147ba20
-void Unk_243eb18::vf6() {
-    Unk_147ba90(this);
-}
-
-// 0x710147b910
-void Unk_243eb18::vf9() {}
-
-class Unk_243eb80 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x710147ba50
-void Unk_243eb80::vf5() {
-    Unk_147ba90(this);
-}
-
-class Unk_243ebc0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x710147ba60
-void Unk_243ebc0::vf0() {
-    Unk_147ba90(this);
-}
-
-class Unk_243ef40 {
-public:
-    virtual ~Unk_243ef40();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x710147dd40
-void Unk_243ef40::vf6() {
-    Unk_147ddb0(this);
-}
-
-// 0x710147dc30
-void Unk_243ef40::vf9() {}
-
-class Unk_243efa8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x710147dd70
-void Unk_243efa8::vf5() {
-    Unk_147ddb0(this);
-}
-
-class Unk_243efe8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x710147dd80
-void Unk_243efe8::vf0() {
-    Unk_147ddb0(this);
 }
 
 class Unk_243f918 {

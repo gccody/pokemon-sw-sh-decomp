@@ -3,61 +3,46 @@
 // Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
+#include "unsorted/Unk_23f4660.h"
 
-// Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_12eac90(void* self);
-
-class Unk_242e438 {
+class Unk_242e438 : public Unk_23f4660 {
 public:
-    virtual ~Unk_242e438();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15();
-    virtual void vf16();
-};
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23f4660::Unk_GetType());
+        return &type;
+    }
 
-// 0x71012eac20
-void Unk_242e438::vf6() {
-    Unk_12eac90(this);
-}
+    ~Unk_242e438() override;
+    const Unk_239a418_Type* vf_type() override;
+    void vf8() override;
+    void vf10() override;
+    void vf11() override;
+    void vf14() override;
+    void vf15() override;
+    Unk_239a418_Ref<Unk_239a418> field_5d0;
+    u8 _5d8[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_5f0;
+    Unk_239a418_Ref<Unk_239a418> field_5f8;
+    Unk_239a418_Ref<Unk_239a418> field_600;
+    Unk_239a418_Ref<Unk_239a418> field_608;
+    Unk_239a418_Ref<Unk_239a418> field_610;
+    Unk_239a418_Ref<Unk_239a418> field_618;
+};
+PKMN_OFFSET_ASSERT(Unk_242e438, field_5d0, 0x5d0);
+PKMN_OFFSET_ASSERT(Unk_242e438, field_5f0, 0x5f0);
+PKMN_OFFSET_ASSERT(Unk_242e438, field_5f8, 0x5f8);
+PKMN_OFFSET_ASSERT(Unk_242e438, field_600, 0x600);
+PKMN_OFFSET_ASSERT(Unk_242e438, field_608, 0x608);
+PKMN_OFFSET_ASSERT(Unk_242e438, field_610, 0x610);
+PKMN_OFFSET_ASSERT(Unk_242e438, field_618, 0x618);
+
+// 0x71012eab20: its key function
+Unk_242e438::~Unk_242e438() {}
 
 // 0x71012ea640
 void Unk_242e438::vf10() {}
 
-class Unk_242e4d0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x71012eac50
-void Unk_242e4d0::vf5() {
-    Unk_12eac90(this);
-}
-
-class Unk_242e510 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x71012eac60
-void Unk_242e510::vf0() {
-    Unk_12eac90(this);
+// 0x71012eac20; its type 0x71012eac90
+const Unk_239a418_Type* Unk_242e438::vf_type() {
+    return Unk_GetType();
 }
