@@ -11,6 +11,13 @@ void Unk_24284d0::vf7(u64 arg) {
     field_70.Reset();
 }
 
+// 0x710126ac00
+Unk_239a418_Ref<Unk_239a418> Unk_24284d0::vf8() {
+    if (field_70.m_ptr)
+        return field_70;
+    return Unk_239a418_Ref<Unk_239a418>(this);
+}
+
 // 0x710126ac30
 void Unk_24284d0::vf9() {
     field_70.Reset();

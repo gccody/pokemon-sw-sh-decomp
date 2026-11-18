@@ -8,6 +8,9 @@
 
 class Unk_23c2c68 : public Unk_23c44f8 {
 public:
+    // 0x710098efb0
+    Unk_23c2c68(const Unk_239a418_Ref<Unk_239a418>& ref, s32 limit);
+
     // Its D2 releases the reference, then runs Unk_23c44f8's, inlined; the
     // D0 and the four thunks are copies of it.
     ~Unk_23c2c68() override;

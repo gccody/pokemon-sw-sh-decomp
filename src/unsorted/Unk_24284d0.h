@@ -43,12 +43,17 @@ public:
         return &type;
     }
 
+    // 0x710126ab20, not defined yet: written with its members in declaration
+    // order (callables zeroing their four words), the same instructions come
+    // out in another order (the hash of "" is materialized before the vptr
+    // stores, where the original does it after them).
+    Unk_24284d0();
+
     // Overrides the interfaces' type getter, so it also gets slot 6 of the
     // primary vtable.
     const Unk_239a418_Type* vf_type() override { return Unk_GetType(); }
     virtual void vf7(u64 arg);
-    // 0x710126ac00: field_70, or a reference to itself when that's empty.
-    // Not defined yet.
+    // field_70, or a reference to itself when that's empty.
     virtual Unk_239a418_Ref<Unk_239a418> vf8();
     virtual void vf9();
     virtual void vf10();
