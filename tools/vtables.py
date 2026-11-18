@@ -407,6 +407,11 @@ EXTERNAL_BASES = (
                   (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7"), (8, "u32", "vf8")),
                  6, "Unk_23d4470::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)),
                  shared_tu=True, source="unsorted/Unk_23d4470.inl", size=0x348),
+    ExternalBase(0x23f4e50, "Unk_23f4e40", "unsorted/Unk_23f4e40.h",
+                 ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
+                  (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "u32", "vf7"), (8, "void", "vf8"), (9, "u32", "vf9"),
+                  (10, "void", "vf10")),
+                 6, "Unk_23f4e40::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x88),
     # gflib3's reference-counted object: its destructor is inline, and it has no type slot of
     # its own (a class that overrides the interfaces' getter gets slot 6 for it).
     ExternalBase(0x239a428, "Unk_239a418", "gflib3/Unk_239a418.h",
@@ -913,6 +918,38 @@ def ref_members(m: Model, f: int, d2: int, vtable: int) -> tuple[int, ...] | Non
     return tuple(reversed(offs[:-1]))
 
 
+# A D2's start that stores the vptrs of a class with the object's two secondary bases (+0x48, +0x50),
+# and its end when the base's D2 is out of line: a tail call of it.
+_VPTRS = ("str x19, [sp, #N]! ; stp x29, x30, [sp, #N] ; add x29, sp, #N ; adrp x8, #N ; ldr x8, [x8, #N] ;"
+          " add x9, x8, #N ; add x10, x8, #N ; add x8, x8, #N ; mov x19, x0 ; str x9, [x0] ; stp x10, x8, [x0, #N]")
+_TAIL_D2 = " ; ldp x29, x30, [sp, #N] ; mov x0, x19 ; ldr x19, [sp], #N ; b T"
+
+
+def ref_tail_pattern(n: int) -> str:
+    """The D2 of a class with n reference members and nothing else to
+    destroy, on a base whose D2 is out of line: its vptrs, its members
+    released (the last declared first), then a tail call of the base's D2."""
+    return _VPTRS + " ; ldr x0, [x0, #N]" + _RELEASE + (" ; ldr x0, [x19, #N]" + _RELEASE) * (n - 1) + _TAIL_D2
+
+
+def ref_members_tail(m: Model, f: int, d2: int, vtable: int, size: int) -> tuple[int, ...] | None:
+    """The offsets of the reference members a D2 f releases before it
+    tail-calls its base's D2 (d2, out of line), when that's all it does: see
+    ref_tail_pattern. They come after the base's `size` bytes, and f stores
+    the class's own vtable."""
+    from nx.refs import decode
+    offs = [((w >> 10) & 0xFFF) * 8 for _, w, _, _ in decode(m.img, f, m.sizes.get(f, 4))
+            if w & 0xFFC0001F == 0xF9400000 and (w >> 5) & 31 in (0, 19)]  # ldr x0, [x0|x19, #off]
+    if not offs or offs[-1] < size or any(a <= b for a, b in zip(offs, offs[1:])):
+        return None
+    if m.pattern(f) != ref_tail_pattern(len(offs)):
+        return None
+    calls, statics = _calls_and_statics(m, f)
+    if calls != [d2] or statics != [vtable]:
+        return None
+    return tuple(reversed(offs))
+
+
 def direct_getter(m: Model, g: int) -> bool:
     """Whether g is the type getter of a direct descendant of the object, its
     parent's getter inlined: three guarded statics (its type, the object's,
@@ -972,17 +1009,19 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         if v.group != v.addr or v.offset_to_top or v.addr == ev.addr or len(v.slots) < len(ev.slots):
             continue
         s0, s1 = v.slots[0], v.slots[1]
-        # Its destructor is implicit: the base's D2, or (on a base whose D2 is
-        # inline) one that only releases reference members, then the base's.
+        # Its destructor is implicit: the base's D2, or one that only releases
+        # reference members, then runs the base's (inlined, or tail-called
+        # when it's out of line).
         refs = None
-        if s0 != d2 and e.inline_dtor and isinstance(s0, int):
-            refs = ref_members(m, s0, d2, v.start)
+        if s0 != d2 and isinstance(s0, int):
+            refs = ref_members(m, s0, d2, v.start) if e.inline_dtor else \
+                ref_members_tail(m, s0, d2, v.start, e.size)
             if refs is None or own.get(s0) != (v.addr, 0) or not pickable(s0):
                 continue
         if (s0 != d2 and refs is None) or not isinstance(s1, int) or s1 == ev.slots[1] \
                 or own.get(s1) != (v.addr, 1) or not pickable(s1):
             continue
-        if e.inline_dtor:           # the D0 is the D2, inlined (the operator delete is empty)
+        if e.inline_dtor or refs:   # the D0 is the D2, inlined (the operator delete is empty)
             if m.pattern(s1) != m.pattern(s0):
                 continue
         elif m.pattern(s1) != "b T" or branch_target(m, s1) != d2:
@@ -997,7 +1036,10 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             for j, which in zip(dslots, ("D1", "D0")):
                 f = w.slots[j]
                 if refs:                # thunks with its D2 inlined, the D1's and D0's alike
-                    same = m.pattern(f) == m.pattern(w.slots[dslots[0]]) and m.sizes.get(f) == m.sizes.get(s0)
+                    # (before a tail call, one may keep its own `this` too, in another register: see
+                    # Unk_239a418_Base's fields)
+                    sizes = (m.sizes.get(s0),) if e.inline_dtor else (m.sizes.get(s0), m.sizes.get(s0, 0) + 4)
+                    same = m.pattern(f) == m.pattern(w.slots[dslots[0]]) and m.sizes.get(f) in sizes
                 elif e.inline_dtor:     # thunks with the D2 inlined, like the base's
                     same = m.pattern(f) == m.pattern(ew.slots[j])
                 else:

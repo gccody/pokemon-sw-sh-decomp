@@ -600,3 +600,32 @@ def test_ref_dtor_pattern():
                                            + obj + epi)
     assert V.ref_dtor_pattern("ret", 1) is None
     assert V._width(V.REF) == 8
+
+
+def test_ref_members_tail():
+    """A D2 that stores its vptrs (its vtable through GOT slot 0x1010),
+    releases its reference members (+0x80, then +0x78) and tail-calls its
+    base's D2 (0x600), out of line."""
+    def release(off: int, base: int) -> list[int]:
+        # ldr x0, [x<base>, #off] ; cbz x0 ; ldr x8, [x0, #0x48]! ; ldr x8, [x8, #0x18] ; blr x8 ; str xzr, [x19, #off]
+        return [0xF9400000 | (off // 8) << 10 | base << 5, 0xB40000A0, 0xF8448C08, 0xF9400D08, 0xD63F0100,
+                0xF900027F | (off // 8) << 10]
+
+    words = [0xF81E0FF3, 0xA9017BFD, 0x910043FD,                # str x19, [sp, #-0x20]! ; stp x29, x30 ; add x29
+             0xB0000008, 0xF9400908,                            # adrp x8 ; ldr x8, [x8, #0x10]: the vtable
+             0x91004109, 0x9101E10A, 0x9102E108, 0xAA0003F3,    # add x9/x10/x8, x8, #N ; mov x19, x0
+             0xF9000009, 0xA904A00A]                            # str x9, [x0] ; stp x10, x8, [x0, #0x48]
+    words += release(0x80, 0) + release(0x78, 19)
+    words += [0xA9417BFD, 0xAA1303E0, 0xF84207F3]               # ldp x29, x30 ; mov x0, x19 ; ldr x19, [sp], #0x20
+    pc = 0x200 + 4 * len(words)
+    words.append(0x14000000 | ((0x600 - pc) >> 2))              # b <the base's D2>
+    img = bytearray(0x1100)
+    struct.pack_into(f"<{len(words)}I", img, 0x200, *words)
+    sizes = {0x200: 4 * len(words)}
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), [], [], sizes, {}, {}, lambda a: "game", DELETE,
+                {0x1010: 0x3000})
+    assert m.pattern(0x200) == V.ref_tail_pattern(2)
+    assert V.ref_members_tail(m, 0x200, 0x600, 0x3000, 0x78) == (0x78, 0x80)  # in declaration order
+    assert V.ref_members_tail(m, 0x200, 0x600, 0x3000, 0x80) is None   # +0x78 is the base's
+    assert V.ref_members_tail(m, 0x200, 0x700, 0x3000, 0x78) is None   # another base's D2
+    assert V.ref_members_tail(m, 0x200, 0x600, 0x3008, 0x78) is None   # it stores another class's vtable
