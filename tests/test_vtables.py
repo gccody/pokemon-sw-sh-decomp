@@ -602,6 +602,21 @@ def test_ref_dtor_pattern():
     assert V._width(V.REF) == 8
 
 
+def test_field_lines_tail_padding():
+    """A class on a hand-written base: the padding within 0x50 bytes of its
+    end is u64 fields, the rest bytes (and nothing changes without it)."""
+    fields = {0x88: V.REF, 0x100: V.REF}
+    assert V.tail_padding_start(fields) == 0xb8
+    assert V.field_lines(fields, "X", 0x88) == [
+        f"    {V.REF} field_88;", "    u8 _90[0x70];", f"    {V.REF} field_100;"]
+    assert V.field_lines(fields, "X", 0x88, V.tail_padding_start(fields)) == [
+        f"    {V.REF} field_88;", "    u8 _90[0x28];", *(f"    u64 _{o:x};" for o in range(0xb8, 0x100, 8)),
+        f"    {V.REF} field_100;"]
+    # unaligned padding stays bytes
+    assert V.field_lines({0x8c: "u32"}, "X", 0x88, 0) == ["    u8 _88[0x4];", "    u32 field_8c;"]
+    assert V.tail_padding_start({}) is None
+
+
 def test_ref_members_tail():
     """A D2 that stores its vptrs (its vtable through GOT slot 0x1010),
     releases its reference members (+0x80, then +0x78) and tail-calls its

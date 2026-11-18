@@ -444,6 +444,7 @@ class ClassSpec:
     fields: dict[int, str] = field(default_factory=dict)  # offset -> type, what lifted members use
     table: Table | None = None      # the entry array that element members index
     ext: ExternalBase | None = None  # a hand-written base (EXTERNAL_BASES) it derives from
+    scalar_tail: bool = False       # padding near its end is u64 fields (tail_padding_start)
 
     @property
     def name(self) -> str:
@@ -1183,7 +1184,13 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             if order is None:
                 continue
         before[v.addr] = specs.get(v.addr)
-        d = specs[v.addr] = ClassSpec(v, mine + extra, None, ext=e, order=order, fields=fields)
+        # Its thunks with its D2 inlined say what's at the end of the class:
+        # a field when they're as long as the D2, bytes when they keep their
+        # own `this` too (tail_padding_start).
+        scalar_tail = bool(refs) and not e.inline_dtor and all(
+            m.sizes.get(x.addr) == m.sizes.get(s0) for x in extra if x.kind == "ext_thunk" and x.value[1] in ("D0", "D1"))
+        d = specs[v.addr] = ClassSpec(v, mine + extra, None, ext=e, order=order, fields=fields,
+                                      scalar_tail=scalar_tail)
         d.sigs = {x.slot: signature(x) if x.kind == "lifted" else (RTYPE[x.kind], ()) for x in mine}
         gone_of[v.addr] = (secs, {x.addr for x in extra})
         owners.update((x.addr, v.addr) for x in extra if x.kind == "ext_getter" and x.value)
@@ -1368,16 +1375,40 @@ def table_structs(t: Table, cls: str) -> list[str]:
     return out + lines + ["};", f"PKMN_SIZE_ASSERT({cls}_Entry, 0x{t.stride:x});", ""]
 
 
-def field_lines(fields: dict, name: str, pos: int) -> list[str]:
+def field_lines(fields: dict, name: str, pos: int, scalar_from: int | None = None) -> list[str]:
     """The members of the placeholder class or struct `name`, from offset
-    `pos`: padding, then each field (a pointer field points to `<name>_<offset>`)."""
+    `pos`: padding, then each field (a pointer field points to `<name>_<offset>`).
+    Padding from `scalar_from` on is u64 fields where it's 8-aligned, not
+    bytes (see tail_padding_start)."""
     out = []
+
+    def pad(a: int, b: int) -> None:
+        s = b if scalar_from is None else min(b, max(a, scalar_from + -scalar_from % 8))
+        if s % 8 or b % 8:
+            s = b
+        if s > a:
+            out.append(f"    u8 _{a:x}[0x{s - a:x}];")
+        out.extend(f"    u64 _{o:x};" for o in range(s, b, 8))
+
     for off, t in sorted(fields.items()):
         if off > pos:
-            out.append(f"    u8 _{pos:x}[0x{off - pos:x}];")
+            pad(pos, off)
         out.append(f"    {t if isinstance(t, str) else f'{name}_{off:x}*'} field_{off:x};")
         pos = off + _width(t)
     return out
+
+
+def tail_padding_start(fields: dict) -> int | None:
+    """Where the padding of a class on a hand-written base becomes u64 fields:
+    0x50 bytes before its end. A destructor thunk passes `this - 0x48` (or
+    `- 0x50`) on as the class, and InstCombine rewrites that pointer as an
+    element of X[-1] at `sizeof(X) - 0x48`: on a field, the members are
+    addressed from it, as the originals' thunks do; inside a byte array, they
+    fold into one index from the thunk's own `this` (docs/game_code.md,
+    Batch 9)."""
+    if not fields:
+        return None
+    return max(off + _width(t) for off, t in fields.items()) - 0x50
 
 
 def structs(fields: dict, name: str) -> list[str]:
@@ -1447,7 +1478,7 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
         decl.append(f"    {rt} {e.slot(i)[1]}() override;" if base_slot else
                     f"    virtual {rt} vf{i}({', '.join(params)});")
     if spec.fields:
-        decl += field_lines(spec.fields, cls, e.size)
+        decl += field_lines(spec.fields, cls, e.size, tail_padding_start(spec.fields) if spec.scalar_tail else None)
     decl.append("};")
     if spec.fields:
         decl[:0] = structs(spec.fields, cls)
