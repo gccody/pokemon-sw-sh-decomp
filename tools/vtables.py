@@ -505,6 +505,15 @@ EXTERNAL_BASES = (
                   (14, "void", "vf14"), (15, "void", "vf15"), (16, "void", "vf16"), (17, "void", "vf17", "u32"),
                   (18, "u32", "vf18")),
                  6, "Unk_24006c0::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x2a0),
+    # On Unk_23f4660, in the link battle app's area. It is 16-aligned (0x710 bytes, its data
+    # ends at 0x708), and its vf_type is inline (its getter isn't inlined into it).
+    ExternalBase(0x2403508, "Unk_24034f8", "unsorted/Unk_24034f8.h",
+                 ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
+                  (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "u32", "vf7"), (8, "void", "vf8"), (9, "u32", "vf9"),
+                  (10, "void", "vf10"), (11, "void", "vf11"), (12, "void", "vf12"), (13, "void", "vf13"),
+                  (14, "void", "vf14"), (15, "void", "vf15"), (16, "u32", "vf16"), (17, "void", "vf17"),
+                  (18, "u32", "vf18"), (19, "void", "vf19"), (20, "void", "vf20"), (21, "void", "vf21")),
+                 6, "Unk_24034f8::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x708),
     # gflib3's reference-counted object: its destructor is inline, and it has no type slot of
     # its own (a class that overrides the interfaces' getter gets slot 6 for it).
     ExternalBase(0x239a428, "Unk_239a418", "gflib3/Unk_239a418.h",
