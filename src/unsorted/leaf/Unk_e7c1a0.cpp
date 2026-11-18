@@ -161,6 +161,13 @@ void Unk_e809c0_call(const Unk_e809c0* self) {
     Unk_e809d0(self->field_5a0);
 }
 
+extern const u8 Unk_1f26328[] __attribute__((visibility("hidden")));
+
+// 0x7100e81230
+const u8* Unk_e81230_get() {
+    return Unk_1f26328;
+}
+
 struct Unk_e831e0 {
     u8 _0[0x18];
     u64 field_18;

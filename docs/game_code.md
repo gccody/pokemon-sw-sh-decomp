@@ -1341,6 +1341,24 @@ orders differently from the lifted source), bitfield updates and tail calls
 with their arguments loaded from memory (check.py: 37,354 matching, 107 not
 matching).
 
+### Batch 23: tables and strings a leaf returns
+
+718 functions in static records are `mov w8, #N ; str w8, [x0] ; adrp x0, T ;
+add x0, x0, T ; ret`: they store a count and return a table (`*count = N;
+return table;`). `adrp` + `add`, not a GOT load, means the table is defined
+in the function's own TU (default visibility goes through the GOT). Its
+contents aren't written here (they're data): the lifter declares it
+`extern const u8 Unk_<addr>[] __attribute__((visibility("hidden")));`,
+which clang reaches the same way, and returns it. Where the address is a
+C string, the function returns the literal instead (check.py compares
+literals by content), and an address in code or in a vtable is refused.
+`candidates()` sets the hook (`DATA_AT`) from the executable.
+
+`--max 128` this time (128 adds nothing over 64). The trial wrote 962
+functions, 769 match (766 game code, 3 NEX/Pia/SDK), and `--record-data`
+recorded the 730 tables, each at the address its name gives, the same in
+both games (check.py: 38,123 matching, 107 not matching).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1366,7 +1384,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after Batch 22: check.py reports 37,354 matching and 107 not
+State after Batch 23: check.py reports 38,123 matching and 107 not
 matching, in both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the

@@ -3,12 +3,14 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
-// 0x71013f5f00
-u64 Unk_13f5f00_get() {
-    return 0;
+extern const u8 Unk_1f19ee8[] __attribute__((visibility("hidden")));
+
+// 0x71008edd80
+const u8* Unk_8edd80_get() {
+    return Unk_1f19ee8;
 }
 
-// 0x71013f5f10
-u64 Unk_13f5f10_get() {
-    return 0;
+// 0x71008edd90
+u32 Unk_8edd90() {
+    return 0x4b;
 }

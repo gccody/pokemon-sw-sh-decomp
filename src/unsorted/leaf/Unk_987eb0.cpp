@@ -504,6 +504,38 @@ void Unk_9a7240_set(Unk_9a7240* self, f32 fvalue) {
     self->field_80 = 1;
 }
 
+struct Unk_9a76b0_arg3 {
+    u64 field_0;
+    u64 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_9a76b0_arg3, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_9a76b0_arg3, field_8, 0x8);
+
+struct Unk_9a76b0 {
+    u8 _0[0x72c];
+    u32 field_72c;
+    u64 field_730;
+    u8 _738[0x8];
+    u64 field_740;
+    u64 field_748;
+    bool field_750;
+};
+PKMN_OFFSET_ASSERT(Unk_9a76b0, field_72c, 0x72c);
+PKMN_OFFSET_ASSERT(Unk_9a76b0, field_730, 0x730);
+PKMN_OFFSET_ASSERT(Unk_9a76b0, field_740, 0x740);
+PKMN_OFFSET_ASSERT(Unk_9a76b0, field_748, 0x748);
+PKMN_OFFSET_ASSERT(Unk_9a76b0, field_750, 0x750);
+
+// 0x71009a76b0
+void Unk_9a76b0_set(Unk_9a76b0* self, u32 value, u64 arg2, const Unk_9a76b0_arg3* arg3, bool arg4) {
+    self->field_72c = value;
+    self->field_730 = arg2;
+    self->field_748 = arg3->field_8;
+    u64 v0 = arg3->field_0;
+    self->field_750 = arg4;
+    self->field_740 = v0;
+}
+
 struct Unk_9a78c0 {
     u8 _0[0x100];
     u8 field_100;

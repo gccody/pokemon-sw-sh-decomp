@@ -187,6 +187,47 @@ void Unk_121ff60_set(const Unk_121ff60* self, Unk_121ff60_arg1* value) {
     value->field_0 = self->field_0;
 }
 
+struct Unk_1220120_arg1 {
+    u64 field_0;
+    u64 field_8;
+    u32 field_10;
+    u8 _14[0x4];
+    u64 field_18;
+    u8 field_20;
+};
+PKMN_OFFSET_ASSERT(Unk_1220120_arg1, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_1220120_arg1, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_1220120_arg1, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_1220120_arg1, field_18, 0x18);
+PKMN_OFFSET_ASSERT(Unk_1220120_arg1, field_20, 0x20);
+
+struct Unk_1220120 {
+    u64 field_0;
+    u64 field_8;
+    u32 field_10;
+    u8 _14[0x4];
+    u64 field_18;
+    u8 field_20;
+};
+PKMN_OFFSET_ASSERT(Unk_1220120, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_1220120, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_1220120, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_1220120, field_18, 0x18);
+PKMN_OFFSET_ASSERT(Unk_1220120, field_20, 0x20);
+
+// 0x7101220120
+void Unk_1220120_set(Unk_1220120* self, Unk_1220120_arg1* value) {
+    u64 v0 = self->field_0;
+    u64 v1 = self->field_8;
+    value->field_10 = self->field_10;
+    value->field_0 = v0;
+    value->field_8 = v1;
+    u64 v2 = self->field_18;
+    self->field_18 = 0;
+    value->field_18 = v2;
+    value->field_20 = self->field_20;
+}
+
 // 0x71012201f0
 void Unk_12201f0_update() {}
 

@@ -3,6 +3,58 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
+struct Unk_7ed7d0_arg1 {
+    u32 field_0;
+    u8 field_4;
+    u8 field_5;
+    u8 field_6;
+    u8 field_7;
+    u8 field_8;
+    u8 _9[0x7];
+    u64 field_10;
+    u64 field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_7ed7d0_arg1, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_7ed7d0_arg1, field_4, 0x4);
+PKMN_OFFSET_ASSERT(Unk_7ed7d0_arg1, field_5, 0x5);
+PKMN_OFFSET_ASSERT(Unk_7ed7d0_arg1, field_6, 0x6);
+PKMN_OFFSET_ASSERT(Unk_7ed7d0_arg1, field_7, 0x7);
+PKMN_OFFSET_ASSERT(Unk_7ed7d0_arg1, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_7ed7d0_arg1, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_7ed7d0_arg1, field_18, 0x18);
+
+struct Unk_7ed7d0 {
+    u32 field_0;
+    u8 field_4;
+    u8 field_5;
+    u8 field_6;
+    u8 field_7;
+    u8 field_8;
+    u8 _9[0x7];
+    u64 field_10;
+    u64 field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_7ed7d0, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_7ed7d0, field_4, 0x4);
+PKMN_OFFSET_ASSERT(Unk_7ed7d0, field_5, 0x5);
+PKMN_OFFSET_ASSERT(Unk_7ed7d0, field_6, 0x6);
+PKMN_OFFSET_ASSERT(Unk_7ed7d0, field_7, 0x7);
+PKMN_OFFSET_ASSERT(Unk_7ed7d0, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_7ed7d0, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_7ed7d0, field_18, 0x18);
+
+// 0x71007ed7d0
+void Unk_7ed7d0_set(Unk_7ed7d0* self, const Unk_7ed7d0_arg1* value) {
+    self->field_0 = value->field_0;
+    self->field_4 = value->field_4;
+    self->field_5 = value->field_5;
+    self->field_6 = value->field_6;
+    self->field_7 = value->field_7;
+    self->field_8 = value->field_8;
+    self->field_18 = value->field_18;
+    self->field_10 = value->field_10;
+}
+
 struct Unk_7ee040 {
     u8 _0[0x270];
     u16 field_270;
