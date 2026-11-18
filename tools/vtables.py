@@ -404,6 +404,22 @@ EXTERNAL_BASES = (
                   (10, "void", "vf10"), (11, "bool", "vf11"), (12, "void", "vf12"), (13, "void", "vf13"),
                   (14, "void", "vf14")),
                  6, "Unk_239bb58::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0xa0),
+    # On Unk_239bb58, its destructor out of line and too big to be inlined (the D0 and the
+    # thunks tail-call its D2); slot 15 is its own.
+    ExternalBase(0x239bd90, "Unk_239bd80", "gflib3/Unk_239bd80.h",
+                 ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
+                  (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7"), (8, "void", "vf8"), (9, "void", "vf9"),
+                  (10, "void", "vf10"), (11, "bool", "vf11"), (12, "void", "vf12"), (13, "void", "vf13"),
+                  (14, "void", "vf14"), (15, "void", "vf15")),
+                 6, "Unk_239bd80::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x144),
+    # Abstract, on Unk_239bb58 (its D0s are traps, slots 15 and 16 pure), its destructor out
+    # of line like Unk_239bd80's.
+    ExternalBase(0x239b8e8, "Unk_239b8d8", "gflib3/Unk_239b8d8.h",
+                 ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
+                  (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7"), (8, "void", "vf8"), (9, "void", "vf9"),
+                  (10, "void", "vf10"), (11, "bool", "vf11"), (12, "void", "vf12"), (13, "void", "vf13"),
+                  (14, "void", "vf14"), (15, "void", "vf15"), (16, "void", "vf16")),
+                 6, "Unk_239b8d8::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x209),
     ExternalBase(0x23f43d8, "Unk_23f43c8", "unsorted/Unk_23f43c8.h",
                  ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
                   (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7"), (8, "u32", "vf8"), (9, "void", "vf9"),
