@@ -420,6 +420,35 @@ EXTERNAL_BASES = (
                   (10, "void", "vf10"), (11, "bool", "vf11"), (12, "void", "vf12"), (13, "void", "vf13"),
                   (14, "void", "vf14"), (15, "void", "vf15"), (16, "void", "vf16")),
                  6, "Unk_239b8d8::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x209),
+    # Abstract, on the object (its D0s are traps, slot 7 pure). Its destructor is inline, like
+    # the object's: a derived D0 and its thunks are copies of its D2. A derived class's fields
+    # start in its tail padding (0xa1).
+    ExternalBase(0x241b650, "Unk_241b640", "unsorted/Unk_241b640.h",
+                 ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
+                  (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7"), (8, "u32", "vf8"), (9, "void", "vf9"),
+                  (10, "void", "vf10")),
+                 6, "Unk_241b640::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), inline_dtor=True,
+                 size=0xa1),
+    # On the object, its destructor inline like Unk_241b640's; most classes on it inherit its
+    # vf_type. Its vf7 takes a count.
+    ExternalBase(0x23c4508, "Unk_23c44f8", "unsorted/Unk_23c44f8.h",
+                 ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
+                  (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7", "s32")),
+                 6, "Unk_23c44f8::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), inline_dtor=True,
+                 size=0x80),
+    # On Unk_23c44f8, its destructor out of line (a reference of its own); nothing is on it.
+    ExternalBase(0x23c2c78, "Unk_23c2c68", "unsorted/Unk_23c2c68.h",
+                 ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
+                  (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7", "s32")),
+                 6, "Unk_23c44f8::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x90),
+    # On the object, its destructor inline like Unk_241b640's. Its vf7 takes a value, its vf8
+    # returns a reference.
+    ExternalBase(0x24284e0, "Unk_24284d0", "unsorted/Unk_24284d0.h",
+                 ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
+                  (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7", "u64"),
+                  (8, "Unk_239a418_Ref<Unk_239a418>", "vf8"), (9, "void", "vf9"), (10, "void", "vf10")),
+                 6, "Unk_24284d0::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), inline_dtor=True,
+                 size=0x3b4),
     ExternalBase(0x23f43d8, "Unk_23f43c8", "unsorted/Unk_23f43c8.h",
                  ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
                   (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7"), (8, "u32", "vf8"), (9, "void", "vf9"),
