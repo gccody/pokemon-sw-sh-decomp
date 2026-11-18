@@ -929,6 +929,13 @@ void Unk_13ac480_set(const Unk_13ac480* self, Unk_13ac480_arg1* value) {
     value->field_0 = self->field_0;
 }
 
+extern const u8 Unk_2434140[] __attribute__((visibility("hidden")));
+
+// 0x71013ac490
+const u8* Unk_13ac490_get() {
+    return Unk_2434140;
+}
+
 // 0x71013aca70
 u32 Unk_13aca70_get() {
     return 1;

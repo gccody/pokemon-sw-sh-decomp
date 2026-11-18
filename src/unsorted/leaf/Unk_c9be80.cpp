@@ -3,6 +3,45 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
+struct Unk_c9be80_arg1 {
+    u64 field_0;
+    u64 field_8;
+    u64 field_10;
+    u64 field_18;
+    u16 field_20;
+};
+PKMN_OFFSET_ASSERT(Unk_c9be80_arg1, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_c9be80_arg1, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_c9be80_arg1, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_c9be80_arg1, field_18, 0x18);
+PKMN_OFFSET_ASSERT(Unk_c9be80_arg1, field_20, 0x20);
+
+struct Unk_c9be80 {
+    u8 _0[0xb0];
+    u64 field_b0;
+    u64 field_b8;
+    u64 field_c0;
+    u64 field_c8;
+    u16 field_d0;
+};
+PKMN_OFFSET_ASSERT(Unk_c9be80, field_b0, 0xb0);
+PKMN_OFFSET_ASSERT(Unk_c9be80, field_b8, 0xb8);
+PKMN_OFFSET_ASSERT(Unk_c9be80, field_c0, 0xc0);
+PKMN_OFFSET_ASSERT(Unk_c9be80, field_c8, 0xc8);
+PKMN_OFFSET_ASSERT(Unk_c9be80, field_d0, 0xd0);
+
+// 0x7100c9be80
+void Unk_c9be80_set(Unk_c9be80* self, const Unk_c9be80_arg1* value) {
+    u16 v0 = value->field_20;
+    u64 v1 = value->field_8;
+    self->field_c8 = value->field_18;
+    self->field_b8 = v1;
+    self->field_b0 = value->field_0;
+    u64 v2 = value->field_10;
+    self->field_d0 = v0;
+    self->field_c0 = v2;
+}
+
 struct Unk_c9e610_70 {
     u8 _0[0xa0];
     u64 field_a0;

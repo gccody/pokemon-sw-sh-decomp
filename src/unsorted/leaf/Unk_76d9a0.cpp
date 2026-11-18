@@ -123,3 +123,27 @@ PKMN_OFFSET_ASSERT(Unk_771270, field_10, 0x10);
 u32 Unk_771270_get(const Unk_771270* self) {
     return (self->field_10->field_4 >> 2) & 1;
 }
+
+extern const u8 Unk_1f0c4b8[] __attribute__((visibility("hidden")));
+struct Unk_7805e0 {
+    u8 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_7805e0, field_0, 0x0);
+
+// 0x71007805e0
+const u8* Unk_7805e0_update(Unk_7805e0* self) {
+    self->field_0 = 0xd;
+    return Unk_1f0c4b8;
+}
+
+extern const u8 Unk_1f0c4ec[] __attribute__((visibility("hidden")));
+struct Unk_780600 {
+    u8 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_780600, field_0, 0x0);
+
+// 0x7100780600
+const u8* Unk_780600_update(Unk_780600* self) {
+    self->field_0 = 0xc;
+    return Unk_1f0c4ec;
+}

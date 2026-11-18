@@ -660,3 +660,15 @@ void Unk_7eb3d0();
 void Unk_7eb460_call() {
     Unk_7eb3d0();
 }
+
+extern const u8 Unk_1f10c68[] __attribute__((visibility("hidden")));
+struct Unk_7eba90 {
+    u32 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_7eba90, field_0, 0x0);
+
+// 0x71007eba90
+const u8* Unk_7eba90_update(Unk_7eba90* self) {
+    self->field_0 = 0x1fb;
+    return Unk_1f10c68;
+}
