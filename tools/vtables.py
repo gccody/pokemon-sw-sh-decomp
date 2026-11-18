@@ -398,6 +398,12 @@ class ExternalBase:
 
 TYPE = "const Unk_239a418_Type*"
 EXTERNAL_BASES = (
+    ExternalBase(0x239bb68, "Unk_239bb58", "gflib3/Unk_239bb58.h",
+                 ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
+                  (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7"), (8, "void", "vf8"), (9, "void", "vf9"),
+                  (10, "void", "vf10"), (11, "bool", "vf11"), (12, "void", "vf12"), (13, "void", "vf13"),
+                  (14, "void", "vf14")),
+                 6, "Unk_239bb58::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0xa0),
     ExternalBase(0x23f43d8, "Unk_23f43c8", "unsorted/Unk_23f43c8.h",
                  ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
                   (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7"), (8, "u32", "vf8"), (9, "void", "vf9"),
