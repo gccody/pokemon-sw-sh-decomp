@@ -69,7 +69,13 @@ public:
     u64 field_10;
     u64 field_18;
     u64 field_20;
-    u8 _28[0x20];
+    // Scalars, not bytes: a derived class's destructor thunk addresses its
+    // members from the adjusted `this` only when that lands on a field here
+    // (clang folds them into the thunk's own `this` through an array).
+    u64 field_28;
+    u64 field_30;
+    u64 field_38;
+    u64 field_40;
 };
 static_assert(sizeof(Unk_239a418_Base) == 0x48, "Unk_239a418_Base");
 
