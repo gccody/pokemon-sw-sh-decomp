@@ -73,6 +73,48 @@ def test_tls_accesses_must_load_one_offset():
     assert not res.ok and "different offsets (0x10, 0x20)" in res.errors[0]
 
 
+# --- placeholder vtables: `_ZTV<n>Unk_<hex>` is at BASE + hex in Sword ---
+
+def test_placeholder_vtable():
+    pv = check.placeholder_vtable
+    assert pv("_ZTV11Unk_23f43c8", "sword", 0x1000000, 0x3000000) == 0x23f43c8
+    assert pv("_ZTV11Unk_23f43c8", "shield", 0x1000000, 0x3000000) is None    # named after Sword's
+    assert pv("_ZTV10Unk_65d680", "sword", 0x1000000, 0x3000000) is None      # a function's address
+    assert pv("_ZTV11Unk_23f43c8", "sword", 0x1000000, 0x2000000) is None     # outside the image
+    assert pv("_ZTV9Unk_23f43c8", "sword", 0x1000000, 0x3000000) is None      # not one name
+    assert pv("_ZTV11Unk_23f43c8_1a8", "sword", 0x1000000, 0x3000000) is None
+    assert pv("_ZN11Unk_23f43c8D2Ev", "sword", 0x1000000, 0x3000000) is None
+
+
+def _got_compare(sym: str, slot_target: int, version: str = "sword"):
+    """A function that loads `sym` from the GOT: adrp x8 ; ldr x8, [x8, #8] ; ret,
+    the original's GOT slot (0x1008) holding `slot_target`."""
+    code = _w(0x90000008, 0xF9400108, 0xD65F03C0)
+    relocs = {0: check.Reloc(check.ADR_GOT_PAGE, sym, "STT_OBJECT", "SHN_UNDEF", 0, 0),
+              4: check.Reloc(check.LD64_GOT_LO12_NC, sym, "STT_OBJECT", "SHN_UNDEF", 0, 0)}
+    cf = check.CompiledFunc("f", Path("a.o"), code, relocs, None, "a.cpp")
+    img = bytes(0x100) + _w(0xB0000008, 0xF9400508, 0xD65F03C0) + bytes(0x3000)
+    fn = check.Function(0x100, 0x100, len(code), len(code), "common", name="f")
+    dyn = type("D", (), {"slots": {0x1008: slot_target}, "plt_by_name": {}})()
+    orig = type("O", (), {"version": version, "img": img, "text_end": 0x800, "dyn": dyn})()
+    return check.compare(cf, fn, orig, ({}, {version: {}}, {version: {}}), str)
+
+
+def test_unrecorded_placeholder_vtable_is_checked_by_its_name_in_sword():
+    res = _got_compare("_ZTV8Unk_2000", 0x2000)
+    assert res.ok, res.errors
+    assert res.unknown == [("_ZTV8Unk_2000", 0x2000)]  # --record-data still records it
+    res = _got_compare("_ZTV8Unk_2000", 0x2100)        # another class's vtable
+    assert not res.ok and "_ZTV8Unk_2000" in res.errors[0]
+
+
+def test_unrecorded_placeholder_vtable_is_unknown_in_shield_and_in_code():
+    res = _got_compare("_ZTV8Unk_2000", 0x2100, "shield")
+    assert res.ok and res.unknown == [("_ZTV8Unk_2000", 0x2100)]
+    res = _got_compare("_ZTV7Unk_400", 0x2100)        # named after a function
+    assert res.ok and res.unknown == [("_ZTV7Unk_400", 0x2100)]
+
+
 def test_data_symbol_rows():
     seen = {
         "_ZZ3FoovE1x": {"sword": {0x2000}, "shield": {0x2010}},

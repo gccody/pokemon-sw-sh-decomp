@@ -30,6 +30,11 @@ every other reference to them is checked from then on. A symbol referenced at
 two addresses in one game is reported instead, and so is a function's address
 (it belongs in functions.csv: name it with tools/funcs.py name).
 
+The exception is the vtable of a placeholder class, `_ZTV<n>Unk_<hex>`:
+tools/vtables.py names the class after its Sword vtable, so in Sword a
+reference to it must reach BASE + hex (when that's a data address) even
+before it is recorded. In Shield it needs the recorded row.
+
 Local (static) symbols are looked up by their file-qualified name,
 `<symbol>@<file stem>` (see tools/symbols.py). Compiled functions listed in
 data/absent_functions.csv are not in the executable and are skipped. Those in
@@ -129,7 +134,26 @@ class Original:
         mod = load_module(version)
         self.version = version
         self.img: bytes = mod["image"]
+        self.text_end: int = mod["text_end"]
         self.dyn = DynInfo(Nso(nso_path(version).read_bytes()), self.img, mod["text_end"])
+
+
+# tools/vtables.py names a placeholder class after its Sword vtable (`Unk_<the
+# _ZTV's address - BASE>`), so its vtable symbol says where it is in Sword
+PLACEHOLDER_VTABLE = re.compile(r"_ZTV(\d+)(Unk_([0-9a-f]+))")
+PLACEHOLDER_VERSION = "sword"
+
+
+def placeholder_vtable(name: str, version: str, text_end: int, img_size: int) -> int | None:
+    """The address (relative to BASE) of the vtable `name` names, if it is a
+    placeholder class's `_ZTV<n>Unk_<hex>` and `version` is the game the class
+    is named after. Only a data address counts: a hand-written class may be
+    named after one of its functions instead."""
+    m = PLACEHOLDER_VTABLE.fullmatch(name)
+    if version != PLACEHOLDER_VERSION or m is None or int(m.group(1)) != len(m.group(2)):
+        return None
+    a = int(m.group(3), 16)
+    return a if text_end <= a < img_size else None
 
 
 def load_symbol_tables(funcs: list[Function]):
@@ -524,6 +548,13 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name,
     addr, size = fn.addr(v), fn.size(v)
     res = Result(True)
     deltas: dict[str, int] = {}  # an unknown symbol -> the reference's offset from it
+    placeholders: dict[str, int] = {}  # an unrecorded placeholder vtable -> where its name puts it
+
+    def placeholder(name: str) -> int | None:
+        a = placeholder_vtable(name, v, orig.text_end, len(o_img))
+        if a is not None:
+            placeholders[name] = a
+        return a
 
     def bad(off: int, msg: str):
         res.ok = False
@@ -559,6 +590,8 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name,
                             return f.addr(v) + delta, sname
                         if sname in data_syms[v]:
                             return data_syms[v][sname] + delta, sname
+                        if (a := placeholder(sname)) is not None:
+                            return a + delta, sname
                         deltas[sname] = delta
                         return None, sname
             return None, name or (sec.name if sec is not None else "<section>")
@@ -567,6 +600,8 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name,
             return (f.addr(v) + r.addend if f.addr(v) is not None else None), name
         if name in data_syms[v]:
             return data_syms[v][name] + r.addend, name
+        if (a := placeholder(name)) is not None:
+            return a + r.addend, name
         deltas[name] = r.addend
         return None, name
 
@@ -749,6 +784,9 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name,
         else:
             res.warnings.append(f"+{first:#05x}: TLS {verbose_name(sym)} at thread-pointer offset "
                                 f"{min(values):#x}, relaxed to local-exec (the offset isn't verified)")
+    # Checked by their names, but not recorded yet: --record-data records them
+    # with the other game's address (if they match there too).
+    res.unknown += sorted(placeholders.items())
     return res
 
 
