@@ -25,6 +25,9 @@ public:
     Unk_239a418_Ref(const Unk_239a418_Ref& other);
     ~Unk_239a418_Ref();
 
+    // Lets go of the object: cleared first, then released.
+    void Reset();
+
     T* m_ptr;
 };
 
@@ -35,6 +38,35 @@ public:
     virtual void vf1();
     virtual void vf2();
     virtual void vf3(u64 arg1, u64 arg2, u64 arg3);
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+};
+
+// A container allocator that frees through Unk_239a418_Allocator::vf3 (the
+// memory, its size and its alignment).
+template <class T>
+class Unk_239a418_StdAllocator {
+public:
+    using value_type = T;
+
+    T* allocate(size_t n);
+    void deallocate(T* p, size_t n) {
+        field_0->vf3(reinterpret_cast<u64>(p), n * sizeof(T), alignof(T));
+    }
+
+    Unk_239a418_Allocator* field_0;
 };
 
 // The type descriptor the type getters return: its parent's.
@@ -135,4 +167,12 @@ Unk_239a418_Ref<T>::~Unk_239a418_Ref() {
         static_cast<Unk_239a458*>(m_ptr)->vf5();
         m_ptr = nullptr;
     }
+}
+
+template <class T>
+void Unk_239a418_Ref<T>::Reset() {
+    T* p = m_ptr;
+    m_ptr = nullptr;
+    if (p)
+        static_cast<Unk_239a458*>(p)->vf5();
 }
