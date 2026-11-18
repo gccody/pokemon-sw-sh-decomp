@@ -41,45 +41,6 @@ void Unk_243b490::vf8() {
 // 0x710143a9d0
 void Unk_243b490::vf9() {}
 
-class Unk_243b560 {
-public:
-    virtual ~Unk_243b560();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x710143b560
-void Unk_243b560::vf9() {}
-
-class Unk_243b648 {
-public:
-    virtual ~Unk_243b648();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual u32 vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x710143b840
-u32 Unk_243b648::vf8() {
-    return 1;
-}
-
-// 0x710143b850
-void Unk_243b648::vf9() {}
-
 struct Unk_243b730_78 {
     u8 _0[0x5cc];
     u8 field_5cc;

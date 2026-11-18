@@ -6,12 +6,10 @@
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
 void Unk_14302c0(void* self);
-void Unk_1430b90(void* self);
 void Unk_14314e0(void* self);
 
 // Tail-called by lifted functions. Placeholders, like the forwarders' callees.
 void Unk_eb8c60(u64);
-void Unk_1432860(u64, u32);
 
 class Unk_243a558 {
 public:
@@ -250,110 +248,6 @@ void Unk_243abc8::vf8() {
 // 0x71014357b0
 void Unk_243abc8::vf9() {}
 
-class Unk_243ac98 {
-public:
-    virtual ~Unk_243ac98();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x7101435ee0
-void Unk_243ac98::vf6() {
-    Unk_1430b90(this);
-}
-
-class Unk_243ad00 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7101435f10
-void Unk_243ad00::vf5() {
-    Unk_1430b90(this);
-}
-
-class Unk_243ad40 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7101435f20
-void Unk_243ad40::vf0() {
-    Unk_1430b90(this);
-}
-
-class Unk_243ad68 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x71014363b0
-void Unk_243ad68::vf9() {}
-
-class Unk_243ae38 {
-public:
-    virtual ~Unk_243ae38();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    u8 _8[0x70];
-    u64 field_78;
-};
-PKMN_OFFSET_ASSERT(Unk_243ae38, field_78, 0x78);
-
-// 0x7101436db0
-void Unk_243ae38::vf9() {
-    Unk_1432860(field_78, 0);
-}
-
-class Unk_243b008 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x7101437ad0
-void Unk_243b008::vf9() {}
-
 class Unk_243b0d8 {
 public:
     virtual void vf0();
@@ -379,40 +273,6 @@ void Unk_243b0d8::vf8() {
 
 // 0x71014382f0
 void Unk_243b0d8::vf9() {}
-
-class Unk_243b1a8 {
-public:
-    virtual ~Unk_243b1a8();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x71014387f0
-void Unk_243b1a8::vf9() {}
-
-class Unk_243b278 {
-public:
-    virtual ~Unk_243b278();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x7101438a50
-void Unk_243b278::vf9() {}
 
 class Unk_243b348 {
 public:
