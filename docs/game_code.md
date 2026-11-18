@@ -1279,6 +1279,13 @@ the base's are of the base's D2. `derive_external` now takes such a D2
 (`inline_bare`: the same pattern and statics as the base's D2) and
 writes the destructor out as the class's key function.
 
+15 more D2s of that shape (`vtables.py stored`, 80 bytes) are classes on
+`Unk_2431de8`, one of the five, whose `vf_type` they inherit. #75's
+`ClassSpec.parent` takes only a parent in `typed`, one whose `vf_type` is
+out of line, and `Unk_2431de8`'s is inline (Batch 6's shape). Letting an
+inline-shaped class be a parent would write them: the next step for this
+family.
+
 5 classes match, 42 functions (check.py: 29,238 matching, 107 not matching).
 
 ## What's left of the small functions
