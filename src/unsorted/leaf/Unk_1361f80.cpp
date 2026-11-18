@@ -644,6 +644,22 @@ u16 Unk_137bbb0_getField27e(const Unk_137bbb0* self) {
     return self->field_27e;
 }
 
+struct Unk_137bbc0 {
+    u8 _0[0x27e];
+    u16 field_27e;
+};
+PKMN_OFFSET_ASSERT(Unk_137bbc0, field_27e, 0x27e);
+
+// 0x710137bbc0
+u32 Unk_137bbc0_update(Unk_137bbc0* self) {
+    u16 v0 = self->field_27e;
+    if (v0 == 0) {
+        return 0;
+    }
+    self->field_27e = v0 - 1;
+    return (v0 - 1) & 0xffff;
+}
+
 struct Unk_137bbe0 {
     u8 _0[0x27c];
     u32 field_27c;

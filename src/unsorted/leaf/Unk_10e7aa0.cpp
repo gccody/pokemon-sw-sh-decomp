@@ -3,6 +3,8 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
+#include "gflib3/Unk_239a418.h"
+
 struct Unk_10e7aa0_arg1 {
     u64 field_0;
     u64 field_8;
@@ -27,6 +29,25 @@ void Unk_10e7aa0_set(Unk_10e7aa0* self, Unk_10e7aa0_arg1* value) {
     value->field_8 = v1;
 }
 
+struct Unk_10e7b40_arg1 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_10e7b40_arg1, field_0, 0x0);
+
+struct Unk_10e7b40 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_10e7b40, field_0, 0x0);
+
+// 0x71010e7b40
+void Unk_10e7b40_call(const Unk_10e7b40* self, Unk_10e7b40_arg1* value) {
+    Unk_239a418* v0 = self->field_0;
+    value->field_0 = v0;
+    if (v0 != nullptr) {
+        static_cast<Unk_239a458*>(v0)->vf4();
+    }
+}
+
 struct Unk_10e7b60_arg1 {
     u64 field_0;
 };
@@ -42,6 +63,25 @@ void Unk_10e7b60_set(Unk_10e7b60* self, Unk_10e7b60_arg1* value) {
     u64 v0 = self->field_0;
     self->field_0 = 0;
     value->field_0 = v0;
+}
+
+struct Unk_10e7c10_arg1 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_10e7c10_arg1, field_0, 0x0);
+
+struct Unk_10e7c10 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_10e7c10, field_0, 0x0);
+
+// 0x71010e7c10
+void Unk_10e7c10_call(const Unk_10e7c10* self, Unk_10e7c10_arg1* value) {
+    Unk_239a418* v0 = self->field_0;
+    value->field_0 = v0;
+    if (v0 != nullptr) {
+        static_cast<Unk_239a458*>(v0)->vf4();
+    }
 }
 
 struct Unk_10e7c30_arg1 {
@@ -85,6 +125,25 @@ void Unk_10e9200_set(Unk_10e9200* self, Unk_10e9200_arg1* value) {
     value->field_8 = v1;
 }
 
+struct Unk_10e92a0_arg1 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_10e92a0_arg1, field_0, 0x0);
+
+struct Unk_10e92a0 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_10e92a0, field_0, 0x0);
+
+// 0x71010e92a0
+void Unk_10e92a0_call(const Unk_10e92a0* self, Unk_10e92a0_arg1* value) {
+    Unk_239a418* v0 = self->field_0;
+    value->field_0 = v0;
+    if (v0 != nullptr) {
+        static_cast<Unk_239a458*>(v0)->vf4();
+    }
+}
+
 struct Unk_10e92c0_arg1 {
     u64 field_0;
 };
@@ -100,6 +159,25 @@ void Unk_10e92c0_set(Unk_10e92c0* self, Unk_10e92c0_arg1* value) {
     u64 v0 = self->field_0;
     self->field_0 = 0;
     value->field_0 = v0;
+}
+
+struct Unk_10e9370_arg1 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_10e9370_arg1, field_0, 0x0);
+
+struct Unk_10e9370 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_10e9370, field_0, 0x0);
+
+// 0x71010e9370
+void Unk_10e9370_call(const Unk_10e9370* self, Unk_10e9370_arg1* value) {
+    Unk_239a418* v0 = self->field_0;
+    value->field_0 = v0;
+    if (v0 != nullptr) {
+        static_cast<Unk_239a458*>(v0)->vf4();
+    }
 }
 
 struct Unk_10e9390_arg1 {
@@ -119,6 +197,25 @@ void Unk_10e9390_set(Unk_10e9390* self, Unk_10e9390_arg1* value) {
     value->field_0 = v0;
 }
 
+struct Unk_10e9e90_arg1 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_10e9e90_arg1, field_0, 0x0);
+
+struct Unk_10e9e90 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_10e9e90, field_0, 0x0);
+
+// 0x71010e9e90
+void Unk_10e9e90_call(const Unk_10e9e90* self, Unk_10e9e90_arg1* value) {
+    Unk_239a418* v0 = self->field_0;
+    value->field_0 = v0;
+    if (v0 != nullptr) {
+        static_cast<Unk_239a458*>(v0)->vf4();
+    }
+}
+
 struct Unk_10e9eb0_arg1 {
     u64 field_0;
 };
@@ -136,6 +233,25 @@ void Unk_10e9eb0_set(Unk_10e9eb0* self, Unk_10e9eb0_arg1* value) {
     value->field_0 = v0;
 }
 
+struct Unk_10e9f40_arg1 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_10e9f40_arg1, field_0, 0x0);
+
+struct Unk_10e9f40 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_10e9f40, field_0, 0x0);
+
+// 0x71010e9f40
+void Unk_10e9f40_call(const Unk_10e9f40* self, Unk_10e9f40_arg1* value) {
+    Unk_239a418* v0 = self->field_0;
+    value->field_0 = v0;
+    if (v0 != nullptr) {
+        static_cast<Unk_239a458*>(v0)->vf4();
+    }
+}
+
 struct Unk_10e9f60_arg1 {
     u64 field_0;
 };
@@ -151,6 +267,25 @@ void Unk_10e9f60_set(Unk_10e9f60* self, Unk_10e9f60_arg1* value) {
     u64 v0 = self->field_0;
     self->field_0 = 0;
     value->field_0 = v0;
+}
+
+struct Unk_10ea010_arg1 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_10ea010_arg1, field_0, 0x0);
+
+struct Unk_10ea010 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_10ea010, field_0, 0x0);
+
+// 0x71010ea010
+void Unk_10ea010_call(const Unk_10ea010* self, Unk_10ea010_arg1* value) {
+    Unk_239a418* v0 = self->field_0;
+    value->field_0 = v0;
+    if (v0 != nullptr) {
+        static_cast<Unk_239a458*>(v0)->vf4();
+    }
 }
 
 struct Unk_10ea030_arg1 {
