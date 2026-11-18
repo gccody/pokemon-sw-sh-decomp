@@ -763,3 +763,20 @@ def test_header_structs(tmp_path, monkeypatch):
     (tmp_path / "src" / "a" / "c.h").write_text("struct Unk_30 {\n    static int f();\n};\n")
     monkeypatch.setattr(V, "ROOT", tmp_path)
     assert V.header_structs(["a/b.h", "a/missing.h"]) == {"Unk_10", "Unk_30"}
+
+
+def test_ref_dtor_pattern_with_an_interface():
+    """A class with an interface after the object stores four vptrs: the
+    object's three places and the interface's (+0x60)."""
+    pro = ("str x19, [sp, #N]! ; stp x29, x30, [sp, #N] ; add x29, sp, #N ; adrp x8, #N ; ldr x8, [x8, #N] ;"
+           " add x9, x8, #N ; add x10, x8, #N")
+    release = " ; cbz x0, #N ; ldr x8, [x0, #N]! ; ldr x8, [x8, #N] ; blr x8 ; str xzr, [x19, #N]"
+    epi = " ; ldp x29, x30, [sp, #N] ; ldr x19, [sp], #N ; ret"
+    base = pro + " ; add x8, x8, #N ; mov x19, x0 ; str x9, [x0] ; stp x10, x8, [x0, #N]" + \
+        " ; ldr x0, [x0, #N]" + release + epi
+    four = (pro + " ; add x11, x8, #N ; add x8, x8, #N ; mov x19, x0 ; str x9, [x0] ; str x8, [x0, #N] ;"
+            " stp x10, x11, [x0, #N]")
+    got = V.ref_dtor_pattern(base, 1, iface=True)
+    assert got.startswith(four + " ; ldr x0, [x0, #N]" + release) and got.endswith(epi)
+    assert V.ref_dtor_pattern(base, 1) != got
+    assert V.ref_dtor_pattern("ret", 1, iface=True) is None
