@@ -3,90 +3,26 @@
 // Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
+#include "gflib3/Unk_239a418.h"
 
-class Unk_24141d8 {
+class Unk_24141d8 : public Unk_239a418 {
 public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_239a418_GetType());
+        return &type;
+    }
+
+    ~Unk_24141d8() override;
+    const Unk_239a418_Type* vf_type() override { return Unk_GetType(); }
     virtual void vf7();
     virtual void vf8();
     virtual void vf9();
+    Unk_239a418_Ref<Unk_239a418> field_60;
 };
+PKMN_OFFSET_ASSERT(Unk_24141d8, field_60, 0x60);
+
+// 0x71010cbbb0: its key function
+Unk_24141d8::~Unk_24141d8() {}
 
 // 0x71010cb190
 void Unk_24141d8::vf9() {}
-
-class Unk_24142a0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-};
-
-// 0x71010cb4d0
-void Unk_24142a0::vf9() {}
-
-class Unk_2414428 {
-public:
-    virtual ~Unk_2414428();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6(u64 value);
-    virtual u64 vf7();
-    virtual u8 vf8();
-    virtual void vf9(u32 value);
-    virtual u32 vf10();
-    virtual void vf11();
-    u64 field_8;
-    u8 field_10;
-    u8 _11[0x3];
-    u32 field_14;
-};
-PKMN_OFFSET_ASSERT(Unk_2414428, field_8, 0x8);
-PKMN_OFFSET_ASSERT(Unk_2414428, field_10, 0x10);
-PKMN_OFFSET_ASSERT(Unk_2414428, field_14, 0x14);
-
-// 0x71010cc8f0
-void Unk_2414428::vf5() {
-    field_14 = 0;
-    field_10 = 1;
-}
-
-// 0x71010cc900
-void Unk_2414428::vf6(u64 value) {
-    field_8 = value;
-}
-
-// 0x71010cc910
-u64 Unk_2414428::vf7() {
-    return field_8;
-}
-
-// 0x71010cc920
-u8 Unk_2414428::vf8() {
-    return field_10;
-}
-
-// 0x71010cba70
-void Unk_2414428::vf9(u32 value) {
-    field_14 = value;
-}
-
-// 0x71010cba60
-u32 Unk_2414428::vf10() {
-    return field_14;
-}

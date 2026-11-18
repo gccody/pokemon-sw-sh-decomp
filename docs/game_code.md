@@ -1089,6 +1089,23 @@ The generator, unchanged, on #67's bases: 7 classes, 3 on `Unk_23f6328`, 3
 on `Unk_24034f8` and 1 on `Unk_23f5ec8`, 56 functions (check.py: 28,615
 matching, 107 not matching).
 
+### Batch 18: a destructor as the key function
+
+A class on the object with the inline type shape (Batch 6: `vf_type`
+inline, its getter inlined into it, the secondary type slots
+`sub x0, x0, #N ; b <vf_type>`) needs another function `write` can define
+as its key function, so that its vtable, `vf_type` and the thunks are
+emitted in its file. When it has none but has a D2 of its own (members to
+destroy, Batch 6 and 16), its destructor is written out instead:
+`~X() override;` declared before its other functions and `X::~X() {}`
+defined in the file of its D2 (`ClassSpec.explicit_dtor`). Out of line, the
+destructor compiles to the same D2, D0 and thunks as the implicit one for
+these small D2s. A class that shares the object's D2 can't do this: a
+written-out destructor would be a D2 of its own.
+
+35 classes match, 29 plain and 6 with an interface: 315 functions
+(check.py: 28,930 matching, 107 not matching).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1114,7 +1131,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17)
 
-State after #69: check.py reports 28,615 matching and 107 not matching, in
+State after #72: check.py reports 28,930 matching and 107 not matching, in
 both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
