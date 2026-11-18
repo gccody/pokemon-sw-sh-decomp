@@ -367,3 +367,25 @@ def test_returns_a_table_or_a_string(monkeypatch):
     monkeypatch.setattr(leafgen, "DATA_AT", None)
     with pytest.raises(leafgen.LiftError, match="code or a vtable"):
         leafgen.generate(ADDR, code(*words))
+
+
+def test_reference_added_through_the_interface():
+    """ldr x8, [x0] ; str x8, [x1] ; ldr x0, [x0, #8] ; str x0, [x1, #8] ; cbz x0, L ;
+    ldr x8, [x0, #0x48]! ; ldr x1, [x8, #0x10] ; br x1 ; L: ret: a copy that adds a
+    reference to the object it holds (Unk_239a418_Ref's copy), through the
+    interface at +0x48. The pointer is read before the store that may alias it."""
+    ldr_pre = 0xF8400C00 | (0x48 << 12) | 0 << 5 | 8   # ldr x8, [x0, #0x48]!
+    br_x1 = 0xD61F0020
+    words = (ldr_x(8, 0, 0), str_x(8, 1, 0), ldr_x(0, 0, 8), str_x(0, 1, 8), cbz_x(0, 4), ldr_pre,
+             ldr_x(1, 8, 0x10), br_x1, RET)
+    structs, func = leafgen.generate(ADDR, code(*words))
+    assert "    Unk_239a418* field_8;\n" in structs
+    assert func == ("void Unk_123450_call(const Unk_123450* self, Unk_123450_arg1* value) {\n"
+                    "    value->field_0 = self->field_0;\n    Unk_239a418* v0 = self->field_8;\n"
+                    "    value->field_8 = v0;\n    if (v0 != nullptr) {\n"
+                    "        static_cast<Unk_239a458*>(v0)->vf4();\n    }\n}\n")
+    assert leafgen.REF_HEADER in leafgen.render_file([(ADDR, structs, func)])
+    with pytest.raises(leafgen.LiftError, match="slot"):  # not one of the two reference slots
+        leafgen.generate(ADDR, code(*words[:6], ldr_x(1, 8, 0x20), br_x1, RET))
+    text = leafgen.render_file([(ADDR, structs, func)])
+    assert leafgen.parse_file(text) == [(ADDR, structs, func)]  # the #include isn't part of a block
