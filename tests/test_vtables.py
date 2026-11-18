@@ -649,3 +649,39 @@ def test_ref_members_tail():
     assert V.ref_members_tail(m, 0x200, 0x600, 0x3000, 0x80) is None   # +0x78 is the base's
     assert V.ref_members_tail(m, 0x200, 0x700, 0x3000, 0x78) is None   # another base's D2
     assert V.ref_members_tail(m, 0x200, 0x600, 0x3008, 0x78) is None   # it stores another class's vtable
+
+
+def test_parent_getters_on_another_base():
+    """On a base whose own getter loads six statics (GOT slots 0x1020-0x1048):
+    a vf_type calling a getter that loads exactly those is on the base's own
+    getter (out of line); one calling a getter that loads two more first is
+    on another class's getter on that base."""
+    img = bytearray(0x1100)
+
+    def got_loads(slots):
+        return [w for slot in slots for w in (0xB0000008, 0xF9400000 | ((slot - 0x1000) // 8) << 10 | 8 << 5 | 8)]
+
+    def vf_type(at, getter):
+        f = got_loads((0x1050, 0x1058))
+        pc = at + 4 * len(f)
+        f += [0x94000000 | ((t - (pc + 4 * i)) >> 2) & 0x3FFFFFF for i, t in enumerate((0x400, getter, 0x500))] + [RET]
+        struct.pack_into(f"<{len(f)}I", img, at, *f)
+        return 4 * len(f)
+
+    base = (0x1020, 0x1028, 0x1030, 0x1038, 0x1040, 0x1048)
+    sizes = {0x200: vf_type(0x200, 0x700), 0x300: vf_type(0x300, 0x800)}
+    g = got_loads(base) + [RET]
+    struct.pack_into(f"<{len(g)}I", img, 0x700, *g)
+    h = got_loads((0x1010, 0x1018, *base)) + [RET]
+    struct.pack_into(f"<{len(h)}I", img, 0x800, *h)
+    sizes |= {0x700: 4 * len(g), 0x800: 4 * len(h)}
+    got = {0x1010 + 8 * i: 0x3000 + 8 * i for i in range(10)}
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), [], [], sizes, {}, {}, lambda a: "game", DELETE, got)
+    e = V.ExternalBase(0x1010, "Unk_B", "h", (), 6, "Unk_B::Unk_GetType", ())
+    statics = [0x3010 + 8 * i for i in range(6)]
+    assert V.base_getter_copy(m, 0x200, statics) == 0x700
+    assert V.out_of_line_parent(m, 0x200, e, statics) is None
+    assert V.base_getter_copy(m, 0x300, statics) is None
+    assert V.out_of_line_parent(m, 0x300, e, statics) == 0x800
+    assert V.out_of_line_parent(m, 0x300, e, None) is None
+    assert V.getter_name("Unk_B::Unk_GetType") == "_ZN5Unk_B11Unk_GetTypeEv"

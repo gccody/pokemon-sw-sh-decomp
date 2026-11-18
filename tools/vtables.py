@@ -876,20 +876,51 @@ def intermediate_type(m: Model, f: int) -> tuple[int, int] | None:
     return statics[3], once[0]
 
 
-def out_of_line_parent(m: Model, f: int, e: ExternalBase) -> int | None:
-    """The getter a vf_type f of a class on the object calls for its type's
-    parent, when that's another direct descendant's getter, out of line:
-    three calls (guard, getter, guard) and one guarded static, the getter one
-    whose type's parent is the object's (three statics deep, like
-    Unk_23d4470::Unk_GetType)."""
-    if e.get_type != "Unk_239a418_GetType":
-        return None
+def _guarded_call(m: Model, f: int) -> int | None:
+    """What a vf_type f calls between its guard's acquire and release (three
+    calls, one guarded static): its own getter inlined, its parent's not."""
     calls, statics = _calls_and_statics(m, f)
     if len(calls) != 3 or len(statics) != 2 or len(set(calls)) != 3:
         return None
-    g = calls[1]
+    return calls[1]
+
+
+def out_of_line_parent(m: Model, f: int, e: ExternalBase, base_statics: list[int] | None = None) -> int | None:
+    """The getter a vf_type f of a class on e calls for its type's parent,
+    when that's another class's getter on e, out of line. On the object, a
+    direct descendant's: three statics deep, like Unk_23d4470::Unk_GetType.
+    On another base, whose own getter loads `base_statics`: a getter whose
+    parent is that one, inlined (its statics, then the base's)."""
+    g = _guarded_call(m, f)
+    if g is None:
+        return None
     _, gstatics = _calls_and_statics(m, g)
-    return g if len(gstatics) == 6 else None
+    if e.get_type == "Unk_239a418_GetType":
+        return g if len(gstatics) == 6 else None
+    return g if base_statics and len(gstatics) == len(base_statics) + 2 and gstatics[2:] == base_statics else None
+
+
+def base_getter_copy(m: Model, f: int, base_statics: list[int] | None) -> int | None:
+    """The base's own getter, out of line, when a vf_type f calls it for its
+    type's parent (the base's getter is inline: a TU with several callers
+    keeps it out of line, and the linker one copy of it)."""
+    g = _guarded_call(m, f)
+    return g if g is not None and base_statics and _calls_and_statics(m, g)[1] == base_statics else None
+
+
+def base_type_statics(m: Model, e: ExternalBase, ev: Vtable) -> list[int] | None:
+    """The statics e's own type getter loads (guard and type, then its
+    parent's), from its type slot: the getter inlined there, or `b <it>`."""
+    f = ev.slots[e.type_slot] if e.type_slot < len(ev.slots) else None
+    if isinstance(f, int) and m.pattern(f) == "b T":
+        f = branch_target(m, f)
+    return _calls_and_statics(m, f)[1] if isinstance(f, int) else None
+
+
+def getter_name(get_type: str) -> str:
+    """The mangled name of a base's getter (`Unk_X::Unk_GetType`)."""
+    cls, _, fn = get_type.partition("::")
+    return mangle(cls, fn)
 
 
 REF = "Unk_239a418_Ref<Unk_239a418>"   # a reference member (gflib3/Unk_239a418.h)
@@ -1003,6 +1034,12 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
     callers: dict[int, set[int]] = defaultdict(set)
     d2 = ev.slots[0]
     esecs = [w for w in groups[ev.addr] if w is not ev]
+    base_statics = base_type_statics(m, e, ev)
+    # every vtable's type slots, in the primary vtables and the secondary ones
+    type_fns = {w.slots[i] for w in m.vtables
+                for i in ([e.type_slot] if not w.offset_to_top else
+                          [ts for off, _, ts in e.secondaries if -w.offset_to_top == off])
+                if i < len(w.slots)}
 
     def tail(v: Vtable) -> bool:
         f = v.slots[e.type_slot] if e.type_slot < len(v.slots) else None
@@ -1092,7 +1129,8 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
                 extra.append(Member(e.type_slot, f6, "ext_type", ("copy", it[0], x, it[1])))
                 extra += [Member(-1, f, "ext_thunk", (off, "vf_type"))
                           for f, (off, _, _) in zip(thunks, e.secondaries)]
-        elif ok and overrides and t is None and isinstance(f6, int) and (g := out_of_line_parent(m, f6, e)) \
+        elif ok and overrides and t is None and isinstance(f6, int) \
+                and (g := out_of_line_parent(m, f6, e, base_statics)) \
                 and (x := getter_type(m, g)) is not None \
                 and (g in owners or m.names.get(g, "") in ("", mangle(f"Unk_{x:x}", "Unk_GetType"))) \
                 and all(m.pattern(f) == m.pattern(f6) for f in thunks):
@@ -1103,6 +1141,20 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
                 ok = False
             else:
                 extra.append(Member(e.type_slot, f6, "ext_type", ("copy", None, x, g)))
+                extra += [Member(-1, f, "ext_thunk", (off, "vf_type"))
+                          for f, (off, _, _) in zip(thunks, e.secondaries)]
+        elif ok and overrides and t is None and isinstance(f6, int) \
+                and (g := base_getter_copy(m, f6, base_statics)) is not None \
+                and m.names.get(g, "") in ("", getter_name(e.get_type)) \
+                and all(m.pattern(f) == m.pattern(f6) for f in thunks):
+            # Its getter inlined into vf_type, calling the base's out of line:
+            # a file with another such class keeps the base's getter out of
+            # line (written only then, below). Its secondary type slots are
+            # copies of vf_type.
+            if not pickable(f6) or any(not pickable(f) for f in thunks):
+                ok = False
+            else:
+                extra.append(Member(e.type_slot, f6, "ext_type", ("copy", None, None, g)))
                 extra += [Member(-1, f, "ext_thunk", (off, "vf_type"))
                           for f, (off, _, _) in zip(thunks, e.secondaries)]
         elif ok and overrides and t is None:
@@ -1137,9 +1189,20 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
                 # Other code of the class may call its getter too; another
                 # class's vtable function may not (then T isn't this class's),
                 # unless it's the getter of a class derived from this one,
-                # inlined: its type's parent is T's.
-                foreign = {c for c in (callers[t] - {f6, *thunks}) & in_vtables
-                           if x is None or (out_of_line_parent(m, c, e) != t
+                # inlined: its type's parent is T's. On another base, T is
+                # named after its type object then too, when it loads its
+                # type and the base's getter's statics (a child's getter).
+                others = (callers[t] - {f6, *thunks}) & in_vtables
+                if x is None and others and base_statics:
+                    ts = _calls_and_statics(m, t)[1]
+                    if len(ts) == len(base_statics) + 2 and ts[2:] == base_statics:
+                        x = getter_type(m, t)
+                # (On another base, only a caller in another class's type slot
+                # says T is shared: other virtual functions may check a type.)
+                if x is not None and e.type_slot < len(ev.slots):
+                    others &= type_fns
+                foreign = {c for c in others
+                           if x is None or (out_of_line_parent(m, c, e, base_statics) != t
                                             and (intermediate_type(m, c) or (0, None))[1] != t)}
                 if foreign:
                     ok = False
@@ -1200,6 +1263,19 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         d.sigs = {x.slot: signature(x) if x.kind == "lifted" else (RTYPE[x.kind], ()) for x in mine}
         gone_of[v.addr] = (secs, {x.addr for x in extra})
         owners.update((x.addr, v.addr) for x in extra if x.kind == "ext_getter" and x.value)
+    # A class whose getter calls the base's out of line is written only with
+    # another such class in its file: alone there, clang inlines the base's.
+    def base_copy(d: ClassSpec) -> int | None:
+        return next((x.addr for x in d.members if x.kind == "ext_type" and isinstance(x.value, tuple)
+                     and x.value[1] is None and x.value[2] is None and x.value[3] is not None), None)
+
+    copies = Counter(seg(a) for d in specs.values() if d.ext is e and (a := base_copy(d)) is not None)
+    for d in [d for d in specs.values() if d.ext is e and (a := base_copy(d)) is not None and copies[seg(a)] < 2]:
+        del gone_of[d.v.addr]
+        if before[d.v.addr] is None:
+            del specs[d.v.addr]
+        else:
+            specs[d.v.addr] = before[d.v.addr]
     # A class whose getter other classes call is written only with one of them
     # in its TU: with no other caller there, clang inlines the getter.
     used = {(seg(x.value[3]), x.value[3]) for d in specs.values() if d.ext is e for x in d.members
@@ -1450,6 +1526,8 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
             pre = [f"// A class on {e.name} whose type getter (0x{getter + BASE:x}) is out of line.",
                    f"struct Unk_{above:x} {{", f"    static {TYPE} Unk_GetType();", "};", ""]
             names.append((getter, mangle(f"Unk_{above:x}", "Unk_GetType")))
+        elif it is None and getter is not None:
+            names.append((getter, getter_name(e.get_type)))  # the base's own, out of line
         if it is None:  # directly on that class
             parent = it_parent
             decl[:0] = pre
