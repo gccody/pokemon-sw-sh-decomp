@@ -8,8 +8,6 @@
 void Unk_1489610(void* self);
 void Unk_148fee0(void* self);
 void Unk_1495000(void* self);
-void Unk_149ad00(void* self);
-void Unk_149b080(void* self);
 void Unk_149edc0(void* self);
 void Unk_149fe90(void* self);
 void Unk_14a6450(void* self);
@@ -56,116 +54,6 @@ public:
 // 0x7101489540
 void Unk_243ffb8::vf0() {
     Unk_1489610(this);
-}
-
-class Unk_24415a8 {
-public:
-    virtual ~Unk_24415a8();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15();
-    virtual void vf16();
-};
-
-// 0x710149ac90
-void Unk_24415a8::vf6() {
-    Unk_149ad00(this);
-}
-
-// 0x710149aab0
-void Unk_24415a8::vf8() {}
-
-class Unk_2441640 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x710149acc0
-void Unk_2441640::vf5() {
-    Unk_149ad00(this);
-}
-
-class Unk_2441680 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x710149acd0
-void Unk_2441680::vf0() {
-    Unk_149ad00(this);
-}
-
-class Unk_24416b0 {
-public:
-    virtual ~Unk_24416b0();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15();
-    virtual void vf16();
-};
-
-// 0x710149b010
-void Unk_24416b0::vf6() {
-    Unk_149b080(this);
-}
-
-// 0x710149ae30
-void Unk_24416b0::vf8() {}
-
-class Unk_2441748 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x710149b040
-void Unk_2441748::vf5() {
-    Unk_149b080(this);
-}
-
-class Unk_2441788 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x710149b050
-void Unk_2441788::vf0() {
-    Unk_149b080(this);
 }
 
 class Unk_24417c0 {

@@ -3,62 +3,32 @@
 // Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
+#include "unsorted/Unk_23f4660.h"
 
-// Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_12ee870(void* self);
-
-class Unk_242e928 {
+class Unk_242e928 : public Unk_23f4660 {
 public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15();
-    virtual void vf16();
-};
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23f4660::Unk_GetType());
+        return &type;
+    }
 
-// 0x71012ee600
-void Unk_242e928::vf6() {
-    Unk_12ee870(this);
-}
+    const Unk_239a418_Type* vf_type() override;
+    void vf8() override;
+    void vf10() override;
+    void vf15() override;
+    u8 _5d0[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_5e8;
+    Unk_239a418_Ref<Unk_239a418> field_5f0;
+    Unk_239a418_Ref<Unk_239a418> field_5f8;
+};
+PKMN_OFFSET_ASSERT(Unk_242e928, field_5e8, 0x5e8);
+PKMN_OFFSET_ASSERT(Unk_242e928, field_5f0, 0x5f0);
+PKMN_OFFSET_ASSERT(Unk_242e928, field_5f8, 0x5f8);
 
 // 0x71012edce0
 void Unk_242e928::vf10() {}
 
-class Unk_242e9c0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x71012ee730
-void Unk_242e9c0::vf5() {
-    Unk_12ee870(this);
-}
-
-class Unk_242ea00 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x71012ee740
-void Unk_242ea00::vf0() {
-    Unk_12ee870(this);
+// 0x71012ee600; its type 0x71012ee870
+const Unk_239a418_Type* Unk_242e928::vf_type() {
+    return Unk_GetType();
 }

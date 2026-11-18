@@ -3,40 +3,31 @@
 // Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
+#include "unsorted/Unk_23f4660.h"
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
 void Unk_f431c0(void* self);
-void Unk_f43f30(void* self);
-void Unk_f48700(void* self);
 
-// Tail-called by lifted functions. Placeholders, like the forwarders' callees.
-void Unk_6d7ac0(u64, u64, u32);
-
-class Unk_23fd920 {
+class Unk_23fd920 : public Unk_23f4660 {
 public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15();
-    virtual void vf16();
-};
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23f4660::Unk_GetType());
+        return &type;
+    }
 
-// 0x7100f43cc0
-void Unk_23fd920::vf6() {
-    Unk_f43f30(this);
-}
+    const Unk_239a418_Type* vf_type() override;
+    void vf8() override;
+    void vf10() override;
+    void vf15() override;
+    u32 vf16() override;
+    u8 _5d0[0x8];
+    Unk_239a418_Ref<Unk_239a418> field_5d8;
+    Unk_239a418_Ref<Unk_239a418> field_5e0;
+    Unk_239a418_Ref<Unk_239a418> field_5e8;
+};
+PKMN_OFFSET_ASSERT(Unk_23fd920, field_5d8, 0x5d8);
+PKMN_OFFSET_ASSERT(Unk_23fd920, field_5e0, 0x5e0);
+PKMN_OFFSET_ASSERT(Unk_23fd920, field_5e8, 0x5e8);
 
 // 0x7100f431b0
 void Unk_23fd920::vf8() {
@@ -46,154 +37,7 @@ void Unk_23fd920::vf8() {
 // 0x7100f43410
 void Unk_23fd920::vf10() {}
 
-class Unk_23fd9b8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100f43df0
-void Unk_23fd9b8::vf5() {
-    Unk_f43f30(this);
-}
-
-class Unk_23fd9f8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100f43e00
-void Unk_23fd9f8::vf0() {
-    Unk_f43f30(this);
-}
-
-struct Unk_23fda38_e8 {
-    u8 _0[0x2a0];
-    u64 field_2a0;
-};
-PKMN_OFFSET_ASSERT(Unk_23fda38_e8, field_2a0, 0x2a0);
-
-class Unk_23fda38 {
-public:
-    virtual ~Unk_23fda38();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15(u64 /*unused*/, u64 arg2);
-    virtual void vf16();
-    virtual void vf17();
-    u8 _8[0xe0];
-    Unk_23fda38_e8* field_e8;
-    u8 _f0[0x8];
-    u8 field_f8;
-};
-PKMN_OFFSET_ASSERT(Unk_23fda38, field_e8, 0xe8);
-PKMN_OFFSET_ASSERT(Unk_23fda38, field_f8, 0xf8);
-
-// 0x7100f480e0
-void Unk_23fda38::vf6() {
-    Unk_f48700(this);
-}
-
-// 0x7100f47ab0
-void Unk_23fda38::vf13() {}
-
-// 0x7100f47ad0
-void Unk_23fda38::vf14() {
-    field_f8 = 1;
-}
-
-// 0x7100f47af0
-void Unk_23fda38::vf15(u64 /*unused*/, u64 arg2) {
-    if (field_e8 != nullptr) {
-        Unk_6d7ac0(field_e8->field_2a0, arg2, 1);
-    }
-}
-
-class Unk_23fdba0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    u8 _8[0x70];
-    u8 field_78;
-};
-PKMN_OFFSET_ASSERT(Unk_23fdba0, field_78, 0x78);
-
-// 0x7100f47ac0
-void Unk_23fdba0::vf0() {}
-
-// 0x7100f47ae0
-void Unk_23fdba0::vf1() {
-    field_78 = 1;
-}
-
-struct Unk_23fdbf0_60 {
-    u8 _0[0x2a0];
-    u64 field_2a0;
-};
-PKMN_OFFSET_ASSERT(Unk_23fdbf0_60, field_2a0, 0x2a0);
-
-class Unk_23fdbf0 {
-public:
-    virtual void vf0(u64 /*unused*/, u64 arg2);
-    virtual void vf1();
-    u8 _8[0x58];
-    Unk_23fdbf0_60* field_60;
-};
-PKMN_OFFSET_ASSERT(Unk_23fdbf0, field_60, 0x60);
-
-// 0x7100f47b10
-void Unk_23fdbf0::vf0(u64 /*unused*/, u64 arg2) {
-    if (field_60 != nullptr) {
-        Unk_6d7ac0(field_60->field_2a0, arg2, 1);
-    }
-}
-
-class Unk_23fdad8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100f48110
-void Unk_23fdad8::vf5() {
-    Unk_f48700(this);
-}
-
-class Unk_23fdb18 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100f48120
-void Unk_23fdb18::vf0() {
-    Unk_f48700(this);
+// 0x7100f43cc0; its type 0x7100f43f30
+const Unk_239a418_Type* Unk_23fd920::vf_type() {
+    return Unk_GetType();
 }
