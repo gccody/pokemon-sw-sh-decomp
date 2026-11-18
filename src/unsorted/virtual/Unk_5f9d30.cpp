@@ -6,7 +6,6 @@
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
 void Unk_5fbe30(void* self);
-void Unk_5ffbb0(void* self);
 void Unk_60e5a0(void* self);
 
 // Tail-called by lifted functions. Placeholders, like the forwarders' callees.
@@ -150,80 +149,6 @@ u32 Unk_239b788::vf8() {
 u32 Unk_239b788::vf9() {
     return field_4a4;
 }
-
-class Unk_239b8d8 {
-public:
-    virtual ~Unk_239b8d8();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15() = 0;
-    virtual void vf16() = 0;
-};
-
-// 0x71005ffb40
-void Unk_239b8d8::vf6() {
-    Unk_5ffbb0(this);
-}
-
-class Unk_239b970 {
-public:
-    virtual ~Unk_239b970();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x71005ffb70
-void Unk_239b970::vf5() {
-    Unk_5ffbb0(this);
-}
-
-class Unk_239b9b0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x71005ffb80
-void Unk_239b9b0::vf0() {
-    Unk_5ffbb0(this);
-}
-
-class Unk_239a1f8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15();
-};
-
-// 0x71006036e0
-void Unk_239a1f8::vf15() {}
 
 class Unk_239c100 {
 public:
