@@ -559,6 +559,11 @@ EXTERNAL_BASES = (
                   (10, "void", "vf10"), (11, "void", "vf11"), (12, "void", "vf12"), (13, "void", "vf13"),
                   (14, "void", "vf14"), (15, "void", "vf15"), (16, "void", "vf16")),
                  6, "Unk_23f2df0::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x2c0),
+    # On Unk_239a4c0 (one interface, no types), its destructor out of line and too big to be
+    # inlined (the D0 and the thunks tail-call its D2). Slot 5 is its own: a pointer.
+    ExternalBase(0x23f5d10, "Unk_23f5d00", "unsorted/Unk_23f5d00.h",
+                 ((2, "void", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"), (5, "u8*", "vf5")),
+                 None, "", ((0x48, (0, 1), None),), size=0x180),
     # gflib3's other reference-counted object, which keeps its count itself (+0x50): one
     # interface (+0x48), no types, and an inline destructor that is empty (its D2 is a `ret`,
     # so a derived class's D2 stores its vptrs and destroys its members, and nothing else).
@@ -1209,16 +1214,28 @@ _VPTRS_CALL = (re.escape(_VPTRS.replace(" ; str x9, [x0] ; stp x10, x8, [x0, #N]
                + r" ; stp x10, x8, \[x0, #N\] ; ldr x8, \[x0, #N\] ; str x9, \[x0\] ; cbz x8, #N ;"
                + r" add x0, x19, #N(?:" + _ZERO4 + r") ; blr x8")
 _TAIL_MEMBERS = re.compile(rf"(?:{re.escape(_VPTRS)}|{_VPTRS_CALL})(?:{_REF_RE}|{_CALL_RE})*{re.escape(_TAIL_D2)}")
+# The same with one secondary base (+0x48: Unk_239a4c0's): two vptrs, and references only.
+_TAIL_MEMBERS2 = re.compile(rf"{re.escape(_VPTRS2)}(?:{_REF_RE})*{re.escape(_TAIL_D2)}")
 
 
-def tail_members(m: Model, f: int, d2: int, vtable: int, size: int) -> dict[int, str] | None:
+def tail_members(m: Model, f: int, d2: int, vtable: int, size: int, vptrs: int = 3) -> dict[int, str] | None:
     """The members a D2 f destroys before it tail-calls its base's D2 (d2, out
     of line), when they're references (REF) and callables (CALLABLE: if it
     holds one, its four words are cleared and its manager disposes of the
     storage at +0x20): offset -> type, after the base's `size` bytes, the
-    last declared destroyed first. f stores the class's own vtable."""
+    last declared destroyed first. f stores the class's own `vptrs` vptrs
+    (its vtable); with two (one secondary base), the members are references.
+
+    A D2 that is only `b <d2>` has none (empty): the class's destructor is
+    out of line (clang can't alias the base's D2 from another TU), its body
+    is empty and no member has a destructor, so clang skips the vptr stores
+    (CanSkipVTablePointerInitialization in clang's CGClass.cpp)."""
     from nx.refs import decode
-    if not _TAIL_MEMBERS.fullmatch(m.pattern(f) or ""):
+    pattern = m.pattern(f) or ""
+    if pattern == "b T":
+        return {} if branch_target(m, f) == d2 else None
+    regex = {2: _TAIL_MEMBERS2, 3: _TAIL_MEMBERS}.get(vptrs)
+    if regex is None or not regex.fullmatch(pattern):
         return None
     calls, statics = _calls_and_statics(m, f)
     if calls != [d2] or statics != [vtable]:
@@ -1327,7 +1344,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             elif e.inline_dtor:
                 refs = ref_members(m, s0, d2, v.start)
             else:
-                refs = tail_members(m, s0, d2, v.start, e.size)
+                refs = tail_members(m, s0, d2, v.start, e.size, 1 + len(e.secondaries))
             if refs is None and e.inline_dtor and not empty \
                     and (refs := ref_members(m, s0, d2, v.start, iface=True)):
                 four = True
@@ -1345,7 +1362,14 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         # (clang's threshold 325 instead of 250), and a D2 of a cost between
         # those would be inlined into the thunks after all.
         dtor_key = called
-        if e.inline_dtor or refs:   # the D0 is the D2, inlined (the operator delete is empty)
+        # A D2 of its own that is only `b <the base's D2>` (tail_members, none):
+        # its destructor is out of line, so it's its key function. Its D0 and
+        # its thunks tail-call the base's D2 as well (its D2 inlined).
+        bare = refs == {}
+        if bare:
+            if m.pattern(s1) != "b T" or branch_target(m, s1) != d2:
+                continue
+        elif e.inline_dtor or refs:   # the D0 is the D2, inlined (the operator delete is empty)
             if m.pattern(s1) != m.pattern(s0) and not called:
                 continue
         elif m.pattern(s1) != "b T" or branch_target(m, s1) != d2:
@@ -1369,13 +1393,15 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         if [(w.offset_to_top, len(w.slots)) for w in secs] != [(w.offset_to_top, len(w.slots)) for w in esecs] \
                 or any(isinstance(f, str) for f in v.slots):
             continue
-        extra = [Member(1, s1, "d0")] + ([Member(0, s0, "d2")] if refs else [])
+        extra = [Member(1, s1, "d0")] + ([Member(0, s0, "d2")] if refs or bare else [])
         ok = True
         for w, ew, (off, dslots, _) in zip(secs, esecs, e.secondaries):
             for j, which in zip(dslots, ("D1", "D0")):
                 f = w.slots[j]
                 if called:              # thunks that tail-call its D2
                     same = m.pattern(f) == "sub x0, x0, #N ; b T" and branch_target(m, f) == s0
+                elif bare:              # its D2 inlined: the base's tail-called
+                    same = m.pattern(f) == "sub x0, x0, #N ; b T" and branch_target(m, f) == d2
                 elif refs:              # thunks with its D2 inlined, the D1's and D0's alike
                     # (before a tail call, one may keep its own `this` too, in another register: see
                     # Unk_239a418_Base's fields)
@@ -1532,7 +1558,12 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         if not ok:
             continue
         inline_type = any(x.kind == "ext_type" and x.value is None for x in extra)
-        if inline_type:
+        if bare:
+            # Its D2 is its own only because its destructor is out of line
+            # (implicit, clang would use its base's): its key function,
+            # declared first.
+            order, dtor_key = declared, True
+        elif inline_type:
             # vf_type is inline in the class (else clang inlines it into its
             # thunks), so the key function is the first other function it
             # declares: one it defines in the D0's file. An override can move
