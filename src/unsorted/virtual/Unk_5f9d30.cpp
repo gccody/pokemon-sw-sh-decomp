@@ -78,24 +78,24 @@ void Unk_239b438::vf0() {
     Unk_5fbe30(this);
 }
 
-class Unk_239b548 {
+class Unk_239b598 {
 public:
-    virtual ~Unk_239b548();
+    virtual ~Unk_239b598();
     virtual void vf2();
     virtual void vf3();
 };
 
 // 0x71005fd510
-void Unk_239b548::vf2() {}
+void Unk_239b598::vf2() {}
 
-class Unk_239b578 {
+class Unk_239b5c8 {
 public:
     virtual void vf0();
     virtual void vf1();
 };
 
 // 0x71005fd590
-void Unk_239b578::vf0() {}
+void Unk_239b5c8::vf0() {}
 
 class Unk_239b720 {
 public:

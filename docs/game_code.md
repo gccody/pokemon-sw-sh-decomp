@@ -1250,6 +1250,23 @@ both vtables' functions. `Unk_24192b0` defines nothing of its own to be its
 key function, so its D0 and thunks stay U. Its vtable is stored only by
 `0x710111db70`, in an earlier TU.
 
+### Batch 20: owner ties broken by the stored vtable
+
+`owners()` gives a function to the shortest vtable that holds it, and a tie
+to the vtable at the lower address. A base and a class on it with
+vtables of the same length tie on everything they share, and the class
+on it often comes first: the base's D2, its type slot and its other
+functions became the derived class's (`Unk_2419350`, `Unk_23bcdf0`).
+`write` now breaks those ties by the vtable a shared D2 stores
+(`prefer_stored`, on `stored_vtable_owners`'s rows of equal length): the
+functions the two groups' vtables share are the base's. 127 of the 165
+rows are such ties. `write --only <empty>` moved 19 files' classes, with
+their names. A full trial had the same BAD lines as before, and no
+REGRESSION or STALE ones.
+
+5 classes match, 33 functions new, and 92 matched functions are renamed to
+the classes that define them (check.py: 29,196 matching, 107 not matching).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1275,7 +1292,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after #76: check.py reports 29,163 matching and 107 not matching, in
+State after #77: check.py reports 29,196 matching and 107 not matching, in
 both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
@@ -1357,10 +1374,9 @@ the bases of #62-#76). What's left, roughly by yield:
      they share. That hides type slots too: `Unk_23bcdf0` (5 vtables, four
      references on `Unk_23f43c8`) has its `vf6` and secondary type thunks
      matched as `Unk_23bcd20`'s, `Unk_23bcd88`'s and `Unk_23bcdc8`'s.
-     127 of the 165 are such ties. Breaking them in `owners()` by the
-     vtable a shared D2 stores would give 343 functions to the class that
-     stores it: 229 not matched yet, and 114 matched ones that would be
-     renamed. Then `write` could derive these classes;
+     127 of the 165 are such ties, which `write` now breaks by the vtable
+     the D2 stores (Batch 20). The other 38 have an owner with a shorter
+     vtable, or store a base's vtable first;
    - on the object: the groups of 6 or fewer from the #62 survey.
    YEBIS (`0x71004bf6a0`, 75 classes) and NEX/Pia (`0x710165baa0`, 52) have
    bigger groups, but they're libraries with RTTI: their classes have real

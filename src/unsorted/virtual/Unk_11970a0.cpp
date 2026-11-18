@@ -30,22 +30,13 @@ u32 Unk_241d190::vf11() {
     return 1;
 }
 
-class Unk_241df40 {
+class Unk_241df40 : public Unk_241d190 {
 public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual u32 vf12();
-    virtual void vf13();
+    u32 vf12() override;
+    void vf7() override;
+    void vf9() override;
+    void vf10() override;
+    void vf13() override;
 };
 
 // 0x71011970b0

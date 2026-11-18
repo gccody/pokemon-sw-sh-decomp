@@ -4,11 +4,11 @@
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
 
-class Unk_23a51d0 {
+class Unk_240ce88 {
 public:
-    virtual ~Unk_23a51d0();
-    virtual void vf2();
-    virtual void vf3();
+    virtual ~Unk_240ce88();
+    virtual void vf2() = 0;
+    virtual void vf3() = 0;
     virtual void vf4();
     virtual void vf5();
     virtual void vf6(u64 value);
@@ -22,38 +22,38 @@ public:
     u8 _11[0x3];
     u32 field_14;
 };
-PKMN_OFFSET_ASSERT(Unk_23a51d0, field_8, 0x8);
-PKMN_OFFSET_ASSERT(Unk_23a51d0, field_10, 0x10);
-PKMN_OFFSET_ASSERT(Unk_23a51d0, field_14, 0x14);
+PKMN_OFFSET_ASSERT(Unk_240ce88, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_240ce88, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_240ce88, field_14, 0x14);
 
 // 0x7101079d10
-void Unk_23a51d0::vf5() {
+void Unk_240ce88::vf5() {
     field_14 = 0;
     field_10 = 1;
 }
 
 // 0x7101079d20
-void Unk_23a51d0::vf6(u64 value) {
+void Unk_240ce88::vf6(u64 value) {
     field_8 = value;
 }
 
 // 0x7101079d30
-u64 Unk_23a51d0::vf7() {
+u64 Unk_240ce88::vf7() {
     return field_8;
 }
 
 // 0x7101079d40
-u8 Unk_23a51d0::vf8() {
+u8 Unk_240ce88::vf8() {
     return field_10;
 }
 
 // 0x7101079c10
-void Unk_23a51d0::vf9(u32 value) {
+void Unk_240ce88::vf9(u32 value) {
     field_14 = value;
 }
 
 // 0x7101079c00
-u32 Unk_23a51d0::vf10() {
+u32 Unk_240ce88::vf10() {
     return field_14;
 }
 
