@@ -688,12 +688,18 @@ def mangle(cls: str, member: str, params: str = "v") -> str:
     return f"_ZN{len(cls)}{cls}{m}E{params}"
 
 
+SCALAR_CODES = {"bool": "b", "u8": "h", "s8": "a", "u16": "t", "s16": "s", "u32": "j", "s32": "i",
+                "u64": "m", "s64": "l", "f32": "f", "f64": "d"}
+
+
 def param_codes(param: str) -> str:
-    """The Itanium code of an ExternalBase slot's parameter: none (`v`) or a
-    pointer to a class (`Name*`)."""
+    """The Itanium code of an ExternalBase slot's parameter: none (`v`), a
+    scalar of include/types.h (`s32`) or a pointer to a class (`Name*`)."""
     if not param:
         return "v"
     t = param.strip()
+    if t in SCALAR_CODES:
+        return SCALAR_CODES[t]
     if not t.endswith("*") or not t[:-1].isidentifier():
         raise ValueError(f"can't mangle the parameter {param!r}")
     return f"P{len(t) - 1}{t[:-1]}"
