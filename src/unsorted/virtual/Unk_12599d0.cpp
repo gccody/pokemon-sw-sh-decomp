@@ -5,7 +5,10 @@
 #include <types.h>
 #include "unsorted/Unk_23f43c8.h"
 
-class Unk_2426900 : public Unk_23f43c8 {
+// Tail-called by lifted functions. Placeholders, like the forwarders' callees.
+void Unk_1256f10(u64);
+
+class Unk_2427890 : public Unk_23f43c8 {
 public:
     static const Unk_239a418_Type* Unk_GetType() {
         static Unk_239a418_Type type(Unk_23f43c8::Unk_GetType());
@@ -16,9 +19,17 @@ public:
     void vf7() override;
     u32 vf8() override;
     void vf9() override;
+    u8 _78[0x8];
+    u64 field_80;
 };
+PKMN_OFFSET_ASSERT(Unk_2427890, field_80, 0x80);
 
-// 0x71012498f0; its type 0x7101249960
-const Unk_239a418_Type* Unk_2426900::vf_type() {
+// 0x71012599d0
+void Unk_2427890::vf9() {
+    Unk_1256f10(field_80);
+}
+
+// 0x71012599f0; its type 0x7101259a60
+const Unk_239a418_Type* Unk_2427890::vf_type() {
     return Unk_GetType();
 }

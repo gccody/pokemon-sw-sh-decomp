@@ -894,6 +894,26 @@ and the offset lands in a base: `Unk_23f4760`'s bytes or
 broke the others (a trial matched 7 more and lost one that had matched), so
 the bases keep their bytes.
 
+### Batch 11: more classes on the hand-written bases
+
+Among the classes on hand-written bases that `write` refused, two cases
+were simple:
+
+- **A D2 too big to be inlined.** With enough reference members, the D2
+  isn't inlined into the D0 and the thunks: the D0 is `b <D2>` and the
+  thunks `sub x0, x0, #N ; b <D2>`. With the same implicit destructor,
+  clang makes the same choice, so these are the same classes. A few have
+  a D2 of the same size that the original's D0 tail-calls where ours
+  inlines it; the trial leaves those out.
+- **Lifted members with a callee or globals.** A class on a hand-written
+  base kept out a lifted member that tail-calls a function or reads a
+  global, and with it the whole class whenever that member had matched
+  before. The file declares their callees and globals as it does for any
+  lifted member.
+
+13 more classes match: 98 functions (check.py: 27,458 matching, 107 not
+matching).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -919,7 +939,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17)
 
-State after #58: check.py reports 27,360 matching and 107 not matching, in
+State after #59: check.py reports 27,458 matching and 107 not matching, in
 both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
