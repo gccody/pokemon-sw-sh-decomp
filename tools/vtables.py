@@ -556,6 +556,7 @@ class ClassSpec:
     table: Table | None = None      # the entry array that element members index
     ext: ExternalBase | None = None  # a hand-written base (EXTERNAL_BASES) it derives from
     scalar_tail: bool = False       # padding near its end is u64 fields (tail_padding_start)
+    iface: ClassSpec | None = None  # the placeholder class of an interface right after the base (+e.size)
 
     @property
     def name(self) -> str:
@@ -1051,18 +1052,27 @@ _OBJECT_PART = (" ; adrp x8, #N ; ldr x8, [x8, #N] ; ldr x0, [x19, #N] ; add x9,
                 " add x8, x8, #N ; str x9, [x19] ; stp x10, x8, [x19, #N]" + _RELEASE)
 
 
-def ref_dtor_pattern(base: str, n: int) -> str | None:
+# A class with one more base after the object (an interface at +0x60) stores
+# four vptrs: the object's three places, and the interface's.
+_VPTRS3 = " ; add x8, x8, #N ; mov x19, x0 ; str x9, [x0] ; stp x10, x8, [x0, #N]"
+_VPTRS4 = " ; add x11, x8, #N ; add x8, x8, #N ; mov x19, x0 ; str x9, [x0] ; str x8, [x0, #N] ; stp x10, x11, [x0, #N]"
+
+
+def ref_dtor_pattern(base: str, n: int, iface: bool = False) -> str | None:
     """The D2 of a class on the object (whose D2's pattern is `base`) with n
     reference members and nothing else to destroy: its vtable, its members
-    released (the last declared first), then the object's D2 inlined."""
+    released (the last declared first), then the object's D2 inlined. With
+    `iface`, the class has an interface after the object (four vptrs)."""
     first = " ; ldr x0, [x0, #N]" + _RELEASE
     head, sep, tail = base.partition(first)
-    if not sep:
+    if not sep or (iface and _VPTRS3 not in head):
         return None
+    if iface:
+        head = head.replace(_VPTRS3, _VPTRS4)
     return head + first + (" ; ldr x0, [x19, #N]" + _RELEASE) * (n - 1) + _OBJECT_PART + tail
 
 
-def ref_members(m: Model, f: int, d2: int, vtable: int) -> tuple[int, ...] | None:
+def ref_members(m: Model, f: int, d2: int, vtable: int, iface: bool = False) -> tuple[int, ...] | None:
     """The offsets of the reference members a D2 f releases, when that's all
     it does before the object's D2 (d2, inlined): see ref_dtor_pattern."""
     from nx.refs import decode
@@ -1070,7 +1080,7 @@ def ref_members(m: Model, f: int, d2: int, vtable: int) -> tuple[int, ...] | Non
             if w & 0xFFC0001F == 0xF9400000 and (w >> 5) & 31 in (0, 19)]  # ldr x0, [x0|x19, #off]
     if len(offs) < 2 or offs[-1] != 0x58 or any(a <= b for a, b in zip(offs, offs[1:])) or offs[-2] < 0x60:
         return None
-    if m.pattern(f) != ref_dtor_pattern(m.pattern(d2) or "", len(offs) - 1):
+    if m.pattern(f) != ref_dtor_pattern(m.pattern(d2) or "", len(offs) - 1, iface):
         return None
     calls, statics = _calls_and_statics(m, f)
     if calls or statics[:1] != [vtable] or len(statics) != 2 or statics[1] not in _calls_and_statics(m, d2)[1][:1]:
@@ -1224,9 +1234,12 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         # reference members, then runs the base's (inlined, or tail-called
         # when it's out of line).
         refs = None
+        four = False                # its D2 stores an interface's vptr too
         if s0 != d2 and isinstance(s0, int):
             refs = ref_members(m, s0, d2, v.start) if e.inline_dtor else \
                 tail_members(m, s0, d2, v.start, e.size)
+            if refs is None and e.inline_dtor and (refs := ref_members(m, s0, d2, v.start, iface=True)):
+                four = True
             if refs is None or own.get(s0) != (v.addr, 0) or not pickable(s0):
                 continue
         if (s0 != d2 and refs is None) or not isinstance(s1, int) or s1 == ev.slots[1] \
@@ -1241,6 +1254,21 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         elif m.pattern(s1) != "b T" or branch_target(m, s1) != d2:
             continue
         secs = [w for w in groups[v.addr] if w is not v]
+        iface = None
+        if four:
+            # one more secondary vtable, the interface's right after the base,
+            # whose functions are all one placeholder class's (theirs, not the
+            # class's overrides: they aren't in its primary vtable)
+            w3 = secs[-1] if len(secs) == len(esecs) + 1 else None
+            owners_of = {own.get(f, (None,))[0] for f in w3.slots} if w3 is not None else set()
+            if w3 is None or w3.offset_to_top != -e.size or any(isinstance(f, str) or f in v.slots for f in w3.slots) \
+                    or len(owners_of) != 1 or None in owners_of:
+                continue
+            iv = by[owners_of.pop()]
+            iface = specs.get(iv.addr) or ClassSpec(iv, [], None)
+            if iface.fields or iface.base is not None or iface.ext is not None:
+                continue
+            secs = secs[:-1]
         if [(w.offset_to_top, len(w.slots)) for w in secs] != [(w.offset_to_top, len(w.slots)) for w in esecs] \
                 or any(isinstance(f, str) for f in v.slots):
             continue
@@ -1385,7 +1413,8 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         # the members its D2 destroys, then lifted members' fields
         fields: dict = dict(refs) if isinstance(refs, dict) else {o: REF for o in refs or ()}
         for x in picked.get(v.addr, []):
-            if x.kind == "lifted" and x.slot >= 2 and x.slot != e.type_slot and _ext_lifted_ok(e, ev, x, fields):
+            if x.kind == "lifted" and x.slot >= 2 and x.slot != e.type_slot and _ext_lifted_ok(e, ev, x, fields) \
+                    and (iface is None or all(off >= e.size + 8 for off, _ in x.lifted.fields)):
                 mine.append(x)
                 continue
             if x.kind not in SIMPLE_KINDS or x.slot < 2 or x.slot == e.type_slot:
@@ -1429,7 +1458,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         scalar_tail = bool(refs) and not e.inline_dtor and all(
             m.sizes.get(x.addr) == m.sizes.get(s0) for x in extra if x.kind == "ext_thunk" and x.value[1] in ("D0", "D1"))
         d = specs[v.addr] = ClassSpec(v, mine + extra, None, ext=e, order=order, fields=fields,
-                                      scalar_tail=scalar_tail)
+                                      scalar_tail=scalar_tail, iface=iface)
         d.sigs = {x.slot: signature(x) if x.kind == "lifted" else
                   (RTYPE[x.kind], (e.params(x.slot),) if e.params(x.slot) else ()) for x in mine}
         gone_of[v.addr] = (secs, {x.addr for x in extra})
@@ -1680,7 +1709,8 @@ def structs(fields: dict, name: str) -> list[str]:
 def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str, list[tuple[int, str]], str]:
     """render_class for a class derived from a hand-written base."""
     cls, e = spec.name, spec.ext
-    decl = [f"class {cls} : public {e.name} {{", "public:"]
+    second = f", public {spec.iface.name}" if spec.iface is not None else ""
+    decl = [f"class {cls} : public {e.name}{second} {{", "public:"]
     names: list[tuple[int, str]] = []
     defs: list[str] = []
     inter = next((x.value for x in spec.members if x.kind == "ext_type" and isinstance(x.value, tuple)), None)
@@ -1733,7 +1763,8 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
         decl.append(f"    {rt} {e.slot(i)[1]}({e.params(i)}) override;" if base_slot else
                     f"    virtual {rt} vf{i}({', '.join(params)});")
     if spec.fields:
-        decl += field_lines(spec.fields, cls, e.size, tail_padding_start(spec.fields) if spec.scalar_tail else None)
+        decl += field_lines(spec.fields, cls, e.size + (8 if spec.iface is not None else 0),
+                            tail_padding_start(spec.fields) if spec.scalar_tail else None)
     decl.append("};")
     if spec.fields:
         decl[:0] = structs(spec.fields, cls)
@@ -1834,6 +1865,8 @@ def render_file(m: Model, entries: list[tuple[ClassSpec, list[Member]]],
             return
         if spec.base is not None:
             emit(spec.base)
+        if spec.iface is not None:
+            emit(spec.iface)        # declared, and defined if its functions are this file's
         done.add(spec.v.addr)
         decl, ns, defs = render_class(m, spec, here.get(spec.v.addr, []))
         decl = GETTER_STRUCT.sub(once, decl)
