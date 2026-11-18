@@ -374,14 +374,15 @@ class ExternalBase:
     overrides the type getter (`type_slot`, also in the secondary vtables)
     with a `b T`, T is its own inline type getter, whose type has the base's
     (`get_type`) as its parent, and the secondary slots are thunks of the
-    override (the adjustment is dead, T takes no `this`)."""
+    override (the adjustment is dead, T takes no `this`). A base without
+    types has no type slot (None), in its secondary vtables either."""
     vtable: int                     # its primary vtable's address point (relative)
     name: str
     header: str
     slots: tuple                    # (slot, return type, name[, parameter]) of its virtual functions from slot 2
-    type_slot: int
+    type_slot: int | None
     get_type: str
-    secondaries: tuple              # (offset in the object, its 2 destructor slots, its type slot) each
+    secondaries: tuple              # (offset in the object, its 2 destructor slots, its type slot or None) each
     inline_dtor: bool = False       # its D2 is inline: the D0s and thunks are copies of it, not `b`s
     shared_tu: bool = False         # it and its derived classes are one TU: no file of their own
     source: str | None = None       # its own definitions, included in its TU's file (a shared TU)
@@ -558,6 +559,12 @@ EXTERNAL_BASES = (
                   (10, "void", "vf10"), (11, "void", "vf11"), (12, "void", "vf12"), (13, "void", "vf13"),
                   (14, "void", "vf14"), (15, "void", "vf15"), (16, "void", "vf16")),
                  6, "Unk_23f2df0::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x2c0),
+    # gflib3's other reference-counted object, which keeps its count itself (+0x50): one
+    # interface (+0x48), no types, and an inline destructor that is empty (its D2 is a `ret`,
+    # so a derived class's D2 stores its vptrs and destroys its members, and nothing else).
+    ExternalBase(0x239a4d0, "Unk_239a4c0", "gflib3/Unk_239a4c0.h",
+                 ((2, "void", "vf2"), (3, "void", "vf3"), (4, "void", "vf4")),
+                 None, "", ((0x48, (0, 1), None),), inline_dtor=True, size=0x54),
     # gflib3's reference-counted object: its destructor is inline, and it has no type slot of
     # its own (a class that overrides the interfaces' getter gets slot 6 for it).
     ExternalBase(0x239a428, "Unk_239a418", "gflib3/Unk_239a418.h",
@@ -1070,7 +1077,7 @@ def base_getter_copy(m: Model, f: int, base_statics: list[int] | None) -> int | 
 def base_type_statics(m: Model, e: ExternalBase, ev: Vtable) -> list[int] | None:
     """The statics e's own type getter loads (guard and type, then its
     parent's), from its type slot: the getter inlined there, or `b <it>`."""
-    f = ev.slots[e.type_slot] if e.type_slot < len(ev.slots) else None
+    f = ev.slots[e.type_slot] if e.type_slot is not None and e.type_slot < len(ev.slots) else None
     if isinstance(f, int) and m.pattern(f) == "b T":
         f = branch_target(m, f)
     return _calls_and_statics(m, f)[1] if isinstance(f, int) else None
@@ -1156,7 +1163,43 @@ def ref_members_tail(m: Model, f: int, d2: int, vtable: int, size: int) -> tuple
     return tuple(reversed(offs))
 
 
-CALLABLE = "Unk_23d4470_Callable"   # a callable member (unsorted/Unk_23d4470.h), 0x80 bytes
+# The same start for a class with one secondary base (+0x48: Unk_239a4c0's), and a D2's end
+# when the base's D2 is empty and inline: nothing of it is left.
+_VPTRS2 = _VPTRS.replace(" ; add x10, x8, #N", "").replace("stp x10, x8, [x0, #N]", "str x8, [x0, #N]")
+_RET = " ; ldp x29, x30, [sp, #N] ; ldr x19, [sp], #N ; ret"
+
+
+def ref_empty_pattern(n: int, vptrs: int = 2) -> str | None:
+    """The D2 of a class with n reference members and nothing else to
+    destroy, on a base whose D2 is empty and inline (a `ret`: its destructor
+    stores no vptrs, none of its fields has a destructor): the class's
+    `vptrs` vptrs, its members released (the last declared first), then
+    nothing of the base's."""
+    head = {2: _VPTRS2, 3: _VPTRS}.get(vptrs)
+    if head is None or n < 1:
+        return None
+    return head + " ; ldr x0, [x0, #N]" + _RELEASE + (" ; ldr x0, [x19, #N]" + _RELEASE) * (n - 1) + _RET
+
+
+def ref_members_empty(m: Model, f: int, vtable: int, size: int, vptrs: int = 2) -> tuple[int, ...] | None:
+    """The offsets of the reference members a D2 f releases, when that's all
+    it does and its base's D2 is empty and inline (see ref_empty_pattern).
+    They come after the base's `size` bytes, and f stores the class's own
+    vtable and calls nothing."""
+    from nx.refs import decode
+    offs = [((w >> 10) & 0xFFF) * 8 for _, w, _, _ in decode(m.img, f, m.sizes.get(f, 4))
+            if w & 0xFFC0001F == 0xF9400000 and (w >> 5) & 31 in (0, 19)]  # ldr x0, [x0|x19, #off]
+    if not offs or offs[-1] < size or any(a <= b for a, b in zip(offs, offs[1:])):
+        return None
+    if m.pattern(f) != ref_empty_pattern(len(offs), vptrs):
+        return None
+    calls, statics = _calls_and_statics(m, f)
+    if calls or statics != [vtable]:
+        return None
+    return tuple(reversed(offs))
+
+
+CALLABLE ="Unk_23d4470_Callable"   # a callable member (unsorted/Unk_23d4470.h), 0x80 bytes
 CALLABLE_HEADER = "unsorted/Unk_23d4470.h"
 _ZERO4 = r"(?: ; str xzr, \[x19, #N\]){4}|(?: ; stp xzr, xzr, \[x19, #N\]){2}"
 _REF_RE = r" ; ldr x0, \[x(?:0|19), #N\]" + re.escape(_RELEASE)
@@ -1245,16 +1288,22 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
     in_vtables = {f for v in m.vtables for f in v.slots if isinstance(f, int)}
     callers: dict[int, set[int]] = defaultdict(set)
     d2 = ev.slots[0]
+    # Its D2 is inline and empty: a derived class's D2 has nothing of it inlined.
+    empty = e.inline_dtor and m.pattern(d2) == "ret"
     esecs = [w for w in groups[ev.addr] if w is not ev]
     base_statics = base_type_statics(m, e, ev)
     # every vtable's type slots, in the primary vtables and the secondary ones
     type_fns = {w.slots[i] for w in m.vtables
                 for i in ([e.type_slot] if not w.offset_to_top else
                           [ts for off, _, ts in e.secondaries if -w.offset_to_top == off])
-                if i < len(w.slots)}
+                if i is not None and i < len(w.slots)}
+
+    def type_fn(v: Vtable) -> int | str | None:
+        """What v's type slot holds (None without one)."""
+        return v.slots[e.type_slot] if e.type_slot is not None and e.type_slot < len(v.slots) else None
 
     def tail(v: Vtable) -> bool:
-        f = v.slots[e.type_slot] if e.type_slot < len(v.slots) else None
+        f = type_fn(v)
         return isinstance(f, int) and m.pattern(f) == "b T"
 
     # A class whose getter other classes call (on the object: see the tail
@@ -1271,10 +1320,16 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         # when it's out of line).
         refs = None
         four = False                # its D2 stores an interface's vptr too
+        dtor_key = False            # its destructor is its key function
         if s0 != d2 and isinstance(s0, int):
-            refs = ref_members(m, s0, d2, v.start) if e.inline_dtor else \
-                tail_members(m, s0, d2, v.start, e.size)
-            if refs is None and e.inline_dtor and (refs := ref_members(m, s0, d2, v.start, iface=True)):
+            if empty:
+                refs = ref_members_empty(m, s0, v.start, e.size, 1 + len(e.secondaries))
+            elif e.inline_dtor:
+                refs = ref_members(m, s0, d2, v.start)
+            else:
+                refs = tail_members(m, s0, d2, v.start, e.size)
+            if refs is None and e.inline_dtor and not empty \
+                    and (refs := ref_members(m, s0, d2, v.start, iface=True)):
                 four = True
             if refs is None or own.get(s0) != (v.addr, 0) or not pickable(s0):
                 continue
@@ -1282,8 +1337,10 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
                 or own.get(s1) != (v.addr, 1) or not pickable(s1):
             continue
         # A D2 too big to be inlined into the D0 and the thunks (only with
-        # reference members, on an out-of-line base) is tail-called instead.
-        called = bool(refs) and not e.inline_dtor and m.pattern(s1) == "b T" and branch_target(m, s1) == s0
+        # reference members, on an out-of-line base or an empty one) is
+        # tail-called instead.
+        called = bool(refs) and (not e.inline_dtor or empty) and m.pattern(s1) == "b T" \
+            and branch_target(m, s1) == s0
         if e.inline_dtor or refs:   # the D0 is the D2, inlined (the operator delete is empty)
             if m.pattern(s1) != m.pattern(s0) and not called:
                 continue
@@ -1318,7 +1375,8 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
                 elif refs:              # thunks with its D2 inlined, the D1's and D0's alike
                     # (before a tail call, one may keep its own `this` too, in another register: see
                     # Unk_239a418_Base's fields)
-                    sizes = (m.sizes.get(s0),) if e.inline_dtor else (m.sizes.get(s0), m.sizes.get(s0, 0) + 4)
+                    sizes = (m.sizes.get(s0),) if e.inline_dtor and not empty else \
+                        (m.sizes.get(s0), m.sizes.get(s0, 0) + 4)
                     same = m.pattern(f) == m.pattern(w.slots[dslots[0]]) and m.sizes.get(f) in sizes
                 elif e.inline_dtor:     # thunks with the D2 inlined, like the base's
                     same = m.pattern(f) == m.pattern(ew.slots[j])
@@ -1327,10 +1385,13 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
                 if not same or own.get(f) != (w.addr, j) or not pickable(f):
                     ok = False
                 extra.append(Member(j, f, "ext_thunk", (off, which)))
-        # It overrides the type getter when its secondary type slots differ from the base's.
-        f6 = v.slots[e.type_slot] if e.type_slot < len(v.slots) else None
-        thunks = [w.slots[ts] for w, (_, _, ts) in zip(secs, e.secondaries)]
-        overrides = any(f != ew.slots[ts] for f, ew, (_, _, ts) in zip(thunks, esecs, e.secondaries))
+        # It overrides the type getter when its secondary type slots differ
+        # from the base's (a base without types has none).
+        f6 = type_fn(v)
+        typed = [(w, ew, sec) for w, ew, sec in zip(secs, esecs, e.secondaries) if sec[2] is not None]
+        tsecs = [sec for _, _, sec in typed]
+        thunks = [w.slots[sec[2]] for w, _, sec in typed]
+        overrides = any(w.slots[sec[2]] != ew.slots[sec[2]] for w, ew, sec in typed)
         t = branch_target(m, f6) if isinstance(f6, int) and m.pattern(f6) == "b T" else None
         if ok and overrides and t is None and e.shared_tu:
             # In a TU with many classes: its getter is inlined into vf_type (out
@@ -1344,7 +1405,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
                 inter = it is not None and m.names.get(it[1], "").endswith("11Unk_GetTypeEv")
                 extra.append(Member(e.type_slot, f6, "ext_type", ("copy", it[0], None, None) if inter else "copy"))
                 extra += [Member(-1, f, "ext_thunk", (off, "vf_type"))
-                          for f, (off, _, _) in zip(thunks, e.secondaries)]
+                          for f, (off, _, _) in zip(thunks, tsecs)]
         elif ok and overrides and t is None and isinstance(f6, int) and (it := intermediate_type(m, f6)) \
                 and (x := getter_type(m, it[1])) is not None \
                 and (it[1] in owners or m.names.get(it[1], "") in ("", mangle(f"Unk_{x:x}", "Unk_GetType"))) \
@@ -1358,7 +1419,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             else:
                 extra.append(Member(e.type_slot, f6, "ext_type", ("copy", it[0], x, it[1])))
                 extra += [Member(-1, f, "ext_thunk", (off, "vf_type"))
-                          for f, (off, _, _) in zip(thunks, e.secondaries)]
+                          for f, (off, _, _) in zip(thunks, tsecs)]
         elif ok and overrides and t is None and isinstance(f6, int) \
                 and (g := out_of_line_parent(m, f6, e, base_statics)) \
                 and (x := getter_type(m, g)) is not None \
@@ -1372,7 +1433,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             else:
                 extra.append(Member(e.type_slot, f6, "ext_type", ("copy", None, x, g)))
                 extra += [Member(-1, f, "ext_thunk", (off, "vf_type"))
-                          for f, (off, _, _) in zip(thunks, e.secondaries)]
+                          for f, (off, _, _) in zip(thunks, tsecs)]
         elif ok and overrides and t is None and isinstance(f6, int) \
                 and (g := base_getter_copy(m, f6, base_statics)) is not None \
                 and m.names.get(g, "") in ("", getter_name(e.get_type)) \
@@ -1386,7 +1447,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             else:
                 extra.append(Member(e.type_slot, f6, "ext_type", ("copy", None, None, g)))
                 extra += [Member(-1, f, "ext_thunk", (off, "vf_type"))
-                          for f, (off, _, _) in zip(thunks, e.secondaries)]
+                          for f, (off, _, _) in zip(thunks, tsecs)]
         elif ok and overrides and t is None:
             # Its getter is inlined into vf_type (the one caller in its TU), and
             # the secondary type slots are thunks that tail-call vf_type.
@@ -1397,7 +1458,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             else:
                 extra.append(Member(e.type_slot, f6, "ext_type", None))
                 extra += [Member(-1, f, "ext_thunk", (off, "vf_type"))
-                          for f, (off, _, _) in zip(thunks, e.secondaries)]
+                          for f, (off, _, _) in zip(thunks, tsecs)]
         elif ok and overrides:
             # T's type has the base's as its parent. On the object (no type
             # slot of its own), T is a direct descendant's getter, three
@@ -1442,7 +1503,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
                 extra.append(Member(e.type_slot, f6, "ext_type", t))
                 extra.append(Member(-1, t, "ext_getter", x or 0))
                 extra += [Member(-1, f, "ext_thunk", (off, "vf_type"))
-                          for f, (off, _, _) in zip(thunks, e.secondaries)]
+                          for f, (off, _, _) in zip(thunks, tsecs)]
         if not ok or any(seg(x.addr) != seg(s1) for x in extra):
             continue
         mine = []
@@ -1475,7 +1536,6 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             here = {x.slot for x in mine if seg(x.addr) == seg(s1)}
             rest = [i for i in declared if i != e.type_slot]
             key = next((i for i in rest if i in here and i < len(ev.slots)), None)
-            explicit = False
             if key is not None:
                 order = [key, *(i for i in declared if i != key)]
             elif rest and rest[0] in here:
@@ -1484,24 +1544,30 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
                 # Nothing else to be its key function, but a D2 of its own
                 # (members to destroy before the object's D2): its destructor,
                 # written out, declared first and defined in its file.
-                order, explicit = declared, True
+                order, dtor_key = declared, True
             else:
                 continue
         elif e.type_slot in declared:
             order = [e.type_slot, *(i for i in declared if i != e.type_slot)]
         else:
             order = derived_order(v, ev, mine, seg)
+            if order is None and empty and refs:
+                # Nothing it defines in its D0's file can be its key function
+                # (the original's vtable was emitted where the class is
+                # created): its destructor is, out of line. Its D2 is the
+                # same code, and small enough to be inlined into the D0 and
+                # the thunks all the same (check.py decides).
+                order, dtor_key = declared, True
             if order is None:
                 continue
         before[v.addr] = specs.get(v.addr)
         # Its thunks with its D2 inlined say what's at the end of the class:
         # a field when they're as long as the D2, bytes when they keep their
         # own `this` too (tail_padding_start).
-        scalar_tail = bool(refs) and not e.inline_dtor and all(
+        scalar_tail = bool(refs) and (not e.inline_dtor or empty) and all(
             m.sizes.get(x.addr) == m.sizes.get(s0) for x in extra if x.kind == "ext_thunk" and x.value[1] in ("D0", "D1"))
         d = specs[v.addr] = ClassSpec(v, mine + extra, None, ext=e, order=order, fields=fields,
-                                      scalar_tail=scalar_tail, iface=iface,
-                                      explicit_dtor=inline_type and explicit)
+                                      scalar_tail=scalar_tail, iface=iface, explicit_dtor=dtor_key)
         d.sigs = {x.slot: signature(x) if x.kind == "lifted" else
                   (RTYPE[x.kind], (e.params(x.slot),) if e.params(x.slot) else ()) for x in mine}
         gone_of[v.addr] = (secs, {x.addr for x in extra})
