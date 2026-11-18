@@ -705,9 +705,9 @@ type getter takes, which say how its TU was put together:
   So the class declares the member, at its offset, and nothing else.
   The vtable check matters because a derived class with nothing to destroy
   shares its base's D2 (clang aliases it), and the owner heuristic may give
-  that D2 to the derived class's vtable. check.py doesn't check a
-  placeholder vtable that data_symbols.csv doesn't list yet, so the D2
-  "matched" anyway. With the types the classes already had, 20 of the 30
+  that D2 to the derived class's vtable. check.py didn't check a
+  placeholder vtable that data_symbols.csv didn't list yet, so the D2
+  "matched" anyway (in Sword it would fail now). With the types the classes already had, 20 of the 30
   are written and all their functions match: 171 functions, the D2s, D0s
   and their thunks with the D2 inlined (check.py: 26,227 matching, 107 not
   matching). The rest have other type shapes, or their D2 is in another
@@ -829,11 +829,13 @@ Before committing a change to `vtables.py`, check that:
   nothing compiles any more: a class was refused or rewritten without one
   of its matched functions.
 - every new `_ZTV<n>Unk_<addr>` row in `data_symbols.csv` sits at `<addr>`.
-  A placeholder class is named after its Sword vtable. check.py doesn't
-  check a vtable reference until the symbol is recorded, so a function given
-  to the wrong class "matches", and `--record-data` then records the wrong
-  address. That happened in #54 (a D2 shared with a derived class through an
-  alias).
+  A placeholder class is named after its Sword vtable. check.py used not to
+  check a vtable reference until the symbol was recorded, so a function
+  given to the wrong class "matched", and `--record-data` then recorded the
+  wrong address. That happened in #54 (a D2 shared with a derived class
+  through an alias). Now Sword checks an unrecorded placeholder vtable
+  against the address its name gives, so such a function is BAD in Sword;
+  Shield still needs the recorded row.
 
 Other pitfalls:
 
@@ -849,11 +851,12 @@ Other pitfalls:
 
 ### Next steps, by expected yield
 
-1. **check.py: check unrecorded placeholder vtables.** In Sword, compare a
-   reference to an unrecorded `_ZTV<n>Unk_<hex>` against `0x71<hex>`, for
-   data addresses only (some hand-written classes are named after a
-   function). Shield needs the recorded row. This closes the gap described
-   above. All 358 rows recorded now are consistent.
+1. ~~**check.py: check unrecorded placeholder vtables.**~~ Done: in
+   Sword, a reference to an unrecorded `_ZTV<n>Unk_<hex>` must reach
+   `0x71<hex>` when that's a data address (some hand-written classes are
+   named after a function). With all 358 recorded rows removed, every
+   reference still matched in Sword, and `--record-data` recorded them again
+   at the same addresses.
 2. **More destructor members on the object** (`ref_members`, Batch 6
    paragraph). In the object's family (slots 2-5 are the object's), 1,578
    classes have a D2 of their own: 30 have one reference member (20 written), 116 release a
