@@ -1267,6 +1267,20 @@ REGRESSION or STALE ones.
 5 classes match, 33 functions new, and 92 matched functions are renamed to
 the classes that define them (check.py: 29,196 matching, 107 not matching).
 
+### Batch 21: the base's D2, copied
+
+Of the D2s that store another class's vtable than their owner's
+(`vtables.py stored`), many are 80 bytes and store the object's: each is
+a copy of `Unk_239a418`'s D2, owned by one class. That's #74's bare
+destructor on an inline base: an out-of-line `~X() {}` with an empty
+body and nothing to destroy, so clang skips X's vptr stores, and what's
+left is the base's D2, inlined. X's D0 and thunks are copies of it, as
+the base's are of the base's D2. `derive_external` now takes such a D2
+(`inline_bare`: the same pattern and statics as the base's D2) and
+writes the destructor out as the class's key function.
+
+5 classes match, 42 functions (check.py: 29,238 matching, 107 not matching).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1292,7 +1306,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after #77: check.py reports 29,196 matching and 107 not matching, in
+State after #78: check.py reports 29,238 matching and 107 not matching, in
 both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
