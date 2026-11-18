@@ -119,6 +119,11 @@ class Page:
 
 
 @dataclass(frozen=True)
+class DataAddr:
+    addr: int             # what `adrp ; add` computed (absolute): the address of a string or a table
+
+
+@dataclass(frozen=True)
 class GlobalPtr:
     addr: int             # a global's address (relative), loaded from its GOT slot
 
@@ -126,6 +131,17 @@ class GlobalPtr:
 # GOT slot -> what it holds (relative addresses), for `adrp ; ldr [slot]`: set
 # by the callers that have the executable (main, tools/vtables.py).
 GOT: dict[int, int] = {}
+
+# What `adrp ; add` may point at, for a function that returns it: absolute
+# address -> the string literal there (its C++ spelling), "" for other data
+# (a table this TU defines), None for neither (code, a vtable: refused). Set
+# by candidates(); without the executable every such address is refused.
+DATA_AT = None
+
+
+def data_at(addr: int) -> str | None:
+    return DATA_AT(addr) if DATA_AT is not None else None
+
 
 # Tail-call targets whose callers write fewer argument registers than others:
 # address (absolute) -> the longest caller's parameter types, which the
@@ -452,6 +468,9 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
             if mn in ("add", "sub") and isinstance(bv, Const) and _is_pointer_like(av) and w == 8 and mn == "add":
                 put(dst, AddrOf(av, bv.value))
                 continue
+            if mn == "add" and isinstance(av, Page) and isinstance(bv, Const) and w == 8:
+                put(dst, DataAddr(av.addr + bv.value))
+                continue
             sym = {"and": "&", "orr": "|", "eor": "^", "add": "+", "sub": "-", "lsl": "<<", "lsr": ">>",
                    "asr": ">>s"}[mn]
             put(dst, Op(sym, av, bv, w))
@@ -593,6 +612,7 @@ class Emitter:
         self.fp_types: dict[int, str] = {}    # s0..s7 / d0..d7
         self.forward: set[str] = set()        # structs a known callee's parameters name
         self.locals: dict[object, str] = {}   # pointers held in a local (choose_locals)
+        self.tables: set[int] = set()         # data a returned `adrp ; add` points at (absolute)
 
     # -- structs
     def struct_for(self, base: object) -> StructDef:
@@ -728,6 +748,8 @@ class Emitter:
             return int_type(e.width)
         if isinstance(e, AddrOf):
             return "ptr"
+        if isinstance(e, DataAddr):
+            return "data"
         if isinstance(e, Arg):
             if e.fp:
                 return self.fp_types.get(e.index, "f32")
@@ -911,7 +933,16 @@ class Emitter:
             if isinstance(lf.ret, Arg) and lf.ret.index == 0 and not lf.ret.fp:
                 raise LiftError("returns self")
             rt = self.type_of(lf.ret)
-            if rt == "ptr":  # the address of a field
+            if rt == "data":  # a string literal, or a table the TU defines
+                text = data_at(lf.ret.addr)
+                if text is None:
+                    raise LiftError("address of code or a vtable")
+                if text:
+                    rt, rhs = "const char*", f'"{text}"'
+                else:
+                    self.tables.add(lf.ret.addr)
+                    rt, rhs = "const u8*", f"Unk_{lf.ret.addr - BASE:x}"
+            elif rt == "ptr":  # the address of a field
                 rt = "u8*" if lf.ret.base in stored or not isinstance(lf.ret.base, Arg) else "const u8*"
                 rhs = self.expr(lf.ret)
             else:
@@ -1090,6 +1121,9 @@ class Emitter:
     def render_structs(self) -> str:
         out = [f"struct {n};" for n in sorted(self.forward)]  # a known callee's, defined with it
         out += [f"extern {t} Unk_{a:x};" for a, t in sorted(self.globals.items())]  # another TU defines them
+        # Defined in this TU (adrp ; add, not the GOT), with contents not written here.
+        out += [f'extern const u8 Unk_{a - BASE:x}[] __attribute__((visibility("hidden")));'
+                for a in sorted(self.tables)]
         # Children before parents, so a parent's pointer member names a complete type.
         order = sorted(self.structs.values(), key=lambda s: -s.name.count("_"))
         for s in order:
@@ -1145,6 +1179,7 @@ def generate(addr: int, code: bytes) -> tuple[str, str]:
         second = Emitter(addr, lifted)
         second.structs, second.arg_types, second.fp_types = first.structs, first.arg_types, first.fp_types
         second.globals = first.globals
+        second.tables = first.tables
         return render(second)
     except ValueError as e:  # an operand list of another shape (shifted or extended registers ...)
         raise LiftError(f"operands ({e})") from None
@@ -1199,13 +1234,25 @@ def candidates(args) -> list[tuple[int, bytes]]:
             raise SystemExit(f"no area {g!r}")
     amap = AreaMap(areas, "sword")
     reach = set(getattr(args, "reach", None) or ["call"])
-    in_vtable: set[int] = set()
-    if "data" in reach:
-        import vtables as V
-        starts = {s for s, _ in mod["functions"]}
-        nso = Nso(nso_path("sword").read_bytes())
-        vts, _ = V.find_vtables(img, dyn.slots, starts, nso.data.mem_off, nso.data.end)
-        in_vtable = {t for v in vts for t in v.slots if isinstance(t, int)}
+    global DATA_AT
+    import segments
+    import vtables as V
+    nso = Nso(nso_path("sword").read_bytes())
+    vts, _ = V.find_vtables(img, dyn.slots, {s for s, _ in mod["functions"]}, nso.data.mem_off, nso.data.end)
+    vt_ranges = sorted((v.start, v.addr + 8 * len(v.slots)) for v in vts)
+    ro_lo, ro_hi = mod["rodata"]
+
+    def _data_at(a: int) -> str | None:
+        r = a - BASE
+        if not (ro_lo <= r < ro_hi or nso.data.mem_off <= r < nso.data.end):
+            return None
+        if any(lo <= r < hi for lo, hi in vt_ranges):
+            return None
+        text = segments.c_string(img, r, ro_lo, ro_hi)
+        return text.replace("\\", "\\\\").replace('"', '\\"') if text is not None else ""
+
+    DATA_AT = _data_at
+    in_vtable = {t for v in vts for t in v.slots if isinstance(t, int)}
     out = []
     for f in read_functions_csv():
         if f.status != "U" or f.scope != "common" or f.name or f.sword is None:
