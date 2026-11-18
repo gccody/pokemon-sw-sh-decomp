@@ -975,11 +975,12 @@ def _ext_lifted_ok(e: ExternalBase, ev: Vtable, x: Member, fields: dict) -> bool
     """Whether a lifted member can be one of a class derived from e: its
     fields after e's (merged into `fields`), no struct named after the class
     in its signature or body, and an override declared as e declares it (no
-    parameters)."""
+    parameters). Its callee and globals are declared by the file, as for
+    any lifted member."""
     lf = x.lifted
     if not e.size or any(off < e.size for off, _ in lf.fields):
         return False
-    if lf.prefix and any(lf.prefix + "_" in t for t in (lf.rtype, *lf.params, lf.body)) or lf.globals or lf.callee:
+    if lf.prefix and any(lf.prefix + "_" in t for t in (lf.rtype, *lf.params, lf.body)):
         return False
     if x.slot < len(ev.slots) and (lf.params or e.slot(x.slot)[0] != lf.rtype):
         return False
@@ -1028,8 +1029,11 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         if (s0 != d2 and refs is None) or not isinstance(s1, int) or s1 == ev.slots[1] \
                 or own.get(s1) != (v.addr, 1) or not pickable(s1):
             continue
+        # A D2 too big to be inlined into the D0 and the thunks (only with
+        # reference members, on an out-of-line base) is tail-called instead.
+        called = bool(refs) and not e.inline_dtor and m.pattern(s1) == "b T" and branch_target(m, s1) == s0
         if e.inline_dtor or refs:   # the D0 is the D2, inlined (the operator delete is empty)
-            if m.pattern(s1) != m.pattern(s0):
+            if m.pattern(s1) != m.pattern(s0) and not called:
                 continue
         elif m.pattern(s1) != "b T" or branch_target(m, s1) != d2:
             continue
@@ -1042,7 +1046,9 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         for w, ew, (off, dslots, _) in zip(secs, esecs, e.secondaries):
             for j, which in zip(dslots, ("D1", "D0")):
                 f = w.slots[j]
-                if refs:                # thunks with its D2 inlined, the D1's and D0's alike
+                if called:              # thunks that tail-call its D2
+                    same = m.pattern(f) == "sub x0, x0, #N ; b T" and branch_target(m, f) == s0
+                elif refs:              # thunks with its D2 inlined, the D1's and D0's alike
                     # (before a tail call, one may keep its own `this` too, in another register: see
                     # Unk_239a418_Base's fields)
                     sizes = (m.sizes.get(s0),) if e.inline_dtor else (m.sizes.get(s0), m.sizes.get(s0, 0) + 4)
@@ -1508,6 +1514,8 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
             defs.append(f"// 0x{x.addr + BASE:x}\n{x.lifted.rtype} {cls}::{name}({', '.join(x.lifted.params)}) "
                         f"{{\n{x.lifted.named(x.lifted.body, cls)}}}")
             names.append((x.addr, mangle(cls, name, x.lifted.codes)))
+            if x.lifted.callee is not None:
+                names.append(tail_callee(x.lifted.callee))
         else:
             rt, name = RTYPE[x.kind], e.slot(x.slot)[1]
             if x.kind == "forward":

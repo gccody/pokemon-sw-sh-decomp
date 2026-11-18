@@ -520,6 +520,11 @@ def test_lifted_member_of_a_class_on_a_hand_written_base():
     assert not V._ext_lifted_ok(e, ev, inside, fields)          # a field of the base's
     other = V.Member(3, 0x130, "lifted", lifted=V.Lifted("bool", (), "    return field_78;\n", ((0x78, "u8"),), "Unk_130"))
     assert not V._ext_lifted_ok(e, ev, other, fields)           # the base declares vf3 as u32
+    # a tail call or a global is fine: the file declares them
+    calls = V.Member(2, 0x140, "lifted", lifted=V.Lifted(
+        "void", (), "    if (field_80)\n        Unk_150(field_80);\n", ((0x80, "u64"),), "Unk_140",
+        callee=(0x150, ("void*",)), globals=((0x3000, "u32"),)))
+    assert V._ext_lifted_ok(e, ev, calls, fields) and fields[0x80] == "u64"
 
 
 def test_out_of_line_parent():
