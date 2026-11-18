@@ -1186,6 +1186,70 @@ to keep. The classes' other functions are BAD in two ways:
 1 on `Unk_24034f8`, all with D2s that their D0 and thunks tail-call: 65
 functions (check.py: 29,119 matching, 107 not matching).
 
+### More bases and parents (#74, #75)
+
+Written in parallel with Batch 19. The details are in the headers and the
+PR descriptions.
+
+**`Unk_23f5d00`** (#74, 17 functions): a class on `Unk_239a4c0` (0x180
+bytes) whose D2 (`0x7100ead240`) 22 classes tail-call. Its member at +0x60
+is a holder of `Unk_23dba98`'s shape (`Unk_236d3d8`: a reference handed
+to `Unk_5e2bc0` and dropped, two callables). The D2 runs the holder's
+release step before the holder's own destructor runs it again, so it's a
+helper both call (`Reset()`). Its destructor is the key function, too big
+to inline: the D0 and the thunks tail-call it. For the classes on it:
+
+- `tail_members` takes the number of vptrs, so a D2 that stores two (one
+  secondary base, `Unk_239a4c0`'s) reads too.
+- A D2 that is only `b <the base's D2>` has nothing to destroy, and its
+  destructor is out of line: an empty body with no member to destroy, so
+  clang skips the vptr stores (`CanSkipVTablePointerInitialization`).
+  `write` gives it `explicit_dtor`.
+- 3 classes match. The other 19 store their two vptrs and then tail-call
+  the D2. Written as `X::~X() {}`, they come out as the bare `b <D2>`, so
+  the originals' destructors have a body or a member that compiles to
+  nothing, and the binary doesn't say what. They're left out.
+
+**Classes on `Unk_241b640`** (#75, 20 functions):
+
+- A D0 thunk of a class on an abstract base with an inline destructor is
+  compared with the base's D1 thunk, because the base's D0 thunks are
+  traps.
+- A class whose type slots are another generated class's on the same base
+  derives from that class (`ClassSpec.parent`). The parent is declared
+  before it in each file, and a slot it doesn't define takes the
+  signature of the first class on it that does.
+- The three classes in between (`Unk_241d0c0`, `Unk_241d190`,
+  `Unk_241e938`) are each alone in their TU, and alone, clang inlines
+  `Unk_241b640::Unk_GetType` into their `vf_type`s. So a parent is declared
+  but not defined (no type functions or destructors: its vtable isn't
+  emitted), and only when classes on it are written.
+- 4 classes match. 15 have no function `write` can define as their key
+  function, 2 have Batch 9's tail form on an inline-destructor base, and 1
+  has a 588-byte D2 of its own.
+
+### `Unk_2419350`, a base the owner heuristic missed
+
+Six vtables have `0x7101122e70` in slot 0, a D2 that releases two
+references on `Unk_239a4c0`. It and every one of their D0s store
+`0x7102419350`'s vtable: that's the base, `Unk_2419350`. The owner
+heuristic gave its D2 and its seven small functions to `Unk_24192b0`
+(`0x71024192b0`), which inherits all of them. Its destructor is implicit,
+so inline: clang replaces an inline derived D2 with the base's, which is
+why the classes on it with nothing to destroy share its D2, while their
+D0s and thunks are copies of it. An out-of-line derived destructor
+doesn't get that: the target is a linkonce symbol, so clang emits a D2 of
+its own. So a class on it that defines nothing can't be written: no
+key function, and no destructor to be one.
+
+`Unk_2419350` is hand-written (`src/unsorted/Unk_2419350.h`,
+`Unk_1122d20.cpp`, with `vf5` as the key function), with an `EXTERNAL_BASES`
+entry. Its D2, D0 and two destructor thunks match (4 new), and its seven
+functions are renamed from `Unk_24192b0`'s. In the original, one TU emits
+both vtables' functions. `Unk_24192b0` defines nothing of its own to be its
+key function, so its D0 and thunks stay U. Its vtable is stored only by
+`0x710111db70`, in an earlier TU.
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1211,7 +1275,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after #73: check.py reports 29,119 matching and 107 not matching, in
+State after #76: check.py reports 29,163 matching and 107 not matching, in
 both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
@@ -1266,15 +1330,37 @@ Other pitfalls:
 ### Next steps, by expected yield (2026-11-18)
 
 The 2026-11-17 list is done as far as the generators go (Batches 9-19 and
-the bases of #62-#71). What's left, roughly by yield:
+the bases of #62-#76). What's left, roughly by yield:
 
 1. **More hand-written bases.** Each unlocks the classes that share or
    tail-call its D2. `tools/vtables.py show` on a D2's vtable and a census
    of the D2s that tail-call each base D2 find them. The larger groups left:
-   - on `Unk_239a4c0`: `0x7101122e70` (6 classes share it), `0x7100d3a2b0`
-     (4), `0x7101212a90` (3), `Unk_23da950`'s `0x7100c277c0` (3; it inlines
-     `Unk_239a418::vf5` for the reference at +0x100), and `Unk_2398c40`
-     (owned objects with allocator deleters);
+   - on `Unk_239a4c0`: `0x7100d3a2b0` (4 classes share it), `0x7101212a90`
+     (3), `Unk_23da950`'s `0x7100c277c0` (3; it inlines `Unk_239a418::vf5`
+     for the reference at +0x100), and `Unk_2398c40` (owned objects with
+     allocator deleters). `Unk_23f5d00` (#74) and `Unk_2419350` (#76) are
+     done; 19 classes on `Unk_23f5d00` store their vptrs before the tail
+     call, which an empty `~X() {}` doesn't (#74), and `Unk_23f5d00`'s
+     constructor needs a root class under `Unk_239a4c0_Base`;
+   - the owner heuristic: a D2 belongs to the class whose vtable it stores.
+     165 D2s (slot 0 of a primary vtable) store another vtable than their
+     owner's: the hand-written bases' (`Unk_23f43c8`'s, with 247 vtables,
+     `Unk_23d4470`'s, `Unk_23f4660`'s ...) and `Unk_2419350`'s among them,
+     and 130 not matched yet. The largest of those in game code:
+     `0x71006b7de0` (22 vtables, it stores `Unk_23a3578`'s: abstract, on the
+     object, a reference and two callables, its `vf_type` inline, like
+     `Unk_241b640`), `0x7101079c30` (14, `Unk_240ce88`), `0x71005ec610` (12,
+     `Unk_2399708`), `0x7100b3c7b0` (9, `Unk_23cf5c8`) and `0x710116b030`
+     (7, `Unk_241bfb0`). `python tools/vtables.py stored` lists them
+     (`stored_vtable_owners`). The cause is a tie: a class on the base with
+     a vtable as long as the base's, at a lower address, owns everything
+     they share. That hides type slots too: `Unk_23bcdf0` (5 vtables, four
+     references on `Unk_23f43c8`) has its `vf6` and secondary type thunks
+     matched as `Unk_23bcd20`'s, `Unk_23bcd88`'s and `Unk_23bcdc8`'s.
+     127 of the 165 are such ties. Breaking them in `owners()` by the
+     vtable a shared D2 stores would give 343 functions to the class that
+     stores it: 229 not matched yet, and 114 matched ones that would be
+     renamed. Then `write` could derive these classes;
    - on the object: the groups of 6 or fewer from the #62 survey.
    YEBIS (`0x71004bf6a0`, 75 classes) and NEX/Pia (`0x710165baa0`, 52) have
    bigger groups, but they're libraries with RTTI: their classes have real
@@ -1284,9 +1370,9 @@ the bases of #62-#71). What's left, roughly by yield:
    members than references, those with other type shapes, interfaces at
    other offsets (after a bigger base or members), and about 12 classes on
    `Unk_239a4c0` with a second interface at `+0x58`.
-3. **The classes on the newest bases.** On `Unk_241b640` the base is
-   abstract (its D0 thunks are traps, a derived class's are copies of the
-   D2) and most classes sit on three classes in between. `Unk_24284d0`'s
+3. **The classes on the newest bases.** On `Unk_241b640` (#75), 15
+   classes need a function `write` can define as their key function, and 2
+   have Batch 9's tail form on an inline-destructor base. `Unk_24284d0`'s
    classes have internal linkage (anonymous namespace, `adrp`+`add`
    vptrs, local-static types): `write` would need anonymous namespaces, and
    they're emitted only with their constructors' TUs. On `Unk_23dc940`, 7
