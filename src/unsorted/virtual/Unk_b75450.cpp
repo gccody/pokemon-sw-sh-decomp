@@ -3,6 +3,63 @@
 // Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
+#include "gflib3/Unk_239a4c0.h"
+
+class Unk_23d0c48 : public Unk_239a4c0 {
+public:
+    ~Unk_23d0c48() override;
+    u8 _54[0x1c];
+    Unk_239a418_Ref<Unk_239a418> field_70;
+    u8 _78[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_90;
+    u8 _98[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_b0;
+    u8 _b8[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_d0;
+    u8 _d8[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_f0;
+    u8 _f8[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_110;
+    u8 _118[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_130;
+    u8 _138[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_150;
+    u8 _158[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_170;
+    u8 _178[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_190;
+    u8 _198[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_1b0;
+    u8 _1b8[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_1d0;
+    u8 _1d8[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_1f0;
+    u8 _1f8[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_210;
+    u8 _218[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_230;
+    u8 _238[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_250;
+};
+PKMN_OFFSET_ASSERT(Unk_23d0c48, field_70, 0x70);
+PKMN_OFFSET_ASSERT(Unk_23d0c48, field_90, 0x90);
+PKMN_OFFSET_ASSERT(Unk_23d0c48, field_b0, 0xb0);
+PKMN_OFFSET_ASSERT(Unk_23d0c48, field_d0, 0xd0);
+PKMN_OFFSET_ASSERT(Unk_23d0c48, field_f0, 0xf0);
+PKMN_OFFSET_ASSERT(Unk_23d0c48, field_110, 0x110);
+PKMN_OFFSET_ASSERT(Unk_23d0c48, field_130, 0x130);
+PKMN_OFFSET_ASSERT(Unk_23d0c48, field_150, 0x150);
+PKMN_OFFSET_ASSERT(Unk_23d0c48, field_170, 0x170);
+PKMN_OFFSET_ASSERT(Unk_23d0c48, field_190, 0x190);
+PKMN_OFFSET_ASSERT(Unk_23d0c48, field_1b0, 0x1b0);
+PKMN_OFFSET_ASSERT(Unk_23d0c48, field_1d0, 0x1d0);
+PKMN_OFFSET_ASSERT(Unk_23d0c48, field_1f0, 0x1f0);
+PKMN_OFFSET_ASSERT(Unk_23d0c48, field_210, 0x210);
+PKMN_OFFSET_ASSERT(Unk_23d0c48, field_230, 0x230);
+PKMN_OFFSET_ASSERT(Unk_23d0c48, field_250, 0x250);
+
+// 0x7100b75450: its key function
+Unk_23d0c48::~Unk_23d0c48() {}
 
 class Unk_23d0cb0 {
 public:
