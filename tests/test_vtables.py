@@ -1276,3 +1276,47 @@ def test_prefer_stored():
     got = V.prefer_stored(m, own)
     assert got[0x100] == (b.addr, 0) and got[0x120] == (b.addr, 2)
     assert got[0x110] == (a.addr, 1) and got[0x130] == (b.addr, 1)
+
+
+def test_derived_with_the_inline_base_d2_copied():
+    """R, on hand-written E (an inline destructor that isn't empty, one
+    interface at +0x48), has a D2 of its own that is a copy of E's, and its
+    D0 and thunks are copies of E's: an out-of-line destructor with an empty
+    body (clang skips its vptr stores), its key function."""
+    img = bytearray(0x2000)
+    d2, thunk = [0xAA0003E8, RET], [0xAA0003E9, RET]              # mov x8, x0 ; ret / mov x9, x0 ; ret
+    code = {0x100: d2, 0x110: d2, 0x120: [0xAA0003EA, RET], 0x130: [0xAA0003EB, RET],      # E
+            0x140: [0xAA0003EC, RET], 0x150: thunk, 0x160: thunk, 0x170: [0xAA0003ED, RET],
+            0x180: [0xAA0003EE, RET],
+            0x300: d2, 0x350: d2, 0x400: thunk, 0x450: thunk}                              # R
+    for a, w in code.items():
+        struct.pack_into(f"<{len(w)}I", img, a, *w)
+    slots = {}
+
+    def vt(start, ott, fns):
+        struct.pack_into("<q", img, start, ott)
+        for i, f in enumerate(fns):
+            slots[start + 16 + 8 * i] = f
+        return start + 16 + 8 * len(fns)
+
+    end = vt(0x1000, 0, [0x100, 0x110, 0x120, 0x130, 0x140])          # E
+    end = vt(end, -0x48, [0x150, 0x160, 0x170, 0x180])
+    r_start = end
+    end = vt(end, 0, [0x300, 0x350, 0x120, 0x130, 0x140])             # R
+    vt(end, -0x48, [0x400, 0x450, 0x170, 0x180])
+    sizes = {a: 4 * len(w) for a, w in code.items()}
+    vts, tables = V.find_vtables(bytes(img), slots, set(code), DATA, len(img))
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), vts, tables, sizes, {}, {}, lambda a: "game", DELETE)
+    e = V.ExternalBase(vts[0].addr, "Unk_E", "gflib3/Unk_E.h", ((2, "void", "vf2"), (3, "void", "vf3"),
+                       (4, "void", "vf4")), None, "", ((0x48, (0, 1), None),), inline_dtor=True, size=0x54)
+    r = next(v for v in vts if v.start == r_start)
+    specs = {}
+    V.derive_external(m, e, specs, {}, V.owners(vts), lambda f: 0, lambda f: True, lambda t: True)
+    spec = specs[r.addr]
+    assert spec.ext is e and spec.order == [] and spec.explicit_dtor and not spec.fields
+    decl, names, defs = V.render_class(m, spec)
+    assert decl == f"class {spec.name} : public Unk_E {{\npublic:\n    ~{spec.name}() override;\n}};\n"
+    assert f"{spec.name}::~{spec.name}() {{}}" in defs
+    cls = f"{len(spec.name)}{spec.name}"
+    assert sorted(names) == [(0x300, f"_ZN{cls}D2Ev"), (0x350, f"_ZN{cls}D0Ev"), (0x400, f"_ZThn72_N{cls}D1Ev"),
+                             (0x450, f"_ZThn72_N{cls}D0Ev")]

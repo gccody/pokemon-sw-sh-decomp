@@ -1423,6 +1423,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         refs = None
         four = False                # its D2 stores an interface's vptr too
         dtor_key = False            # its destructor is its key function
+        inline_bare = False         # its D2 is a copy of the base's (inline): see below
         # Its own functions (D0, thunks, a copy-shaped vf_type) that can't be
         # written: then it can only be declared, as the parent of others.
         missing: list[int] = []
@@ -1437,6 +1438,12 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
                 refs = ref_members_empty(m, s0, v.start, e.size, 1 + len(e.secondaries))
             elif e.inline_dtor:
                 refs = ref_members(m, s0, d2, v.start)
+                if refs is None and m.pattern(s0) == m.pattern(d2)                         and _calls_and_statics(m, s0) == _calls_and_statics(m, d2):
+                    # A D2 of its own that is the base's, inlined: an out-of-line
+                    # destructor with an empty body and nothing to destroy (clang
+                    # skips its vptr stores), its key function. Its D0 and thunks
+                    # are copies of it, as the base's are of the base's D2.
+                    refs, inline_bare = {}, True
             else:
                 refs = tail_members(m, s0, d2, v.start, e.size, 1 + len(e.secondaries))
             if refs is None and e.inline_dtor and not empty \
@@ -1459,7 +1466,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         # A D2 of its own that is only `b <the base's D2>` (tail_members, none):
         # its destructor is out of line, so it's its key function. Its D0 and
         # its thunks tail-call the base's D2 as well (its D2 inlined).
-        bare = refs == {}
+        bare = refs == {} and not inline_bare
         if bare:
             if m.pattern(s1) != "b T" or branch_target(m, s1) != d2:
                 continue
@@ -1487,7 +1494,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         if [(w.offset_to_top, len(w.slots)) for w in secs] != [(w.offset_to_top, len(w.slots)) for w in esecs] \
                 or any(isinstance(f, str) for f in v.slots):
             continue
-        extra = [Member(1, s1, "d0")] + ([Member(0, s0, "d2")] if refs or bare else [])
+        extra = [Member(1, s1, "d0")] + ([Member(0, s0, "d2")] if refs or bare or inline_bare else [])
         ok = True
         for w, ew, (off, dslots, _) in zip(secs, esecs, e.secondaries):
             for j, which in zip(dslots, ("D1", "D0")):
@@ -1676,7 +1683,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         if missing and (refs or not any(x.kind == "ext_type" and x.value is not None for x in extra)):
             continue                # it can't be a parent either
         inline_type = any(x.kind == "ext_type" and x.value is None for x in extra)
-        if bare:
+        if bare or inline_bare:
             # Its D2 is its own only because its destructor is out of line
             # (implicit, clang would use its base's): its key function,
             # declared first.
