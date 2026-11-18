@@ -149,29 +149,3 @@ public:
 
 // 0x71005e0970
 void Unk_239a1d8::vf0() {}
-
-class Unk_239a4c0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-};
-
-// 0x71005e3630
-void Unk_239a4c0::vf1() {}
-
-class Unk_239a4f8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-};
-
-// 0x71005e3690
-void Unk_239a4f8::vf0() {}
-
-// 0x71005e36a0
-void Unk_239a4f8::vf1() {}

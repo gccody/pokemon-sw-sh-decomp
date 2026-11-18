@@ -3,6 +3,7 @@
 // Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
+#include "gflib3/Unk_239a4c0.h"
 
 class Unk_23f1ed8_Obj {
 public:
@@ -64,13 +65,8 @@ void Unk_23f1ed8::vf3(u64 index) {
         obj->vf16(m_entries[index].field_10);
 }
 
-class Unk_23f1f08 {
+class Unk_23f1f08 : public Unk_239a4c0 {
 public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
     virtual void vf5();
     virtual u32 vf6();
     virtual void vf7();
@@ -79,9 +75,6 @@ public:
     virtual u32 vf10();
     virtual void vf11();
 };
-
-// 0x7100e47360
-void Unk_23f1f08::vf1() {}
 
 // 0x7100e47370
 void Unk_23f1f08::vf5() {}
@@ -107,20 +100,6 @@ u32 Unk_23f1f08::vf10() {
 
 // 0x7100e473d0
 void Unk_23f1f08::vf11() {}
-
-class Unk_23f1f78 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-};
-
-// 0x7100e473e0
-void Unk_23f1f78::vf0() {}
-
-// 0x7100e473f0
-void Unk_23f1f78::vf1() {}
 
 class Unk_23f1fa8 {
 public:
