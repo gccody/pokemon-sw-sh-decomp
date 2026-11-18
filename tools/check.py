@@ -58,7 +58,9 @@ is compared (see kept_copy). Two strong definitions of one symbol are an error.
 Symbols at the same address of one object are aliases (clang emits a complete
 destructor or constructor, D1/C1, as an alias of the base one, D2/C2, when they
 are the same code). functions.csv has one row per address, so an alias of a
-checked function needs no row of its own and is skipped.
+checked function needs no row of its own and is skipped. A reference to a
+C1/D1 that nothing here compiles (a member's destructor defined elsewhere)
+reaches the row of its C2/D2 the same way (see base_structor).
 
 Before checking, each build dir must use the global codegen flags of
 cmake/toolchain-nx64.cmake (PKMN_CODEGEN_FLAGS): its last configure recorded
@@ -379,6 +381,27 @@ def strong_definition(name: str, builds) -> str | None:
     return next((c[name].source for c in builds if name in c and not c[name].mergeable), None)
 
 
+def base_structor(name: str) -> str | None:
+    """The base variant (C2/D2) of a complete constructor or destructor's
+    name (C1/D1), or None. Without virtual bases they are the same function
+    (clang emits one as an alias of the other), so a reference to a C1/D1
+    that isn't compiled here reaches the C2/D2 row; with virtual bases they
+    differ, and the reference then fails against that row's address. Only
+    nested names of plain `<length><name>` components are read (no
+    templates)."""
+    if not name.startswith("_ZN"):
+        return None
+    i = 3
+    while i < len(name) and name[i].isdigit():
+        j = i
+        while j < len(name) and name[j].isdigit():
+            j += 1
+        i = j + int(name[i:j])
+    if i > 3 and name[i:i + 1] in ("C", "D") and name[i + 1:i + 3] == "1E":
+        return f"{name[:i + 1]}2{name[i + 2:]}"
+    return None
+
+
 def with_aliases(by_name: dict[str, Function], builds) -> dict[str, Function]:
     """`by_name` plus every compiled name that has no row of its own but is an
     alias of one that does (C1 of C2, D1 of D2), mapped to that row."""
@@ -596,6 +619,8 @@ def compare(cf: CompiledFunc, fn: Function, orig: Original, syms, verbose_name,
                         return None, sname
             return None, name or (sec.name if sec is not None else "<section>")
         f = by_name.get(name)
+        if f is None and (b := base_structor(name)) is not None:
+            f = by_name.get(b)
         if f is not None:
             return (f.addr(v) + r.addend if f.addr(v) is not None else None), name
         if name in data_syms[v]:
