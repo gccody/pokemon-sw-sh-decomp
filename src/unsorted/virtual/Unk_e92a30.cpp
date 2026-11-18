@@ -3,6 +3,7 @@
 // Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
+#include "unsorted/Unk_23f5d00.h"
 
 class Unk_23f49e8_Obj {
 public:
@@ -294,3 +295,12 @@ bool Unk_23f4d80::vf2() {
     }
     return field_18->field_170 != 0;
 }
+
+class Unk_23f4dd0 : public Unk_23f5d00 {
+public:
+    ~Unk_23f4dd0() override;
+    u8* vf5() override;
+};
+
+// 0x7100e9cc60: its key function
+Unk_23f4dd0::~Unk_23f4dd0() {}
