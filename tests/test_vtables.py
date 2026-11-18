@@ -685,3 +685,25 @@ def test_parent_getters_on_another_base():
     assert V.out_of_line_parent(m, 0x300, e, statics) == 0x800
     assert V.out_of_line_parent(m, 0x300, e, None) is None
     assert V.getter_name("Unk_B::Unk_GetType") == "_ZN5Unk_B11Unk_GetTypeEv"
+
+
+def test_tail_members_with_a_callable():
+    """A D2 that releases a reference (+0x100), then a callable (+0x80: clear
+    its four words, its manager at +0x88 disposes of the storage at +0xa0),
+    then tail-calls its base's D2 (0x600)."""
+    words = [0xF81E0FF3, 0xA9017BFD, 0x910043FD, 0xB0000008, 0xF9400908,
+             0x91004109, 0x9101E10A, 0x9102E108, 0xAA0003F3, 0xF9000009, 0xA904A00A]
+    words += [0xF9400000 | (0x100 // 8) << 10, 0xB40000A0, 0xF8448C08, 0xF9400D08, 0xD63F0100,
+              0xF900027F | (0x100 // 8) << 10]                       # the reference
+    words += [0xF9404668, 0xB40000A8, 0x91028260, 0xA9097E7F, 0xA9087E7F, 0xD63F0100]  # the callable
+    words += [0xA9417BFD, 0xAA1303E0, 0xF84207F3]
+    pc = 0x200 + 4 * len(words)
+    words.append(0x14000000 | ((0x600 - pc) >> 2))
+    img = bytearray(0x1100)
+    struct.pack_into(f"<{len(words)}I", img, 0x200, *words)
+    sizes = {0x200: 4 * len(words)}
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), [], [], sizes, {}, {}, lambda a: "game", DELETE,
+                {0x1010: 0x3000})
+    assert V.tail_members(m, 0x200, 0x600, 0x3000, 0x78) == {0x80: V.CALLABLE, 0x100: V.REF}
+    assert V.tail_members(m, 0x200, 0x600, 0x3000, 0x88) is None       # inside the base
+    assert V._width(V.CALLABLE) == 0x80
