@@ -1284,8 +1284,11 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             x = None
             if e.type_slot >= len(ev.slots):
                 x = getter_type(m, t) if direct_getter(m, t) else None
+            # On another base, T loads its type and then the base's getter's
+            # statics: more means a class in between (whose getter T inlines too).
             if (e.type_slot >= len(ev.slots) and x is None) or t in in_vtables or not getter_ok(t) \
                     or not pickable(f6) \
+                    or (base_statics and _calls_and_statics(m, t)[1][2:] != base_statics) \
                     or any(branch_target(m, f) != t or m.pattern(f) != "b T" or not pickable(f) for f in thunks):
                 ok = False
             else:
@@ -1758,6 +1761,8 @@ def render_file(m: Model, entries: list[tuple[ClassSpec, list[Member]]],
     # only the file's first declares it, and none where the file defines it
     # (the class whose getter it is: its struct goes before every class).
     declared = {f"Unk_{x.value:x}" for _, xs in entries for x in xs if x.kind == "ext_getter" and x.value}
+    # nor where a hand-written header the file includes declares it
+    declared |= header_structs(headers)
     top = len(parts)
 
     def once(match: re.Match) -> str:
@@ -1784,6 +1789,26 @@ def render_file(m: Model, entries: list[tuple[ClassSpec, list[Member]]],
     for spec, _ in sorted(entries, key=lambda e: min(x.addr for x in e[1])):
         emit(spec)
     return "\n".join(parts).rstrip("\n") + "\n", names
+
+
+def header_structs(headers) -> set[str]:
+    """The placeholder structs (`struct Unk_<hex> {`) that hand-written headers
+    under src/ declare, and the headers they include, recursively."""
+    out: set[str] = set()
+    seen: set[str] = set()
+    todo = list(headers)
+    while todo:
+        h = todo.pop()
+        if h in seen:
+            continue
+        seen.add(h)
+        p = ROOT / "src" / h
+        if not p.exists():
+            continue
+        text = p.read_text(encoding="utf-8")
+        out |= set(re.findall(r"^struct (Unk_[0-9a-f]+) \{", text, re.M))
+        todo += re.findall(r'^#include "([^"]+)"', text, re.M)
+    return out
 
 
 def segment_starts(m: Model) -> list[int]:

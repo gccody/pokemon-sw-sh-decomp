@@ -753,3 +753,13 @@ def test_tail_members_with_a_callable():
     assert V.tail_members(m, 0x200, 0x600, 0x3000, 0x78) == {0x80: V.CALLABLE, 0x100: V.REF}
     assert V.tail_members(m, 0x200, 0x600, 0x3000, 0x88) is None       # inside the base
     assert V._width(V.CALLABLE) == 0x80
+
+
+def test_header_structs(tmp_path, monkeypatch):
+    """The placeholder structs a hand-written header declares, and those of the
+    headers it includes: a generated file that includes it declares them no more."""
+    (tmp_path / "src" / "a").mkdir(parents=True)
+    (tmp_path / "src" / "a" / "b.h").write_text('#include "a/c.h"\nstruct Unk_10 {\n};\nclass Unk_20 {\n};\n')
+    (tmp_path / "src" / "a" / "c.h").write_text("struct Unk_30 {\n    static int f();\n};\n")
+    monkeypatch.setattr(V, "ROOT", tmp_path)
+    assert V.header_structs(["a/b.h", "a/missing.h"]) == {"Unk_10", "Unk_30"}
