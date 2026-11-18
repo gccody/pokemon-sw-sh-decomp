@@ -3,30 +3,31 @@
 // Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
+#include "unsorted/Unk_23f4e40.h"
 
-// Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_da9070(void* self);
-void Unk_dab2e0(void* self);
-
-class Unk_23ef318 {
+class Unk_23ef318 : public Unk_23f4e40 {
 public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual u32 vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23f4e40::Unk_GetType());
+        return &type;
+    }
 
-// 0x7100da8ec0
-void Unk_23ef318::vf6() {
-    Unk_da9070(this);
-}
+    const Unk_239a418_Type* vf_type() override;
+    u32 vf7() override;
+    void vf8() override;
+    u32 vf9() override;
+    void vf10() override;
+    u64 _88;
+    u64 _90;
+    u64 _98;
+    u64 _a0;
+    u64 _a8;
+    u64 _b0;
+    u64 _b8;
+    u64 _c0;
+    Unk_239a418_Ref<Unk_239a418> field_c8;
+};
+PKMN_OFFSET_ASSERT(Unk_23ef318, field_c8, 0xc8);
 
 // 0x7100da8b40
 u32 Unk_23ef318::vf7() {
@@ -39,52 +40,7 @@ void Unk_23ef318::vf8() {}
 // 0x7100da8df0
 void Unk_23ef318::vf10() {}
 
-class Unk_23ef380 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100da8f90
-void Unk_23ef380::vf5() {
-    Unk_da9070(this);
-}
-
-class Unk_23ef3c0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100da8fa0
-void Unk_23ef3c0::vf0() {
-    Unk_da9070(this);
-}
-
-class Unk_23ef3e8 {
-public:
-    virtual ~Unk_23ef3e8();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-};
-
-// 0x7100dac4d0
-void Unk_23ef3e8::vf11() {
-    Unk_dab2e0(this);
+// 0x7100da8ec0; its type 0x7100da9070
+const Unk_239a418_Type* Unk_23ef318::vf_type() {
+    return Unk_GetType();
 }

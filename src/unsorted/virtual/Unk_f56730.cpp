@@ -16,7 +16,13 @@ public:
     void vf7() override;
     u32 vf8() override;
     void vf9() override;
-    u8 _78[0x38];
+    u64 _78;
+    u64 _80;
+    u64 _88;
+    u64 _90;
+    u64 _98;
+    u64 _a0;
+    u64 _a8;
     Unk_239a418_Ref<Unk_239a418> field_b0;
 };
 PKMN_OFFSET_ASSERT(Unk_23fe8c8, field_b0, 0xb0);

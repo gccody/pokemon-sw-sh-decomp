@@ -15,7 +15,9 @@ public:
     const Unk_239a418_Type* vf_type() override;
     void vf7() override;
     u32 vf8() override;
-    u8 _78[0x18];
+    u64 _78;
+    u64 _80;
+    u64 _88;
     Unk_239a418_Ref<Unk_239a418> field_90;
 };
 PKMN_OFFSET_ASSERT(Unk_23da1c8, field_90, 0x90);

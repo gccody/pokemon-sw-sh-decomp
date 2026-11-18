@@ -15,11 +15,13 @@ public:
     const Unk_239a418_Type* vf_type() override;
     void vf8() override;
     void vf15() override;
-    u8 _5d0[0x18];
+    u64 _5d0;
+    u64 _5d8;
+    u64 _5e0;
     Unk_239a418_Ref<Unk_239a418> field_5e8;
     Unk_239a418_Ref<Unk_239a418> field_5f0;
     Unk_239a418_Ref<Unk_239a418> field_5f8;
-    u8 _600[0x8];
+    u64 _600;
     Unk_239a418_Ref<Unk_239a418> field_608;
 };
 PKMN_OFFSET_ASSERT(Unk_24390d0, field_5e8, 0x5e8);
