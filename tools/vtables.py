@@ -357,6 +357,28 @@ def stored_vtable_owners(m: Model) -> list[tuple[int, int, int, int]]:
     return sorted(out, key=lambda r: (-r[3], r[0]))
 
 
+def prefer_stored(m: Model, own: dict[int, tuple[int, int]]) -> dict[int, tuple[int, int]]:
+    """`own` (owners()) with its ties broken by the vtable a shared D2
+    stores: when a D2 in slot 0 of two vtables of the same length stores the
+    other one's, that one's class is the base, and what the two groups'
+    vtables share is its (stored_vtable_owners)."""
+    by = {v.addr: v for v in m.vtables}
+    groups: dict[int, list[Vtable]] = defaultdict(list)
+    for v in m.vtables:
+        groups[v.group].append(v)
+    out = dict(own)
+    for _, o, s, _ in stored_vtable_owners(m):
+        if len(by[o].slots) != len(by[s].slots):
+            continue
+        theirs = {w.offset_to_top: w for w in groups[by[o].group]}
+        for w in groups[by[s].group]:
+            wo = theirs.get(w.offset_to_top)
+            for i, f in enumerate(w.slots):
+                if wo is not None and isinstance(f, int) and out.get(f, (None,))[0] == wo.addr:
+                    out[f] = (w.addr, i)
+    return out
+
+
 def cmd_stored(m: Model, args) -> None:
     by = {v.addr: v for v in m.vtables}
     rows = stored_vtable_owners(m)
@@ -2513,7 +2535,7 @@ def cmd_write(m: Model, args) -> None:
     def kept(f: int) -> bool:
         return written(f) and f not in handwritten and (only is None or f in only or bool(rows[f].name))
 
-    own = owners(m.vtables)
+    own = prefer_stored(m, owners(m.vtables))
     groups = args.area or ["game", "gflib3", "gflnet3", "startup"]
     picked: dict[int, list[Member]] = {}
     for v in m.vtables:

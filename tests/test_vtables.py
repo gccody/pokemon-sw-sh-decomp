@@ -1243,3 +1243,36 @@ def test_stored_vtable_owners():
     a, b = (next(v for v in vts if v.start == s) for s in (0x1000, b_start))
     assert V.owners(vts)[0x100] == (a.addr, 0)
     assert V.stored_vtable_owners(m) == [(0x100, a.addr, b.addr, 2)]
+
+
+def test_prefer_stored():
+    """A and B have vtables of the same length that share a D2 (0x100) and
+    slot 2 (0x120); A's comes first, so owners() gives both to A. The D2
+    stores B's vtable: B is the base, and they're B's. Each one's D0 (0x110,
+    0x130) stays its own."""
+    img = bytearray(0x2000)
+    # adrp x8 ; ldr x8, [x8, #0x800] ; add x9, x8, #0x10 ; str x9, [x0] ; ret
+    code = {0x100: [0xB0000008, 0xF9440108, 0x91004109, 0xF9000009, RET],
+            0x110: [RET], 0x120: [0xAA0003E8, RET], 0x130: [0xAA0003E9, RET]}
+    for a, w in code.items():
+        struct.pack_into(f"<{len(w)}I", img, a, *w)
+    slots = {}
+
+    def vt(start, ott, fns):
+        struct.pack_into("<q", img, start, ott)
+        for i, f in enumerate(fns):
+            slots[start + 16 + 8 * i] = f
+        return start + 16 + 8 * len(fns)
+
+    b_start = vt(0x1000, 0, [0x100, 0x110, 0x120])          # A
+    vt(b_start, 0, [0x100, 0x130, 0x120])                   # B
+    sizes = {a: 4 * len(w) for a, w in code.items()}
+    vts, tables = V.find_vtables(bytes(img), slots, set(code), DATA, len(img))
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), vts, tables, sizes, {}, {}, lambda a: "game", DELETE,
+                {0x1800: b_start})
+    a, b = (next(v for v in vts if v.start == s) for s in (0x1000, b_start))
+    own = V.owners(vts)
+    assert own[0x100] == (a.addr, 0) and own[0x120] == (a.addr, 2)
+    got = V.prefer_stored(m, own)
+    assert got[0x100] == (b.addr, 0) and got[0x120] == (b.addr, 2)
+    assert got[0x110] == (a.addr, 1) and got[0x130] == (b.addr, 1)
