@@ -414,6 +414,14 @@ EXTERNAL_BASES = (
                   *((i, {9: "u32", 10: "u32", 11: "u8", 12: "u32", 14: "u8", 15: "u8", 17: "bool", 33: "u32",
                          36: "u32", 38: "f32", 43: "u32", 46: "u32"}.get(i, "void"), f"vf{i}") for i in range(7, 47))),
                  6, "Unk_23dc940::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x390),
+    # On Unk_23dc940, its destructor out of line; slots 47-68 are its own.
+    ExternalBase(0x23dcde0, "Unk_23dcdd0", "unsorted/Unk_23dcdd0.h",
+                 ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
+                  (5, "void", "vf5"), (6, TYPE, "vf_type"),
+                  *((i, {9: "u32", 10: "u32", 11: "u8", 12: "u32", 14: "u8", 15: "u8", 17: "bool", 33: "u32",
+                         36: "u32", 38: "f32", 43: "u32", 46: "u32", 68: "u32"}.get(i, "void"), f"vf{i}")
+                    for i in range(7, 69))),
+                 6, "Unk_23dcdd0::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x4b0),
     ExternalBase(0x23d4480, "Unk_23d4470", "unsorted/Unk_23d4470.h",
                  ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
                   (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7"), (8, "u32", "vf8")),
