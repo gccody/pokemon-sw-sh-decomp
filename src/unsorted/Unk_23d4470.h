@@ -8,17 +8,24 @@
 #include "gflib3/Unk_239a418.h"
 
 // A callable, 0x80 bytes: when it holds one, its manager (+0x8) disposes of
-// the storage (+0x20). Clearing it zeroes the four words first.
+// the storage (+0x20). Clearing it zeroes the four words first. Clear() is a
+// function of its own: with the four stores in the destructor, the
+// destructor of Unk_23dcdd0's vector of Unk_23c14c0s (0x7100c69620,
+// src/unsorted/Unk_23dcdd0.h) computes their addresses in another order.
 class Unk_23d4470_Callable {
 public:
     ~Unk_23d4470_Callable() {
         if (void (*manager)(void*) = field_8) {
-            field_18 = 0;
-            field_10 = 0;
-            field_8 = nullptr;
-            field_0 = 0;
+            Clear();
             manager(field_20);
         }
+    }
+
+    void Clear() {
+        field_18 = 0;
+        field_10 = 0;
+        field_8 = nullptr;
+        field_0 = 0;
     }
 
     u64 field_0;
