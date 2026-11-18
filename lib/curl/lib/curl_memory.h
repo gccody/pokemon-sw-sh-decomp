@@ -98,11 +98,27 @@ typedef void *(*curl_calloc_callback)(size_t nmemb, size_t size);
 #define CURL_DID_MEMORY_FUNC_TYPEDEFS
 #endif
 
+#if 0 /* not in Nintendo's SDK build: see below */
 extern curl_malloc_callback Curl_cmalloc;
 extern curl_free_callback Curl_cfree;
 extern curl_realloc_callback Curl_crealloc;
 extern curl_strdup_callback Curl_cstrdup;
 extern curl_calloc_callback Curl_ccalloc;
+#endif /* not in Nintendo's SDK build */
+
+/*
+ * Pokemon SwSh decomp: Nintendo's SDK build (NintendoSDK_libcurl-7_3_2)
+ * calls functions of its own, not the Curl_c* pointers: every malloc(),
+ * free(), realloc(), strdup() and calloc() in curl's code is a direct call
+ * to one of five wrappers (Sword 0x7101778330 ... 0x7101778370), each a tail
+ * call through a table of the five callbacks that curl_global_init_mem()
+ * fills. Their names aren't known. lib/curl/nintendo/Unk_17782a0.c has them.
+ */
+extern void *Unk_1778330(size_t size);
+extern void Unk_1778340(void *ptr);
+extern void *Unk_1778350(void *ptr, size_t size);
+extern char *Unk_1778360(const char *str);
+extern void *Unk_1778370(size_t nmemb, size_t size);
 #if defined(WIN32) && defined(UNICODE)
 extern curl_wcsdup_callback Curl_cwcsdup;
 #endif
@@ -119,15 +135,15 @@ extern curl_wcsdup_callback Curl_cwcsdup;
  */
 
 #undef strdup
-#define strdup(ptr) Curl_cstrdup(ptr)
+#define strdup(ptr) Unk_1778360(ptr)  /* Nintendo: Curl_cstrdup(ptr) */
 #undef malloc
-#define malloc(size) Curl_cmalloc(size)
+#define malloc(size) Unk_1778330(size)  /* Nintendo: Curl_cmalloc(size) */
 #undef calloc
-#define calloc(nbelem,size) Curl_ccalloc(nbelem, size)
+#define calloc(nbelem,size) Unk_1778370(nbelem, size)  /* Nintendo: Curl_ccalloc */
 #undef realloc
-#define realloc(ptr,size) Curl_crealloc(ptr, size)
+#define realloc(ptr,size) Unk_1778350(ptr, size)  /* Nintendo: Curl_crealloc */
 #undef free
-#define free(ptr) Curl_cfree(ptr)
+#define free(ptr) Unk_1778340(ptr)  /* Nintendo: Curl_cfree(ptr) */
 
 #ifdef WIN32
 #  ifdef UNICODE

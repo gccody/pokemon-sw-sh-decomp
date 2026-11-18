@@ -164,6 +164,8 @@ static long          init_flags;
 #  pragma warning(disable:4232) /* MSVC extension, dllimport identity */
 #endif
 
+#if 0 /* not in Nintendo's SDK build: its table of the memory callbacks is
+         lib/curl/nintendo/Unk_17782a0.c's (see curl_memory.h) */
 #ifndef __SYMBIAN32__
 /*
  * If a memory-using function (like curl_getenv) is used before
@@ -188,6 +190,17 @@ curl_realloc_callback Curl_crealloc;
 curl_strdup_callback Curl_cstrdup;
 curl_calloc_callback Curl_ccalloc;
 #endif
+#endif /* not in Nintendo's SDK build */
+
+/* Pokemon SwSh decomp: Nintendo's functions that global_init() and
+   curl_global_cleanup() call (lib/curl/nintendo, names not known). */
+int Unk_17782a0(void);
+int Unk_17782f0(curl_malloc_callback m, curl_free_callback f,
+                curl_realloc_callback r, curl_strdup_callback s,
+                curl_calloc_callback c);
+void Unk_1778420(void);
+void *Unk_1778ce0(void);
+void Unk_1779030(void);
 
 #if defined(_MSC_VER) && defined(_DLL) && !defined(__POCC__)
 #  pragma warning(default:4232) /* MSVC extension, dllimport identity */
@@ -203,6 +216,9 @@ static CURLcode global_init(long flags, bool memoryfuncs)
     return CURLE_OK;
 
   if(memoryfuncs) {
+#if 1 /* Nintendo's SDK build: its own defaults (Sword 0x71017782a0) */
+    Unk_17782a0();
+#else
     /* Setup the default memory functions here (again) */
     Curl_cmalloc = (curl_malloc_callback)malloc;
     Curl_cfree = (curl_free_callback)free;
@@ -212,7 +228,15 @@ static CURLcode global_init(long flags, bool memoryfuncs)
 #if defined(WIN32) && defined(UNICODE)
     Curl_cwcsdup = (curl_wcsdup_callback)_wcsdup;
 #endif
+#endif /* Nintendo's SDK build */
   }
+
+  /* Nintendo's SDK build: the SDK MW+Nintendo+NintendoSDK_libcurl tag
+     (Sword 0x7101778420), then its resolver thread's setup
+     (Sword 0x7101778ce0, NULL when it fails). */
+  Unk_1778420();
+  if(!Unk_1778ce0())
+    return CURLE_FAILED_INIT;
 
   if(flags & CURL_GLOBAL_SSL)
     if(!Curl_ssl_init()) {
@@ -295,11 +319,15 @@ CURLcode curl_global_init_mem(long flags, curl_malloc_callback m,
 
   /* set memory functions before global_init() in case it wants memory
      functions */
+#if 1 /* Nintendo's SDK build: its table (Sword 0x71017782f0) */
+  Unk_17782f0(m, f, r, s, c);
+#else
   Curl_cmalloc = m;
   Curl_cfree = f;
   Curl_cstrdup = s;
   Curl_crealloc = r;
   Curl_ccalloc = c;
+#endif
 
   /* Call the actual init function, but without setting */
   return global_init(flags, FALSE);
@@ -316,6 +344,10 @@ void curl_global_cleanup(void)
 
   if(--initialized)
     return;
+
+  /* Nintendo's SDK build: its resolver thread's teardown
+     (Sword 0x7101779030) */
+  Unk_1779030();
 
   Curl_global_host_cache_dtor();
 
