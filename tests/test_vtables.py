@@ -1243,6 +1243,11 @@ def test_stored_vtable_owners():
     a, b = (next(v for v in vts if v.start == s) for s in (0x1000, b_start))
     assert V.owners(vts)[0x100] == (a.addr, 0)
     assert V.stored_vtable_owners(m) == [(0x100, a.addr, b.addr, 2)]
+    # by the stored vtable's area, and only D2s not matched yet
+    assert V.stored_rows(m, "game") == V.stored_rows(m, unmatched=True) == [(0x100, a.addr, b.addr, 2)]
+    assert V.stored_rows(m, "yebis") == []
+    m.statuses[0x100] = "O"
+    assert V.stored_rows(m) == [(0x100, a.addr, b.addr, 2)] and V.stored_rows(m, unmatched=True) == []
 
 
 def test_prefer_stored():
