@@ -224,6 +224,10 @@ class Lifted:
     guard_stores: int = 0     # the stores before the guard: they're done either way
     narrow: set = field(default_factory=set)  # tail-call arguments an argument's 32 bits were moved into
     loads: Counter = field(default_factory=Counter)  # how often each load ran (more than once: reloaded)
+    store_seq: list[int] = field(default_factory=list)  # per store: how many store instructions came before
+    load_seq: dict = field(default_factory=dict)  # Load -> the set of store counts it was loaded after
+    stores_done: int = 0      # store instructions in all
+    pairs: bool = False       # whether it loads with ldp (a struct copy, see Emitter.copy)
 
 
 CALL_CODES = {"void*": "Pv", "bool": "b", "u8": "h", "s8": "a", "u16": "t", "s16": "s", "u32": "j", "s32": "i",
@@ -371,6 +375,7 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
                 t = int_type(8 if kind == "x" else 4)
             put(dst, Load(get(f"x{base}"), off, t))
             out.loads[Load(get(f"x{base}"), off, t)] += 1
+            out.load_seq.setdefault(Load(get(f"x{base}"), off, t), set()).add(out.stores_done)
         elif mn in ("str", "stur") or mn in STORES:
             src, mem = ops
             base, off = _mem(mem)
@@ -387,6 +392,8 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
             if isinstance(b, Page) or (isinstance(b, GlobalPtr) and off != 0):
                 raise LiftError("store to data at an offset")
             out.stores.append((b, off, t, get(src)))
+            out.store_seq.append(out.stores_done)
+            out.stores_done += 1
         elif mn in ("ldp", "stp"):
             # A pair: two loads or stores of adjacent fields (base + immediate only:
             # writeback and sp, a frame, are refused by _mem).
@@ -404,11 +411,16 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
                 first, second = Load(b, off, t), Load(b, off + w, t)
                 out.loads[first] += 1
                 out.loads[second] += 1
+                out.load_seq.setdefault(first, set()).add(out.stores_done)
+                out.load_seq.setdefault(second, set()).add(out.stores_done)
+                out.pairs = True
                 put(r1, first)
                 put(r2, second)
             else:
                 out.stores.append((b, off, t, get(r1)))
                 out.stores.append((b, off + w, t, get(r2)))
+                out.store_seq += [out.stores_done, out.stores_done]
+                out.stores_done += 1
         elif mn == "mov":
             dst, src = ops
             if src.startswith("#"):
@@ -528,6 +540,29 @@ def _mentions(e: object, x: object) -> bool:
     if isinstance(e, Select):
         return _mentions(e.cond, x) or _mentions(e.a, x) or _mentions(e.b, x)
     return False
+
+
+def _value_loads(e: object) -> list:
+    """The loads whose value expression e uses (not the ones it only dereferences)."""
+    if isinstance(e, Load):
+        return [e]
+    if isinstance(e, tuple):
+        return [x for y in e for x in _value_loads(y)]
+    if isinstance(e, (Op, Cmp)):
+        return _value_loads(e.a) + _value_loads(e.b)
+    if isinstance(e, Select):
+        return _value_loads(e.cond) + _value_loads(e.a) + _value_loads(e.b)
+    return []
+
+
+def _may_alias(a: tuple, b: tuple) -> bool:
+    """Whether two accesses (base, offset, type) may overlap: with
+    -fno-strict-aliasing any two different pointers may, the same one only
+    where the ranges meet."""
+    if a[0] != b[0]:
+        return True
+    wa, wb = WIDTH.get(a[2], 8), WIDTH.get(b[2], 8)
+    return a[1] < b[1] + wb and b[1] < a[1] + wa
 
 
 def _is_bool_arg(e: object) -> bool:
@@ -794,13 +829,72 @@ class Emitter:
         return f"{self.paren(c.a)} {op} {_const(c.b.value, want)}"
 
     # -- the whole function
+    def copy(self) -> tuple[str, str] | None:
+        """A function that copies x0's first N bytes to x1 with ldp: the copy of a
+        struct, which clang does like a memcpy (ldp/ldr, then stp/str in its own
+        order). Field by field it would copy with ldr/str in source order."""
+        lf = self.lifted
+        if not lf.pairs or lf.ret is not None or lf.guard is not None or lf.tail is not None or not lf.stores:
+            return None
+        fields = {}
+        for base, off, t, value in lf.stores:
+            if base != Arg(1) or value != Load(Arg(0), off, t) or off in fields:
+                return None
+            fields[off] = t
+        pos = 0
+        for off in sorted(fields):
+            if off != pos:
+                return None
+            pos += WIDTH[fields[off]]
+        if pos <= 8:
+            return None
+        s = StructDef(f"Unk_{self.short}", dict(fields))
+        func = f"void Unk_{self.short}_set(const {s.name}* self, {s.name}* value) {{\n    *value = *self;\n}}\n"
+        return render_struct(s), func
+
+    def value_locals(self) -> dict[int, list[tuple[Load, str]]]:
+        """Loads to hold in a local: their value is used after a store that may
+        overwrite what they read (a move: `v = self->f; self->f = 0; value->f
+        = v;`), so the source read them first. -> {index of the first store
+        after the load: [(load, local name)]}."""
+        lf = self.lifted
+        uses = [(lf.store_seq[i], v) for i, (_, _, _, v) in enumerate(lf.stores)]
+        if lf.ret is not None:
+            uses.append((lf.stores_done, lf.ret))
+        need: dict[Load, int] = {}
+        for seq, v in uses:
+            for ld in _value_loads(v):
+                epochs = lf.load_seq.get(ld)
+                if not epochs:
+                    continue
+                epoch = min(epochs)
+                between = [(b, o, t) for (b, o, t, _), q in zip(lf.stores, lf.store_seq) if epoch <= q < seq]
+                if not any(_may_alias((ld.base, ld.offset, ld.type), x) for x in between):
+                    continue
+                if len(epochs) > 1 or lf.guard is not None:
+                    raise LiftError("read before a store, then reloaded or guarded")
+                need[ld] = epoch
+        out: dict[int, list[tuple[Load, str]]] = {}
+        for n, (ld, epoch) in enumerate(sorted(need.items(), key=lambda x: (x[1], repr(x[0])))):
+            first = next(i for i, q in enumerate(lf.store_seq) if q >= epoch)
+            out.setdefault(first, []).append((ld, f"v{n}"))
+        return out
+
     def render(self) -> tuple[str, str]:
         """(struct definitions, function definition)."""
         lf = self.lifted
+        copied = self.copy()
+        if copied is not None:
+            return copied
         decls = self.choose_locals()
+        held = self.value_locals()
         body: list[str] = []
         stored = {base for base, _, _, _ in lf.stores}
-        for base, off, t, value in lf.stores:
+        for i, (base, off, t, value) in enumerate(lf.stores):
+            for ld, name in held.get(i, []):
+                rhs = self.field_expr(ld.base, ld.offset, ld.type)
+                body.append(f"    {self.stored_type(ld.base, ld.offset)} {name} = {rhs};")
+                self.locals[ld] = name
             if isinstance(value, AddrOf):
                 raise LiftError("stores an address")
             lhs = self.field_expr(base, off, t)
@@ -1074,9 +1168,19 @@ def render_file(entries: list[tuple[int, str, str]]) -> str:
 
 
 # --------------------------------------------------------------------------- CLI
+REACH = ("call", "none", "data")
+
+
 def candidates(args) -> list[tuple[int, bytes]]:
-    """Common, unnamed, U functions in the area, called only through B/BL, that end
-    in ret with no other branch."""
+    """Common, unnamed, U functions in the area, reached the ways `--reach` lists
+    (funcs.reference_kind; default only through B/BL), that end in ret with no
+    other branch.
+
+    `none` adds the functions whose address is only taken in code (the copy
+    operations of type-erased callables, which their caller puts in a table on
+    its stack) or that nothing references; `data` the ones in a function-pointer
+    table that isn't a vtable (no-op callbacks in static records). A function
+    in a vtable slot is never a candidate: vtables.py writes those, as members."""
     import funcs as F
     from common import AreaMap, area_names, in_area, load_module, nso_path, read_areas_csv, read_functions_csv
     from nx.module import DynInfo
@@ -1094,6 +1198,14 @@ def candidates(args) -> list[tuple[int, bytes]]:
         if g not in area_names(areas):
             raise SystemExit(f"no area {g!r}")
     amap = AreaMap(areas, "sword")
+    reach = set(getattr(args, "reach", None) or ["call"])
+    in_vtable: set[int] = set()
+    if "data" in reach:
+        import vtables as V
+        starts = {s for s, _ in mod["functions"]}
+        nso = Nso(nso_path("sword").read_bytes())
+        vts, _ = V.find_vtables(img, dyn.slots, starts, nso.data.mem_off, nso.data.end)
+        in_vtable = {t for v in vts for t in v.slots if isinstance(t, int)}
     out = []
     for f in read_functions_csv():
         if f.status != "U" or f.scope != "common" or f.name or f.sword is None:
@@ -1104,7 +1216,7 @@ def candidates(args) -> list[tuple[int, bytes]]:
         a = f.sword
         if not any(in_area(amap.area_of(a), g) for g in groups):
             continue
-        if F.reference_kind(a, called, in_data) != "call":
+        if F.reference_kind(a, called, in_data) not in reach or a in in_vtable:
             continue
         out.append((a + BASE, img[a:a + size]))
     return out
@@ -1117,6 +1229,9 @@ def main(argv: list[str] | None = None) -> int:
         p = sub.add_parser(name)
         p.add_argument("--area", action="append", help="area or group (default: game, gflib3, gflnet3, startup)")
         p.add_argument("--max", type=int, default=32, help="largest function, in bytes (default 32)")
+        p.add_argument("--reach", type=lambda x: x.split(","), default=["call"],
+                       help=f"comma-separated ways the function is reached, of {','.join(REACH)} "
+                            "(funcs.py patterns; default call). Vtable slots are always left to vtables.py")
         if name == "write":
             p.add_argument("--out", type=Path, default=ROOT / "src" / "unsorted" / "leaf")
             p.add_argument("--only", type=Path, help="file of addresses (one per line) to write; default all")

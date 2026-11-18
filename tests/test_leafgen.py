@@ -315,3 +315,27 @@ def test_file_round_trip():
     assert [b[0] for b in blocks] == [ADDR, ADDR + 0x10]
     assert blocks[1] == (ADDR + 0x10, *empty)
     assert leafgen.render_file(blocks) == text
+
+
+def test_move_reads_into_a_local():
+    """ldr x8, [x0] ; str xzr, [x0] ; str x8, [x1] ; ret: the load comes before a
+    store that may overwrite it (a move), so the source held it in a local. A
+    store to another field of the same pointer can't overwrite it: no local."""
+    _, func = leafgen.generate(ADDR, code(ldr_x(8, 0, 0), str_x(31, 0, 0), str_x(8, 1, 0), RET))
+    assert func == ("void Unk_123450_set(Unk_123450* self, Unk_123450_arg1* value) {\n"
+                    "    u64 v0 = self->field_0;\n    self->field_0 = 0;\n    value->field_0 = v0;\n}\n")
+    _, func = leafgen.generate(ADDR, code(ldr_x(8, 0, 8), str_x(31, 0, 0), str_x(8, 0, 0x10), RET))
+    assert "v0" not in func
+
+
+def test_struct_copy():
+    """ldp x8, x9, [x0] ; ldr x10, [x0, #0x10] ; stp x9, x10, [x1, #8] ; str x8, [x1] ;
+    ret: clang's copy of a 24-byte struct (memcpy order), `*value = *self`."""
+    ldp = 0xA9400000 | 9 << 10 | 0 << 5 | 8
+    stp = 0xA9000000 | (8 // 8) << 15 | 10 << 10 | 1 << 5 | 9
+    structs, func = leafgen.generate(ADDR, code(ldp, ldr_x(10, 0, 0x10), stp, str_x(8, 1, 0), RET))
+    assert func == "void Unk_123450_set(const Unk_123450* self, Unk_123450* value) {\n    *value = *self;\n}\n"
+    assert "    u64 field_10;\n" in structs
+    # without ldp it's field by field
+    _, func = leafgen.generate(ADDR, code(ldr_x(8, 0, 0), str_x(8, 1, 0), ldr_x(8, 0, 8), str_x(8, 1, 8), RET))
+    assert "value->field_8 = self->field_8;" in func
