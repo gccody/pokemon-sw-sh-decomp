@@ -914,6 +914,38 @@ were simple:
 13 more classes match: 98 functions (check.py: 27,458 matching, 107 not
 matching).
 
+### Batch 12: type getters out of line on the hand-written bases
+
+Batch 6's "copy" shape (a `vf_type` with the class's getter inlined,
+calling its parent's getter out of line, and secondary type slots that are
+copies of it) was only written on `Unk_23d4470`, whose classes share one
+TU, and on the object. On the other bases it has two forms, told apart by
+the statics the called getter loads (each guarded static is two: its
+guard, then the object):
+
+- **The base's own getter** (`base_getter_copy`): it loads the same
+  statics as the getter in the base's type slot (`base_type_statics`).
+  The base's getter is inline in its header; a TU with several callers
+  keeps it out of line, and the linker one copy of it (`0x71013a5bb0` for
+  `Unk_23f4e40`, named `Unk_23f4e40::Unk_GetType`). A generated file only
+  has that many callers when it holds two such classes or more, so a class
+  that would be alone in its file isn't written: there, clang inlines the
+  base's getter.
+- **Another class's getter on the same base** (`out_of_line_parent`, now
+  for every base): it loads its own type, then the base's getter's
+  statics. As on the object, that class is a placeholder struct named
+  after its type object, its getter named and not defined. When that
+  class's own type slot is `b <its getter>` (Batch 5's tail shape) and
+  other classes' `vf_type`s call the getter, the class is written too,
+  with its getter named after its type object (#53's rule, on any base).
+  On these bases, other virtual functions may call such a getter too (a
+  type check in a slot-24 function, for one); only a call from another
+  class's type slot counts against the class.
+
+20 more classes match, 18 on `Unk_23f43c8` and 2 on `Unk_23f4660`: 162
+functions (check.py: 27,620 matching, 107 not matching). None of the 20
+classes on `Unk_23f4e40` whose getters call its getter's copy match yet.
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -939,7 +971,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17)
 
-State after #59: check.py reports 27,458 matching and 107 not matching, in
+State after #60: check.py reports 27,620 matching and 107 not matching, in
 both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
