@@ -804,3 +804,129 @@ def test_render_external_with_a_written_out_destructor():
     assert f"{spec.name}::~{spec.name}() {{}}" in defs
     decl, names, defs = V.render_external(m, spec, [])     # another file that declares it
     assert f"    ~{spec.name}() override;" in decl and "::~" not in defs
+
+
+def _empty_base_d2(vtable_slot: int, refs: tuple[int, ...]) -> list[int]:
+    """The words of a D2 on a base whose D2 is empty (Unk_239a4c0's shape):
+    its vptrs (its vtable from the GOT slot at 0x1000 + vtable_slot, stored at
+    +0 and +0x48), its reference members released (in this order), `ret`."""
+    words = [0xF81E0FF3, 0xA9017BFD, 0x910043FD,                # str x19, [sp, #-0x20]! ; stp x29, x30 ; add x29
+             0xB0000008, 0xF9400108 | (vtable_slot // 8) << 10,  # adrp x8 ; ldr x8, [x8, #slot]: the vtable
+             0x91004109, 0x91012108, 0xAA0003F3,                # add x9, x8, #0x10 ; add x8, x8, #0x48 ; mov x19, x0
+             0xF9000009, 0xF9002408]                            # str x9, [x0] ; str x8, [x0, #0x48]
+    for i, off in enumerate(refs):
+        # ldr x0, [x0|x19, #off] ; cbz x0 ; ldr x8, [x0, #0x48]! ; ldr x8, [x8, #0x18] ; blr x8 ; str xzr, [x19, #off]
+        words += [0xF9400000 | (off // 8) << 10 | (19 if i else 0) << 5, 0xB40000A0, 0xF8448C08, 0xF9400D08,
+                  0xD63F0100, 0xF900027F | (off // 8) << 10]
+    return words + [0xA9417BFD, 0xF84207F3, RET]               # ldp x29, x30 ; ldr x19, [sp], #0x20 ; ret
+
+
+def test_ref_empty_pattern():
+    """The D2 of a class with reference members on a base whose D2 is empty:
+    its two vptrs (three with two secondary bases), the releases, and nothing
+    of the base's before the epilogue."""
+    release = " ; cbz x0, #N ; ldr x8, [x0, #N]! ; ldr x8, [x8, #N] ; blr x8 ; str xzr, [x19, #N]"
+    two = ("str x19, [sp, #N]! ; stp x29, x30, [sp, #N] ; add x29, sp, #N ; adrp x8, #N ; ldr x8, [x8, #N] ;"
+           " add x9, x8, #N ; add x8, x8, #N ; mov x19, x0 ; str x9, [x0] ; str x8, [x0, #N]")
+    epi = " ; ldp x29, x30, [sp, #N] ; ldr x19, [sp], #N ; ret"
+    assert V.ref_empty_pattern(1) == two + " ; ldr x0, [x0, #N]" + release + epi
+    assert V.ref_empty_pattern(2) == two + " ; ldr x0, [x0, #N]" + release + " ; ldr x0, [x19, #N]" + release + epi
+    assert V.ref_empty_pattern(1, 3).startswith(V._VPTRS + " ; ldr x0, [x0, #N]")
+    assert V.ref_empty_pattern(0) is None
+    assert V.ref_empty_pattern(1, 4) is None
+
+
+def test_ref_members_empty():
+    """Its members' offsets, in declaration order, from a D2 that stores its own
+    vtable (GOT slot 0x1800) and releases +0x68, then +0x60."""
+    words = _empty_base_d2(0x800, (0x68, 0x60))
+    img = bytearray(0x400)
+    struct.pack_into(f"<{len(words)}I", img, 0x200, *words)
+    sizes = {0x200: 4 * len(words)}
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), [], [], sizes, {}, {}, lambda a: "game", DELETE,
+                {0x1800: 0x3000})
+    assert m.pattern(0x200) == V.ref_empty_pattern(2)
+    assert V.ref_members_empty(m, 0x200, 0x3000, 0x54) == (0x60, 0x68)
+    assert V.ref_members_empty(m, 0x200, 0x3000, 0x64) is None     # +0x60 is the base's
+    assert V.ref_members_empty(m, 0x200, 0x3008, 0x54) is None     # it stores another class's vtable
+    assert V.ref_members_empty(m, 0x200, 0x3000, 0x54, 3) is None  # three vptrs aren't these
+    last = 0x200 + 4 * (len(words) - 1)
+    struct.pack_into("<I", img, last, b(last, 0x300))
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), [], [], sizes, {}, {}, lambda a: "game", DELETE,
+                {0x1800: 0x3000})
+    assert V.ref_members_empty(m, 0x200, 0x3000, 0x54) is None     # a tail call: its base's D2 isn't empty
+
+
+def test_derived_from_an_empty_base():
+    """Classes on a hand-written base without types whose D2 is empty and
+    inline (`ret`, Unk_239a4c0's shape), with one interface at +0x48:
+
+    - D has nothing to destroy: its slot 0 is the base's D2, its D0 and its
+      destructor thunks are `ret`s like the base's, and it overrides slot 2,
+      its key function;
+    - R releases a reference (+0x60) and defines nothing else: its D0 and
+      thunks are copies of its D2, and its destructor is its key function."""
+    img = bytearray(0x2000)
+    d2 = _empty_base_d2(0x800, (0x60,))
+    code = {0x100: [RET], 0x110: [RET], 0x120: [0xAA0003E8, RET], 0x130: [0xAA0003E9, RET],  # E
+            0x140: [0xAA0003EA, RET], 0x150: [RET], 0x160: [RET], 0x170: [0xAA0003EB, RET],
+            0x180: [0xAA0003EC, RET],
+            0x200: [RET], 0x210: [RET], 0x220: [RET], 0x230: [RET],                         # D
+            0x300: d2, 0x350: d2, 0x400: d2, 0x450: d2}                                     # R
+    for a, w in code.items():
+        struct.pack_into(f"<{len(w)}I", img, a, *w)
+    slots = {}
+
+    def vt(start, ott, fns):
+        struct.pack_into("<q", img, start, ott)
+        for i, f in enumerate(fns):
+            slots[start + 16 + 8 * i] = f
+        return start + 16 + 8 * len(fns)
+
+    end = vt(0x1000, 0, [0x100, 0x110, 0x120, 0x130, 0x140])          # E
+    end = vt(end, -0x48, [0x150, 0x160, 0x170, 0x180])                # E at +0x48
+    d_start = end
+    end = vt(end, 0, [0x100, 0x200, 0x210, 0x130, 0x140])             # D
+    end = vt(end, -0x48, [0x220, 0x230, 0x170, 0x180])
+    r_start = end
+    end = vt(end, 0, [0x300, 0x350, 0x120, 0x130, 0x140])             # R
+    vt(end, -0x48, [0x400, 0x450, 0x170, 0x180])
+    sizes = {a: 4 * len(w) for a, w in code.items()}
+    vts, tables = V.find_vtables(bytes(img), slots, set(code), DATA, len(img))
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), vts, tables, sizes, {}, {}, lambda a: "game", DELETE,
+                {0x1800: r_start})
+    e = V.ExternalBase(vts[0].addr, "Unk_E", "gflib3/Unk_E.h", ((2, "void", "vf2"), (3, "void", "vf3"),
+                       (4, "void", "vf4")), None, "", ((0x48, (0, 1), None),), inline_dtor=True, size=0x54)
+    d, r = (next(v for v in vts if v.start == s) for s in (d_start, r_start))
+    specs = {}
+    V.derive_external(m, e, specs, {d.addr: [V.Member(2, 0x210, "ret")]}, V.owners(vts), lambda f: 0,
+                      lambda f: True, lambda t: True)
+    # D: an implicit destructor, its override the key function
+    spec = specs[d.addr]
+    assert spec.ext is e and spec.order == [2] and not spec.explicit_dtor and not spec.fields
+    decl, names, defs = V.render_class(m, spec)
+    assert decl == f"class {spec.name} : public Unk_E {{\npublic:\n    void vf2() override;\n}};\n"
+    assert f"void {spec.name}::vf2() {{}}" in defs
+    cls = f"{len(spec.name)}{spec.name}"
+    assert sorted(names) == [(0x200, f"_ZN{cls}D0Ev"), (0x210, f"_ZN{cls}3vf2Ev"), (0x220, f"_ZThn72_N{cls}D1Ev"),
+                             (0x230, f"_ZThn72_N{cls}D0Ev")]
+    # R: its destructor out of line, its key function
+    spec = specs[r.addr]
+    assert spec.ext is e and spec.order == [] and spec.explicit_dtor and spec.fields == {0x60: V.REF}
+    decl, names, defs = V.render_class(m, spec)
+    assert decl == (f"class {spec.name} : public Unk_E {{\npublic:\n    ~{spec.name}() override;\n"
+                    f"    u8 _54[0xc];\n    {V.REF} field_60;\n}};\nPKMN_OFFSET_ASSERT({spec.name}, field_60, 0x60);\n")
+    assert f"// 0x7100000300: its key function\n{spec.name}::~{spec.name}() {{}}" in defs
+    cls = f"{len(spec.name)}{spec.name}"
+    assert sorted(names) == [(0x300, f"_ZN{cls}D2Ev"), (0x350, f"_ZN{cls}D0Ev"), (0x400, f"_ZThn72_N{cls}D1Ev"),
+                             (0x450, f"_ZThn72_N{cls}D0Ev")]
+    # Its D0 tail-calls its D2 when that's too big to be inlined, and its thunks do too.
+    sub = 0xD1012000                                                   # sub x0, x0, #0x48
+    for a, w in {0x350: [b(0x350, 0x300)], 0x400: [sub, b(0x404, 0x300)], 0x450: [sub, b(0x454, 0x300)]}.items():
+        struct.pack_into(f"<{len(w)}I", img, a, *w)
+        sizes[a] = 4 * len(w)
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), vts, tables, sizes, {}, {}, lambda a: "game", DELETE,
+                {0x1800: r_start})
+    specs = {}
+    V.derive_external(m, e, specs, {}, V.owners(vts), lambda f: 0, lambda f: True, lambda t: True)
+    assert specs[r.addr].explicit_dtor and sorted(x.addr for x in specs[r.addr].members) == [0x300, 0x350, 0x400, 0x450]
