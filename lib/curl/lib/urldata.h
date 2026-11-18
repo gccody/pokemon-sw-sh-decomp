@@ -278,7 +278,16 @@ struct ssl_connect_data {
   bool use;
   ssl_connection_state state;
   ssl_connect_state connecting_state;
-#if defined(USE_OPENSSL)
+#if 1 /* Pokemon SwSh decomp: Nintendo's nn::ssl backend */
+  /* The backend's fields, 0x120 bytes in all (its functions index
+     conn->ssl[] by 0x120, Sword 0x7101777df0). They aren't known beyond what
+     the backend passes to the SDK: +0x10 to nnsslConnection* functions
+     (nnsslConnectionGetConnectionId, nnsslConnectionRead, ...), the pointer
+     at +0x110 to nnsslContextGetContextId. */
+  unsigned long field_10[0x20];
+  void *field_110;
+  bool field_118;
+#elif defined(USE_OPENSSL)
   /* these ones requires specific SSL-types */
   SSL_CTX* ctx;
   SSL*     handle;
