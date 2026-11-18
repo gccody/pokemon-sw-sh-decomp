@@ -3,28 +3,44 @@
 // Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
+#include "unsorted/Unk_23f4e40.h"
 
-// Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_da1430(void* self);
-
-class Unk_23eea20 {
+class Unk_23eea20 : public Unk_23f4e40 {
 public:
-    virtual ~Unk_23eea20();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual u32 vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23f4e40::Unk_GetType());
+        return &type;
+    }
 
-// 0x7100da0320
-void Unk_23eea20::vf6() {
-    Unk_da1430(this);
-}
+    const Unk_239a418_Type* vf_type() override;
+    u32 vf7() override;
+    void vf8() override;
+    u32 vf9() override;
+    void vf10() override;
+    Unk_239a418_Ref<Unk_239a418> field_88;
+    u8 _90[0x1c8];
+    Unk_239a418_Ref<Unk_239a418> field_258;
+    u8 _260[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_278;
+    u8 _280[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_298;
+    u8 _2a0[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_2b8;
+    u8 _2c0[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_2d8;
+    u8 _2e0[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_2f8;
+    u8 _300[0x18];
+    Unk_239a418_Ref<Unk_239a418> field_318;
+};
+PKMN_OFFSET_ASSERT(Unk_23eea20, field_88, 0x88);
+PKMN_OFFSET_ASSERT(Unk_23eea20, field_258, 0x258);
+PKMN_OFFSET_ASSERT(Unk_23eea20, field_278, 0x278);
+PKMN_OFFSET_ASSERT(Unk_23eea20, field_298, 0x298);
+PKMN_OFFSET_ASSERT(Unk_23eea20, field_2b8, 0x2b8);
+PKMN_OFFSET_ASSERT(Unk_23eea20, field_2d8, 0x2d8);
+PKMN_OFFSET_ASSERT(Unk_23eea20, field_2f8, 0x2f8);
+PKMN_OFFSET_ASSERT(Unk_23eea20, field_318, 0x318);
 
 // 0x7100d9d560
 u32 Unk_23eea20::vf7() {
@@ -37,29 +53,7 @@ void Unk_23eea20::vf8() {}
 // 0x7100d9fc10
 void Unk_23eea20::vf10() {}
 
-class Unk_23eea88 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100da0350
-void Unk_23eea88::vf5() {
-    Unk_da1430(this);
-}
-
-class Unk_23eeac8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100da0360
-void Unk_23eeac8::vf0() {
-    Unk_da1430(this);
+// 0x7100da0320; its type 0x7100da1430
+const Unk_239a418_Type* Unk_23eea20::vf_type() {
+    return Unk_GetType();
 }
