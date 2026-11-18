@@ -946,6 +946,26 @@ guard, then the object):
 functions (check.py: 27,620 matching, 107 not matching). None of the 20
 classes on `Unk_23f4e40` whose getters call its getter's copy match yet.
 
+### Batch 13: callables among the members
+
+Batch 9's D2s, which release reference members and then tail-call their
+base's, may also destroy `Unk_23d4470_Callable`s: if one holds a callable,
+its four words are cleared and its manager (`+0x8`) disposes of the storage
+(`+0x20`), as in `Unk_23d4470`'s own D2. `tail_members` reads both kinds from
+the D2 (`_TAIL_MEMBERS`: the vptr stores, then the members, the last
+declared first; a callable that comes first has its manager's load scheduled
+between the vptr stores), and a file that declares such a member includes
+`unsorted/Unk_23d4470.h`. The four words are cleared with `str xzr` or with
+`stp xzr, xzr`, whichever reaches: clang pairs the stores only within
+`stp`'s range.
+
+21 more classes match, 12 on `Unk_23f43c8`, 5 on `Unk_23f4660` and 4 on
+`Unk_23f4e40`: 147 functions (check.py: 27,767 matching, 107 not matching).
+The other D2s that tail-call a hand-written base destroy members of other
+kinds (owned objects with allocator deleters, members with out-of-line
+destructors) or save more registers, so their instructions are scheduled
+differently.
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -971,7 +991,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17)
 
-State after #60: check.py reports 27,620 matching and 107 not matching, in
+State after #61: check.py reports 27,767 matching and 107 not matching, in
 both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
