@@ -26,6 +26,11 @@
 
 #ifdef HAVE_POLL_H
 #include <poll.h>
+/* Pokemon SwSh decomp: Nintendo's SDK build polls with the SDK's
+   nnsocketPoll (struct pollfd and the POLL* values are Linux's: the
+   POLLWRNORM in Curl_socket_check is 0x100). */
+int nnsocketPoll(struct pollfd *fds, nfds_t nfds, int timeout);
+#define poll(f, n, t) nnsocketPoll(f, n, t)
 #elif defined(HAVE_SYS_POLL_H)
 #include <sys/poll.h>
 #endif

@@ -37,7 +37,10 @@
 extern "C" {
 #endif
 
-#define ZLIB_VERSION "1.2.11"
+/* Pokemon SwSh decomp: altered. The Nintendo SDK's zlib.h has this version
+   string; libcurl's inflateInit2_ calls pass it (docs/compiler.md, libcurl
+   7.55.1). Upstream 1.2.11 has "1.2.11". */
+#define ZLIB_VERSION "1.2.11.f-NINTENDO-SDK-v1"
 #define ZLIB_VERNUM 0x12b0
 #define ZLIB_VER_MAJOR 1
 #define ZLIB_VER_MINOR 2

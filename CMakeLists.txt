@@ -197,10 +197,12 @@ pkmn_library_settings(lib/tlsf
 # is the configuration reconstructed from the binary (HTTP/HTTPS only, no IPv6,
 # threaded resolver, libz). lib/curl/zlib holds zlib 1.2.11's headers, the
 # SDK's zlib version: HAVE_LIBZ puts a z_stream in curl's structs.
+# lib/curl/nnsocket stands in for the SDK's BSD-style socket headers, in place
+# of musl's (lib/curl/README.md).
 pkmn_library_settings(lib/curl
   EVIDENCE "docs/compiler.md, section Nintendo SDK middleware (libcurl 7.55.1)"
   DEFINES HAVE_CONFIG_H BUILDING_LIBCURL CURL_STATICLIB
-  INCLUDES lib/curl/include lib/curl/lib lib/curl/zlib)
+  INCLUDES lib/curl/include lib/curl/lib lib/curl/zlib lib/curl/nnsocket)
 
 # Protocol Buffers 3.0.0, the runtime gflnet3 vendors
 # (gflnet3/external/include/google/protobuf): the game's clang 7.0.x and
