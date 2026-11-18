@@ -5,85 +5,12 @@
 #include <types.h>
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_eb57c0(void* self);
 void Unk_eb6100(void* self);
 void Unk_eb7ce0(void* self);
 void Unk_ebb700(void* self);
 void Unk_ec3210(void* self);
 void Unk_ec65c0(void* self);
 void Unk_ec71b0(void* self);
-
-// Tail-called by lifted functions. Placeholders, like the forwarders' callees.
-void Unk_eb5330(void*, u32);
-
-class Unk_23d9830 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-};
-
-// 0x7100eb5320
-void Unk_23d9830::vf12() {
-    Unk_eb5330(this, 0);
-}
-
-class Unk_23f5ec8 {
-public:
-    virtual ~Unk_23f5ec8();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7() = 0;
-    virtual void vf8() = 0;
-    virtual void vf9() = 0;
-    virtual void vf10() = 0;
-    virtual void vf11() = 0;
-    virtual void vf12();
-};
-
-// 0x7100eb5790
-void Unk_23f5ec8::vf6() {
-    Unk_eb57c0(this);
-}
-
-class Unk_23f5f40 {
-public:
-    virtual ~Unk_23f5f40();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100eb57a0
-void Unk_23f5f40::vf5() {
-    Unk_eb57c0(this);
-}
-
-class Unk_23f5f80 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100eb57b0
-void Unk_23f5f80::vf0() {
-    Unk_eb57c0(this);
-}
 
 class Unk_23f5fa8 {
 public:
