@@ -545,6 +545,10 @@ CURLcode Curl_init_userdefined(struct UserDefined *set)
   set->proxytype = CURLPROXY_HTTP; /* defaults to HTTP proxy */
   set->httpauth = CURLAUTH_BASIC;  /* defaults to basic */
   set->proxyauth = CURLAUTH_BASIC; /* defaults to basic */
+  /* Pokemon SwSh decomp: Nintendo's fields (urldata.h) */
+  set->field_58 = TRUE;
+  set->field_59 = FALSE;
+  set->field_5a = FALSE;
 
   /* SOCKS5 proxy auth defaults to username/password + GSS-API */
   set->socks5auth = CURLAUTH_BASIC | CURLAUTH_GSSAPI;
@@ -556,6 +560,7 @@ CURLcode Curl_init_userdefined(struct UserDefined *set)
    * libcurl 7.10 introduced SSL verification *by default*! This needs to be
    * switched off unless wanted.
    */
+  set->ssl.primary.field_13 = FALSE; /* Nintendo's field (urldata.h) */
   set->ssl.primary.verifypeer = TRUE;
   set->ssl.primary.verifyhost = TRUE;
 #ifdef USE_TLS_SRP
