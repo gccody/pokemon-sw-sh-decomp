@@ -1083,6 +1083,12 @@ declared in the file before the class.
 `vf_type` and its two copies), 558 functions (check.py: 28,559 matching,
 107 not matching, with #67). The interface's functions are untouched.
 
+### Batch 17: classes on #67's bases
+
+The generator, unchanged, on #67's bases: 7 classes, 3 on `Unk_23f6328`, 3
+on `Unk_24034f8` and 1 on `Unk_23f5ec8`, 56 functions (check.py: 28,615
+matching, 107 not matching).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1108,7 +1114,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17)
 
-State after #68: check.py reports 28,559 matching and 107 not matching, in
+State after #69: check.py reports 28,615 matching and 107 not matching, in
 both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
