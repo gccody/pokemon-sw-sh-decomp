@@ -507,6 +507,52 @@ def test_intermediate_type():
     assert V.intermediate_type(m, 0x200) is None
 
 
+def test_derived_from_an_external_base_slot_with_a_parameter():
+    """An override of a base slot declared with a parameter takes it too (unnamed),
+    and its name is mangled with it; a lifted member can't be such an override."""
+    img = bytearray(0x1200)
+    sub8 = 0xD1002000                                       # sub x0, x0, #8
+    code = {0x100: [0xAA0003E8, 0xAA0003E9, RET],           # E's D2
+            0x120: [RET], 0x130: [0xAA0003E8, RET],         # E's slot 2, its type getter
+            0x140: [b(0x140, 0x100)],                        # D's D0
+            0x150: [sub8, b(0x154, 0x100)], 0x160: [sub8, b(0x164, 0x100)],
+            0x1c0: [RET],                                    # D's slot 2
+            0x110: [RET], 0x190: [RET], 0x1a0: [RET], 0x1b0: [RET]}
+    for a, w in code.items():
+        struct.pack_into(f"<{len(w)}I", img, a, *w)
+    slots = {}
+
+    def vt(start, ott, fns):
+        struct.pack_into("<q", img, start, ott)
+        for i, f in enumerate(fns):
+            slots[start + 16 + 8 * i] = f
+        return start + 16 + 8 * len(fns)
+
+    end = vt(0x1000, 0, [0x100, 0x110, 0x120, 0x130])           # E
+    end = vt(end, -8, [0x190, 0x1a0, 0x1b0])                    # E at +8
+    end = vt(end, 0, [0x100, 0x140, 0x1c0, 0x130])              # D
+    vt(end, -8, [0x150, 0x160, 0x1b0])                          # D at +8
+    sizes = {a: 4 * len(w) for a, w in code.items()}
+    vts, tables = V.find_vtables(bytes(img), slots, set(code), DATA, len(img))
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), vts, tables, sizes, {}, {}, lambda a: "game", DELETE)
+    e = V.ExternalBase(vts[0].addr, "Unk_E", "unsorted/Unk_E.h",
+                       ((2, "void", "vf2", "Unk_A*"), (3, V.TYPE, "vf_type")), 3, "Unk_E::Unk_GetType",
+                       ((8, (0, 1), 2),))
+    assert e.params(2) == "Unk_A*" and e.params(3) == "" and e.slot(2) == ("void", "vf2")
+    d = vts[2]
+    specs = {}
+    V.derive_external(m, e, specs, {d.addr: [V.Member(2, 0x1c0, "ret")]}, V.owners(vts), lambda f: 0,
+                      lambda f: True, lambda t: True)
+    decl, names, defs = V.render_class(m, specs[d.addr])
+    cls = specs[d.addr].name
+    assert "    void vf2(Unk_A*) override;\n" in decl
+    assert f"void {cls}::vf2(Unk_A*) {{}}" in defs
+    assert (0x1c0, f"_ZN{len(cls)}{cls}3vf2EP5Unk_A") in names
+    lifted = V.Member(2, 0x1c0, "lifted", lifted=V.Lifted("void", (), "", (), "Unk_1c0"))
+    assert not V._ext_lifted_ok(e, vts[0], lifted, {})
+    assert V.param_codes("") == "v" and V.param_codes("Unk_2399590_Arg*") == "P15Unk_2399590_Arg"
+
+
 def test_lifted_member_of_a_class_on_a_hand_written_base():
     """Its fields come after the base's (e.size); an override is declared as the base declares it."""
     e = V.ExternalBase(0x1010, "Unk_B", "b.h", ((2, "void", "vf2"), (3, "u32", "vf3")), 6, "Unk_B::Unk_GetType",

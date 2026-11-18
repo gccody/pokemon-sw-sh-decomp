@@ -378,7 +378,7 @@ class ExternalBase:
     vtable: int                     # its primary vtable's address point (relative)
     name: str
     header: str
-    slots: tuple                    # (slot, return type, name) of its virtual functions from slot 2
+    slots: tuple                    # (slot, return type, name[, parameter]) of its virtual functions from slot 2
     type_slot: int
     get_type: str
     secondaries: tuple              # (offset in the object, its 2 destructor slots, its type slot) each
@@ -388,7 +388,12 @@ class ExternalBase:
     size: int = 0                   # its data size (sizeof without tail padding): a derived class's fields follow
 
     def slot(self, i: int) -> tuple[str, str]:
-        return next(((rt, n) for j, rt, n in self.slots if j == i), ("void", f"vf{i}"))
+        return next(((s[1], s[2]) for s in self.slots if s[0] == i), ("void", f"vf{i}"))
+
+    def params(self, i: int) -> str:
+        """The parameter slot i is declared with, "" for none: a pointer to a
+        class, unnamed where write defines an override (it doesn't use it)."""
+        return next((s[3] for s in self.slots if s[0] == i and len(s) > 3), "")
 
 
 TYPE = "const Unk_239a418_Type*"
@@ -447,6 +452,12 @@ EXTERNAL_BASES = (
                   (14, "void", "vf14"), (15, "void", "vf15"), (16, "u32", "vf16"), (17, "void", "vf17"),
                   (18, "u32", "vf18"), (19, "void", "vf19"), (20, "void", "vf20"), (21, "void", "vf21")),
                  6, "Unk_23c9470::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x848),
+    # A node of gflib3 on the object: it overrides vf3, its vf_type is inline (inlining its
+    # getter), and its vf7 takes an argument.
+    ExternalBase(0x23995a0, "Unk_2399590", "gflib3/Unk_2399590.h",
+                 ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
+                  (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7", "Unk_2399590_Arg*")),
+                 6, "Unk_2399590::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x290),
     # gflib3's reference-counted object: its destructor is inline, and it has no type slot of
     # its own (a class that overrides the interfaces' getter gets slot 6 for it).
     ExternalBase(0x239a428, "Unk_239a418", "gflib3/Unk_239a418.h",
@@ -602,6 +613,17 @@ def mangle(cls: str, member: str, params: str = "v") -> str:
     parameters' codes (`v` for none)."""
     m = member if member in ("D0", "D2") else f"{len(member)}{member}"
     return f"_ZN{len(cls)}{cls}{m}E{params}"
+
+
+def param_codes(param: str) -> str:
+    """The Itanium code of an ExternalBase slot's parameter: none (`v`) or a
+    pointer to a class (`Name*`)."""
+    if not param:
+        return "v"
+    t = param.strip()
+    if not t.endswith("*") or not t[:-1].isidentifier():
+        raise ValueError(f"can't mangle the parameter {param!r}")
+    return f"P{len(t) - 1}{t[:-1]}"
 
 
 def _mov_w0(m: Model, f: int) -> int:
@@ -1086,7 +1108,7 @@ def _ext_lifted_ok(e: ExternalBase, ev: Vtable, x: Member, fields: dict) -> bool
         return False
     if lf.prefix and any(lf.prefix + "_" in t for t in (lf.rtype, *lf.params, lf.body)):
         return False
-    if x.slot < len(ev.slots) and (lf.params or e.slot(x.slot)[0] != lf.rtype):
+    if x.slot < len(ev.slots) and (lf.params or e.params(x.slot) or e.slot(x.slot)[0] != lf.rtype):
         return False
     return merge_fields(fields, lf.fields)
 
@@ -1334,7 +1356,8 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             m.sizes.get(x.addr) == m.sizes.get(s0) for x in extra if x.kind == "ext_thunk" and x.value[1] in ("D0", "D1"))
         d = specs[v.addr] = ClassSpec(v, mine + extra, None, ext=e, order=order, fields=fields,
                                       scalar_tail=scalar_tail)
-        d.sigs = {x.slot: signature(x) if x.kind == "lifted" else (RTYPE[x.kind], ()) for x in mine}
+        d.sigs = {x.slot: signature(x) if x.kind == "lifted" else
+                  (RTYPE[x.kind], (e.params(x.slot),) if e.params(x.slot) else ()) for x in mine}
         gone_of[v.addr] = (secs, {x.addr for x in extra})
         owners.update((x.addr, v.addr) for x in extra if x.kind == "ext_getter" and x.value)
     # A class whose getter calls the base's out of line is written only with
@@ -1631,9 +1654,9 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
             decl.append(f"    {TYPE} vf_type() override {{ return Unk_GetType(); }}" if inline_type
                         else f"    {TYPE} vf_type() override;")
             continue
-        base_slot = any(j == i for j, _, _ in e.slots)
+        base_slot = any(s[0] == i for s in e.slots)
         rt, params = (e.slot(i)[0], ()) if base_slot else spec.sigs.get(i, ("void", ()))
-        decl.append(f"    {rt} {e.slot(i)[1]}() override;" if base_slot else
+        decl.append(f"    {rt} {e.slot(i)[1]}({e.params(i)}) override;" if base_slot else
                     f"    virtual {rt} vf{i}({', '.join(params)});")
     if spec.fields:
         decl += field_lines(spec.fields, cls, e.size, tail_padding_start(spec.fields) if spec.scalar_tail else None)
@@ -1675,8 +1698,9 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
                 names.append((x.value, callee_name(x.value)[1]))
             else:
                 body = simple_body(x)
-            defs.append(f"// 0x{x.addr + BASE:x}\n{rt} {cls}::{name}() {body}")
-            names.append((x.addr, mangle(cls, name)))
+            param = e.params(x.slot)
+            defs.append(f"// 0x{x.addr + BASE:x}\n{rt} {cls}::{name}({param}) {body}")
+            names.append((x.addr, mangle(cls, name, param_codes(param))))
     return "\n".join(decl) + "\n", names, "\n\n".join(defs) + "\n"
 
 
