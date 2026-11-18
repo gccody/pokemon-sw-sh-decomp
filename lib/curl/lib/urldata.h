@@ -359,6 +359,18 @@ struct ssl_primary_config {
   bool verifypeer;       /* set TRUE if this is desired */
   bool verifyhost;       /* set TRUE if CN/SAN must match hostname */
   bool verifystatus;     /* set TRUE if certificate status must be checked */
+  /* Pokemon SwSh decomp: Nintendo's SDK build has 0x30 bytes more here, for
+     its nn::ssl backend (Curl_clone_primary_ssl_config, Sword 0x7101777010,
+     copies CApath from +0x48). Curl_setopt sets all but field_20, from
+     options of Nintendo's; Curl_init_userdefined clears field_13. What they
+     are isn't known. */
+  bool field_13;
+  void *field_18;
+  void *field_20;
+  void *field_28;
+  void *field_30;        /* a function pointer (a CURLOPTTYPE_FUNCTIONPOINT) */
+  void *field_38;
+  bool field_40;
   char *CApath;          /* certificate dir (doesn't work on windows) */
   char *CAfile;          /* certificate to verify peer against */
   char *clientcert;
@@ -1631,6 +1643,13 @@ struct UserDefined {
   long use_port;     /* which port to use (when not using default) */
   unsigned long httpauth;  /* kind of HTTP authentication to use (bitmask) */
   unsigned long proxyauth; /* kind of proxy authentication to use (bitmask) */
+  /* Pokemon SwSh decomp: three bools of Nintendo's SDK build, which
+     Curl_setopt sets from options of Nintendo's and Curl_init_userdefined
+     initialises to TRUE, FALSE, FALSE (Sword 0x710176a9f0). What they are
+     isn't known. */
+  bool field_58;
+  bool field_59;
+  bool field_5a;
   unsigned long socks5auth;/* kind of SOCKS5 authentication to use (bitmask) */
   long followlocation; /* as in HTTP Location: */
   long maxredirs;    /* maximum no. of http(s) redirects to follow, set to -1
