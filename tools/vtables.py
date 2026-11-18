@@ -514,6 +514,21 @@ EXTERNAL_BASES = (
                   (14, "void", "vf14"), (15, "void", "vf15"), (16, "u32", "vf16"), (17, "void", "vf17"),
                   (18, "u32", "vf18"), (19, "void", "vf19"), (20, "void", "vf20"), (21, "void", "vf21")),
                  6, "Unk_24034f8::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x708),
+    # Abstract (vf7-vf11 are pure), on the object: its D0 is a trap, and its D2 is inlined
+    # into its D1 thunks. Its getter is inlined into every derived class's; vf_type gets it
+    # from a function of its own (Unk_eb57c0).
+    ExternalBase(0x23f5ed8, "Unk_23f5ec8", "unsorted/Unk_23f5ec8.h",
+                 ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
+                  (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7"), (8, "void", "vf8"), (9, "u32", "vf9"),
+                  (10, "void", "vf10"), (11, "void", "vf11"), (12, "void", "vf12")),
+                 6, "Unk_23f5ec8::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x80),
+    # Abstract (vf13 and vf16 are pure), on Unk_23f5ec8: its D0 is a trap.
+    ExternalBase(0x23f2e00, "Unk_23f2df0", "unsorted/Unk_23f2df0.h",
+                 ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
+                  (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7"), (8, "void", "vf8"), (9, "u32", "vf9"),
+                  (10, "void", "vf10"), (11, "void", "vf11"), (12, "void", "vf12"), (13, "void", "vf13"),
+                  (14, "void", "vf14"), (15, "void", "vf15"), (16, "void", "vf16")),
+                 6, "Unk_23f2df0::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x2c0),
     # gflib3's reference-counted object: its destructor is inline, and it has no type slot of
     # its own (a class that overrides the interfaces' getter gets slot 6 for it).
     ExternalBase(0x239a428, "Unk_239a418", "gflib3/Unk_239a418.h",
