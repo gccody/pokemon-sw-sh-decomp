@@ -261,6 +261,8 @@ struct timeval {
 #  define sclose(x)  close_s((x))
 #elif defined(USE_LWIPSOCK)
 #  define sclose(x)  lwip_close((x))
+#elif 1 /* Pokemon SwSh decomp: Nintendo's SDK build (lib/curl/nnsocket) */
+#  define sclose(x)  nnsocketClose((x))
 #else
 #  define sclose(x)  close((x))
 #endif
@@ -270,6 +272,8 @@ struct timeval {
  */
 #if defined(USE_LWIPSOCK)
 #  define sfcntl  lwip_fcntl
+#elif 1 /* Pokemon SwSh decomp: Nintendo's SDK build (lib/curl/nnsocket) */
+#  define sfcntl  nnsocketFcntl
 #else
 #  define sfcntl  fcntl
 #endif
@@ -429,6 +433,9 @@ typedef int sig_atomic_t;
 #ifdef USE_WINSOCK
 #define SOCKERRNO         ((int)WSAGetLastError())
 #define SET_SOCKERRNO(x)  (WSASetLastError((int)(x)))
+#elif 1 /* Pokemon SwSh decomp: Nintendo's SDK build (lib/curl/nnsocket) */
+#define SOCKERRNO         (nnsocketGetLastErrno())
+#define SET_SOCKERRNO(x)  (nnsocketSetLastErrno((int)(x)))
 #else
 #define SOCKERRNO         (errno)
 #define SET_SOCKERRNO(x)  (errno = (x))

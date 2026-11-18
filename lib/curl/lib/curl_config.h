@@ -114,7 +114,9 @@
 #define HAVE_POLL_FINE 1
 /* curlx_nonblock: nnsocketFcntl is imported. */
 #define HAVE_FCNTL_O_NONBLOCK 1
-#define HAVE_STRUCT_SOCKADDR_STORAGE 1
+/* No HAVE_STRUCT_SOCKADDR_STORAGE: sizeof(struct Curl_sockaddr_storage) is
+   0x100 (Curl_updateconninfo's getpeername length), curl's cbuf[256]. The
+   socket headers are the SDK's, reconstructed in lib/curl/nnsocket. */
 /* curl_global_init_mem's default strdup is the libc one (a GOT load of
    strdup). */
 #define HAVE_STRDUP 1

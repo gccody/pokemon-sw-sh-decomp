@@ -55,7 +55,12 @@ int curlx_nonblock(curl_socket_t sockfd,    /* operate on this */
 
   /* most recent unix versions */
   int flags;
+#if 1 /* Pokemon SwSh decomp: Nintendo's SDK build doesn't ask for the
+         flags. curlx_nonblock (Sword 0x7101764730) sets 0x802 or 2. */
+  flags = O_RDWR;
+#else
   flags = sfcntl(sockfd, F_GETFL, 0);
+#endif
   if(nonblock)
     return sfcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
   return sfcntl(sockfd, F_SETFL, flags & (~O_NONBLOCK));
