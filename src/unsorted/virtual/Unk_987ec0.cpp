@@ -393,21 +393,6 @@ void Unk_23c2c40::vf0() {
     Unk_98ed90(this);
 }
 
-class Unk_23c44f8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-};
-
-// 0x71009a42f0
-void Unk_23c44f8::vf7() {}
-
 class Unk_23c45d0 {
 public:
     virtual void vf0();

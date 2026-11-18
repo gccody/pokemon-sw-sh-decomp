@@ -33,46 +33,6 @@ public:
 // 0x7101160cd0
 void Unk_241b228::vf16() {}
 
-class Unk_241b570 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual u32 vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x71011625a0
-u32 Unk_241b570::vf8() {
-    return 1;
-}
-
-class Unk_241b640 {
-public:
-    virtual ~Unk_241b640();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7() = 0;
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x71011629a0
-void Unk_241b640::vf9() {}
-
-// 0x71011629b0
-void Unk_241b640::vf10() {}
-
 class Unk_241bd00 {
 public:
     virtual void vf0();
