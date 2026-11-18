@@ -1029,6 +1029,15 @@ type shape: slot 6 calls the copy of `Unk_23dc940::Unk_GetType`
 getters inlined, which `derive_external` doesn't model yet (an inline
 `vf_type` gives that shape).
 
+#67 added five more: `Unk_23f6328` (abstract, on `Unk_23f4660`; its member
+class `Unk_236d3f8`'s destructors too), `Unk_24006c0` (on `Unk_23f43c8`),
+`Unk_24034f8` (16-aligned, on `Unk_23f4660`), `Unk_23f5ec8` and
+`Unk_23f2df0` on it (its `vf_type` tail-calls a TU-local getter,
+`Unk_eb57c0`, as `Unk_e81640` does). 69 functions match, 29 of them matched
+before under placeholder names. `Unk_23da950` (D2 `0x7100c277c0`) is on
+gflib3's second reference-counted base (count at `+0x50`, vtables
+`0x7102398c40`, `0x710239a4c0`), which 213 classes derive from.
+
 ### Batch 15: classes on the new bases
 
 The first generator batch on #62-#64's bases. Two fixes were needed:
@@ -1049,6 +1058,30 @@ The first generator batch on #62-#64's bases. Two fixes were needed:
 The trial matched more functions (238), but a class is written only when
 all its functions match. Most classes on `Unk_23dc940` have the inline
 type shape and nothing else matched that could be their key function.
+
+### Batch 16: classes on the object with an interface
+
+About a hundred classes directly on the object have one more secondary
+vtable, at `+0x60` (right after the object): an interface. Their D2s store
+four vptrs (`str x9, [x0] ; str x8, [x0, #0x60] ; stp x10, x11, [x0, #0x48]`),
+and the third vtable's functions aren't in the class's primary vtable: they
+aren't overrides but the interface's own functions (99 distinct third
+vtables among 108 classes, so mostly one instance per class, a mixin). Those
+functions were already written as members of the placeholder class of the
+vtable that owns them.
+
+So such a class is written as
+`class X : public Unk_239a418, public Unk_<that placeholder>`, its
+fields after the interface's vptr (`+0x68`), when its D2 only releases
+references (`ref_dtor_pattern(..., iface=True)`: the object's pattern with
+the four-vptr head), the interface's functions all belong to one
+placeholder class without fields, and the rest is a class on the object as
+before (its other two secondary vtables, its type slot). The placeholder is
+declared in the file before the class.
+
+62 classes match: all 9 functions each (D2, D0, the four destructor thunks,
+`vf_type` and its two copies), 558 functions (check.py: 28,559 matching,
+107 not matching, with #67). The interface's functions are untouched.
 
 ## What's left of the small functions
 
@@ -1075,7 +1108,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17)
 
-State after #66: check.py reports 27,948 matching and 107 not matching, in
+State after #68: check.py reports 28,559 matching and 107 not matching, in
 both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
