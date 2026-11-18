@@ -309,3 +309,24 @@ void Unk_7fe840_set(Unk_7fe840* self) {
     self->field_8 = 0;
     self->field_0 = 0;
 }
+
+struct Unk_7fe850_arg1 {
+    u64 field_0;
+    u32 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_7fe850_arg1, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_7fe850_arg1, field_8, 0x8);
+
+struct Unk_7fe850 {
+    u64 field_0;
+    u32 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_7fe850, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_7fe850, field_8, 0x8);
+
+// 0x71007fe850
+void Unk_7fe850_set(Unk_7fe850* self, const Unk_7fe850_arg1* value) {
+    u64 v0 = value->field_0;
+    self->field_8 = value->field_8;
+    self->field_0 = v0;
+}

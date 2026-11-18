@@ -35,6 +35,37 @@ u8* Unk_ea3d20_getField160Ptr(Unk_ea3d20* self) {
     return &self->field_160;
 }
 
+// 0x7100ea3e10
+void Unk_ea3e10_update() {}
+
+struct Unk_ea3e20 {
+    u64 field_0;
+    u64 field_8;
+    u64 field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_ea3e20, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_ea3e20, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_ea3e20, field_10, 0x10);
+
+// 0x7100ea3e20
+void Unk_ea3e20_set(const Unk_ea3e20* self, Unk_ea3e20* value) {
+    *value = *self;
+}
+
+struct Unk_ea3e40 {
+    u64 field_0;
+    u64 field_8;
+    u64 field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_ea3e40, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_ea3e40, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_ea3e40, field_10, 0x10);
+
+// 0x7100ea3e40
+void Unk_ea3e40_set(const Unk_ea3e40* self, Unk_ea3e40* value) {
+    *value = *self;
+}
+
 struct Unk_ea4720 {
     u8 _0[0x90];
     u64 field_90;

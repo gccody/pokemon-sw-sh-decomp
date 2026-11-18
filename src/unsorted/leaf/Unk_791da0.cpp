@@ -110,6 +110,9 @@ void Unk_793630_call(const Unk_793630* self, u64 value, bool arg2) {
     Unk_674b60(self->field_70, value, arg2);
 }
 
+// 0x7100793920
+void Unk_793920_update() {}
+
 extern u64 Unk_27ce848;
 void Unk_793c10(u64);
 

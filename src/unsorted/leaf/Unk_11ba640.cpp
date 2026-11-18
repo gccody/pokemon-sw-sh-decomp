@@ -28,3 +28,30 @@ void Unk_11bbe00(u64);
 void Unk_11ba650_call(const Unk_11ba650* self) {
     Unk_11bbe00(self->field_138);
 }
+
+// 0x71011bb2e0
+void Unk_11bb2e0_update() {}
+
+struct Unk_11bb2f0 {
+    u64 field_0;
+    u64 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_11bb2f0, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_11bb2f0, field_8, 0x8);
+
+// 0x71011bb2f0
+void Unk_11bb2f0_set(const Unk_11bb2f0* self, Unk_11bb2f0* value) {
+    *value = *self;
+}
+
+struct Unk_11bb300 {
+    u64 field_0;
+    u64 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_11bb300, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_11bb300, field_8, 0x8);
+
+// 0x71011bb300
+void Unk_11bb300_set(const Unk_11bb300* self, Unk_11bb300* value) {
+    *value = *self;
+}

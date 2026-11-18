@@ -29,6 +29,27 @@ void Unk_803a20_set(Unk_803a20* self) {
     self->field_0 = 0;
 }
 
+struct Unk_803a30_arg1 {
+    u64 field_0;
+    u16 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_803a30_arg1, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_803a30_arg1, field_8, 0x8);
+
+struct Unk_803a30 {
+    u64 field_0;
+    u16 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_803a30, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_803a30, field_8, 0x8);
+
+// 0x7100803a30
+void Unk_803a30_set(Unk_803a30* self, const Unk_803a30_arg1* value) {
+    u64 v0 = value->field_0;
+    self->field_8 = value->field_8;
+    self->field_0 = v0;
+}
+
 struct Unk_803c60 {
     u64 field_0;
     u64 field_8;
