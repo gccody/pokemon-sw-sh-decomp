@@ -599,6 +599,7 @@ class ClassSpec:
     scalar_tail: bool = False       # padding near its end is u64 fields (tail_padding_start)
     iface: ClassSpec | None = None  # the placeholder class of an interface right after the base (+e.size)
     explicit_dtor: bool = False     # its destructor is written out, out of line: its key function
+    parent: ClassSpec | None = None  # a class on the same hand-written base whose vf_type it inherits
 
     @property
     def name(self) -> str:
@@ -1290,6 +1291,18 @@ def _ext_lifted_ok(e: ExternalBase, ev: Vtable, x: Member, fields: dict) -> bool
     return merge_fields(fields, lf.fields)
 
 
+def _parent_sig(parent: ClassSpec, adopt: dict, slot: int, sig) -> bool:
+    """Whether an override of slot, one of the parent's own (not the base's),
+    can have signature sig: the parent's, when it defines that slot. When it
+    doesn't, its declaration is a placeholder: the first class on it that
+    defines the slot gives it its signature (`adopt`, recorded once the class
+    is written), and the others must agree."""
+    have = parent.sigs.get(slot, adopt.get(slot))
+    if have is None:
+        adopt[slot] = sig
+    return have is None or have == sig
+
+
 def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], picked: dict[int, list[Member]],
                     own: dict[int, tuple[int, int]], seg, pickable, getter_ok) -> None:
     """Model the classes derived from hand-written base e (see ExternalBase)."""
@@ -1323,12 +1336,24 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         f = type_fn(v)
         return isinstance(f, int) and m.pattern(f) == "b T"
 
+    def inherited_type(v: Vtable) -> bool:
+        """Whether v's type slot holds another vtable's function (one it inherits)."""
+        f = type_fn(v)
+        return isinstance(f, int) and own.get(f, (v.addr,))[0] != v.addr
+
+    def secondaries(v: Vtable) -> list[Vtable]:
+        return [w for w in groups[v.addr] if w is not v]
+
     # A class whose getter other classes call (on the object: see the tail
     # shape below) goes first, so that they know it's written: getter -> class.
+    # A class that inherits its vf_type comes after the class it may inherit it
+    # from (its parent, below).
     owners: dict[int, int] = {}
     gone_of: dict[int, tuple[list[Vtable], set[int]]] = {}
     before: dict[int, ClassSpec | None] = {}  # what a class was, if it isn't written on e after all
-    for v in sorted(m.vtables, key=lambda v: not tail(v)):
+    typed: dict[int, ClassSpec] = {}          # the classes written here with a vf_type out of line
+    declared_only: set[int] = set()           # those of them written only as other classes' parents
+    for v in sorted(m.vtables, key=lambda v: (not tail(v), inherited_type(v))):
         if v.group != v.addr or v.offset_to_top or v.addr == ev.addr or len(v.slots) < len(ev.slots):
             continue
         s0, s1 = v.slots[0], v.slots[1]
@@ -1338,6 +1363,15 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         refs = None
         four = False                # its D2 stores an interface's vptr too
         dtor_key = False            # its destructor is its key function
+        # Its own functions (D0, thunks, a copy-shaped vf_type) that can't be
+        # written: then it can only be declared, as the parent of others.
+        missing: list[int] = []
+
+        def picks(f: int, missing: list[int] = missing) -> bool:
+            if not pickable(f):
+                missing.append(f)
+            return True
+
         if s0 != d2 and isinstance(s0, int):
             if empty:
                 refs = ref_members_empty(m, s0, v.start, e.size, 1 + len(e.secondaries))
@@ -1351,7 +1385,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             if refs is None or own.get(s0) != (v.addr, 0) or not pickable(s0):
                 continue
         if (s0 != d2 and refs is None) or not isinstance(s1, int) or s1 == ev.slots[1] \
-                or own.get(s1) != (v.addr, 1) or not pickable(s1):
+                or own.get(s1) != (v.addr, 1) or not picks(s1):
             continue
         # A D2 too big to be inlined into the D0 and the thunks (only with
         # reference members, on an out-of-line base or an empty one) is
@@ -1409,19 +1443,31 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
                         (m.sizes.get(s0), m.sizes.get(s0, 0) + 4)
                     same = m.pattern(f) == m.pattern(w.slots[dslots[0]]) and m.sizes.get(f) in sizes
                 elif e.inline_dtor:     # thunks with the D2 inlined, like the base's
-                    same = m.pattern(f) == m.pattern(ew.slots[j])
+                    # (an abstract base's D0 thunks are traps: then like its D1 thunks, the D2 inlined)
+                    same = m.pattern(f) == m.pattern(ew.slots[j] if m.pattern(ew.slots[j]) != "trap"
+                                                     else ew.slots[dslots[0]])
                 else:
                     same = m.pattern(f) == "sub x0, x0, #N ; b T" and branch_target(m, f) == d2
-                if not same or own.get(f) != (w.addr, j) or not pickable(f):
+                if not same or own.get(f) != (w.addr, j) or not picks(f):
                     ok = False
                 extra.append(Member(j, f, "ext_thunk", (off, which)))
         # It overrides the type getter when its secondary type slots differ
         # from the base's (a base without types has none).
         f6 = type_fn(v)
-        typed = [(w, ew, sec) for w, ew, sec in zip(secs, esecs, e.secondaries) if sec[2] is not None]
-        tsecs = [sec for _, _, sec in typed]
-        thunks = [w.slots[sec[2]] for w, _, sec in typed]
-        overrides = any(w.slots[sec[2]] != ew.slots[sec[2]] for w, ew, sec in typed)
+        typed_secs = [(w, ew, sec) for w, ew, sec in zip(secs, esecs, e.secondaries) if sec[2] is not None]
+        tsecs = [sec for _, _, sec in typed_secs]
+        thunks = [w.slots[sec[2]] for w, _, sec in typed_secs]
+        overrides = any(w.slots[sec[2]] != ew.slots[sec[2]] for w, ew, sec in typed_secs)
+        # Or it inherits the vf_type of another class on e written here (its
+        # parent, whose type slots it has): it derives from that class.
+        parent = typed.get(own[f6][0]) if inherited_type(v) else None
+        if parent is not None:
+            pthunks = [w.slots[sec[2]] for w, sec in zip(secondaries(parent.v), e.secondaries) if sec[2] is not None]
+            if s0 != d2 or iface is not None or len(v.slots) < len(parent.v.slots) \
+                    or f6 != type_fn(parent.v) or thunks != pthunks:
+                continue
+            overrides = False
+        pv = ev if parent is None else parent.v
         t = branch_target(m, f6) if isinstance(f6, int) and m.pattern(f6) == "b T" else None
         if ok and overrides and t is None and e.shared_tu:
             # In a TU with many classes: its getter is inlined into vf_type (out
@@ -1444,7 +1490,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             # has many callers) isn't the base's: vf_type inlines its getter
             # and the in-between class's, and its secondary type slots are
             # copies of it. That class's getter is only named here.
-            if not pickable(f6) or any(not pickable(f) for f in thunks):
+            if not picks(f6) or any([not picks(f) for f in thunks]):
                 ok = False
             else:
                 extra.append(Member(e.type_slot, f6, "ext_type", ("copy", it[0], x, it[1])))
@@ -1458,7 +1504,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             # On another direct descendant of the object, whose getter is out
             # of line: vf_type inlines its own getter, which calls that one,
             # and its secondary type slots are copies of it.
-            if not pickable(f6) or any(not pickable(f) for f in thunks):
+            if not picks(f6) or any([not picks(f) for f in thunks]):
                 ok = False
             else:
                 extra.append(Member(e.type_slot, f6, "ext_type", ("copy", None, x, g)))
@@ -1472,7 +1518,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             # a file with another such class keeps the base's getter out of
             # line (written only then, below). Its secondary type slots are
             # copies of vf_type.
-            if not pickable(f6) or any(not pickable(f) for f in thunks):
+            if not picks(f6) or any([not picks(f) for f in thunks]):
                 ok = False
             else:
                 extra.append(Member(e.type_slot, f6, "ext_type", ("copy", None, None, g)))
@@ -1539,24 +1585,36 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         mine = []
         # the members its D2 destroys, then lifted members' fields
         fields: dict = dict(refs) if isinstance(refs, dict) else {o: REF for o in refs or ()}
+        adopt: dict[int, tuple[str, tuple[str, ...]]] = {}   # its parent's slots it gives a signature
         for x in picked.get(v.addr, []):
+            # (on a parent: an override of one of its own slots is declared as it declares it,
+            # and its fields, if it has any, come first)
+            in_parent = parent is not None and len(ev.slots) <= x.slot < len(pv.slots)
             if x.kind == "lifted" and x.slot >= 2 and x.slot != e.type_slot and _ext_lifted_ok(e, ev, x, fields) \
-                    and (iface is None or all(off >= e.size + 8 for off, _ in x.lifted.fields)):
+                    and (iface is None or all(off >= e.size + 8 for off, _ in x.lifted.fields)) \
+                    and (parent is None or not parent.fields) \
+                    and (not in_parent or _parent_sig(parent, adopt, x.slot, signature(x))):
                 mine.append(x)
                 continue
             if x.kind not in SIMPLE_KINDS or x.slot < 2 or x.slot == e.type_slot:
                 if x.kind not in SIMPLE_KINDS and m.statuses.get(x.addr) == "O" and x.slot != e.type_slot:
                     ok = False  # a matched member this shape can't write: keep the class as it is
                 continue
+            if x.slot < len(pv.slots) and v.slots[x.slot] == pv.slots[x.slot]:
+                continue
             if x.slot < len(ev.slots):
                 if v.slots[x.slot] == ev.slots[x.slot]:
                     continue
                 if e.slot(x.slot)[0] != RTYPE[x.kind]:
                     ok = False
+            elif in_parent and not _parent_sig(parent, adopt, x.slot, (RTYPE[x.kind], ())):
+                ok = False
             mine.append(x)
-        declared = [i for i in range(2, len(v.slots)) if i >= len(ev.slots) or v.slots[i] != ev.slots[i]]
+        declared = [i for i in range(2, len(v.slots)) if i >= len(pv.slots) or v.slots[i] != pv.slots[i]]
         if not ok:
             continue
+        if missing and (refs or not any(x.kind == "ext_type" and x.value is not None for x in extra)):
+            continue                # it can't be a parent either
         inline_type = any(x.kind == "ext_type" and x.value is None for x in extra)
         if bare:
             # Its D2 is its own only because its destructor is out of line
@@ -1585,7 +1643,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         elif e.type_slot in declared:
             order = [e.type_slot, *(i for i in declared if i != e.type_slot)]
         else:
-            order = derived_order(v, ev, mine, seg)
+            order = derived_order(v, pv, mine, seg)
             if order is None and empty and refs:
                 # Nothing it defines in its D0's file can be its key function
                 # (the original's vtable was emitted where the class is
@@ -1601,12 +1659,19 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         # own `this` too (tail_padding_start).
         scalar_tail = bool(refs) and (not e.inline_dtor or empty) and all(
             m.sizes.get(x.addr) == m.sizes.get(s0) for x in extra if x.kind == "ext_thunk" and x.value[1] in ("D0", "D1"))
-        d = specs[v.addr] = ClassSpec(v, mine + extra, None, ext=e, order=order, fields=fields,
-                                      scalar_tail=scalar_tail, iface=iface, explicit_dtor=dtor_key)
+        if missing:                 # only declared: none of its own functions
+            declared_only.add(v.addr)
+        own_fns = [] if missing else extra
+        d = specs[v.addr] = ClassSpec(v, mine + own_fns, None, ext=e, order=order, fields=fields,
+                                      scalar_tail=scalar_tail, iface=iface, explicit_dtor=dtor_key, parent=parent)
         d.sigs = {x.slot: signature(x) if x.kind == "lifted" else
                   (RTYPE[x.kind], (e.params(x.slot),) if e.params(x.slot) else ()) for x in mine}
-        gone_of[v.addr] = (secs, {x.addr for x in extra})
-        owners.update((x.addr, v.addr) for x in extra if x.kind == "ext_getter" and x.value)
+        gone_of[v.addr] = (secs, {x.addr for x in own_fns})
+        owners.update((x.addr, v.addr) for x in own_fns if x.kind == "ext_getter" and x.value)
+        if any(x.kind == "ext_type" and x.value is not None for x in extra):
+            typed[v.addr] = d
+        if parent is not None:
+            parent.sigs.update(adopt)
     # A class whose getter calls the base's out of line is written only with
     # another such class in its file: alone there, clang inlines the base's.
     def base_copy(d: ClassSpec) -> int | None:
@@ -1614,7 +1679,16 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
                      and x.value[1] is None and x.value[2] is None and x.value[3] is not None), None)
 
     copies = Counter(seg(a) for d in specs.values() if d.ext is e and (a := base_copy(d)) is not None)
+    parents = {d.parent.v.addr for d in specs.values() if d.ext is e and d.parent is not None}
     for d in [d for d in specs.values() if d.ext is e and (a := base_copy(d)) is not None and copies[seg(a)] < 2]:
+        if d.v.addr in parents:
+            # Classes on it are written: it stays, declared the same in every
+            # file, but its type and destructors aren't defined. Its key
+            # function is its vf_type, so its vtable isn't emitted either.
+            d.members = [x for x in d.members if x.kind not in ("d0", "d2", "ext_thunk", "ext_type", "ext_getter")]
+            gone_of[d.v.addr] = (gone_of[d.v.addr][0], set())
+            declared_only.add(d.v.addr)
+            continue
         del gone_of[d.v.addr]
         if before[d.v.addr] is None:
             del specs[d.v.addr]
@@ -1634,6 +1708,22 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             del specs[d.v.addr]
         else:
             specs[d.v.addr] = before[d.v.addr]
+    # A class whose parent isn't written after all isn't either, and a class
+    # that is only declared is written only as the parent of others.
+    while True:
+        on = [d for d in specs.values() if d.ext is e and d.parent is not None]
+        drop = {d.v.addr: d for d in on if specs.get(d.parent.v.addr) is not d.parent}
+        drop.update((a, specs[a]) for a in declared_only - {d.parent.v.addr for d in on}
+                    if a in specs and specs[a].ext is e)
+        if not drop:
+            break
+        for d in drop.values():
+            declared_only.discard(d.v.addr)
+            del gone_of[d.v.addr]
+            if before[d.v.addr] is None:
+                del specs[d.v.addr]
+            else:
+                specs[d.v.addr] = before[d.v.addr]
     for secs, gone in gone_of.values():
         for w in secs:              # its secondary vtables' functions are its own now
             if w.addr in specs:
@@ -1852,9 +1942,9 @@ def structs(fields: dict, name: str) -> list[str]:
 
 def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str, list[tuple[int, str]], str]:
     """render_class for a class derived from a hand-written base."""
-    cls, e = spec.name, spec.ext
+    cls, e, p = spec.name, spec.ext, spec.parent
     second = f", public {spec.iface.name}" if spec.iface is not None else ""
-    decl = [f"class {cls} : public {e.name}{second} {{", "public:"]
+    decl = [f"class {cls} : public {e.name if p is None else p.name}{second} {{", "public:"]
     names: list[tuple[int, str]] = []
     defs: list[str] = []
     inter = next((x.value for x in spec.members if x.kind == "ext_type" and isinstance(x.value, tuple)), None)
@@ -1908,6 +1998,10 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
                         else f"    {TYPE} vf_type() override;")
             continue
         base_slot = any(s[0] == i for s in e.slots)
+        if not base_slot and p is not None and i < len(p.v.slots):   # one of its parent's own slots
+            rt, params = p.sigs.get(i, ("void", ()))
+            decl.append(f"    {rt} vf{i}({', '.join(params)}) override;")
+            continue
         rt, params = (e.slot(i)[0], ()) if base_slot else spec.sigs.get(i, ("void", ()))
         decl.append(f"    {rt} {e.slot(i)[1]}({e.params(i)}) override;" if base_slot else
                     f"    virtual {rt} vf{i}({', '.join(params)});")
@@ -2014,6 +2108,8 @@ def render_file(m: Model, entries: list[tuple[ClassSpec, list[Member]]],
             return
         if spec.base is not None:
             emit(spec.base)
+        if spec.parent is not None:
+            emit(spec.parent)       # declared, and defined if its functions are this file's
         if spec.iface is not None:
             emit(spec.iface)        # declared, and defined if its functions are this file's
         done.add(spec.v.addr)
@@ -2452,7 +2548,9 @@ def cmd_write(m: Model, args) -> None:
                 if x.kind == "ext_getter" and x.value}
     files: dict[tuple[int, int], list[tuple[ClassSpec, list[Member]]]] = defaultdict(list)
     for spec in specs.values():
-        own_file = spec.ext is not None and spec.ext.type_slot in spec.order and not spec.ext.shared_tu
+        # (a class whose vf_type is only declared, a parent: derive_external, defines none of it)
+        own_file = spec.ext is not None and spec.ext.type_slot in spec.order and not spec.ext.shared_tu \
+            and any(x.kind == "ext_type" for x in spec.members)
         on = next((x.value[3] for x in spec.members if x.kind == "ext_type" and isinstance(x.value, tuple)
                    and x.value[3] in owner_of and seg(x.value[3]) == seg(x.addr)), None)
         by_seg: dict[int, list[Member]] = defaultdict(list)
