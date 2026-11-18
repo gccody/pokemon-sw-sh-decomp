@@ -3,6 +3,7 @@
 // Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
+#include "gflib3/Unk_239a4c0.h"
 
 class Unk_24432a8_Obj {
 public:
@@ -209,6 +210,46 @@ void Unk_2443680::vf3(u64 index) {
     if (Unk_2443680_Obj* obj = m_entries[index].field_8)
         obj->vf16(m_entries[index].field_10);
 }
+
+class Unk_2443d60 : public Unk_239a4c0 {
+public:
+    ~Unk_2443d60() override;
+    virtual void vf5();
+    virtual void vf6();
+    u8 _54[0x4];
+    Unk_239a418_Ref<Unk_239a418> field_58;
+};
+PKMN_OFFSET_ASSERT(Unk_2443d60, field_58, 0x58);
+
+// 0x71014d6ca0: its key function
+Unk_2443d60::~Unk_2443d60() {}
+
+class Unk_2443e50 : public Unk_239a4c0 {
+public:
+    ~Unk_2443e50() override;
+    u8 _54[0x54];
+    Unk_239a418_Ref<Unk_239a418> field_a8;
+    Unk_239a418_Ref<Unk_239a418> field_b0;
+    u8 _b8[0x90];
+    u64 _148;
+    u64 _150;
+    u64 _158;
+    u64 _160;
+    u64 _168;
+    u64 _170;
+    u64 _178;
+    Unk_239a418_Ref<Unk_239a418> field_180;
+    Unk_239a418_Ref<Unk_239a418> field_188;
+    Unk_239a418_Ref<Unk_239a418> field_190;
+};
+PKMN_OFFSET_ASSERT(Unk_2443e50, field_a8, 0xa8);
+PKMN_OFFSET_ASSERT(Unk_2443e50, field_b0, 0xb0);
+PKMN_OFFSET_ASSERT(Unk_2443e50, field_180, 0x180);
+PKMN_OFFSET_ASSERT(Unk_2443e50, field_188, 0x188);
+PKMN_OFFSET_ASSERT(Unk_2443e50, field_190, 0x190);
+
+// 0x71014d9ff0: its key function
+Unk_2443e50::~Unk_2443e50() {}
 
 class Unk_2443f98 {
 public:

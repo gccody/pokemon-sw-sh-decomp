@@ -3,6 +3,7 @@
 // Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
+#include "gflib3/Unk_239a4c0.h"
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
 void Unk_67d770(void* self);
@@ -166,3 +167,14 @@ public:
 
 // 0x71006816b0
 void Unk_23a10e8::vf0() {}
+
+class Unk_23a1108 : public Unk_239a4c0 {
+public:
+    ~Unk_23a1108() override;
+    u8 _54[0xc];
+    Unk_239a418_Ref<Unk_239a418> field_60;
+};
+PKMN_OFFSET_ASSERT(Unk_23a1108, field_60, 0x60);
+
+// 0x7100681a50: its key function
+Unk_23a1108::~Unk_23a1108() {}
