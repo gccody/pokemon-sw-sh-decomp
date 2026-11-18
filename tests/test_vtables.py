@@ -857,6 +857,124 @@ def test_ref_members_empty():
     assert V.ref_members_empty(m, 0x200, 0x3000, 0x54) is None     # a tail call: its base's D2 isn't empty
 
 
+def _abstract_base_model(with_p: bool = True):
+    """An abstract base E whose destructor is inline (Unk_241b640's shape: its
+    D0 and its D0 thunk are traps), whose vf_type inlines its getter (two
+    statics), and three classes on it whose D0s and thunks are copies of E's D2:
+
+    - D inherits E's vf_type and overrides vf2;
+    - P overrides vf_type: its getter inlined, calling E's out of line (G,
+      0x500), and its secondary type slot is a copy of it;
+    - X inherits P's vf_type and type slots, and overrides vf2."""
+    img = bytearray(0x2000)
+
+    def got_loads(slots):
+        return [w for slot in slots for w in (0xB0000008, 0xF9400000 | ((slot - 0x1000) // 8) << 10 | 8 << 5 | 8)]
+
+    def typed(pc):          # a vf_type: its guard and type, then guard, getter G, guard
+        w = got_loads((0x1810, 0x1818))
+        return w + [0x94000000 | (((t - (pc + 4 * (len(w) + i))) >> 2) & 0x3FFFFFF)
+                    for i, t in enumerate((0x700, 0x500, 0x710))] + [RET]
+
+    dtor = [0xAA0003E8, 0xAA0003E9, RET]
+    getter = got_loads((0x1800, 0x1808)) + [RET]
+    code = {0x100: dtor, 0x110: [TRAP], 0x120: [RET], 0x130: getter,               # E
+            0x140: dtor, 0x150: [TRAP], 0x160: [0xD1002000, b(0x164, 0x130)],      # E at +8
+            0x200: dtor, 0x210: [RET], 0x220: dtor, 0x230: dtor,                    # D
+            0x400: dtor, 0x420: dtor, 0x430: dtor, 0x600: typed(0x600), 0x680: typed(0x680),  # P
+            0x500: getter, 0x700: [RET], 0x710: [RET],
+            0x800: dtor, 0x810: [RET], 0x820: dtor, 0x830: dtor}                    # X
+    for a, w in code.items():
+        struct.pack_into(f"<{len(w)}I", img, a, *w)
+    slots = {}
+
+    def vt(start, ott, fns):
+        struct.pack_into("<q", img, start, ott)
+        for i, f in enumerate(fns):
+            slots[start + 16 + 8 * i] = f
+        return start + 16 + 8 * len(fns)
+
+    end = vt(0x1000, 0, [0x100, 0x110, 0x120, 0x130])                 # E
+    end = vt(end, -8, [0x140, 0x150, 0x160])
+    if with_p:
+        end = vt(end, 0, [0x100, 0x400, 0x120, 0x600])                # P
+        end = vt(end, -8, [0x420, 0x430, 0x680])
+        end = vt(end, 0, [0x100, 0x800, 0x810, 0x600])                # X
+        end = vt(end, -8, [0x820, 0x830, 0x680])
+    end = vt(end, 0, [0x100, 0x200, 0x210, 0x130])                    # D
+    vt(end, -8, [0x220, 0x230, 0x160])
+    sizes = {a: 4 * len(w) for a, w in code.items()}
+    vts, tables = V.find_vtables(bytes(img), slots, set(code), DATA, len(img))
+    got = {0x1800 + 8 * i: 0x3000 + 8 * i for i in range(4)}
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), vts, tables, sizes, {}, {}, lambda a: "game", DELETE, got)
+    e = V.ExternalBase(vts[0].addr, "Unk_E", "unsorted/Unk_E.h", ((2, "void", "vf2"), (3, V.TYPE, "vf_type")), 3,
+                       "Unk_E::Unk_GetType", ((8, (0, 1), 2),), inline_dtor=True, size=0x10)
+    return m, e, [v for v in vts if not v.offset_to_top][1:]
+
+
+def test_derived_from_an_abstract_base_with_an_inline_destructor():
+    """D's D0 thunk is a copy of E's D2 where E's is a trap: it's compared with
+    E's D1 thunk."""
+    m, e, (d,) = _abstract_base_model(with_p=False)
+    specs = {}
+    V.derive_external(m, e, specs, {d.addr: [V.Member(2, 0x210, "ret")]}, V.owners(m.vtables), lambda f: 0,
+                      lambda f: True, lambda t: True)
+    spec = specs[d.addr]
+    assert spec.ext is e and spec.parent is None and spec.order == [2]
+    cls = f"{len(spec.name)}{spec.name}"
+    assert sorted(V.render_class(m, spec)[1]) == [(0x200, f"_ZN{cls}D0Ev"), (0x210, f"_ZN{cls}3vf2Ev"),
+                                                  (0x220, f"_ZThn8_N{cls}D1Ev"), (0x230, f"_ZThn8_N{cls}D0Ev")]
+
+
+def test_derived_from_another_class_on_the_base():
+    """X derives from P, whose vf_type it inherits. P is alone in its file, so
+    its vf_type (calling E's getter out of line) isn't written, but P stays,
+    declared, so that X can derive from it."""
+    m, e, (p, x, d) = _abstract_base_model()
+    own = V.owners(m.vtables)
+    assert own[0x600] == (p.addr, 3)
+    specs = {}
+    picked = {d.addr: [V.Member(2, 0x210, "ret")], x.addr: [V.Member(2, 0x810, "ret")]}
+    V.derive_external(m, e, specs, picked, own, lambda f: 0, lambda f: True, lambda t: True)
+    sp, sx = specs[p.addr], specs[x.addr]
+    assert sp.ext is e and sp.members == [] and sp.order == [3]
+    assert sx.ext is e and sx.parent is sp and sx.order == [2]
+    assert specs[d.addr].parent is None
+    decl, names, defs = V.render_class(m, sp)
+    assert "    const Unk_239a418_Type* vf_type() override;\n};\n" in decl and not names and not defs.strip()
+    decl, names, _ = V.render_class(m, sx)
+    assert decl == f"class {sx.name} : public {sp.name} {{\npublic:\n    void vf2() override;\n}};\n"
+    cls = f"{len(sx.name)}{sx.name}"
+    assert sorted(names) == [(0x800, f"_ZN{cls}D0Ev"), (0x810, f"_ZN{cls}3vf2Ev"), (0x820, f"_ZThn8_N{cls}D1Ev"),
+                             (0x830, f"_ZThn8_N{cls}D0Ev")]
+    text, _ = V.render_file(m, [(sx, sx.members)])
+    assert text.index(f"class {sp.name} : public Unk_E {{") < text.index(f"class {sx.name} : public {sp.name} {{")
+    # P's own functions needn't be kept (`write --only`): it's only declared anyway.
+    specs = {}
+    V.derive_external(m, e, specs, picked, own, lambda f: 0, lambda f: f not in (0x400, 0x420, 0x430, 0x600, 0x680),
+                      lambda t: True)
+    assert specs[p.addr].members == [] and specs[x.addr].parent is specs[p.addr]
+    # With nothing to be X's key function, X isn't written, and P isn't either.
+    for pickable in (lambda f: True, lambda f: f != 0x400):
+        specs = {}
+        V.derive_external(m, e, specs, {d.addr: picked[d.addr]}, own, lambda f: 0, pickable, lambda t: True)
+        assert p.addr not in specs and x.addr not in specs and d.addr in specs
+
+
+def test_parent_slot_signatures():
+    """An override of a parent's own slot has the parent's signature; a slot the
+    parent doesn't define takes the first one a class on it gives."""
+    p = V.ClassSpec(V.Vtable(0x10, 0, None, [0] * 6), [], None, sigs={4: ("u32", ())})
+    adopt = {}
+    assert V._parent_sig(p, adopt, 4, ("u32", ())) and not V._parent_sig(p, adopt, 4, ("void", ()))
+    assert V._parent_sig(p, adopt, 5, ("u32", ())) and adopt == {5: ("u32", ())}
+    assert not V._parent_sig(p, adopt, 5, ("void", ())) and V._parent_sig(p, adopt, 5, ("u32", ()))
+    e = V.ExternalBase(0x10, "Unk_E", "h", ((2, "void", "vf2"),), None, "", ())
+    x = V.ClassSpec(V.Vtable(0x40, 0, None, [0] * 7), [], None, ext=e, order=[4, 6], parent=p)
+    decl = V.render_class(V.Model("sword", b"", [], [], [], {}, {}, {}, lambda a: "game"), x)[0]
+    assert decl == f"class {x.name} : public {p.name} {{\npublic:\n    u32 vf4() override;\n    virtual void vf6();\n}};\n"
+
+
 def test_derived_from_an_empty_base():
     """Classes on a hand-written base without types whose D2 is empty and
     inline (`ret`, Unk_239a4c0's shape), with one interface at +0x48:
