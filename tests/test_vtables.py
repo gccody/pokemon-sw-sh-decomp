@@ -930,3 +930,81 @@ def test_derived_from_an_empty_base():
     specs = {}
     V.derive_external(m, e, specs, {}, V.owners(vts), lambda f: 0, lambda f: True, lambda t: True)
     assert specs[r.addr].explicit_dtor and sorted(x.addr for x in specs[r.addr].members) == [0x300, 0x350, 0x400, 0x450]
+
+
+def test_tail_called_destructor_is_written_out():
+    """R, on hand-written E (out-of-line D2 0x600, no types, secondaries at
+    +0x48 and +0x50), releases two references (+0x80, then +0x78), tail-calls
+    E's D2 (Batch 9's tail form) and overrides vf2. When its D0 and thunks
+    tail-call its D2, the original's destructor wasn't inline-hinted: it's
+    written out. When they're copies of its D2, it stays implicit."""
+    def release(off: int, base: int) -> list[int]:
+        # ldr x0, [x<base>, #off] ; cbz x0 ; ldr x8, [x0, #0x48]! ; ldr x8, [x8, #0x18] ; blr x8 ; str xzr, [x19, #off]
+        return [0xF9400000 | (off // 8) << 10 | base << 5, 0xB40000A0, 0xF8448C08, 0xF9400D08, 0xD63F0100,
+                0xF900027F | (off // 8) << 10]
+
+    def d2_at(at: int) -> list[int]:
+        words = [0xF81E0FF3, 0xA9017BFD, 0x910043FD,                # str x19, [sp, #-0x20]! ; stp x29, x30 ; add x29
+                 0xB0000008, 0xF9400108 | (0x800 // 8) << 10,       # adrp x8 ; ldr x8, [x8, #0x800]: the vtable
+                 0x91004109, 0x9101E10A, 0x9102E108, 0xAA0003F3,    # add x9/x10/x8, x8, #N ; mov x19, x0
+                 0xF9000009, 0xA904A00A]                            # str x9, [x0] ; stp x10, x8, [x0, #0x48]
+        words += release(0x80, 0) + release(0x78, 19)
+        words += [0xA9417BFD, 0xAA1303E0, 0xF84207F3]               # ldp x29, x30 ; mov x0, x19 ; ldr x19, [sp], #0x20
+        return words + [b(at + 4 * len(words), 0x600)]              # b <E's D2>
+
+    sub48, sub50 = 0xD1012000, 0xD1014000                           # sub x0, x0, #0x48 / #0x50
+    e_code = {0x600: [0xAA0003E8, 0xAA0003E9, RET], 0x610: [b(0x610, 0x600)], 0x620: [RET],
+              0x630: [sub48, b(0x634, 0x600)], 0x640: [sub48, b(0x644, 0x600)],
+              0x650: [sub50, b(0x654, 0x600)], 0x660: [sub50, b(0x664, 0x600)]}
+    called = {0x200: d2_at(0x200), 0x280: [b(0x280, 0x200)],
+              0x290: [sub48, b(0x294, 0x200)], 0x2a0: [sub48, b(0x2a4, 0x200)],
+              0x2b0: [sub50, b(0x2b4, 0x200)], 0x2c0: [sub50, b(0x2c4, 0x200)], 0x500: [RET]}
+    inlined = {0x200: d2_at(0x200), 0x280: d2_at(0x280), 0x300: d2_at(0x300), 0x380: d2_at(0x380),
+               0x400: d2_at(0x400), 0x480: d2_at(0x480), 0x500: [RET]}
+
+    def derive(r_code, r_slots):
+        img = bytearray(0x2000)
+        code = {**e_code, **r_code}
+        for a, w in code.items():
+            struct.pack_into(f"<{len(w)}I", img, a, *w)
+        slots = {}
+
+        def vt(start, ott, fns):
+            struct.pack_into("<q", img, start, ott)
+            for i, f in enumerate(fns):
+                slots[start + 16 + 8 * i] = f
+            return start + 16 + 8 * len(fns)
+
+        end = vt(0x1000, 0, [0x600, 0x610, 0x620])                  # E
+        end = vt(end, -0x48, [0x630, 0x640])
+        end = vt(end, -0x50, [0x650, 0x660])
+        r_start = end
+        end = vt(end, 0, [0x200, r_slots[0], 0x500])                # R
+        end = vt(end, -0x48, r_slots[1:3])
+        vt(end, -0x50, r_slots[3:5])
+        sizes = {a: 4 * len(w) for a, w in code.items()}
+        vts, tables = V.find_vtables(bytes(img), slots, set(code), DATA, len(img))
+        m = V.Model("sword", bytes(img), sorted(sizes.items()), vts, tables, sizes, {}, {}, lambda a: "game", DELETE,
+                    {0x1800: r_start})
+        e = V.ExternalBase(vts[0].addr, "Unk_E", "unsorted/Unk_E.h", ((2, "void", "vf2"),), None, "",
+                           ((0x48, (0, 1), None), (0x50, (0, 1), None)), size=0x78)
+        r = next(v for v in vts if v.start == r_start)
+        specs = {}
+        V.derive_external(m, e, specs, {r.addr: [V.Member(2, 0x500, "ret")]}, V.owners(vts), lambda f: 0,
+                          lambda f: True, lambda t: True)
+        return m, specs[r.addr]
+
+    m, spec = derive(called, [0x280, 0x290, 0x2a0, 0x2b0, 0x2c0])
+    assert spec.order == [2] and spec.explicit_dtor and spec.fields == {0x78: V.REF, 0x80: V.REF}
+    decl, names, defs = V.render_class(m, spec)
+    assert decl.startswith(f"class {spec.name} : public Unk_E {{\npublic:\n    ~{spec.name}() override;\n"
+                           "    void vf2() override;\n")
+    assert f"// 0x7100000200: its key function\n{spec.name}::~{spec.name}() {{}}" in defs
+    cls = f"{len(spec.name)}{spec.name}"
+    assert sorted(names) == [(0x200, f"_ZN{cls}D2Ev"), (0x280, f"_ZN{cls}D0Ev"),
+                             (0x290, f"_ZThn72_N{cls}D1Ev"), (0x2a0, f"_ZThn72_N{cls}D0Ev"),
+                             (0x2b0, f"_ZThn80_N{cls}D1Ev"), (0x2c0, f"_ZThn80_N{cls}D0Ev"), (0x500, f"_ZN{cls}3vf2Ev")]
+    m, spec = derive(inlined, [0x280, 0x300, 0x380, 0x400, 0x480])
+    assert spec.order == [2] and not spec.explicit_dtor
+    decl, names, defs = V.render_class(m, spec)
+    assert "~" not in decl and "::~" not in defs

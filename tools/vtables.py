@@ -1341,6 +1341,10 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         # tail-called instead.
         called = bool(refs) and (not e.inline_dtor or empty) and m.pattern(s1) == "b T" \
             and branch_target(m, s1) == s0
+        # Then its destructor is written out: an implicit one is inline-hinted
+        # (clang's threshold 325 instead of 250), and a D2 of a cost between
+        # those would be inlined into the thunks after all.
+        dtor_key = called
         if e.inline_dtor or refs:   # the D0 is the D2, inlined (the operator delete is empty)
             if m.pattern(s1) != m.pattern(s0) and not called:
                 continue
