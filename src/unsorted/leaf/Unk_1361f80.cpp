@@ -264,6 +264,19 @@ u32 Unk_136b7a0_update(Unk_136b7a0* self, u32 value) {
     return value < 0x98967f ? value : 0x98967f;
 }
 
+struct Unk_136b820 {
+    u8 _0[0x130];
+    u32 field_130;
+};
+PKMN_OFFSET_ASSERT(Unk_136b820, field_130, 0x130);
+
+// 0x710136b820
+u32 Unk_136b820_update(Unk_136b820* self, u32 value) {
+    u32 v0 = self->field_130;
+    self->field_130 = (v0 > value ? v0 : value) - value;
+    return (v0 > value ? v0 : value) - value;
+}
+
 struct Unk_136b840 {
     u8 _0[0x136];
     u8 field_136;
@@ -401,6 +414,39 @@ u32 Unk_136f620_get(const Unk_136f620* self) {
     return self->field_64 >> 0x1a;
 }
 
+// 0x710136f7c0
+void Unk_136f7c0_update() {}
+
+struct Unk_136f7d0_arg1 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_136f7d0_arg1, field_0, 0x0);
+
+struct Unk_136f7d0 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_136f7d0, field_0, 0x0);
+
+// 0x710136f7d0
+void Unk_136f7d0_set(const Unk_136f7d0* self, Unk_136f7d0_arg1* value) {
+    value->field_0 = self->field_0;
+}
+
+struct Unk_136f7e0_arg1 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_136f7e0_arg1, field_0, 0x0);
+
+struct Unk_136f7e0 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_136f7e0, field_0, 0x0);
+
+// 0x710136f7e0
+void Unk_136f7e0_set(const Unk_136f7e0* self, Unk_136f7e0_arg1* value) {
+    value->field_0 = self->field_0;
+}
+
 struct Unk_1370980 {
     u8 _0[0x6830];
     u64 field_6830;
@@ -528,6 +574,19 @@ PKMN_OFFSET_ASSERT(Unk_137b8c0, field_64, 0x64);
 u32 Unk_137b8c0_update(Unk_137b8c0* self, u32 value) {
     self->field_64 = value < 0x98967f ? value : 0x98967f;
     return value < 0x98967f ? value : 0x98967f;
+}
+
+struct Unk_137b940 {
+    u8 _0[0x64];
+    u32 field_64;
+};
+PKMN_OFFSET_ASSERT(Unk_137b940, field_64, 0x64);
+
+// 0x710137b940
+u32 Unk_137b940_update(Unk_137b940* self, u32 value) {
+    u32 v0 = self->field_64;
+    self->field_64 = (v0 < value ? value : v0) - value;
+    return (v0 < value ? value : v0) - value;
 }
 
 struct Unk_137b960 {
@@ -683,6 +742,323 @@ PKMN_OFFSET_ASSERT(Unk_137cd00, field_f68, 0xf68);
 bool Unk_137cd00_check(const Unk_137cd00* self, u32 value) {
     return (self->field_f68 & (1 << value)) == 0;
 }
+
+void Unk_1390b90();
+
+// 0x71013825d0
+void Unk_13825d0_call() {
+    Unk_1390b90();
+}
+
+// 0x71013825e0
+void Unk_13825e0_update() {}
+
+// 0x71013825f0
+void Unk_13825f0_update() {}
+
+// 0x7101382600
+void Unk_1382600_update() {}
+
+// 0x71013828a0
+void Unk_13828a0_update() {}
+
+// 0x71013828b0
+void Unk_13828b0_update() {}
+
+// 0x71013828c0
+void Unk_13828c0_update() {}
+
+// 0x71013828d0
+void Unk_13828d0_update() {}
+
+// 0x7101382b70
+void Unk_1382b70_update() {}
+
+// 0x7101382b80
+void Unk_1382b80_update() {}
+
+// 0x7101382b90
+void Unk_1382b90_update() {}
+
+// 0x7101382ba0
+void Unk_1382ba0_update() {}
+
+void Unk_1376a70();
+
+// 0x7101382e40
+void Unk_1382e40_call() {
+    Unk_1376a70();
+}
+
+// 0x7101382e50
+void Unk_1382e50_update() {}
+
+// 0x7101382e60
+void Unk_1382e60_update() {}
+
+// 0x7101382e70
+void Unk_1382e70_update() {}
+
+// 0x7101383110
+void Unk_1383110_update() {}
+
+// 0x7101383120
+void Unk_1383120_update() {}
+
+// 0x7101383130
+void Unk_1383130_update() {}
+
+// 0x7101383140
+void Unk_1383140_update() {}
+
+// 0x71013833e0
+void Unk_13833e0_update() {}
+
+// 0x71013833f0
+void Unk_13833f0_update() {}
+
+// 0x7101383400
+void Unk_1383400_update() {}
+
+// 0x7101383410
+void Unk_1383410_update() {}
+
+void Unk_1387740();
+
+// 0x71013836b0
+void Unk_13836b0_call() {
+    Unk_1387740();
+}
+
+// 0x71013836c0
+void Unk_13836c0_update() {}
+
+// 0x71013836d0
+void Unk_13836d0_update() {}
+
+// 0x71013836e0
+void Unk_13836e0_update() {}
+
+// 0x7101383980
+void Unk_1383980_update() {}
+
+// 0x7101383990
+void Unk_1383990_update() {}
+
+// 0x71013839a0
+void Unk_13839a0_update() {}
+
+// 0x71013839b0
+void Unk_13839b0_update() {}
+
+// 0x7101383c50
+void Unk_1383c50_update() {}
+
+// 0x7101383c60
+void Unk_1383c60_update() {}
+
+// 0x7101383c70
+void Unk_1383c70_update() {}
+
+// 0x7101383c80
+void Unk_1383c80_update() {}
+
+void Unk_138cba0();
+
+// 0x7101383f20
+void Unk_1383f20_call() {
+    Unk_138cba0();
+}
+
+// 0x7101383f30
+void Unk_1383f30_update() {}
+
+// 0x7101383f40
+void Unk_1383f40_update() {}
+
+// 0x7101383f50
+void Unk_1383f50_update() {}
+
+// 0x71013841f0
+void Unk_13841f0_update() {}
+
+// 0x7101384200
+void Unk_1384200_update() {}
+
+// 0x7101384210
+void Unk_1384210_update() {}
+
+// 0x7101384220
+void Unk_1384220_update() {}
+
+// 0x71013844c0
+void Unk_13844c0_update() {}
+
+// 0x71013844d0
+void Unk_13844d0_update() {}
+
+// 0x71013844e0
+void Unk_13844e0_update() {}
+
+// 0x71013844f0
+void Unk_13844f0_update() {}
+
+void Unk_13925f0();
+
+// 0x7101384790
+void Unk_1384790_call() {
+    Unk_13925f0();
+}
+
+// 0x71013847a0
+void Unk_13847a0_update() {}
+
+// 0x71013847b0
+void Unk_13847b0_update() {}
+
+// 0x71013847c0
+void Unk_13847c0_update() {}
+
+// 0x7101384a60
+void Unk_1384a60_update() {}
+
+// 0x7101384a70
+void Unk_1384a70_update() {}
+
+// 0x7101384a80
+void Unk_1384a80_update() {}
+
+// 0x7101384a90
+void Unk_1384a90_update() {}
+
+// 0x7101384d30
+void Unk_1384d30_update() {}
+
+// 0x7101384d40
+void Unk_1384d40_update() {}
+
+// 0x7101384d50
+void Unk_1384d50_update() {}
+
+// 0x7101384d60
+void Unk_1384d60_update() {}
+
+void Unk_1397ae0();
+
+// 0x7101385000
+void Unk_1385000_call() {
+    Unk_1397ae0();
+}
+
+// 0x7101385010
+void Unk_1385010_update() {}
+
+// 0x7101385020
+void Unk_1385020_update() {}
+
+// 0x7101385030
+void Unk_1385030_update() {}
+
+// 0x71013852d0
+void Unk_13852d0_update() {}
+
+// 0x71013852e0
+void Unk_13852e0_update() {}
+
+// 0x71013852f0
+void Unk_13852f0_update() {}
+
+// 0x7101385300
+void Unk_1385300_update() {}
+
+void Unk_1397c60();
+
+// 0x71013855a0
+void Unk_13855a0_call() {
+    Unk_1397c60();
+}
+
+// 0x71013855b0
+void Unk_13855b0_update() {}
+
+// 0x71013855c0
+void Unk_13855c0_update() {}
+
+// 0x71013855d0
+void Unk_13855d0_update() {}
+
+// 0x7101385880
+void Unk_1385880_update() {}
+
+// 0x7101385890
+void Unk_1385890_update() {}
+
+// 0x71013858a0
+void Unk_13858a0_update() {}
+
+// 0x7101385b40
+void Unk_1385b40_update() {}
+
+// 0x7101385b50
+void Unk_1385b50_update() {}
+
+// 0x7101385b60
+void Unk_1385b60_update() {}
+
+// 0x7101385b70
+void Unk_1385b70_update() {}
+
+// 0x7101385e10
+void Unk_1385e10_update() {}
+
+// 0x7101385e20
+void Unk_1385e20_update() {}
+
+// 0x7101385e30
+void Unk_1385e30_update() {}
+
+// 0x7101385e40
+void Unk_1385e40_update() {}
+
+void Unk_138dbc0();
+
+// 0x71013860e0
+void Unk_13860e0_call() {
+    Unk_138dbc0();
+}
+
+// 0x71013860f0
+void Unk_13860f0_update() {}
+
+// 0x7101386100
+void Unk_1386100_update() {}
+
+// 0x7101386110
+void Unk_1386110_update() {}
+
+// 0x71013863b0
+void Unk_13863b0_update() {}
+
+// 0x71013863c0
+void Unk_13863c0_update() {}
+
+// 0x71013863d0
+void Unk_13863d0_update() {}
+
+// 0x71013863e0
+void Unk_13863e0_update() {}
+
+// 0x7101386680
+void Unk_1386680_update() {}
+
+// 0x7101386690
+void Unk_1386690_update() {}
+
+// 0x71013866a0
+void Unk_13866a0_update() {}
+
+// 0x71013866b0
+void Unk_13866b0_update() {}
 
 struct Unk_1389e90 {
     u8 _0[0xc];

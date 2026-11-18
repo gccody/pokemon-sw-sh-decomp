@@ -24,6 +24,39 @@ void Unk_e67a00_call(const Unk_e67a00* self) {
     Unk_e67e80(self->field_18);
 }
 
+// 0x7100e68360
+void Unk_e68360_update() {}
+
+struct Unk_e68370_arg1 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_e68370_arg1, field_0, 0x0);
+
+struct Unk_e68370 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_e68370, field_0, 0x0);
+
+// 0x7100e68370
+void Unk_e68370_set(const Unk_e68370* self, Unk_e68370_arg1* value) {
+    value->field_0 = self->field_0;
+}
+
+struct Unk_e68380_arg1 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_e68380_arg1, field_0, 0x0);
+
+struct Unk_e68380 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_e68380, field_0, 0x0);
+
+// 0x7100e68380
+void Unk_e68380_set(const Unk_e68380* self, Unk_e68380_arg1* value) {
+    value->field_0 = self->field_0;
+}
+
 struct Unk_e69de0_5d8 {
     u8 _0[0x30];
     f32 field_30;

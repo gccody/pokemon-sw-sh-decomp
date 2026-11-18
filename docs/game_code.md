@@ -1291,6 +1291,56 @@ inherit.
 
 5 classes match, 42 functions (check.py: 29,238 matching, 107 not matching).
 
+### Batch 22: address-taken leaf functions, copies and moves
+
+Next step 6 below: the leaf functions that `leafgen.py` refused only for how
+they're reached. `--reach call,none,data` (default `call`) adds the ones
+whose address is only taken in code (`none`: the copy operations of
+type-erased callables, put in a table on their caller's stack, and
+functions nothing references) and the ones in a function-pointer table that
+isn't a vtable (`data`: no-op callbacks in static records). A vtable slot is
+still never a candidate: `vtables.py` writes those as members. Their real
+names come from templates and enclosing functions nobody has decompiled, so
+they're placeholders like every other leaf (`Unk_<addr>_set`, ...).
+
+Two shapes of those copy operations needed the lifter to change:
+
+- **Struct copies.** A copy of x0's first 16, 24 or 32 bytes to x1 with
+  `ldp` is clang's copy of a struct (memcpy order: `ldp x8, x9, [x0] ; ldr
+  x10, [x0, #0x10] ; stp x9, x10, [x1, #8] ; str x8, [x1]`); field by field
+  it copies with `ldr`/`str` in source order. `Emitter.copy` writes
+  `*value = *self` (one struct type for both).
+- **Moves.** `ldr x8, [x0] ; str xzr, [x0] ; str x8, [x1]` reads a field
+  before a store that may overwrite it, so the source held it in a local
+  (`u64 v0 = self->field_0; self->field_0 = 0; value->field_0 = v0;`).
+  `lift` records how many stores ran before each load and each store
+  (`load_seq`, `store_seq`), and `Emitter.value_locals` declares a local
+  where a store between the load and its use may alias it (another
+  pointer, or the same field: `-fno-strict-aliasing`). Before, the lifter
+  read such a load where it was used, after the store: a different meaning,
+  which check.py rejected.
+
+The same run covers the libraries without public source that were built
+like Game Freak's code (docs/compiler.md, "Nintendo SDK middleware" and
+"Other middleware"): NEX, Pia, NintendoWare and the nn SDK's static
+libraries (`middleware`, `middleware-nw`) in `lib/nx_middleware/leaf`, and
+YEBIS in `lib/yebis/leaf`, up to 64 bytes. Wwise was built with clang 6.0.1
+and isn't included.
+
+```sh
+python tools/leafgen.py write --max 32 --reach call,none,data
+python tools/leafgen.py write --max 64 --reach call,none,data --area middleware --area middleware-nw     --out lib/nx_middleware/leaf
+python tools/leafgen.py write --max 64 --reach call,none,data --area yebis --out lib/yebis/leaf
+```
+
+(`names` takes `--dir` for each directory.) The trial wrote 8,269
+functions; 8,116 match, in both games: 7,161 in game code, 814 in NEX/Pia
+and the SDK, 141 in YEBIS. The 153 that don't are mostly loads of a field
+of a field (`ldr x8, [x1] ; ldr x9, [x0] ; str x9, [x8]`, which clang
+orders differently from the lifted source), bitfield updates and tail calls
+with their arguments loaded from memory (check.py: 37,354 matching, 107 not
+matching).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1316,8 +1366,8 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after #78: check.py reports 29,238 matching and 107 not matching, in
-both games. Every batch above came from `tools/leafgen.py` and
+State after Batch 22: check.py reports 37,354 matching and 107 not
+matching, in both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
 generator and rewrite them, don't edit them by hand.
@@ -1431,13 +1481,8 @@ the bases of #62-#76). What's left, roughly by yield:
    its getter's copy out of line, and in 14 segments they're alone: their
    TUs had other callers (type checks in bigger functions). They match once
    one of those functions is decompiled into the same file.
-6. **Address-taken leaf functions.** The copy operations of type-erased
-   callables (`ldr x8, [x0] ; str x8, [x1] ; ret`, 2,703, plus 281 and 107
-   variants) and 1,915 unreferenced `ret`s are refused only by
-   `leafgen.py`'s `reference_kind == "call"` filter. As placeholders they'd
-   add about 3,000-5,000 matches, but their real names come from templates
-   and enclosing functions nobody has decompiled. That's the maintainer's
-   call, so it wasn't done.
+6. **Address-taken leaf functions.** Done in Batch 22 (`--reach`), with
+   the libraries built like the game's code.
 7. **The 107 that don't match:** libcurl and the generated protobuf
    initialisers, each its own investigation.
 

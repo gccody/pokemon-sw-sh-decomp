@@ -41,3 +41,36 @@ void Unk_1505cf0(u64);
 void Unk_12ef5f0_call(const Unk_12ef5f0* self) {
     Unk_1505cf0(self->field_68);
 }
+
+// 0x71012ef820
+void Unk_12ef820_update() {}
+
+struct Unk_12ef830_arg1 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_12ef830_arg1, field_0, 0x0);
+
+struct Unk_12ef830 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_12ef830, field_0, 0x0);
+
+// 0x71012ef830
+void Unk_12ef830_set(const Unk_12ef830* self, Unk_12ef830_arg1* value) {
+    value->field_0 = self->field_0;
+}
+
+struct Unk_12ef840_arg1 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_12ef840_arg1, field_0, 0x0);
+
+struct Unk_12ef840 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_12ef840, field_0, 0x0);
+
+// 0x71012ef840
+void Unk_12ef840_set(const Unk_12ef840* self, Unk_12ef840_arg1* value) {
+    value->field_0 = self->field_0;
+}

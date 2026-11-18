@@ -111,3 +111,92 @@ PKMN_OFFSET_ASSERT(Unk_8b09f0, field_3458, 0x3458);
 void Unk_8b09f0_clearField3458(Unk_8b09f0* self) {
     self->field_3458 = 0;
 }
+
+// 0x71008b2660
+void Unk_8b2660_update() {}
+
+struct Unk_8b2670 {
+    u64 field_0;
+    u64 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_8b2670, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_8b2670, field_8, 0x8);
+
+// 0x71008b2670
+void Unk_8b2670_set(const Unk_8b2670* self, Unk_8b2670* value) {
+    *value = *self;
+}
+
+struct Unk_8b2680 {
+    u64 field_0;
+    u64 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_8b2680, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_8b2680, field_8, 0x8);
+
+// 0x71008b2680
+void Unk_8b2680_set(const Unk_8b2680* self, Unk_8b2680* value) {
+    *value = *self;
+}
+
+// 0x71008b2710
+void Unk_8b2710_update() {}
+
+struct Unk_8b2720 {
+    u64 field_0;
+    u64 field_8;
+    u64 field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_8b2720, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_8b2720, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_8b2720, field_10, 0x10);
+
+// 0x71008b2720
+void Unk_8b2720_set(const Unk_8b2720* self, Unk_8b2720* value) {
+    *value = *self;
+}
+
+struct Unk_8b2740 {
+    u64 field_0;
+    u64 field_8;
+    u64 field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_8b2740, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_8b2740, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_8b2740, field_10, 0x10);
+
+// 0x71008b2740
+void Unk_8b2740_set(const Unk_8b2740* self, Unk_8b2740* value) {
+    *value = *self;
+}
+
+// 0x71008b2840
+void Unk_8b2840_update() {}
+
+struct Unk_8b2850 {
+    u64 field_0;
+    u64 field_8;
+    u64 field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_8b2850, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_8b2850, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_8b2850, field_10, 0x10);
+
+// 0x71008b2850
+void Unk_8b2850_set(const Unk_8b2850* self, Unk_8b2850* value) {
+    *value = *self;
+}
+
+struct Unk_8b2870 {
+    u64 field_0;
+    u64 field_8;
+    u64 field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_8b2870, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_8b2870, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_8b2870, field_10, 0x10);
+
+// 0x71008b2870
+void Unk_8b2870_set(const Unk_8b2870* self, Unk_8b2870* value) {
+    *value = *self;
+}

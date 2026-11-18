@@ -151,3 +151,6 @@ PKMN_OFFSET_ASSERT(Unk_6a4d50, field_b0, 0xb0);
 u64 Unk_6a4d50_getFieldb0(const Unk_6a4d50* self) {
     return self->field_b0;
 }
+
+// 0x71006a5220
+void Unk_6a5220_update() {}

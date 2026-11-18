@@ -46,3 +46,20 @@ PKMN_OFFSET_ASSERT(Unk_1178b20, field_b0, 0xb0);
 u64 Unk_1178b20_getFieldb0(const Unk_1178b20* self) {
     return self->field_b0;
 }
+
+struct Unk_1179d00_arg1 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_1179d00_arg1, field_0, 0x0);
+
+struct Unk_1179d00 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_1179d00, field_0, 0x0);
+
+// 0x7101179d00
+void Unk_1179d00_set(Unk_1179d00* self, Unk_1179d00_arg1* value) {
+    u64 v0 = self->field_0;
+    self->field_0 = 0;
+    value->field_0 = v0;
+}

@@ -357,6 +357,19 @@ void Unk_896c60_clearField360(Unk_896c60* self) {
     self->field_360 = 0;
 }
 
+struct Unk_898ab0 {
+    u8 _0[0x3aa];
+    u8 field_3aa;
+};
+PKMN_OFFSET_ASSERT(Unk_898ab0, field_3aa, 0x3aa);
+
+// 0x7100898ab0
+u8 Unk_898ab0_update(Unk_898ab0* self) {
+    u8 v0 = self->field_3aa;
+    self->field_3aa = 0;
+    return v0;
+}
+
 struct Unk_898b40 {
     u8 _0[0x3b0];
     u32 field_3b0;

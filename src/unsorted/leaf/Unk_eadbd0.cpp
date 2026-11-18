@@ -67,3 +67,36 @@ void Unk_eae960();
 void Unk_eae950_call() {
     Unk_eae960();
 }
+
+// 0x7100eaf460
+void Unk_eaf460_update() {}
+
+struct Unk_eaf470_arg1 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_eaf470_arg1, field_0, 0x0);
+
+struct Unk_eaf470 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_eaf470, field_0, 0x0);
+
+// 0x7100eaf470
+void Unk_eaf470_set(const Unk_eaf470* self, Unk_eaf470_arg1* value) {
+    value->field_0 = self->field_0;
+}
+
+struct Unk_eaf480_arg1 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_eaf480_arg1, field_0, 0x0);
+
+struct Unk_eaf480 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_eaf480, field_0, 0x0);
+
+// 0x7100eaf480
+void Unk_eaf480_set(const Unk_eaf480* self, Unk_eaf480_arg1* value) {
+    value->field_0 = self->field_0;
+}
