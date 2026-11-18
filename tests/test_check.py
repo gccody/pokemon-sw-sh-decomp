@@ -73,6 +73,15 @@ def test_tls_accesses_must_load_one_offset():
     assert not res.ok and "different offsets (0x10, 0x20)" in res.errors[0]
 
 
+def test_base_structor():
+    assert check.base_structor("_ZN11Unk_23f4760D1Ev") == "_ZN11Unk_23f4760D2Ev"
+    assert check.base_structor("_ZN3FooIiEC1Ei") is None                 # a template: not read
+    assert check.base_structor("_ZN3Foo2C1C1ENS_2C1E") == "_ZN3Foo2C1C2ENS_2C1E"  # a class named C1
+    assert check.base_structor("_ZN11Unk_23f4760D2Ev") is None
+    assert check.base_structor("_ZN11Unk_23f4760D0Ev") is None
+    assert check.base_structor("_ZThn72_N11Unk_23f4760D1Ev") is None  # a thunk: its name has no D2 variant
+
+
 # --- placeholder vtables: `_ZTV<n>Unk_<hex>` is at BASE + hex in Sword ---
 
 def test_placeholder_vtable():
