@@ -570,6 +570,13 @@ EXTERNAL_BASES = (
     ExternalBase(0x239a4d0, "Unk_239a4c0", "gflib3/Unk_239a4c0.h",
                  ((2, "void", "vf2"), (3, "void", "vf3"), (4, "void", "vf4")),
                  None, "", ((0x48, (0, 1), None),), inline_dtor=True, size=0x54),
+    # On it, with two references and an inline destructor: the classes on it with nothing to
+    # destroy have its D2 in slot 0, and their D0s and thunks are copies of it.
+    ExternalBase(0x2419360, "Unk_2419350", "unsorted/Unk_2419350.h",
+                 ((2, "void", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"), (5, "void", "vf5"),
+                  (6, "u32", "vf6"), (7, "void", "vf7"), (8, "void", "vf8"), (9, "void", "vf9"),
+                  (10, "u32", "vf10"), (11, "void", "vf11")),
+                 None, "", ((0x48, (0, 1), None),), inline_dtor=True, size=0x68),
     # gflib3's reference-counted object: its destructor is inline, and it has no type slot of
     # its own (a class that overrides the interfaces' getter gets slot 6 for it).
     ExternalBase(0x239a428, "Unk_239a418", "gflib3/Unk_239a418.h",
