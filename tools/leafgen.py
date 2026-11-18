@@ -119,6 +119,22 @@ class Page:
 
 
 @dataclass(frozen=True)
+class Vptr:
+    obj: object           # `ldr x8, [p, #0x48]!`: the vptr of p's interface at +0x48 (REF_IFACE)
+
+
+@dataclass(frozen=True)
+class Iface:
+    obj: object           # ... and p + 0x48, the interface itself, which that writes back to p's register
+
+
+@dataclass(frozen=True)
+class VSlot:
+    obj: object           # `ldr x1, [x8, #slot]` of such a vptr: one of its virtual functions
+    slot: int
+
+
+@dataclass(frozen=True)
 class DataAddr:
     addr: int             # what `adrp ; add` computed (absolute): the address of a string or a table
 
@@ -131,6 +147,16 @@ class GlobalPtr:
 # GOT slot -> what it holds (relative addresses), for `adrp ; ldr [slot]`: set
 # by the callers that have the executable (main, tools/vtables.py).
 GOT: dict[int, int] = {}
+
+# gflib3's reference-counted objects (src/gflib3/Unk_239a418.h) keep an
+# interface at +0x48 whose slot 2 adds a reference and slot 3 drops one:
+# Unk_239a418_Ref<T> calls them as `static_cast<Unk_239a458*>(p)->vf4()` and
+# `->vf5()`, `ldr x8, [p, #0x48]! ; ldr x1, [x8, #0x10 or #0x18] ; br x1` in a
+# tail call. Every class on the object has that interface there.
+REF_IFACE = 0x48
+REF_SLOTS = {0x10: "vf4", 0x18: "vf5"}
+REF_HEADER = '#include "gflib3/Unk_239a418.h"'
+
 
 # What `adrp ; add` may point at, for a function that returns it: absolute
 # address -> the string literal there (its C++ spelling), "" for other data
@@ -241,6 +267,8 @@ class Lifted:
     narrow: set = field(default_factory=set)  # tail-call arguments an argument's 32 bits were moved into
     loads: Counter = field(default_factory=Counter)  # how often each load ran (more than once: reloaded)
     store_seq: list[int] = field(default_factory=list)  # per store: how many store instructions came before
+    guard_seq: int = 0        # store instructions before the guard
+    vcall: tuple | None = None  # a final virtual tail call through REF_IFACE: (object, slot)
     load_seq: dict = field(default_factory=dict)  # Load -> the set of store counts it was loaded after
     stores_done: int = 0      # store instructions in all
     pairs: bool = False       # whether it loads with ldp (a struct copy, see Emitter.copy)
@@ -359,6 +387,7 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
             if not isinstance(v, (Load, Arg)) or (isinstance(v, Load) and width_of(ops[0]) < WIDTH[v.type]):
                 raise LiftError(f"{mn} of a computed value")
             out.guard = (v, mn == "cbz")
+            out.guard_seq = out.stores_done
             out.guard_stores = len(out.stores)
             out.zero_else = zero is not None
             out.else_value = zero or 0
@@ -366,6 +395,26 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
         if mn == "adrp" and addr is not None:
             dst, page = ops
             put(dst, Page(_imm(page)))
+        elif mn == "ldr" and ops[1].strip().endswith("]!"):
+            dst, mem = ops
+            base, off = _mem(mem.strip()[:-1])
+            obj = get(f"x{base}")
+            if off != REF_IFACE or _reg(dst)[0] != "x" or not isinstance(obj, (Load, Arg)) or \
+                    (isinstance(obj, Arg) and obj.fp):
+                raise LiftError(f"address {mem!r}")
+            put(dst, Vptr(obj))
+            put(f"x{base}", Iface(obj))
+        elif mn == "ldr" and isinstance(get(f"x{_mem(ops[1])[0]}"), Vptr):
+            dst, mem = ops
+            base, off = _mem(mem)
+            if off not in REF_SLOTS:
+                raise LiftError(f"slot {off:#x} of the interface")
+            put(dst, VSlot(get(f"x{base}").obj, off))
+        elif mn == "br" and idx == len(insns) - 2:
+            v = get(ops[0])
+            if not isinstance(v, VSlot) or regs.get(("x", 0)) != Iface(v.obj):
+                raise LiftError("br")
+            out.vcall = (v.obj, v.slot)
         elif mn in ("ldr", "ldur") or mn in LOADS:
             dst, mem = ops
             base, off = _mem(mem)
@@ -389,9 +438,10 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
                 t = "f64"
             else:
                 t = int_type(8 if kind == "x" else 4)
-            put(dst, Load(get(f"x{base}"), off, t))
-            out.loads[Load(get(f"x{base}"), off, t)] += 1
-            out.load_seq.setdefault(Load(get(f"x{base}"), off, t), set()).add(out.stores_done)
+            ld = Load(b, off, t)  # b before the load: `ldr x0, [x0, #8]` overwrites it
+            put(dst, ld)
+            out.loads[ld] += 1
+            out.load_seq.setdefault(ld, set()).add(out.stores_done)
         elif mn in ("str", "stur") or mn in STORES:
             src, mem = ops
             base, off = _mem(mem)
@@ -519,6 +569,10 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
         else:
             raise LiftError(mn)
 
+    if out.vcall is not None:
+        if out.guard is not None and out.zero_else:
+            raise LiftError("cbz: returns something")
+        return out
     if tail is not None:
         if any(("f", i) in written for i in range(8)):
             raise LiftError("floating-point tail-call argument")
@@ -883,6 +937,10 @@ class Emitter:
         uses = [(lf.store_seq[i], v) for i, (_, _, _, v) in enumerate(lf.stores)]
         if lf.ret is not None:
             uses.append((lf.stores_done, lf.ret))
+        if lf.guard is not None:
+            uses.append((lf.guard_seq, lf.guard[0]))
+        if lf.vcall is not None:
+            uses.append((lf.stores_done, lf.vcall[0]))
         need: dict[Load, int] = {}
         for seq, v in uses:
             for ld in _value_loads(v):
@@ -893,12 +951,12 @@ class Emitter:
                 between = [(b, o, t) for (b, o, t, _), q in zip(lf.stores, lf.store_seq) if epoch <= q < seq]
                 if not any(_may_alias((ld.base, ld.offset, ld.type), x) for x in between):
                     continue
-                if len(epochs) > 1 or lf.guard is not None:
-                    raise LiftError("read before a store, then reloaded or guarded")
+                if len(epochs) > 1 or (lf.guard is not None and epoch > lf.guard_seq):
+                    raise LiftError("read before a store, then reloaded or read after the guard")
                 need[ld] = epoch
         out: dict[int, list[tuple[Load, str]]] = {}
         for n, (ld, epoch) in enumerate(sorted(need.items(), key=lambda x: (x[1], repr(x[0])))):
-            first = next(i for i, q in enumerate(lf.store_seq) if q >= epoch)
+            first = next((i for i, q in enumerate(lf.store_seq) if q >= epoch), len(lf.stores))
             out.setdefault(first, []).append((ld, f"v{n}"))
         return out
 
@@ -912,11 +970,26 @@ class Emitter:
         held = self.value_locals()
         body: list[str] = []
         stored = {base for base, _, _, _ in lf.stores}
-        for i, (base, off, t, value) in enumerate(lf.stores):
+        if lf.vcall is not None and isinstance(lf.vcall[0], Load):
+            self.field_expr(lf.vcall[0].base, lf.vcall[0].offset, "Unk_239a418*")
+        self.before = None
+
+        def known(ld: Load) -> str | None:
+            if isinstance(ld.base, GlobalPtr):
+                return self.globals.get(ld.base.addr)
+            return self.structs[ld.base].fields.get(ld.offset) if ld.base in self.structs else None
+
+        def hold(i: int) -> None:
+            # Locals are read before the guard (value_locals), so they go before it.
             for ld, name in held.get(i, []):
-                rhs = self.field_expr(ld.base, ld.offset, ld.type)
+                rhs = self.field_expr(ld.base, ld.offset, known(ld) or ld.type)
                 body.append(f"    {self.stored_type(ld.base, ld.offset)} {name} = {rhs};")
                 self.locals[ld] = name
+
+        for i, (base, off, t, value) in enumerate(lf.stores):
+            hold(i)
+            if i == lf.guard_stores:
+                self.before = len(body)
             if isinstance(value, AddrOf):
                 raise LiftError("stores an address")
             lhs = self.field_expr(base, off, t)
@@ -924,11 +997,28 @@ class Emitter:
                 self.set_type(base, off, "bool")
                 self.arg_types.setdefault(value.a.index, "bool")
             ft = self.stored_type(base, off)
+            vt = known(value) if isinstance(value, Load) else None
+            if vt is not None and vt.endswith("*") and ft in ("u64", "s64"):
+                self.set_type(base, off, vt)  # a pointer copied: the field it goes to holds one too
+                ft = vt
             rhs = self.expr(value, None if ft.endswith("*") else ft)
             if isinstance(value, Const) and value.value == 0 and ft.endswith("*"):
                 rhs = "nullptr"
             body.append(f"    {lhs} = {rhs};")
+        hold(len(lf.stores))
+        if self.before is None:
+            self.before = len(body)
         ret_type = "void"
+        if lf.vcall is not None:
+            obj, slot = lf.vcall
+            if isinstance(obj, Arg):
+                self.arg_types[obj.index] = "Unk_239a418*"
+                p = self.locals.get(obj, self.arg_name(obj.index))
+            else:
+                p = self.locals.get(obj) or self.field_expr(obj.base, obj.offset, "Unk_239a418*")
+                if self.stored_type(obj.base, obj.offset) != "Unk_239a418*":
+                    raise LiftError("interface of a field of another type")
+            body.append(f"    static_cast<Unk_239a458*>({p})->{REF_SLOTS[slot]}();")
         if lf.ret is not None:
             if isinstance(lf.ret, Arg) and lf.ret.index == 0 and not lf.ret.fp:
                 raise LiftError("returns self")
@@ -1098,7 +1188,9 @@ class Emitter:
             return body
         v, nonzero = lf.guard
         w = 8 if self.is_pointer(v) or WIDTH.get(self.type_of(v), 8) == 8 else 4
-        before, body = body[:lf.guard_stores], body[lf.guard_stores:]  # done either way
+        n = getattr(self, "before", None)
+        n = lf.guard_stores if n is None else n
+        before, body = body[:n], body[n:]  # done either way
         if lf.zero_else:
             test = self.cond(Cmp("eq" if nonzero else "ne", v, Const(0, w)))
             other = _const(lf.else_value, ret_type)
@@ -1108,7 +1200,9 @@ class Emitter:
 
     def function_name(self, ret_type: str) -> str:
         lf = self.lifted
-        if lf.stores and lf.ret is None:
+        if lf.vcall is not None:
+            verb = "call"
+        elif lf.stores and lf.ret is None:
             verb = "set"
         elif ret_type == "bool":
             verb = "check"
@@ -1192,6 +1286,8 @@ def render_file(entries: list[tuple[int, str, str]]) -> str:
            "// Directly called leaf functions between two static initialisers (one or more",
            "// TUs). Placeholder types: rename and move once the owning classes are known.",
            "#include <types.h>", ""]
+    if any("Unk_239a458" in func for _, _, func in entries):
+        out[-1:] = ["", REF_HEADER, ""]
     for addr, structs, func in sorted(entries):
         if structs.strip():
             out.append(structs.rstrip("\n"))
@@ -1499,9 +1595,14 @@ def compiles(addr: int, structs: str, func: str, clang: Path) -> str | None:
     import subprocess
 
     src = render_file([(addr, structs, func)])
+    extra = []
+    if REF_HEADER in src:  # src/unsorted's library settings (CMakeLists.txt): libc++ for <atomic>
+        extra = ["-D__ELF__", "-fno-exceptions", "-fno-rtti", "-I", str(ROOT / "src"),
+                 "-isystem", str(ROOT / "include" / "libcxx"), "-isystem", str(ROOT / "include" / "libc"),
+                 "-D_GNU_SOURCE", "-D_LIBCPP_HAS_MUSL_LIBC", "-D_LIBCPP_HAS_THREAD_API_PTHREAD"]
     r = subprocess.run([str(clang), "-fsyntax-only", "-std=c++17", "-Wall", "-Wextra", "-Wno-unused-parameter",
                         "-Werror", "--target=aarch64-none-elf", "-nostdinc++", "-I", str(ROOT / "include"),
-                        "-x", "c++", "-"], input=src, capture_output=True, text=True)
+                        *extra, "-x", "c++", "-"], input=src, capture_output=True, text=True)
     if r.returncode == 0:
         return None
     return next((line for line in r.stderr.splitlines() if "error" in line), r.stderr.strip()[:200])
@@ -1560,6 +1661,8 @@ def parse_file(text: str) -> list[tuple[int, str, str]]:
     empty function), that line, and the function: up to a line that is `}`, or
     the definition line itself when it ends with `{}`."""
     lines = text.split("#include <types.h>", 1)[1].splitlines()
+    while lines and (not lines[0].strip() or lines[0].startswith("#include")):
+        lines.pop(0)
     out = []
     pending: list[str] = []
     i = 0
