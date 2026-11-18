@@ -385,7 +385,7 @@ class ExternalBase:
     inline_dtor: bool = False       # its D2 is inline: the D0s and thunks are copies of it, not `b`s
     shared_tu: bool = False         # it and its derived classes are one TU: no file of their own
     source: str | None = None       # its own definitions, included in its TU's file (a shared TU)
-    size: int = 0                   # sizeof (its header asserts it): a derived class's fields follow
+    size: int = 0                   # its data size (sizeof without tail padding): a derived class's fields follow
 
     def slot(self, i: int) -> tuple[str, str]:
         return next(((rt, n) for j, rt, n in self.slots if j == i), ("void", f"vf{i}"))
@@ -438,6 +438,15 @@ EXTERNAL_BASES = (
                   (10, "void", "vf10"), (11, "void", "vf11"), (12, "void", "vf12"), (13, "void", "vf13"),
                   (14, "void", "vf14"), (15, "void", "vf15"), (16, "u32", "vf16")),
                  6, "Unk_23f4660::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x5d0),
+    # On Unk_23f4660. It is 16-aligned (0x850 bytes), and its derived classes put their fields
+    # in its tail padding: from its data size, 0x848.
+    ExternalBase(0x23c9480, "Unk_23c9470", "unsorted/Unk_23c9470.h",
+                 ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
+                  (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "u32", "vf7"), (8, "void", "vf8"), (9, "u32", "vf9"),
+                  (10, "void", "vf10"), (11, "void", "vf11"), (12, "void", "vf12"), (13, "void", "vf13"),
+                  (14, "void", "vf14"), (15, "void", "vf15"), (16, "u32", "vf16"), (17, "void", "vf17"),
+                  (18, "u32", "vf18"), (19, "void", "vf19"), (20, "void", "vf20"), (21, "void", "vf21")),
+                 6, "Unk_23c9470::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x848),
     # gflib3's reference-counted object: its destructor is inline, and it has no type slot of
     # its own (a class that overrides the interfaces' getter gets slot 6 for it).
     ExternalBase(0x239a428, "Unk_239a418", "gflib3/Unk_239a418.h",
