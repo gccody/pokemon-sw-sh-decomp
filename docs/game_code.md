@@ -1284,7 +1284,10 @@ writes the destructor out as the class's key function.
 `ClassSpec.parent` takes only a parent in `typed`, one whose `vf_type` is
 out of line, and `Unk_2431de8`'s is inline (Batch 6's shape). Letting an
 inline-shaped class be a parent would write them: the next step for this
-family.
+family. 30 unmatched classes inherit `Unk_2431de8`'s `vf_type` in all: 28
+with the object's D2 copied, 2 with D2s of 272 and 372 bytes. It's the
+only one of the 43 classes written with an inline `vf_type` that others
+inherit.
 
 5 classes match, 42 functions (check.py: 29,238 matching, 107 not matching).
 
@@ -1367,7 +1370,7 @@ Other pitfalls:
 
 ### Next steps, by expected yield (2026-11-18)
 
-The 2026-11-17 list is done as far as the generators go (Batches 9-19 and
+The 2026-11-17 list is done as far as the generators go (Batches 9-21 and
 the bases of #62-#76). What's left, roughly by yield:
 
 1. **More hand-written bases.** Each unlocks the classes that share or
@@ -1390,13 +1393,13 @@ the bases of #62-#76). What's left, roughly by yield:
      `Unk_241b640`), `0x7101079c30` (14, `Unk_240ce88`), `0x71005ec610` (12,
      `Unk_2399708`), `0x7100b3c7b0` (9, `Unk_23cf5c8`) and `0x710116b030`
      (7, `Unk_241bfb0`). `python tools/vtables.py stored` lists them
-     (`stored_vtable_owners`). The cause is a tie: a class on the base with
-     a vtable as long as the base's, at a lower address, owns everything
-     they share. That hides type slots too: `Unk_23bcdf0` (5 vtables, four
-     references on `Unk_23f43c8`) has its `vf6` and secondary type thunks
-     matched as `Unk_23bcd20`'s, `Unk_23bcd88`'s and `Unk_23bcdc8`'s.
-     127 of the 165 are such ties, which `write` now breaks by the vtable
-     the D2 stores (Batch 20). The other 38 have an owner with a shorter
+     (`stored_vtable_owners`; with `--area game --unmatched`, 46 after
+     #78). The cause is a tie: a class on the base with a vtable as long
+     as the base's, at a lower address, owned everything they share,
+     type slots too (`Unk_23bcdf0`'s `vf6` and secondary type thunks were
+     `Unk_23bcd20`'s, `Unk_23bcd88`'s and `Unk_23bcdc8`'s). 127 of the 165
+     are such ties, which `write` now breaks by the vtable the D2 stores
+     (Batch 20); the rows still listed wait for other things. The other 38 have an owner with a shorter
      vtable, or store a base's vtable first;
    - on the object: the groups of 6 or fewer from the #62 survey.
    YEBIS (`0x71004bf6a0`, 75 classes) and NEX/Pia (`0x710165baa0`, 52) have

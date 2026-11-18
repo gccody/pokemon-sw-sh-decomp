@@ -379,9 +379,21 @@ def prefer_stored(m: Model, own: dict[int, tuple[int, int]]) -> dict[int, tuple[
     return out
 
 
+def stored_rows(m: Model, area: str | None = None, unmatched: bool = False) -> list[tuple[int, int, int, int]]:
+    """stored_vtable_owners, only those whose stored vtable is in `area` (an
+    area or group, as `summary --area`), and only unmatched D2s with
+    `unmatched`."""
+    from common import in_area
+
+    by = {v.addr: v for v in m.vtables}
+    return [r for r in stored_vtable_owners(m)
+            if (area is None or in_area(vtable_area(m, by[r[2]]), area))
+            and (not unmatched or m.statuses.get(r[0]) != "O")]
+
+
 def cmd_stored(m: Model, args) -> None:
     by = {v.addr: v for v in m.vtables}
-    rows = stored_vtable_owners(m)
+    rows = stored_rows(m, args.area, args.unmatched)
     print(f"{len(rows)} D2s store another class's vtable than their owner's "
           f"({sum(m.statuses.get(d2) != 'O' for d2, _, _, _ in rows)} not matched)")
     for d2, o, s, n in rows[:args.n]:
@@ -2671,6 +2683,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("out", type=Path)
     p = sub.add_parser("stored", help="D2s that store another class's vtable than their owner's (bases to write)")
     p.add_argument("-n", type=int, default=25, help="how many to list")
+    p.add_argument("--area", help="only those whose stored vtable is in this area or group (e.g. game)")
+    p.add_argument("--unmatched", action="store_true", help="only D2s not matched yet")
     p = sub.add_parser("write", help="placeholder classes for simple virtual functions (Sword's vtables)")
     p.add_argument("--area", action="append", help="area or group (default: game, gflib3, gflnet3, startup)")
     p.add_argument("--out", type=Path, default=ROOT / "src" / "unsorted" / "virtual")
