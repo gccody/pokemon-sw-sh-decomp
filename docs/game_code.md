@@ -966,6 +966,69 @@ kinds (owned objects with allocator deleters, members with out-of-line
 destructors) or save more registers, so their instructions are scheduled
 differently.
 
+### Batch 14: `Unk_239bb58`
+
+A gflib3 class on the object (`src/gflib3/Unk_239bb58.h`, `Unk_600c30.cpp`):
+four references and a `u32` that `vf11` tests. Its D2 releases the
+references, then the object's D2 is inlined; the D0 and the four thunks
+are copies of it. Its type getter has two copies, as `Unk_23f4660`'s does:
+the one other TUs call (`0x7100603900`, `Unk_239bb58::Unk_GetType`, inline
+in the class) and one only its own TU calls (`0x7100601520`, `Unk_601520`,
+in a file of its own), which `vf_type` and its thunks tail-call. Its 14
+functions match, 5 of them matched before as the placeholder's
+(`vf7`-`vf11`; `vf_type` and its thunks were forwarders and are renamed).
+Two classes derive from it with D2s of their own that destroy more than
+references (`0x7100603500`, `0x71005ff9d0`); 7 classes tail-call each of
+those, so they are the next bases of this family.
+
+With it, 2 classes on it match too: 20 new functions in all (check.py:
+27,844 matching, 107 not matching, after #62 and #63).
+
+### More hand-written bases (#62, #63)
+
+Written in parallel, each with its `EXTERNAL_BASES` entry; the classes on
+them are the next generator batches. The details are in the headers.
+
+| Base | Shape | D2 shared / tail-called by | New |
+|---|---|---|---:|
+| `Unk_23c1a68` (`0x7100978f50`) | references, vectors of owning pointers, light events | | 9 |
+| `Unk_23dc940` (`0x7100978cf0`), on `Unk_23c1a68` | a reference, a vector, `Unk_2399140`, `Unk_23c1a48` (vector of references) | 16 / 12 | 13 |
+| `Unk_23dcdd0` (`0x7100c69450`), on `Unk_23dc940` | vectors, owned objects (`unique_ptr` with `Unk_23f4660_Deleter`) | 12 / 20 | 11 |
+| `Unk_23c9470` (`0x7100ac70e0`), on `Unk_23f4660` | eight `std::function` slots, an owned array (`unique_ptr<T[]>`), references | 10 / 7 | 7 |
+| `Unk_2399590` (`0x71005d1550`), gflib3 | a node with parent and child lists, locks, groups of callables | 8 / 15 | 11 |
+| `Unk_23a45c8` (`0x71006ce5e0`), abstract | an array of references, allocator wrappers with `std::function`s | 0 / 10 | 6 |
+
+What they needed beyond the earlier bases:
+
+- **An explicit destructor.** `Unk_23dc940`'s is written in the class
+  (`~Unk_23dc940() override {}`): clang treats an implicit destructor as
+  inline-specified, which raises its inline threshold from 250 to 325, and
+  the D2 (cost 305) was inlined into the D0 and the thunks, where the
+  original tail-calls it.
+- **Helpers where the original's code had them.** `Unk_23d4470_Callable`
+  clears its four words in a `Clear()` member (in the destructor body they
+  became a `memset` with another address order), and `Unk_2399590`'s
+  find-and-erase is a helper of its own (`Unk_2399590_Nodes::Erase`;
+  inline in the destructor, clang doesn't thread the empty vector past
+  the "found?" check).
+- **Data sizes.** A derived class may put fields in its base's tail
+  padding, so `ExternalBase.size` is the data size (`Unk_23c9470`: 0x848 of
+  0x850).
+- **Slots with a parameter.** An `ExternalBase` slot may carry its
+  parameter (a pointer to a class), and `write` declares and mangles the
+  overrides with it (`Unk_2399590::vf7(Unk_2399590_Arg*)`).
+- The container allocator is gflib3's (`Unk_239a418_StdAllocator`, in
+  `gflib3/Unk_239a418.h`), and `Unk_239a418_Ref` has `Reset()`.
+- A getter that the original's TU keeps out of line only because other code
+  there calls it is declared, not defined (`Unk_23a45c8::Unk_GetType`):
+  without that code, clang would inline it.
+
+Most of the 16 classes that share `Unk_23dc940`'s D2 have `Unk_23dcdd0`'s
+type shape: slot 6 calls the copy of `Unk_23dc940::Unk_GetType`
+(`0x7100c6eac0`) out of line, and the secondary slots are copies with both
+getters inlined, which `derive_external` doesn't model yet (an inline
+`vf_type` gives that shape).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -991,7 +1054,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17)
 
-State after #61: check.py reports 27,767 matching and 107 not matching, in
+State after #64: check.py reports 27,844 matching and 107 not matching, in
 both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
