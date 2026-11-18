@@ -3,6 +3,8 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
+#include "gflib3/Unk_239a418.h"
+
 // 0x7100c7ca10
 void Unk_c7ca10_update() {}
 
@@ -185,6 +187,30 @@ void Unk_c7dae0_set(const Unk_c7dae0* self, Unk_c7dae0* value) {
     *value = *self;
 }
 
+struct Unk_c7df70_arg1 {
+    u64 field_0;
+    Unk_239a418* field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_c7df70_arg1, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_c7df70_arg1, field_8, 0x8);
+
+struct Unk_c7df70 {
+    u64 field_0;
+    Unk_239a418* field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_c7df70, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_c7df70, field_8, 0x8);
+
+// 0x7100c7df70
+void Unk_c7df70_call(const Unk_c7df70* self, Unk_c7df70_arg1* value) {
+    value->field_0 = self->field_0;
+    Unk_239a418* v0 = self->field_8;
+    value->field_8 = v0;
+    if (v0 != nullptr) {
+        static_cast<Unk_239a458*>(v0)->vf4();
+    }
+}
+
 struct Unk_c7dfa0_arg1 {
     u64 field_0;
     u64 field_8;
@@ -358,6 +384,25 @@ void Unk_c83950_set(const Unk_c83950* self, Unk_c83950* value) {
     *value = *self;
 }
 
+struct Unk_c83d00_arg1 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_c83d00_arg1, field_0, 0x0);
+
+struct Unk_c83d00 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_c83d00, field_0, 0x0);
+
+// 0x7100c83d00
+void Unk_c83d00_call(const Unk_c83d00* self, Unk_c83d00_arg1* value) {
+    Unk_239a418* v0 = self->field_0;
+    value->field_0 = v0;
+    if (v0 != nullptr) {
+        static_cast<Unk_239a458*>(v0)->vf4();
+    }
+}
+
 struct Unk_c83d20_arg1 {
     u64 field_0;
 };
@@ -373,6 +418,30 @@ void Unk_c83d20_set(Unk_c83d20* self, Unk_c83d20_arg1* value) {
     u64 v0 = self->field_0;
     self->field_0 = 0;
     value->field_0 = v0;
+}
+
+struct Unk_c83d30_arg1 {
+    u64 field_0;
+    Unk_239a418* field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_c83d30_arg1, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_c83d30_arg1, field_8, 0x8);
+
+struct Unk_c83d30 {
+    u64 field_0;
+    Unk_239a418* field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_c83d30, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_c83d30, field_8, 0x8);
+
+// 0x7100c83d30
+void Unk_c83d30_call(const Unk_c83d30* self, Unk_c83d30_arg1* value) {
+    value->field_0 = self->field_0;
+    Unk_239a418* v0 = self->field_8;
+    value->field_8 = v0;
+    if (v0 != nullptr) {
+        static_cast<Unk_239a458*>(v0)->vf4();
+    }
 }
 
 struct Unk_c83d60_arg1 {

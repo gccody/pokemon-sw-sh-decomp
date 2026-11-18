@@ -3,6 +3,8 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
+#include "gflib3/Unk_239a418.h"
+
 struct Unk_687de0_198 {
     u8 _0[0x80];
     u8 field_80;
@@ -193,6 +195,25 @@ PKMN_OFFSET_ASSERT(Unk_6903a0, field_0, 0x0);
 // 0x71006903a0
 void Unk_6903a0_set(const Unk_6903a0* self, Unk_6903a0_arg1* value) {
     value->field_0 = self->field_0;
+}
+
+struct Unk_6910e0_arg1 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_6910e0_arg1, field_0, 0x0);
+
+struct Unk_6910e0 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_6910e0, field_0, 0x0);
+
+// 0x71006910e0
+void Unk_6910e0_call(const Unk_6910e0* self, Unk_6910e0_arg1* value) {
+    Unk_239a418* v0 = self->field_0;
+    value->field_0 = v0;
+    if (v0 != nullptr) {
+        static_cast<Unk_239a458*>(v0)->vf4();
+    }
 }
 
 struct Unk_691100_arg1 {

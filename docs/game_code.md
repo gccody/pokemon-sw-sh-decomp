@@ -1359,6 +1359,30 @@ functions, 769 match (766 game code, 3 NEX/Pia/SDK), and `--record-data`
 recorded the 730 tables, each at the address its name gives, the same in
 both games (check.py: 38,123 matching, 107 not matching).
 
+### Batch 24: references added and dropped through the interface
+
+gflib3's reference-counted objects (`src/gflib3/Unk_239a418.h`) have an
+interface at `+0x48` whose slot 2 adds a reference and slot 3 drops one.
+`Unk_239a418_Ref<T>` calls them as `static_cast<Unk_239a458*>(p)->vf4()`
+and `->vf5()`: `ldr x8, [p, #0x48]! ; ldr x1, [x8, #0x10] ; br x1` (or
+`#0x18`) as a tail call. The lifter now reads that shape (`Vptr`, `Iface`,
+`VSlot`, `Lifted.vcall`): the field or argument becomes an `Unk_239a418*`,
+and a file with such a function includes the header. Most are the copy
+operations of type-erased callables that hold a reference (copy the
+fields, then add a reference if the pointer isn't null) and releases of a
+global's (`p = g; if (p) { g = nullptr; p->vf5(); }`).
+
+Value locals (Batch 22) can now sit before a guard (the pointer a copy
+stores, then tests), and a pointer field copied to another field makes that
+one a pointer of the same type. A load into its own base register
+(`ldr x0, [x0, #8]`) used to be recorded under the wrong key.
+
+The trial wrote 758 functions; 511 match (509 of them with the reference
+calls). Left: the copies that start with an `ldp` pair before the reference
+(a struct copy of the first fields, then the `Ref`'s copy), which want the
+callable's struct with a `Unk_239a418_Ref` member copied as a whole
+(check.py: 38,634 matching, 107 not matching).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1384,7 +1408,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after Batch 23: check.py reports 38,123 matching and 107 not
+State after Batch 24: check.py reports 38,634 matching and 107 not
 matching, in both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the

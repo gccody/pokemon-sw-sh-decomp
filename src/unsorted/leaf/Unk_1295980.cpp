@@ -3,6 +3,8 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
+#include "gflib3/Unk_239a418.h"
+
 // 0x7101295980
 void Unk_1295980_update() {}
 
@@ -34,6 +36,44 @@ PKMN_OFFSET_ASSERT(Unk_12959a0, field_0, 0x0);
 // 0x71012959a0
 void Unk_12959a0_set(const Unk_12959a0* self, Unk_12959a0_arg1* value) {
     value->field_0 = self->field_0;
+}
+
+struct Unk_1296080_arg1 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_1296080_arg1, field_0, 0x0);
+
+struct Unk_1296080 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_1296080, field_0, 0x0);
+
+// 0x7101296080
+void Unk_1296080_call(const Unk_1296080* self, Unk_1296080_arg1* value) {
+    Unk_239a418* v0 = self->field_0;
+    value->field_0 = v0;
+    if (v0 != nullptr) {
+        static_cast<Unk_239a458*>(v0)->vf4();
+    }
+}
+
+struct Unk_12960a0_arg1 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_12960a0_arg1, field_0, 0x0);
+
+struct Unk_12960a0 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_12960a0, field_0, 0x0);
+
+// 0x71012960a0
+void Unk_12960a0_call(const Unk_12960a0* self, Unk_12960a0_arg1* value) {
+    Unk_239a418* v0 = self->field_0;
+    value->field_0 = v0;
+    if (v0 != nullptr) {
+        static_cast<Unk_239a458*>(v0)->vf4();
+    }
 }
 
 // 0x71012960d0
