@@ -10,21 +10,6 @@
 
 #include "gflib3/Unk_239a418.h"
 
-// A container allocator that frees through Unk_239a418_Allocator::vf3 (the
-// memory, its size and its alignment).
-template <class T>
-class Unk_23f4660_Allocator {
-public:
-    using value_type = T;
-
-    T* allocate(size_t n);
-    void deallocate(T* p, size_t n) {
-        field_0->vf3(reinterpret_cast<u64>(p), n * sizeof(T), alignof(T));
-    }
-
-    Unk_239a418_Allocator* field_0;
-};
-
 // What frees the owned object: destroys it and gives its memory back to the
 // allocator, with the size and alignment it was allocated with.
 struct Unk_23f4660_Deleter {
@@ -48,7 +33,8 @@ public:
 
     Unk_239a418_Ref<Unk_239a418> field_8;
     Unk_239a418_Ref<Unk_239a418> field_10;
-    std::vector<Unk_239a418_Ref<Unk_239a418>, Unk_23f4660_Allocator<Unk_239a418_Ref<Unk_239a418>>>
+    std::vector<Unk_239a418_Ref<Unk_239a418>,
+                Unk_239a418_StdAllocator<Unk_239a418_Ref<Unk_239a418>>>
         field_18;
 };
 static_assert(sizeof(Unk_23f47c0) == 0x38, "Unk_23f47c0");
