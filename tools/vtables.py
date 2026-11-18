@@ -526,7 +526,7 @@ def element_member(m: Model, f: int, slot: int) -> Member | None:
 
 def _width(t) -> int:
     from leafgen import WIDTH
-    return 8 if t == REF or not isinstance(t, str) else WIDTH[t]
+    return 8 if t == REF or not isinstance(t, str) else 0x80 if t == CALLABLE else WIDTH[t]
 
 
 def _merge(fields: dict, new) -> dict | None:
@@ -988,6 +988,50 @@ def ref_members_tail(m: Model, f: int, d2: int, vtable: int, size: int) -> tuple
     return tuple(reversed(offs))
 
 
+CALLABLE = "Unk_23d4470_Callable"   # a callable member (unsorted/Unk_23d4470.h), 0x80 bytes
+CALLABLE_HEADER = "unsorted/Unk_23d4470.h"
+_ZERO4 = r"(?: ; str xzr, \[x19, #N\]){4}|(?: ; stp xzr, xzr, \[x19, #N\]){2}"
+_REF_RE = r" ; ldr x0, \[x(?:0|19), #N\]" + re.escape(_RELEASE)
+_CALL_RE = r" ; ldr x8, \[x(?:0|19), #N\] ; cbz x8, #N ; add x0, x19, #N(?:" + _ZERO4 + r") ; blr x8"
+# a callable first: its manager's load is scheduled between the vptr stores
+_VPTRS_CALL = (re.escape(_VPTRS.replace(" ; str x9, [x0] ; stp x10, x8, [x0, #N]", ""))
+               + r" ; stp x10, x8, \[x0, #N\] ; ldr x8, \[x0, #N\] ; str x9, \[x0\] ; cbz x8, #N ;"
+               + r" add x0, x19, #N(?:" + _ZERO4 + r") ; blr x8")
+_TAIL_MEMBERS = re.compile(rf"(?:{re.escape(_VPTRS)}|{_VPTRS_CALL})(?:{_REF_RE}|{_CALL_RE})*{re.escape(_TAIL_D2)}")
+
+
+def tail_members(m: Model, f: int, d2: int, vtable: int, size: int) -> dict[int, str] | None:
+    """The members a D2 f destroys before it tail-calls its base's D2 (d2, out
+    of line), when they're references (REF) and callables (CALLABLE: if it
+    holds one, its four words are cleared and its manager disposes of the
+    storage at +0x20): offset -> type, after the base's `size` bytes, the
+    last declared destroyed first. f stores the class's own vtable."""
+    from nx.refs import decode
+    if not _TAIL_MEMBERS.fullmatch(m.pattern(f) or ""):
+        return None
+    calls, statics = _calls_and_statics(m, f)
+    if calls != [d2] or statics != [vtable]:
+        return None
+    order: list[tuple[int, str]] = []
+    managers = set()
+    for _, w, _, _ in decode(m.img, f, m.sizes.get(f, 4)):
+        rn, off = (w >> 5) & 31, ((w >> 10) & 0xFFF) * 8
+        if w & 0xFFC0001F == 0xF9400000 and rn in (0, 19):       # ldr x0, [x0|x19, #off]: a reference
+            order.append((off, REF))
+        elif w & 0xFFC0001F == 0xF9400008 and rn in (0, 19):     # ldr x8, [x0|x19, #off]: a manager
+            managers.add(off)
+        elif w & 0xFFC003FF == 0x91000260:                       # add x0, x19, #imm: a callable's storage
+            order.append((((w >> 10) & 0xFFF) - 0x20, CALLABLE))
+    offs = [o for o, _ in order]
+    if not order or offs[-1] < size or any(a <= b for a, b in zip(offs, offs[1:])) \
+            or managers != {o + 8 for o, k in order if k == CALLABLE}:
+        return None
+    ends = sorted((o, o + (0x80 if k == CALLABLE else 8)) for o, k in order)
+    if any(a[1] > b[0] for a, b in zip(ends, ends[1:])):
+        return None
+    return dict(sorted(order))
+
+
 def direct_getter(m: Model, g: int) -> bool:
     """Whether g is the type getter of a direct descendant of the object, its
     parent's getter inlined: three guarded statics (its type, the object's,
@@ -1060,7 +1104,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         refs = None
         if s0 != d2 and isinstance(s0, int):
             refs = ref_members(m, s0, d2, v.start) if e.inline_dtor else \
-                ref_members_tail(m, s0, d2, v.start, e.size)
+                tail_members(m, s0, d2, v.start, e.size)
             if refs is None or own.get(s0) != (v.addr, 0) or not pickable(s0):
                 continue
         if (s0 != d2 and refs is None) or not isinstance(s1, int) or s1 == ev.slots[1] \
@@ -1213,7 +1257,8 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         if not ok or any(seg(x.addr) != seg(s1) for x in extra):
             continue
         mine = []
-        fields: dict = {o: REF for o in refs or ()}  # its reference members, then lifted members' fields
+        # the members its D2 destroys, then lifted members' fields
+        fields: dict = dict(refs) if isinstance(refs, dict) else {o: REF for o in refs or ()}
         for x in picked.get(v.addr, []):
             if x.kind == "lifted" and x.slot >= 2 and x.slot != e.type_slot and _ext_lifted_ok(e, ev, x, fields):
                 mine.append(x)
@@ -1620,7 +1665,8 @@ def render_file(m: Model, entries: list[tuple[ClassSpec, list[Member]]],
              "// Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename",
              "// them, and give the functions real signatures, once the classes are known.",
              "#include <types.h>", ""]
-    headers = sorted({spec.ext.header for spec, _ in entries if spec.ext is not None})
+    headers = sorted({spec.ext.header for spec, _ in entries if spec.ext is not None}
+                     | ({CALLABLE_HEADER} if any(CALLABLE in spec.fields.values() for spec, _ in entries) else set()))
     if headers:
         parts[-1:] = [*(f'#include "{h}"' for h in headers), ""]
     if source:  # the base's own definitions: one TU with the classes derived from it
