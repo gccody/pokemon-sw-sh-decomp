@@ -457,7 +457,14 @@ EXTERNAL_BASES = (
     ExternalBase(0x23995a0, "Unk_2399590", "gflib3/Unk_2399590.h",
                  ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
                   (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7", "Unk_2399590_Arg*")),
-                 6, "Unk_2399590::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x290),
+                 6, "Unk_2399590::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x28c),
+    # Abstract, on the object, in gflnet3's area: its D0 is a trap, and its type getter (the one
+    # its derived classes call) is only declared.
+    ExternalBase(0x23a45d8, "Unk_23a45c8", "unsorted/Unk_23a45c8.h",
+                 ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
+                  (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7"), (8, "void", "vf8"),
+                  (9, "void", "vf9")),
+                 6, "Unk_23a45c8::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x114),
     # gflib3's reference-counted object: its destructor is inline, and it has no type slot of
     # its own (a class that overrides the interfaces' getter gets slot 6 for it).
     ExternalBase(0x239a428, "Unk_239a418", "gflib3/Unk_239a418.h",
