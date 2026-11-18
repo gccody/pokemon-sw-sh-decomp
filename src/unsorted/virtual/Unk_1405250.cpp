@@ -6,7 +6,6 @@
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
 void Unk_14058c0(void* self);
-void Unk_140ce80(void* self);
 void Unk_140f090(void* self);
 void Unk_1412a50(void* self);
 
@@ -64,64 +63,6 @@ public:
 // 0x7101405710
 void Unk_2437a40::vf0() {
     Unk_14058c0(this);
-}
-
-class Unk_2438370 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual u32 vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x710140ce50
-void Unk_2438370::vf6() {
-    Unk_140ce80(this);
-}
-
-// 0x710140cc20
-u32 Unk_2438370::vf7() {
-    return 1;
-}
-
-// 0x710140cc30
-void Unk_2438370::vf8() {}
-
-// 0x710140cc40
-void Unk_2438370::vf10() {}
-
-class Unk_24383d8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x710140ce60
-void Unk_24383d8::vf5() {
-    Unk_140ce80(this);
-}
-
-class Unk_2438418 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x710140ce70
-void Unk_2438418::vf0() {
-    Unk_140ce80(this);
 }
 
 class Unk_2438440 {
