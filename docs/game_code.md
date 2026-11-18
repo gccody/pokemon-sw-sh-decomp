@@ -1029,6 +1029,27 @@ type shape: slot 6 calls the copy of `Unk_23dc940::Unk_GetType`
 getters inlined, which `derive_external` doesn't model yet (an inline
 `vf_type` gives that shape).
 
+### Batch 15: classes on the new bases
+
+The first generator batch on #62-#64's bases. Two fixes were needed:
+
+- A hand-written header may declare a placeholder struct for a getter
+  (`Unk_23c1a68.h` declares `Unk_27771d8`), so a generated file that
+  includes it doesn't declare that struct again (`header_structs`).
+- On a base other than the object, a tail-shaped class's getter must load
+  its own type and then exactly the base's getter's statics. The 7 tail-shaped
+  classes on `Unk_23dc940` load one more guarded static: there is a class
+  between them and `Unk_23dc940`, whose getter theirs inlines too. Written
+  directly on `Unk_23dc940`, their getter came out one level short, small
+  enough for clang to inline it into `vf_type`, and the forwarders they had
+  matched as regressed. They're refused until that class is modelled.
+
+13 classes match, 9 on `Unk_23c9470`, 2 on `Unk_2399590` and 2 on
+`Unk_23c1a68`: 104 functions (check.py: 27,948 matching, 107 not matching).
+The trial matched more functions (238), but a class is written only when
+all its functions match. Most classes on `Unk_23dc940` have the inline
+type shape and nothing else matched that could be their key function.
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1054,7 +1075,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17)
 
-State after #64: check.py reports 27,844 matching and 107 not matching, in
+State after #66: check.py reports 27,948 matching and 107 not matching, in
 both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
