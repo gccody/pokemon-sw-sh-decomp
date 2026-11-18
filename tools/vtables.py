@@ -336,6 +336,37 @@ def cmd_of(m: Model, args) -> None:
         print(f"owner: vtable 0x{o[0] + BASE:x} slot {o[1]}")
 
 
+def stored_vtable_owners(m: Model) -> list[tuple[int, int, int, int]]:
+    """The D2s (slot 0 of primary vtables) whose owner (`owners`) isn't the
+    class whose vtable they store: (D2, owner's vtable, stored vtable, how
+    many primary vtables hold it), the most held first. A D2 stores its own
+    class's vptrs first, so that class is the one that defines it: such a
+    D2 is a base's that the owner heuristic gave to a class on it
+    (docs/game_code.md, `Unk_2419350`)."""
+    own = owners(m.vtables)
+    start_of = {v.start: v for v in m.vtables if not v.offset_to_top}
+    held = Counter(v.slots[0] for v in m.vtables
+                   if not v.offset_to_top and v.slots and isinstance(v.slots[0], int))
+    out = []
+    for d2, n in held.items():
+        statics = _calls_and_statics(m, d2)[1]
+        stored = start_of.get(statics[0]) if statics else None
+        o = own.get(d2)
+        if stored is not None and o is not None and o[0] != stored.addr:
+            out.append((d2, o[0], stored.addr, n))
+    return sorted(out, key=lambda r: (-r[3], r[0]))
+
+
+def cmd_stored(m: Model, args) -> None:
+    by = {v.addr: v for v in m.vtables}
+    rows = stored_vtable_owners(m)
+    print(f"{len(rows)} D2s store another class's vtable than their owner's "
+          f"({sum(m.statuses.get(d2) != 'O' for d2, _, _, _ in rows)} not matched)")
+    for d2, o, s, n in rows[:args.n]:
+        print(f"  {n:4} vtables  D2 0x{d2 + BASE:x} {m.statuses.get(d2, '?')}  owner {class_name(by[o])}  "
+              f"stores {class_name(by[s])}")
+
+
 def cmd_csv(m: Model, args) -> None:
     with open(args.out, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh, lineterminator="\n")
@@ -2609,6 +2640,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("addr")
     p = sub.add_parser("csv")
     p.add_argument("out", type=Path)
+    p = sub.add_parser("stored", help="D2s that store another class's vtable than their owner's (bases to write)")
+    p.add_argument("-n", type=int, default=25, help="how many to list")
     p = sub.add_parser("write", help="placeholder classes for simple virtual functions (Sword's vtables)")
     p.add_argument("--area", action="append", help="area or group (default: game, gflib3, gflnet3, startup)")
     p.add_argument("--out", type=Path, default=ROOT / "src" / "unsorted" / "virtual")
@@ -2625,8 +2658,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd in ("write", "ctors") and args.game != "sword":
         raise SystemExit("write works from Sword's vtables (the names cover both games)")
     m = load(args.game)
-    {"summary": cmd_summary, "show": cmd_show, "of": cmd_of, "csv": cmd_csv, "write": cmd_write,
-     "ctors": cmd_ctors}[args.cmd](m, args)
+    {"summary": cmd_summary, "show": cmd_show, "of": cmd_of, "csv": cmd_csv, "stored": cmd_stored,
+     "write": cmd_write, "ctors": cmd_ctors}[args.cmd](m, args)
     return 0
 
 

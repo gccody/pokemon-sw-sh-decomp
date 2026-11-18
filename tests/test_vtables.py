@@ -1210,3 +1210,36 @@ def test_derived_from_an_out_of_line_base_with_one_interface():
     specs = {}
     V.derive_external(m, e, specs, {}, V.owners(vts), lambda f: 0, lambda f: True, lambda t: True)
     assert z.addr not in specs
+
+
+def test_stored_vtable_owners():
+    """A D2 (0x100) in slot 0 of A's and B's vtables stores B's vtable (its
+    GOT slot 0x1800): it's B's, though the owner heuristic gives it to A,
+    the shorter vtable. A's own D2 (0x140) stores A's: not listed."""
+    def d2(slot: int) -> list[int]:
+        # adrp x8 ; ldr x8, [x8, #slot] ; add x9, x8, #0x10 ; str x9, [x0] ; ret
+        return [0xB0000008, 0xF9400108 | (slot // 8) << 10, 0x91004109, 0xF9000009, RET]
+
+    img = bytearray(0x2000)
+    code = {0x100: d2(0x800), 0x140: d2(0x808), 0x110: [RET], 0x120: [RET], 0x130: [0xAA0003E8, RET]}
+    for a, w in code.items():
+        struct.pack_into(f"<{len(w)}I", img, a, *w)
+    slots = {}
+
+    def vt(start, ott, fns):
+        struct.pack_into("<q", img, start, ott)
+        for i, f in enumerate(fns):
+            slots[start + 16 + 8 * i] = f
+        return start + 16 + 8 * len(fns)
+
+    end = vt(0x1000, 0, [0x100, 0x110])                     # A
+    b_start = end
+    vt(end, 0, [0x100, 0x120, 0x130])                       # B
+    end = vt(0x1100, 0, [0x140, 0x110])                     # C, with a D2 of its own
+    sizes = {a: 4 * len(w) for a, w in code.items()}
+    vts, tables = V.find_vtables(bytes(img), slots, set(code), DATA, len(img))
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), vts, tables, sizes, {}, {}, lambda a: "game", DELETE,
+                {0x1800: b_start, 0x1808: 0x1100})
+    a, b = (next(v for v in vts if v.start == s) for s in (0x1000, b_start))
+    assert V.owners(vts)[0x100] == (a.addr, 0)
+    assert V.stored_vtable_owners(m) == [(0x100, a.addr, b.addr, 2)]
