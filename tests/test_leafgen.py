@@ -339,3 +339,31 @@ def test_struct_copy():
     # without ldp it's field by field
     _, func = leafgen.generate(ADDR, code(ldr_x(8, 0, 0), str_x(8, 1, 0), ldr_x(8, 0, 8), str_x(8, 1, 8), RET))
     assert "value->field_8 = self->field_8;" in func
+
+
+def adrp(rd, pc, target):
+    imm = ((target & ~0xFFF) - (pc & ~0xFFF)) >> 12
+    return 0x90000000 | (imm & 3) << 29 | ((imm >> 2) & 0x7FFFF) << 5 | rd
+
+
+def add_imm(rd, rn, imm):
+    return 0x91000000 | imm << 10 | rn << 5 | rd
+
+
+def test_returns_a_table_or_a_string(monkeypatch):
+    """mov w8, #0x1fb ; str w8, [x0] ; adrp x0, T ; add x0, x0, T ; ret: a table
+    this TU defines (adrp + add, not the GOT), declared hidden; a string
+    literal where T is one; refused where T is code or a vtable."""
+    table = 0x7101F10C68
+    words = (0x52803F68, str_w(8, 0, 0), adrp(0, ADDR + 8, table), add_imm(0, 0, table & 0xFFF), RET)
+    monkeypatch.setattr(leafgen, "DATA_AT", lambda a: "" if a == table else None)
+    structs, func = leafgen.generate(ADDR, code(*words))
+    assert 'extern const u8 Unk_1f10c68[] __attribute__((visibility("hidden")));' in structs
+    assert func.startswith("const u8* Unk_123450_update(Unk_123450* self) {\n    self->field_0 = 0x1fb;\n")
+    assert "    return Unk_1f10c68;\n" in func
+    monkeypatch.setattr(leafgen, "DATA_AT", lambda a: "a \\\"b\\\"")
+    _, func = leafgen.generate(ADDR, code(*words))
+    assert '    return "a \\"b\\"";\n' in func
+    monkeypatch.setattr(leafgen, "DATA_AT", None)
+    with pytest.raises(leafgen.LiftError, match="code or a vtable"):
+        leafgen.generate(ADDR, code(*words))
