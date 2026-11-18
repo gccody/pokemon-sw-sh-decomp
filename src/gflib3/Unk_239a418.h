@@ -22,6 +22,9 @@ class Unk_239a418_Handle;
 template <class T>
 class Unk_239a418_Ref {
 public:
+    Unk_239a418_Ref() : m_ptr(nullptr) {}
+    // Holds `ptr`, adding a reference.
+    explicit Unk_239a418_Ref(T* ptr);
     Unk_239a418_Ref(const Unk_239a418_Ref& other);
     ~Unk_239a418_Ref();
 
@@ -144,6 +147,7 @@ public:
 
 class Unk_239a418 : public Unk_239a418_Base, public Unk_239a458, public Unk_239a498 {
 public:
+    Unk_239a418();  // 0x71005e2350, not decompiled yet
     ~Unk_239a418() override {}
     Unk_239a418_Ref<Unk_239a418_Handle> vf2() override;
     void vf3() override;
@@ -154,6 +158,12 @@ public:
 };
 static_assert(sizeof(Unk_239a418) == 0x60, "Unk_239a418");
 static_assert(__builtin_offsetof(Unk_239a418, m_handle) == 0x58, "Unk_239a418::m_handle");
+
+template <class T>
+Unk_239a418_Ref<T>::Unk_239a418_Ref(T* ptr) : m_ptr(ptr) {
+    if (m_ptr)
+        static_cast<Unk_239a458*>(m_ptr)->vf4();
+}
 
 template <class T>
 Unk_239a418_Ref<T>::Unk_239a418_Ref(const Unk_239a418_Ref& other) : m_ptr(other.m_ptr) {

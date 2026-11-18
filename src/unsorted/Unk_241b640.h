@@ -1,7 +1,7 @@
 #pragma once
 // An abstract class on gflib3's reference-counted object (vtable
 // 0x710241b640, 11 slots, vf7 pure), in game/pokecamp: a vector of entries
-// that each hold a callable, a u32, a flag its constructor (0x7101162c30)
+// that each hold a callable, a u32, a byte its constructor (0x7101162c30)
 // takes, a reference and a byte. Its data ends at 0xa1, where a derived class
 // (Unk_241b570, constructed by 0x7101161f40) puts a byte of its own.
 //
@@ -39,6 +39,9 @@ public:
         return &type;
     }
 
+    // 0x7101162c30 (its callers pass 0 or their own argument)
+    explicit Unk_241b640(u8 arg);
+
     // Overrides the interfaces' type getter, so it also gets slot 6 of the
     // primary vtable.
     const Unk_239a418_Type* vf_type() override { return Unk_GetType(); }
@@ -51,7 +54,7 @@ public:
     u64 field_80;
     u32 field_88;
     u32 field_8c;
-    bool field_90;
+    u8 field_90;
     Unk_239a418_Ref<Unk_239a418> field_98;
     u8 field_a0;
 };

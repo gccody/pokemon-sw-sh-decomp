@@ -20,6 +20,9 @@ public:
         return &type;
     }
 
+    // 0x710142a040
+    Unk_23c44f8();
+
     // Overrides the interfaces' type getter, so it also gets slot 6 of the
     // primary vtable.
     const Unk_239a418_Type* vf_type() override { return Unk_GetType(); }

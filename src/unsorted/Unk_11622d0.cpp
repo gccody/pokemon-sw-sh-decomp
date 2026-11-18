@@ -10,6 +10,14 @@
 // 0x7101162ac0/0x7101162bb0 (+0x50). vf_type is 0x71011624b0, its thunks
 // 0x7101162790 (+0x48) and 0x71011627a0 (+0x50); vf8 is 0x71011625a0.
 
+// 0x7101162c30
+Unk_241b640::Unk_241b640(u8 arg)
+    : field_60(Unk_239a418_StdAllocator<Unk_241b640_Entry>{field_8}),
+      field_80(0),
+      field_88(0),
+      field_90(arg),
+      field_a0(0) {}
+
 // 0x71011629a0
 void Unk_241b640::vf9() {}
 

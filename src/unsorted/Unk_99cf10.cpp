@@ -10,5 +10,8 @@
 // vf_type is 0x7100999800, its thunks 0x7100999ad0 (+0x48) and 0x7100999ae0
 // (+0x50).
 
+// 0x710142a040
+Unk_23c44f8::Unk_23c44f8() : field_70(0), field_74(0) {}
+
 // 0x71009a42f0
 void Unk_23c44f8::vf7(s32) {}
