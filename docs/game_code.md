@@ -772,6 +772,61 @@ calls it, so it's another TU's. 16 more match (check.py: 25,642 matching,
 Left are about 30 constructors of other shapes, which store more than one
 vptr (multiple inheritance).
 
+### Batch 9: reference members on out-of-line bases
+
+On a hand-written base whose D2 is out of line (`Unk_23f43c8`,
+`Unk_23d4470`), a class with reference members has a D2 of its own: its
+vptrs, its members released (the last declared first), then
+`b <the base's D2>` (`ref_tail_pattern`, `ref_members_tail`). The family's
+`operator delete` is empty, so its D0 and its four destructor thunks are
+copies of that D2. The class declares the members at their offsets and its
+destructor stays implicit, as on the object (Batch 6).
+
+The D2s and D0s matched at once, but most thunks didn't. Ours kept the
+thunk's own `this` in a second register (`stp x20, x19`, 4 bytes longer),
+where the original addresses the members from the adjusted pointer after
+the vptr store's write-back (`str x9, [x19, #-0x48]!`, then
+`str xzr, [x19, #0x80]`). InstCombine decides this. The thunk passes
+`this - 0x48` on as the class, and InstCombine rewrites that pointer as
+an element of `X[-1]`, at offset `sizeof(X) - 0x48` (`- 0x50` for the
+other secondary vtable). When that offset is a field, the members are
+indexed from it, `this - 0x48` stays one value (which the tail call needs
+anyway), and the thunk matches. When it's inside a byte array, every
+member's address folds into one array index from the thunk's `this`,
+which then stays live across the release calls. For most of these classes
+the offset falls in the object's primary base, whose bytes `0x28`-`0x48`
+were `u8 _28[0x20]`. `Unk_239a418_Base` now has four `u64` fields there,
+which changed nothing that matched before. In the original, some classes'
+thunks are the longer form too: the offset lands in an array there. So
+`ref_members_tail`'s thunks may be one instruction longer than their D2,
+and check.py decides.
+
+**`Unk_23f4e40`** (`src/unsorted/Unk_23f4e40.h`, `Unk_e9d210.cpp`) is a
+fifth hand-written base: an abstract class on the object with four
+references and a state at `+0x6c` that a member (`0x7100e9d4b0`) steps
+through its pure `vf7`-`vf10`. Otherwise it has `Unk_23f43c8`'s shape:
+its destructor is its key function, and its `vf_type` is inline. Its D0
+is a trap (the class is abstract). Its 9 functions match.
+
+| Base | Classes | Of them with reference members |
+|---|---:|---:|
+| `Unk_23f43c8` | 46 | 46 (1 to 5 members) |
+| `Unk_23d4470` | 10 | 10 |
+| `Unk_23f4e40` | 44 | 34 |
+
+All their functions match in both games: 719 with `Unk_23f4e40`'s
+(their D2s, D0s, destructor thunks and type getters; their `vf_type`s
+and the thunks of those were written as forwarders before, and are
+renamed). check.py: 26,946 matching (26,227 before this batch), 107 not
+matching.
+
+Left out: 13 classes whose thunks still differ. Ours are the longer form
+where the original's are the short one, because the offset lands in a
+byte array here and on a field there: in the padding write declares
+(`u8 _348[0x28]`), in `Unk_23d4470_Callable`'s storage, or in a class
+whose size isn't known (fields after its last member). Scalar padding
+would fix the first, but it changes every generated class with fields.
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -797,7 +852,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17)
 
-State after #54: check.py reports 26,227 matching and 107 not matching, in
+State after #56: check.py reports 26,946 matching and 107 not matching, in
 both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
@@ -859,14 +914,21 @@ Other pitfalls:
    at the same addresses.
 2. **More destructor members on the object** (`ref_members`, Batch 6
    paragraph). In the object's family (slots 2-5 are the object's), 1,578
-   classes have a D2 of their own: 30 have one reference member (20 written), 116 release a
-   reference and then tail-call another base's D2 (`b 0x7100e7c4c0` 36
-   times, `0x7100e9d210` 33, `0x7100e7feb0` 14, `0x7100bd0880` 13), and the
-   larger groups release several references or allocator-backed arrays
-   (`{begin, end, capacity, allocator}`, freed with `allocator->vf3(begin,
-   capacity - begin, 8)`). Generalise `ref_dtor_pattern` member by member,
-   and hand-write the 4 bases of the tail-calling group as ExternalBases,
-   like `Unk_23d4470`.
+   classes have a D2 of their own: 30 have one reference member (20
+   written). Those that release references and then tail-call a
+   hand-written base's D2 are Batch 9 (100 written; `Unk_23f4e40` is
+   hand-written now). The biggest base left is `Unk_23f4660` (D2
+   `0x7100e7feb0`, 552 bytes): 50 classes share its D2 and 71 tail-call
+   it. Its D2 destroys a reference (`+0x5c0`), a `unique_ptr` with an
+   allocator deleter (`+0x5a0`; the object it owns has a libc++-style
+   vector of references with an allocator, `{begin, end, capacity,
+   allocator}`, freed with `allocator->vf3(begin, capacity - begin, 8)`),
+   a 0x4a0-byte member with an out-of-line destructor (`+0x100`,
+   `0x7100e800e0`), two 0x30-byte hashed-name handles (`+0x78`, `+0xa8`,
+   reset to the FNV-1a hash of `""`) and a reference (`+0x70`). Then
+   `0x7100978cf0` (16 + 12 classes), `0x7100c69450` (12 + 20) and
+   `0x7100ac70e0` (11 + 7). Other D2s release several kinds of members,
+   so generalise `ref_dtor_pattern` member by member.
 3. **The 20 other tail-shaped getter owners** (`b <getter>` in their type
    slots, getters still forwarder callees `_Z..Unk_<addr>Pv`). They wait
    for item 2, because their destructors release members. Once written,

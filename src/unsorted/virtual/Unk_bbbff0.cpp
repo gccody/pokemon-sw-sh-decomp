@@ -10,7 +10,6 @@
 // Called by forwarders. Placeholders: their real signatures aren't known.
 void Unk_bc7540(void* self);
 void Unk_c1cdd0(void* self);
-void Unk_c22600(void* self);
 
 // Tail-called by lifted functions. Placeholders, like the forwarders' callees.
 void Unk_ba7db0(u64);
@@ -233,6 +232,46 @@ const Unk_239a418_Type* Unk_23d48f0::vf_type() {
     return Unk_GetType();
 }
 
+class Unk_23d49b0 : public Unk_23d4470 {
+public:
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23d4470::Unk_GetType());
+        return &type;
+    }
+
+    const Unk_239a418_Type* vf_type() override;
+    void vf7() override;
+    u32 vf8() override;
+    u8 _348[0x20];
+    Unk_239a418_Ref<Unk_239a418> field_368;
+};
+PKMN_OFFSET_ASSERT(Unk_23d49b0, field_368, 0x368);
+
+// 0x7100bce0a0
+const Unk_239a418_Type* Unk_23d49b0::vf_type() {
+    return Unk_GetType();
+}
+
+class Unk_23d4a70 : public Unk_23d4470 {
+public:
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23d4470::Unk_GetType());
+        return &type;
+    }
+
+    const Unk_239a418_Type* vf_type() override;
+    void vf7() override;
+    u32 vf8() override;
+    u8 _348[0x20];
+    Unk_239a418_Ref<Unk_239a418> field_368;
+};
+PKMN_OFFSET_ASSERT(Unk_23d4a70, field_368, 0x368);
+
+// 0x7100bcea40
+const Unk_239a418_Type* Unk_23d4a70::vf_type() {
+    return Unk_GetType();
+}
+
 // The type between Unk_23d4470 and Unk_23d4b50 (its class isn't known yet).
 struct Unk_27d8c38 {
     static const Unk_239a418_Type* Unk_GetType() {
@@ -444,6 +483,101 @@ public:
 
 // 0x7100bd8c90
 const Unk_239a418_Type* Unk_23d55f8::vf_type() {
+    return Unk_GetType();
+}
+
+class Unk_23d5778 : public Unk_23d4470 {
+public:
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23d4470::Unk_GetType());
+        return &type;
+    }
+
+    const Unk_239a418_Type* vf_type() override;
+    void vf7() override;
+    u32 vf8() override;
+    Unk_239a418_Ref<Unk_239a418> field_348;
+};
+PKMN_OFFSET_ASSERT(Unk_23d5778, field_348, 0x348);
+
+// 0x7100bda130
+const Unk_239a418_Type* Unk_23d5778::vf_type() {
+    return Unk_GetType();
+}
+
+class Unk_23d5838 : public Unk_23d4470 {
+public:
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23d4470::Unk_GetType());
+        return &type;
+    }
+
+    const Unk_239a418_Type* vf_type() override;
+    void vf7() override;
+    u32 vf8() override;
+    Unk_239a418_Ref<Unk_239a418> field_348;
+};
+PKMN_OFFSET_ASSERT(Unk_23d5838, field_348, 0x348);
+
+// 0x7100bdaa50
+const Unk_239a418_Type* Unk_23d5838::vf_type() {
+    return Unk_GetType();
+}
+
+class Unk_23d58f8 : public Unk_23d4470 {
+public:
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23d4470::Unk_GetType());
+        return &type;
+    }
+
+    const Unk_239a418_Type* vf_type() override;
+    void vf7() override;
+    u32 vf8() override;
+    Unk_239a418_Ref<Unk_239a418> field_348;
+};
+PKMN_OFFSET_ASSERT(Unk_23d58f8, field_348, 0x348);
+
+// 0x7100bdb6d0
+const Unk_239a418_Type* Unk_23d58f8::vf_type() {
+    return Unk_GetType();
+}
+
+class Unk_23d59b8 : public Unk_23d4470 {
+public:
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23d4470::Unk_GetType());
+        return &type;
+    }
+
+    const Unk_239a418_Type* vf_type() override;
+    void vf7() override;
+    u32 vf8() override;
+    Unk_239a418_Ref<Unk_239a418> field_348;
+};
+PKMN_OFFSET_ASSERT(Unk_23d59b8, field_348, 0x348);
+
+// 0x7100bdbfe0
+const Unk_239a418_Type* Unk_23d59b8::vf_type() {
+    return Unk_GetType();
+}
+
+class Unk_23d5a78 : public Unk_23d4470 {
+public:
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23d4470::Unk_GetType());
+        return &type;
+    }
+
+    const Unk_239a418_Type* vf_type() override;
+    void vf7() override;
+    u32 vf8() override;
+    Unk_239a418_Ref<Unk_239a418> field_348;
+};
+PKMN_OFFSET_ASSERT(Unk_23d5a78, field_348, 0x348);
+
+// 0x7100bdc9a0
+const Unk_239a418_Type* Unk_23d5a78::vf_type() {
     return Unk_GetType();
 }
 
@@ -990,6 +1124,26 @@ public:
 // 0x7100bfd7e0
 void Unk_23d78b8::vf11() {}
 
+class Unk_23d7950 : public Unk_23d4470 {
+public:
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23d4470::Unk_GetType());
+        return &type;
+    }
+
+    const Unk_239a418_Type* vf_type() override;
+    void vf7() override;
+    u32 vf8() override;
+    u8 _348[0x98];
+    Unk_239a418_Ref<Unk_239a418> field_3e0;
+};
+PKMN_OFFSET_ASSERT(Unk_23d7950, field_3e0, 0x3e0);
+
+// 0x7100bfe3c0
+const Unk_239a418_Type* Unk_23d7950::vf_type() {
+    return Unk_GetType();
+}
+
 class Unk_23d7a10 : public Unk_23d4470 {
 public:
     static const Unk_239a418_Type* Unk_GetType() {
@@ -1148,6 +1302,31 @@ public:
 // 0x7100c015b0
 void Unk_23d7db8::vf4() {}
 
+class Unk_23d7e00 : public Unk_23d4470 {
+public:
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23d4470::Unk_GetType());
+        return &type;
+    }
+
+    const Unk_239a418_Type* vf_type() override;
+    void vf7() override;
+    u32 vf8() override;
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    u8 _348[0x28];
+    Unk_239a418_Ref<Unk_239a418> field_370;
+};
+PKMN_OFFSET_ASSERT(Unk_23d7e00, field_370, 0x370);
+
+// 0x7100c02bf0
+const Unk_239a418_Type* Unk_23d7e00::vf_type() {
+    return Unk_GetType();
+}
+
 class Unk_23d7ee8 {
 public:
     virtual ~Unk_23d7ee8();
@@ -1173,6 +1352,29 @@ public:
 
 // 0x7100c04290
 void Unk_23d7f30::vf4() {}
+
+class Unk_23d7f78 : public Unk_23d4470 {
+public:
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23d4470::Unk_GetType());
+        return &type;
+    }
+
+    const Unk_239a418_Type* vf_type() override;
+    void vf7() override;
+    u32 vf8() override;
+    u8 _348[0x98];
+    Unk_239a418_Ref<Unk_239a418> field_3e0;
+    u8 _3e8[0x98];
+    Unk_239a418_Ref<Unk_239a418> field_480;
+};
+PKMN_OFFSET_ASSERT(Unk_23d7f78, field_3e0, 0x3e0);
+PKMN_OFFSET_ASSERT(Unk_23d7f78, field_480, 0x480);
+
+// 0x7100c04710
+const Unk_239a418_Type* Unk_23d7f78::vf_type() {
+    return Unk_GetType();
+}
 
 class Unk_23d8038 {
 public:
@@ -1885,58 +2087,6 @@ public:
 // 0x7100c1cc20
 void Unk_23d9ba8::vf0() {
     Unk_c1cdd0(this);
-}
-
-class Unk_23d9d00 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual u32 vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x7100c22450
-void Unk_23d9d00::vf6() {
-    Unk_c22600(this);
-}
-
-// 0x7100c22020
-u32 Unk_23d9d00::vf7() {
-    return 1;
-}
-
-class Unk_23d9d68 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100c22520
-void Unk_23d9d68::vf5() {
-    Unk_c22600(this);
-}
-
-class Unk_23d9da8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100c22530
-void Unk_23d9da8::vf0() {
-    Unk_c22600(this);
 }
 
 class Unk_23d9dd0 {

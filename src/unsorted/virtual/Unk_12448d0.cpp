@@ -3,135 +3,30 @@
 // Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
+#include "unsorted/Unk_23f4e40.h"
 
-// Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_1244f60(void* self);
-
-class Unk_24264f8 {
+class Unk_24264f8 : public Unk_23f4e40 {
 public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual u32 vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23f4e40::Unk_GetType());
+        return &type;
+    }
 
-// 0x7101244db0
-void Unk_24264f8::vf6() {
-    Unk_1244f60(this);
-}
+    const Unk_239a418_Type* vf_type() override;
+    u32 vf7() override;
+    void vf8() override;
+    u32 vf9() override;
+    void vf10() override;
+    Unk_239a418_Ref<Unk_239a418> field_88;
+};
+PKMN_OFFSET_ASSERT(Unk_24264f8, field_88, 0x88);
 
 // 0x71012448d0
 u32 Unk_24264f8::vf7() {
     return 1;
 }
 
-class Unk_2426560 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7101244e80
-void Unk_2426560::vf5() {
-    Unk_1244f60(this);
-}
-
-class Unk_24265a0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7101244e90
-void Unk_24265a0::vf0() {
-    Unk_1244f60(this);
-}
-
-class Unk_24265c8 {
-public:
-    virtual ~Unk_24265c8();
-    virtual void vf2();
-    virtual u64 vf3();
-    virtual void vf4();
-    virtual void vf5();
-    u8 _8[0x50];
-    u64 field_58;
-};
-PKMN_OFFSET_ASSERT(Unk_24265c8, field_58, 0x58);
-
-// 0x7101245680
-u64 Unk_24265c8::vf3() {
-    return field_58;
-}
-
-class Unk_2426608_Obj {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15();
-    virtual void vf16(u64 value);
-};
-
-struct Unk_2426608_Entry {
-    void* field_0;
-    Unk_2426608_Obj* field_8;
-    u64 field_10;
-    u8 _18[0x8];
-};
-PKMN_SIZE_ASSERT(Unk_2426608_Entry, 0x20);
-
-class Unk_2426608 {
-public:
-    virtual u32 vf0();
-    virtual void* vf1(u64 index);
-    virtual void* vf2(u64 index);
-    virtual void vf3(u64 index);
-    Unk_2426608_Entry m_entries[1];
-};
-PKMN_OFFSET_ASSERT(Unk_2426608, m_entries, 0x8);
-
-// 0x71012457f0
-u32 Unk_2426608::vf0() {
-    return 1;
-}
-
-// 0x7101245800
-void* Unk_2426608::vf1(u64 index) {
-    return m_entries[index].field_0;
-}
-
-// 0x7101245810
-void* Unk_2426608::vf2(u64 index) {
-    return m_entries[index].field_8;
-}
-
-// 0x7101245820
-void Unk_2426608::vf3(u64 index) {
-    if (Unk_2426608_Obj* obj = m_entries[index].field_8)
-        obj->vf16(m_entries[index].field_10);
+// 0x7101244db0; its type 0x7101244f60
+const Unk_239a418_Type* Unk_24264f8::vf_type() {
+    return Unk_GetType();
 }

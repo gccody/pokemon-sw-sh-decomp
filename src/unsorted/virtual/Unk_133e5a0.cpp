@@ -6,8 +6,6 @@
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
 void Unk_133f290(void* self);
-void Unk_133fe90(void* self);
-void Unk_1340910(void* self);
 void Unk_13447b0(void* self);
 
 class Unk_2431178 {
@@ -85,106 +83,6 @@ void* Unk_24311b8::vf2(u64 index) {
 void Unk_24311b8::vf3(u64 index) {
     if (Unk_24311b8_Obj* obj = m_entries[index].field_8)
         obj->vf16(m_entries[index].field_10);
-}
-
-class Unk_2431298 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x710133fce0
-void Unk_2431298::vf6() {
-    Unk_133fe90(this);
-}
-
-// 0x710133fc10
-void Unk_2431298::vf9() {}
-
-class Unk_2431300 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x710133fdb0
-void Unk_2431300::vf5() {
-    Unk_133fe90(this);
-}
-
-class Unk_2431340 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x710133fdc0
-void Unk_2431340::vf0() {
-    Unk_133fe90(this);
-}
-
-class Unk_2431368 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x7101340760
-void Unk_2431368::vf6() {
-    Unk_1340910(this);
-}
-
-// 0x7101340690
-void Unk_2431368::vf9() {}
-
-class Unk_24313d0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7101340830
-void Unk_24313d0::vf5() {
-    Unk_1340910(this);
-}
-
-class Unk_2431410 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7101340840
-void Unk_2431410::vf0() {
-    Unk_1340910(this);
 }
 
 class Unk_2431618 {
