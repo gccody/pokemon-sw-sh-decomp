@@ -16,11 +16,11 @@ public:
     void vf7() override;
     u32 vf8() override;
     void vf9() override;
-    u8 _78[0x8];
+    u64 _78;
     Unk_239a418_Ref<Unk_239a418> field_80;
     Unk_239a418_Ref<Unk_239a418> field_88;
     Unk_239a418_Ref<Unk_239a418> field_90;
-    u8 _98[0x8];
+    u64 _98;
     Unk_239a418_Ref<Unk_239a418> field_a0;
     Unk_239a418_Ref<Unk_239a418> field_a8;
 };

@@ -17,7 +17,10 @@ public:
     void vf10() override;
     void vf14() override;
     Unk_239a418_Ref<Unk_239a418> field_5d0;
-    u8 _5d8[0x20];
+    u64 _5d8;
+    u64 _5e0;
+    u64 _5e8;
+    u64 _5f0;
     Unk_239a418_Ref<Unk_239a418> field_5f8;
     Unk_239a418_Ref<Unk_239a418> field_600;
     Unk_239a418_Ref<Unk_239a418> field_608;

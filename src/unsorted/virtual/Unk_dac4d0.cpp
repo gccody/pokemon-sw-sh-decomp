@@ -5,12 +5,11 @@
 #include <types.h>
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_11fb0b0(void* self);
+void Unk_dab2e0(void* self);
 
-class Unk_2422ba8 {
+class Unk_23ef3e8 {
 public:
-    virtual void vf0();
-    virtual void vf1();
+    virtual ~Unk_23ef3e8();
     virtual void vf2();
     virtual void vf3();
     virtual void vf4();
@@ -20,36 +19,13 @@ public:
     virtual void vf8();
     virtual void vf9();
     virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
 };
 
-// 0x71011fae40
-void Unk_2422ba8::vf6() {
-    Unk_11fb0b0(this);
-}
-
-class Unk_2422c10 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x71011faf70
-void Unk_2422c10::vf5() {
-    Unk_11fb0b0(this);
-}
-
-class Unk_2422c50 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x71011faf80
-void Unk_2422c50::vf0() {
-    Unk_11fb0b0(this);
+// 0x7100dac4d0
+void Unk_23ef3e8::vf11() {
+    Unk_dab2e0(this);
 }

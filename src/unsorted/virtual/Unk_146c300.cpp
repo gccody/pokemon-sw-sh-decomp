@@ -18,12 +18,12 @@ public:
     u32 vf9() override;
     void vf10() override;
     void vf15() override;
-    u8 _5d0[0x8];
+    u64 _5d0;
     Unk_239a418_Ref<Unk_239a418> field_5d8;
     Unk_239a418_Ref<Unk_239a418> field_5e0;
     Unk_239a418_Ref<Unk_239a418> field_5e8;
     Unk_239a418_Ref<Unk_239a418> field_5f0;
-    u8 _5f8[0x8];
+    u64 _5f8;
     Unk_239a418_Ref<Unk_239a418> field_600;
 };
 PKMN_OFFSET_ASSERT(Unk_243d7a0, field_5d8, 0x5d8);

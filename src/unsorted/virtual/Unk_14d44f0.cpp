@@ -17,7 +17,7 @@ public:
     u32 vf9() override;
     void vf15() override;
     Unk_239a418_Ref<Unk_239a418> field_5d0;
-    u8 _5d8[0x8];
+    u64 _5d8;
     Unk_239a418_Ref<Unk_239a418> field_5e0;
     Unk_239a418_Ref<Unk_239a418> field_5e8;
 };

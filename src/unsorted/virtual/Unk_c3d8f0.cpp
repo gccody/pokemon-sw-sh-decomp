@@ -20,7 +20,9 @@ public:
     Unk_239a418_Ref<Unk_239a418> field_88;
     Unk_239a418_Ref<Unk_239a418> field_90;
     Unk_239a418_Ref<Unk_239a418> field_98;
-    u8 _a0[0x18];
+    u64 _a0;
+    u64 _a8;
+    u64 _b0;
     Unk_239a418_Ref<Unk_239a418> field_b8;
 };
 PKMN_OFFSET_ASSERT(Unk_23db008, field_88, 0x88);

@@ -195,6 +195,36 @@ const Unk_239a418_Type* Unk_23d46b0::vf_type() {
     return Unk_GetType();
 }
 
+class Unk_23d4770 : public Unk_23d4470 {
+public:
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23d4470::Unk_GetType());
+        return &type;
+    }
+
+    const Unk_239a418_Type* vf_type() override;
+    void vf7() override;
+    u32 vf8() override;
+    u8 _348[0x20];
+    u64 _368;
+    Unk_239a418_Ref<Unk_239a418> field_370;
+    u64 _378;
+    u64 _380;
+    u64 _388;
+    u64 _390;
+    u64 _398;
+    u64 _3a0;
+    u64 _3a8;
+    Unk_239a418_Ref<Unk_239a418> field_3b0;
+};
+PKMN_OFFSET_ASSERT(Unk_23d4770, field_370, 0x370);
+PKMN_OFFSET_ASSERT(Unk_23d4770, field_3b0, 0x3b0);
+
+// 0x7100bcbd30
+const Unk_239a418_Type* Unk_23d4770::vf_type() {
+    return Unk_GetType();
+}
+
 class Unk_23d4830 : public Unk_23d4470 {
 public:
     static const Unk_239a418_Type* Unk_GetType() {

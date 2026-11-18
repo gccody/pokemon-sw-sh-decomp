@@ -877,6 +877,23 @@ Left out: 12 classes on it whose thunks differ (the offset lands in
 `Unk_23f4760`'s bytes), and the other classes that tail-call its D2,
 which destroy other kinds of members.
 
+**Where the thunks say there are fields.** Of the classes left out above and
+in Batch 9 for their thunks, the original's thunks say what lies at
+`sizeof(X) - 0x48` and `- 0x50`: a field when they are as long as the D2, an
+array when they are one instruction longer. When all of a class's
+destructor thunks are the short form, `write` now declares the padding in
+the last 0x50 bytes of the class as `u64` fields instead of bytes
+(`tail_padding_start`, `ClassSpec.scalar_tail`); otherwise the padding stays
+bytes. 10 more classes match: 72 functions (check.py: 27,360 matching, 107
+not matching). The rest can't be fixed in the classes themselves. Classes
+with the same visible members have different thunks in the original (on
+`Unk_23f4660`, with references at `0x5d0`/`0x5d8`, `Unk_242d838`'s are short
+and `Unk_2439d60`'s long), so their real sizes differ by fields nothing reads,
+and the offset lands in a base: `Unk_23f4760`'s bytes or
+`Unk_23d4470_Callable`'s storage. Making those fields fixed some classes and
+broke the others (a trial matched 7 more and lost one that had matched), so
+the bases keep their bytes.
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -902,7 +919,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17)
 
-State after #57: check.py reports 27,288 matching and 107 not matching, in
+State after #58: check.py reports 27,360 matching and 107 not matching, in
 both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
