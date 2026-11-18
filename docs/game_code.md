@@ -1106,6 +1106,86 @@ written-out destructor would be a D2 of its own.
 35 classes match, 29 plain and 6 with an interface: 315 functions
 (check.py: 28,930 matching, 107 not matching).
 
+### More hand-written bases (#70, #71)
+
+Written in parallel with Batch 18, each with its `EXTERNAL_BASES` entry.
+The details are in the headers and the PR descriptions.
+
+| Base | Shape | New |
+|---|---|---:|
+| `Unk_241b640` (`0x71011622d0`), on the object | abstract, inline destructor; a vector of 0x90-byte entries with a callable, a reference | 39 (with the next three) |
+| `Unk_23c44f8` (`0x710099cf10`), on the object | inline destructor, three references; `vf7(s32)` | |
+| `Unk_23c2c68` (`0x7100999620`), on `Unk_23c44f8` | a reference, two signed counts | |
+| `Unk_24284d0` (`0x710126bd00`), on the object | inline destructor; two references, six callables (the first five one member), five FNV-1a hashes of "" | |
+| `Unk_239a4c0` (`0x710000d500`), gflib3 | the second reference-counted object: count at +0x50, an interface at +0x48, no types, an empty inline destructor | 85 (with 20 classes on it) |
+
+What they needed:
+
+- **Scalar parameters** in `ExternalBase` slots (`param_codes`: `s32` ->
+  `i`, `u64` -> `m`), for `Unk_23c44f8::vf7(s32)` and `Unk_24284d0::vf7(u64)`.
+- **A base without types** (`ExternalBase.type_slot = None`, and in the
+  secondaries): `Unk_239a4c0` has no `vf_type`, so `derive_external`
+  models no getters and declares the slots in `derived_order`.
+- **An empty base destructor.** `Unk_239a4c0`'s destructor is inline and
+  empty, and none of its fields has one, so its D2 stores no vptrs: a `ret`,
+  the linker's one copy at `0x710000d500`. A derived class's D2 stores its
+  two vptrs, releases its references (the last declared first) and returns
+  (`ref_empty_pattern`, `ref_members_empty`).
+- **Its destructor as the key function**, as in Batch 18 (`explicit_dtor`):
+  the classes on `Unk_239a4c0` define nothing in their D0's file (their
+  vtables were emitted where they're created).
+- **One member for several callables.** `Unk_24284d0`'s D2 clears the
+  first of five callables through a pointer to it (`add x9, x19, #0xa0`,
+  then `stp xzr, xzr, [x9, ...]`). That's one member
+  (`Unk_24284d0_Callables`): as five members or an array, they're
+  addressed from `this`.
+
+Left out, with the reasons:
+
+- `Unk_242af50` (D2 `0x71012928c0`, on `Unk_24284d0`) and the classes on
+  it have internal linkage. Their vptrs are stored with `adrp`+`add`
+  instead of a GOT load, and their types are local statics. clang emits
+  such a class only with code in its TU that uses it, such as its derived
+  constructor.
+- `Unk_24284d0`'s constructor (`0x710126ab20`) gives the same instructions
+  in another order (the hash constant comes before the vptr stores). It's
+  named, not defined.
+- The classes on `Unk_241b640`: the base is abstract, so its D0 thunks are
+  traps while a derived class's are copies of the D2, and
+  `derive_external`'s inline-destructor thunk check refuses them all. Most
+  sit on three classes in between, which override `vf_type`.
+- On `Unk_239a4c0`, about 170 classes have D2s that destroy more than
+  references. The large groups are on intermediate classes: 22 tail-call
+  `Unk_23f5d00`'s D2 (`0x7100ead240`), and groups of 6, 4 and 3 share one
+  D2. `Unk_2398c40`'s D2 holds owned objects with allocator deleters, and
+  about 12 classes have a second interface at +0x58.
+
+### Batch 19: tail-called destructors written out
+
+A full trial on master after #70-#72 (`write` with every candidate) matched
+138 more functions. None of those completes a class, so there was nothing
+to keep. The classes' other functions are BAD in two ways:
+
+- **D2s inlined into the thunks** (9 classes on out-of-line bases, with D2s
+  of 204-324 bytes). The original's D0 and thunks tail-call the D2. An
+  implicit destructor is inline-hinted: clang's threshold is 325 instead of
+  250, and these D2s cost between the two. So a class whose D0 tail-calls
+  its D2 (the "called" form of Batch 9) now gets its destructor written
+  out, as in Batch 18 (`explicit_dtor`). That added the declaration and the
+  definition to the 21 such classes that matched already. Their D2s cost
+  more than 325, so the code is the same.
+- **Thunks 4 bytes too long** (40, 14 classes, mostly on `Unk_23f4660`).
+  The thunk's form depends on what lies at `sizeof(X) - 0x48` and
+  `- 0x50` (`tail_padding_start`). For these small classes that's inside
+  the base: in `Unk_23f4660`'s `field_100` (`Unk_23f4760`), whose tail is
+  bytes. Classes of the same visible size there need different forms, so
+  their sizes differ by fields their D2s don't touch. Making the base's
+  tail scalar broke other classes before (Batch 10), so these stay.
+
+9 classes match, 4 on `Unk_23f43c8`, 3 on `Unk_23f4660`, 1 on `Unk_23f4e40` and
+1 on `Unk_24034f8`, all with D2s that their D0 and thunks tail-call: 65
+functions (check.py: 29,119 matching, 107 not matching).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1129,9 +1209,9 @@ Larger shapes have their own blockers:
 - 16-byte values returned in `x0`:`x1`;
 - functions that read a field after storing to it.
 
-## Handoff (2026-11-17)
+## Handoff (2026-11-17, updated 2026-11-18)
 
-State after #72: check.py reports 28,930 matching and 107 not matching, in
+State after #73: check.py reports 29,119 matching and 107 not matching, in
 both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
@@ -1183,33 +1263,67 @@ Other pitfalls:
 - Each PR is two commits, the tool change and then the generated sources
   with the CSVs and docs. PRs land with `gh pr merge --rebase`.
 
-### Next steps, by expected yield
+### Next steps, by expected yield (2026-11-18)
 
-1. ~~**check.py: check unrecorded placeholder vtables.**~~ Done: in
-   Sword, a reference to an unrecorded `_ZTV<n>Unk_<hex>` must reach
-   `0x71<hex>` when that's a data address (some hand-written classes are
-   named after a function). With all 358 recorded rows removed, every
-   reference still matched in Sword, and `--record-data` recorded them again
-   at the same addresses.
-2. **More destructor members on the object** (`ref_members`, Batch 6
-   paragraph). In the object's family (slots 2-5 are the object's), 1,578
-   classes have a D2 of their own: 30 have one reference member (20
-   written). Those that release references and then tail-call a
-   hand-written base's D2 are Batch 9 (100 written; `Unk_23f4e40` is
-   hand-written now), and `Unk_23f4660` is Batch 10. Next:
-   `0x7100978cf0` (16 classes share its D2, 12 tail-call it) and
-   `0x7100c69450` (12 + 20), which derives from it; both are on
-   `Unk_23c1a68` (`0x7100978f50`: two references, two vectors of owning
-   pointers, two light events). Then `0x7100ac70e0` (11 + 7). Other D2s
-   release several kinds of members, so generalise `ref_dtor_pattern`
-   member by member.
-3. **The 20 other tail-shaped getter owners** (`b <getter>` in their type
-   slots, getters still forwarder callees `_Z..Unk_<addr>Pv`). They wait
-   for item 2, because their destructors release members. Once written,
-   the classes on them follow the way #53's did.
-4. **The 57 inline-shape classes** of the object family. They need a key
-   function write can define, so at least one bigger member decompiled.
-5. Beyond the generators: the thunks, forwarders and copy operations in the
-   table above wait for their targets. From here, most progress is
-   decompiling bigger functions by hand, starting with the class families
-   in `game/unk_bba3d0` (Batch 6).
+The 2026-11-17 list is done as far as the generators go (Batches 9-19 and
+the bases of #62-#71). What's left, roughly by yield:
+
+1. **More hand-written bases.** Each unlocks the classes that share or
+   tail-call its D2. `tools/vtables.py show` on a D2's vtable and a census
+   of the D2s that tail-call each base D2 find them. The larger groups left:
+   - on `Unk_239a4c0`: `0x7101122e70` (6 classes share it), `0x7100d3a2b0`
+     (4), `0x7101212a90` (3), `Unk_23da950`'s `0x7100c277c0` (3; it inlines
+     `Unk_239a418::vf5` for the reference at +0x100), and `Unk_2398c40`
+     (owned objects with allocator deleters);
+   - on the object: the groups of 6 or fewer from the #62 survey.
+   YEBIS (`0x71004bf6a0`, 75 classes) and NEX/Pia (`0x710165baa0`, 52) have
+   bigger groups, but they're libraries with RTTI: their classes have real
+   names, and `vtables.py` doesn't write library classes.
+2. **More classes with an interface.** Batch 16 wrote 62 classes on the
+   object with an interface at `+0x60`. Left: those whose D2s release other
+   members than references, those with other type shapes, interfaces at
+   other offsets (after a bigger base or members), and about 12 classes on
+   `Unk_239a4c0` with a second interface at `+0x58`.
+3. **The classes on the newest bases.** On `Unk_241b640` the base is
+   abstract (its D0 thunks are traps, a derived class's are copies of the
+   D2) and most classes sit on three classes in between. `Unk_24284d0`'s
+   classes have internal linkage (anonymous namespace, `adrp`+`add`
+   vptrs, local-static types): `write` would need anonymous namespaces, and
+   they're emitted only with their constructors' TUs. On `Unk_23dc940`, 7
+   tail-shaped classes have a class between them and the base. On
+   `Unk_239bd80`, the classes' getters call `Unk_239bd80::Unk_GetType`'s
+   copy, which loads the base's own getter's statics after `Unk_239bb58`'s
+   (`base_type_statics` should follow a base `vf_type` that calls its
+   parent's getter out of line).
+4. **More member kinds in D2s** (`ref_members`, `tail_members`,
+   `ref_members_empty`): members that are themselves objects (a second
+   object D2 inline), callables first, out-of-line member destructors
+   (`add x0, x19, #N ; bl T`), owned objects with deleters, polymorphic
+   members whose vptr the D2 stores (`Unk_23f5d00`'s +0x60). Each needs its
+   idiom read the way `tail_members` reads references and callables.
+5. **Getter copies alone in their files.** 20 classes on `Unk_23f4e40` call
+   its getter's copy out of line, and in 14 segments they're alone: their
+   TUs had other callers (type checks in bigger functions). They match once
+   one of those functions is decompiled into the same file.
+6. **Address-taken leaf functions.** The copy operations of type-erased
+   callables (`ldr x8, [x0] ; str x8, [x1] ; ret`, 2,703, plus 281 and 107
+   variants) and 1,915 unreferenced `ret`s are refused only by
+   `leafgen.py`'s `reference_kind == "call"` filter. As placeholders they'd
+   add about 3,000-5,000 matches, but their real names come from templates
+   and enclosing functions nobody has decompiled. That's the maintainer's
+   call, so it wasn't done.
+7. **The 107 that don't match:** libcurl and the generated protobuf
+   initialisers, each its own investigation.
+
+How the parallel work went (#62-#71): one agent per hand-written base
+family, each in a worktree of its own (`isolation: worktree`), its PR
+adding its `EXTERNAL_BASES` entries at its own place in the tuple and
+regenerating with `write --only <empty>`. The generator batches for the
+derived classes ran in one checkout only, after the bases merged. Rebasing
+a base PR onto a newer master conflicts in `data/data_symbols.csv` (both
+sides add rows: keep both, sorted by address) and, when two PRs grow the
+same idea, in `vtables.py` (#71 and #72 both added an out-of-line
+destructor as a key function; merged into `explicit_dtor`). After a
+rebase, `write --only <empty>` must leave the generated files unchanged (or
+change only what the merge changed) and check.py report master's count
+plus the PR's.

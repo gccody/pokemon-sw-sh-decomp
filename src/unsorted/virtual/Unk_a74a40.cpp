@@ -13,6 +13,7 @@ public:
         return &type;
     }
 
+    ~Unk_23c6218() override;
     const Unk_239a418_Type* vf_type() override;
     u32 vf7() override;
     void vf8() override;
@@ -51,6 +52,9 @@ PKMN_OFFSET_ASSERT(Unk_23c6218, field_350, 0x350);
 PKMN_OFFSET_ASSERT(Unk_23c6218, field_378, 0x378);
 PKMN_OFFSET_ASSERT(Unk_23c6218, field_380, 0x380);
 PKMN_OFFSET_ASSERT(Unk_23c6218, field_3a0, 0x3a0);
+
+// 0x7100a74a40: its key function
+Unk_23c6218::~Unk_23c6218() {}
 
 // 0x7100a74c10
 u32 Unk_23c6218::vf7() {

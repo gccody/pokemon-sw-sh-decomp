@@ -6,7 +6,6 @@
 #include "gflib3/Unk_239a4c0.h"
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_141ea90(void* self);
 void Unk_1425a50(void* self);
 void Unk_1429f10(void* self);
 void Unk_142c700(void* self);
@@ -177,58 +176,6 @@ void Unk_24390a0::vf0() {}
 
 // 0x710141a480
 void Unk_24390a0::vf1() {}
-
-class Unk_2439200 {
-public:
-    virtual ~Unk_2439200();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15();
-    virtual void vf16();
-};
-
-// 0x710141ea20
-void Unk_2439200::vf6() {
-    Unk_141ea90(this);
-}
-
-class Unk_2439298 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x710141ea50
-void Unk_2439298::vf5() {
-    Unk_141ea90(this);
-}
-
-class Unk_24392d8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x710141ea60
-void Unk_24392d8::vf0() {
-    Unk_141ea90(this);
-}
 
 class Unk_2439400 : public Unk_239a4c0 {
 public:
