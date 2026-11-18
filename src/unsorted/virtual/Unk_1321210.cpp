@@ -3,35 +3,21 @@
 // Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
+#include "unsorted/Unk_23f4660.h"
 
-// Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_1321580(void* self);
-void Unk_1323280(void* self);
-
-class Unk_242fed0 {
+class Unk_242fed0 : public Unk_23f4660 {
 public:
-    virtual ~Unk_242fed0();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15();
-    virtual u32 vf16();
-};
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23f4660::Unk_GetType());
+        return &type;
+    }
 
-// 0x7101321510
-void Unk_242fed0::vf6() {
-    Unk_1321580(this);
-}
+    const Unk_239a418_Type* vf_type() override;
+    void vf8() override;
+    void vf10() override;
+    void vf15() override;
+    u32 vf16() override;
+};
 
 // 0x7101321210
 void Unk_242fed0::vf8() {}
@@ -44,79 +30,7 @@ u32 Unk_242fed0::vf16() {
     return 0;
 }
 
-class Unk_242ff68 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7101321540
-void Unk_242ff68::vf5() {
-    Unk_1321580(this);
-}
-
-class Unk_242ffa8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7101321550
-void Unk_242ffa8::vf0() {
-    Unk_1321580(this);
-}
-
-class Unk_242ffd0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-};
-
-// 0x7101322e50
-void Unk_242ffd0::vf6() {
-    Unk_1323280(this);
-}
-
-// 0x7101322a90
-void Unk_242ffd0::vf9() {}
-
-class Unk_2430038 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7101323060
-void Unk_2430038::vf5() {
-    Unk_1323280(this);
-}
-
-class Unk_2430078 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7101323070
-void Unk_2430078::vf0() {
-    Unk_1323280(this);
+// 0x7101321510; its type 0x7101321580
+const Unk_239a418_Type* Unk_242fed0::vf_type() {
+    return Unk_GetType();
 }

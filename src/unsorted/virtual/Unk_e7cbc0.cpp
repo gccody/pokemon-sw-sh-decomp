@@ -4,9 +4,6 @@
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
 
-// Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_e81640(void* self);
-
 class Unk_23aa1b8 {
 public:
     virtual void vf0();
@@ -188,103 +185,6 @@ public:
 // 0x7100e7cc60
 void Unk_23a7e78::vf23() {}
 
-class Unk_23a8bd8 {
-public:
-    virtual ~Unk_23a8bd8();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual u32 vf7();
-    virtual void vf8();
-    virtual u32 vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15();
-    virtual u32 vf16();
-    u8 _8[0x4b8];
-    u64 field_4c0;
-};
-PKMN_OFFSET_ASSERT(Unk_23a8bd8, field_4c0, 0x4c0);
-
-// 0x7100e7f510
-u32 Unk_23a8bd8::vf7() {
-    return 1;
-}
-
-// 0x7100e7f530
-u32 Unk_23a8bd8::vf9() {
-    return 1;
-}
-
-// 0x7100e7f550
-void Unk_23a8bd8::vf12() {}
-
-// 0x7100e7f560
-void Unk_23a8bd8::vf13() {}
-
-// 0x7100e81250
-void Unk_23a8bd8::vf14() {}
-
-// 0x7100e7f590
-u32 Unk_23a8bd8::vf16() {
-    return 1;
-}
-
-class Unk_23bd4b8 {
-public:
-    virtual ~Unk_23bd4b8();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15();
-    virtual void vf16();
-};
-
-// 0x7100e7f520
-void Unk_23bd4b8::vf8() {}
-
-class Unk_23a9048 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15();
-    virtual void vf16();
-    u8 _8[0x4b8];
-    u64 field_4c0;
-};
-PKMN_OFFSET_ASSERT(Unk_23a9048, field_4c0, 0x4c0);
-
-// 0x7100e7f540
-void Unk_23a9048::vf11() {}
-
 class Unk_23f4560 {
 public:
     virtual ~Unk_23f4560();
@@ -307,84 +207,6 @@ public:
 
 // 0x7100e7f570
 void Unk_23f4560::vf14() {}
-
-class Unk_23a8f48 {
-public:
-    virtual ~Unk_23a8f48();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15();
-    virtual void vf16();
-};
-
-// 0x7100e81220
-void Unk_23a8f48::vf10() {}
-
-// 0x7100e7f580
-void Unk_23a8f48::vf15() {}
-
-class Unk_23f4660 {
-public:
-    virtual ~Unk_23f4660();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15();
-    virtual void vf16();
-};
-
-// 0x7100e81240
-void Unk_23f4660::vf6() {
-    Unk_e81640(this);
-}
-
-class Unk_23f46f8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100e81260
-void Unk_23f46f8::vf5() {
-    Unk_e81640(this);
-}
-
-class Unk_23f4738 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100e81270
-void Unk_23f4738::vf0() {
-    Unk_e81640(this);
-}
 
 class Unk_23f47c0 {
 public:

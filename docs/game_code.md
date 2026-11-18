@@ -827,6 +827,56 @@ byte array here and on a field there: in the padding write declares
 whose size isn't known (fields after its last member). Scalar padding
 would fix the first, but it changes every generated class with fields.
 
+### Batch 10: `Unk_23f4660`
+
+The biggest base left after Batch 9: 50 classes share its D2
+(`0x7100e7feb0`, 552 bytes) and 71 tail-call it from their own. It is
+written by hand (`src/unsorted/Unk_23f4660.h`, `Unk_e7feb0.cpp`), and
+its D2 needed every member it destroys, in order:
+
+- a reference (`+0x5c0`);
+- the object it owns (`+0x5a0`), a libc++ `std::unique_ptr` with a
+  deleter that destroys it and gives its memory back to an allocator
+  (`Unk_23f4660_Deleter`: allocator, size, alignment at `+0x5a8`). Its
+  class (vtable `0x71023f47c0`, which has no destructor slots, so the
+  deleter's destructor call is direct) has two references and a libc++
+  `std::vector` of them, whose allocator frees through
+  `Unk_239a418_Allocator::vf3(p, bytes, 8)` (`Unk_23f4660_Allocator`);
+- a 0x4a0-byte member with a virtual destructor of its own, out of line
+  (`Unk_23f4760`, `0x7100e800e0`). The D2 calls its D1, which check.py
+  now resolves to the D2 row when nothing here compiles it
+  (`base_structor`): the two are one function unless the class has
+  virtual bases, and then the addresses differ and the call fails;
+- two 0x30-byte names (`+0x78`, `+0xa8`, `Unk_23f4660_Name`): two
+  references, the 64-bit FNV-1a hash of a string and the string. Their
+  destructor resets them: it releases the first reference if `+0x18` is
+  set, then stores the hash of `""` and `""`, and releases the second. The
+  references are plain pointers: a destructor of their own would release
+  the first a second time after the second's virtual call;
+- a reference (`+0x70`), then the object's D2 inlined.
+
+Its slots 7-16 are inline in the class except `vf10`: they were emitted
+with a derived class's vtable in the TU before (`0x7100e7f510`-
+`0x7100e7f590`), so the owner heuristic had given them to derived
+classes, and they are renamed. Its type getter has two copies: the one
+other TUs call (`0x7100e7f6c0`, `Unk_23f4660::Unk_GetType`, inline in the
+class) and one only its own TU calls (`0x7100e81640`), which `vf_type`
+and its thunks tail-call. Written as a function of its own, in a file of
+its own (`Unk_e81640`), `vf_type` matches; with the getter inline in the
+same TU, clang inlines it into `vf_type`.
+
+With it, `vtables.py` writes 54 classes on it (`EXTERNAL_BASES`): 43 share
+its D2 and 11 release 1 to 5 references first (Batch 9's shape). All their
+functions match in both games: 342 new, the base's 7 (its D2, D0, four
+destructor thunks and `Unk_e81640`) and 335 of the classes on it. Its
+`vf_type`, the thunks of that and its slots 7-16 were matched forwarders
+and members of other classes before, and are renamed. check.py: 27,288
+matching (26,946 before), 107 not matching.
+
+Left out: 12 classes on it whose thunks differ (the offset lands in
+`Unk_23f4760`'s bytes), and the other classes that tail-call its D2,
+which destroy other kinds of members.
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -852,7 +902,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17)
 
-State after #56: check.py reports 26,946 matching and 107 not matching, in
+State after #57: check.py reports 27,288 matching and 107 not matching, in
 both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
@@ -917,18 +967,13 @@ Other pitfalls:
    classes have a D2 of their own: 30 have one reference member (20
    written). Those that release references and then tail-call a
    hand-written base's D2 are Batch 9 (100 written; `Unk_23f4e40` is
-   hand-written now). The biggest base left is `Unk_23f4660` (D2
-   `0x7100e7feb0`, 552 bytes): 50 classes share its D2 and 71 tail-call
-   it. Its D2 destroys a reference (`+0x5c0`), a `unique_ptr` with an
-   allocator deleter (`+0x5a0`; the object it owns has a libc++-style
-   vector of references with an allocator, `{begin, end, capacity,
-   allocator}`, freed with `allocator->vf3(begin, capacity - begin, 8)`),
-   a 0x4a0-byte member with an out-of-line destructor (`+0x100`,
-   `0x7100e800e0`), two 0x30-byte hashed-name handles (`+0x78`, `+0xa8`,
-   reset to the FNV-1a hash of `""`) and a reference (`+0x70`). Then
-   `0x7100978cf0` (16 + 12 classes), `0x7100c69450` (12 + 20) and
-   `0x7100ac70e0` (11 + 7). Other D2s release several kinds of members,
-   so generalise `ref_dtor_pattern` member by member.
+   hand-written now), and `Unk_23f4660` is Batch 10. Next:
+   `0x7100978cf0` (16 classes share its D2, 12 tail-call it) and
+   `0x7100c69450` (12 + 20), which derives from it; both are on
+   `Unk_23c1a68` (`0x7100978f50`: two references, two vectors of owning
+   pointers, two light events). Then `0x7100ac70e0` (11 + 7). Other D2s
+   release several kinds of members, so generalise `ref_dtor_pattern`
+   member by member.
 3. **The 20 other tail-shaped getter owners** (`b <getter>` in their type
    slots, getters still forwarder callees `_Z..Unk_<addr>Pv`). They wait
    for item 2, because their destructors release members. Once written,

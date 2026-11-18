@@ -5,11 +5,15 @@
 #include <types.h>
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_1262bc0(void* self);
+void Unk_7aaf50(void* self);
 
-class Unk_2427e68 {
+// Tail-called by lifted functions. Placeholders, like the forwarders' callees.
+void Unk_1500c40(u64);
+
+class Unk_23a9048 {
 public:
-    virtual ~Unk_2427e68();
+    virtual void vf0();
+    virtual void vf1();
     virtual void vf2();
     virtual void vf3();
     virtual void vf4();
@@ -25,14 +29,24 @@ public:
     virtual void vf14();
     virtual void vf15();
     virtual void vf16();
+    u8 _8[0x4b8];
+    u64 field_4c0;
 };
+PKMN_OFFSET_ASSERT(Unk_23a9048, field_4c0, 0x4c0);
 
-// 0x7101262b50
-void Unk_2427e68::vf6() {
-    Unk_1262bc0(this);
+// 0x71007aada0
+void Unk_23a9048::vf6() {
+    Unk_7aaf50(this);
 }
 
-class Unk_2427f00 {
+// 0x71007aa230
+void Unk_23a9048::vf10() {
+    if (field_4c0 != 0) {
+        Unk_1500c40(field_4c0);
+    }
+}
+
+class Unk_23a90e0 {
 public:
     virtual void vf0();
     virtual void vf1();
@@ -42,19 +56,19 @@ public:
     virtual void vf5();
 };
 
-// 0x7101262b80
-void Unk_2427f00::vf5() {
-    Unk_1262bc0(this);
+// 0x71007aae70
+void Unk_23a90e0::vf5() {
+    Unk_7aaf50(this);
 }
 
-class Unk_2427f40 {
+class Unk_23a9120 {
 public:
     virtual void vf0();
     virtual void vf1();
     virtual void vf2();
 };
 
-// 0x7101262b90
-void Unk_2427f40::vf0() {
-    Unk_1262bc0(this);
+// 0x71007aae80
+void Unk_23a9120::vf0() {
+    Unk_7aaf50(this);
 }

@@ -4,10 +4,6 @@
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
 
-// Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_14d39f0(void* self);
-void Unk_14d4880(void* self);
-
 class Unk_24432a8_Obj {
 public:
     virtual void vf0();
@@ -212,111 +208,6 @@ void* Unk_2443680::vf2(u64 index) {
 void Unk_2443680::vf3(u64 index) {
     if (Unk_2443680_Obj* obj = m_entries[index].field_8)
         obj->vf16(m_entries[index].field_10);
-}
-
-class Unk_2443818 {
-public:
-    virtual ~Unk_2443818();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15();
-    virtual void vf16();
-};
-
-// 0x71014d3980
-void Unk_2443818::vf6() {
-    Unk_14d39f0(this);
-}
-
-class Unk_24438b0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x71014d39b0
-void Unk_24438b0::vf5() {
-    Unk_14d39f0(this);
-}
-
-class Unk_24438f0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x71014d39c0
-void Unk_24438f0::vf0() {
-    Unk_14d39f0(this);
-}
-
-class Unk_2443918 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15();
-    virtual void vf16();
-};
-
-// 0x71014d4610
-void Unk_2443918::vf6() {
-    Unk_14d4880(this);
-}
-
-class Unk_24439b0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x71014d4740
-void Unk_24439b0::vf5() {
-    Unk_14d4880(this);
-}
-
-class Unk_24439f0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x71014d4750
-void Unk_24439f0::vf0() {
-    Unk_14d4880(this);
 }
 
 class Unk_2443f98 {
