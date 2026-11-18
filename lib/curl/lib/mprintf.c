@@ -1153,7 +1153,11 @@ int curl_mfprintf(FILE *whereto, const char *format, ...)
   int retcode;
   va_list ap_save; /* argument pointer */
   va_start(ap_save, format);
+#if 1 /* Pokemon SwSh decomp: Nintendo's SDK build, Sword 0x7101759270 */
+  retcode = vfprintf(whereto, format, ap_save);
+#else
   retcode = dprintf_formatf(whereto, fputc, format, ap_save);
+#endif
   va_end(ap_save);
   return retcode;
 }

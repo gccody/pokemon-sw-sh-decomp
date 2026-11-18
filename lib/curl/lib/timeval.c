@@ -22,7 +22,18 @@
 
 #include "timeval.h"
 
-#if defined(WIN32) && !defined(MSDOS)
+#if 1 /* Pokemon SwSh decomp: Nintendo's SDK build */
+
+/* Nintendo's time source, from nn::os ticks (Sword 0x7101778700,
+   lib/curl/nintendo/Unk_17786c0.c) */
+struct curltime Unk_1778700(struct curltime *t);
+
+struct curltime curlx_tvnow(void)
+{
+  return Unk_1778700(NULL);
+}
+
+#elif defined(WIN32) && !defined(MSDOS)
 
 struct curltime curlx_tvnow(void)
 {
