@@ -1008,3 +1008,87 @@ def test_tail_called_destructor_is_written_out():
     assert spec.order == [2] and not spec.explicit_dtor
     decl, names, defs = V.render_class(m, spec)
     assert "~" not in decl and "::~" not in defs
+
+
+def test_tail_members_with_two_vptrs():
+    """On a base with one secondary vtable (+0x48), a D2 that stores two vptrs
+    and releases a reference (+0x198) before it tail-calls its base's D2
+    (0x600); or that is only that tail call (an out-of-line destructor with
+    nothing to do: clang skips the vptr stores): no members."""
+    words = [0xF81E0FF3, 0xA9017BFD, 0x910043FD,                # str x19, [sp, #-0x20]! ; stp x29, x30 ; add x29
+             0xB0000008, 0xF9400908,                            # adrp x8 ; ldr x8, [x8, #0x10]: the vtable
+             0x91004109, 0x91014108, 0xAA0003F3,                # add x9, x8, #0x10 ; add x8, x8, #0x50 ; mov x19, x0
+             0xF9000009, 0xF9002408]                            # str x9, [x0] ; str x8, [x0, #0x48]
+    words += [0xF9400000 | (0x198 // 8) << 10, 0xB40000A0, 0xF8448C08, 0xF9400D08, 0xD63F0100,
+              0xF900027F | (0x198 // 8) << 10]                  # the reference
+    words += [0xA9417BFD, 0xAA1303E0, 0xF84207F3]               # ldp x29, x30 ; mov x0, x19 ; ldr x19, [sp], #0x20
+    words.append(b(0x200 + 4 * len(words), 0x600))
+    img = bytearray(0x1100)
+    struct.pack_into(f"<{len(words)}I", img, 0x200, *words)
+    struct.pack_into("<I", img, 0x300, b(0x300, 0x600))
+    sizes = {0x200: 4 * len(words), 0x300: 4}
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), [], [], sizes, {}, {}, lambda a: "game", DELETE,
+                {0x1010: 0x3000})
+    assert V.tail_members(m, 0x200, 0x600, 0x3000, 0x180, 2) == {0x198: V.REF}
+    assert V.tail_members(m, 0x200, 0x600, 0x3000, 0x180) is None          # three vptrs aren't these
+    assert V.tail_members(m, 0x200, 0x600, 0x3000, 0x1a0, 2) is None       # +0x198 is the base's
+    assert V.tail_members(m, 0x200, 0x600, 0x3000, 0x180, 4) is None
+    assert V.tail_members(m, 0x300, 0x600, 0x3000, 0x180, 2) == {}
+    assert V.tail_members(m, 0x300, 0x600, 0x3000, 0x180) == {}
+    assert V.tail_members(m, 0x300, 0x700, 0x3000, 0x180, 2) is None       # another base's D2
+
+
+def test_derived_from_an_out_of_line_base_with_one_interface():
+    """A class Z on a hand-written base without types whose D2 is out of line
+    (0x100, its D0 and thunks tail-call it), with one interface at +0x48. Z
+    has nothing to destroy, but a D2 of its own, `b <the base's D2>`: its
+    destructor is out of line (so clang can't alias it) and empty (so it
+    stores no vptrs). Its D0 and its thunks tail-call the base's D2 too. Its
+    destructor is written out as its key function, and its slot 5 is declared
+    as the base declares it."""
+    img = bytearray(0x2000)
+    sub = 0xD1012000                                                   # sub x0, x0, #0x48
+    code = {0x100: [0xAA0003E8, RET], 0x110: [b(0x110, 0x100)], 0x120: [0xAA0003E9, RET],    # E
+            0x130: [0xAA0003EA, RET], 0x140: [0xAA0003EB, RET], 0x150: [0x90000000, 0x91000000, RET],
+            0x160: [sub, b(0x164, 0x100)], 0x170: [sub, b(0x174, 0x100)],
+            0x180: [0xAA0003EC, RET], 0x190: [0xAA0003ED, RET],
+            0x300: [b(0x300, 0x100)], 0x350: [b(0x350, 0x100)], 0x380: [0x90000000, 0x91004000, RET],  # Z
+            0x400: [sub, b(0x404, 0x100)], 0x450: [sub, b(0x454, 0x100)]}
+    for a, w in code.items():
+        struct.pack_into(f"<{len(w)}I", img, a, *w)
+    slots = {}
+
+    def vt(start, ott, fns):
+        struct.pack_into("<q", img, start, ott)
+        for i, f in enumerate(fns):
+            slots[start + 16 + 8 * i] = f
+        return start + 16 + 8 * len(fns)
+
+    end = vt(0x1000, 0, [0x100, 0x110, 0x120, 0x130, 0x140, 0x150])   # E
+    end = vt(end, -0x48, [0x160, 0x170, 0x180, 0x190])                # E at +0x48
+    z_start = end
+    end = vt(end, 0, [0x300, 0x350, 0x120, 0x130, 0x140, 0x380])      # Z
+    vt(end, -0x48, [0x400, 0x450, 0x180, 0x190])
+    sizes = {a: 4 * len(w) for a, w in code.items()}
+    vts, tables = V.find_vtables(bytes(img), slots, set(code), DATA, len(img))
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), vts, tables, sizes, {}, {}, lambda a: "game", DELETE)
+    e = V.ExternalBase(vts[0].addr, "Unk_E", "unsorted/Unk_E.h", ((2, "void", "vf2"), (3, "void", "vf3"),
+                       (4, "void", "vf4"), (5, "u8*", "vf5")), None, "", ((0x48, (0, 1), None),), size=0x180)
+    z = next(v for v in vts if v.start == z_start)
+    specs = {}
+    V.derive_external(m, e, specs, {}, V.owners(vts), lambda f: 0, lambda f: True, lambda t: True)
+    spec = specs[z.addr]
+    assert spec.ext is e and spec.order == [5] and spec.explicit_dtor and not spec.fields
+    decl, names, defs = V.render_class(m, spec)
+    assert decl == f"class {spec.name} : public Unk_E {{\npublic:\n    ~{spec.name}() override;\n" \
+                   f"    u8* vf5() override;\n}};\n"
+    assert f"// 0x7100000300: its key function\n{spec.name}::~{spec.name}() {{}}" in defs
+    cls = f"{len(spec.name)}{spec.name}"
+    assert sorted(names) == [(0x300, f"_ZN{cls}D2Ev"), (0x350, f"_ZN{cls}D0Ev"), (0x400, f"_ZThn72_N{cls}D1Ev"),
+                             (0x450, f"_ZThn72_N{cls}D0Ev")]
+    # A D0 that tail-calls its own D2 isn't this shape: Z isn't written.
+    struct.pack_into("<I", img, 0x350, b(0x350, 0x300))
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), vts, tables, sizes, {}, {}, lambda a: "game", DELETE)
+    specs = {}
+    V.derive_external(m, e, specs, {}, V.owners(vts), lambda f: 0, lambda f: True, lambda t: True)
+    assert z.addr not in specs
