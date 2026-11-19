@@ -306,6 +306,7 @@ class Lifted:
     guard_kind: str = ""      # the first guard's mnemonic
     split: tuple | None = None  # two_paths: the branch the path didn't take, as a guard (value, nonzero)
     split_seq: int = 0        # the events before it
+    splits: list = field(default_factory=list)  # decision_tree: per branch on the path, (guard or None, seq)
     vcall: tuple | None = None  # a final virtual tail call through REF_IFACE: (object, slot)
     calls: list = field(default_factory=list)  # Call, in order: a function with a frame
     ret_width: dict = field(default_factory=dict)  # call index -> widest read of its result (4: w0, 8: x0)
@@ -396,7 +397,8 @@ def guard_shape(insns: list[tuple[str, list[str]]], addr: int | None) -> tuple[i
     return tuple(ks), path, zero
 
 
-def lift(code: bytes, addr: int | None = None, path: list | None = None, split: int | None = None) -> Lifted:
+def lift(code: bytes, addr: int | None = None, path: list | None = None, split: int | None = None,
+         splits: dict | None = None) -> Lifted:
     """Symbolically execute a straight-line leaf function (see the module docstring).
 
     With `addr`, the function may end in a tail call (`b T`) instead of `ret`:
@@ -521,6 +523,10 @@ def lift(code: bytes, addr: int | None = None, path: list | None = None, split: 
         if idx == split:
             out.split = guard_value(mn, ops)  # this path runs on if split's value is nonzero (or zero)
             out.split_seq = out.stores_done
+            continue
+        if splits is not None and idx in splits:
+            # a branch of decision_tree's: taken (no condition kept) or not (the condition it runs under)
+            out.splits.append((None if splits[idx] else guard_value(mn, ops), out.stores_done))
             continue
         if k is not None and idx in k[1:]:
             out.more_guards.append((*guard_value(mn, ops), out.stores_done))
@@ -1690,7 +1696,7 @@ def generate(addr: int, code: bytes) -> tuple[str, str]:
     try:
         return generate_one(addr, code)
     except LiftError:
-        two = two_paths(addr, code)
+        two = two_paths(addr, code) or decision_tree(addr, code)
         if two is None:
             raise
         return two
@@ -1781,6 +1787,112 @@ def two_paths(addr: int, code: bytes) -> tuple[str, str] | None:
         structs = s_t.rstrip("\n").split("\n") if s_t else []
         structs += [x for x in (s_f.rstrip("\n").split("\n") if s_f else []) if x not in structs and x]
         return "\n".join(structs) + ("\n" if structs else ""), sig_t + "\n" + "\n".join(body) + "\n}\n"
+    except (LiftError, ValueError, KeyError, IndexError, StopIteration):
+        return None
+
+
+def _paths(insns: list, addr: int, limit: int = 16) -> list[tuple[list, dict]]:
+    """Every path through a function whose branches all go forward: (its
+    instructions, {index of a branch in them: taken}). An unconditional `b`
+    inside the function is followed; one out of it is a tail call."""
+    n = len(insns)
+    out: list[tuple[list, dict]] = []
+
+    def walk(i: int, acc: list, splits: dict) -> None:
+        if len(out) > limit:
+            raise LiftError("too many paths")
+        while i < n:
+            mn, ops = insns[i]
+            if mn in GUARDS:
+                t = (_imm(ops[-1]) - addr) // 4
+                if not i < t < n:
+                    raise LiftError("a branch back or out")
+                walk(i + 1, acc + [insns[i]], {**splits, len(acc): False})
+                walk(t, acc + [insns[i]], {**splits, len(acc): True})
+                return
+            if mn == "b":
+                t = (_imm(ops[0]) - addr) // 4
+                if i < t < n:
+                    i = t
+                    continue
+                if 0 <= t <= i:
+                    raise LiftError("a loop")
+            acc = acc + [insns[i]]
+            if mn in ("ret", "br", "b"):
+                out.append((acc, splits))
+                return
+            i += 1
+        raise LiftError("falls off the end")
+
+    walk(0, [], {})
+    return out
+
+
+def decision_tree(addr: int, code: bytes) -> tuple[str, str] | None:
+    """A function of several forward branches and no joins, as nested `if`s:
+    each path lifted on its own (two_paths, generalized), the code between two
+    branches the same on every path through it, every path ending in its own
+    return. None if it isn't that shape."""
+    try:
+        insns = disassemble(code, addr) if len(code) >= 4 and len(code) % 4 == 0 else []
+        paths = _paths(insns, addr)
+        if len(paths) < 2:
+            return None
+        lifted = [lift(b"", addr, path=acc, splits=sp) for acc, sp in paths]
+        shared = None
+        for _rnd in range(3):  # the first two learn the fields and arguments, the last renders them all
+            ems, conds, out = [], [], []
+            for lf in lifted:
+                e = Emitter(addr, lf)
+                base = shared or (ems[0] if ems else None)
+                if base is not None:
+                    e.structs, e.arg_types, e.fp_types = base.structs, base.arg_types, base.fp_types
+                    e.globals, e.tables, e.hidden = base.globals, base.tables, base.hidden
+                ems.append(e)
+                conds.append([e.guard_cond(v[0], v[1], True) if v is not None else None for v, _ in lf.splits])
+                out.append((Emitter.render_tail if lf.tail is not None else Emitter.render)(e))
+            shared = ems[0]
+        sigs, bodies = zip(*(_body(f) for _, f in out))
+        params = [x.split("(", 1)[1] for x in sigs]
+        if len({x.replace("const ", "") for x in params}) != 1:
+            raise LiftError("paths: other parameters")
+        param = min(params, key=lambda x: x.count("const "))
+        rts = [x.split(" Unk_")[0] for x in sigs]
+        if len(set(rts)) > 1:
+            if "void" in rts or any(r not in CALL_CODES for r in rts):
+                raise LiftError("paths: other return types")
+            rts = [r for r, lf in zip(rts, lifted) if not isinstance(lf.ret, Const)] or rts
+        if any(_LOCAL.match(x) for b in bodies for x in b):
+            raise LiftError("paths: locals")
+        # where each branch is in each path's lines
+        pos = [[sum(1 for q in lf.store_seq if q < seq) + sum(1 for c in lf.calls if c.seq < seq)
+                for _, seq in lf.splits] for lf in lifted]
+
+        def build(group: list[int], level: int, starts: dict[int, int]) -> list[str]:
+            ended = [i for i in group if len(lifted[i].splits) <= level]
+            if ended:
+                if len(group) != 1:
+                    raise LiftError("paths: one ends where another branches")
+                return list(bodies[group[0]][starts[group[0]]:])
+            segs = [bodies[i][starts[i]:pos[i][level]] for i in group]
+            if any(x != segs[0] for x in segs):
+                raise LiftError("paths: other code between two branches")
+            fall = [i for i in group if lifted[i].splits[level][0] is not None]
+            taken = [i for i in group if lifted[i].splits[level][0] is None]
+            if not fall or not taken:
+                raise LiftError("paths: a branch without two sides")
+            inner = build(fall, level + 1, {i: pos[i][level] for i in fall})
+            if not inner or not inner[-1].strip().startswith("return"):
+                inner = inner + ["    return;"]
+            rest = build(taken, level + 1, {i: pos[i][level] for i in taken})
+            return segs[0] + [f"    if ({conds[fall[0]][level]}) {{"] + ["    " + x for x in inner] + ["    }"] + rest
+
+        body = build(list(range(len(lifted))), 0, {i: 0 for i in range(len(lifted))})
+        sig = f"{rts[0]} Unk_{sigs[0].split(' Unk_', 1)[1].split('(', 1)[0]}({param}"
+        structs: list[str] = []
+        for st, _ in out:
+            structs += [x for x in (st.rstrip("\n").split("\n") if st else []) if x and x not in structs]
+        return "\n".join(structs) + ("\n" if structs else ""), sig + "\n" + "\n".join(body) + "\n}\n"
     except (LiftError, ValueError, KeyError, IndexError, StopIteration):
         return None
 

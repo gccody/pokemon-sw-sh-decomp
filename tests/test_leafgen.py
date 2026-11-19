@@ -285,8 +285,9 @@ def test_guarded_getter_returns_0_otherwise():
     ((cbz_x(1, 2), 0x14000000 | 0x40, 0x2A1F03E0, RET), "tail call"),   # 0, or what the tail call returns
 ])
 def test_guard_refused(words, why):
+    # one guard's shapes (two_paths and decision_tree may still take the function)
     with pytest.raises(leafgen.LiftError, match=why):
-        leafgen.generate(ADDR, code(*words))
+        leafgen.lift(code(*words), ADDR)
 
 
 def test_wide_constant():
@@ -470,3 +471,14 @@ def test_compare_with_an_extended_argument():
     which the caller needn't have extended."""
     _, func = leafgen.generate(ADDR, code(ldrb(8, 0, 0), 0x6B21011F, cset_w(0, "eq"), RET))
     assert func == "bool Unk_123450_check(const Unk_123450* self, u8 value) {\n    return self->field_0 == value;\n}\n"
+
+
+def test_decision_tree():
+    """cbz w1, L1 ; cbz w2, L2 ; str w1, [x0] ; ret ; L2: str w2, [x0, #4] ; ret ;
+    L1: str wzr, [x0, #8] ; ret: three paths, nested ifs."""
+    words = (0x340000C1, 0x34000062, str_w(1, 0, 0), RET, str_w(2, 0, 4), RET, str_w(31, 0, 8), RET)
+    _, func = leafgen.generate(ADDR, code(*words))
+    assert func == ("void Unk_123450_set(Unk_123450* self, u32 value, u32 arg2) {\n"
+                    "    if (value != 0) {\n        if (arg2 != 0) {\n            self->field_0 = value;\n"
+                    "            return;\n        }\n        self->field_4 = arg2;\n        return;\n    }\n"
+                    "    self->field_8 = 0;\n}\n")
