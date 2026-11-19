@@ -35,6 +35,49 @@ public:
         }
     }
 
+    // unlinks node, if it's in the list
+    void Remove(T node) {
+        T prev = node->m_pPrev;
+        T next = node->m_pNext;
+        if (prev != nullptr) {
+            if (next != nullptr) {
+                next->m_pPrev = prev;
+                prev->m_pNext = next;
+            } else {
+                if (m_pTail != node || m_pTail == nullptr) {
+                    return;
+                }
+                prev->m_pNext = nullptr;
+                m_pTail = prev;
+            }
+        } else {
+            if (m_pHead != node || m_pHead == nullptr) {
+                return;
+            }
+            if (next != nullptr) {
+                next->m_pPrev = nullptr;
+                m_pHead = next;
+            } else {
+                m_pHead = nullptr;
+                m_pTail = nullptr;
+            }
+        }
+        node->m_pPrev = nullptr;
+        node->m_pNext = nullptr;
+        m_count--;
+    }
+
+    void AddTail(T node) {
+        if (m_pHead != nullptr) {
+            m_pTail->m_pNext = node;
+            node->m_pPrev = m_pTail;
+        } else {
+            m_pHead = node;
+        }
+        m_pTail = node;
+        m_count++;
+    }
+
     void* field_8;
     T m_pHead;
     T m_pTail;

@@ -65,6 +65,18 @@ the original TU's other calls decide that), so they aren't instantiated yet.
 `SiDirectLinkedList<T*>` (`SiCore_LinkedList.h`) is intrusive: each element
 type has its own links, at its own offsets.
 
+`SiMap<K, V, Compare, 16>` (`SiCore_Map.h`) is a tree of nodes that know their
+map; the single-object delete (`Unk_4c25a0`, by value, a 64-bit line) stays
+out of line because a node's destructor deletes its children with it.
+
+`SiReflectionPropertyBase` (`SiCore_Reflection.h`) has two strings and the
+links of the list that holds it. Its derived templates
+(`SiReflectionProperty<T>`, `SiReflectionPropertyArrayReference<T>`) add only
+trivially destructible members, so clang replaces their destructors with the
+base's where they're implicitly instantiated (one function, 0x71004d0140, in
+all their vtables); the explicit instantiations here emit copies, listed in
+`data/absent_functions.csv`. Only their deleting destructors are their own.
+
 ## Reference counts
 
 Every SiSDK3 class (and PPFX's `SiYebisAllocator`) has its own copy of vtable
@@ -91,3 +103,11 @@ virtual function of a class whose vtable group's functions store
 `SiArray<T>`'s vtable at the same offset of `this` that it calls the instance
 on. 23 of the 47 copies of `Unk_4bf190` have such a caller; the other 24 are
 called only from functions of no known class.
+
+`SiPool<T, 16>` (`SiCore_Pool.h`) hands out T's from blocks (`DataArray`, the
+first one inside the pool) and keeps them in a free and a used list. Its
+destructor, deleting destructor and reset (slot 4) are written; its clear
+(slot 3, `Unk_4be7d0`) is only declared, since its loop keeps other base
+registers than the reconstruction, and its initialise and reserve (slots 2
+and 5) need the element types' constructors (the reserve constructs every new
+element in place).

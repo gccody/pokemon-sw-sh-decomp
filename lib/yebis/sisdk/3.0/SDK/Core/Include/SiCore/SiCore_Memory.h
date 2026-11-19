@@ -74,8 +74,20 @@ void Unk_56de40(ISiAllocator* allocator, T*& p, const char* file, long line) {
     p = nullptr;
 }
 
+// 0x71004c25a0 (a SiMap node): the single-object delete. Destroys the object,
+// then frees it.
+template <class T>
+void Unk_4c25a0(ISiAllocator* allocator, T* p, const char* file, long line) {
+    if (allocator == nullptr || p == nullptr) {
+        return;
+    }
+    p->~T();
+    allocator->vf9(p, file, line);
+}
+
 }  // namespace SiSDK3
 
+#define SI_DELETE(allocator, p) ::SiSDK3::Unk_4c25a0(allocator, p, __FILE__, __LINE__)
 #define SI_NEW_ARRAY(allocator, T, count, align) \
     static_cast<T*>((allocator)->vf8(sizeof(T), count, align, __FILE__, __LINE__))
 #define SI_DELETE_ARRAY(allocator, p) ::SiSDK3::Unk_56de40(allocator, p, __FILE__, __LINE__)

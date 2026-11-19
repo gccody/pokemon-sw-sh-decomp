@@ -2,6 +2,7 @@
 #pragma once
 
 #include "SiCore_Array.h"
+#include "SiCore_String.h"
 
 namespace SiSDK3 {
 
@@ -22,5 +23,51 @@ public:
     SiArray<SiReflectionPropertyHandle, 16> field_28;
 };
 PKMN_SIZE_ASSERT(SiReflectionPropertyHandle, 0x78);
+
+// A reflected property (RTTI: SiSDK3::SiReflectionPropertyBase), linked into a
+// SiDirectLinkedList<SiReflectionPropertyBase*> (m_pPrev, m_pNext), with two
+// strings. Its derived templates' destructors are its own (clang aliases them
+// to it): only their deleting destructors are theirs.
+class SiReflectionPropertyBase {
+public:
+    virtual ~SiReflectionPropertyBase() {}
+    virtual void* vf2() { return nullptr; }
+    virtual u32 vf3() { return 0; }
+    virtual u32 vf4() { return 0; }
+    virtual u32 vf5() { return 0; }
+    virtual u32 vf6() { return 0; }
+
+    SiReflectionPropertyBase* m_pPrev;
+    SiReflectionPropertyBase* m_pNext;
+    SiString<char> field_18;
+    u64 field_48;
+    SiString<char> field_50;
+};
+PKMN_SIZE_ASSERT(SiReflectionPropertyBase, 0x80);
+
+// A property of type T (RTTI: SiSDK3::SiReflectionProperty<T>): its T at
+// 0xb0 (SiReflectionProperty<SiString<char>>'s destructor destroys a string
+// there).
+template <class T>
+class SiReflectionProperty : public SiReflectionPropertyBase {
+public:
+    virtual ~SiReflectionProperty() {}
+
+    u8 field_80[0x30];
+    T field_b0;
+};
+
+// RTTI: SiSDK3::SiReflectionPropertyArrayReference<T>
+template <class T>
+class SiReflectionPropertyArrayReference : public SiReflectionPropertyBase {
+public:
+    virtual ~SiReflectionPropertyArrayReference() {}
+    virtual u32 vf4() { return 1; }
+    virtual u32 vf5() { return 1; }
+    virtual u32 vf6() { return field_b8; }
+
+    u8 field_80[0x38];
+    bool field_b8;
+};
 
 }  // namespace SiSDK3
