@@ -497,3 +497,14 @@ def test_copied_head_then_a_reference():
     assert "struct Unk_123450_head {\n    u64 field_0;\n    u64 field_8;\n};" in structs
     assert func.startswith("void Unk_123450_call(const Unk_123450* self, Unk_123450_arg1* value) {\n"
                            "    value->field_0 = self->field_0;\n    Unk_239a418* v0 = self->field_10;\n")
+
+
+def test_static_object_of_the_tu(monkeypatch):
+    """adrp x8, S ; add x8, x8, S ; str w1, [x8, #4] ; ret: a static object of the
+    TU written through (a static initialiser's stores)."""
+    target = 0x71027CE9DC
+    monkeypatch.setattr(leafgen, "DATA_AT", lambda a: "")
+    structs, func = leafgen.generate(ADDR, code(adrp(8, ADDR, target), add_imm(8, 8, target & 0xFFF),
+                                               str_w(1, 8, 4), RET))
+    assert 'extern Unk_27ce9dc_Data Unk_27ce9dc __attribute__((visibility("hidden")));' in structs
+    assert "    Unk_27ce9dc.field_4 = value;\n" in func
