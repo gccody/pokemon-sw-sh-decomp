@@ -107,6 +107,21 @@ void Unk_fcfee0_set(const Unk_fcfee0* self) {
     self->field_718->field_58 = self->field_718->field_58 & 0xfe;
 }
 
+struct Unk_fd15c0 {
+    u8 _0[0x730];
+    u64 field_730;
+};
+PKMN_OFFSET_ASSERT(Unk_fd15c0, field_730, 0x730);
+
+void Unk_14e1b40(u64);
+void Unk_fcd580(void*, u32);
+
+// 0x7100fd15c0
+void Unk_fd15c0_call(Unk_fd15c0* self) {
+    Unk_fcd580(self, 0);
+    Unk_14e1b40(self->field_730);
+}
+
 struct Unk_fd35b0_0 {
     u8 _0[0x4c0];
     u64 field_4c0;

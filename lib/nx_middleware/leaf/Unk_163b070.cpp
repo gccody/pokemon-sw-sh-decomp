@@ -122,6 +122,15 @@ void Unk_1645560_call(const Unk_1645560* self) {
     Unk_164a700(self->field_0);
 }
 
+void Unk_163ee90();
+void Unk_163efb0(void*, u64, u64);
+
+// 0x7101647dc0
+void Unk_1647dc0_call(void* self, u64 value, u64 arg2) {
+    Unk_163ee90();
+    Unk_163efb0(self, value, arg2);
+}
+
 struct Unk_1649ad0_arg1 {
     u64 field_0;
 };

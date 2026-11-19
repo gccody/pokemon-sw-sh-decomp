@@ -14,6 +14,15 @@ u8* Unk_7bfe80_getFielda8Ptr(Unk_7bfe80* self) {
     return &self->field_a8;
 }
 
+void Unk_76a5d0();
+void Unk_7c2280();
+
+// 0x71007c1af0
+void Unk_7c1af0_call() {
+    Unk_7c2280();
+    Unk_76a5d0();
+}
+
 struct Unk_7c22a0 {
     u8 _0[0x50];
     u8 field_50;

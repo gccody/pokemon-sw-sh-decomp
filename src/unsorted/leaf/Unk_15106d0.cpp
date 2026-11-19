@@ -25,6 +25,15 @@ void Unk_15106e0_setField6c(Unk_15106e0* self, u32 value) {
     self->field_6c = value;
 }
 
+extern u64 Unk_24ba668;
+u32 Unk_105c390(u64);
+
+// 0x71015106f0
+u32 Unk_15106f0_call() {
+    u32 r0 = Unk_105c390(Unk_24ba668);
+    return ~r0 & 1;
+}
+
 struct Unk_1510ec0 {
     u8 _0[0x700];
     u64 field_700;

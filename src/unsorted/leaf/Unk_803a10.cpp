@@ -209,3 +209,11 @@ bool Unk_803e20_check(const Unk_803e20* self) {
 u32 Unk_803e30_get() {
     return 3;
 }
+
+u32 Unk_8047c0();
+
+// 0x7100804160
+bool Unk_804160_call() {
+    u32 r0 = Unk_8047c0();
+    return (r0 & 0xff) != 0x12;
+}

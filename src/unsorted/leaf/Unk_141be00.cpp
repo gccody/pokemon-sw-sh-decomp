@@ -12,6 +12,14 @@ void Unk_141be00_call(void* self) {
     Unk_eb6230(self, 2);
 }
 
+u32 Unk_eb6630(void*, u32);
+
+// 0x710141be10
+u32 Unk_141be10_call(void* self) {
+    u32 r0 = Unk_eb6630(self, 2);
+    return ~r0 & 1;
+}
+
 // 0x710141c3d0
 void Unk_141c3d0_update() {}
 

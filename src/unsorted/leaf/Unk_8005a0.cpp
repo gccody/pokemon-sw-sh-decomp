@@ -100,3 +100,62 @@ void Unk_8005a0_set(Unk_8005a0* self) {
     self->field_8 = 0;
     self->field_10 = 0;
 }
+
+struct Unk_800a70;
+struct Unk_800720 {
+    u64 field_0;
+    Unk_800a70* field_8;
+    u64 field_10;
+    u64 field_18;
+    u64 field_20;
+    Unk_800a70* field_28;
+    u64 field_30;
+    u64 field_38;
+    u64 field_40;
+};
+PKMN_OFFSET_ASSERT(Unk_800720, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_800720, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_800720, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_800720, field_18, 0x18);
+PKMN_OFFSET_ASSERT(Unk_800720, field_20, 0x20);
+PKMN_OFFSET_ASSERT(Unk_800720, field_28, 0x28);
+PKMN_OFFSET_ASSERT(Unk_800720, field_30, 0x30);
+PKMN_OFFSET_ASSERT(Unk_800720, field_38, 0x38);
+PKMN_OFFSET_ASSERT(Unk_800720, field_40, 0x40);
+
+void Unk_800760();
+void Unk_800a70_set(Unk_800a70*);
+
+// 0x7100800720
+void Unk_800720_call(Unk_800720* self, u32 /*unused*/, u64 arg2) {
+    self->field_38 = 0;
+    self->field_40 = 0;
+    self->field_28 = nullptr;
+    self->field_30 = 0;
+    self->field_0 = arg2;
+    self->field_18 = 0;
+    self->field_20 = 0;
+    self->field_8 = nullptr;
+    self->field_10 = 0;
+    Unk_800760();
+    Unk_800a70_set(self->field_8);
+    Unk_800a70_set(self->field_28);
+}
+
+struct Unk_800a70;
+struct Unk_8008d0 {
+    u8 _0[0x8];
+    Unk_800a70* field_8;
+    u8 _10[0x18];
+    Unk_800a70* field_28;
+};
+PKMN_OFFSET_ASSERT(Unk_8008d0, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_8008d0, field_28, 0x28);
+
+void Unk_800a70_set(Unk_800a70*);
+
+// 0x71008008d0
+void Unk_8008d0_call(const Unk_8008d0* self) {
+    Unk_800a70_set(self->field_8);
+    Unk_800a70_set(self->field_28);
+}

@@ -112,6 +112,14 @@ void Unk_ab3ac0_call(void* self) {
     Unk_eb6230(self, 3);
 }
 
+u32 Unk_eb6530();
+
+// 0x7100ab3ad0
+u32 Unk_ab3ad0_call() {
+    u32 r0 = Unk_eb6530();
+    return ~r0 & 1;
+}
+
 struct Unk_ab3af0 {
     u8 _0[0x5cc];
     u32 field_5cc;

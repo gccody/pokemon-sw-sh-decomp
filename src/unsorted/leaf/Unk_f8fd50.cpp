@@ -113,6 +113,33 @@ void Unk_f8fec0_update() {}
 // 0x7100f8fed0
 void Unk_f8fed0_update() {}
 
+struct Unk_f8fee0_0 {
+    u8 _0[0xa0];
+    u8 field_a0;
+    u8 _a1[0x157];
+    u8 field_1f8;
+    u8 _1f9[0x3];
+    u32 field_1fc;
+};
+PKMN_OFFSET_ASSERT(Unk_f8fee0_0, field_a0, 0xa0);
+PKMN_OFFSET_ASSERT(Unk_f8fee0_0, field_1f8, 0x1f8);
+PKMN_OFFSET_ASSERT(Unk_f8fee0_0, field_1fc, 0x1fc);
+
+struct Unk_f8fee0 {
+    Unk_f8fee0_0* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_f8fee0, field_0, 0x0);
+
+void Unk_f6cd80(void*);
+
+// 0x7100f8fee0
+void Unk_f8fee0_call(const Unk_f8fee0* self) {
+    Unk_f8fee0_0* p0 = self->field_0;
+    Unk_f6cd80(&p0->field_a0);
+    p0->field_1fc = 2;
+    p0->field_1f8 = 1;
+}
+
 // 0x7100f8ff20
 void Unk_f8ff20_update() {}
 

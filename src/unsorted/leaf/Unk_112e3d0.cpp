@@ -398,6 +398,21 @@ u32 Unk_1136910_getField368(const Unk_1136910* self) {
     return self->field_368;
 }
 
+struct Unk_1136be0 {
+    u8 _0[0x710];
+    u64 field_710;
+};
+PKMN_OFFSET_ASSERT(Unk_1136be0, field_710, 0x710);
+
+void Unk_110c990(u64);
+void Unk_1134e80(void*);
+
+// 0x7101136be0
+void Unk_1136be0_call(Unk_1136be0* self) {
+    Unk_110c990(self->field_710);
+    Unk_1134e80(self);
+}
+
 struct Unk_1136c10 {
     u8 _0[0x4e0];
     u64 field_4e0;

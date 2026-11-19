@@ -94,3 +94,16 @@ void Unk_ce17a0_set(Unk_ce17a0* self, Unk_ce17a0_arg1* value) {
     self->field_8 = 0;
     value->field_8 = v0;
 }
+
+void Unk_ce1ba0();
+void Unk_ce2020(void*);
+void Unk_ce21b0(void*);
+void Unk_ce23c0(void*);
+
+// 0x7100ce1fe0
+void Unk_ce1fe0_call(void* self) {
+    Unk_ce1ba0();
+    Unk_ce2020(self);
+    Unk_ce21b0(self);
+    Unk_ce23c0(self);
+}

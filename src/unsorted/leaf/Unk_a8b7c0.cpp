@@ -17,6 +17,14 @@ void Unk_a8b7d0_call(void* self) {
     Unk_eb6230(self, 3);
 }
 
+u32 Unk_eb6530();
+
+// 0x7100a8b7e0
+u32 Unk_a8b7e0_call() {
+    u32 r0 = Unk_eb6530();
+    return ~r0 & 1;
+}
+
 struct Unk_a8b800 {
     u8 _0[0x5cc];
     u32 field_5cc;
@@ -51,6 +59,14 @@ void Unk_eb6230(void*, u32);
 // 0x7100a8c940
 void Unk_a8c940_call(void* self) {
     Unk_eb6230(self, 3);
+}
+
+u32 Unk_eb6530();
+
+// 0x7100a8c950
+u32 Unk_a8c950_call() {
+    u32 r0 = Unk_eb6530();
+    return ~r0 & 1;
 }
 
 struct Unk_a8c970 {
@@ -140,6 +156,14 @@ void Unk_eb6230(void*, u32);
 // 0x7100a96ae0
 void Unk_a96ae0_call(void* self) {
     Unk_eb6230(self, 3);
+}
+
+u32 Unk_eb6530();
+
+// 0x7100a96af0
+u32 Unk_a96af0_call() {
+    u32 r0 = Unk_eb6530();
+    return ~r0 & 1;
 }
 
 struct Unk_a96b10 {

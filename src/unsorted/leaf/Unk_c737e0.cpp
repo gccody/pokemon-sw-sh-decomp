@@ -23,6 +23,22 @@ bool Unk_c737e0_check(const Unk_c737e0* self) {
     return self->field_608->field_60 != 0;
 }
 
+struct Unk_c739f0 {
+    u8 _0[0x5e8];
+    u64 field_5e8;
+    u64 field_5f0;
+};
+PKMN_OFFSET_ASSERT(Unk_c739f0, field_5e8, 0x5e8);
+PKMN_OFFSET_ASSERT(Unk_c739f0, field_5f0, 0x5f0);
+
+void Unk_c73490(u64, u32);
+
+// 0x7100c739f0
+void Unk_c739f0_call(const Unk_c739f0* self) {
+    Unk_c73490(self->field_5e8, 1);
+    Unk_c73490(self->field_5f0, 0);
+}
+
 struct Unk_c73a20 {
     u8 _0[0x65a];
     u8 field_65a;

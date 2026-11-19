@@ -176,6 +176,21 @@ void Unk_82ac70_call(const Unk_82ac70* self) {
     Unk_7c58b0_get(self->field_8);
 }
 
+struct Unk_7c4c70;
+struct Unk_82ac80 {
+    u8 _0[0x8];
+    Unk_7c4c70* field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_82ac80, field_8, 0x8);
+
+u8 Unk_7c4c70_get(const Unk_7c4c70*);
+
+// 0x710082ac80
+bool Unk_82ac80_call(const Unk_82ac80* self) {
+    u8 r0 = Unk_7c4c70_get(self->field_8);
+    return (r0 & 0xff) != 0;
+}
+
 struct Unk_82ad00 {
     u8 _0[0x8];
     u64 field_8;

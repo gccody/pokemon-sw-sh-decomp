@@ -29,6 +29,23 @@ void Unk_1411040_call(const Unk_1411040* self, bool value) {
     Unk_14e1a00(self->field_c48, value);
 }
 
+struct Unk_14121c0 {
+    u8 _0[0x100];
+    u8 field_100;
+    u8 _101[0x4ca];
+    u8 field_5cb;
+};
+PKMN_OFFSET_ASSERT(Unk_14121c0, field_100, 0x100);
+PKMN_OFFSET_ASSERT(Unk_14121c0, field_5cb, 0x5cb);
+
+void Unk_e82ef0(void*, u32);
+
+// 0x71014121c0
+void Unk_14121c0_call(Unk_14121c0* self) {
+    Unk_e82ef0(&self->field_100, 0);
+    self->field_5cb = 1;
+}
+
 // 0x7101412bc0
 void Unk_1412bc0_update() {}
 

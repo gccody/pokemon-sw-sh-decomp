@@ -736,6 +736,20 @@ void Unk_5b50f0_call(const Unk_5b50f0* self) {
     Unk_5b6b20(self->field_1b0);
 }
 
+struct Unk_5b5100 {
+    u8 _0[0x1b0];
+    u64 field_1b0;
+};
+PKMN_OFFSET_ASSERT(Unk_5b5100, field_1b0, 0x1b0);
+
+u64 Unk_5b64c0(u64);
+
+// 0x71005b5100
+bool Unk_5b5100_call(const Unk_5b5100* self) {
+    u64 r0 = Unk_5b64c0(self->field_1b0);
+    return r0 != 0;
+}
+
 struct Unk_5b5120 {
     u8 _0[0x1b0];
     u64 field_1b0;

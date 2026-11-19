@@ -3,6 +3,18 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
+extern u64 Unk_27fdb08;
+extern u64 Unk_27fdb10;
+void Unk_17ccb80(u64);
+
+// 0x71017d2890
+void Unk_17d2890_call() {
+    Unk_17ccb80(Unk_27fdb08);
+    Unk_17ccb80(Unk_27fdb10);
+    Unk_27fdb08 = 0;
+    Unk_27fdb10 = 0;
+}
+
 struct Unk_17d57a0 {
     u8 field_0;
     u8 _1[0x7];
@@ -140,6 +152,28 @@ u32 Unk_17e5360_get() {
     return 1;
 }
 
+struct Unk_17e5370 {
+    u64 field_0;
+    u64 field_8;
+    u32 field_10;
+    u8 _14[0x4];
+    u64 field_18;
+    u64 field_20;
+};
+PKMN_OFFSET_ASSERT(Unk_17e5370, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_17e5370, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_17e5370, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_17e5370, field_18, 0x18);
+PKMN_OFFSET_ASSERT(Unk_17e5370, field_20, 0x20);
+
+void Unk_17e53b0(u64, u64, u32, u64, u64);
+
+// 0x71017e5370
+u32 Unk_17e5370_call(const Unk_17e5370* self) {
+    Unk_17e53b0(self->field_0, self->field_8, self->field_10, self->field_18, self->field_20);
+    return 1;
+}
+
 // 0x71017e53a0
 u32 Unk_17e53a0_get() {
     return 1;
@@ -174,6 +208,41 @@ void Unk_17e8260_set(Unk_17e8260* self) {
 
 // 0x71017e84c0
 void Unk_17e84c0_update() {
+}
+
+struct Unk_17e84d0 {
+    u32 field_0;
+    u32 field_4;
+};
+PKMN_OFFSET_ASSERT(Unk_17e84d0, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_17e84d0, field_4, 0x4);
+
+u32 Unk_178f1e0(u64, u32, u32, u64);
+
+// 0x71017e84d0
+u32 Unk_17e84d0_call(Unk_17e84d0* self, u64 value, u64 arg2) {
+    u32 r0 = Unk_178f1e0(value, 0, 2, arg2);
+    self->field_4 = r0;
+    u32 r1 = Unk_178f1e0(value, 4, 2, arg2);
+    self->field_0 = r1;
+    return 1;
+}
+
+struct Unk_17e8b00 {
+    u32 field_0;
+    u32 field_4;
+};
+PKMN_OFFSET_ASSERT(Unk_17e8b00, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_17e8b00, field_4, 0x4);
+
+u32 Unk_178f1e0(u64, u32, u32, u64);
+
+// 0x71017e8b00
+void Unk_17e8b00_call(Unk_17e8b00* self, u64 value, u64 arg2) {
+    u32 r0 = Unk_178f1e0(value, 0, 3, arg2);
+    self->field_0 = r0;
+    u32 r1 = Unk_178f1e0(value, 4, 3, arg2);
+    self->field_4 = r1;
 }
 
 struct Unk_17e8d00 {

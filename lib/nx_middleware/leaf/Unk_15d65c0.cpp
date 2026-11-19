@@ -66,6 +66,14 @@ void Unk_15d7310_set(Unk_15d7310* self, u64 value, const Unk_15d7310_arg2* arg2)
     self->field_f0 = arg2->field_0;
 }
 
+u32 Unk_15baeb0(u32);
+
+// 0x71015d8620
+u32 Unk_15d8620_call() {
+    u32 r0 = Unk_15baeb0(0x6e48);
+    return r0 ^ 0xffff8000;
+}
+
 struct Unk_15d8df0 {
     u8 _0[0x24];
     f32 field_24;

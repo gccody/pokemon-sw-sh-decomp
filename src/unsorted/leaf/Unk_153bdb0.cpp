@@ -97,6 +97,14 @@ void Unk_153c410_setField780(Unk_153c410* self, u64 value) {
     self->field_780 = value;
 }
 
+u32 Unk_eb6530();
+
+// 0x71015407d0
+u32 Unk_15407d0_call() {
+    u32 r0 = Unk_eb6530();
+    return ~r0 & 1;
+}
+
 struct Unk_15407f0 {
     u8 _0[0x5cc];
     u32 field_5cc;
@@ -126,6 +134,14 @@ void Unk_1542b60_call(void* self) {
     Unk_eb6230(self, 3);
 }
 
+u32 Unk_eb6530();
+
+// 0x7101542b70
+u32 Unk_1542b70_call() {
+    u32 r0 = Unk_eb6530();
+    return ~r0 & 1;
+}
+
 void Unk_eb6230(void*, u32);
 
 // 0x7101543510
@@ -138,4 +154,12 @@ void Unk_eb6230(void*, u32);
 // 0x7101543520
 void Unk_1543520_call(void* self) {
     Unk_eb6230(self, 3);
+}
+
+u32 Unk_eb6530();
+
+// 0x7101543530
+u32 Unk_1543530_call() {
+    u32 r0 = Unk_eb6530();
+    return ~r0 & 1;
 }

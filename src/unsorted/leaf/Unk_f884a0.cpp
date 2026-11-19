@@ -134,6 +134,30 @@ void Unk_f88730_call(const Unk_f88730* self, Unk_f88730_arg1* value) {
     }
 }
 
+struct Unk_f88760_0 {
+    u8 _0[0x2a8];
+    u8 field_2a8;
+    u8 _2a9[0x3];
+    u32 field_2ac;
+};
+PKMN_OFFSET_ASSERT(Unk_f88760_0, field_2a8, 0x2a8);
+PKMN_OFFSET_ASSERT(Unk_f88760_0, field_2ac, 0x2ac);
+
+struct Unk_f88760 {
+    Unk_f88760_0* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_f88760, field_0, 0x0);
+
+void Unk_f7de70(void*);
+
+// 0x7100f88760
+void Unk_f88760_call(const Unk_f88760* self) {
+    Unk_f88760_0* p0 = self->field_0;
+    Unk_f7de70(p0);
+    p0->field_2ac = 6;
+    p0->field_2a8 = 1;
+}
+
 // 0x7100f887a0
 void Unk_f887a0_update() {}
 

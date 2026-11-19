@@ -158,6 +158,31 @@ void Unk_e6f7d0_update() {}
 // 0x7100e6f7e0
 void Unk_e6f7e0_update() {}
 
+struct Unk_e6fcc0 {
+    u8 _0[0x18];
+    u64 field_18;
+    u8 _20[0x18];
+    u64 field_38;
+    u8 _40[0x18];
+    u64 field_58;
+    u8 _60[0x18];
+    u64 field_78;
+};
+PKMN_OFFSET_ASSERT(Unk_e6fcc0, field_18, 0x18);
+PKMN_OFFSET_ASSERT(Unk_e6fcc0, field_38, 0x38);
+PKMN_OFFSET_ASSERT(Unk_e6fcc0, field_58, 0x58);
+PKMN_OFFSET_ASSERT(Unk_e6fcc0, field_78, 0x78);
+
+void Unk_e70bf0(u64);
+
+// 0x7100e6fcc0
+void Unk_e6fcc0_call(const Unk_e6fcc0* self) {
+    Unk_e70bf0(self->field_18);
+    Unk_e70bf0(self->field_38);
+    Unk_e70bf0(self->field_58);
+    Unk_e70bf0(self->field_78);
+}
+
 struct Unk_e6fe80 {
     u8 _0[0x18];
     u64 field_18;

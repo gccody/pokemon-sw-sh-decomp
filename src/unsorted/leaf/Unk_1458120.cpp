@@ -69,6 +69,40 @@ void Unk_1459ac0_call(const Unk_1459ac0* self) {
     Unk_1459ad0(self->field_58);
 }
 
+struct Unk_1459d60 {
+    u8 _0[0x58];
+    u64 field_58;
+};
+PKMN_OFFSET_ASSERT(Unk_1459d60, field_58, 0x58);
+
+void Unk_145a440(u64);
+void Unk_145a5d0(u64);
+void Unk_145a6d0(u64);
+void Unk_145a820(u64);
+void Unk_145a970(u64);
+void Unk_145ab10(u64);
+void Unk_145ac90(u64);
+void Unk_145ae10(u64);
+void Unk_145af90(u64);
+void Unk_145b110(u64);
+void Unk_145b290(u64);
+
+// 0x7101459d60
+void Unk_1459d60_call(const Unk_1459d60* self) {
+    u64 v0 = self->field_58;
+    Unk_145a440(v0);
+    Unk_145a5d0(v0);
+    Unk_145a6d0(v0);
+    Unk_145a820(v0);
+    Unk_145a970(v0);
+    Unk_145ab10(v0);
+    Unk_145ac90(v0);
+    Unk_145ae10(v0);
+    Unk_145af90(v0);
+    Unk_145b110(v0);
+    Unk_145b290(v0);
+}
+
 struct Unk_1459f50 {
     u8 _0[0x58];
     u64 field_58;

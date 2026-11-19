@@ -418,6 +418,19 @@ void Unk_120d8e0_set(const Unk_120d8e0* self, Unk_120d8e0_arg1* value) {
     value->field_0 = self->field_0;
 }
 
+struct Unk_120d8f0 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_120d8f0, field_0, 0x0);
+
+void Unk_12076c0(u64);
+
+// 0x710120d8f0
+u32 Unk_120d8f0_call(const Unk_120d8f0* self) {
+    Unk_12076c0(self->field_0);
+    return 0;
+}
+
 // 0x710120d910
 void Unk_120d910_update() {}
 

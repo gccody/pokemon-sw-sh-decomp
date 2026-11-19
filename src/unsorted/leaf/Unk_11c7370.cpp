@@ -124,6 +124,19 @@ void Unk_11c9130_set(const Unk_11c9130* self, Unk_11c9130* value) {
     *value = *self;
 }
 
+struct Unk_11c9880_arg1 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_11c9880_arg1, field_0, 0x0);
+
+void Unk_1174350(u64, u32);
+
+// 0x71011c9880
+u32 Unk_11c9880_call(void* /*unused*/, const Unk_11c9880_arg1* value) {
+    Unk_1174350(value->field_0, 0);
+    return 0;
+}
+
 // 0x71011c98a0
 void Unk_11c98a0_update() {}
 
