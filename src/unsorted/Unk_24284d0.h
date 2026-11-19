@@ -73,7 +73,7 @@ public:
     Unk_23d4470_Callable field_330;
     u32 field_3b0;
 };
-static_assert(sizeof(Unk_24284d0) == 0x3b8, "Unk_24284d0");
+static_assert(sizeof(Unk_24284d0) == 0x3c0, "Unk_24284d0");  // its callables are 16-byte aligned
 static_assert(__builtin_offsetof(Unk_24284d0, field_70) == 0x70, "Unk_24284d0::field_70");
 static_assert(__builtin_offsetof(Unk_24284d0, field_a0) == 0xa0, "Unk_24284d0::field_a0");
 static_assert(__builtin_offsetof(Unk_24284d0, field_320) == 0x320, "Unk_24284d0::field_320");
