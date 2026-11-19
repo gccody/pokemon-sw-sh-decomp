@@ -1226,3 +1226,61 @@ void Unk_a4ff00(void* seq, Unk_23c4ef0_Owner* owner, const u64* cmd) {
     for (Unk_23c4ef0_Poke* poke : group.m_ptr->field_a0)
         owner->Unk_961750(Unk_239a418_Ref<Unk_23c4ef0_Poke>(poke), frames, arg1, &arg2, arg4, arg3);
 }
+
+// 0x7100a62b90
+void Unk_a62b90(void* seq, Unk_23c4ef0_Owner* owner, const u64* cmd) {
+    s32 frames = Unk_23c4ef0_Frames(cmd) / 2;
+    Unk_23c4ef0_Params params;
+    s32 target;
+    Unk_23c4ef0_ReadS32(seq, &target);
+    Unk_23c4ef0_ReadS32(seq, &params.field_8);
+    Unk_23c4ef0_ReadVec(seq, &params.field_10);
+    Unk_23c4ef0_ReadS32(seq, &params.field_20);
+    Unk_23c4ef0_ReadBool(seq, &params.field_28);
+    Unk_23c4ef0_ReadBool(seq, &params.field_29);
+    Unk_23c4ef0_ReadBool(seq, &params.field_2a);
+    Unk_23c4ef0_ReadBool(seq, &params.field_2b);
+    Unk_23c4ef0_ReadBool(seq, &params.field_2c);
+    Unk_23c4ef0_ReadS32(seq, &params.field_24);
+    Unk_23c4ef0_ReadBool(seq, &params.field_2d);
+    Unk_23c4ef0_ReadBool(seq, &params.field_2e);
+    Unk_23c4ef0_ReadBool(seq, &params.field_2f);
+    Unk_239a418_Ref<Unk_23c4ef0_Group> group =
+        owner->field_660->field_8.find(Unk_23c4ef0_GetCmd(cmd)->field_10)->second;
+    s32 i = 0;
+    for (Unk_23c4ef0_Poke*& poke : group.m_ptr->field_a0) {
+        params.field_0 = owner->Unk_952670(target, i);
+        params.field_4 = owner->Unk_9606c0(target);
+        owner->Unk_961180(Unk_239a418_Ref<Unk_23c4ef0_Poke>(poke), frames, &params, false);
+        i++;
+    }
+}
+
+// 0x7100a63090
+void Unk_a63090(void* seq, Unk_23c4ef0_Owner* owner, const u64* cmd) {
+    s32 frames = Unk_23c4ef0_Frames(cmd) / 2;
+    Unk_23c4ef0_Params params;
+    s32 target;
+    Unk_23c4ef0_ReadS32(seq, &target);
+    Unk_23c4ef0_ReadS32(seq, &params.field_8);
+    Unk_23c4ef0_ReadVec(seq, &params.field_10);
+    Unk_23c4ef0_ReadS32(seq, &params.field_20);
+    Unk_23c4ef0_ReadBool(seq, &params.field_28);
+    Unk_23c4ef0_ReadBool(seq, &params.field_29);
+    Unk_23c4ef0_ReadBool(seq, &params.field_2a);
+    Unk_23c4ef0_ReadBool(seq, &params.field_2b);
+    Unk_23c4ef0_ReadBool(seq, &params.field_2c);
+    Unk_23c4ef0_ReadS32(seq, &params.field_24);
+    Unk_23c4ef0_ReadBool(seq, &params.field_2d);
+    Unk_23c4ef0_ReadBool(seq, &params.field_2e);
+    Unk_23c4ef0_ReadBool(seq, &params.field_2f);
+    Unk_239a418_Ref<Unk_23c4ef0_Group> group =
+        owner->field_640->field_8.find(Unk_23c4ef0_GetCmd(cmd)->field_10)->second;
+    s32 i = 0;
+    for (Unk_23c4ef0_Poke*& poke : group.m_ptr->field_a0) {
+        params.field_0 = owner->Unk_952670(target, i);
+        params.field_4 = owner->Unk_9606c0(target);
+        owner->Unk_961470(Unk_239a418_Ref<Unk_23c4ef0_Poke>(poke), frames, &params, false);
+        i++;
+    }
+}
