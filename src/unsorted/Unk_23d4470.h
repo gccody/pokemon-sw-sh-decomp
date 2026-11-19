@@ -14,6 +14,9 @@
 // src/unsorted/Unk_23dcdd0.h) computes their addresses in another order.
 class Unk_23d4470_Callable {
 public:
+    // Empty: the four words zeroed, the storage left as it is (Unk_23c4ef0's
+    // constructor, 0x71009be950, for its Unk_236d618).
+    Unk_23d4470_Callable() : field_0(0), field_8(nullptr), field_10(0), field_18(0) {}
     ~Unk_23d4470_Callable() {
         if (void (*manager)(void*) = field_8) {
             Clear();
