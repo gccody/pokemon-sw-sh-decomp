@@ -259,6 +259,16 @@ pkmn_library_settings(lib/protobuf
   INCLUDES lib/protobuf
   SYSTEM_INCLUDES include/libcxx)
 
+# Pia 5.18.0, Nintendo's networking middleware (SDK MW tags PiaCommon, Pia,
+# PiaLan, PiaLocal, PiaNex, PiaSession, PiaTransport): the game's clang 7.0.x
+# and global flags, with -fno-builtin. 237 of Pia's 548 memcpy/memset/memmove
+# calls pass a constant size of 64 bytes or less (InetAddress's setters call
+# memset(..., 16) and memcpy(..., 4)), which clang expands inline when they're
+# builtins; Game Freak's code has 5 such calls in 2,430, YEBIS none.
+pkmn_library_settings(lib/pia
+  EVIDENCE "docs/compiler.md, section Pia 5.18.0"
+  OPTIONS -fno-builtin)
+
 # Game Freak's protobuf messages: protoc 3.0.0 output for the .proto files
 # under src/ (gflnet3's and the game's), which `python tools/protos.py generate`
 # writes next to each .proto. It isn't committed: each .pb.cc embeds its file's
