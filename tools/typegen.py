@@ -492,7 +492,14 @@ def parent_expr(t: Types, expr: dict[int, str], c: ClassPlan, i: int) -> str:
         return "nullptr"
     if c.end[0] == "global":
         return expr[c.end[1]]
-    return expr[t.getters[c.end[1]].top]
+    return f"{cut_class(expr, t, c.end)}::Unk_GetType()"
+
+
+def cut_class(expr: dict[int, str], t: Types, end: tuple) -> str:
+    """The struct a cut getter is declared in: the class its name gives, when
+    it's named already (another class than its type's other getters say),
+    else its type's."""
+    return end[2] if len(end) > 2 else cls_of(expr[t.getters[end[1]].top])
 
 
 def cls_of(e: str) -> str:
@@ -506,7 +513,7 @@ def render(t: Types, expr: dict[int, str], classes: list[ClassPlan]) -> str:
     for c in classes:
         for i, ty in enumerate(c.inlined):
             parent[ty] = parent_expr(t, expr, c, i)
-    cut = sorted({t.getters[c.end[1]].top for c in classes if c.end[0] == "cut"}, key=lambda ty: expr[ty])
+    cut = sorted({(cut_class(expr, t, c.end), t.getters[c.end[1]].top) for c in classes if c.end[0] == "cut"})
     own = {c.top: c for c in classes if cls_of(expr[c.top]) == c.name}
     kinds = [c for c in classes if isinstance(c, KindPlan)]
     classes = [c for c in classes if not isinstance(c, KindPlan)]
@@ -515,8 +522,8 @@ def render(t: Types, expr: dict[int, str], classes: list[ClassPlan]) -> str:
            "// don't edit). Placeholder classes, named after their vtables, and types, named",
            "// after their type objects where no class is known: rename them once they are.",
            "#include <types.h>", "", f'#include "{OBJECT_HEADER}"', ""]
-    for ty in cut:
-        out += [f"// The type 0x{ty + BASE:x}: its getter is out of line.", f"struct {cls_of(expr[ty])} {{",
+    for cls, ty in cut:
+        out += [f"// The type 0x{ty + BASE:x}: its getter is out of line.", f"struct {cls} {{",
                 f"    static {TYPE} Unk_GetType();", "};", ""]
 
     def getter(ty: int) -> list[str]:
@@ -617,6 +624,24 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int])
             return None
         return n if used.get(n, g) == g and (only is None or g in only) else None
 
+    def cut_named(c, names: list) -> bool:
+        """c's cut getter, if any, named: as its type's (added to names), or
+        already as some class's getter (spelled with that class)."""
+        if c.end[0] != "cut":
+            return True
+        g = c.end[1]
+        n = getter_name(g)
+        if n is not None:
+            if rows[g].name != n:
+                names.append((g, n))
+            return True
+        other = member_getter(rows[g].name or "")
+        if other is not None and rows[g].shield is not None:
+            c.end = ("cut", g, other)
+            return True
+        skipped.append(f"{c.name}: the getter it calls is named otherwise")
+        return False
+
     keep = []
     for c in classes:
         if c.name in taken:
@@ -650,13 +675,8 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int])
             if only is not None and not all(f in only or rows[f].name == n for f, n in names):
                 continue  # all of it matched in the trial, or none of it is written
         c.inlined, c.end = ch
-        if c.end[0] == "cut":
-            n = getter_name(c.end[1])
-            if n is None:
-                skipped.append(f"{c.name}: the getter it calls is named otherwise")
-                continue
-            if rows[c.end[1]].name != n:
-                names.append((c.end[1], n))
+        if not cut_named(c, names):
+            continue
         keep.append((c, names))
     for f, g in sorted(t.kind_of.items()):
         if g.top not in expr or is_global(expr[g.top]):
@@ -668,13 +688,8 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int])
             skipped.append(f"{k.name}: its type's chain")
             continue
         k.inlined, k.end = ch
-        if k.end[0] == "cut":
-            n = getter_name(k.end[1])
-            if n is None:
-                skipped.append(f"{k.name}: the getter it calls is named otherwise")
-                continue
-            if rows[k.end[1]].name != n:
-                names.append((k.end[1], n))
+        if not cut_named(k, names):
+            continue
         keep.append((k, names))
     # Getters in other vtable slots (other layouts, secondary vtables' copies,
     # classes left out above): each a plain member of its owner vtable's class.
@@ -687,20 +702,15 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int])
         v, slot = by_addr[owner[f][0]], owner[f][1]
         c = ClassPlan(vt.class_name(v), v.addr, f, [], g.top, bare=True, member=f"vf{slot}")
         names = [(f, vt.mangle(c.name, c.member))]
-        if c.name in taken or not free(f, names[0][1]) or rows[f].status == "O":
+        if c.name in taken or not free(f, names[0][1]):
             continue
         ch = chain_of(t, expr, f)
         if ch is None:
             skipped.append(f"{c.name}: its type's chain")
             continue
         c.inlined, c.end = ch
-        if c.end[0] == "cut":
-            n = getter_name(c.end[1])
-            if n is None:
-                skipped.append(f"{c.name}: the getter it calls is named otherwise")
-                continue
-            if rows[c.end[1]].name != n:
-                names.append((c.end[1], n))
+        if not cut_named(c, names):
+            continue
         keep.append((c, names))
     return keep, expr, skipped
 
@@ -731,7 +741,9 @@ def partition(t: Types, expr: dict[int, str], classes: list[ClassPlan]) -> list[
     for c in classes:
         inl = set(c.inlined)
         cut = {t.getters[c.end[1]].top} if c.end[0] == "cut" else set()
-        names = {cls_of(expr[ty]): ty for ty in inl | cut}
+        names = {cls_of(expr[ty]): ty for ty in inl}
+        if c.end[0] == "cut":
+            names[cut_class(expr, t, c.end)] = t.getters[c.end[1]].top
         if c.name in names and names[c.name] != c.top:
             continue
         for cs, i, d, n in files:
@@ -795,11 +807,13 @@ def cmd_write(t: Types, args) -> None:
     for _, cs in sorted(by_seg.items()):
         # apart: the bare ones (their types inline differently next to forwarder
         # classes, whose getters then have more callers), and the slot getters
+        named = [c for c in cs if len(c.end) > 2]  # calling a getter named another way
+        cs = [c for c in cs if len(c.end) <= 2]
         bare = [c for c in cs if getattr(c, "bare", False) and c.thunks]
         loose = [c for c in cs if getattr(c, "bare", False) and not c.thunks]
         rest = [c for c in cs if not getattr(c, "bare", False)]
         for part in [*partition(t, expr, sorted(rest, key=key)), *partition(t, expr, sorted(bare, key=key)),
-                     *partition(t, expr, sorted(loose, key=key))]:
+                     *partition(t, expr, sorted(loose, key=key)), *partition(t, expr, sorted(named, key=key))]:
             (OUT_DIR / f"Unk_{key(part[0]):x}.cpp").write_text(render(t, expr, part), encoding="utf-8",
                                                                 newline="\n")
             written |= {c.name for c in part}
