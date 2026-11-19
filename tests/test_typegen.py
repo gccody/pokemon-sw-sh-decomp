@@ -166,3 +166,11 @@ def test_partition_keeps_inlined_and_declared_apart():
 def test_written_addresses(tmp_path):
     (tmp_path / "Unk_1.cpp").write_text("// 0x7100000300\n// 0x7100000310\ncode\n// not 0x7100000999\n")
     assert T.written_addresses(tmp_path) == {0x300, 0x310}
+
+
+def test_vf_type_classes_counts_definitions_only(tmp_path):
+    (tmp_path / "a.cpp").write_text(
+        "class Unk_1 : public B {\npublic:\n    const T* vf_type() override;\n};\n"
+        "class Unk_2 : public B {\npublic:\n    const T* vf_type() override { return x(); }\n};\n"
+        "const T* Unk_3::vf_type() {\n    return y();\n}\n")
+    assert T.vf_type_classes(tmp_path, tmp_path / "types") == {"Unk_2", "Unk_3"}

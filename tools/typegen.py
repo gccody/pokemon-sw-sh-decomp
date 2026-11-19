@@ -292,7 +292,9 @@ def header_getters(root: Path) -> dict[str, str]:
 
 
 def vf_type_classes(root: Path, skip: Path = OUT_DIR) -> set[str]:
-    """Classes src/ (but `skip`) declares with a vf_type of their own."""
+    """Classes src/ (but `skip`) defines a vf_type of their own for: in the class
+    body, or out of line. A class that only declares one (its vf_type is
+    defined here, or nowhere yet) isn't taken."""
     out = set()
     for p in sorted([*root.rglob("*.h"), *root.rglob("*.cpp")]):
         if skip in p.parents:
@@ -302,7 +304,7 @@ def vf_type_classes(root: Path, skip: Path = OUT_DIR) -> set[str]:
             continue
         for c in re.finditer(r"^(?:class|struct) (\w+)\b[^;{]*\{", text, re.M):
             end = text.find("\n};", c.end())
-            if "vf_type(" in text[c.end():end if end >= 0 else len(text)]:
+            if re.search(r"vf_type\(\)[^;{}]*\{", text[c.end():end if end >= 0 else len(text)]):
                 out.add(c[1])
         out |= set(re.findall(r"(\w+)::vf_type\(", text))
     return out
@@ -733,17 +735,23 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int])
     # The forwarders vtables.py wrote to a getter renamed here: each a plain
     # member that tail-calls it (its name kept), so that no matched function
     # calls the getter's old name.
+    # Those getters: renamed by this run, or already renamed (a getter a kept
+    # class calls whose forwarders this tool wrote before).
     renamed = {f for _, names in keep for f, n in names
                if f in t.getters and FORWARD_NAME.fullmatch(rows[f].name or "") and n != rows[f].name}
+    cuts = {c.end[1] for c, _ in keep if getattr(c, "end", ()) and c.end[0] == "cut"}
+    ours = written_addresses()
     written = {f for _, names in keep for f, _ in names}
-    if renamed:
-        callers = callers_of(t.m, renamed)
-        for g in sorted(renamed):
+    if renamed or cuts:
+        callers = callers_of(t.m, renamed | cuts)
+        for g in sorted(renamed | cuts):
             for f in sorted(callers.get(g, ())):
                 r = rows[f]
                 pm = PLAIN_MEMBER.fullmatch(r.name or "")
                 if f in written or r.status != "O" or pm is None or branch_only(t.m, f) != g:
                     continue
+                if g not in renamed and f not in ours:
+                    continue  # a forwarder vtables.py writes, to a getter named as its type's already
                 vt_addr = t.slot_of[f][0][0] if t.slot_of.get(f) else 0
                 c = ClassPlan(pm[2], vt_addr, f, [], t.getters[g].top, [], ("cut", g), bare=True, member=pm[4],
                               fwd=True)
