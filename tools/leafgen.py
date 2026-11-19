@@ -703,9 +703,15 @@ def lift(code: bytes, addr: int | None = None, path: list | None = None, split: 
                     Op("&", get(src), Const(mask, w), w)
                 put(dst, Op("|", Op("&", get(dst), Const(full & ~(mask << lsb_v), w), w), part, w))
         elif mn in ("cmp", "cmn", "tst"):
-            a, b = ops
+            a, b, *ext = [o.strip() for o in ops]
             w = width_of(a)
             bv = Const(_imm(b), w) if b.startswith("#") else get(b)
+            if ext:
+                # `cmp w8, w1, uxtb`: an argument of 8 or 16 bits, which the caller
+                # needn't have extended (the AAPCS64 leaves the upper bits unspecified)
+                if ext not in (["uxtb"], ["uxth"]) or not isinstance(bv, Arg) or bv.fp:
+                    raise LiftError(f"{mn} with an extended operand")
+                bv = Op("&", bv, Const(0xFF if ext == ["uxtb"] else 0xFFFF, 4), 4)
             if mn == "cmn":
                 if not isinstance(bv, Const):
                     raise LiftError("cmn register")
@@ -1054,6 +1060,11 @@ class Emitter:
                 self.arg_types.setdefault(e.a.index, "bool")
                 if self.arg_types[e.a.index] == "bool":
                     return self.arg_name(e.a.index)
+            if e.op == "&" and isinstance(e.b, Const) and e.b.value in (0xFF, 0xFFFF) and isinstance(e.a, Arg):
+                # An argument of 8 or 16 bits, extended where it's compared (lift's cmp)
+                t = "u8" if e.b.value == 0xFF else "u16"
+                if self.arg_types.setdefault(e.a.index, t) == t:
+                    return self.arg_name(e.a.index)
             op = ">>" if e.op == ">>s" else e.op
             return f"{self.paren(e.a)} {op} {self.paren(e.b)}"
         if isinstance(e, Cmp):
@@ -1066,6 +1077,8 @@ class Emitter:
 
     def paren(self, e: object) -> str:
         s = self.expr(e)
+        if s.isidentifier():  # an argument the Op only masks (bool, u8, u16)
+            return s
         return f"({s})" if isinstance(e, (Op, Cmp, Select)) and not (isinstance(e, Op) and e.op == "~") else s
 
     def cond(self, c: Cmp) -> str:
