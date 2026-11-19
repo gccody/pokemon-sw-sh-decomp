@@ -1875,6 +1875,20 @@ with a placeholder mapped type (`src/unsorted/Unk_597350.cpp`: their code
 doesn't read it). Two more groups of `__rehash` (24 instances) pass another
 alignment to the allocator and aren't written.
 
+### Copies of type-erased callables (`tools/clonegen.py`, 2026-11-19)
+
+vtables.py writes the simple slots of the `std::function` model classes (D2,
+D0, `destroy`, `destroy_deallocate`), but not their two copies: slot 2
+(`operator new` of the object's size, then a copy) and slot 3 (a copy into
+the given storage). `tools/clonegen.py` writes them for every class whose
+slots 2 and 3 store its own vtable: `return new Unk_C(*this);` and
+`new (p) Unk_C(*this);` with the object's u64 fields. The vtable is reached
+directly (adrp/add), not through the GOT, because a lambda's class is local
+to its TU, so each class is declared `visibility("hidden")`. 236 classes
+match (472 functions, `src/unsorted/clone`). 11 more, which copy several
+fields in another order, don't, and aren't written. vtables.py skips what
+clonegen writes.
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1901,13 +1915,13 @@ Larger shapes have their own blockers:
 ## Handoff (2026-11-17, updated 2026-11-19)
 
 State after the type getters and the map instances (2026-11-19, later):
-check.py reports 46,671 matching and 42 not matching; 26.43% of the code by
+check.py reports 47,143 matching and 42 not matching; 26.51% of the code by
 bytes. Before them, after the generated tables and FreeType: check.py
 reports 44,938 matching and 42 not matching, in both games; 25.16% of the
 code by bytes. Every batch above came from `tools/leafgen.py`,
-`tools/vtables.py` (`write`, `ctors`) and `tools/typegen.py`. Their sources in
-`src/unsorted/leaf`, `src/unsorted/virtual`, `src/unsorted/ctor` and
-`src/unsorted/types` are generated: change the generator and rewrite them,
+`tools/vtables.py` (`write`, `ctors`), `tools/typegen.py` and `tools/clonegen.py`.
+Their sources in `src/unsorted/leaf`, `src/unsorted/virtual`, `src/unsorted/ctor`,
+`src/unsorted/types` and `src/unsorted/clone` are generated: change the generator and rewrite them,
 don't edit them by hand. Run `typegen.py write` before `vtables.py write`:
 vtables.py skips what typegen writes.
 
