@@ -2430,6 +2430,9 @@ CTOR_PATTERN = ("str x19, [sp, #N]! ; stp x29, x30, [sp, #N] ; add x29, sp, #N ;
                 "ldr x19, [sp], #N ; ret")
 ROOT_CTOR_PATTERN = "adrp x8, #N ; ldr x8, [x8, #N] ; add x8, x8, #N ; str x8, [x0] ; ret"  # no base
 CTOR_DIR = ROOT / "src" / "unsorted" / "ctor"
+# Header-only class families written by hand (src/unsorted/families): write
+# leaves their classes, and every function of their vtables, to them.
+FAMILY_DIR = ROOT / "src" / "unsorted" / "families"
 
 
 def ctor_pattern(m: Model, f: int, size: int) -> str:
@@ -2495,6 +2498,15 @@ def defined_classes(root: Path, skip: Path | None = None) -> set[str]:
         if f.suffix in (".cpp", ".h", ".inl") and (skip is None or skip not in f.parents):
             out |= set(_CLASS_DEF.findall(f.read_text(encoding="utf-8")))
     return out
+
+
+def family_groups(vtables: list[Vtable], root: Path | None = None) -> set[int]:
+    """The vtable groups of the classes `root` (FAMILY_DIR) defines: write
+    doesn't write them, nor any function of their vtables (a class whose
+    vtable shares one with them, like a derived class, leaves it to them)."""
+    root = FAMILY_DIR if root is None else root
+    classes = defined_classes(root) if root.exists() else set()
+    return {v.group for v in vtables if class_name(v) in classes}
 
 
 @dataclass(frozen=True)
@@ -2955,12 +2967,13 @@ def cmd_write(m: Model, args) -> None:
 
     # The functions of the hand-written classes' vtables are theirs, whatever
     # vtable the owner heuristic gives them to.
-    handwritten = {f for v in m.vtables if v.group in HANDWRITTEN for f in v.slots}
+    family = family_groups(m.vtables)
+    handwritten = {f for v in m.vtables if v.group in HANDWRITTEN | family for f in v.slots}
     # The constructor files' classes (cmd_ctors), declared there for a
     # constructor only, aren't written here. (What their vtables inherit still
     # is, by the classes that own it.)
     ctor_classes = defined_classes(CTOR_DIR) if CTOR_DIR.exists() else set()
-    skipped = HANDWRITTEN | {v.addr for v in m.vtables if class_name(v) in ctor_classes}
+    skipped = HANDWRITTEN | family | {v.addr for v in m.vtables if class_name(v) in ctor_classes}
 
     # The type getters tools/typegen.py writes (src/unsorted/types) are its, and
     # the copies tools/clonegen.py writes (src/unsorted/clone).
