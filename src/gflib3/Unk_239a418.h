@@ -34,12 +34,14 @@ public:
     T* m_ptr;
 };
 
-// What frees an object: slot 3 takes the allocation the object kept.
+// What frees an object: slot 3 takes the allocation the object kept. Slot 2
+// allocates (the size and the alignment), and slot 23 is what the container
+// allocators call when it returns nothing.
 class Unk_239a418_Allocator {
 public:
     virtual void vf0();
     virtual void vf1();
-    virtual void vf2();
+    virtual void* vf2(u64 size, u64 alignment);
     virtual void vf3(u64 arg1, u64 arg2, u64 arg3);
     virtual void vf4();
     virtual void vf5();
@@ -55,6 +57,12 @@ public:
     virtual void vf15();
     virtual void vf16();
     virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
 };
 
 // A container allocator that frees through Unk_239a418_Allocator::vf3 (the
