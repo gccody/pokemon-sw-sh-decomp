@@ -41,7 +41,7 @@ void Unk_23c7270::vf7() {
     field_90 = Unk_StateView<Unk_23f5fa8>(this, "AttentionView");
     UNK_CHECK(field_90 != nullptr);
     Unk_23c63c8* app = Unk_BoxApp(this);
-    Unk_a77610(app, 0);
+    Unk_a77610(app, nullptr);
     app->Unk_SetFieldB0(field_80->Unk_a8b820());
     field_98 = 0;
 }

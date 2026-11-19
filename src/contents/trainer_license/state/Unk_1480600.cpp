@@ -25,5 +25,5 @@ void Unk_243f438::vf7() {
     Unk_243d7a0* code = views->Unk_a7bb80<Unk_243d7a0>("ViewCardCode");
     field_80 = code;
     Unk_eb6230(field_80, 3);
-    Unk_67bfa0(reinterpret_cast<u64>(field_80->field_600));
+    Unk_67bfa0(field_80->field_600);
 }

@@ -27,7 +27,7 @@ void Unk_23c6920::vf7() {
     field_80 = Unk_StateView<Unk_23f6118>(this, "OptionBar");
     UNK_CHECK(field_80 != nullptr);
     Unk_eb77f0(field_80);
-    Unk_a77610(Unk_BoxApp(this), 0);
+    Unk_a77610(Unk_BoxApp(this), nullptr);
     Unk_23c63c8_Data* data = Unk_BoxApp(this)->Unk_GetField70();
     if (data->field_1a4 != 0)
         data->field_1a0 = true;

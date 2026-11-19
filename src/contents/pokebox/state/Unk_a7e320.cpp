@@ -22,7 +22,7 @@ void Unk_23c66b0::vf7() {
     field_78->Unk_aa68c0();
     if (field_78->Unk_GetField620()) {
         field_78->Unk_a95770(false);
-        Unk_a77610(Unk_BoxApp(this), 0);
+        Unk_a77610(Unk_BoxApp(this), nullptr);
     }
 }
 
