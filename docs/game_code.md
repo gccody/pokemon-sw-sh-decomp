@@ -1458,6 +1458,27 @@ the hand-written bases), branches to other code than the exit (~480),
 extended and shifted register operands (~670). Each needs more than a
 pattern: a structurer for `if`/`else`, or the callers' classes.
 
+### Batch 28: two paths, and the TU's own globals
+
+- **Two paths.** A function with one forward branch whose two paths each
+  end in their own return (no join) is lifted path by path (`two_paths`):
+  the code before the branch with each path, the branch the fallthrough
+  didn't take recorded as its condition (`Lifted.split`). The statements
+  before the branch must come out the same, and so must the parameters
+  (`const` only where neither path writes through one); where one path
+  returns a constant, the function returns the other's type. It's written
+  `if (<the fallthrough's condition>) { ...; return; }` then the branch's
+  path.
+- **Globals of the TU.** `adrp x8, G ; ldr w0, [x8, #G]` (and the stores)
+  reach a global without the GOT: the TU defines it. It's declared
+  `extern u32 Unk_<addr> __attribute__((visibility("hidden")));` like the
+  tables of Batch 23 (in `.data`, `.bss` or `.rodata`, not a string, code or
+  a vtable).
+
+The trial wrote 711 functions; 123 match: 37 in game code, 25 in NEX/Pia
+and the SDK, 61 in YEBIS. `--record-data` recorded 36 globals, each at the
+address its name gives (check.py: 39,826 matching, 42 not matching).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1483,8 +1504,8 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after Batch 27 and #86 (libcurl): check.py reports 39,703 matching
-and 42 not matching, in both games. Every batch above came from `tools/leafgen.py` and
+State after Batch 28: check.py reports 39,826 matching and 42 not
+matching, in both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
 generator and rewrite them, don't edit them by hand.

@@ -80,6 +80,20 @@ void Unk_16548b0_set(Unk_16548b0* self, bool value) {
     self->field_590 = value;
 }
 
+extern u64 Unk_2456c98 __attribute__((visibility("hidden")));
+
+// 0x7101654ce0
+u64 Unk_1654ce0_get() {
+    return Unk_2456c98;
+}
+
+extern u64 Unk_2456d38 __attribute__((visibility("hidden")));
+
+// 0x7101654d80
+u64 Unk_1654d80_get() {
+    return Unk_2456d38;
+}
+
 // 0x7101655170
 void Unk_1655170_update() {
 }

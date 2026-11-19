@@ -74,6 +74,22 @@ void Unk_8ec8b0_set(const Unk_8ec8b0* self) {
     self->field_10->field_60 = 1;
 }
 
+struct Unk_8ec8e0 {
+    u8 _0[0x39];
+    u8 field_39;
+    u8 field_3a;
+};
+PKMN_OFFSET_ASSERT(Unk_8ec8e0, field_39, 0x39);
+PKMN_OFFSET_ASSERT(Unk_8ec8e0, field_3a, 0x3a);
+
+// 0x71008ec8e0
+u8 Unk_8ec8e0_get(const Unk_8ec8e0* self) {
+    if (self->field_3a != 0) {
+        return 2;
+    }
+    return self->field_39;
+}
+
 struct Unk_8ec900_10 {
     u8 _0[0x60];
     u8 field_60;

@@ -41,6 +41,28 @@ void Unk_f499f0_call(void* self) {
     Unk_f498d0(self, 0x307b9d87c62f2e04, 0x5f635651ac509cb1);
 }
 
+void Unk_f498d0(void*, u64, u64);
+
+// 0x7100f49ae0
+void Unk_f49ae0_call(void* self, bool value) {
+    if ((value) != 0) {
+        Unk_f498d0(self, 0x307b9e87c62f2fb7, 0xcc0cfcb797e44c58);
+        return;
+    }
+    Unk_f498d0(self, 0x307f1f87c63240c1, 0xcc0cfcb797e44c58);
+}
+
+void Unk_f498d0(void*, u64, u64);
+
+// 0x7100f49b20
+void Unk_f49b20_call(void* self, bool value) {
+    if ((value) != 0) {
+        Unk_f498d0(self, 0x30859087c6376c72, 0x5f635651ac509cb1);
+        return;
+    }
+    Unk_f498d0(self, 0x307b9a87c62f28eb, 0x5f635651ac509cb1);
+}
+
 u32 Unk_eb6530();
 
 // 0x7100f4a350

@@ -18,6 +18,20 @@ void Unk_1721740_set(Unk_1721740* self) {
 void Unk_1721750_update() {
 }
 
+extern u8 Unk_27fc0a0 __attribute__((visibility("hidden")));
+
+// 0x7101722410
+u8 Unk_1722410_get() {
+    return Unk_27fc0a0;
+}
+
+extern u8 Unk_27fc0a1 __attribute__((visibility("hidden")));
+
+// 0x7101722580
+u8 Unk_1722580_get() {
+    return Unk_27fc0a1;
+}
+
 struct Unk_1723350 {
     u8 _0[0x8];
     u16 field_8;
@@ -679,6 +693,20 @@ PKMN_OFFSET_ASSERT(Unk_17360e0, field_a, 0xa);
 // 0x71017360e0
 u16 Unk_17360e0_get(const Unk_17360e0* self) {
     return self->field_a;
+}
+
+extern u8 Unk_27fc0b8 __attribute__((visibility("hidden")));
+
+// 0x71017363e0
+u8 Unk_17363e0_get() {
+    return Unk_27fc0b8;
+}
+
+extern u8 Unk_27fc0b9 __attribute__((visibility("hidden")));
+
+// 0x71017363f0
+u8 Unk_17363f0_get() {
+    return Unk_27fc0b9;
 }
 
 struct Unk_1736d20 {

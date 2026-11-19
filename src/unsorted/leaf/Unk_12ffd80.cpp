@@ -199,3 +199,10 @@ void Unk_130b180_call(void* self, const Unk_67bdb0* value, u64 arg2, u32 arg3, u
     u64 r0 = Unk_67bdb0_getField58(value);
     Unk_130adb0(self, r0, arg2, arg3, arg4);
 }
+
+extern u32 Unk_27ef2cc __attribute__((visibility("hidden")));
+
+// 0x710130b1d0
+u32 Unk_130b1d0_get() {
+    return Unk_27ef2cc;
+}

@@ -8,6 +8,30 @@ u32 Unk_1687070_get() {
     return 8;
 }
 
+struct Unk_1688620_60 {
+    u32 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_1688620_60, field_0, 0x0);
+
+struct Unk_1688620 {
+    u8 _0[0x58];
+    u64 field_58;
+    Unk_1688620_60* field_60;
+};
+PKMN_OFFSET_ASSERT(Unk_1688620, field_58, 0x58);
+PKMN_OFFSET_ASSERT(Unk_1688620, field_60, 0x60);
+void Unk_1655290(u64);
+
+// 0x7101688620
+u32 Unk_1688620_get(Unk_1688620* self) {
+    if (self->field_60->field_0 >= 2 && self->field_60->field_0 <= 4) {
+        Unk_1655290(self->field_58);
+        self->field_58 = 0;
+        return 1;
+    }
+    return 5;
+}
+
 struct Unk_1688860 {
     u8 _0[0x10];
     u8 field_10;

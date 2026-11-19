@@ -263,6 +263,23 @@ bool Unk_894f90_check(const Unk_894f90* self) {
     return self->field_211 != 5;
 }
 
+struct Unk_894fa0 {
+    u8 _0[0x90];
+    u8 field_90;
+    u8 _91[0x180];
+    u8 field_211;
+};
+PKMN_OFFSET_ASSERT(Unk_894fa0, field_90, 0x90);
+PKMN_OFFSET_ASSERT(Unk_894fa0, field_211, 0x211);
+
+// 0x7100894fa0
+bool Unk_894fa0_check(const Unk_894fa0* self) {
+    if (self->field_211 == 5) {
+        return 0;
+    }
+    return self->field_211 == self->field_90;
+}
+
 struct Unk_894fd0 {
     u8 _0[0x211];
     u8 field_211;

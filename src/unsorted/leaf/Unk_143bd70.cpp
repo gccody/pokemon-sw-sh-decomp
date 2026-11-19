@@ -168,6 +168,23 @@ void Unk_1443160_set(Unk_1443160* self) {
     self->field_30 = 0;
 }
 
+struct Unk_1443dd0 {
+    u8 _0[0x20];
+    u8 field_20;
+    u8 _21[0x1];
+    u16 field_22;
+};
+PKMN_OFFSET_ASSERT(Unk_1443dd0, field_20, 0x20);
+PKMN_OFFSET_ASSERT(Unk_1443dd0, field_22, 0x22);
+
+// 0x7101443dd0
+u16 Unk_1443dd0_get(const Unk_1443dd0* self) {
+    if (self->field_20 != 0) {
+        return 0xffff;
+    }
+    return self->field_22;
+}
+
 struct Unk_1443df0 {
     u8 _0[0x20];
     u8 field_20;
