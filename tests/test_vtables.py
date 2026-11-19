@@ -600,8 +600,16 @@ def test_derived_from_an_external_base_slot_with_a_parameter():
     assert V.param_codes("") == "v" and V.param_codes("Unk_2399590_Arg*") == "P15Unk_2399590_Arg"
     # scalars of include/types.h: s32 is int, u64 unsigned long
     assert V.param_codes("s32") == "i" and V.param_codes("u64") == "m" and V.param_codes("bool") == "b"
+    # several, and const references to a class
+    assert V.param_codes("u64, const Unk_23d4470_Desc&") == "mRK16Unk_23d4470_Desc"
+    assert V.param_codes("Unk_A*, s32") == "P5Unk_Ai"
+    # and write recognizes its own names with them
+    name = V.mangle("Unk_23d4530", "vf7", V.param_codes("u64, const Unk_23d4470_Desc&"))
+    assert V.WRITTEN.fullmatch(name).group(1) == "Unk_23d4530"
     with pytest.raises(ValueError):
         V.param_codes("int")
+    with pytest.raises(ValueError):
+        V.param_codes("u64, Unk_A&")
 
 
 def test_lifted_member_of_a_class_on_a_hand_written_base():

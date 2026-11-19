@@ -425,8 +425,9 @@ class Member:
 
 RTYPE = {"ret": "void", "constant": "u32", "zero": "u32", "null": "void*", "forward": "void", "string": "const char*",
          "delete": "void"}
-# The names write gives: members (vfN, vf_type, Unk_GetType, destructors) and thunks.
-WRITTEN = re.compile(r"_Z(?:Thn\d+_)?N\d+(Unk_[0-9a-f]+)(?:D0|D1|D2|\d+vf\d+|7vf_type|11Unk_GetType)E[a-z]+")
+# The names write gives: members (vfN, vf_type, Unk_GetType, destructors) and thunks,
+# with param_codes' parameters (`EmRK16Unk_23d4470_Desc` as well as `Ev`).
+WRITTEN = re.compile(r"_Z(?:Thn\d+_)?N\d+(Unk_[0-9a-f]+)(?:D0|D1|D2|\d+vf\d+|7vf_type|11Unk_GetType)E\w+")
 
 
 @dataclass(frozen=True)
@@ -458,8 +459,9 @@ class ExternalBase:
         return next(((s[1], s[2]) for s in self.slots if s[0] == i), ("void", f"vf{i}"))
 
     def params(self, i: int) -> str:
-        """The parameter slot i is declared with, "" for none: a pointer to a
-        class, unnamed where write defines an override (it doesn't use it)."""
+        """The parameters slot i is declared with (param_codes' kinds,
+        comma-separated), "" for none: unnamed where write defines an override
+        (it doesn't use them)."""
         return next((s[3] for s in self.slots if s[0] == i and len(s) > 3), "")
 
 
@@ -545,9 +547,12 @@ EXTERNAL_BASES = (
                          36: "u32", 38: "f32", 43: "u32", 46: "u32", 68: "u32"}.get(i, "void"), f"vf{i}")
                     for i in range(7, 69))),
                  6, "Unk_23dcdd0::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)), size=0x4b0),
+    # The demo player's commands (src/demo). Its vf7 takes an object of the owner's (+0x98 of
+    # its +0x2b8) and the command's description: 0x7100bc27d0 passes both.
     ExternalBase(0x23d4480, "Unk_23d4470", "unsorted/Unk_23d4470.h",
                  ((2, "Unk_239a418_Ref<Unk_239a418_Handle>", "vf2"), (3, "void", "vf3"), (4, "void", "vf4"),
-                  (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7"), (8, "u32", "vf8")),
+                  (5, "void", "vf5"), (6, TYPE, "vf_type"), (7, "void", "vf7", "u64, const Unk_23d4470_Desc&"),
+                  (8, "u32", "vf8")),
                  6, "Unk_23d4470::Unk_GetType", ((0x48, (0, 1), 5), (0x50, (1, 2), 0)),
                  shared_tu=True, source="unsorted/Unk_23d4470.inl", size=0x348),
     ExternalBase(0x23f4e50, "Unk_23f4e40", "unsorted/Unk_23f4e40.h",
@@ -808,16 +813,22 @@ SCALAR_CODES = {"bool": "b", "u8": "h", "s8": "a", "u16": "t", "s16": "s", "u32"
 
 
 def param_codes(param: str) -> str:
-    """The Itanium code of an ExternalBase slot's parameter: none (`v`), a
-    scalar of include/types.h (`s32`) or a pointer to a class (`Name*`)."""
+    """The Itanium codes of an ExternalBase slot's parameters, comma-separated:
+    none (`v`), scalars of include/types.h (`s32`), pointers to a class
+    (`Name*`) or const references to one (`const Name&`)."""
     if not param:
         return "v"
-    t = param.strip()
-    if t in SCALAR_CODES:
-        return SCALAR_CODES[t]
-    if not t.endswith("*") or not t[:-1].isidentifier():
-        raise ValueError(f"can't mangle the parameter {param!r}")
-    return f"P{len(t) - 1}{t[:-1]}"
+    codes = []
+    for t in (p.strip() for p in param.split(",")):
+        if t in SCALAR_CODES:
+            codes.append(SCALAR_CODES[t])
+        elif t.endswith("*") and t[:-1].isidentifier():
+            codes.append(f"P{len(t) - 1}{t[:-1]}")
+        elif t.startswith("const ") and t.endswith("&") and t[6:-1].isidentifier():
+            codes.append(f"RK{len(t) - 7}{t[6:-1]}")
+        else:
+            raise ValueError(f"can't mangle the parameter {param!r}")
+    return "".join(codes)
 
 
 def _mov_w0(m: Model, f: int) -> int:

@@ -13,7 +13,7 @@ const Unk_239a418_Type* Unk_23d4470::vf_type() {
 }
 
 // 0x7100bc9de0
-void Unk_23d4470::vf7() {}
+void Unk_23d4470::vf7(u64, const Unk_23d4470_Desc&) {}
 
 // 0x7100bc9df0
 u32 Unk_23d4470::vf8() {

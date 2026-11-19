@@ -64,7 +64,9 @@ public:
 
     ~Unk_23d4470() override;
     const Unk_239a418_Type* vf_type() override;
-    virtual void vf7();
+    // Reads the command: an object of the owner's (its +0x2b8's +0x98, a stream that
+    // the overrides read their fields from) and the description.
+    virtual void vf7(u64 stream, const Unk_23d4470_Desc& desc);
     virtual u32 vf8();
 
     u8 _60[0x20];

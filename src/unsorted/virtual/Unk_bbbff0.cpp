@@ -128,7 +128,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -145,7 +145,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -155,7 +155,7 @@ const Unk_239a418_Type* Unk_23d4530::vf_type() {
 }
 
 // 0x7100bca310
-void Unk_23d4530::vf7() {}
+void Unk_23d4530::vf7(u64, const Unk_23d4470_Desc&) {}
 
 class Unk_23d45f0 : public Unk_23d4470 {
 public:
@@ -165,7 +165,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -182,7 +182,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -199,7 +199,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
     u8 _348[0x20];
     u64 _368;
@@ -229,7 +229,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -239,7 +239,7 @@ const Unk_239a418_Type* Unk_23d4830::vf_type() {
 }
 
 // 0x7100bcd300
-void Unk_23d4830::vf7() {}
+void Unk_23d4830::vf7(u64, const Unk_23d4470_Desc&) {}
 
 class Unk_23d48f0 : public Unk_23d4470 {
 public:
@@ -249,7 +249,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -266,7 +266,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
     u8 _348[0x20];
     Unk_239a418_Ref<Unk_239a418> field_368;
@@ -286,7 +286,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
     u8 _348[0x20];
     Unk_239a418_Ref<Unk_239a418> field_368;
@@ -314,7 +314,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
     virtual void vf9();
 };
@@ -332,7 +332,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -365,7 +365,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -375,7 +375,7 @@ const Unk_239a418_Type* Unk_23d4e78::vf_type() {
 }
 
 // 0x7100bd18e0
-void Unk_23d4e78::vf7() {}
+void Unk_23d4e78::vf7(u64, const Unk_23d4470_Desc&) {}
 
 class Unk_23d4f38 : public Unk_23d4470 {
 public:
@@ -385,7 +385,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -402,7 +402,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
 };
 
 // 0x7100bd3400
@@ -418,7 +418,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -435,7 +435,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -452,7 +452,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -469,7 +469,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -486,7 +486,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -503,7 +503,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -520,7 +520,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
     Unk_239a418_Ref<Unk_239a418> field_348;
 };
@@ -539,7 +539,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
     Unk_239a418_Ref<Unk_239a418> field_348;
 };
@@ -558,7 +558,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
     Unk_239a418_Ref<Unk_239a418> field_348;
 };
@@ -577,7 +577,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
     Unk_239a418_Ref<Unk_239a418> field_348;
 };
@@ -596,7 +596,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
     Unk_239a418_Ref<Unk_239a418> field_348;
 };
@@ -615,7 +615,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -625,7 +625,7 @@ const Unk_239a418_Type* Unk_23d5b38::vf_type() {
 }
 
 // 0x7100bdd270
-void Unk_23d5b38::vf7() {}
+void Unk_23d5b38::vf7(u64, const Unk_23d4470_Desc&) {}
 
 class Unk_23d5bf8 : public Unk_23d4470 {
 public:
@@ -635,7 +635,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -652,7 +652,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -669,7 +669,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -686,7 +686,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -703,7 +703,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -713,7 +713,7 @@ const Unk_239a418_Type* Unk_23d5ef8::vf_type() {
 }
 
 // 0x7100bdf9c0
-void Unk_23d5ef8::vf7() {}
+void Unk_23d5ef8::vf7(u64, const Unk_23d4470_Desc&) {}
 
 class Unk_23d5fb8 : public Unk_23d4470 {
 public:
@@ -723,7 +723,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -733,7 +733,7 @@ const Unk_239a418_Type* Unk_23d5fb8::vf_type() {
 }
 
 // 0x7100bdff90
-void Unk_23d5fb8::vf7() {}
+void Unk_23d5fb8::vf7(u64, const Unk_23d4470_Desc&) {}
 
 class Unk_23d6078 : public Unk_23d4470 {
 public:
@@ -743,7 +743,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -753,7 +753,7 @@ const Unk_239a418_Type* Unk_23d6078::vf_type() {
 }
 
 // 0x7100be0560
-void Unk_23d6078::vf7() {}
+void Unk_23d6078::vf7(u64, const Unk_23d4470_Desc&) {}
 
 class Unk_23d6138 : public Unk_23d4470 {
 public:
@@ -763,7 +763,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -773,7 +773,7 @@ const Unk_239a418_Type* Unk_23d6138::vf_type() {
 }
 
 // 0x7100be0b60
-void Unk_23d6138::vf7() {}
+void Unk_23d6138::vf7(u64, const Unk_23d4470_Desc&) {}
 
 // 0x7100be0b70
 u32 Unk_23d6138::vf8() {
@@ -788,7 +788,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -805,7 +805,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -827,7 +827,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -844,7 +844,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -861,7 +861,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -878,7 +878,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -888,7 +888,7 @@ const Unk_239a418_Type* Unk_23d65b8::vf_type() {
 }
 
 // 0x7100be4f70
-void Unk_23d65b8::vf7() {}
+void Unk_23d65b8::vf7(u64, const Unk_23d4470_Desc&) {}
 
 // 0x7100be4f80
 u32 Unk_23d65b8::vf8() {
@@ -903,7 +903,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
     virtual void vf9();
 };
@@ -924,7 +924,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -941,7 +941,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -958,7 +958,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -975,7 +975,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -992,7 +992,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -1009,7 +1009,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -1085,7 +1085,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -1102,7 +1102,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -1158,7 +1158,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
     u8 _348[0x98];
     Unk_239a418_Ref<Unk_239a418> field_3e0;
@@ -1178,7 +1178,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
     virtual void vf9();
 };
@@ -1376,7 +1376,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
     virtual void vf9();
     virtual void vf10();
@@ -1437,7 +1437,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
     u8 _348[0x98];
     Unk_239a418_Ref<Unk_239a418> field_3e0;
@@ -1480,7 +1480,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -1497,7 +1497,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -1514,7 +1514,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -1531,7 +1531,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -1548,7 +1548,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -1565,7 +1565,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -1582,7 +1582,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -1599,7 +1599,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -1616,7 +1616,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -1687,7 +1687,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -1851,7 +1851,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -1876,7 +1876,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
     virtual void vf9();
 };
@@ -1894,7 +1894,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -1911,7 +1911,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -1928,7 +1928,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -1961,7 +1961,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
@@ -1978,7 +1978,7 @@ public:
     }
 
     const Unk_239a418_Type* vf_type() override;
-    void vf7() override;
+    void vf7(u64, const Unk_23d4470_Desc&) override;
     u32 vf8() override;
 };
 
