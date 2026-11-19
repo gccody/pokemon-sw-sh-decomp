@@ -134,3 +134,86 @@ def test_parse_factory():
 
     m3 = fake_module(at, words[:4], {})
     assert F.parse_factory(m3, at) == "no call to the base's constructor"
+
+
+def object_factory_words(at: int, got: int) -> list[int]:
+    """A factory of a class on the object: an allocation of 0x70 bytes, a
+    reference moved in (the argument cleared) to +0x60, a u32 zero at +0x68."""
+    words = [
+        0xAA0103F4, 0xAA0203F6, 0,          # mov x20, x1 ; mov x22, x2 ; bl GetTlsValue
+        0xAA0003F3, 0xF9400288, 0xF9400908,  # mov x19, x0 ; ldr x8, [x20] ; ldr x8, [x8, #0x10]
+        0x52800E01, 0x52800102, 0xAA1403E0,  # mov w1, #0x70 ; mov w2, #8 ; mov x0, x20
+        0xD63F0100, 0xAA0003F5, 0xB50000A0,  # blr x8 ; mov x21, x0 ; cbnz x0, +0x14
+        0xF9400288, 0xF9405D08, 0xAA1403E0, 0xD63F0100,  # the allocator's slot 23
+        0xF94002D7, 0xF90002DF, 0xAA1503E0, 0,  # ldr x23, [x22] ; str xzr, [x22] ; mov x0, x21 ; bl ctor
+        0, 0xF9400508,                      # adrp x8, <got> ; ldr x8, [x8, #8]
+        0x91004109, 0xF90002A9, 0x91014109, 0x9102410A,  # the vptrs
+        0xA904AAA9, 0xF90032B7, 0xB9006ABF,  # stp x9, x10, [x21, #0x48] ; str x23, [x21, #0x60] ; str wzr, [x21, #0x68]
+        0x52800E08, 0x52800109, 0xA900D6B4, 0xA901A6A8,  # the allocation recorded
+        0xD65F03C0,                         # ret
+    ]
+    words[2] = bl(at + 8, F.GET_TLS)
+    words[19] = bl(at + 0x4C, F.OBJECT_CTOR)
+    words[20] = adrp(8, at + 0x50, got)
+    return words
+
+
+def test_walk():
+    at = 0x1000
+    words = [0xF9400428, 0xF9000808, 0xD65F03C0]   # ldr x8, [x1, #8] ; str x8, [x0, #0x10] ; ret
+    m = fake_module(at, words, {})
+    w = F.walk(m, at, 12, {0: F.Sym("obj"), 1: F.Sym("arg", (1,))}, lambda *_: None)
+    loaded = F.Sym("mem", (("arg", (1,)), 8, 8))
+    assert w.events == [("load", F.Sym("arg", (1,)), 8, 8, loaded), ("store", F.Sym("obj"), 0x10, 8, loaded),
+                        ("ret",)]
+
+
+def test_parse_object():
+    at, got, vt = 0x1000, 0x3008, 0x5000
+    m = fake_module(at, object_factory_words(at, got), {got: vt})
+    f = F.parse_object(m, at)
+    assert isinstance(f, F.ObjectFactory), f
+    assert (f.cls, f.size, f.align, f.extra_slots, f.interface, f.parented) == ("Unk_5000", 0x70, 8, 0, False, False)
+    assert f.params == [F.Param("ref", True, True)]
+    assert f.members == [F.Member(0x60, "ref", 0, moved=True), F.Member(0x68, "u32", value=0)]
+    assert F.object_name(f) == ("_ZN7Unk_New6CreateI8Unk_5000J15Unk_239a418_RefI11Unk_239a418EEEEPT_"
+                                "P21Unk_239a418_AllocatorDpOT0_")
+    text = F.object_class(f)
+    assert "Unk_5000(Unk_Ref a0) : field_60(std::move(a0)) {}" in text
+    assert "    u32 field_68 = 0;" in text
+    assert text.endswith("template Unk_5000* Unk_New::Create<Unk_5000>(Unk_239a418_Allocator*, Unk_Ref&&);\n")
+
+    # not cleared, and no reference added: a u64 passed by value
+    words = object_factory_words(at, got)
+    words[17] = 0xD503201F                   # nop instead of clearing the argument
+    f2 = F.parse_object(fake_module(at, words, {got: vt}), at)
+    assert f2.params == [F.Param("u64", True, False)] and f2.members[0] == F.Member(0x60, "u64", 0)
+
+    # a call the family doesn't make
+    words[16] = bl(at + 0x40, 0x9000)
+    assert F.parse_object(fake_module(at, words, {got: vt}), at) == f"a call to {0x9000 + F.BASE:#x}"
+
+
+def test_object_names():
+    def factory(cls, kinds, base=F.OBJECT_BASES[F.OBJECT_CTOR]):
+        params = [F.Param(k, True, moved) for k, moved in kinds]
+        return F.ObjectFactory(0, cls, 0, 8, 0, False, params, [], base)
+
+    assert F.object_name(factory("Unk_240d540", [("pair", True), ("ref", False)])) == (
+        "_ZN7Unk_New6CreateI11Unk_240d540J19Unk_239a418_RefPairRK15Unk_239a418_RefI11Unk_239a418EEEEPT_"
+        "P21Unk_239a418_AllocatorDpOT0_")
+    assert F.object_name(factory("Unk_2411db0", [("pair", True), ("words2", False)])) == (
+        "_ZN7Unk_New6CreateI11Unk_2411db0J19Unk_239a418_RefPairRK18Unk_1085320_Words2EEEPT_"
+        "P21Unk_239a418_AllocatorDpOT0_")
+    base = F.OBJECT_BASES[0xE7F820]
+    f = factory("Unk_23c9028", [(t, False) for t in base.args], base)
+    assert F.object_name(f) == "_ZN7Unk_New6CreateI11Unk_23c9028JRKPvRKmS6_EEEPT_P21Unk_239a418_AllocatorDpOT0_"
+    assert "    using Unk_23f4660::Unk_23f4660;" in F.object_class(f)
+    assert F.creator_name("Unk_23f5fa8") == (
+        "_ZN16Unk_790260_Owner6CreateI11Unk_23f5fa8EE15Unk_239a418_RefIT_ERKS2_I11Unk_239a418Em")
+    f.parented = True
+    text = F.object_class(f)
+    assert "class Unk_23c9028_Parent : public Unk_23f4660 {" in text
+    assert "class Unk_23c9028 : public Unk_23c9028_Parent {" in text
+    assert F.creator_class(f).endswith(
+        "template Unk_239a418_Ref<Unk_23c9028> Unk_790260_Owner::Create<Unk_23c9028>(const Unk_Ref& parent, u64 a2);\n")
