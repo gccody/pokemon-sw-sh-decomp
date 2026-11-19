@@ -1577,3 +1577,14 @@ def test_delete_member():
     assert (0x130, "_ZN8Unk_10003vf3Ev") in names
     # a D0 (slot 1) isn't one
     assert all(x.kind != "delete" for x in V.placeholder_members(m, vts[2], own, lambda f: True))
+
+
+def test_family_groups(tmp_path):
+    """The classes a hand-written family header defines take their vtable
+    groups out of write (a class named Unk_<addr>_Base isn't one of them)."""
+    (tmp_path / "f.h").write_text("class Unk_1000 : public Unk_1000_Base {};\nclass Unk_1000_Base {};\n"
+                                  "struct Unk_2000_Entry {};\n")
+    vts = [V.Vtable(0x1010, 0, None, [1], group=0x1010), V.Vtable(0x1038, -16, None, [2], group=0x1010),
+           V.Vtable(0x2010, 0, None, [3], group=0x2010)]
+    assert V.family_groups(vts, tmp_path) == {0x1010}
+    assert V.family_groups(vts, tmp_path / "missing") == set()
