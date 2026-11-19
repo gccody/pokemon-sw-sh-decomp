@@ -1672,7 +1672,6 @@ To size the trial, `write` ran with every candidate before and after the
 change (`--out` to a scratch directory), and `--only` listed the 172 new
 ones. All 172 match: 16 classes with 6 functions each (D2, D0, four
 thunks) and 19 with 4 (check.py: 41,789 matching, 42 not matching).
-
 ### Batch 38: callables among the members of inline bases
 
 `tail_members` (Batch 13) reads references and callables before a tail
@@ -1691,6 +1690,28 @@ All match but `Unk_23c3170`'s D0 and thunks: its D2 (280 bytes, three
 callables) matches, but the original's D0 and thunks inline it and ours
 don't, a cost near clang's threshold. 312 functions are kept (check.py:
 42,101 matching, 42 not matching).
+
+### Batch 39: library classes' small virtual functions, as members
+
+`vtables.py` writes Game Freak's classes only. The libraries' vtables
+(YEBIS's and NEX/Pia's with RTTI, Wwise's without) have about 2,900 small
+virtual functions of the kinds `vtables.py` lifts (constants, `ret`s,
+`nullptr`s, small getters and setters, traps). `leafgen.py members` lifts
+them like leaf functions and writes each as a member `vf<slot>` of its
+class: the class's name is its RTTI's (`N4PPFX16SiYebisAllocatorE` is
+`PPFX::SiYebisAllocator`; namespaces and enclosing classes mangle alike, and
+templates are left out), or `Unk_<vtable>` without RTTI, like `vtables.py`'s.
+The body reads through the leaf function's placeholder struct, `this` cast
+to it. A function's owner is `vtables.owners`'; slots 0 and 1 (the
+destructors) are left out, and so is a second function for a slot another
+of the class's vtables already gave it. One file per class in
+`lib/yebis/class`, `lib/nx_middleware/class` and `lib/wwise/class` (built with
+clang 6.0.1 like the Wwise leaves); `member-names` reads the mangled names
+from the build by each member's prefix.
+
+The trial wrote 1,899 members of 507 classes; 1,893 match: 799 in YEBIS, 814
+in NEX/Pia and the SDK, 280 in Wwise (check.py: 43,994 matching, 42 not
+matching).
 
 ## What's left of the small functions
 
@@ -1717,7 +1738,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after Batch 38: check.py reports 42,101 matching and 42 not
+State after Batch 39: check.py reports 43,994 matching and 42 not
 matching, in both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the

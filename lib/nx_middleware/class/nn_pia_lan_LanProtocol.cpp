@@ -1,0 +1,44 @@
+// Scope: common
+// Small virtual functions of a library class (tools/leafgen.py members): placeholder
+// member names vf<slot>, placeholder structs. The class's name is its RTTI's.
+#include <types.h>
+
+struct Unk_1674ea0 {
+    u8 _0[0x30];
+    u64 field_30;
+};
+PKMN_OFFSET_ASSERT(Unk_1674ea0, field_30, 0x30);
+
+namespace nn {
+namespace pia {
+namespace lan {
+class LanProtocol {
+public:
+    void vf2();
+    u32 vf4();
+    u32 vf11();
+    u64 vf12();
+};
+}  // namespace lan
+}  // namespace pia
+}  // namespace nn
+
+// 0x7101673e70
+void nn::pia::lan::LanProtocol::vf2() {
+}
+
+// 0x7101674e80
+u32 nn::pia::lan::LanProtocol::vf4() {
+    return 0x44;
+}
+
+// 0x7101674e90
+u32 nn::pia::lan::LanProtocol::vf11() {
+    return 0;
+}
+
+// 0x7101674ea0
+u64 nn::pia::lan::LanProtocol::vf12() {
+    const Unk_1674ea0* self = reinterpret_cast<const Unk_1674ea0*>(this);
+    return self->field_30;
+}

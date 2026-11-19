@@ -1,0 +1,39 @@
+// Scope: common
+// Small virtual functions of a library class (tools/leafgen.py members): placeholder
+// member names vf<slot>, placeholder structs. The class's name is its RTTI's.
+#include <types.h>
+
+struct Unk_1747b90 {
+    u8 _0[0x330];
+    u64 field_330;
+};
+PKMN_OFFSET_ASSERT(Unk_1747b90, field_330, 0x330);
+
+namespace nn {
+namespace pia {
+namespace transport {
+class ReliableSlidingWindow {
+public:
+    u64 vf6();
+    u32 vf8();
+    u32 vf11();
+};
+}  // namespace transport
+}  // namespace pia
+}  // namespace nn
+
+// 0x7101746cb0
+u32 nn::pia::transport::ReliableSlidingWindow::vf8() {
+    return 0;
+}
+
+// 0x71017474f0
+u32 nn::pia::transport::ReliableSlidingWindow::vf11() {
+    return 0;
+}
+
+// 0x7101747b90
+u64 nn::pia::transport::ReliableSlidingWindow::vf6() {
+    const Unk_1747b90* self = reinterpret_cast<const Unk_1747b90*>(this);
+    return self->field_330;
+}
