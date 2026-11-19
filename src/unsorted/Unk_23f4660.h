@@ -123,7 +123,8 @@ public:
     std::unique_ptr<Unk_23f47c0, Unk_23f4660_Deleter> field_5a0;
     // Its name: the apps' frames find their views by it (Unk_a7bb80_Views).
     Unk_d0c0_String field_5c0;
-    u64 field_5c8;
+    u32 field_5c8;
+    u32 field_5cc;
 };
 static_assert(sizeof(Unk_23f4660) == 0x5d0, "Unk_23f4660");
 static_assert(__builtin_offsetof(Unk_23f4660, field_70) == 0x70, "Unk_23f4660::field_70");

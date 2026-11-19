@@ -2347,6 +2347,15 @@ with the fields the hand-written functions use. What the states do:
 - **Sounds** are named by static `Unk_5cfad0_Literal`s (hash, characters,
   count: the TU's .data.rel.ro, no destructor) that `Unk_1502120` plays.
 
+The League Card album's states (`src/contents/trainer_license`) are the
+same framework: most vf7s look up two to five views, store each into a
+field and call one or two functions on it. A state that looks up several
+views casts the frame once and keeps the views in a local; the app
+(`Unk_243d5a8`) is either dereferenced (`Unk_AlbumApp(this)->field_80`, its
+null paths dropped) or tested first (`if (Unk_243d5a8* app = ...)`), and the
+code shows which. Reference members are copied into a local `Ref` around a
+call (an `AddRef`, the call, a release).
+
 Matching details learned on the box's states:
 
 - A function template is no `inline` function: give a helper template the
