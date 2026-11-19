@@ -4,16 +4,8 @@
 // Their code doesn't depend on the mapped type, which isn't known: each map gets
 // a placeholder, named after its __rehash. Their users aren't decompiled yet.
 #include <types.h>
-#include <unordered_map>
 
 #include "unsorted/Unk_2771620.h"
-
-template <class K, class T>
-using Unk_2771620_Map = std::unordered_map<K,
-                                           T,
-                                           std::hash<K>,
-                                           std::equal_to<K>,
-                                           Unk_2771620_Allocator<std::pair<const K, T>>>;
 
 // The mapped type of the map whose __rehash is 0x7100597460.
 struct Unk_597460 {};  // its layout isn't known (nothing here reads it)
@@ -351,21 +343,8 @@ template void Unk_2771620_Map<u64, Unk_ef8ea0>::__table::rehash(size_t);
 // 0x7100ef8ea0
 template void Unk_2771620_Map<u64, Unk_ef8ea0>::__table::__rehash(size_t);
 
-// The mapped type of the map whose __rehash is 0x710112dd40.
-struct Unk_112dd40 {};  // its layout isn't known (nothing here reads it)
-
-// 0x710112dc30
-template void Unk_2771620_Map<u64, Unk_112dd40>::__table::rehash(size_t);
-// 0x710112dd40
-template void Unk_2771620_Map<u64, Unk_112dd40>::__table::__rehash(size_t);
-
-// The mapped type of the map whose __rehash is 0x710112e110.
-struct Unk_112e110 {};  // its layout isn't known (nothing here reads it)
-
-// 0x710112e000
-template void Unk_2771620_Map<u64, Unk_112e110>::__table::rehash(size_t);
-// 0x710112e110
-template void Unk_2771620_Map<u64, Unk_112e110>::__table::__rehash(size_t);
+// The maps of Unk_112dd40 and Unk_112e110 (0x710112dc30-0x710112e110) are
+// instantiated by their users, in src/contents/pokecamp/source/Unk_112a570.cpp.
 
 // The mapped type of the map whose __rehash is 0x71012f8ff0.
 struct Unk_12f8ff0 {};  // its layout isn't known (nothing here reads it)
