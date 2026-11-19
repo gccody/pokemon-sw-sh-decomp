@@ -34,6 +34,7 @@ struct Unk_ResolverOption {
     int i;
   } value;
 };
+_Static_assert(sizeof(struct Unk_ResolverOption) == 0x18, "ResolverOption");
 
 int nnsocketResolverGetOption(struct Unk_ResolverOption *option,
                               uint32_t key);

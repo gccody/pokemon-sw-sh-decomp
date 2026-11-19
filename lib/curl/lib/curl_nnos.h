@@ -28,6 +28,10 @@ typedef struct {
   unsigned char field_0[0x28];
 } nnosEventType;
 
+_Static_assert(sizeof(nnResult) == 4, "nnResult");
+_Static_assert(sizeof(nnosMutexType) == 0x20, "nnosMutexType");
+_Static_assert(sizeof(nnosEventType) == 0x28, "nnosEventType");
+
 /* Only used by pointer; the thread objects of the resolver threads keep
    their own fields from 0x1c0 on (Unk_1778b10.c). */
 typedef struct nnosThreadType nnosThreadType;

@@ -17,6 +17,7 @@
 #include "curl_setup.h"
 
 #include <errno.h>
+#include <stddef.h>
 #include <string.h>
 
 #include "llist.h"
@@ -46,6 +47,10 @@ struct Unk_1778b10_Thread {
   void *stack;
   struct curl_llist_element elem; /* in the manager's lists */
 };
+_Static_assert(sizeof(struct Unk_1778b10_Thread) == 0x1f0, "Thread");
+_Static_assert(offsetof(struct Unk_1778b10_Thread, func) == 0x1c0, "func");
+_Static_assert(offsetof(struct Unk_1778b10_Thread, stack) == 0x1d0, "stack");
+_Static_assert(offsetof(struct Unk_1778b10_Thread, elem) == 0x1d8, "elem");
 
 /* Sword 0x71027fc4a8: the manager. */
 struct Unk_27fc4a8 {
@@ -58,6 +63,11 @@ struct Unk_27fc4a8 {
   struct curl_llist *finished;
   nnosEventType started;
 } Unk_27fc4a8;
+_Static_assert(sizeof(Unk_27fc4a8) == 0x90, "Unk_27fc4a8");
+_Static_assert(offsetof(struct Unk_27fc4a8, event) == 0x10, "event");
+_Static_assert(offsetof(struct Unk_27fc4a8, mutex) == 0x38, "mutex");
+_Static_assert(offsetof(struct Unk_27fc4a8, running) == 0x58, "running");
+_Static_assert(offsetof(struct Unk_27fc4a8, started) == 0x68, "started");
 
 unsigned int Unk_1778e40(void *arg);
 void Unk_1778c90(void *arg);

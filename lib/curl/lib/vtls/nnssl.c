@@ -98,6 +98,7 @@ struct Unk_1777650_Handshake {
   uint64_t field_8;
   uint64_t field_10;
 };
+_Static_assert(sizeof(struct Unk_1777650_Handshake) == 0x18, "Handshake");
 
 /* Sword 0x7101777650: curlssl_connect_nonblocking(). The CURLcodes 0x5d,
    0x5e, 0x5f and 0x61 are Nintendo's (curl 7.55.1's end at 92). */
