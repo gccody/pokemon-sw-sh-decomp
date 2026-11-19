@@ -2310,6 +2310,7 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("members", help="library classes' small virtual functions, as members (cmd_members)")
     p.add_argument("--area", action="append", required=True, help="library area(s): middleware, yebis, wwise, ...")
     p.add_argument("--max", type=int, default=128)
+    p.add_argument("--all-kinds", action="store_true", help="every slot function the lifter takes, not only the small kinds")
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--only", type=Path, help="file of addresses (one per line) to write; default all")
     p = sub.add_parser("member-names", help="Name,Sword,Shield of the members `members` wrote, from a build")
@@ -2602,11 +2603,13 @@ def cmd_members(args) -> int:
     for f, (va, slot) in V.owners(m.vtables).items():
         v = by.get(va)
         r = rows.get(f)
-        if v is None or r is None or r.status != "U" or r.name or r.scope != "common":
+        if v is None or r is None or r.scope != "common" or (r.status != "U" and not r.name):
             continue
         if V.vtable_area(m, v) not in args.area or slot < 2 or r.size("sword") > args.max:
             continue
-        if V.slot_kind(m.pattern(f)) not in ("constant", "ret", "zero", "null", "small", "trap"):
+        kind = V.slot_kind(m.pattern(f))
+        small = kind in ("constant", "ret", "zero", "null", "small", "trap")
+        if not small and not (args.all_kinds and kind == "other"):
             continue
         if only is not None and f + BASE not in only:
             continue
@@ -2619,6 +2622,9 @@ def cmd_members(args) -> int:
             cls = [V.class_name(g)]
         if cls is None:
             why["class name"] += 1
+            continue
+        # unnamed and undecompiled, or one of ours from an earlier run (written again with its class)
+        if r.name and not r.name.startswith(_member_prefix(cls, f"vf{slot}")) or not r.name and r.status != "U":
             continue
         try:
             structs, func = generate(f + BASE, m.img[f:f + r.size("sword")])
@@ -2643,6 +2649,16 @@ def cmd_members(args) -> int:
                 ok.append(x)
             else:
                 why["doesn't compile"] += 1
+        if ok and _compiles_text(render_class_file(list(cls), ok), clang) is not None:
+            # members that compile alone but not together (overloads of one placeholder
+            # callee): keep each one only if the file still compiles with it
+            together = []
+            for x in ok:
+                if _compiles_text(render_class_file(list(cls), together + [x]), clang) is None:
+                    together.append(x)
+                else:
+                    why["doesn't compile with the others"] += 1
+            ok = together
         if ok:
             kept[cls] = ok
     args.out.mkdir(parents=True, exist_ok=True)
