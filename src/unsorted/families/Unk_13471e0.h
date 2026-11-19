@@ -408,6 +408,62 @@ public:
         return ok;
     }
 
+    // The same, for a block passed by reference (the bytes of `data`).
+    template <class T>
+    bool Unk_13456e0(const u32& key, const T& data, const u64& size) {
+        nn::os::LockMutex(&field_78);
+        bool ok;
+        if (field_98.load()) {
+            if (field_58 != nullptr)
+                field_58->vf12();
+            ok = false;
+        } else if (Unk_13471e0_Entry* entry = Unk_Find(key)) {
+            if (!Unk_13471e0(entry) && field_58 != nullptr)
+                field_58->vf11(&key);
+            ok = Unk_1347350(entry, data, size);
+        } else {
+            ok = Unk_13475a0(key, data, size);
+        }
+        nn::os::UnlockMutex(&field_78);
+        return ok;
+    }
+
+    template <class T>
+    bool Unk_1347350(Unk_13471e0_Entry* entry, const T& data, const u64& size) {
+        nn::os::LockMutex(&field_78);
+        if (field_58 != nullptr)
+            field_58->vf6(entry);
+        bool ok = false;
+        if (Unk_Resize(entry, size + 5)) {
+            Unk_24319f0 writer = Unk_Writer(entry);
+            ok = writer.Unk_1347af0(&data, size);
+        }
+        nn::os::UnlockMutex(&field_78);
+        return ok;
+    }
+
+    // NON_MATCHING: as the add above.
+    template <class T>
+    bool Unk_13475a0(const u32& key, const T& data, const u64& size) {
+        nn::os::LockMutex(&field_78);
+        if (field_58 != nullptr)
+            field_58->vf7(&key);
+        bool ok = false;
+        Unk_1347cd0_Result added = Unk_1347cd0(key, size + 5);
+        if (Unk_13471e0_Entry* entry = added.field_0) {
+            Unk_24319f0 writer = Unk_Writer(entry);
+            if (writer.Unk_1347af0(&data, size)) {
+                Unk_Sort();
+                ok = true;
+            } else {
+                field_38->vf3(added.field_0->field_8, added.field_0->field_10);
+                field_8.pop_back();
+            }
+        }
+        nn::os::UnlockMutex(&field_78);
+        return ok;
+    }
+
     // Reads a block.
     template <class T>
     Unk_1346860_Result Unk_1346030(const u32& key, T* const& data, const u64& size) {

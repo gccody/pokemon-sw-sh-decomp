@@ -2404,15 +2404,20 @@ of base classes (`*_Base`): the implicit copy constructor then copies them
 apart from the rest, as the original does, and the view's D2 is its base's
 (an alias), which `Unk_2433478` shares.
 
-Matched: the 46 + 45 instances of the write (`Unk_13456e0`), overwrite
-(`Unk_1347350`) and read (`Unk_1346030`) templates, the generator, the
+Matched: the 46 instances each of the write (`Unk_13456e0`) and overwrite
+(`Unk_1347350`) templates and 44 of the read (`Unk_1346030`), the generator, the
 streams' small members and libc++'s `std::sort` instances on the entries.
 Not matching: the 46 instances of the add (`Unk_13475a0`): the original takes
 the mutex's address again for the sort's lock, and every spelling tried here
 shares it with the outer lock; the scrambled view's read and write
-(register allocation). The other instances of the same groups are other
-overloads (the block passed by reference: 6 adds, 4 overwrites) or another
-store's (10 writes calling other callees), not written yet.
+(register allocation). The overload that takes the block by reference (the
+bytes of an object) has 6 instances each of the write and overwrite (matched)
+and of the add (not matching, as above). Not written yet: 4 writes of the
+same shape that call another check and other overwrites, and the overloads
+for scalars (a 300-byte write, 556-byte overwrite and 508-byte add per type,
+16 writes in all): their checks compare the block's type code (8, 9, 10, 13,
+... for u8, u16, u32, s16, ...) and are shared by the types of one code, as
+are their typed writers, which aren't decompiled.
 
 ### Containers on Unk_2771620's allocator (2026-11-19)
 
