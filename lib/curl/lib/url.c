@@ -119,6 +119,8 @@ bool curl_win32_idn_to_ascii(const char *in, char **out);
 #include "pipeline.h"
 #include "dotdot.h"
 #include "strdup.h"
+/* Pokemon SwSh decomp: Nintendo's nn::nsd and nn::nifm functions */
+#include "curl_nnnet.h"
 /* The last 3 #include files should be in this order */
 #include "curl_printf.h"
 #include "curl_memory.h"
@@ -1696,8 +1698,55 @@ CURLcode Curl_setopt(struct Curl_easy *data, CURLoption option,
       Curl_safefree(data->change.url);
       data->change.url_alloc = FALSE;
     }
+#if 1 /* Pokemon SwSh decomp */
+    /* Nintendo's SDK build passes the URL's host name through
+       nn::nsd::ResolveEx (Unk_1778430) and stores the URL with the host it
+       returns, unless option 900 (set.field_59) is set. The URL is split
+       with parseurlandfillconn()'s sscanf formats. */
+    if(data->set.field_59)
+      result = setstropt(&data->set.str[STRING_SET_URL],
+                         va_arg(param, char *));
+    else {
+      char *url = va_arg(param, char *);
+      char *newurl = NULL;
+      char protobuf[16] = "";
+      char *resolved = NULL;
+      if(url) {
+        size_t len = strlen(url);
+        size_t newlen = len + 256;
+        char *host = NULL;
+        char *path = NULL;
+        newurl = calloc(1, newlen);
+        if(newurl && (path = calloc(1, len)) && (host = calloc(1, 256)) &&
+           (resolved = calloc(1, 256))) {
+          int rc = sscanf(url, "%15[^\n:]://%[^\n/?:]%[^\n]", protobuf, host,
+                          path);
+          if(2 > rc) {
+            protobuf[0] = '\0';
+            rc = sscanf(url, "%[^\n/?:]%[^\n]", host, path);
+          }
+          if(1 > rc)
+            strcpy(newurl, url);
+          else {
+            if(Unk_1778430(&resolved, host))
+              strncpy(resolved, host, 255);
+            if(strlen(protobuf))
+              snprintf(newurl, sizeof(protobuf) + 3, "%s://", protobuf);
+            strncat(newurl, resolved, 256);
+            strncat(newurl, path, newlen - strlen(newurl) - 1);
+          }
+        }
+        Curl_safefree(resolved);
+        free(host);
+        free(path);
+      }
+      result = setstropt(&data->set.str[STRING_SET_URL], newurl);
+      free(newurl);
+    }
+#else
     result = setstropt(&data->set.str[STRING_SET_URL],
                        va_arg(param, char *));
+#endif
     data->change.url = data->set.str[STRING_SET_URL];
     break;
   case CURLOPT_PORT:
@@ -2940,6 +2989,35 @@ CURLcode Curl_setopt(struct Curl_easy *data, CURLoption option,
     break;
   case CURLOPT_SUPPRESS_CONNECT_HEADERS:
     data->set.suppress_connect_headers = (0 != va_arg(param, long))?TRUE:FALSE;
+    break;
+  /* Pokemon SwSh decomp: Nintendo's options (curl.h) and the fields of
+     Nintendo's they set (urldata.h). */
+  case CURLOPT_PROXYAUTOCONFIG:
+    data->set.field_58 = (0 != va_arg(param, long)) ? TRUE : FALSE;
+    break;
+  case CURLOPT_Unk_501:
+    data->set.ssl.primary.field_13 = (0 != va_arg(param, long)) ? TRUE : FALSE;
+    break;
+  case CURLOPT_Unk_506:
+    data->set.field_5a = (0 != va_arg(param, long)) ? TRUE : FALSE;
+    break;
+  case CURLOPT_Unk_507:
+    data->set.ssl.primary.field_40 = (0 != va_arg(param, long)) ? TRUE : FALSE;
+    break;
+  case CURLOPT_Unk_900:
+    data->set.field_59 = (0 != va_arg(param, long)) ? TRUE : FALSE;
+    break;
+  case CURLOPT_Unk_10502:
+    data->set.ssl.primary.field_18 = va_arg(param, void *);
+    break;
+  case CURLOPT_Unk_10505:
+    data->set.ssl.primary.field_38 = va_arg(param, void *);
+    break;
+  case CURLOPT_Unk_20503:
+    data->set.ssl.primary.field_28 = va_arg(param, void *);
+    break;
+  case CURLOPT_Unk_20504:
+    data->set.ssl.primary.field_30 = va_arg(param, void *);
     break;
   default:
     /* unknown tag and its companion, just ignore: */
@@ -6497,6 +6575,39 @@ static CURLcode create_conn(struct Curl_easy *data,
       goto out;
     }
     conn->abstract_unix_socket = data->set.abstract_unix_socket;
+  }
+#endif
+
+#if 1 /* Pokemon SwSh decomp */
+  /* Nintendo's SDK build takes the proxy from the system's settings
+     (nn::nifm, Unk_17785c0) unless CURLOPT_PROXYAUTOCONFIG is 0, and then
+     ignores CURLOPT_PROXY. */
+  if(data->set.field_58) {
+    struct Unk_17785c0_Setting setting = {0};
+    int ret = Unk_17785c0(&setting);
+    if(data->set.str[STRING_PROXY]) {
+      curl_mfprintf(stderr, "Warning: CURLOPT_PROXYAUTOCONFIG is 1 (default), "
+                    "so options set via CURLOPT_PROXY* are ignored.\n");
+      Curl_safefree(data->set.str[STRING_PROXY]);
+    }
+    if(!ret && setting.field_4) {
+      result = setstropt(&data->set.str[STRING_PROXY], setting.field_8);
+      if(result)
+        goto out;
+      data->set.proxyport = setting.field_6;
+      conn->bits.proxy = TRUE;
+      if(setting.field_70) {
+        result = setstropt(&data->set.str[STRING_PROXYUSERNAME],
+                           setting.field_71);
+        if(result)
+          goto out;
+        result = setstropt(&data->set.str[STRING_PROXYPASSWORD],
+                           setting.field_91);
+        if(result)
+          goto out;
+        conn->bits.proxy_user_passwd = TRUE;
+      }
+    }
   }
 #endif
 

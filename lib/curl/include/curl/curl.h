@@ -1788,6 +1788,24 @@ typedef enum {
   /* bitmask of allowed auth methods for connections to SOCKS5 proxies */
   CINIT(SOCKS5_AUTH, LONG, 267),
 
+  /* Pokemon SwSh decomp: Nintendo's SDK build has options of its own, which
+     Curl_setopt (Sword 0x710176ac70) dispatches on: these values, the field
+     each one sets, and their CURLOPTTYPE (how the value is read, and the
+     type of the field) are all the binary shows. Their names aren't known,
+     except 500's: create_conn warns "CURLOPT_PROXYAUTOCONFIG is 1
+     (default), so options set via CURLOPT_PROXY* are ignored." when it
+     takes the system's proxy, which it does when 500's field is set
+     (url.c). */
+  CINIT(PROXYAUTOCONFIG, LONG, 500),
+  CINIT(Unk_501, LONG, 501),
+  CINIT(Unk_506, LONG, 506),
+  CINIT(Unk_507, LONG, 507),
+  CINIT(Unk_900, LONG, 900),
+  CINIT(Unk_10502, OBJECTPOINT, 502),
+  CINIT(Unk_10505, OBJECTPOINT, 505),
+  CINIT(Unk_20503, FUNCTIONPOINT, 503),
+  CINIT(Unk_20504, FUNCTIONPOINT, 504),
+
   CURLOPT_LASTENTRY /* the last unused */
 } CURLoption;
 
