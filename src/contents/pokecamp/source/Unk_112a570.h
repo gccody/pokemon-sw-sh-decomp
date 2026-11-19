@@ -13,7 +13,7 @@
 struct Unk_112d870_Key {
     template <size_t N>
     constexpr Unk_112d870_Key(const char (&str)[N])
-        : hash(Unk_112dd40_Hash(str, N - 1)), str(str), len(N - 1), field_18(0) {}
+        : hash(Unk_112dd40_Hash(str)), str(str), len(N - 1), field_18(0) {}
 
     u64 hash;
     const char* str;
