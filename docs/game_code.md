@@ -1915,7 +1915,7 @@ Larger shapes have their own blockers:
 ## Handoff (2026-11-17, updated 2026-11-19)
 
 State after the type getters and the map instances (2026-11-19, later):
-check.py reports 47,162 matching and 42 not matching; 26.53% of the code by
+check.py reports 47,162 matching and 42 not matching; 26.52% of the code by
 bytes. Before them, after the generated tables and FreeType: check.py
 reports 44,938 matching and 42 not matching, in both games; 25.16% of the
 code by bytes. Every batch above came from `tools/leafgen.py`,
