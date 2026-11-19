@@ -1311,6 +1311,21 @@ def test_ref_members_on_a_base_with_references():
     assert V.ref_members(m, 0x200, 0x600, 0x3000, size=0x88) is None     # +0x80 is the base's
     assert V.ref_members(m, 0x200, 0x600, 0x3008, size=0x80) is None     # another class's vtable
     assert V.ref_members(m, 0x600, 0x200, 0x3100, size=0x60) is None     # the base isn't on the derived class
+    assert V.inline_members(m, 0x200, 0x600, 0x3000, 0x80) == {0x80: V.REF}
+    # A callable at +0x80 instead: its manager's load is scheduled between the vptr stores, its four
+    # words are cleared and the manager called with its storage (+0xa0).
+    callable_first = (pro + [got(0x10), 0x91004109, 0x9101E10A, 0x9102E108, 0xAA0003F3,
+                             0xA904A00A, 0xF9404408, 0xF9000009, 0xB40000A8,  # stp x10, x8 ; ldr x8, [x0, #0x88]
+                             0x91028260, 0xA9097E7F, 0xA9087E7F, 0xD63F0100]  # add x0, x19, #0xa0 ; stp xzr x2 ; blr
+                      + part(0x18, 0x78) + part(0x20, 0x58) + epi)
+    struct.pack_into(f"<{len(callable_first)}I", img, 0x800, *callable_first)
+    sizes[0x800] = 4 * len(callable_first)
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), [], [], sizes, {}, {}, lambda a: "game", DELETE,
+                {0x1010: 0x3000, 0x1018: 0x3100, 0x1020: 0x3200})
+    assert V.ref_members(m, 0x800, 0x600, 0x3000, size=0x80) is None
+    assert V.inline_members(m, 0x800, 0x600, 0x3000, 0x80) == {0x80: V.CALLABLE}
+    assert V.inline_members(m, 0x800, 0x600, 0x3000, 0x88) is None      # +0x80 is the base's
+    assert V.inline_members(m, 0x800, 0x600, 0x3008, 0x80) is None      # another class's vtable
 
 
 def test_stored_vtable_owners():
