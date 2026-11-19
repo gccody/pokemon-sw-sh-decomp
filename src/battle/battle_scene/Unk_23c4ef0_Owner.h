@@ -93,12 +93,15 @@ public:
     u8 _3e0[0x3f0 - 0x3e0];
     float32x4_t field_3f0;
     float32x4_t field_400;
-    u8 _410[0x4a8 - 0x410];
+    u8 _410[0x463 - 0x410];
+    bool field_463;
+    u8 _464[0x4a8 - 0x464];
     Unk_239a418_Ref<Unk_239a418> field_4a8;
     bool field_4b0;
 };
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Poke, field_3d0, 0x3d0);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Poke, field_3f0, 0x3f0);
+PKMN_OFFSET_ASSERT(Unk_23c4ef0_Poke, field_463, 0x463);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Poke, field_4a8, 0x4a8);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Poke, field_4b0, 0x4b0);
 
@@ -133,6 +136,28 @@ struct Unk_23c4ef0_Range {
     u32 field_c;
 };
 static_assert(sizeof(Unk_23c4ef0_Range) == 0x10, "Unk_23c4ef0_Range");
+
+// What Unk_23c4ef0_Owner::Unk_961180 takes: a target's position and side,
+// then values read from the sequence, defaulted.
+struct Unk_23c4ef0_Params {
+    u32 field_0 = 0xff;
+    u32 field_4 = 0xff;
+    s32 field_8 = 0;
+    Unk_23c4ef0_Vec field_10 = {};
+    s32 field_20 = 100;
+    s32 field_24 = 0;
+    bool field_28 = false;
+    bool field_29 = false;
+    bool field_2a = false;
+    bool field_2b = false;
+    bool field_2c = false;
+    bool field_2d = true;
+    bool field_2e = true;
+    bool field_2f = true;
+};
+static_assert(sizeof(Unk_23c4ef0_Params) == 0x30, "Unk_23c4ef0_Params");
+PKMN_OFFSET_ASSERT(Unk_23c4ef0_Params, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_23c4ef0_Params, field_2f, 0x2f);
 
 class Unk_23c4ef0_Owner : public Unk_239a4c0 {
 public:
@@ -484,6 +509,11 @@ public:
     void Unk_953970();
     void* Unk_95bb50();
     u32 Unk_960620(u32 id, s32 index);
+    u32 Unk_9606c0(u32 id);
+    void Unk_961180(Unk_239a418_Ref<Unk_23c4ef0_Poke> poke,
+                    s32 frames,
+                    const Unk_23c4ef0_Params* params,
+                    bool arg4);
     Unk_239a418_Ref<Unk_23c4ef0_Poke> Unk_961f10(u32 id, s32 index);
     void Unk_9626a0(const u64* arg1);
     void Unk_9650e0(const Unk_23c4ef0_Name* name);
