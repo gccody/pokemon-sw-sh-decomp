@@ -253,6 +253,19 @@ void Unk_9a4600_set(const Unk_9a4600* self, const Unk_9a4600_arg1* value) {
     p0->field_3d0 = value->field_0;
 }
 
+struct Unk_9a4620 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_9a4620, field_0, 0x0);
+
+// 0x71009a4620
+void Unk_9a4620_call(Unk_9a4620* self) {
+    if (self->field_0 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_0)->vf5();
+        self->field_0 = nullptr;
+    }
+}
+
 struct Unk_9a4660_arg1 {
     Unk_239a418* field_0;
 };
@@ -314,6 +327,19 @@ void Unk_9a4690_set(const Unk_9a4690* self, const Unk_9a4690_arg1* value) {
     Unk_9a4690_0* p0 = self->field_0;
     p0->field_3f8 = value->field_8;
     p0->field_3f0 = value->field_0;
+}
+
+struct Unk_9a46b0 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_9a46b0, field_0, 0x0);
+
+// 0x71009a46b0
+void Unk_9a46b0_call(Unk_9a46b0* self) {
+    if (self->field_0 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_0)->vf5();
+        self->field_0 = nullptr;
+    }
 }
 
 struct Unk_9a46f0_arg1 {
@@ -379,6 +405,19 @@ void Unk_9a4720_set(const Unk_9a4720* self, const Unk_9a4720_arg1* value) {
     p0->field_3c0 = value->field_0;
 }
 
+struct Unk_9a4740 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_9a4740, field_0, 0x0);
+
+// 0x71009a4740
+void Unk_9a4740_call(Unk_9a4740* self) {
+    if (self->field_0 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_0)->vf5();
+        self->field_0 = nullptr;
+    }
+}
+
 struct Unk_9a4780_arg1 {
     Unk_239a418* field_0;
 };
@@ -442,6 +481,19 @@ void Unk_9a47b0_set(const Unk_9a47b0* self, const Unk_9a47b0_arg1* value) {
     p0->field_3c0 = value->field_0;
 }
 
+struct Unk_9a47d0 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_9a47d0, field_0, 0x0);
+
+// 0x71009a47d0
+void Unk_9a47d0_call(Unk_9a47d0* self) {
+    if (self->field_0 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_0)->vf5();
+        self->field_0 = nullptr;
+    }
+}
+
 struct Unk_9a4810_arg1 {
     Unk_239a418* field_0;
 };
@@ -503,6 +555,19 @@ void Unk_9a4840_set(const Unk_9a4840* self, const Unk_9a4840_arg1* value) {
     Unk_9a4840_0* p0 = self->field_0;
     p0->field_3c8 = value->field_8;
     p0->field_3c0 = value->field_0;
+}
+
+struct Unk_9a4860 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_9a4860, field_0, 0x0);
+
+// 0x71009a4860
+void Unk_9a4860_call(Unk_9a4860* self) {
+    if (self->field_0 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_0)->vf5();
+        self->field_0 = nullptr;
+    }
 }
 
 struct Unk_9a48a0_arg1 {

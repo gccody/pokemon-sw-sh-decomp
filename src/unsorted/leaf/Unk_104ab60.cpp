@@ -56,3 +56,15 @@ PKMN_OFFSET_ASSERT(Unk_104aba0, field_8, 0x8);
 u16 Unk_104aba0_getField8(const Unk_104aba0* self) {
     return self->field_8;
 }
+
+struct Unk_104ad80 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual u64 vf2();
+};
+
+// 0x710104ad80
+u64 Unk_104ad80_call(Unk_104ad80* self) {
+    u64 r0 = self->vf2();
+    return r0 == 0 ? 0 : (r0 + 0xa);
+}

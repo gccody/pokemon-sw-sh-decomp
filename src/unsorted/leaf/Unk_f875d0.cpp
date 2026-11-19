@@ -38,6 +38,20 @@ void Unk_f875f0_set(const Unk_f875f0* self, Unk_f875f0_arg1* value) {
     value->field_0 = self->field_0;
 }
 
+struct Unk_f87720 {
+    u8 _0[0x8];
+    Unk_239a418* field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_f87720, field_8, 0x8);
+
+// 0x7100f87720
+void Unk_f87720_call(Unk_f87720* self) {
+    if (self->field_8 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_8)->vf5();
+        self->field_8 = nullptr;
+    }
+}
+
 struct Unk_f87760_arg1 {
     u64 field_0;
     Unk_239a418* field_8;
@@ -83,6 +97,20 @@ void Unk_f87790_call(const Unk_f87790* self, Unk_f87790_arg1* value) {
     value->field_8 = v0;
     if (v0 != nullptr) {
         static_cast<Unk_239a458*>(v0)->vf4();
+    }
+}
+
+struct Unk_f877f0 {
+    u8 _0[0x8];
+    Unk_239a418* field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_f877f0, field_8, 0x8);
+
+// 0x7100f877f0
+void Unk_f877f0_call(Unk_f877f0* self) {
+    if (self->field_8 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_8)->vf5();
+        self->field_8 = nullptr;
     }
 }
 

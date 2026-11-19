@@ -39,6 +39,29 @@ u8* Unk_1310150_getField60Ptr(Unk_1310150* self) {
     return &self->field_60;
 }
 
+struct Unk_13104e0_arg2 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2(u64, u64);
+};
+
+// 0x71013104e0
+void Unk_13104e0_call(u64 self, u64 value, Unk_13104e0_arg2* arg2) {
+    arg2->vf2(self, value);
+}
+
+struct Unk_1310500_arg1 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3(u64, u64, u64);
+};
+
+// 0x7101310500
+void Unk_1310500_call(u64 self, Unk_1310500_arg1* value) {
+    value->vf3(self, 0, 0);
+}
+
 struct Unk_1310850 {
     u8 _0[0x17138];
     u8 field_17138;

@@ -14,6 +14,29 @@ void Unk_d604d0_set(Unk_d604d0* self) {
     self->field_50 = 0xcbf29ce484222645;
 }
 
+struct Unk_d608a0 {
+    u8 _0[0x48];
+    u64 field_48;
+    u8 _50[0x8];
+    u64 field_58;
+    u8 _60[0x18];
+    u8 field_78;
+};
+PKMN_OFFSET_ASSERT(Unk_d608a0, field_48, 0x48);
+PKMN_OFFSET_ASSERT(Unk_d608a0, field_58, 0x58);
+PKMN_OFFSET_ASSERT(Unk_d608a0, field_78, 0x78);
+
+void Unk_791400(u64);
+
+// 0x7100d608a0
+void Unk_d608a0_call(Unk_d608a0* self) {
+    if (self->field_78 != 0) {
+        Unk_791400(self->field_58);
+        self->field_78 = 0;
+        self->field_48 = 0xcbf29ce484222645;
+    }
+}
+
 void Unk_d616e0();
 
 // 0x7100d616d0

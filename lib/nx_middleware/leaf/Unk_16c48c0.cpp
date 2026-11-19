@@ -363,6 +363,26 @@ u32 Unk_16c5180_get(const Unk_16c5180* self) {
     return (self->field_639 >> 3) & 1;
 }
 
+struct Unk_16c6860_50 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+};
+
+struct Unk_16c6860 {
+    u8 _0[0x50];
+    Unk_16c6860_50* field_50;
+};
+PKMN_OFFSET_ASSERT(Unk_16c6860, field_50, 0x50);
+
+// 0x71016c6860
+void Unk_16c6860_call(const Unk_16c6860* self) {
+    if (self->field_50 != nullptr) {
+        self->field_50->vf3();
+    }
+}
+
 struct Unk_16c6880 {
     u8 _0[0xb2];
     u8 field_b2;

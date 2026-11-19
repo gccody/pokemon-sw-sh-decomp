@@ -535,6 +535,20 @@ void Unk_bb5720_set(const Unk_bb5720* self, Unk_bb5720_arg1* value) {
     value->field_0 = self->field_0;
 }
 
+struct Unk_bb5770 {
+    u8 _0[0x8];
+    Unk_239a418* field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_bb5770, field_8, 0x8);
+
+// 0x7100bb5770
+void Unk_bb5770_call(Unk_bb5770* self) {
+    if (self->field_8 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_8)->vf5();
+        self->field_8 = nullptr;
+    }
+}
+
 struct Unk_bb57b0_arg1 {
     u64 field_0;
     Unk_239a418* field_8;
@@ -580,6 +594,20 @@ void Unk_bb57e0_call(const Unk_bb57e0* self, Unk_bb57e0_arg1* value) {
     value->field_8 = v0;
     if (v0 != nullptr) {
         static_cast<Unk_239a458*>(v0)->vf4();
+    }
+}
+
+struct Unk_bb5840 {
+    u8 _0[0x8];
+    Unk_239a418* field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_bb5840, field_8, 0x8);
+
+// 0x7100bb5840
+void Unk_bb5840_call(Unk_bb5840* self) {
+    if (self->field_8 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_8)->vf5();
+        self->field_8 = nullptr;
     }
 }
 
@@ -631,6 +659,20 @@ void Unk_bb58b0_call(const Unk_bb58b0* self, Unk_bb58b0_arg1* value) {
     }
 }
 
+struct Unk_bb5920 {
+    u8 _0[0x8];
+    Unk_239a418* field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_bb5920, field_8, 0x8);
+
+// 0x7100bb5920
+void Unk_bb5920_call(Unk_bb5920* self) {
+    if (self->field_8 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_8)->vf5();
+        self->field_8 = nullptr;
+    }
+}
+
 struct Unk_bb5960_arg1 {
     u64 field_0;
     Unk_239a418* field_8;
@@ -676,6 +718,20 @@ void Unk_bb5990_call(const Unk_bb5990* self, Unk_bb5990_arg1* value) {
     value->field_8 = v0;
     if (v0 != nullptr) {
         static_cast<Unk_239a458*>(v0)->vf4();
+    }
+}
+
+struct Unk_bb59f0 {
+    u8 _0[0x8];
+    Unk_239a418* field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_bb59f0, field_8, 0x8);
+
+// 0x7100bb59f0
+void Unk_bb59f0_call(Unk_bb59f0* self) {
+    if (self->field_8 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_8)->vf5();
+        self->field_8 = nullptr;
     }
 }
 

@@ -3,6 +3,8 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
+#include "gflib3/Unk_239a418.h"
+
 struct Unk_113e9c0_arg1 {
     u64 field_0;
 };
@@ -71,6 +73,55 @@ void Unk_1144890(u32, void*, u64, u64);
 // 0x7101144cc0
 void Unk_1144cc0_call(void* self, u64 value, u64 arg2) {
     Unk_1144890(7, self, value, arg2);
+}
+
+struct Unk_1145bc0 {
+    virtual void vf0();
+};
+
+// 0x7101145bc0
+void Unk_1145bc0_call(Unk_1145bc0* self) {
+    self->vf0();
+}
+
+struct Unk_1145c40 {
+    virtual void vf0();
+};
+
+// 0x7101145c40
+void Unk_1145c40_call(Unk_1145c40* self) {
+    self->vf0();
+}
+
+struct Unk_1145cc0 {
+    virtual void vf0();
+};
+
+// 0x7101145cc0
+void Unk_1145cc0_call(Unk_1145cc0* self) {
+    self->vf0();
+}
+
+struct Unk_1145d40 {
+    virtual void vf0();
+};
+
+// 0x7101145d40
+void Unk_1145d40_call(Unk_1145d40* self) {
+    self->vf0();
+}
+
+struct Unk_1146010 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_1146010, field_0, 0x0);
+
+// 0x7101146010
+void Unk_1146010_call(Unk_1146010* self) {
+    if (self->field_0 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_0)->vf5();
+        self->field_0 = nullptr;
+    }
 }
 
 // 0x71011467f0
@@ -167,6 +218,15 @@ void Unk_1146980_set(const Unk_1146980* self, Unk_1146980* value) {
 // 0x71011470c0
 void Unk_11470c0_update() {}
 
+struct Unk_1147140 {
+    virtual void vf0();
+};
+
+// 0x7101147140
+void Unk_1147140_call(Unk_1147140* self) {
+    self->vf0();
+}
+
 struct Unk_1147150 {
     u64 field_0;
     u64 field_8;
@@ -189,6 +249,15 @@ PKMN_OFFSET_ASSERT(Unk_1147160, field_8, 0x8);
 // 0x7101147160
 void Unk_1147160_set(const Unk_1147160* self, Unk_1147160* value) {
     *value = *self;
+}
+
+struct Unk_11474e0 {
+    virtual void vf0();
+};
+
+// 0x71011474e0
+void Unk_11474e0_call(Unk_11474e0* self) {
+    self->vf0();
 }
 
 struct Unk_1147550_arg1 {
@@ -346,4 +415,13 @@ PKMN_OFFSET_ASSERT(Unk_1148790, field_20, 0x20);
 // 0x7101148790
 void Unk_1148790_set(Unk_1148790* self, u32 value) {
     self->field_20 = value;
+}
+
+struct Unk_1148810 {
+    virtual void vf0();
+};
+
+// 0x7101148810
+void Unk_1148810_call(Unk_1148810* self) {
+    self->vf0();
 }

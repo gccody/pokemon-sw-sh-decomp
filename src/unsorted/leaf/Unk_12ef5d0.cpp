@@ -59,6 +59,29 @@ void Unk_12ef600_call(Unk_12ef600* self) {
     }
 }
 
+struct Unk_12ef620_60 {
+    u8 _0[0x48];
+    u64 field_48;
+};
+PKMN_OFFSET_ASSERT(Unk_12ef620_60, field_48, 0x48);
+
+struct Unk_12ef620 {
+    u8 _0[0x60];
+    Unk_12ef620_60* field_60;
+};
+PKMN_OFFSET_ASSERT(Unk_12ef620, field_60, 0x60);
+
+u32 Unk_14db6e0(u64);
+
+// 0x71012ef620
+bool Unk_12ef620_call(const Unk_12ef620* self) {
+    if (self->field_60->field_48 == 0) {
+        return false;
+    }
+    u32 r0 = Unk_14db6e0(self->field_60->field_48);
+    return r0 == 0;
+}
+
 // 0x71012ef820
 void Unk_12ef820_update() {}
 

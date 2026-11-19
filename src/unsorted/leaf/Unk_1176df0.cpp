@@ -49,6 +49,19 @@ u64 Unk_1178b20_getFieldb0(const Unk_1178b20* self) {
     return self->field_b0;
 }
 
+struct Unk_1179b10 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_1179b10, field_0, 0x0);
+
+// 0x7101179b10
+void Unk_1179b10_call(Unk_1179b10* self) {
+    if (self->field_0 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_0)->vf5();
+        self->field_0 = nullptr;
+    }
+}
+
 struct Unk_1179ce0_arg1 {
     Unk_239a418* field_0;
 };

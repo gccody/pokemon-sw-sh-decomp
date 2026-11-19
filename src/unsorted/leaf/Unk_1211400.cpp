@@ -123,6 +123,39 @@ u64 Unk_12165b0_get(const Unk_12165b0* self) {
     return self->field_68->field_98;
 }
 
+struct Unk_12165c0_68 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+};
+
+struct Unk_12165c0 {
+    u8 _0[0x68];
+    Unk_12165c0_68* field_68;
+};
+PKMN_OFFSET_ASSERT(Unk_12165c0, field_68, 0x68);
+
+// 0x71012165c0
+void Unk_12165c0_call(const Unk_12165c0* self) {
+    self->field_68->vf18();
+}
+
 // 0x7101217440
 void Unk_1217440_update() {}
 

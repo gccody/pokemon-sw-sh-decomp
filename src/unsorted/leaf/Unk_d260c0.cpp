@@ -100,3 +100,32 @@ PKMN_OFFSET_ASSERT(Unk_d36a60, field_510, 0x510);
 void Unk_d36a60_set(Unk_d36a60* self, bool value) {
     self->field_510 = value;
 }
+
+struct Unk_d36be0_568 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+};
+
+struct Unk_d36be0 {
+    u8 _0[0x568];
+    Unk_d36be0_568* field_568;
+};
+PKMN_OFFSET_ASSERT(Unk_d36be0, field_568, 0x568);
+
+// 0x7100d36be0
+void Unk_d36be0_call(const Unk_d36be0* self) {
+    self->field_568->vf14();
+}

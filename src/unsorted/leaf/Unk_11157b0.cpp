@@ -16,6 +16,19 @@ u32 Unk_11157b0_getField6c(const Unk_11157b0* self) {
     return self->field_6c;
 }
 
+struct Unk_1116890 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_1116890, field_0, 0x0);
+
+// 0x7101116890
+void Unk_1116890_call(Unk_1116890* self) {
+    if (self->field_0 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_0)->vf5();
+        self->field_0 = nullptr;
+    }
+}
+
 struct Unk_11168d0_arg1 {
     Unk_239a418* field_0;
 };

@@ -53,6 +53,19 @@ void Unk_10f44f0_set(Unk_10f44f0* self, Unk_10f44f0_arg1* value) {
     value->field_8 = v1;
 }
 
+struct Unk_10f4570 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_10f4570, field_0, 0x0);
+
+// 0x71010f4570
+void Unk_10f4570_call(Unk_10f4570* self) {
+    if (self->field_0 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_0)->vf5();
+        self->field_0 = nullptr;
+    }
+}
+
 struct Unk_10f45b0_arg1 {
     Unk_239a418* field_0;
 };
