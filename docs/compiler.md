@@ -3082,6 +3082,55 @@ The vtables of the inline classes the executable keeps (`String`'s, at
   a structure through a call, the calls that write their header inline).
 - **`Buffer`'s declaration** (the unions above).
 
+## Pia 5.18.0
+
+**Result: Pia, Nintendo's networking middleware, was built with clang 7.0.x
+`-O3`, the game's global flags and `-fno-builtin`.** It's the second part of
+the `middleware` area (`data/areas.csv`): NEX 4.6.8 comes first, then Pia from
+Sword `0x7101651510` (`nn::pia::clone::ClockProtocol`, the first function
+whose vtable has a `N2nn3pia...` typeinfo) to the `nlib_LZ4-19_0226` tag
+before libcurl, with the `pead` support library (`N4pead...` typeinfos:
+heaps, threads, delegates, safe strings) between PiaNex's and PiaSession's
+code. The SDK MW tags name its components: `PiaCommon-5_18_0`, `Pia-5_18_0`,
+`PiaLan-5_18_0`, `PiaLocal-5_18_0`, `PiaNex-5_18_0-forNEX-4_6_2`,
+`PiaSession-5_18_0` and `PiaTransport-5_18_0`. Its source isn't public:
+`lib/pia` is decompiled from the executable (`lib/pia/README.md`). Its
+class names are its RTTI's (about 290 `N2nn3pia...` and `N4pead...`
+typeinfos), the member functions keep placeholder names (`vf<slot>` for
+virtual functions, `Unk_<addr>` otherwise).
+
+### `-fno-builtin`
+
+With builtins on, clang 7 expands a `memcpy`, `memset` or `memmove` of a
+small constant size inline (loads and stores). Pia calls them instead. The
+table counts the `bl`/`b` to each stub whose `x2` is set to a constant in
+the 5 instructions before it, over every function of each area (Sword;
+the constant is an `orr wN, wzr, #imm` as often as a `mov`):
+
+| Area | Calls | Constant size ≤ 64 | Example |
+|---|---:|---:|---|
+| Game Freak's code (`game`) | 2,430 | 5 (all `memmove`) | |
+| YEBIS | 477 | 0 | |
+| libcurl | 63 | 1 | |
+| PhysX (`-fno-builtin`, see "PhysX") | 1,155 | 201 | |
+| Wwise | 548 | 97 | |
+| NEX 4.6.8 (`middleware`, up to `0x7101651510`) | 289 | 111 | |
+| **Pia 5.18.0** (`middleware`, from `0x7101651510`) | **548** | **237** | `0x7101652d50`: `memset(this + 8, 0, 16)`, `memcpy(this + 8, &address, 4)` |
+
+In `lib/pia`, `Md5Context::vf1` copies each 64-byte block with a call,
+`memcpy(m_Buffer, p, 64)`, like the original; without the flag clang
+expands it into four `ldp`/`stp` pairs. `pkmn_library_settings(lib/pia
+...)` adds the flag for `lib/pia` only.
+NEX has the same pattern (111 of 289); it isn't decided here, it's in
+another directory.
+
+### What's left open
+
+- **RTTI.** Pia's classes have typeinfos, so it was built with `-frtti`
+  (the global flags have `-fno-rtti`). No Pia function written so far uses
+  `typeid` or `dynamic_cast`, and the vtables aren't compared, so `lib/pia`
+  doesn't set it yet.
+
 ## gflib3
 
 **Result: gflib3, Game Freak's engine library, was built like the rest of
