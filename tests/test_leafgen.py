@@ -463,3 +463,10 @@ def test_if_then_join():
     _, func = leafgen.generate(ADDR, code(0x34000041, str_w(1, 0, 0), str_w(31, 0, 4), RET))
     assert func == ("void Unk_123450_set(Unk_123450* self, u32 value) {\n    if (value != 0) {\n"
                     "        self->field_0 = value;\n    }\n    self->field_4 = 0;\n}\n")
+
+
+def test_compare_with_an_extended_argument():
+    """ldrb w8, [x0] ; cmp w8, w1, uxtb ; cset w0, eq ; ret: the argument is a u8,
+    which the caller needn't have extended."""
+    _, func = leafgen.generate(ADDR, code(ldrb(8, 0, 0), 0x6B21011F, cset_w(0, "eq"), RET))
+    assert func == "bool Unk_123450_check(const Unk_123450* self, u8 value) {\n    return self->field_0 == value;\n}\n"
