@@ -1325,3 +1325,86 @@ def test_derived_with_the_inline_base_d2_copied():
     cls = f"{len(spec.name)}{spec.name}"
     assert sorted(names) == [(0x300, f"_ZN{cls}D2Ev"), (0x350, f"_ZN{cls}D0Ev"), (0x400, f"_ZThn72_N{cls}D1Ev"),
                              (0x450, f"_ZThn72_N{cls}D0Ev")]
+
+
+def _ctor(pc: int, base: int) -> list[int]:
+    """CTOR_PATTERN at pc: call the base's constructor, then store the vptr."""
+    bl = 0x94000000 | (((base - (pc + 16)) >> 2) & 0x3FFFFFF)
+    return [0xF81E0FF3, 0xA9017BFD, 0x910043FD, 0xAA0003F3, bl,  # str x19 ; stp ; add x29 ; mov x19, x0 ; bl
+            0x90000008, 0xF9405108, 0x91004108, 0xF9000268,      # adrp x8 ; ldr x8, [x8, #0xa0] ; add #16 ; str
+            0xA9417BFD, 0xF84207F3, RET]                         # ldp ; ldr x19, [sp], #0x20 ; ret
+
+
+def test_implicit_destructors_on_a_ctor_root():
+    """S (0x1000), R (0x1020) and A (0x1040) have 2-slot vtables that share an
+    empty D2 (0x100), each with its own `b operator delete` D0. A's and S's
+    constructors (0x200, 0x240) call R's (0x300): R is their root, whose
+    inline destructor's D2 they share, though owners() gives it to S (the
+    lowest). A and S have implicit destructors, and their D0s are written
+    with their constructors; R's D2 is named R's."""
+    from types import SimpleNamespace
+
+    img = bytearray(0x1100)
+    code = {0x100: [RET], 0x110: [b(0x110, DELETE)], 0x120: [b(0x120, DELETE)], 0x130: [b(0x130, DELETE)],
+            0x200: _ctor(0x200, 0x300), 0x240: _ctor(0x240, 0x300),
+            0x300: [0x90000008, 0xF9405508, 0x91004108, 0xF9000008, RET], DELETE: [RET]}
+    for a, w in code.items():
+        struct.pack_into(f"<{len(w)}I", img, a, *w)
+    slots = {}
+    for start, d0 in ((0x1000, 0x130), (0x1020, 0x110), (0x1040, 0x120)):
+        struct.pack_into("<q", img, start, 0)
+        slots[start + 16], slots[start + 24] = 0x100, d0
+    sizes = {a: 4 * len(w) for a, w in code.items()}
+    vts, tables = V.find_vtables(bytes(img), slots, set(code), DATA, len(img))
+    s, r, a = vts
+    s.referrers, r.referrers, a.referrers = {0x240}, {0x300}, {0x200}
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), vts, tables, sizes, {}, {}, lambda x: "game", DELETE)
+    assert V.owners(vts)[0x100] == (s.addr, 0)
+    chain = V.ctor_bases(m)
+    assert chain == {a.addr: r.addr, s.addr: r.addr}
+    roots = V.ctor_roots(m, chain)
+    assert roots == {0x100: r.addr}
+    rows = {x: SimpleNamespace(name="", status="U", scope="common", shield=x) for x in sizes}
+    rows[0x100].name, rows[0x100].status = "_ZN8Unk_1000D2Ev", "O"   # S's, by an earlier write
+    base_of = {"Unk_1040": "Unk_1020", "Unk_1000": "Unk_1020"}
+    ctors = [V.Ctor(0x200, 0x300, "Unk_1040", "Unk_1020"), V.Ctor(0x240, 0x300, "Unk_1000", "Unk_1020")]
+    implicit, inline, names = V.implicit_dtors(m, ctors, base_of, roots, rows, lambda x: 0)
+    assert implicit == {"Unk_1040", "Unk_1000"} and inline == {"Unk_1020"}
+    assert names == {0x120: "_ZN8Unk_1040D0Ev", 0x130: "_ZN8Unk_1000D0Ev", 0x100: "_ZN8Unk_1020D2Ev"}
+    # a D0 left out by --only (or in another segment than its constructor) keeps its class's destructor
+    implicit, _, names = V.implicit_dtors(m, ctors, base_of, roots, rows, lambda x: 0, only={0x130})
+    assert implicit == {"Unk_1000"} and 0x120 not in names
+    implicit, _, _ = V.implicit_dtors(m, ctors, base_of, roots, rows, lambda x: x == 0x120)
+    assert implicit == {"Unk_1000"}
+    # R's constructor written too: it emits R's D0, which then is one as well
+    rc = V.Ctor(0x300, None, "Unk_1020", None)
+    _, _, names = V.implicit_dtors(m, [*ctors, rc], base_of, roots, rows, lambda x: 0)
+    assert names[0x110] == "_ZN8Unk_1020D0Ev"
+    rows[0x110].name = "_Z3foov"
+    assert V.implicit_dtors(m, [*ctors, rc], base_of, roots, rows, lambda x: 0)[0] == set()
+    text = V.render_ctor_file(ctors[:1], base_of, implicit={"Unk_1040", "Unk_1000"}, inline={"Unk_1020"})
+    assert "class Unk_1020 {\npublic:\n    Unk_1020();\n    virtual ~Unk_1020() {}\n};\n\n" \
+           "class Unk_1040 : public Unk_1020 {\npublic:\n    Unk_1040();\n};\n" in text
+    assert "its vtable and D0 are emitted here" in text
+
+
+def test_delete_member():
+    """A `b operator delete` after the destructors (std::function's
+    destroy_deallocate, say) frees the object: `::operator delete(this)`, the
+    global one, whatever the class declares."""
+    img, slots, starts, sizes = build()
+    img = bytearray(img)
+    struct.pack_into("<I", img, 0x130, b(0x130, DELETE))     # A's slot 3: b operator delete
+    sizes[0x130] = 4
+    vts, tables = V.find_vtables(bytes(img), slots, starts, DATA, len(img))
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), vts, tables, sizes, {}, {}, lambda a: "game", DELETE)
+    a = vts[0]
+    own = V.owners(vts)
+    members = V.placeholder_members(m, a, own, lambda f: True)
+    assert [(x.slot, x.kind) for x in members] == [(0, "dtor"), (2, "constant"), (3, "delete")]
+    spec = V.class_specs(m, {a.addr: members}, own, lambda f: 0, lambda f: True)[a.addr]
+    decl, names, defs = V.render_class(m, spec)
+    assert "void Unk_1000::vf3() {\n    ::operator delete(this);\n}" in defs
+    assert (0x130, "_ZN8Unk_10003vf3Ev") in names
+    # a D0 (slot 1) isn't one
+    assert all(x.kind != "delete" for x in V.placeholder_members(m, vts[2], own, lambda f: True))
