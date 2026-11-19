@@ -26,10 +26,19 @@ public:
     // Holds `ptr`, adding a reference.
     explicit Unk_239a418_Ref(T* ptr);
     Unk_239a418_Ref(const Unk_239a418_Ref& other);
+    // Takes over the other's reference. Not noexcept: a vector that grows
+    // copies its references (adding one each, then dropping the old ones).
+    Unk_239a418_Ref(Unk_239a418_Ref&& other) : m_ptr(other.Release()) {}
     ~Unk_239a418_Ref();
 
     // Lets go of the object: cleared first, then released.
     void Reset();
+    // Gives up the reference without dropping it.
+    T* Release() {
+        T* p = m_ptr;
+        m_ptr = nullptr;
+        return p;
+    }
 
     T* m_ptr;
 };
