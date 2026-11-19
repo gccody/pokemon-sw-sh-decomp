@@ -3391,7 +3391,9 @@ With this entry, the functions of `src/gflib3` match in both games.
 directory yet includes gflib3's headers (its reference-counted object uses
 `std::atomic`) and instantiates libc++ like the rest of Game Freak's code.
 The entry changes no object of the code already there: with it, every
-function of `src/unsorted` that matched still matches.
+function of `src/unsorted` that matched still matches. `src/demo` (the demo
+player's commands, docs/game_code.md) has the same entry for the same
+reason: its commands are classes on gflib3's object.
 
 ## Codegen fingerprints
 

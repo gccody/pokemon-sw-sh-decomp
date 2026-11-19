@@ -111,6 +111,10 @@ pkmn_library_settings(src/unsorted
   EVIDENCE "docs/compiler.md, section gflib3"
   DEFINES _GNU_SOURCE _LIBCPP_HAS_MUSL_LIBC _LIBCPP_HAS_THREAD_API_PTHREAD
   SYSTEM_INCLUDES include/libcxx)
+pkmn_library_settings(src/demo
+  EVIDENCE "docs/compiler.md, section gflib3"
+  DEFINES _GNU_SOURCE _LIBCPP_HAS_MUSL_LIBC _LIBCPP_HAS_THREAD_API_PTHREAD
+  SYSTEM_INCLUDES include/libcxx)
 
 # Pokemon Camp's own code (prog/contents/pokecamp/source; its generated
 # protobuf messages under include/ have their own entries below), built like

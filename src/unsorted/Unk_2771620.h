@@ -40,14 +40,32 @@ private:
     Unk_2771620_Stack* m_stack;
 };
 
+// The default heap (src/gflib3/Unk_65d670.cpp: declared there as returning
+// its heap class, the same object).
+Unk_239a418_Allocator* Unk_65d700();
+
+// The allocator current on this thread: the top of its stack, or the
+// default heap when there is none.
+inline Unk_239a418_Allocator* Unk_2771620_Current() {
+    Unk_2771620_Stack* stack =
+        reinterpret_cast<Unk_2771620_Stack*>(nn::os::GetTlsValue(Unk_2771620));
+    if (stack != nullptr && stack->field_80 != 0) {
+        if (Unk_239a418_Allocator* allocator = stack->field_0[stack->field_80 - 1])
+            return allocator;
+    }
+    return Unk_65d700();
+}
+
 // A container allocator, 0x18 bytes: allocates through slot 2 of its
 // allocator (slot 23 when that fails), frees through slot 3 and constructs
-// with the allocator current.
+// with the allocator current. Made without one, it takes the current one
+// (the demo commands' maps, src/demo/Unk_bc27d0.cpp).
 template <class T>
 class Unk_2771620_Allocator {
 public:
     using value_type = T;
 
+    Unk_2771620_Allocator() : field_0(Unk_2771620_Current()), field_8(0), field_10(0) {}
     explicit Unk_2771620_Allocator(Unk_239a418_Allocator* allocator)
         : field_0(allocator), field_8(0), field_10(0) {}
     template <class U>
