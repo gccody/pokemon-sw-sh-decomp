@@ -932,3 +932,91 @@ void Unk_a3f110(void* seq, Unk_23c4ef0_Owner* owner, const u64*) {
         poke.m_ptr->vf51(arg);
     }
 }
+
+// 0x7100a5efc0
+void Unk_a5efc0(void* seq, Unk_23c4ef0_Owner* owner, const u64*) {
+    s32 id;
+    bool arg;
+    Unk_23c4ef0_ReadS32(seq, &id);
+    Unk_23c4ef0_ReadBool(seq, &arg);
+    u32 pos = owner->Unk_952670(id, 0);
+    Unk_239a418_Ref<Unk_239a418> object(Unk_23c4ef0_New<Unk_993ba0>(
+        static_cast<Unk_239a418_Allocator*>(owner->field_d8), owner, pos));
+    Unk_239a418_Ref<Unk_23c4ef0_List> list = owner->field_538;
+    list.m_ptr->Unk_142a660(object, 0x40);
+}
+
+// 0x7100a5f5e0
+void Unk_a5f5e0(void* seq, Unk_23c4ef0_Owner* owner, const u64*) {
+    s32 id1;
+    s32 id2;
+    bool arg;
+    Unk_23c4ef0_ReadS32(seq, &id1);
+    Unk_23c4ef0_ReadS32(seq, &id2);
+    Unk_23c4ef0_ReadBool(seq, &arg);
+    u32 pos1 = owner->Unk_952670(id1, 0);
+    u32 pos2 = owner->Unk_952670(id2, 0);
+    Unk_239a418_Ref<Unk_239a418> object(Unk_23c4ef0_New<Unk_993c90>(
+        static_cast<Unk_239a418_Allocator*>(owner->field_d8), owner, pos1, pos2));
+    Unk_239a418_Ref<Unk_23c4ef0_List> list = owner->field_538;
+    list.m_ptr->Unk_142a660(object, 0x40);
+}
+
+// 0x7100a5fba0
+void Unk_a5fba0(void* seq, Unk_23c4ef0_Owner* owner, const u64*) {
+    s32 id;
+    u64 arg;
+    Unk_23c4ef0_ReadS32(seq, &id);
+    Unk_23c4ef0_ReadU64(seq, &arg);
+    u32 pos = owner->Unk_960620(id, 0);
+    if (pos == 0xff)
+        return;
+    Unk_239a418_Ref<Unk_23c4ef0_Poke> poke = owner->field_580[pos];
+    if (!poke.m_ptr)
+        return;
+    if (poke.m_ptr->vf50())
+        return;
+    Unk_239a418_Ref<Unk_239a418> object(Unk_23c4ef0_New<Unk_994030>(
+        static_cast<Unk_239a418_Allocator*>(owner->field_d8), owner, pos, arg));
+    Unk_239a418_Ref<Unk_23c4ef0_List> list = owner->field_538;
+    list.m_ptr->Unk_142a660(object, 0x40);
+}
+
+// 0x7100a5fd80
+void Unk_a5fd80(void* seq, Unk_23c4ef0_Owner* owner, const u64*) {
+    s32 id;
+    Unk_23c4ef0_ReadS32(seq, &id);
+    u32 pos = owner->Unk_960620(id, 0);
+    if (pos == 0xff)
+        return;
+    Unk_239a418_Ref<Unk_23c4ef0_Poke> poke = owner->field_580[pos];
+    if (!poke.m_ptr)
+        return;
+    if (!poke.m_ptr->vf50())
+        return;
+    Unk_239a418_Ref<Unk_239a418> object(Unk_23c4ef0_New<Unk_9941c0>(
+        static_cast<Unk_239a418_Allocator*>(owner->field_d8), owner, pos));
+    Unk_239a418_Ref<Unk_23c4ef0_List> list = owner->field_538;
+    list.m_ptr->Unk_142a660(object, 0x40);
+}
+
+// 0x7100a5f7a0
+void Unk_a5f7a0(void* seq, Unk_23c4ef0_Owner* owner, const u64*) {
+    s32 id;
+    s32 arg1;
+    s32 arg2;
+    s32 arg3;
+    Unk_23c4ef0_ReadS32(seq, &id);
+    Unk_23c4ef0_ReadS32(seq, &arg1);
+    Unk_23c4ef0_ReadS32(seq, &arg2);
+    Unk_23c4ef0_ReadS32(seq, &arg3);
+    u32 pos = owner->Unk_952670(id, 0);
+    Unk_23c4ef0_Info info = owner->GetPoke(pos).m_ptr->vf68();
+    info.field_0 = arg1;
+    info.field_4 = arg2;
+    info.field_14 = arg3;
+    Unk_239a418_Ref<Unk_239a418> object(Unk_23c4ef0_New<Unk_993d80>(
+        static_cast<Unk_239a418_Allocator*>(owner->field_d8), owner, pos, &info));
+    Unk_239a418_Ref<Unk_23c4ef0_List> list = owner->field_538;
+    list.m_ptr->Unk_142a660(object, 0x40);
+}
