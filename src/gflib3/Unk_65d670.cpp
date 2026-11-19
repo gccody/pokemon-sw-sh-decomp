@@ -9,6 +9,7 @@
 // segment (0x710065b490-0x710067a530) also holds gflib3's TLSF pool
 // (lib/gflib3/src/mem/internal/tlsf_pool.cpp, mem/tlsf_pool_resource.cpp).
 #include "gflib3/Unk_5cf870.h"
+#include "gflib3/Unk_65da00.h"
 
 // A heap: its vtable slot 22 (+0xb0) takes the heap's name.
 class Unk_65d680_Heap {
@@ -131,16 +132,17 @@ bool Unk_65d960() {
 }
 
 // 0x710065da00
-void Unk_65da00(void* /*unused*/, Unk_65d680_Heap* heap, bool value, bool thisThreadOnly) {
+Unk_65da00_Scope::Unk_65da00_Scope(Unk_239a418_Allocator* heap, bool value, bool thisThreadOnly) {
     Unk_2777f40_Lock lock;
     Unk_2777f20 = nn::os::GetThreadId(nn::os::GetCurrentThread());
-    Unk_2777f28 = heap;
+    // The same heap objects: two placeholder classes until the class is known.
+    Unk_2777f28 = reinterpret_cast<Unk_65d680_Heap*>(heap);
     Unk_239f8d8 = value;
     Unk_239f8d9 = thisThreadOnly;
 }
 
 // 0x710065daf0
-void Unk_65daf0() {
+Unk_65da00_Scope::~Unk_65da00_Scope() {
     Unk_2777f40_Lock lock;
     Unk_239f8d9 = true;
     Unk_239f8d8 = true;
