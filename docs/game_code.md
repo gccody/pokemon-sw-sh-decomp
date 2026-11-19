@@ -1830,15 +1830,18 @@ stores: 1,737 types, none with two parents) and writes them in
   class's own getter (vtables.py's forwarders to a placeholder `Unk_<G>(void*)`:
   their getters are renamed and emitted here, and vtables.py skips what this
   tool writes);
-- 126 of the 159 kind tests, `Unk_61a530<T>`, one explicit instantiation per T.
+- 126 of the 159 kind tests, `Unk_61a530<T>`, one explicit instantiation per T;
+- 153 `vf_type`s whose thunks are `sub x0, x0, #N ; b vf_type`, alone: as
+  plain members of a struct named like their class (same symbol, same code,
+  and no thunks emitted), in files of their own, since their types inline
+  differently next to the forwarder classes.
 
 The inliner decides how much of a chain a getter inlines with
 `shouldBeDeferred`, which counts the getter's callers in its TU: so the
 levels each function inlines are spelled out (defined inline) and its cut
-declared, never left to clang. What's left: 153 classes whose thunks are
-`sub x0, x0, #N ; b vf_type` (the original's vf_type is inline, emitted with
-its class's vtable; defined strongly here, the thunks lose the adjustment),
-60 forwarder classes whose getter has no other caller in its segment (clang
+declared, never left to clang. What's left: those 153 classes' thunks (the
+original's vf_type is inline, emitted with its class's vtable; defined
+strongly here, the thunks lose the adjustment), 60 forwarder classes whose getter has no other caller in its segment (clang
 inlines it into vf_type, the original didn't: deferred there, with callers
 we don't have), and 33 kind tests whose type isn't named or whose chain
 isn't one this tool spells.
@@ -1895,7 +1898,7 @@ Larger shapes have their own blockers:
 ## Handoff (2026-11-17, updated 2026-11-19)
 
 State after the type getters and the map instances (2026-11-19, later):
-check.py reports 46,404 matching and 42 not matching; 26.21% of the code by
+check.py reports 46,557 matching and 42 not matching; 26.36% of the code by
 bytes. Before them, after the generated tables and FreeType: check.py
 reports 44,938 matching and 42 not matching, in both games; 25.16% of the
 code by bytes. Every batch above came from `tools/leafgen.py`,
