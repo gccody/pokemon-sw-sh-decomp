@@ -135,6 +135,18 @@ class VSlot:
 
 
 @dataclass(frozen=True)
+class CallRet:
+    index: int            # what the index-th call (Lifted.calls) returned in x0/w0
+
+
+@dataclass(frozen=True)
+class Call:
+    target: int           # bl T (absolute)
+    args: tuple           # x0.. at the call, up to the last one written since the previous call
+    seq: int              # the store count before it (a call may change any memory)
+
+
+@dataclass(frozen=True)
 class DataAddr:
     addr: int             # what `adrp ; add` computed (absolute): the address of a string or a table
 
@@ -153,6 +165,10 @@ GOT: dict[int, int] = {}
 # Unk_239a418_Ref<T> calls them as `static_cast<Unk_239a458*>(p)->vf4()` and
 # `->vf5()`, `ldr x8, [p, #0x48]! ; ldr x1, [x8, #0x10 or #0x18] ; br x1` in a
 # tail call. Every class on the object has that interface there.
+# Functions named in functions.csv (absolute address -> name), which a call may
+# not declare as a placeholder: set by candidates().
+NAMED: dict[int, str] = {}
+
 REF_IFACE = 0x48
 REF_SLOTS = {0x10: "vf4", 0x18: "vf5"}
 REF_HEADER = '#include "gflib3/Unk_239a418.h"'
@@ -269,6 +285,8 @@ class Lifted:
     store_seq: list[int] = field(default_factory=list)  # per store: how many store instructions came before
     guard_seq: int = 0        # store instructions before the guard
     vcall: tuple | None = None  # a final virtual tail call through REF_IFACE: (object, slot)
+    calls: list = field(default_factory=list)  # Call, in order: a function with a frame
+    ret_width: dict = field(default_factory=dict)  # call index -> widest read of its result (4: w0, 8: x0)
     load_seq: dict = field(default_factory=dict)  # Load -> the set of store counts it was loaded after
     stores_done: int = 0      # store instructions in all
     pairs: bool = False       # whether it loads with ldp (a struct copy, see Emitter.copy)
@@ -285,6 +303,31 @@ def callee_name(target: int, types: list[str]) -> tuple[str, str]:
 
 
 GUARDS = ("cbz", "cbnz")
+
+
+CODE_TYPES = {v: k for k, v in CALL_CODES.items()}
+
+
+def placeholder_params(name: str, target: int) -> list[str] | None:
+    """The parameter types `callee_name` spelled into a placeholder's mangled
+    name (`_Z11Unk_164d2f0mmm`: u64, u64, u64), or None for any other name."""
+    short = f"Unk_{target - BASE:x}"
+    prefix = f"_Z{len(short)}{short}"
+    if not name.startswith(prefix):
+        return None
+    codes, out = name[len(prefix):], []
+    if codes == "v":
+        return []
+    while codes:
+        if codes.startswith("Pv"):
+            out.append("void*")
+            codes = codes[2:]
+        elif codes[0] in CODE_TYPES and codes[0] != "P":
+            out.append(CODE_TYPES[codes[0]])
+            codes = codes[1:]
+        else:
+            return None
+    return out
 
 
 def guard_shape(insns: list[tuple[str, list[str]]], addr: int | None) -> tuple[int, list, int | None] | None:
@@ -353,6 +396,8 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
     flags: Cmp | None = None
     out = Lifted()
     written: set[tuple[str, int]] = set()
+    since: set[tuple[str, int]] = set()   # written since the last call
+    framed = False
 
     def get(r: str) -> object:
         kind, n = _reg(r)
@@ -362,6 +407,8 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
         if key not in regs:
             raise LiftError(f"read of {r} before it's written")
         v = regs[key]
+        if isinstance(v, CallRet):
+            out.ret_width[v.index] = max(out.ret_width.get(v.index, 0), 8 if kind == "x" else 4)
         if kind == "w" and isinstance(v, Const):
             return Const(v.value & 0xFFFFFFFF, 4)
         return v
@@ -375,6 +422,7 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
         key = ("f", n) if kind in "sd" else ("x", n)
         regs[key] = v
         written.add(key)
+        since.add(key)
         if key[0] == "x":
             narrow.discard(n)
 
@@ -382,6 +430,31 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
         return 8 if _reg(r)[0] in "xd" else 4
 
     for idx, (mn, ops) in enumerate(insns[:-1]):
+        if _is_frame(mn, ops):
+            framed = True
+            continue  # the frame record and the callee-saved registers (x19-x28), kept across calls
+        if mn == "bl" and addr is not None:
+            if k is not None:
+                raise LiftError("cbz in a function that calls")
+            if any(("f", i) in since for i in range(8)):
+                raise LiftError("floating-point call argument")
+            n = max((i + 1 for i in range(8) if ("x", i) in since), default=0)
+            args = []
+            for i in range(n):
+                v = regs.get(("x", i))
+                if v is None:
+                    raise LiftError("call argument the previous call left")
+                args.append(v)
+            out.calls.append(Call(_imm(ops[0]), tuple(args), out.stores_done))
+            out.stores_done += 1
+            for i in list(range(19)):
+                regs.pop(("x", i), None)
+            for i in range(32):
+                regs.pop(("f", i), None)
+            regs[("x", 0)] = CallRet(len(out.calls) - 1)
+            since.clear()
+            flags = None
+            continue
         if idx == k:
             v = get(ops[0])
             if not isinstance(v, (Load, Arg)) or (isinstance(v, Load) and width_of(ops[0]) < WIDTH[v.type]):
@@ -569,10 +642,27 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
         else:
             raise LiftError(mn)
 
+    if framed != bool(out.calls):
+        raise LiftError("a frame without a call" if framed else "bl without a frame")
     if out.vcall is not None:
         if out.guard is not None and out.zero_else:
             raise LiftError("cbz: returns something")
+        if out.calls:
+            raise LiftError("virtual tail call after a call")
         return out
+    if out.calls:
+        if tail is not None:
+            # The last call, after the epilogue: a void function's last statement.
+            if any(("f", i) in since for i in range(8)):
+                raise LiftError("floating-point call argument")
+            n = max((i + 1 for i in range(8) if ("x", i) in since), default=0)
+            if any(("x", i) not in regs for i in range(n)):
+                raise LiftError("call argument the previous call left")
+            out.calls.append(Call(tail, tuple(regs[("x", i)] for i in range(n)), out.stores_done))
+            out.stores_done += 1
+            return out
+        # After a call, x0 is what the function returns only if it wrote it since.
+        written = since
     if tail is not None:
         if any(("f", i) in written for i in range(8)):
             raise LiftError("floating-point tail-call argument")
@@ -596,6 +686,21 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
     if out.zero_else and (out.ret is None or ("f", 0) in written):
         raise LiftError("cbz: returns 0 on one path only")
     return out
+
+
+_CALLEE_SAVED = {f"x{i}" for i in range(19, 31)}
+
+
+def _is_frame(mn: str, ops: list[str]) -> bool:
+    """A prologue or epilogue instruction: the frame record (x29, x30) and the
+    callee-saved registers saved to or restored from the stack, `mov x29, sp`,
+    `add x29, sp, #N`. Nothing else may use sp."""
+    o = [x.strip() for x in ops]
+    if mn in ("stp", "ldp") and len(o) >= 3 and o[2].startswith("[sp"):
+        return o[0] in _CALLEE_SAVED and o[1] in _CALLEE_SAVED
+    if mn in ("str", "ldr") and len(o) >= 2 and o[1].startswith("[sp"):
+        return o[0] in _CALLEE_SAVED
+    return (mn == "mov" and o == ["x29", "sp"]) or (mn == "add" and o[:2] == ["x29", "sp"])
 
 
 def _mentions(e: object, x: object) -> bool:
@@ -667,6 +772,9 @@ class Emitter:
         self.forward: set[str] = set()        # structs a known callee's parameters name
         self.locals: dict[object, str] = {}   # pointers held in a local (choose_locals)
         self.tables: set[int] = set()         # data a returned `adrp ; add` points at (absolute)
+        self.protos: set[str] = set()         # the callees' declarations (render_call)
+        self.passed: set[Arg] = set()         # arguments passed on to a call
+        self.call_types: dict[int, str] = {}  # call index -> the type of the result it returns
 
     # -- structs
     def struct_for(self, base: object) -> StructDef:
@@ -804,6 +912,8 @@ class Emitter:
             return "ptr"
         if isinstance(e, DataAddr):
             return "data"
+        if isinstance(e, CallRet):
+            return self.call_types.get(e.index, "u64")
         if isinstance(e, Arg):
             if e.fp:
                 return self.fp_types.get(e.index, "f32")
@@ -929,12 +1039,14 @@ class Emitter:
         return render_struct(s), func
 
     def value_locals(self) -> dict[int, list[tuple[Load, str]]]:
-        """Loads to hold in a local: their value is used after a store that may
-        overwrite what they read (a move: `v = self->f; self->f = 0; value->f
-        = v;`), so the source read them first. -> {index of the first store
-        after the load: [(load, local name)]}."""
+        """Loads to hold in a local: their value is used after a store or a call
+        that may overwrite what they read (a move: `v = self->f; self->f = 0;
+        value->f = v;`), so the source read them first. -> {the store count
+        when it was loaded: [(load, local name)]}: declared before the first
+        store or call after it."""
         lf = self.lifted
         uses = [(lf.store_seq[i], v) for i, (_, _, _, v) in enumerate(lf.stores)]
+        uses += [(c.seq, c.args) for c in lf.calls]
         if lf.ret is not None:
             uses.append((lf.stores_done, lf.ret))
         if lf.guard is not None:
@@ -949,15 +1061,107 @@ class Emitter:
                     continue
                 epoch = min(epochs)
                 between = [(b, o, t) for (b, o, t, _), q in zip(lf.stores, lf.store_seq) if epoch <= q < seq]
-                if not any(_may_alias((ld.base, ld.offset, ld.type), x) for x in between):
+                if not any(_may_alias((ld.base, ld.offset, ld.type), x) for x in between) and \
+                        not any(epoch <= c.seq < seq for c in lf.calls):
                     continue
                 if len(epochs) > 1 or (lf.guard is not None and epoch > lf.guard_seq):
                     raise LiftError("read before a store, then reloaded or read after the guard")
                 need[ld] = epoch
         out: dict[int, list[tuple[Load, str]]] = {}
         for n, (ld, epoch) in enumerate(sorted(need.items(), key=lambda x: (x[1], repr(x[0])))):
-            first = next((i for i, q in enumerate(lf.store_seq) if q >= epoch), len(lf.stores))
-            out.setdefault(first, []).append((ld, f"v{n}"))
+            out.setdefault(epoch, []).append((ld, f"v{n}"))
+        return out
+
+    def render_call(self, j: int) -> str:
+        """The statement for the j-th call: `Unk_<T>(args...);`, declared like a
+        tail call's target (render_tail), returning u32 or u64 as the function
+        reads w0 or x0 after it, into a local (`r<j>`). A target already written
+        (KNOWN) is called by its own prototype."""
+        lf = self.lifted
+        c = lf.calls[j]
+        width = lf.ret_width.get(j)
+        if c.target in KNOWN:
+            ret, callee, ptypes = KNOWN[c.target]
+            if len(ptypes) != len(c.args) or (width and ret == "void"):
+                raise LiftError("callee: other parameters")
+            args = self.known_args(c.args, ptypes)
+            self.protos.add(f"{ret} {callee}({', '.join(ptypes)});")
+            rt = ret
+        elif c.target in NAMED:
+            # Named already, as another caller's placeholder: call it with the
+            # parameters its name spells.
+            ptypes = placeholder_params(NAMED[c.target], c.target)
+            if ptypes is None or len(ptypes) != len(c.args):
+                raise LiftError("callee: named")
+            args = []
+            for e, pt in zip(c.args, ptypes):
+                if isinstance(e, Arg) and not e.fp:
+                    self.arg_types.setdefault(e.index, pt)
+                    self.passed.add(e)
+                    args.append(self.arg_name(e.index))
+                elif pt == "void*" and (self.is_pointer(e) or self.type_of(e) == "ptr"):
+                    args.append(self.expr(e))
+                elif pt != "void*" and not self.is_pointer(e) and self.type_of(e) in CALL_CODES:
+                    args.append(self.expr(e, pt))
+                else:
+                    raise LiftError("callee: an argument of another type")
+            callee = callee_name(c.target, ptypes)[0]
+            rt = {4: "u32", 8: "u64"}.get(width, "void")
+            self.protos.add(f"{rt} {callee}({', '.join(ptypes)});")
+        else:
+            args, types = [], []
+            for e in c.args:
+                if isinstance(e, Arg) and not e.fp:
+                    t = self.arg_types.setdefault(e.index, "void*" if e.index == 0 else "u64")
+                    self.passed.add(e)
+                    args.append(self.arg_name(e.index))
+                    types.append("void*" if t.endswith("*") else t)
+                elif self.is_pointer(e) or self.type_of(e) == "ptr":
+                    args.append(self.expr(e))
+                    types.append("void*")
+                else:
+                    t = self.type_of(e)
+                    if t not in CALL_CODES:
+                        raise LiftError(f"call argument of type {t}")
+                    args.append(self.expr(e, t))
+                    types.append(t)
+            callee, _ = callee_name(c.target, types)
+            rt = {4: "u32", 8: "u64"}.get(width, "void")
+            self.protos.add(f"{rt} {callee}({', '.join(types)});")
+        call = f"{callee}({', '.join(args)})"
+        if not width:
+            return f"    {call};"
+        if rt not in CALL_CODES:
+            raise LiftError(f"call result of type {rt}")
+        self.call_types[j] = rt
+        self.locals[CallRet(j)] = f"r{j}"
+        return f"    {rt} r{j} = {call};"
+
+    def known_args(self, args: tuple, ptypes: list[str]) -> list[str]:
+        """The arguments of a call to a KNOWN function, each of its parameter's type."""
+        out = []
+        for e, pt in zip(args, ptypes):
+            if pt.endswith("*"):
+                if pt != "void*":
+                    self.forward.add(pt.removeprefix("const ")[:-1])
+                if isinstance(e, Arg) and not e.fp:
+                    if self.arg_types.setdefault(e.index, pt) != pt:
+                        raise LiftError("callee: a pointer of another type")
+                    self.passed.add(e)
+                    out.append(self.arg_name(e.index))
+                elif isinstance(e, Load) and e.type in ("u64", "s64") and not isinstance(e.base, GlobalPtr):
+                    out.append(self.field_expr(e.base, e.offset, pt.removeprefix("const ")))
+                else:
+                    raise LiftError("callee: a pointer argument")
+            elif pt in CALL_CODES and not (isinstance(e, Arg) and e.fp) and not self.is_pointer(e):
+                if isinstance(e, Arg):
+                    if self.arg_types.setdefault(e.index, pt) != pt:
+                        raise LiftError("callee: an argument of another type")
+                    out.append(self.arg_name(e.index))
+                else:
+                    out.append(self.expr(e, pt))
+            else:
+                raise LiftError(f"callee: parameter {pt}")
         return out
 
     def render(self) -> tuple[str, str]:
@@ -979,15 +1183,22 @@ class Emitter:
                 return self.globals.get(ld.base.addr)
             return self.structs[ld.base].fields.get(ld.offset) if ld.base in self.structs else None
 
-        def hold(i: int) -> None:
+        def hold(seq: int) -> None:
             # Locals are read before the guard (value_locals), so they go before it.
-            for ld, name in held.get(i, []):
-                rhs = self.field_expr(ld.base, ld.offset, known(ld) or ld.type)
-                body.append(f"    {self.stored_type(ld.base, ld.offset)} {name} = {rhs};")
-                self.locals[ld] = name
+            for epoch in sorted(e for e in held if e <= seq):
+                for ld, name in held.pop(epoch):
+                    rhs = self.field_expr(ld.base, ld.offset, known(ld) or ld.type)
+                    body.append(f"    {self.stored_type(ld.base, ld.offset)} {name} = {rhs};")
+                    self.locals[ld] = name
 
-        for i, (base, off, t, value) in enumerate(lf.stores):
-            hold(i)
+        events = sorted([(q, 0, i) for i, q in enumerate(lf.store_seq)] +
+                        [(c.seq, 1, j) for j, c in enumerate(lf.calls)])
+        for seq, kind, i in events:
+            hold(seq)
+            if kind == 1:
+                body.append(self.render_call(i))
+                continue
+            base, off, t, value = lf.stores[i]
             if i == lf.guard_stores:
                 self.before = len(body)
             if isinstance(value, AddrOf):
@@ -1005,7 +1216,7 @@ class Emitter:
             if isinstance(value, Const) and value.value == 0 and ft.endswith("*"):
                 rhs = "nullptr"
             body.append(f"    {lhs} = {rhs};")
-        hold(len(lf.stores))
+        hold(lf.stores_done)
         if self.before is None:
             self.before = len(body)
         ret_type = "void"
@@ -1050,7 +1261,7 @@ class Emitter:
             if t is None:
                 params.append("void* /*unused*/" if i == 0 else "u32 /*unused*/")
                 continue
-            if t.endswith("*") and Arg(i) not in stored:
+            if t.endswith("*") and Arg(i) not in stored and Arg(i) not in self.passed:
                 t = "const " + t
             params.append(f"{t} {self.arg_name(i)}")
         # Floating-point arguments take s0.. in order whatever the integer ones do.
@@ -1200,7 +1411,7 @@ class Emitter:
 
     def function_name(self, ret_type: str) -> str:
         lf = self.lifted
-        if lf.vcall is not None:
+        if lf.vcall is not None or lf.calls:
             verb = "call"
         elif lf.stores and lf.ret is None:
             verb = "set"
@@ -1222,6 +1433,7 @@ class Emitter:
         order = sorted(self.structs.values(), key=lambda s: -s.name.count("_"))
         for s in order:
             out.append(render_struct(s))
+        out += sorted(self.protos)
         return "\n".join(out)
 
 
@@ -1274,6 +1486,7 @@ def generate(addr: int, code: bytes) -> tuple[str, str]:
         second.structs, second.arg_types, second.fp_types = first.structs, first.arg_types, first.fp_types
         second.globals = first.globals
         second.tables = first.tables
+        second.call_types = first.call_types
         return render(second)
     except ValueError as e:  # an operand list of another shape (shifted or extended registers ...)
         raise LiftError(f"operands ({e})") from None
@@ -1350,7 +1563,9 @@ def candidates(args) -> list[tuple[int, bytes]]:
     DATA_AT = _data_at
     in_vtable = {t for v in vts for t in v.slots if isinstance(t, int)}
     out = []
-    for f in read_functions_csv():
+    rows = read_functions_csv()
+    NAMED.update({f.sword + BASE: f.name for f in rows if f.name and f.sword is not None})
+    for f in rows:
         if f.status != "U" or f.scope != "common" or f.name or f.sword is None:
             continue
         size = f.size("sword")
@@ -1643,8 +1858,9 @@ def write_files(out_dir: Path, lifted: dict[int, tuple[str, str]]) -> None:
         entries = [(a, *lifted[a]) for a in addrs]
         old = file_for_seg.get(s)
         if old is not None:
-            entries += parse_file(old.read_text(encoding="utf-8"))
+            entries = parse_file(old.read_text(encoding="utf-8")) + entries
             old.unlink()
+        entries = consistent_declarations(entries)
         first = min(a for a, _, _ in entries)
         path = out_dir / f"Unk_{first - BASE:x}.cpp"
         path.write_text(render_file(entries), encoding="utf-8", newline="\n")
@@ -1652,6 +1868,27 @@ def write_files(out_dir: Path, lifted: dict[int, tuple[str, str]]) -> None:
     if not clang_format(written):
         print("clang-format isn't on PATH: format the written files before committing them", file=sys.stderr)
     print(f"wrote {len(lifted)} functions into {len(by_seg)} files", file=sys.stderr)
+
+
+DECL = re.compile(r"^([\w*]+) (Unk_[0-9a-f]+)\((.*)\);$", re.M)
+
+
+def consistent_declarations(entries: list[tuple[int, str, str]]) -> list[tuple[int, str, str]]:
+    """The entries whose callee declarations agree with the ones before them:
+    two functions of one file that declare a callee with the same parameters
+    and different return types (one reads its result, as u32 or u64, the
+    other doesn't) don't compile together. The later one is dropped."""
+    seen: dict[tuple[str, str], str] = {}
+    out = []
+    for e in entries:
+        decls = {(m.group(2), m.group(3)): m.group(1) for m in DECL.finditer(e[1])}
+        if any(seen.get(k, r) != r for k, r in decls.items()):
+            print(f"  dropped 0x{e[0]:x}: declares a callee another function of its file declares otherwise",
+                  file=sys.stderr)
+            continue
+        seen.update(decls)
+        out.append(e)
+    return out
 
 
 def parse_file(text: str) -> list[tuple[int, str, str]]:
