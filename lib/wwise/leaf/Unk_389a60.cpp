@@ -315,6 +315,26 @@ u32 Unk_38e5c0_get(const Unk_38e5c0* self) {
 }
 
 extern u32 Unk_2381488;
+struct Unk_390440 {
+    u8 _0[0x14];
+    u16 field_14;
+    u8 _16[0x2];
+    u64 field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_390440, field_14, 0x14);
+PKMN_OFFSET_ASSERT(Unk_390440, field_18, 0x18);
+void Unk_3047c0(u32, u64);
+
+// 0x7100390440
+void Unk_390440_set(Unk_390440* self) {
+    if (self->field_18 != 0) {
+        Unk_3047c0(Unk_2381488, self->field_18);
+    }
+    self->field_14 = 0;
+    self->field_18 = 0;
+}
+
+extern u32 Unk_2381488;
 struct Unk_390500 {
     u64 field_0;
     u8 _8[0x8];

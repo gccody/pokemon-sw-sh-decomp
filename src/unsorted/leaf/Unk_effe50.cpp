@@ -764,6 +764,26 @@ void Unk_f16f00_set(const Unk_f16f00* self, Unk_f16f00_arg1* value) {
     value->field_0 = self->field_0;
 }
 
+struct Unk_f17a80 {
+    u8 _0[0x50];
+    u32 field_50;
+};
+PKMN_OFFSET_ASSERT(Unk_f17a80, field_50, 0x50);
+
+void Unk_f17d20(void*);
+void Unk_f17ad0(void*);
+
+// 0x7100f17a80
+void Unk_f17a80_call(Unk_f17a80* self) {
+    if (self->field_50 >= 0x1e) {
+        Unk_f17ad0(self);
+        Unk_f17d20(self);
+        return;
+    }
+    self->field_50 = self->field_50 + 1;
+    Unk_f17d20(self);
+}
+
 struct Unk_27e0fcc_Data {
     u32 field_0;
     u32 field_4;

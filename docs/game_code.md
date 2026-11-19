@@ -1766,6 +1766,16 @@ mangled prefix from it.
 
 75 more match (check.py: 44,545 matching, 42 not matching).
 
+### Batch 43: paths that set up the frame and don't call
+
+In a function with a frame, the path that returns early (before any call)
+was refused as "a frame without a call"; one path of several may have the
+function's frame and no call. Rewritten with their classes, the members of
+earlier runs keep their slots ahead of new ones, are recognized by their
+RTTI name's own mangling (template classes' too), and a library class that
+a game class declares as its base (`vtables.py`, since Batch 41) is still
+the library's. 31 more match (check.py: 44,576 matching, 42 not matching).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1791,7 +1801,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after Batch 42: check.py reports 44,545 matching and 42 not
+State after Batch 43: check.py reports 44,576 matching and 42 not
 matching, in both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the

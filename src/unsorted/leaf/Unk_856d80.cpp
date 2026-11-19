@@ -3,6 +3,45 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
+struct Unk_856d80_arg2 {
+    u8 field_0;
+    u8 field_1;
+    u8 _2[0x2];
+    u8 field_4;
+    u8 _5[0x3];
+    u8 field_8;
+    u8 _9[0x23];
+    u8 field_2c;
+};
+PKMN_OFFSET_ASSERT(Unk_856d80_arg2, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_856d80_arg2, field_1, 0x1);
+PKMN_OFFSET_ASSERT(Unk_856d80_arg2, field_4, 0x4);
+PKMN_OFFSET_ASSERT(Unk_856d80_arg2, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_856d80_arg2, field_2c, 0x2c);
+struct Unk_856d80_arg1 {
+    u8 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_856d80_arg1, field_0, 0x0);
+u32 Unk_856f50(void*, void*);
+void Unk_856e00(void*, u8, u8, void*);
+void Unk_856e90();
+
+// 0x7100856d80
+void Unk_856d80_call(void* self, Unk_856d80_arg1* value, Unk_856d80_arg2* arg2) {
+    value->field_0 = 0;
+    if (arg2->field_1 != 0) {
+        u32 r0 = Unk_856f50(self, arg2);
+        value->field_0 = r0 & 1;
+        return;
+    }
+    if (arg2->field_4 != 0) {
+        Unk_856e00(self, arg2->field_0, arg2->field_2c, &arg2->field_8);
+        value->field_0 = 1;
+        return;
+    }
+    Unk_856e90();
+}
+
 struct Unk_27d0b84_Data {
     u32 field_0;
     u32 field_4;

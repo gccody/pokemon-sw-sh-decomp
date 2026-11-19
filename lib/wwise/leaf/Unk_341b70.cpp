@@ -76,6 +76,24 @@ void Unk_341d00_set(Unk_341d00* self) {
     self->field_bc = 1;
 }
 
+extern u32 Unk_237e820;
+struct Unk_341f80 {
+    u64 field_0;
+    u8 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_341f80, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_341f80, field_8, 0x8);
+void Unk_3047c0(u32, u64);
+
+// 0x7100341f80
+void Unk_341f80_set(Unk_341f80* self) {
+    if (self->field_8 != 0) {
+        Unk_3047c0(Unk_237e820, self->field_0);
+    }
+    self->field_0 = 0;
+    self->field_8 = 0;
+}
+
 // 0x7100343eb0
 void Unk_343eb0_update() {
 }

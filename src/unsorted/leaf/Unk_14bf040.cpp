@@ -865,6 +865,83 @@ bool Unk_14dbb00_check(const Unk_14dbb00* self) {
     return self->field_68 == 0;
 }
 
+struct Unk_14e0840_arg1 {
+    u8 field_0;
+    u8 field_1;
+    u8 field_2;
+    u8 field_3;
+};
+PKMN_OFFSET_ASSERT(Unk_14e0840_arg1, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_14e0840_arg1, field_1, 0x1);
+PKMN_OFFSET_ASSERT(Unk_14e0840_arg1, field_2, 0x2);
+PKMN_OFFSET_ASSERT(Unk_14e0840_arg1, field_3, 0x3);
+void Unk_14e0350(void*, u32, u32);
+void Unk_14e0450(void*, u32, u32);
+
+// 0x71014e0840
+void Unk_14e0840_call(void* self, const Unk_14e0840_arg1* value) {
+    if (value->field_1 != 0) {
+        Unk_14e0350(self, 1, 1);
+        if (value->field_2 != 0) {
+            Unk_14e0350(self, 2, 1);
+            if (value->field_3 != 0) {
+                Unk_14e0350(self, 4, 1);
+                if (value->field_0 != 0) {
+                    return;
+                }
+                Unk_14e0450(self, 0, 0);
+                return;
+            }
+            if (value->field_0 != 0) {
+                return;
+            }
+            Unk_14e0450(self, 0, 0);
+            return;
+        }
+        if (value->field_3 != 0) {
+            Unk_14e0350(self, 4, 1);
+            if (value->field_0 != 0) {
+                return;
+            }
+            Unk_14e0450(self, 0, 0);
+            return;
+        }
+        if (value->field_0 != 0) {
+            return;
+        }
+        Unk_14e0450(self, 0, 0);
+        return;
+    }
+    if (value->field_2 != 0) {
+        Unk_14e0350(self, 2, 1);
+        if (value->field_3 != 0) {
+            Unk_14e0350(self, 4, 1);
+            if (value->field_0 != 0) {
+                return;
+            }
+            Unk_14e0450(self, 0, 0);
+            return;
+        }
+        if (value->field_0 != 0) {
+            return;
+        }
+        Unk_14e0450(self, 0, 0);
+        return;
+    }
+    if (value->field_3 != 0) {
+        Unk_14e0350(self, 4, 1);
+        if (value->field_0 != 0) {
+            return;
+        }
+        Unk_14e0450(self, 0, 0);
+        return;
+    }
+    if (value->field_0 != 0) {
+        return;
+    }
+    Unk_14e0450(self, 0, 0);
+}
+
 struct Unk_27f17cc_Data {
     u32 field_0;
     u32 field_4;

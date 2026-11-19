@@ -133,6 +133,55 @@ u8 Unk_1163130_getFielda0(const Unk_1163130* self) {
     return self->field_a0;
 }
 
+struct Unk_1163140 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    u8 _8[0x98];
+    u8 field_a0;
+};
+PKMN_OFFSET_ASSERT(Unk_1163140, field_a0, 0xa0);
+
+// 0x7101163140
+void Unk_1163140_set(Unk_1163140* self) {
+    if (self->field_a0 == 0) {
+        self->vf9();
+    }
+    self->field_a0 = 1;
+}
+
+struct Unk_1163180 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    u8 _8[0x98];
+    u8 field_a0;
+};
+PKMN_OFFSET_ASSERT(Unk_1163180, field_a0, 0xa0);
+
+// 0x7101163180
+void Unk_1163180_set(Unk_1163180* self) {
+    if (self->field_a0 != 0) {
+        self->vf10();
+    }
+    self->field_a0 = 0;
+}
+
 struct Unk_1164120 {
     u8 _0[0xb8];
     f32 field_b8;
