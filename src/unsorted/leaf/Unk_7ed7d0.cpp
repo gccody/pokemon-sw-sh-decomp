@@ -670,6 +670,34 @@ void Unk_7f2f80_set(Unk_7f2f80* self, u8 value, u32 arg2) {
     self->field_458 = arg2;
 }
 
+struct Unk_7f2f90_arg1 {
+    u8 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_7f2f90_arg1, field_0, 0x0);
+
+struct Unk_7f2f90_arg2 {
+    u32 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_7f2f90_arg2, field_0, 0x0);
+
+struct Unk_7f2f90 {
+    u8 _0[0x458];
+    u32 field_458;
+    u8 field_45c;
+};
+PKMN_OFFSET_ASSERT(Unk_7f2f90, field_458, 0x458);
+PKMN_OFFSET_ASSERT(Unk_7f2f90, field_45c, 0x45c);
+
+// 0x71007f2f90
+u32 Unk_7f2f90_update(const Unk_7f2f90* self, Unk_7f2f90_arg1* value, Unk_7f2f90_arg2* arg2) {
+    if (self->field_45c == 0x1f) {
+        return 0;
+    }
+    value->field_0 = self->field_45c;
+    arg2->field_0 = self->field_458;
+    return 1;
+}
+
 struct Unk_7f2fc0 {
     u8 _0[0x45c];
     u8 field_45c;
@@ -882,6 +910,21 @@ void Unk_7f6e70_call(Unk_7f6e70* self) {
     if (v0 != 0) {
         self->field_8->vf3(v0, self->field_10, self->field_18);
     }
+}
+
+extern u64 Unk_27ced28 __attribute__((visibility("hidden")));
+
+// 0x71007f7120
+u64 Unk_7f7120_get() {
+    return Unk_27ced28;
+}
+
+extern u8 Unk_27ced04 __attribute__((visibility("hidden")));
+void Unk_787000(void*, u64, u8);
+
+// 0x71007f7130
+void Unk_7f7130_call(void* self, u64 value) {
+    Unk_787000(self, value, Unk_27ced04);
 }
 
 void Unk_7870a0();

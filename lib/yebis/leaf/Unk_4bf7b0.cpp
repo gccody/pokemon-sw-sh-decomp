@@ -3,9 +3,9 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
-void Unk_43b920();
+extern u64 Unk_24e8f28 __attribute__((visibility("hidden")));
 
-// 0x7100418b70
-void Unk_418b70_call() {
-    Unk_43b920();
+// 0x71004bf7b0
+u64 Unk_4bf7b0_get() {
+    return Unk_24e8f28;
 }

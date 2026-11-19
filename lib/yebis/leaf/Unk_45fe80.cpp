@@ -21,3 +21,17 @@ void Unk_46e350_call(void* self) {
 // 0x7100471460
 void Unk_471460_update() {
 }
+
+extern const u8 Unk_24e4c18[] __attribute__((visibility("hidden")));
+
+// 0x71004738c0
+const u8* Unk_4738c0_get() {
+    return Unk_24e4c18;
+}
+
+extern const u8 Unk_24e4a18[] __attribute__((visibility("hidden")));
+
+// 0x71004738d0
+const u8* Unk_4738d0_get() {
+    return Unk_24e4a18;
+}

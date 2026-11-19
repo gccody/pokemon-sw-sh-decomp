@@ -1105,6 +1105,22 @@ u8* Unk_5b7990_getField38Ptr(Unk_5b7990* self) {
     return &self->field_38;
 }
 
+struct Unk_5b8120 {
+    u8 _0[0x78];
+    u64 field_78;
+    u64 field_80;
+};
+PKMN_OFFSET_ASSERT(Unk_5b8120, field_78, 0x78);
+PKMN_OFFSET_ASSERT(Unk_5b8120, field_80, 0x80);
+
+// 0x71005b8120
+bool Unk_5b8120_check(const Unk_5b8120* self) {
+    if (self->field_78 != 0) {
+        return 1;
+    }
+    return self->field_80 != 0;
+}
+
 struct Unk_5b8140 {
     u8 _0[0x78];
     u64 field_78;

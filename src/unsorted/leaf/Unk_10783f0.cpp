@@ -167,5 +167,23 @@ void Unk_1078510_set(Unk_1078510* self, const Unk_1078510_arg1* value) {
     self->field_218 = value->field_0;
 }
 
+struct Unk_1078600 {
+    u32 field_0;
+    u8 _4[0x22c];
+    u32 field_230;
+};
+PKMN_OFFSET_ASSERT(Unk_1078600, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_1078600, field_230, 0x230);
+
+// 0x7101078600
+u32 Unk_1078600_get(Unk_1078600* self) {
+    if (self->field_0 >= 1 && self->field_0 <= 2) {
+        self->field_0 = 4;
+        self->field_230 = 2;
+        return 1;
+    }
+    return 0;
+}
+
 // 0x7101078630
 void Unk_1078630() {}

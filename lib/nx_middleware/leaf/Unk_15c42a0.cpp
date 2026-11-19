@@ -49,6 +49,13 @@ void Unk_15c7560_set(Unk_15c7560* self) {
     self->field_28 = self->field_10->field_18 << 3;
 }
 
+extern u64 Unk_244f8e0 __attribute__((visibility("hidden")));
+
+// 0x71015c7dc0
+u64 Unk_15c7dc0_get() {
+    return Unk_244f8e0;
+}
+
 struct Unk_15c8420_arg1 {
     u8 _0[0x10];
     u64 field_10;

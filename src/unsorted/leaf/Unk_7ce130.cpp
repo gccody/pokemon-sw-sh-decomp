@@ -551,6 +551,23 @@ u32 Unk_7daa60_call(const Unk_7daa60* self) {
     return 1;
 }
 
+struct Unk_7e88f0;
+struct Unk_7dc9f0 {
+    u8 _0[0x1f0];
+    Unk_7e88f0* field_1f0;
+};
+PKMN_OFFSET_ASSERT(Unk_7dc9f0, field_1f0, 0x1f0);
+
+u64 Unk_7e88f0_getField90(const Unk_7e88f0*);
+void Unk_817de0();
+
+// 0x71007dc9f0
+u32 Unk_7dc9f0_call(const Unk_7dc9f0* self) {
+    Unk_7e88f0_getField90(self->field_1f0);
+    Unk_817de0();
+    return 1;
+}
+
 struct Unk_7de170_358 {
     virtual void vf0();
     virtual void vf1();

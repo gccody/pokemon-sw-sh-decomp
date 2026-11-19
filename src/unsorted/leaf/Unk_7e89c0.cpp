@@ -300,6 +300,21 @@ u32 Unk_7e9ac0_update(Unk_7e9ac0* self) {
     return 1;
 }
 
+struct Unk_7e9ae0 {
+    u8 _0[0x3c];
+    u32 field_3c;
+};
+PKMN_OFFSET_ASSERT(Unk_7e9ae0, field_3c, 0x3c);
+
+// 0x71007e9ae0
+u32 Unk_7e9ae0_update(Unk_7e9ae0* self) {
+    if ((self->field_3c & 0x8000000) == 0) {
+        return 0;
+    }
+    self->field_3c = self->field_3c & 0xf7ffffff;
+    return 1;
+}
+
 struct Unk_7e9b30 {
     u8 _0[0x18];
     u64 field_18;

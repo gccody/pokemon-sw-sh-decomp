@@ -155,6 +155,13 @@ void Unk_162c180_call() {
     Unk_162cae0();
 }
 
+extern u32 Unk_27f9610 __attribute__((visibility("hidden")));
+
+// 0x710162cb20
+u32 Unk_162cb20_get() {
+    return Unk_27f9610;
+}
+
 struct Unk_162cca0_0 {
     u64 field_0;
 };

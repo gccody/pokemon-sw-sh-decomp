@@ -22,6 +22,17 @@ void Unk_f52f50_clearField5cc(Unk_f52f50* self) {
     self->field_5cc = 0;
 }
 
+void Unk_f530a0(void*, u64, u64);
+
+// 0x7100f53060
+void Unk_f53060_call(void* self, bool value) {
+    if ((value) != 0) {
+        Unk_f530a0(self, 0x30858e87c637690c, 0x3de4ebb25b188dbc);
+        return;
+    }
+    Unk_f530a0(self, 0x307b9c87c62f2c51, 0x3de4ebb25b188dbc);
+}
+
 struct Unk_f531c0 {
     u8 _0[0x5cc];
     u32 field_5cc;

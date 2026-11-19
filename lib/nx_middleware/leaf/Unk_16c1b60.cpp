@@ -70,3 +70,17 @@ void Unk_16c1c20_set(Unk_16c1c20* self) {
     self->field_8 = 0;
     self->field_0 = 0;
 }
+
+extern u8 Unk_27fb30c __attribute__((visibility("hidden")));
+
+// 0x71016c4040
+u8 Unk_16c4040_get() {
+    return Unk_27fb30c;
+}
+
+extern u8 Unk_27fb30d __attribute__((visibility("hidden")));
+
+// 0x71016c4100
+u8 Unk_16c4100_get() {
+    return Unk_27fb30d;
+}
