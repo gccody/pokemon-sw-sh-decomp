@@ -283,8 +283,11 @@ struct ssl_connect_data {
      conn->ssl[] by 0x120, Sword 0x7101777df0). They aren't known beyond what
      the backend passes to the SDK: +0x10 to nnsslConnection* functions
      (nnsslConnectionGetConnectionId, nnsslConnectionRead, ...), the pointer
-     at +0x110 to nnsslContextGetContextId. */
-  unsigned long field_10[0x20];
+     at +0x110 to nnsslContext* functions. That's +0x90 when the backend
+     makes the context itself (field_118 FALSE), or the one an option of
+     Nintendo's gives (set.ssl.primary.field_18; field_118 TRUE). */
+  unsigned long field_10[0x10];
+  unsigned long field_90[0x10];
   void *field_110;
   bool field_118;
 #elif defined(USE_OPENSSL)
