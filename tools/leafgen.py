@@ -178,6 +178,9 @@ GOT: dict[int, int] = {}
 # Unk_239a418_Ref<T> calls them as `static_cast<Unk_239a458*>(p)->vf4()` and
 # `->vf5()`, `ldr x8, [p, #0x48]! ; ldr x1, [x8, #0x10 or #0x18] ; br x1` in a
 # tail call. Every class on the object has that interface there.
+# Sizes of the struct types copy_head makes (a struct's field of that type).
+NESTED: dict[str, int] = {}
+
 # Functions named in functions.csv (absolute address -> name), which a call may
 # not declare as a placeholder: set by candidates().
 NAMED: dict[int, str] = {}
@@ -432,14 +435,16 @@ def lift(code: bytes, addr: int | None = None, path: list | None = None, split: 
     since: set[tuple[str, int]] = set()   # written since the last call
     framed = False
     inner = 0                             # calls before the last instruction (bl, blr): need a frame
+    tail_br = False                       # the function ends in a virtual tail call (br)
 
-    def call_args(virtual: bool) -> tuple:
+    def call_args(virtual: bool, at_least: int = 0) -> tuple:
         """x0.. at a call: up to the last one written since the previous call
         (or the start), the ones before it passed on; for a virtual call x0 is
         the object, and the rest follow."""
         if any(("f", i) in since for i in range(8)):
             raise LiftError("floating-point call argument")
-        n = max((i + 1 for i in range(8) if ("x", i) in since), default=0)
+        n = max((i + 1 for i in range(8) if ("x", i) in since), default=at_least)
+        n = max(n, at_least)
         args = []
         for i in range(1 if virtual else 0, n):
             v = regs.get(("x", i))
@@ -564,8 +569,11 @@ def lift(code: bytes, addr: int | None = None, path: list | None = None, split: 
             target = virtual_target(v)
             if target is not None and regs.get(("x", 0)) == target.obj:
                 since.discard(("x", _reg(ops[0])[1]))  # the function's address, not an argument
-                out.calls.append(Call(target, call_args(True), out.stores_done))
+                # `br xN`: clang takes the first register after the arguments
+                reg = _reg(ops[0])[1]
+                out.calls.append(Call(target, call_args(True, reg if reg < 8 else 0), out.stores_done))
                 out.stores_done += 1
+                tail_br = True
                 continue
             if not isinstance(v, VSlot) or regs.get(("x", 0)) != Iface(v.obj):
                 raise LiftError("br")
@@ -738,9 +746,8 @@ def lift(code: bytes, addr: int | None = None, path: list | None = None, split: 
 
     if framed != bool(inner):
         raise LiftError("a frame without a call" if framed else "bl without a frame")
-    if out.calls and insns[-1][0] == "ret" and out.calls[-1].seq == out.stores_done - 1 and \
-            isinstance(out.calls[-1].target, VTarget) and not inner:
-        return out  # a virtual tail call (br), the function's last statement
+    if tail_br:
+        return out  # a virtual tail call (br), the function's last statement: it returns nothing itself
     if out.vcall is not None:
         if out.guard is not None and out.zero_else:
             raise LiftError("cbz: returns something")
@@ -882,6 +889,7 @@ class Emitter:
         self.tables: set[int] = set()         # data a returned `adrp ; add` points at (absolute)
         self.hidden: set[int] = set()         # globals of this TU (relative)
         self.protos: set[str] = set()         # the callees' declarations (render_call)
+        self.heads: list[StructDef] = []       # copy_head's struct
         self.passed: set[Arg] = set()         # arguments passed on to a call
         self.call_types: dict[int, str] = {}  # call index -> the type of the result it returns
 
@@ -1156,6 +1164,48 @@ class Emitter:
         func = f"void Unk_{self.short}_set(const {s.name}* self, {s.name}* value) {{\n    *value = *self;\n}}\n"
         return render_struct(s), func
 
+    def copy_head(self) -> int | None:
+        """The number of stores at the start that copy x0's first 16 bytes or
+        more to x1 with ldp (a struct copy, see copy()) when the function does
+        more after it: a callable's fields copied, then a reference added. The
+        two structs then start with one struct of those fields, assigned
+        whole. None if it doesn't start like that."""
+        lf = self.lifted
+        if not lf.pairs:
+            return None
+        # the fields read again (a reference the copy then adds) aren't the head's
+        later = [lf.ret, lf.vcall[0] if lf.vcall else None, lf.guard[0] if lf.guard else None]
+        later += [c.args for c in lf.calls] + [c.target.obj for c in lf.calls if isinstance(c.target, VTarget)]
+        reread = {ld.offset for ld in _value_loads(tuple(later)) if ld.base == Arg(0)}
+        k, fields = 0, {}
+        for b, o, t, v in lf.stores:
+            if b != Arg(1) or v != Load(Arg(0), o, t) or o in reread:
+                break
+            fields[o] = t
+            k += 1
+        pos = 0
+        for o in sorted(fields):  # in memcpy order: contiguous from 0
+            if o != pos:
+                return None
+            pos += WIDTH[fields[o]]
+        if pos < 16 or k == len(lf.stores) and not lf.calls and lf.ret is None and lf.vcall is None:
+            return None
+        if lf.guard is not None and lf.guard_stores < k:
+            return None
+        rest = [v for _, _, _, v in lf.stores[k:]]
+        if any(ld.base == Arg(0) and ld.offset < pos for ld in _value_loads(tuple(rest + later))):
+            return None  # the head's fields read again
+        name = f"Unk_{self.short}_head"
+        head = StructDef(name, dict(fields))
+        NESTED[name] = pos
+        self.heads = [head]
+        for a in (Arg(0), Arg(1)):
+            st = self.struct_for(a)
+            if any(o < pos for o in st.fields if o != 0) or st.fields.get(0, name) != name:
+                raise LiftError("copied head's fields used otherwise")
+            st.fields[0] = name
+        return k
+
     def value_locals(self) -> dict[int, list[tuple[Load, str]]]:
         """Loads to hold in a local: their value is used after a store or a call
         that may overwrite what they read (a move: `v = self->f; self->f = 0;
@@ -1165,6 +1215,8 @@ class Emitter:
         lf = self.lifted
         uses = [(lf.store_seq[i], v) for i, (_, _, _, v) in enumerate(lf.stores)]
         uses += [(c.seq, c.args) for c in lf.calls]
+        # a virtual call's object, loaded before an earlier call: held too
+        uses += [(c.seq, c.target.obj) for c in lf.calls if isinstance(c.target, VTarget)]
         if lf.ret is not None:
             uses.append((lf.stores_done, lf.ret))
         if lf.guard is not None:
@@ -1175,7 +1227,7 @@ class Emitter:
         for seq, v in uses:
             for ld in _value_loads(v):
                 epochs = lf.load_seq.get(ld)
-                if not epochs:
+                if not epochs or (ld.base == Arg(0) and ld.offset < getattr(self, "head_size", 0)):
                     continue
                 epoch = min(epochs)
                 between = [(b, o, t) for (b, o, t, _), q in zip(lf.stores, lf.store_seq) if epoch <= q < seq]
@@ -1186,7 +1238,8 @@ class Emitter:
                     raise LiftError("read before a store, then reloaded")
                 need[ld] = epoch
         out: dict[int, list[tuple[Load, str]]] = {}
-        for n, (ld, epoch) in enumerate(sorted(need.items(), key=lambda x: (x[1], repr(x[0])))):
+        order = {ld: i for i, ld in enumerate(lf.loads)}  # in the order the function loads them
+        for n, (ld, epoch) in enumerate(sorted(need.items(), key=lambda x: (x[1], order.get(x[0], 0)))):
             out.setdefault(epoch, []).append((ld, f"v{n}"))
         return out
 
@@ -1349,6 +1402,8 @@ class Emitter:
         if copied is not None:
             return copied
         decls = self.choose_locals()
+        head = self.copy_head()
+        self.head_size = NESTED[self.heads[0].name] if head is not None else 0
         held = self.value_locals()
         body: list[str] = []
         stored = {base for base, _, _, _ in lf.stores}
@@ -1390,6 +1445,10 @@ class Emitter:
             hold(seq)
             if kind == 1:
                 body.append(self.render_call(i))
+                continue
+            if head is not None and i < head:
+                if i == 0:
+                    body.append("    value->field_0 = self->field_0;")
                 continue
             base, off, t, value = lf.stores[i]
             if isinstance(value, AddrOf):
@@ -1639,7 +1698,7 @@ class Emitter:
                 for a in sorted(self.tables)]
         # Children before parents, so a parent's pointer member names a complete type.
         order = sorted(self.structs.values(), key=lambda s: -s.name.count("_"))
-        for s in order:
+        for s in [*self.heads, *order]:  # a copied head first: the others hold it
             out.append(render_struct(s))
         out += sorted(self.protos)
         return "\n".join(out)
@@ -1659,7 +1718,7 @@ def render_struct(s: StructDef) -> str:
     asserts = []
     for off in sorted(s.fields):
         t = s.fields[off]
-        w = 8 if t.endswith("*") else WIDTH[t]
+        w = 8 if t.endswith("*") else WIDTH[t] if t in WIDTH else min(8, NESTED[t])
         if off % w:
             raise LiftError(f"misaligned field {off:#x}")
         if off < pos:
@@ -1668,7 +1727,7 @@ def render_struct(s: StructDef) -> str:
             lines.append(f"    u8 _{pos:x}[0x{off - pos:x}];")
         lines.append(f"    {t} field_{off:x};")
         asserts.append(f"PKMN_OFFSET_ASSERT({s.name}, field_{off:x}, 0x{off:x});")
-        pos = off + w
+        pos = off + (NESTED[t] if t in NESTED else w)
     lines.append("};")
     return "\n".join(lines + asserts) + "\n"
 
