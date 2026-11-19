@@ -3018,6 +3018,55 @@ matches are libcurl's (Lua, PhysX and the rest give 8,804, as before), and the
 (311 compiled aliases of checked functions skipped, e.g. D1 = D2 destructors)
 ```
 
+### NintendoSDK_gfx 7.3.2 (`main`, `lib/nx_middleware/gfx`)
+
+The `SDK MW+Nintendo+NintendoSDK_gfx-7_3_2-Release` tag is referenced from
+Sword `0x7101787740` (Shield `0x71017877e0`), the first function of nn::gfx's
+NVN code; its code runs to about `0x7101791a80`, where ui2d's starts. No source
+is public, so `lib/nx_middleware/gfx` is decompiled from the binary, with
+placeholder names except where RTTI names a class
+(`nn::gfx::util::PrimitiveShape`, `nn::gfx::util::CircleShape`).
+
+- **NVN's entry points.** nn::gfx calls NVN through function pointers: the
+  loader at `0x7101789d10` (14,364 bytes) looks up 512 entry points by name
+  (the names are its string literals) and stores each in its own global. The
+  device's setup (`0x7101791080`) runs it twice, with the
+  `nvnBootstrapLoader("nvnDeviceGetProcAddress")` result, before and after
+  initializing the device. `nvn.h` declares the globals (named after their
+  Sword addresses) and, for the entry points whose callers are decompiled,
+  their parameter types and an inline function named after the loader's
+  string that calls through the pointer. The inline function is what the
+  call sites show: every one evaluates its arguments before it loads the
+  pointer from the GOT, and a call through the global itself loads the
+  pointer first. NVN's booleans are bytes (results are tested with
+  `and #0xff; cmp #1`, and a negated flag is passed as `flag ^ 1`).
+- **TUs.** The files follow the inlining in the executable. The command buffer
+  functions call the image format queries (`0x7101787750` ...) and the enum
+  conversions (`0x710178d620` ...) instead of inlining them, while the
+  texture builder setup (`0x710178dac0`) inlines the conversions and calls
+  the format queries: so the format queries, the conversions, buffers,
+  command buffers, render state objects, queues, views and so on are separate
+  files, each starting at its first function's address.
+- **Build configuration: the global flags.** The functions match byte for
+  byte in both games with clang 7.0.1 `-O3` and the flags of
+  `cmake/toolchain-nx64.cmake`, without a `pkmn_library_settings` entry,
+  like the SDK's libcurl and zlib above. Nothing in this code tells `-g`
+  apart either.
+- **Data.** The conversion tables are written out where they're short (the
+  enum conversions) and declared at their addresses where they're long (the
+  sorted image format and attribute format tables, 98 and 56 pairs, searched
+  with a binary search written like libc++'s `std::lower_bound`).
+  `check.py --record-data` recorded the NVN globals and the declared tables.
+
+What doesn't match (`m`, each with a `NON_MATCHING` note): the four texture
+copies (`0x71017887f0`, `0x7101788980`, `0x7101788b60`, `0x7101788d40`; the
+array-target test of their copy region helper is a `cmp; ccmp` pair in the
+original and clang folds ours to `orr; cmp`), the texture and sampler builder
+setups (`0x710178dac0`, `0x710178dd30`), the rasterizer state setup
+(`0x710178f700`), `CircleShape`'s constructor (`0x7101791540`) and the two
+scan buffer getters (`0x71017906e0`, `0x7101790780`). Each differs in one
+select, compare chain or register choice.
+
 ### zlib 1.2.11 (the `sdk` NSO)
 
 Unmodified upstream 1.2.11, 15 TUs (114 compiled functions, 55 mapped). Every
@@ -3097,7 +3146,8 @@ zlib one about 3.
   libraries share one build system, so clang 7.0 `-O3` with the game's flags
   is the working assumption for all of them, but only libcurl and zlib were
   measured. NEX turned out to differ in one flag, strict aliasing (see "NEX
-  4.6.8").
+  4.6.8"). NintendoSDK_gfx's decompiled code (see above) matches with the
+  game's flags.
 - **LZ4 (`nlib_LZ4-19_0226`).** No LZ4 code was found in `main` (see above).
 - **The rest of libcurl.** The configuration is reconstructed (see
   "libcurl 7.55.1"). What's left needs Nintendo's changes to curl's own
