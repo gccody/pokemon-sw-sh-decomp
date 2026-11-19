@@ -41,15 +41,18 @@ public:
     void vf1(const gflnet::p2p::sync::ping::pb::PingReply& pingReply, u64 peer) override;
     void vf2(const gflnet::p2p::sync::ping::pb::PingSynced& pingSynced, u64 peer) override;
 
+    void Unk_6b9260();
     bool Unk_6b9910(const u64& peer);
     void Unk_6b9f50(const u64& peer);
     bool Unk_6ba2b0(const u64& peer);
 
     Unk_239a418_Allocator* field_8;
     u8 _10[0x8];
-    Unk_23a3660* field_18;
+    Unk_239a418_Ref<Unk_23a3660> field_18;  // the channel
     std::vector<u64, Unk_2771620_Allocator<u64>> field_20;
     std::vector<Unk_23a3638_Peer, Unk_2771620_Allocator<Unk_23a3638_Peer>> field_50;
+    bool field_80;
 };
 PKMN_OFFSET_ASSERT(Unk_23a3638, field_18, 0x18);
 PKMN_OFFSET_ASSERT(Unk_23a3638, field_50, 0x50);
+PKMN_OFFSET_ASSERT(Unk_23a3638, field_80, 0x80);

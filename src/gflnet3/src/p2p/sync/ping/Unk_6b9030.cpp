@@ -129,18 +129,18 @@ void Unk_23a3638::vf2(const pb::PingSynced& pingSynced, u64 peer) {
 
 // 0x71006b9910
 bool Unk_23a3638::Unk_6b9910(const u64& peer) {
-    if (field_18 == nullptr)
+    if (field_18.m_ptr == nullptr)
         return false;
     Unk_6b8ad0_Message<pb::Ping> ping(field_8);
-    return field_18->Unk_6ba1e0(*ping.get(), peer);
+    return field_18.m_ptr->Unk_6ba1e0(*ping.get(), peer);
 }
 
 // 0x71006ba2b0
 bool Unk_23a3638::Unk_6ba2b0(const u64& peer) {
-    if (field_18 == nullptr)
+    if (field_18.m_ptr == nullptr)
         return false;
     Unk_6b8ad0_Message<pb::PingReply> reply(field_8);
-    return field_18->Unk_6ba3c0(*reply.get(), peer);
+    return field_18.m_ptr->Unk_6ba3c0(*reply.get(), peer);
 }
 
 // 0x71006b9f50
@@ -149,4 +149,13 @@ void Unk_23a3638::Unk_6b9f50(const u64& peer) {
     field_50.erase(std::remove_if(field_50.begin(), field_50.end(),
                                   [peer](const Unk_23a3638_Peer& p) { return p.field_0 == peer; }),
                    field_50.end());
+}
+
+// 0x71006b9260
+void Unk_23a3638::Unk_6b9260() {
+    if (field_18.m_ptr != nullptr)
+        field_18.m_ptr->field_168 = nullptr;
+    field_18.Reset();
+    field_50.clear();
+    field_80 = false;
 }
