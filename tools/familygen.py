@@ -22,7 +22,8 @@ in src/gflib3/families:
   prologue (the size from `asr x23, x8, #log2(size)`) and written with the
   element `ESIZE_ELEMENT` gives that size: a u32, a reference by const
   reference, or two u64. Element types that are more than that don't match
-  and aren't kept.
+  and aren't kept. The references are `Unk_239a418_Ref2`, whose copy tests
+  the pointer it stored (the growth loads each old element once).
 - `factories`: `Unk_New::Create<T>` (src/gflib3/Unk_New.h) for classes on
   `Unk_23f43c8` (src/unsorted/Unk_23f43c8.h): allocate sizeof(T) from an
   allocator made current, construct T from two references (the base's
@@ -231,9 +232,9 @@ def mangled_class(name: str) -> str:
 VECTOR_ELEMENTS = {
     # variant: (declaration of the placeholder, the vector's element, push_back's argument)
     "ptr": ("struct {T};", "{T}*", "{T}* const&"),
-    "refm": ("struct {T} : Unk_239a418 {{}};", "Unk_239a418_Ref<{T}>", "Unk_239a418_Ref<{T}>"),
-    "reserve": ("struct {T} : Unk_239a418 {{}};", "Unk_239a418_Ref<{T}>", None),
-    "refc": ("struct {T} : Unk_239a418 {{}};", "Unk_239a418_Ref<{T}>", "Unk_239a418_Ref<{T}> const&"),
+    "refm": ("struct {T} : Unk_239a418 {{}};", "Unk_239a418_Ref2<{T}>", "Unk_239a418_Ref2<{T}>"),
+    "reserve": ("struct {T} : Unk_239a418 {{}};", "Unk_239a418_Ref2<{T}>", None),
+    "refc": ("struct {T} : Unk_239a418 {{}};", "Unk_239a418_Ref2<{T}>", "Unk_239a418_Ref2<{T}> const&"),
     "s4c": ("struct {T} {{\n    u32 field_0;\n}};", "{T}", "{T} const&"),
     "s16c": ("struct {T} {{\n    u64 field_0;\n    u64 field_8;\n}};", "{T}", "{T} const&"),
 }
@@ -252,7 +253,7 @@ def vector_name(variant: str, t: str) -> str:
     if variant == "ptr":
         return f"_ZNSt3__16vectorIP{c}21Unk_2771620_AllocatorIS2_EE21__push_back_slow_pathIRKS2_EEvOT_"
     if variant in ("refm", "refc", "reserve"):
-        head = f"_ZNSt3__16vectorI15Unk_239a418_RefI{c}E21Unk_2771620_AllocatorIS3_EE"
+        head = f"_ZNSt3__16vectorI16Unk_239a418_Ref2I{c}E21Unk_2771620_AllocatorIS3_EE"
         if variant == "reserve":
             return head + "7reserveEm"
         return head + "21__push_back_slow_pathI" + ("RKS3_" if variant == "refc" else "S3_") + "EEvOT_"
