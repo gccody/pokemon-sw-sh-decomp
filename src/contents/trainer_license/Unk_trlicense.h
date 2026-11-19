@@ -10,7 +10,7 @@
 // tools/leafgen.py's placeholders, with the objects as void* or u64.
 void Unk_eb6230(void* view, u32 arg);
 void Unk_14e1a30(u64 self, u32 arg);
-void Unk_67bfa0(u64 self);
+void Unk_67bfa0(void* self);
 
 // A card's key (0x8 bytes).
 struct Unk_1459e50_Key {

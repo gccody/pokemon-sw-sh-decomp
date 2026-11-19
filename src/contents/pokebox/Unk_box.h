@@ -48,7 +48,7 @@ struct Unk_a77160;
 struct Unk_a77790;
 void Unk_a77790_setFieldb0(Unk_a77790* self, u64 value);
 u64 Unk_a77160_getField70(const Unk_a77160* self);
-void Unk_a77610(void*, u64);
+void Unk_a77610(void*, void*);
 
 // The box's top view (vtable 0x71023c81e8, type 0x71027d7078: "View_Top").
 class Unk_23c81e8 : public Unk_23f4660 {
@@ -69,7 +69,7 @@ public:
     void Unk_a96aa0();
     bool Unk_aa9920();
     bool Unk_aa9ba0(u32* state);
-    u64 Unk_aab510();
+    void* Unk_aab510();
     void Unk_aa3140();
     void Unk_aa4680(u32 arg1, bool arg2);
     bool Unk_aa6570();
@@ -101,7 +101,7 @@ public:
     u64 Unk_aab420();
     void Unk_a95770(bool value);
     void Unk_a99330(bool value);
-    u64 Unk_aab8c0();
+    void* Unk_aab8c0();
 
     bool Unk_GetField620() const {
         return Unk_aab1b0_getField620(reinterpret_cast<const Unk_aab1b0*>(this));
