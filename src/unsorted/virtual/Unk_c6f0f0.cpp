@@ -17,6 +17,11 @@ public:
 // 0x7100c6f0f0
 void Unk_23dd070::vf4() {}
 
+// 0x7100c6f100
+void Unk_23dd070::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_23dd0b8 {
 public:
     virtual void vf0();

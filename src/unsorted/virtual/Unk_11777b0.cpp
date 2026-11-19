@@ -85,3 +85,8 @@ public:
 
 // 0x7101179bc0
 void Unk_241c888::vf4() {}
+
+// 0x7101179bd0
+void Unk_241c888::vf5() {
+    ::operator delete(this);
+}

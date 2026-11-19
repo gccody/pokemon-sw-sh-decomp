@@ -73,3 +73,8 @@ Unk_24348d0::~Unk_24348d0() {}
 
 // 0x71013b2050
 void Unk_24348d0::vf4() {}
+
+// 0x71013b2060
+void Unk_24348d0::vf5() {
+    ::operator delete(this);
+}

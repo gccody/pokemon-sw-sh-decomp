@@ -497,6 +497,11 @@ public:
 // 0x710067a160
 void Unk_23a0c38::vf1() {}
 
+// 0x710067a170
+void Unk_23a0c38::vf2() {
+    ::operator delete(this);
+}
+
 // 0x710067a180
 void Unk_23a0c38::vf3(u64 value) {
     Unk_3f7e40(value);

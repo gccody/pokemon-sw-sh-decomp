@@ -23,6 +23,11 @@ Unk_2435570::~Unk_2435570() {}
 // 0x71013ca620
 void Unk_2435570::vf4() {}
 
+// 0x71013ca630
+void Unk_2435570::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_2435688 {
 public:
     virtual ~Unk_2435688();
@@ -35,6 +40,11 @@ public:
 
 // 0x71013cd090
 void Unk_2435688::vf4() {}
+
+// 0x71013cd0a0
+void Unk_2435688::vf5() {
+    ::operator delete(this);
+}
 
 class Unk_24357a8 {
 public:
