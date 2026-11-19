@@ -2237,6 +2237,72 @@ Left:
   the description swap registers. `Unk_239a418_Ref` needs a move
   assignment and `operator->` for it.
 
+### Destructors in the unplaced areas (hand-written, 2026-11-19)
+
+Classes in `game/unk_133d350`, `unk_12ed1a0`, `unk_14b14a0`, `unk_143a7a0`,
+`unk_fb2de0`, `unk_761f70`, `regulation` and `startup`, reconstructed from
+their D2s by hand (`src/unsorted/<area>/`, one file per class or TU). A D2
+shows the class's members in reverse, and the vtable address points it
+stores show its slot counts (`add x9, x8, #N`: the secondary vtables come
+right after the primary one, so N fixes how many slots the class has). The
+D0 and the destructor thunks follow from the same definition. 237 functions
+(46,880 bytes) match in both games, nearly all D2s with their D0s and
+thunks, plus a few constructors and members of the classes on the way
+(check.py: 47,399 matching, 42 not matching). Their shapes, by what the
+members are:
+
+| Member | What its destruction looks like | Written as |
+|---|---|---|
+| reference | `ldr x8, [x0, #0x48]! ; ldr x8, [x8, #0x18] ; blr` then `str xzr` | `Unk_239a418_Ref` |
+| callable | `if (mgr) { zero 4 words; mgr(storage) }` (`str` one by one past offset 0x1f8, where `stp` can't reach) | `Unk_23d4470_Callable`, arrays of them unroll |
+| `std::function` | `if (__f_ == &__buf_) destroy() else destroy_deallocate()` (slots 4 and 5) | libc++ `std::function`, 16-aligned |
+| owned object | `p = ptr; ptr = 0; if (p) { ~T; allocator->vf3(p, size, align) }` | `std::unique_ptr<T, Unk_23f4660_Deleter>`; a polymorphic T is destroyed through slot 0, a `final` one inline |
+| owned array | the same, `size / sizeof(T)` elements destroyed first | `std::unique_ptr<T[], Unk_23c9470_ArrayDeleter>` |
+| vector | libc++ `std::vector` with `Unk_239a418_StdAllocator` (`vf3(p, cap - begin, align)`) | element alignment from the `vf3` call |
+| holder | its own vptr, `Unk_5e2bc0(ref, this)`, the reference, two callables | `Unk_236d3d8`, `Unk_236d4d8`, `Unk_236d658` (src/unsorted/Unk_236d3d8.h), Unk_23c14c0's shape |
+| array with a callback | the elements (`while (n--)`), then `vf3(data, cap * size, align)`, then its `std::function` | `Unk_131fb20_Array<T>` |
+| words, list | `vf3(data, cap * 8, 8)`; nodes freed one by one | `Unk_2438308_Words<T>`, `Unk_2438308_List<Node>` |
+| mutex | `nn::os::FinalizeMutex` | `nn::os::Mutex` |
+
+The bases: `Unk_23f43c8`, `Unk_23f4318`, `Unk_23f4660`, `Unk_23f4e40`,
+`Unk_239bd80` (out-of-line D2s, tail-called), the object itself and
+`Unk_239a4c0` (5 slots, its count at `+0x50`: the "5-slot classes with an
+interface at `+0x48`", whose bases store no vptrs), a placeholder 4-slot
+base with an interface that declares its two functions
+(`src/unsorted/Unk_23a7ca0_Base.h`), and new ones: `Unk_2444570`, the
+abstract node of a tree of UI objects in `unk_14b14a0` (parent, next sibling
+and first child; `vf26` appends a child, `vf10` shows a node and tells its
+ancestors), its derived `Unk_24446c0` (out-of-line D2), `Unk_2434918` (two
+`std::function` callbacks), and gflib3's `Unk_23994d8` (declared only).
+
+What decided the matches:
+
+- **Implicit or out-of-line.** A derived D2 that inlines its base's needs the
+  base's destructor implicit (an in-class `{}` isn't inlined here); one that
+  tail-calls it needs it declared and defined in its own TU. The class's key
+  function then has to be another virtual function, declared before the
+  type getter's override.
+- **Thunks.** The adjusted `this` (`sizeof - 0x48`, `- 0x50`, `- 0x58`)
+  must land on a field for the short form and in a byte array for the long
+  one, so padding is `u64` fields or bytes by what the original's thunks
+  say; a class's size can follow from it (two classes on `Unk_23994d8` are
+  0x378 and 0x8a8 bytes for their thunks to match).
+- **D0.** A copy of the D2 when the family's `operator delete` is empty
+  (`static void operator delete(void*) {}` in the placeholder bases),
+  otherwise a call to `_ZdlPv`; a D0 that is `b <D2>` (the D2 is too big to
+  inline) is left in its shape group.
+- `Unk_2434918` is 0x100 bytes, not 0x128: a derived class has a vector at
+  `+0x108`.
+
+Not matched: `Unk_24450e8` and `Unk_236d398`, whose first callable is
+addressed from a separately computed pointer (`add x8, x19, #N` then
+`stp xzr, xzr, [x8]`), which no spelling tried reproduced (an array, a
+second base); `Unk_236d3b8`, a 64-holder loop whose induction variables
+differ; and destructors that lock weak handles (`ldxr`/`stxr`) or call
+undecompiled walks. `_Z11Unk_14e1a00mj` and `_Z11Unk_14e1a30mj` are
+`Unk_2444570`'s bool setters, but their leaf-generated callers fixed the
+names to `(u64, u32)`, and with those types the compare comes out reversed.
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
