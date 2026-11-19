@@ -18,6 +18,12 @@ struct Unk_23c4ef0_Name;
 struct Unk_23c4ef0_Scene;
 struct Unk_23c4ef0_List;
 
+// What the view system holds at +0x4e8.
+struct Unk_23c4ef0_Flags {
+    u8 _0[0x71];
+    bool field_71;
+};
+
 // A vector of three floats in a NEON register (the reader sets its lanes one
 // by one, the fourth to 0). Copies go through two general registers: the game
 // is built with -mno-implicit-float (docs/compiler.md).
@@ -529,6 +535,7 @@ public:
                     s32 frames,
                     const Unk_23c4ef0_Params* params,
                     bool arg4);
+    Unk_239a418_Ref<Unk_23c4ef0_Poke> Unk_961020(u32 pos);
     Unk_239a418_Ref<Unk_23c4ef0_Poke> Unk_961f10(u32 id, s32 index);
     void Unk_9626a0(const u64* arg1);
     void Unk_9650e0(const Unk_23c4ef0_Name* name);
@@ -560,7 +567,9 @@ public:
     Unk_23c4ef0_Light* field_4a8;
     u8 _4b0[0x4c8 - 0x4b0];
     Unk_23c4ef0_Light* field_4c8;
-    u8 _4d0[0x508 - 0x4d0];
+    u8 _4d0[0x4e8 - 0x4d0];
+    Unk_23c4ef0_Flags* field_4e8;
+    u8 _4f0[0x508 - 0x4f0];
     void* field_508;
     u8 _510[0x530 - 0x510];
     Unk_239a418_Ref<Unk_23c4ef0_List> field_530;
@@ -578,7 +587,9 @@ public:
     Unk_23c4ef0_Groups* field_660;
     u8 _668[0x1754 - 0x668];
     u32 field_1754;
-    u8 _1758[0x1f40 - 0x1758];
+    u8 _1758[0x1760 - 0x1758];
+    s32 field_1760;
+    u8 _1764[0x1f40 - 0x1764];
     Unk_23c4ef0_Range field_1f40[3];
 };
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_58, 0x58);
@@ -596,4 +607,5 @@ PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_5c8, 0x5c8);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_640, 0x640);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_660, 0x660);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_1754, 0x1754);
+PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_1760, 0x1760);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_1f40, 0x1f40);
