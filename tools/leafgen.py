@@ -2585,7 +2585,7 @@ def cmd_members(args) -> int:
     classes) or, without RTTI, `Unk_<vtable>` like vtables.py's. Only the
     libraries: vtables.py writes Game Freak's classes. One file per class."""
     import vtables as V
-    from common import load_module, nso_path, read_functions_csv
+    from common import in_area, load_module, nso_path, read_functions_csv
     from nx.module import DynInfo
     from nx.nso import Nso
     from segments import c_string
@@ -2600,12 +2600,19 @@ def cmd_members(args) -> int:
     only = {int(x, 16) for x in args.only.read_text().split()} if args.only else None
     classes: dict[tuple, list] = {}
     why: Counter = Counter()
-    for f, (va, slot) in V.owners(m.vtables).items():
+    # placeholder classes defined anywhere else under src/ aren't ours to write
+    taken = V.defined_classes(ROOT / "src", skip=args.out)
+    own = V.prefer_stored(m, V.owners(m.vtables))
+    if any(in_area("game", a) or a in ("gflib3", "gflnet3", "startup") for a in args.area):
+        # game code: the owners vtables.py gives (an empty D2's root, ctor_roots)
+        own.update((d2, (r, 0)) for d2, r in V.ctor_roots(m, V.ctor_bases(m)).items())
+    game = any(in_area("game", a) or a in ("gflib3", "gflnet3", "startup") for a in args.area)
+    for f, (va, slot) in own.items():
         v = by.get(va)
         r = rows.get(f)
         if v is None or r is None or r.scope != "common" or (r.status != "U" and not r.name):
             continue
-        if V.vtable_area(m, v) not in args.area or slot < 2 or r.size("sword") > args.max:
+        if not any(in_area(V.vtable_area(m, v), a) for a in args.area) or slot < 2 or r.size("sword") > args.max:
             continue
         kind = V.slot_kind(m.pattern(f))
         small = kind in ("constant", "ret", "zero", "null", "small", "trap")
@@ -2618,10 +2625,15 @@ def cmd_members(args) -> int:
             p_ = dyn.slots.get(g.typeinfo + 8)
             name = c_string(m.img, p_, 0, len(m.img)) if isinstance(p_, int) else None
             cls = _type_name(name) if name else None
+        elif game:
+            cls = [V.class_name(v)]  # the vtable's own class, as vtables.py names it
         else:
             cls = [V.class_name(g)]
         if cls is None:
             why["class name"] += 1
+            continue
+        if len(cls) == 1 and cls[0] in taken:
+            why["class written elsewhere"] += 1  # by vtables.py, by hand, ...
             continue
         # unnamed and undecompiled, or one of ours from an earlier run (written again with its class)
         if r.name and not r.name.startswith(_member_prefix(cls, f"vf{slot}")) or not r.name and r.status != "U":
@@ -2846,7 +2858,8 @@ EXTERN = re.compile(r"^extern (.+?) (Unk_[0-9a-f]+)\b", re.M)
 DECL = re.compile(r"^([\w*]+) (Unk_[0-9a-f]+)\((.*)\);$", re.M)
 
 
-def consistent_declarations(entries: list[tuple[int, str, str]]) -> list[tuple[int, str, str]]:
+def consistent_declarations(entries: list[tuple[int, str, str]],
+                            overloads: bool = True) -> list[tuple[int, str, str]]:
     """The entries whose callee declarations agree with the ones before them:
     two functions of one file that declare a callee with the same parameters
     and different return types (one reads its result, as u32 or u64, the
@@ -2869,8 +2882,10 @@ def consistent_declarations(entries: list[tuple[int, str, str]]) -> list[tuple[i
             print(f"  dropped 0x{e[0]:x}: declares a global another function of its file declares otherwise",
                   file=sys.stderr)
             continue
+        # without overloads, a second parameter list for a callee is a clash too (a call may be ambiguous)
+        clash = not overloads and any(n in funcs and (n, ps) not in seen for n, ps in decls)
         if any(seen.get(k, r) != r for k, r in decls.items()) or called & (structs | names) or names & funcs \
-                or defined & defs:
+                or defined & defs or clash:
             print(f"  dropped 0x{e[0]:x}: declares a callee another function of its file declares otherwise",
                   file=sys.stderr)
             continue
