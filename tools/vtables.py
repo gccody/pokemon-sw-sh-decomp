@@ -1340,7 +1340,6 @@ def tail_members(m: Model, f: int, d2: int, vtable: int, size: int, vptrs: int =
     defined. Without a body, the member's destructor isn't trivial
     (FunctionDecl::hasTrivialBody), so the vptrs are stored; once it's
     instantiated, empty, it's inlined into nothing."""
-    from nx.refs import decode
     pattern = m.pattern(f) or ""
     if pattern == "b T":
         return {} if branch_target(m, f) == d2 else None
@@ -1352,9 +1351,17 @@ def tail_members(m: Model, f: int, d2: int, vtable: int, size: int, vptrs: int =
     calls, statics = _calls_and_statics(m, f)
     if calls != [d2] or statics != [vtable]:
         return None
+    return _members(m, f, size)
+
+
+def _members(m: Model, f: int, size: int, count: int | None = None) -> dict[int, str] | None:
+    """The references and callables the first `count` instructions of a D2 f
+    destroy (all of them by default), as tail_members reads them: offset ->
+    type, after `size`, the last declared destroyed first, none overlapping."""
+    from nx.refs import decode
     order: list[tuple[int, str]] = []
     managers = set()
-    for _, w, _, _ in decode(m.img, f, m.sizes.get(f, 4)):
+    for _, w, _, _ in decode(m.img, f, m.sizes.get(f, 4) if count is None else 4 * count):
         rn, off = (w >> 5) & 31, ((w >> 10) & 0xFFF) * 8
         if w & 0xFFC0001F == 0xF9400000 and rn in (0, 19):       # ldr x0, [x0|x19, #off]: a reference
             order.append((off, REF))
@@ -1370,6 +1377,29 @@ def tail_members(m: Model, f: int, d2: int, vtable: int, size: int, vptrs: int =
     if any(a[1] > b[0] for a, b in zip(ends, ends[1:])):
         return None
     return dict(sorted(order))
+
+
+# The members of a D2 on an inline base, before the base's D2: references and callables (a callable
+# first: _VPTRS_CALL), at least one.
+_INLINE_MEMBERS = re.compile(rf"(?:{re.escape(_VPTRS)}(?:{_REF_RE}|{_CALL_RE})+|{_VPTRS_CALL}(?:{_REF_RE}|{_CALL_RE})*)")
+
+
+def inline_members(m: Model, f: int, d2: int, vtable: int, size: int) -> dict[int, str] | None:
+    """The members a D2 f destroys before its base's D2 (d2, inline), when
+    they're references and callables (as tail_members reads them): the
+    base's D2 follows inlined, as in ref_dtor_pattern (its vptrs stored
+    with its first reference's load; the base is the object, or a class on
+    it with references of its own), and its statics follow f's vtable."""
+    pattern, base = m.pattern(f) or "", m.pattern(d2) or ""
+    _, sep, tail = base.partition(" ; ldr x0, [x0, #N]" + _RELEASE)
+    rest = _OBJECT_PART + tail
+    if not sep or not pattern.endswith(rest) or not _INLINE_MEMBERS.fullmatch(pattern[:-len(rest)]):
+        return None
+    calls, statics = _calls_and_statics(m, f)
+    base_calls, base_statics = _calls_and_statics(m, d2)
+    if calls or base_calls or statics[:1] != [vtable] or statics[1:] != base_statics:
+        return None
+    return _members(m, f, size, pattern[:-len(rest)].count(" ; ") + 1)
 
 
 def direct_getter(m: Model, g: int) -> bool:
@@ -1488,8 +1518,10 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             if empty:
                 refs = ref_members_empty(m, s0, v.start, e.size, 1 + len(e.secondaries))
             elif e.inline_dtor:
-                refs = ref_members(m, s0, d2, v.start, size=e.size)
-                if refs is None and m.pattern(s0) == m.pattern(d2)                         and _calls_and_statics(m, s0) == _calls_and_statics(m, d2):
+                refs = ref_members(m, s0, d2, v.start, size=e.size) \
+                    or inline_members(m, s0, d2, v.start, e.size)
+                if refs is None and m.pattern(s0) == m.pattern(d2) \
+                        and _calls_and_statics(m, s0) == _calls_and_statics(m, d2):
                     # A D2 of its own that is the base's, inlined: an out-of-line
                     # destructor with an empty body and nothing to destroy (clang
                     # skips its vptr stores), its key function. Its D0 and thunks
@@ -1563,7 +1595,8 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
                 elif bare:              # its D2 inlined: the base's tail-called
                     same = m.pattern(f) == "sub x0, x0, #N ; b T" and branch_target(m, f) == d2
                 elif held:              # its D2 inlined: its vptrs, the base's tail-called
-                    same = m.pattern(f) == m.pattern(w.slots[dslots[0]])                         and _calls_and_statics(m, f) == _calls_and_statics(m, s0)
+                    same = m.pattern(f) == m.pattern(w.slots[dslots[0]]) \
+                        and _calls_and_statics(m, f) == _calls_and_statics(m, s0)
                 elif refs:              # thunks with its D2 inlined, the D1's and D0's alike
                     # (before a tail call, one may keep its own `this` too, in another register: see
                     # Unk_239a418_Base's fields)
