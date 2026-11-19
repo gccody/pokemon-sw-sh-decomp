@@ -142,6 +142,24 @@ Card renderer (after a segment that loads every language's message windows)
 aren't rows. The `unk_*` row before `battle_logic` (`0x710082e410`) is about
 200 segments of 4 to 6 functions, each TU with its own static initialiser,
 and no strings at all: probably battle code too, but nothing says so.
+Most of those segments are one class each on `Unk_23acc98` (the base whose
+constructor is `0x710082a930`): its constructor, one or more functions that
+take the object, a result (8 bytes: a flag and a value) and a parameter
+block, its D0, and the colour constants' static initialiser every TU of
+this kind has. `Unk_7e0080` holds all 239 of these objects
+(`0x710081c630` creates them) and the functions call each other through it
+(`src/unsorted/unk_82e410/Handler.h`). Their callees are the battle
+engine's accessors (`0x71007ee6b0`, the battler's byte at `0x7d`, and the
+like), so it is battle code, but which part is still unnamed.
+
+`game/unk_8bf520` starts with a table of 129 conditions (`0x71023bad58`,
+in the segment `0x71008c26c0`-`0x71008c6550`): each takes a context and an
+array of 64-bit arguments and returns a flag or a number. They roll the
+battle's xoroshiro128+ generator (`0x71007f8c20`, `random(256) < n`),
+compare the battlers' types (three 5-bit fields), stats and move
+effectiveness, and look through the party: likely the trainer AI's
+conditions, though nothing names them
+(`src/unsorted/unk_8bf520/Unk_8c26c0.cpp`).
 
 `net_contents` is two rows because the 5 segments between them
 (`0x7100ff22f0`-`0x7100ff91e0`) reference `Play_UI_common_report` and
