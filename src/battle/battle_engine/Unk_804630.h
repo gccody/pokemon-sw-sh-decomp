@@ -11,9 +11,12 @@ struct Unk_7ee6b0;
 u8 Unk_7ee6b0_getField7d(const Unk_7ee6b0* self);
 
 // What holds the event system at +0x10.
+struct Unk_7fe1e0;
 struct Unk_804630_Flow {
-    u8 _0[0x10];
+    u8 _0[0x8];
+    void* field_8;
     Unk_7e8a20* field_10;
+    const Unk_7fe1e0* field_18;
 };
 PKMN_OFFSET_ASSERT(Unk_804630_Flow, field_10, 0x10);
 
@@ -49,7 +52,7 @@ struct Unk_807e00_Move {
     u8 _15[0x18 - 0x15];
     u32 field_18;
     u32 field_1c;
-    u8 _20[0x24 - 0x20];
+    u16 field_20;
     u32 field_24;
 };
 PKMN_OFFSET_ASSERT(Unk_807e00_Move, field_e, 0xe);
@@ -109,3 +112,52 @@ void Unk_812dc0_setField0(Unk_812dc0* self, u32 value);
 
 u32 Unk_780e90(u32 move);
 u16 Unk_7f7720(u32 value, u32 ratio);
+
+u32 Unk_7811b0(u32 move);
+// Declared as src/unsorted/leaf/Unk_7ed7d0.cpp declares it.
+u32 Unk_7eef50(void* poke, u32 stat);
+u32 Unk_7f7700(u32 value, u32 ratio);
+u32 Unk_7f7740(u32 value, u32 base);
+
+bool Unk_7f0670(const Unk_7ee6b0* poke, u32 arg);
+
+// Leaf functions (src/unsorted/leaf): the getter of +0x28 returns a pointer.
+struct Unk_7ffaa0;
+const Unk_7ffaa0* Unk_7fe1e0_getField28(const Unk_7fe1e0* self);
+u8 Unk_7ffaa0_getField0(const Unk_7ffaa0* self);
+
+u16 Unk_780e00(u32 move);
+
+// Declared as src/unsorted/leaf/Unk_82a9b0.cpp declares them (its callers
+// there match): pointers as integers.
+struct Unk_7fe250;
+u64 Unk_7fe250_getFielda8(const Unk_7fe250* self);
+bool Unk_80d9c0(u64 arg0, u64 attacker, u64 defender, u64 arg3);
+
+// What Unk_804630 reads of a battle Pokemon itself.
+struct Unk_804630_Poke {
+    u8 _0[0x33d];
+    u8 field_33d;
+};
+PKMN_OFFSET_ASSERT(Unk_804630_Poke, field_33d, 0x33d);
+bool Unk_7f3350(const Unk_804630_Poke* poke);
+bool Unk_780ec0(u32 move);
+
+// Tables the TU defines (0x7101f12228, 0x7101f123cc, 0x7101f124f0; their
+// contents are data, not written here).
+struct Unk_1f12228_Entry {
+    u32 field_0;
+    u16 field_4;
+    u8 field_6;
+    u8 field_7;
+    u32 field_8;
+};
+PKMN_SIZE_ASSERT(Unk_1f12228_Entry, 0xc);
+extern const Unk_1f12228_Entry Unk_1f12228[0x23] __attribute__((visibility("hidden")));
+struct Unk_1f123cc_Entry {
+    u32 field_0;
+    u8 field_4;
+};
+PKMN_SIZE_ASSERT(Unk_1f123cc_Entry, 0x8);
+extern const Unk_1f123cc_Entry Unk_1f123cc[18] __attribute__((visibility("hidden")));
+extern const u8 Unk_1f124f0[] __attribute__((visibility("hidden")));
