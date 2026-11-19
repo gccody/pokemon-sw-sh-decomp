@@ -1834,7 +1834,10 @@ stores: 1,737 types, none with two parents) and writes them in
 - 153 `vf_type`s whose thunks are `sub x0, x0, #N ; b vf_type`, alone: as
   plain members of a struct named like their class (same symbol, same code,
   and no thunks emitted), in files of their own, since their types inline
-  differently next to the forwarder classes.
+  differently next to the forwarder classes;
+- 114 more getters in vtable slots that none of the above covers (other
+  layouts, secondary vtables' copies, classes left out): each a plain member
+  `vf<slot>` of its owner vtable's placeholder class, in files of their own.
 
 The inliner decides how much of a chain a getter inlines with
 `shouldBeDeferred`, which counts the getter's callers in its TU: so the
@@ -1898,7 +1901,7 @@ Larger shapes have their own blockers:
 ## Handoff (2026-11-17, updated 2026-11-19)
 
 State after the type getters and the map instances (2026-11-19, later):
-check.py reports 46,557 matching and 42 not matching; 26.36% of the code by
+check.py reports 46,671 matching and 42 not matching; 26.43% of the code by
 bytes. Before them, after the generated tables and FreeType: check.py
 reports 44,938 matching and 42 not matching, in both games; 25.16% of the
 code by bytes. Every batch above came from `tools/leafgen.py`,
