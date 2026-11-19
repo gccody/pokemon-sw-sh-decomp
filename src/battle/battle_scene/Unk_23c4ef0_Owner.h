@@ -535,6 +535,10 @@ public:
                     s32 frames,
                     const Unk_23c4ef0_Params* params,
                     bool arg4);
+    void Unk_961470(Unk_239a418_Ref<Unk_23c4ef0_Poke> poke,
+                    s32 frames,
+                    const Unk_23c4ef0_Params* params,
+                    bool arg4);
     Unk_239a418_Ref<Unk_23c4ef0_Poke> Unk_961020(u32 pos);
     Unk_239a418_Ref<Unk_23c4ef0_Poke> Unk_961f10(u32 id, s32 index);
     void Unk_9626a0(const u64* arg1);
