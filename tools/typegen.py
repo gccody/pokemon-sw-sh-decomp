@@ -89,6 +89,7 @@ GLOBAL_GETTERS = {"Unk_239a418_GetType": "Unk_239a418_GetType()",
 # Where a class on the object keeps vf_type: (offset-to-top, slot) of its vtable group.
 OBJECT_SLOTS = ((0, 6), (0x48, 5), (0x50, 0))
 STATIC_RE = re.compile(r"_ZZ(?:N(\d+)(\w+?)11Unk_GetTypeEv|(\d+)(\w+?)v)E4type")
+PLAIN_MEMBER = re.compile(r"_ZN(\d+)(Unk_[0-9a-f]+)(\d+)(vf\d+)Ev")  # vtables.py's Unk_<vtable>::vf<k>()
 FORWARD_NAME = re.compile(r"_Z\d+Unk_[0-9a-f]+Pv")  # vtables.py's forwarders' callees
 # An object's kind test (Unk_<addr> below, a template on the type it tests
 # for): the type of the object's +0x50 interface (slot 0, vf_type), and that
@@ -328,6 +329,7 @@ class ClassPlan:
     forward: int | None = None               # the getter vf_type tail-calls, when it isn't inlined
     bare: bool = False                       # vf_type only, not virtual here: its thunks aren't written
     member: str = "vf_type"                  # its name: vtables.py's vf<slot> for the other slots
+    fwd: bool = False                        # a forwarder: tail-calls its cut, declared (vtables.py's name)
 
 
 @dataclass
@@ -514,7 +516,9 @@ def render(t: Types, expr: dict[int, str], classes: list[ClassPlan]) -> str:
         for i, ty in enumerate(c.inlined):
             parent[ty] = parent_expr(t, expr, c, i)
     cut = sorted({(cut_class(expr, t, c.end), t.getters[c.end[1]].top) for c in classes if c.end[0] == "cut"})
-    own = {c.top: c for c in classes if cls_of(expr[c.top]) == c.name}
+    own = {c.top: c for c in classes if cls_of(expr[c.top]) == c.name and not getattr(c, "fwd", False)}
+    # A forwarder's struct that is also its cut's declares the getter itself.
+    fwd_cut = {c.name for c in classes if getattr(c, "fwd", False) and cut_class(expr, t, c.end) == c.name}
     kinds = [c for c in classes if isinstance(c, KindPlan)]
     classes = [c for c in classes if not isinstance(c, KindPlan)]
     out = ["// Scope: common",
@@ -523,6 +527,8 @@ def render(t: Types, expr: dict[int, str], classes: list[ClassPlan]) -> str:
            "// after their type objects where no class is known: rename them once they are.",
            "#include <types.h>", "", f'#include "{OBJECT_HEADER}"', ""]
     for cls, ty in cut:
+        if cls in fwd_cut:
+            continue
         out += [f"// The type 0x{ty + BASE:x}: its getter is out of line.", f"struct {cls} {{",
                 f"    static {TYPE} Unk_GetType();", "};", ""]
 
@@ -534,6 +540,13 @@ def render(t: Types, expr: dict[int, str], classes: list[ClassPlan]) -> str:
         th = ", ".join(f"0x{a + BASE:x} (+0x{o:x})" for o, a in c.thunks)
         how = [f"// Its getter is too big to be inlined: vf_type and the thunks tail-call it (0x{c.forward + BASE:x})."] \
             if c.forward is not None else []
+        if getattr(c, "fwd", False):
+            g = c.end[1]
+            return [f"// A forwarder in slot {c.member[2:]} of vtable 0x{c.group + BASE:x}: it tail-calls its",
+                    f"// type's getter (0x{g + BASE:x}, out of line). Declared without its bases or its vtable.",
+                    f"struct {c.name} {{",
+                    *((f"    static {TYPE} Unk_GetType();",) if c.name in fwd_cut else ()),
+                    f"    {TYPE} {c.member}();", "};", ""]
         if c.bare and not c.thunks:
             return [f"// vtable 0x{c.group + BASE:x}: a type getter in its slot {c.member[2:]}, whose class",
                     "// isn't known: declared without its bases or its vtable, which it doesn't use.",
@@ -553,6 +566,11 @@ def render(t: Types, expr: dict[int, str], classes: list[ClassPlan]) -> str:
 
     done: set[int] = set()
     by_expr = {expr[ty]: ty for ty in parent}
+
+    def ret(c) -> str:
+        if getattr(c, "fwd", False):
+            return f"{cut_class(expr, t, c.end)}::Unk_GetType()"
+        return "Unk_GetType()" if c.top in own else expr[c.top]
 
     def emit(ty: int) -> None:
         nonlocal out
@@ -575,7 +593,7 @@ def render(t: Types, expr: dict[int, str], classes: list[ClassPlan]) -> str:
     for c in classes:
         out += [f"// 0x{c.vf_type + BASE:x}", *(f"// 0x{a + BASE:x}" for _, a in c.thunks if not c.bare),
                 f"{TYPE} {c.name}::{c.member}() {{",
-                f"    return {'Unk_GetType()' if c.top in own else expr[c.top]};", "}", ""]
+                f"    return {ret(c)};", "}", ""]
     if kinds:
         out += ["// Whether an object's type is the template argument or one derived from it,",
                 "// through the object's +0x50 interface.", KIND_OF_BODY.format(name=kind_of_name(t)), ""]
@@ -712,6 +730,24 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int])
         if not cut_named(c, names):
             continue
         keep.append((c, names))
+    # The forwarders vtables.py wrote to a getter renamed here: each a plain
+    # member that tail-calls it (its name kept), so that no matched function
+    # calls the getter's old name.
+    renamed = {f for _, names in keep for f, n in names
+               if f in t.getters and FORWARD_NAME.fullmatch(rows[f].name or "") and n != rows[f].name}
+    written = {f for _, names in keep for f, _ in names}
+    if renamed:
+        callers = callers_of(t.m, renamed)
+        for g in sorted(renamed):
+            for f in sorted(callers.get(g, ())):
+                r = rows[f]
+                pm = PLAIN_MEMBER.fullmatch(r.name or "")
+                if f in written or r.status != "O" or pm is None or branch_only(t.m, f) != g:
+                    continue
+                vt_addr = t.slot_of[f][0][0] if t.slot_of.get(f) else 0
+                c = ClassPlan(pm[2], vt_addr, f, [], t.getters[g].top, [], ("cut", g), bare=True, member=pm[4],
+                              fwd=True)
+                keep.append((c, [(f, r.name)]))
     return keep, expr, skipped
 
 
@@ -748,6 +784,9 @@ def partition(t: Types, expr: dict[int, str], classes: list[ClassPlan]) -> list[
             continue
         for cs, i, d, n in files:
             tops = {x.name: x.top for x in cs}
+            # a forwarder's struct is its own: no other plan of its name in the file
+            if any(x.name == c.name and (getattr(x, "fwd", False) or getattr(c, "fwd", False)) for x in cs):
+                continue
             if inl & d or cut & i or n.get(c.name, c.top) != c.top \
                     or any(tops.get(k, ty) != ty or n.get(k, ty) != ty for k, ty in names.items()):
                 continue
