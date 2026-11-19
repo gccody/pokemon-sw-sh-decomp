@@ -3208,8 +3208,18 @@ The vtables of the inline classes the executable keeps (`String`'s, at
 
 ### What's left open
 
-- **The rest of NEX.** Only the regular, generated code is written so far
-  (the DDL stream functions, the protocol clients' calls, a few destructors).
+- **The rest of NEX.** Mostly the regular code is written so far: the DDL
+  stream functions, the protocol clients' calls, the DDL classes'
+  destructors (`tools/nexclasses.py`), the `PseudoGlobalVariable<T>` and
+  `SharedPtr<T>` templates' instantiations and a few small classes.
+- **`PseudoGlobalVariable<T>`'s slot 2**, which allocates the instances. It
+  copy-constructs each instance from the default with a placement new, but
+  first, only when the count is `0xffffffff`, default-constructs an array of
+  that many and drops it; no natural source for that is known.
+- **The protocols' result handlers.** Each reads a method's result into the
+  call's or into a temporary whose class (a DDL class, mostly gflnet3's
+  inline copy) is constructed and destroyed inline: the handlers need those
+  classes' constructors, which the destructors don't show.
 - **The reads that don't match** (see above), and the stream functions and
   calls the generator doesn't recognize (other container shapes, reads into
   a structure through a call, the calls that write their header inline).
