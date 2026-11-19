@@ -1,6 +1,7 @@
 // Scope: common
 // Small virtual functions of a library class (tools/leafgen.py members): placeholder
 // member names vf<slot>, placeholder structs. The class's name is its RTTI's.
+// RTTI: N6SiSDK317SiGfxShaderEffect22CompileRequestCallbackE
 #include <types.h>
 
 struct Unk_5793d0 {
