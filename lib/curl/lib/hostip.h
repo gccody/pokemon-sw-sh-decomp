@@ -143,7 +143,10 @@ int curl_dogetnameinfo(GETNAMEINFO_QUAL_ARG1 GETNAMEINFO_TYPE_ARG1 sa,
 #endif
 
 /* IPv4 threadsafe resolve function used for synch and asynch builds */
-Curl_addrinfo *Curl_ipv4_resolve_r(const char *hostname, int port);
+/* Pokemon SwSh decomp: Nintendo's SDK build passes the SDK's resolver
+   options on to its gethostbyname (Sword 0x7101757540, 0x7101778790). */
+Curl_addrinfo *Curl_ipv4_resolve_r(const char *hostname, int port,
+                                   const void *options, size_t optionsCount);
 
 CURLcode Curl_async_resolved(struct connectdata *conn,
                              bool *protocol_connect);

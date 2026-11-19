@@ -36,8 +36,10 @@
 /* 0x8c = CURL_VERSION_SSL | CURL_VERSION_LIBZ | CURL_VERSION_ASYNCHDNS.
    No CURL_VERSION_IPV6, CURL_VERSION_LARGEFILE or CURL_VERSION_UNIX_SOCKETS:
    ENABLE_IPV6, SIZEOF_OFF_T and USE_UNIX_SOCKETS stay undefined.
-   CURL_VERSION_SSL: Nintendo's nn::ssl backend (vtls), which isn't public and
-   needs a modified urldata.h, so USE_SSL can't be defined here. */
+   CURL_VERSION_SSL: Nintendo's nn::ssl backend (vtls), which isn't public.
+   USE_NINTENDO_SSL is this repository's: it selects lib/vtls/nnssl.h, the
+   backend's API setup, and its fields in urldata.h, and so USE_SSL. */
+#define USE_NINTENDO_SSL 1
 
 /* LIBZ: curl_version() appends " zlib/%s", and content_encoding.c's inflate
    code calls inflateInit2_ with the SDK's ZLIB_VERSION. */

@@ -308,7 +308,9 @@ static unsigned int CURL_STDCALL gethostbyname_thread(void *arg)
   struct thread_sync_data *tsd = (struct thread_sync_data *)arg;
   struct thread_data *td = tsd->td;
 
-  tsd->res = Curl_ipv4_resolve_r(tsd->hostname, tsd->port);
+  /* Pokemon SwSh decomp: Nintendo's thread passes its three resolver
+     options (Sword 0x71017556a0), which aren't reconstructed. */
+  tsd->res = Curl_ipv4_resolve_r(tsd->hostname, tsd->port, NULL, 0);
 
   if(!tsd->res) {
     tsd->sock_error = SOCKERRNO;
@@ -577,7 +579,7 @@ Curl_addrinfo *Curl_resolver_getaddrinfo(struct connectdata *conn,
   }
 
   /* fall-back to blocking version */
-  return Curl_ipv4_resolve_r(hostname, port);
+  return Curl_ipv4_resolve_r(hostname, port, NULL, 0); /* Pokemon SwSh decomp */
 }
 
 #else /* !HAVE_GETADDRINFO */

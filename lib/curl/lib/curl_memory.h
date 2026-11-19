@@ -213,6 +213,8 @@ extern int Unk_1778ae0(const char *path, struct stat *buf);
 #define fgets(s, size, stream) Unk_1778ab0(s, size, stream)
 #undef stat
 #define stat(path, buf) Unk_1778ae0(path, buf)
+#undef gethostbyname
+#define gethostbyname(name, options, count) Unk_1778790(name, options, count)
 
 #else /* CURLX_NO_MEMORY_CALLBACKS */
 
