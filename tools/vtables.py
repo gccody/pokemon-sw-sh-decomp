@@ -2419,12 +2419,62 @@ CTOR_PATTERN = ("str x19, [sp, #N]! ; stp x29, x30, [sp, #N] ; add x29, sp, #N ;
                 "ldr x19, [sp], #N ; ret")
 ROOT_CTOR_PATTERN = "adrp x8, #N ; ldr x8, [x8, #N] ; add x8, x8, #N ; str x8, [x0] ; ret"  # no base
 CTOR_DIR = ROOT / "src" / "unsorted" / "ctor"
+
+
+def ctor_pattern(m: Model, f: int, size: int) -> str:
+    """pattern_of a constructor, its vptr's GOT load at a page's first slot
+    (`ldr x8, [x8]`, no offset to print) spelled like any other."""
+    from funcs import pattern_of
+
+    return pattern_of(m.img[f:f + size], f + BASE).replace("ldr x8, [x8] ;", "ldr x8, [x8, #N] ;")
+
+
 _CLASS_DEF = re.compile(r"^(?:class|struct) (Unk_[0-9a-f]+)\b", re.M)
 
 
-def ctor_name(cls: str) -> str:
-    """The base-object constructor (C2; the complete one, C1, is its alias)."""
-    return f"_ZN{len(cls)}{cls}C2Ev"
+@dataclass(frozen=True)
+class CtorParam:
+    """A root's constructor parameter (CTOR_PARAMS)."""
+    param: str             # its declaration
+    mangled: str           # its mangling
+    arg: tuple[str, ...]   # the definition of the type it refers to
+    members: tuple[str, ...]  # the root's members (what the constructor initialises from it)
+    size: int              # the root's size
+
+
+# Root classes whose constructor takes an argument that every constructor
+# below them passes on untouched (x1 as they got it). Their constructors are
+# `Unk_D::Unk_D(<param> arg) : Base(arg) {}`, and the family's classes are
+# defined in a header of their own (<out>/<root>.h), which the constructor
+# files include, and so can other code that needs them complete. Unk_23acc98's
+# (0x710082a930) copies 0x60 bytes from x1 to +0x8, and 0x710081c630
+# allocates 0x68 bytes for each of 239 of its derived classes and constructs
+# it with its own third argument in x1 (src/unsorted/Unk_81c630.cpp).
+CTOR_PARAMS = {
+    "Unk_23acc98": CtorParam("const Unk_23acc98_Arg&", "RK15Unk_23acc98_Arg",
+                             ("struct Unk_23acc98_Arg {", "    u64 field_0[12];", "};"),
+                             ("    Unk_23acc98_Arg field_8;",), 0x68),
+}
+
+
+def ctor_name(cls: str, root: str | None = None) -> str:
+    """The base-object constructor (C2; the complete one, C1, is its alias),
+    with the parameter of `root`'s constructor if it has one (CTOR_PARAMS)."""
+    return f"_ZN{len(cls)}{cls}C2E{CTOR_PARAMS[root].mangled if root in CTOR_PARAMS else 'v'}"
+
+
+def is_ctor_name(name: str, cls: str) -> bool:
+    """`name` is a name ctor_name gives cls's constructor, with or without a parameter."""
+    return name in {ctor_name(cls)} | {ctor_name(cls, r) for r in CTOR_PARAMS}
+
+
+def ctor_root(cls: str, base_of: dict[str, str]) -> str:
+    """The class at the top of cls's constructor chain."""
+    seen = set()
+    while cls in base_of and cls not in seen:
+        seen.add(cls)
+        cls = base_of[cls]
+    return cls
 
 
 def defined_classes(root: Path, skip: Path | None = None) -> set[str]:
@@ -2492,7 +2542,6 @@ def find_ctors(m: Model, rows: dict, taken: set[str]) -> list[Ctor]:
     constructor of another; neither group with a secondary vtable, a
     hand-written base, or a class defined elsewhere (`taken`). Both are
     unnamed and U, or named as constructors already (by an earlier run)."""
-    from funcs import pattern_of
 
     by = {v.addr: v for v in m.vtables}
     refs: dict[int, set[int]] = defaultdict(set)
@@ -2503,18 +2552,18 @@ def find_ctors(m: Model, rows: dict, taken: set[str]) -> list[Ctor]:
     out = []
     for f, size in m.funcs:
         r = rows.get(f)
-        if size == 20 and pattern_of(m.img[f:f + size], f + BASE) == ROOT_CTOR_PATTERN:
+        if size == 20 and ctor_pattern(m, f, size) == ROOT_CTOR_PATTERN:
             # A class without a base: only its vptr to set.
             if r is None or r.scope != "common" or r.shield is None or len(refs[f]) != 1:
                 continue
             (d,) = refs[f]
             cls = class_name(by[d])
             if d not in secondary | HANDWRITTEN and cls not in taken and \
-                    (r.name == ctor_name(cls) or not r.name and r.status == "U"):
+                    (is_ctor_name(r.name, cls) or not r.name and r.status == "U"):
                 out.append(Ctor(f, None, cls, None))
             continue
         fields = ()
-        if size != 48 or pattern_of(m.img[f:f + size], f + BASE) != CTOR_PATTERN:
+        if size != 48 or ctor_pattern(m, f, size) != CTOR_PATTERN:
             fields = ctor_fields(m, f)
             if fields is None:
                 continue
@@ -2529,9 +2578,9 @@ def find_ctors(m: Model, rows: dict, taken: set[str]) -> list[Ctor]:
         if d == b or {d, b} & (secondary | HANDWRITTEN) or {cls, base} & taken:
             continue
         # unnamed and undecompiled, or named so by an earlier run
-        if not (r.name == ctor_name(cls) or not r.name and r.status == "U"):
+        if not (is_ctor_name(r.name, cls) or not r.name and r.status == "U"):
             continue
-        if not (rt.name == ctor_name(base) or not rt.name and rt.status == "U"):
+        if not (is_ctor_name(rt.name, base) or not rt.name and rt.status == "U"):
             continue
         out.append(Ctor(f, t, cls, base, fields))
     # A class with more than one constructor (a copy constructor too, say) can't
@@ -2559,7 +2608,6 @@ def ctor_bases(m: Model) -> dict[int, int]:
     first: constructors of find_ctors' shapes (CTOR_PATTERN, or zeroing
     fields), each referring to one group only, that call a function
     referring to one other group only."""
-    from funcs import pattern_of
 
     refs: dict[int, set[int]] = defaultdict(set)
     for v in m.vtables:
@@ -2569,7 +2617,7 @@ def ctor_bases(m: Model) -> dict[int, int]:
     for f, size in m.funcs:
         if len(refs.get(f, ())) != 1:
             continue
-        if not (size == 48 and pattern_of(m.img[f:f + size], f + BASE) == CTOR_PATTERN) and ctor_fields(m, f) is None:
+        if not (size == 48 and ctor_pattern(m, f, size) == CTOR_PATTERN) and ctor_fields(m, f) is None:
             continue
         t = branch_target_at(m, f + 16)
         if t is None or len(refs.get(t, ())) != 1:
@@ -2680,15 +2728,63 @@ def ctor_layout(base_of: dict[str, str], fields_of: dict[str, tuple]) -> dict[st
     return end
 
 
+def ctor_classes(need: list[str], base_of: dict[str, str], fields_of: dict[str, tuple],
+                 implicit: set[str], inline: set[str]) -> list[str]:
+    """The definitions of the classes in `need`, in that order (bases first):
+    each the same way wherever it's written."""
+    from leafgen import WIDTH
+
+    out: list[str] = []
+    layout = ctor_layout(base_of, fields_of)
+    for c in need:
+        root = ctor_root(c, base_of)
+        decl = f"    {c}({CTOR_PARAMS[root].param} arg);" if root in CTOR_PARAMS else f"    {c}();"
+        fs = fields_of.get(c, ())
+        members = list(CTOR_PARAMS[c].members) if c in CTOR_PARAMS else []
+        pos = layout[base_of[c]] if c in base_of else CTOR_PARAMS[c].size if c in CTOR_PARAMS else 8
+        for off, t in fs:
+            if off > pos:
+                members.append(f"    u8 _{pos:x}[0x{off - pos:x}];")
+            members.append(f"    {t} field_{off:x};")
+            pos = off + WIDTH[t]
+        asserts = [f"PKMN_OFFSET_ASSERT({c}, field_{off:x}, 0x{off:x});" for off, _ in fs]
+        if c in CTOR_PARAMS:
+            asserts.append(f'static_assert(sizeof({c}) == 0x{CTOR_PARAMS[c].size:x}, "{c}");')
+        if c in base_of:
+            dtor = [] if c in implicit else [f"    ~{c}() override;"]
+            out += [f"class {c} : public {base_of[c]} {{", "public:", decl, *dtor, *members, "};", *asserts, ""]
+        else:
+            dtor = f"    virtual ~{c}() {{}}" if c in inline else f"    virtual ~{c}();"
+            out += [f"class {c} {{", "public:", decl, dtor, *members, "};", *asserts, ""]
+    return out
+
+
+def ctor_need(classes: list[str], base_of: dict[str, str]) -> list[str]:
+    """`classes` and their bases, bases first."""
+    need: list[str] = []
+
+    def add(c: str, seen: tuple = ()) -> None:
+        if c in need or c in seen:
+            return
+        if c in base_of:
+            add(base_of[c], seen + (c,))
+        need.append(c)
+
+    for c in classes:
+        add(c)
+    return need
+
+
 def render_ctor_file(ctors: list[Ctor], base_of: dict[str, str], fields_of: dict[str, tuple] | None = None,
-                     implicit: set[str] = frozenset(), inline: set[str] = frozenset()) -> str:
+                     implicit: set[str] = frozenset(), inline: set[str] = frozenset(),
+                     header_dir: str | None = None) -> str:
     """One TU of constructors, with the classes they need declared: each the
     same way in every file (from base_of and fields_of), bases first. The
     classes in `implicit` have implicit destructors (no key function: their
     vtables and D0s are emitted here), the roots in `inline` an empty inline
-    one (implicit_dtors)."""
-    from leafgen import WIDTH
-
+    one (implicit_dtors). The classes below a root of CTOR_PARAMS come from
+    its header (render_family_header) in `header_dir` (an include path), if
+    given."""
     fields_of = fields_of or {}
     out = ["// Scope: common",
            "// Constructors that call their base's and set the vptr: `Unk_D::Unk_D() {}`.",
@@ -2699,43 +2795,43 @@ def render_ctor_file(ctors: list[Ctor], base_of: dict[str, str], fields_of: dict
     if any(c.cls in implicit for c in ctors):
         out[-1:] = ["// A class with nothing but its destructors has no key function: its destructor",
                     "// is implicit, and its vtable and D0 are emitted here, with its constructor.", ""]
-    need: list[str] = []
-
-    def add(c: str, seen: tuple = ()) -> None:
-        if c in need or c in seen:
-            return
-        if c in base_of:
-            add(base_of[c], seen + (c,))
-        need.append(c)
-
-    for c in sorted(ctors, key=lambda x: x.addr):
-        add(c.cls)
-    if any(c in fields_of for c in need):
+    need = ctor_need([c.cls for c in sorted(ctors, key=lambda x: x.addr)], base_of)
+    roots = {c: ctor_root(c, base_of) for c in need}
+    params = {c for c in need if roots[c] in CTOR_PARAMS}
+    headers = sorted({roots[c] for c in params}) if header_dir is not None else []
+    local = [c for c in need if roots[c] not in headers]
+    if any(c in fields_of for c in local) or any(roots[c] in CTOR_PARAMS for c in local):
         out[-1:] = ["#include <types.h>", ""]
-    layout = ctor_layout(base_of, fields_of)
-    for c in need:
-        fs = fields_of.get(c, ())
-        members = []
-        pos = layout[base_of[c]] if c in base_of else 8
-        for off, t in fs:
-            if off > pos:
-                members.append(f"    u8 _{pos:x}[0x{off - pos:x}];")
-            members.append(f"    {t} field_{off:x};")
-            pos = off + WIDTH[t]
-        asserts = [f"PKMN_OFFSET_ASSERT({c}, field_{off:x}, 0x{off:x});" for off, _ in fs]
-        if c in base_of:
-            dtor = [] if c in implicit else [f"    ~{c}() override;"]
-            out += [f"class {c} : public {base_of[c]} {{", "public:", f"    {c}();", *dtor,
-                    *members, "};", *asserts, ""]
-        else:
-            dtor = f"    virtual ~{c}() {{}}" if c in inline else f"    virtual ~{c}();"
-            out += [f"class {c} {{", "public:", f"    {c}();", dtor, *members, "};", *asserts, ""]
+    for r in headers:
+        out[-1:] = [f'#include "{header_dir}/{r}.h"', ""]
+    for r in sorted({roots[c] for c in local if roots[c] in CTOR_PARAMS}):
+        out += [*CTOR_PARAMS[r].arg, ""]
+    out += ctor_classes(local, base_of, fields_of, implicit, inline)
     for c in sorted(ctors, key=lambda x: x.addr):
-        init = ", ".join(f"field_{off:x}(0)" for off, _ in c.fields)
-        out += [f"// {c.addr + BASE:#x}", f"{c.cls}::{c.cls}(){' : ' + init if init else ''} {{}}", ""]
+        inits = [f"{c.base}(arg)"] if c.cls in params and c.base is not None else []
+        inits += [f"field_{off:x}(0)" for off, _ in c.fields]
+        init = ", ".join(inits)
+        param = f"{CTOR_PARAMS[roots[c.cls]].param} arg" if c.cls in params else ""
+        out += [f"// {c.addr + BASE:#x}", f"{c.cls}::{c.cls}({param}){' : ' + init if init else ''} {{}}", ""]
     return "\n".join(out[:-1]) + "\n"
 
 
+def render_family_header(root: str, ctors: list[Ctor], base_of: dict[str, str], fields_of: dict[str, tuple],
+                         implicit: set[str], inline: set[str]) -> str:
+    """The classes below a root of CTOR_PARAMS that `ctors` construct, for
+    their constructor files and for code that needs them complete."""
+    classes = sorted({c.cls for c in ctors if ctor_root(c.cls, base_of) == root})
+    out = ["#pragma once",
+           f"// The classes below {root}, whose constructors take its constructor's",
+           "// parameter and pass it on (tools/vtables.py, CTOR_PARAMS): written by",
+           "// `vtables.py ctors`, for their constructor files here and for code that needs",
+           "// them complete. Placeholder classes, named after their vtables.",
+           "#include <types.h>",
+           "",
+           *CTOR_PARAMS[root].arg,
+           ""]
+    out += ctor_classes(ctor_need(classes, base_of), base_of, fields_of, implicit, inline)
+    return "\n".join(out[:-1]) + "\n"
 def cmd_ctors(m: Model, args) -> None:
     """Constructors of placeholder classes that only call their base's (find_ctors)."""
     from common import read_functions_csv
@@ -2773,20 +2869,31 @@ def cmd_ctors(m: Model, args) -> None:
     for c in ctors:
         files[seg_of(c.addr)].append(c)
     args.out.mkdir(parents=True, exist_ok=True)
-    for old in args.out.glob("*.cpp"):
+    for old in [*args.out.glob("*.cpp"), *args.out.glob("*.h")]:
         old.unlink()
+    # The families of CTOR_PARAMS get a header of their own, included as
+    # "<out relative to src>/<root>.h" (an --out outside src/ keeps them in
+    # the constructor files).
+    try:
+        header_dir = args.out.resolve().relative_to((ROOT / "src").resolve()).as_posix()
+    except ValueError:
+        header_dir = None
+    roots = {ctor_root(c.cls, base_of) for c in ctors} & set(CTOR_PARAMS) if header_dir is not None else set()
+    for r in sorted(roots):
+        (args.out / f"{r}.h").write_text(render_family_header(r, ctors, base_of, fields_of, implicit, inline),
+                                         encoding="utf-8", newline="\n")
     for cs in files.values():
         name = f"Unk_{min(c.addr for c in cs):x}.cpp"
-        (args.out / name).write_text(render_ctor_file(cs, base_of, fields_of, implicit, inline),
+        (args.out / name).write_text(render_ctor_file(cs, base_of, fields_of, implicit, inline, header_dir),
                                      encoding="utf-8", newline="\n")
     from common import clang_format
-    if not clang_format(sorted(args.out.glob("*.cpp"))):
+    if not clang_format(sorted([*args.out.glob("*.cpp"), *args.out.glob("*.h")])):
         print("clang-format isn't on PATH: format the written files before committing them", file=sys.stderr)
     names: dict[int, str] = {}
     for c in ctors:
-        names[c.addr] = ctor_name(c.cls)
-        if c.base is not None and not rows[c.base_ctor].name:
-            names[c.base_ctor] = ctor_name(c.base)
+        names[c.addr] = ctor_name(c.cls, ctor_root(c.cls, base_of))
+        if c.base is not None and (not rows[c.base_ctor].name or is_ctor_name(rows[c.base_ctor].name, c.base)):
+            names[c.base_ctor] = ctor_name(c.base, ctor_root(c.base, base_of))
     names.update(dtor_names)
     with open(args.names, "w", encoding="utf-8", newline="\n") as fh:
         fh.write("Name,Sword,Shield\n")

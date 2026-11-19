@@ -441,6 +441,51 @@ def test_constructors():
     assert V.ctor_name("Unk_1000") == "_ZN8Unk_1000C2Ev"
 
 
+def test_constructors_with_a_parameter(monkeypatch):
+    """A root of CTOR_PARAMS: the constructors below it take its parameter and
+    pass it on, and their classes go in a header of their own. The derived
+    constructor's vptr comes from a page's first GOT slot (`ldr x8, [x8]`)."""
+    from types import SimpleNamespace
+
+    img = bytearray(0x1100)
+    bl = 0x94000000 | ((0x300 - 0x210) >> 2)
+    ctor = [0xF81E0FF3, 0xA9017BFD, 0x910043FD, 0xAA0003F3, bl,  # str x19 ; stp ; add x29 ; mov x19, x0 ; bl
+            0x90000008, 0xF9400108, 0x91004108, 0xF9000268,      # adrp x8 ; ldr x8, [x8] ; add #16 ; str
+            0xA9417BFD, 0xF84207F3, RET]
+    struct.pack_into("<12I", img, 0x200, *ctor)
+    struct.pack_into("<5I", img, 0x300, 0x90000008, 0xF9405508, 0x91004108, 0xF9000008, RET)
+    struct.pack_into("<I", img, 0x400, RET)
+    slots = {0x1010: 0x400, 0x1050: 0x400}
+    vts, tables = V.find_vtables(bytes(img), slots, {0x200, 0x300, 0x400}, DATA, len(img))
+    vts[0].referrers, vts[1].referrers = {0x200}, {0x300}
+    sizes = {0x200: 48, 0x300: 20, 0x400: 4}
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), vts, tables, sizes, {}, {}, lambda a: "game", DELETE)
+    rows = {a: SimpleNamespace(name="", status="U", scope="common", shield=a) for a in sizes}
+    ctors = V.find_ctors(m, rows, set())
+    assert ctors == [V.Ctor(0x200, 0x300, "Unk_1000", "Unk_1040"), V.Ctor(0x300, None, "Unk_1040", None)]
+
+    monkeypatch.setattr(V, "CTOR_PARAMS", {"Unk_1040": V.CtorParam(
+        "const Unk_1040_Arg&", "RK12Unk_1040_Arg", ("struct Unk_1040_Arg {", "    u64 field_0;", "};"),
+        ("    Unk_1040_Arg field_8;",), 0x10)})
+    base_of = {"Unk_1000": "Unk_1040"}
+    assert V.ctor_name("Unk_1000", "Unk_1040") == "_ZN8Unk_1000C2ERK12Unk_1040_Arg"
+    assert V.is_ctor_name("_ZN8Unk_1000C2ERK12Unk_1040_Arg", "Unk_1000")
+    assert V.is_ctor_name("_ZN8Unk_1000C2Ev", "Unk_1000")
+    rows[0x200].name = "_ZN8Unk_1000C2ERK12Unk_1040_Arg"         # named so by an earlier run: kept
+    assert V.find_ctors(m, rows, set()) == ctors
+    definition = "// 0x7100000200\nUnk_1000::Unk_1000(const Unk_1040_Arg& arg) : Unk_1040(arg) {}\n"
+    text = V.render_ctor_file(ctors[:1], base_of)                # no header: the classes here
+    assert "struct Unk_1040_Arg {\n    u64 field_0;\n};\n\nclass Unk_1040 {\npublic:\n" \
+           "    Unk_1040(const Unk_1040_Arg& arg);\n    virtual ~Unk_1040();\n    Unk_1040_Arg field_8;\n};\n" \
+           'static_assert(sizeof(Unk_1040) == 0x10, "Unk_1040");\n' in text
+    assert "    Unk_1000(const Unk_1040_Arg& arg);\n" in text and text.endswith(definition)
+    text = V.render_ctor_file(ctors[:1], base_of, header_dir="unsorted/ctor")
+    assert '#include "unsorted/ctor/Unk_1040.h"\n' in text and "\nclass " not in text and text.endswith(definition)
+    header = V.render_family_header("Unk_1040", ctors, base_of, {}, set(), set())
+    assert header.startswith("#pragma once\n") and "class Unk_1040 {" in header
+    assert "class Unk_1000 : public Unk_1040 {\npublic:\n    Unk_1000(const Unk_1040_Arg& arg);\n" in header
+
+
 def test_derived_class_lifted_members_use_the_base_fields():
     """B derives from A: B's lifted members, left out to derive it, are added
     back with their fields declared by A (the same offsets in the object)."""
