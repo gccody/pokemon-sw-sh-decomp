@@ -371,14 +371,17 @@ struct Unk_17e8c90 {
 PKMN_OFFSET_ASSERT(Unk_17e8c90, field_50, 0x50);
 PKMN_OFFSET_ASSERT(Unk_17e8c90, field_58, 0x58);
 PKMN_OFFSET_ASSERT(Unk_17e8c90, field_178, 0x178);
-void Unk_1787bb0();
-void Unk_1789ca0(void*, u64);
+struct Unk_1787ac0_Buffer;
+struct Unk_1791080_Device;
+void Unk_1787bb0(Unk_1787ac0_Buffer*, Unk_1791080_Device*);
+struct Unk_1789c10_MemoryPool;
+void Unk_1789ca0(Unk_1789c10_MemoryPool*, Unk_1791080_Device*);
 
 // 0x71017e8c90
 void Unk_17e8c90_call(Unk_17e8c90* self, u64 value, Unk_17e8c90_arg2* arg2) {
     if (self->field_50 != 0) {
-        Unk_1787bb0();
-        Unk_1789ca0(&self->field_58, value);
+        Unk_1787bb0(reinterpret_cast<Unk_1787ac0_Buffer*>(self), reinterpret_cast<Unk_1791080_Device*>(value));
+        Unk_1789ca0(reinterpret_cast<Unk_1789c10_MemoryPool*>(&self->field_58), reinterpret_cast<Unk_1791080_Device*>(value));
         if (self->field_178 != 0) {
             arg2->vf3(self->field_178);
             self->field_178 = 0;

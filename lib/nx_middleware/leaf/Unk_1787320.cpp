@@ -440,14 +440,6 @@ void Unk_1789c00_update() {
 void Unk_1789d00_update() {
 }
 
-// 0x710178d530
-void Unk_178d530_update() {
-}
-
-// 0x710178d730
-void Unk_178d730_update() {
-}
-
 // 0x710178df90
 void Unk_178df90_update() {
 }
@@ -1027,23 +1019,6 @@ void Unk_1790df0_set(Unk_1790df0* self) {
 void Unk_1790e10_update() {
 }
 
-struct Unk_1790f00 {
-    u8 field_0;
-    u8 _1[0x7];
-    u64 field_8;
-    u64 field_10;
-};
-PKMN_OFFSET_ASSERT(Unk_1790f00, field_0, 0x0);
-PKMN_OFFSET_ASSERT(Unk_1790f00, field_8, 0x8);
-PKMN_OFFSET_ASSERT(Unk_1790f00, field_10, 0x10);
-
-// 0x7101790f00
-void Unk_1790f00_set(Unk_1790f00* self) {
-    self->field_0 = 0;
-    self->field_8 = 0;
-    self->field_10 = 0;
-}
-
 struct Unk_1790f10 {
     u64 field_0;
     u64 field_8;
@@ -1110,10 +1085,6 @@ void Unk_1791070_update() {
 // 0x7101791190
 u32 Unk_1791190_get() {
     return 0;
-}
-
-// 0x71017911a0
-void Unk_17911a0_update() {
 }
 
 // 0x71017912b0
@@ -1982,12 +1953,14 @@ struct Unk_17ace20_arg2 {
 PKMN_OFFSET_ASSERT(Unk_17ace20_arg2, field_b8, 0xb8);
 
 u64 Unk_179ba80(u64, u32);
-void Unk_1788310(u64, u64);
+struct Unk_1787d90_CommandBuffer;
+struct Unk_1788310_State;
+void Unk_1788310(Unk_1787d90_CommandBuffer*, const Unk_1788310_State*);
 
 // 0x71017ace20
 void Unk_17ace20_call(void* /*unused*/, u64 value, const Unk_17ace20_arg2* arg2) {
     u64 r0 = Unk_179ba80(arg2->field_b8, 1);
-    Unk_1788310(value, r0);
+    Unk_1788310(reinterpret_cast<Unk_1787d90_CommandBuffer*>(value), reinterpret_cast<const Unk_1788310_State*>(r0));
 }
 
 // 0x71017b3330
