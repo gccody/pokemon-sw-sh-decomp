@@ -186,13 +186,35 @@ _BUILTIN = {"h": "u8", "t": "u16", "j": "u32", "m": "u64", "a": "s8", "s": "s16"
             "b": "bool", "c": "char", "f": "f32", "d": "f64"}
 
 
+# The C library functions game code calls, which a C name doesn't spell (musl's prototypes).
+LIBC = {"memset": ["void*", "s32", "u64"], "memcpy": ["void*", "const void*", "u64"],
+        "memmove": ["void*", "const void*", "u64"], "memcmp": ["const void*", "const void*", "u64"],
+        "strcmp": ["const char*", "const char*"], "strncmp": ["const char*", "const char*", "u64"],
+        "strncpy": ["char*", "const char*", "u64"], "strlen": ["const char*"], "strcpy": ["char*", "const char*"],
+        "abort": []}
+# their declarations (C linkage, the builtins' own types, so clang takes them as the library's)
+LIBC_DECL = {"memset": 'extern "C" void* memset(void*, int, unsigned long);',
+             "memcpy": 'extern "C" void* memcpy(void*, const void*, unsigned long);',
+             "memmove": 'extern "C" void* memmove(void*, const void*, unsigned long);',
+             "memcmp": 'extern "C" int memcmp(const void*, const void*, unsigned long);',
+             "strcmp": 'extern "C" int strcmp(const char*, const char*);',
+             "strncmp": 'extern "C" int strncmp(const char*, const char*, unsigned long);',
+             "strncpy": 'extern "C" char* strncpy(char*, const char*, unsigned long);',
+             "strlen": 'extern "C" unsigned long strlen(const char*);',
+             "strcpy": 'extern "C" char* strcpy(char*, const char*);',
+             "abort": 'extern "C" [[noreturn]] void abort();'}
+NORETURN = {"abort"}  # a call to one ends its path
+
+
 def demangle_simple(name: str) -> tuple[list[str], str, list[str]] | None:
     """(namespaces, name, parameter types) of a free function whose mangled name
     has only source names and builtin or `void*`/`const char*` parameters
-    (`_ZN2nn3ldn15MakeIpv4AddressEhhhh`), ([], name, None) for a C name, None
-    for anything else."""
+    (`_ZN2nn3ldn15MakeIpv4AddressEhhhh`), or pointers to types of its own
+    namespaces (`_ZN2nn2os9LockMutexEPNS0_9MutexTypeE`: `nn::os::MutexType*`,
+    a parameter type `ns::Name*` spelled with its namespace); a C library
+    function by LIBC; None for anything else."""
     if not name.startswith("_Z"):
-        return ([], name, None) if re.fullmatch(r"[A-Za-z_]\w*", name) else None
+        return ([], name, list(LIBC[name])) if name in LIBC else None
     rest, parts = name[2:], []
     nested = rest.startswith("N")
     if nested:
@@ -210,6 +232,8 @@ def demangle_simple(name: str) -> tuple[list[str], str, list[str]] | None:
         rest = rest[1:]
     if not parts or any(not re.fullmatch(r"[A-Za-z_]\w*", x) for x in parts):
         return None
+    # substitutions: the namespace prefixes (S_, S0_, ...), then each type as it's spelled
+    subs = ["::".join(parts[:i + 1]) for i in range(len(parts) - 1)] if nested else []
     params = []
     if rest == "v":
         rest = ""
@@ -220,6 +244,24 @@ def demangle_simple(name: str) -> tuple[list[str], str, list[str]] | None:
                 rest = rest[len(code):]
                 break
         else:
+            m = re.match(r"P(K?)N(S(\d*)_)?((?:\d+[A-Za-z_]\w*?)+)E", rest)
+            if m and m.group(2) is not None:
+                i = int(m.group(3)) + 1 if m.group(3) else 0
+                if i >= len(subs):
+                    return None
+                scope, names, tail = subs[i], [], m.group(4)
+                while tail:
+                    n = int(re.match(r"\d+", tail).group())
+                    tail = tail[len(str(n)):]
+                    names.append(tail[:n])
+                    tail = tail[n:]
+                full = "::".join([scope, *names])
+                if not full.startswith("::".join(parts[:-1]) + "::") or len(names) != 1:
+                    return None  # only a type of the function's own namespace
+                subs += [full, ("const " if m.group(1) else "") + full + "*"]
+                params.append(("const " if m.group(1) else "") + names[0] + "*")
+                rest = rest[m.end():]
+                continue
             if rest[0] not in _BUILTIN:
                 return None
             params.append(_BUILTIN[rest[0]])
@@ -358,6 +400,7 @@ class Lifted:
     guard_kind: str = ""      # the first guard's mnemonic
     split: tuple | None = None  # two_paths: the branch the path didn't take, as a guard (value, nonzero)
     split_seq: int = 0        # the events before it
+    noreturn: bool = False    # the path ends in a call that doesn't return (abort)
     splits: list = field(default_factory=list)  # decision_tree: per branch on the path, (guard or None, seq)
     vcall: tuple | None = None  # a final virtual tail call through REF_IFACE: (object, slot)
     calls: list = field(default_factory=list)  # Call, in order: a function with a frame
@@ -467,6 +510,10 @@ def lift(code: bytes, addr: int | None = None, path: list | None = None, split: 
         k, insns, zero = shape
     if shape is None and insns and insns[-1][0] == "br":
         insns = insns + [("ret", [])]  # a virtual tail call, handled in the loop
+    noreturn = bool(insns) and insns[-1][0] == "bl" and addr is not None and \
+        IMPORTS.get(_imm(insns[-1][1][0])) in NORETURN
+    if noreturn:
+        insns = insns + [("ret", [])]  # abort(): the path's last statement
     tail = None
     if not insns:
         raise LiftError("doesn't end with ret")
@@ -795,8 +842,9 @@ def lift(code: bytes, addr: int | None = None, path: list | None = None, split: 
 
     if framed != bool(inner):
         raise LiftError("a frame without a call" if framed else "bl without a frame")
-    if tail_br:
-        return out  # a virtual tail call (br), the function's last statement: it returns nothing itself
+    if tail_br or noreturn:
+        out.noreturn = noreturn
+        return out  # a virtual tail call (br) or abort(), the function's last statement: no return
     if out.vcall is not None:
         if out.guard is not None and out.zero_else:
             raise LiftError("cbz: returns something")
@@ -940,6 +988,7 @@ class Emitter:
         self.protos: set[str] = set()         # the callees' declarations (render_call)
         self.heads: list[StructDef] = []       # copy_head's struct
         self.statics: set[int] = set()        # static objects of this TU written through (absolute)
+        self.ns_forward: set[str] = set()     # types of an import's namespace (render_call)
         self.passed: set[Arg] = set()         # arguments passed on to a call
         self.call_types: dict[int, str] = {}  # call index -> the type of the result it returns
 
@@ -1339,13 +1388,32 @@ class Emitter:
             spaces, fname, ptypes = dm
             args = []
             for e, pt in zip(c.args, ptypes):
+                base_t = pt.removeprefix("const ")[:-1] if pt.endswith("*") else None
+                named = base_t not in (None, "void", "char")
+                q = ("const " if pt.startswith("const ") else "") + "::".join([*spaces, base_t]) + "*" \
+                    if named else pt
+                if named:
+                    # a type of the callee's namespace: declared before the structs that hold one
+                    fwd = f"struct {base_t};"
+                    for ns in reversed(spaces):
+                        fwd = f"namespace {ns} {{ {fwd} }}"
+                    self.ns_forward.add(fwd)
                 if isinstance(e, Arg) and not e.fp:
-                    if self.arg_types.setdefault(e.index, pt) != pt:
+                    if self.arg_types.setdefault(e.index, q.removeprefix("const ")) != q.removeprefix("const "):
                         raise LiftError("callee: an argument of another type")
                     self.passed.add(e)
                     args.append(self.arg_name(e.index))
                 elif pt.endswith("*") and (self.is_pointer(e) or self.type_of(e) == "ptr"):
-                    args.append(self.expr(e))
+                    if named and isinstance(e, Load) and not isinstance(e.base, GlobalPtr):
+                        # a field passed as the namespace's type: the field is a pointer of that type
+                        args.append(self.field_expr(e.base, e.offset, q.removeprefix("const ")))
+                    elif named and isinstance(e, AddrOf):
+                        # an object of that type inside the struct, at that offset
+                        args.append(f"reinterpret_cast<{q}>({self.expr(e)})")
+                    elif named:
+                        raise LiftError("callee: a pointer of another type")
+                    else:
+                        args.append(self.expr(e))
                 elif not pt.endswith("*") and not self.is_pointer(e) and self.type_of(e) in CALL_CODES:
                     args.append(self.expr(e, pt if pt in CALL_CODES else None))
                 else:
@@ -1353,6 +1421,10 @@ class Emitter:
             # one declaration for every caller in a file: what the result is read as is the caller's
             rt = {4: "u32", 8: "u64"}.get(width, "void")
             decl = f"u64 {fname}({', '.join(ptypes)});"
+            if not spaces and fname in LIBC_DECL:
+                if width and fname in ("memset", "memcpy", "memmove", "strncpy", "strcpy"):
+                    raise LiftError("callee: a C library pointer result")
+                decl, rt = LIBC_DECL[fname], ("s32" if width == 4 else "u64") if width else "void"
             for ns in reversed(spaces):
                 decl = f"namespace {ns} {{ {decl} }}"
             self.protos.add(decl)
@@ -1776,7 +1848,8 @@ class Emitter:
         return f"Unk_{self.short}_{verb}"
 
     def render_structs(self) -> str:
-        out = [f"struct {n};" for n in sorted(self.forward)]  # a known callee's, defined with it
+        out = sorted(self.ns_forward)
+        out += [f"struct {n};" for n in sorted(self.forward)]  # a known callee's, defined with it
         # another TU defines them, or this one (hidden: reached with adrp, not the GOT)
         out += [f"extern {t} Unk_{a:x}" + (' __attribute__((visibility("hidden")));' if a in self.hidden else ";")
                 for a, t in sorted(self.globals.items())]
@@ -1968,7 +2041,7 @@ def _paths(insns: list, addr: int, limit: int = 16) -> list[tuple[list, dict]]:
                 if 0 <= t <= i:
                     raise LiftError("a loop")
             acc = acc + [insns[i]]
-            if mn in ("ret", "br", "b"):
+            if mn in ("ret", "br", "b") or (mn == "bl" and IMPORTS.get(_imm(ops[0])) in NORETURN):
                 out.append((acc, splits))
                 return
             i += 1
@@ -2008,11 +2081,12 @@ def decision_tree(addr: int, code: bytes) -> tuple[str, str] | None:
         if len({x.replace("const ", "") for x in params}) != 1:
             raise LiftError("paths: other parameters")
         param = min(params, key=lambda x: x.count("const "))
-        rts = [x.split(" Unk_")[0] for x in sigs]
+        rts = [x.split(" Unk_")[0] for x, lf in zip(sigs, lifted) if not lf.noreturn] or ["void"]
         if len(set(rts)) > 1:
             if "void" in rts or any(r not in CALL_CODES for r in rts):
                 raise LiftError("paths: other return types")
-            rts = [r for r, lf in zip(rts, lifted) if not isinstance(lf.ret, Const)] or rts
+            live = [(x.split(" Unk_")[0], lf) for x, lf in zip(sigs, lifted) if not lf.noreturn]
+            rts = [r for r, lf in live if not isinstance(lf.ret, Const)] or rts
         if any(_LOCAL.match(x) for b in bodies for x in b):
             raise LiftError("paths: locals")
         # where each branch is in each path's lines
@@ -2033,7 +2107,7 @@ def decision_tree(addr: int, code: bytes) -> tuple[str, str] | None:
             if not fall or not taken:
                 raise LiftError("paths: a branch without two sides")
             inner = build(fall, level + 1, {i: pos[i][level] for i in fall})
-            if not inner or not inner[-1].strip().startswith("return"):
+            if not inner or not (inner[-1].strip().startswith("return") or inner[-1].strip() == "abort();"):
                 inner = inner + ["    return;"]
             rest = build(taken, level + 1, {i: pos[i][level] for i in taken})
             return segs[0] + [f"    if ({conds[fall[0]][level]}) {{"] + ["    " + x for x in inner] + ["    }"] + rest
