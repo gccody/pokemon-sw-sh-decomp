@@ -27,6 +27,34 @@ void Unk_eaf4d0_set(Unk_eaf4d0* self) {
     self->field_68 = 0;
 }
 
+struct Unk_eaf4f0 {
+    u8 _0[0x54];
+    u8 field_54;
+    u8 _55[0x3];
+    u64 field_58;
+    u64 field_60;
+    u64 field_68;
+};
+PKMN_OFFSET_ASSERT(Unk_eaf4f0, field_54, 0x54);
+PKMN_OFFSET_ASSERT(Unk_eaf4f0, field_58, 0x58);
+PKMN_OFFSET_ASSERT(Unk_eaf4f0, field_60, 0x60);
+PKMN_OFFSET_ASSERT(Unk_eaf4f0, field_68, 0x68);
+
+namespace nn {
+namespace os {
+u64 GetSystemTick();
+}
+}  // namespace nn
+
+// 0x7100eaf4f0
+void Unk_eaf4f0_call(Unk_eaf4f0* self) {
+    self->field_54 = 1;
+    self->field_58 = 0;
+    self->field_60 = 0;
+    u64 r0 = nn::os::GetSystemTick();
+    self->field_68 = r0;
+}
+
 struct Unk_eb1810 {
     u8 _0[0x148];
     u64 field_148;
@@ -733,4 +761,43 @@ PKMN_OFFSET_ASSERT(Unk_ec6e30, field_5d0, 0x5d0);
 // 0x7100ec6e30
 u32 Unk_ec6e30_get(const Unk_ec6e30* self) {
     return self->field_5d0->field_58 & 1;
+}
+
+struct Unk_27e0ba4_Data {
+    u32 field_0;
+    u32 field_4;
+    u32 field_8;
+    u32 field_c;
+    u16 field_10;
+    u8 _12[0x2];
+    u32 field_14;
+    u16 field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_27e0ba4_Data, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_27e0ba4_Data, field_4, 0x4);
+PKMN_OFFSET_ASSERT(Unk_27e0ba4_Data, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_27e0ba4_Data, field_c, 0xc);
+PKMN_OFFSET_ASSERT(Unk_27e0ba4_Data, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_27e0ba4_Data, field_14, 0x14);
+PKMN_OFFSET_ASSERT(Unk_27e0ba4_Data, field_18, 0x18);
+
+extern Unk_27e0ba4_Data Unk_27e0ba4 __attribute__((visibility("hidden")));
+namespace nn {
+namespace ldn {
+u64 MakeIpv4Address(u8, u8, u8, u8);
+}
+}  // namespace nn
+
+// 0x7100ecae90
+void Unk_ecae90_call() {
+    u32 r0 = nn::ldn::MakeIpv4Address(0x7f, 0, 0, 1);
+    Unk_27e0ba4.field_0 = r0;
+    u32 r1 = nn::ldn::MakeIpv4Address(0xff, 0xff, 0xff, 0xff);
+    Unk_27e0ba4.field_4 = r1;
+    u32 r2 = nn::ldn::MakeIpv4Address(0, 0, 0, 0);
+    Unk_27e0ba4.field_18 = 0xffff;
+    Unk_27e0ba4.field_10 = 0;
+    Unk_27e0ba4.field_8 = r2;
+    Unk_27e0ba4.field_c = 0;
+    Unk_27e0ba4.field_14 = 0xffffffff;
 }

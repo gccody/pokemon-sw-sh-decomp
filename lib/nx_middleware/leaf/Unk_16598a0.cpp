@@ -93,6 +93,19 @@ u32 Unk_165c180_get(const Unk_165c180* self) {
     return self->field_18;
 }
 
+struct Unk_165c600 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_165c600, field_0, 0x0);
+
+namespace nn { namespace os { u64 GetSystemTick(); } }
+
+// 0x710165c600
+void Unk_165c600_call(Unk_165c600* self) {
+    u64 r0 = nn::os::GetSystemTick();
+    self->field_0 = r0;
+}
+
 struct Unk_165c9b0 {
     u8 field_0;
     u8 field_1;
@@ -966,4 +979,40 @@ extern u8 Unk_27fb0a1 __attribute__((visibility("hidden")));
 // 0x710167bde0
 u8 Unk_167bde0_get() {
     return Unk_27fb0a1;
+}
+
+struct Unk_27fb0a8_Data {
+    u32 field_0;
+    u32 field_4;
+    u32 field_8;
+    u8 _c[0x4];
+    u32 field_10;
+    u16 field_14;
+    u8 _16[0x2];
+    u32 field_18;
+    u16 field_1c;
+};
+PKMN_OFFSET_ASSERT(Unk_27fb0a8_Data, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_27fb0a8_Data, field_4, 0x4);
+PKMN_OFFSET_ASSERT(Unk_27fb0a8_Data, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_27fb0a8_Data, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_27fb0a8_Data, field_14, 0x14);
+PKMN_OFFSET_ASSERT(Unk_27fb0a8_Data, field_18, 0x18);
+PKMN_OFFSET_ASSERT(Unk_27fb0a8_Data, field_1c, 0x1c);
+
+extern Unk_27fb0a8_Data Unk_27fb0a8 __attribute__((visibility("hidden")));
+namespace nn { namespace ldn { u64 MakeIpv4Address(u8, u8, u8, u8); } }
+
+// 0x710167c1c0
+void Unk_167c1c0_call() {
+    u32 r0 = nn::ldn::MakeIpv4Address(0x7f, 0, 0, 1);
+    Unk_27fb0a8.field_0 = r0;
+    u32 r1 = nn::ldn::MakeIpv4Address(0xff, 0xff, 0xff, 0xff);
+    Unk_27fb0a8.field_4 = r1;
+    u32 r2 = nn::ldn::MakeIpv4Address(0, 0, 0, 0);
+    Unk_27fb0a8.field_1c = 0xffff;
+    Unk_27fb0a8.field_14 = 0;
+    Unk_27fb0a8.field_8 = r2;
+    Unk_27fb0a8.field_10 = 0;
+    Unk_27fb0a8.field_18 = 0xffffffff;
 }

@@ -36,6 +36,14 @@ void Unk_418320_call() {
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
+void Unk_4278c0(u64);
+
+// 0x7100418340
+void Unk_418340_call() {
+    Unk_4278c0(Unk_24e00e0);
+}
+
+extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
 void Unk_427900(u64);
 
 // 0x7100418350

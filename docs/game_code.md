@@ -1540,6 +1540,28 @@ with the original found four fixes:
 The trial wrote 634 functions; 170 match (check.py: 40,264 matching, 42
 not matching).
 
+### Batch 33: static objects of the TU, and the SDK's imports by name
+
+- **Static objects.** `adrp x19, S ; add x19, x19, S` then stores through
+  x19 write a static object of the TU: declared
+  `extern Unk_<addr>_Data Unk_<addr> __attribute__((visibility("hidden")));`
+  with a placeholder struct of its fields (`Unk_<addr>.field_N = ...`). A
+  file drops a function whose struct another of its functions defines, or
+  that declares a global with another type.
+- **SDK imports.** A call to a PLT stub is a call to the import it names
+  (check.py resolves it by name through the stub). A free function whose
+  mangled name spells only builtin parameters is declared in its namespaces
+  and called by its own name (`demangle_simple`): `u64
+  nn::ldn::MakeIpv4Address(u8, u8, u8, u8)`, the result read as the caller
+  reads it.
+
+Most of the matches are one static initialiser, repeated in every TU that
+includes an nn::ldn header: it builds three `Ipv4Address` constants with
+`MakeIpv4Address` (127.0.0.1, the broadcast and the any address) and the
+fields around them. The trial wrote 1,207 functions; 763 match, and
+`--record-data` recorded the 751 static objects, each at the address its
+name gives (check.py: 41,027 matching, 42 not matching).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1565,7 +1587,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after Batch 32: check.py reports 40,264 matching and 42 not
+State after Batch 33: check.py reports 41,027 matching and 42 not
 matching, in both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the

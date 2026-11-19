@@ -84,3 +84,10 @@ extern u8 Unk_27fb30d __attribute__((visibility("hidden")));
 u8 Unk_16c4100_get() {
     return Unk_27fb30d;
 }
+
+extern u8 Unk_27fb2f8;
+
+// 0x71016c4110
+u8* Unk_16c4110_get() {
+    return &Unk_27fb2f8;
+}
