@@ -2424,9 +2424,11 @@ public libraries named in the post-Lua block:
 
 ### libcurl 7.55.1 (`main`, Sword `0x7101750ea0`-`0x7101779270`)
 
-Nintendo's libcurl is vendored in `lib/curl` (`lib/curl/README.md`): 55 TUs of
-upstream 7.55.1, unchanged, and a `curl_config.h` reconstructed from the
-binary. `CMakeLists.txt` builds them with the global flags and curl's defines
+Nintendo's libcurl is vendored in `lib/curl` (`lib/curl/README.md`): 56 TUs of
+upstream 7.55.1, a `curl_config.h` reconstructed from the binary, and
+Nintendo's changes to curl, reconstructed from the binary too (see "Nintendo's
+changes" below). The tables up to that section were made before those changes,
+from the unmodified sources. `CMakeLists.txt` builds them with the global flags and curl's defines
 for a static library (`pkmn_library_settings(lib/curl ...)`, this section is
 its evidence). With that configuration, 391 compiled functions, **84 reproduce
 byte for byte (20,824 bytes) in both games**. The rest depends on changes
@@ -2562,37 +2564,111 @@ How the hits grew, over the libcurl area, Sword (Shield the same):
 change the hits. They follow the imports, or musl where there's no evidence.
 `SIZEOF_TIME_T 8` loses 2.
 
-#### What doesn't match
+#### Nintendo's changes
 
-A function matches only where Nintendo's changes don't reach it. The
-differences, from the near misses (struct offsets and calls compared by hand):
+Nintendo changed curl in ways that aren't public. These are reconstructed in
+`lib/curl` (each change is marked `Pokemon SwSh decomp`), from the near misses
+(struct offsets and calls compared by hand). Nintendo's own functions have
+placeholder names (`Unk_<addr>`); what's known of them is in the comments.
 
 - **Allocation.** curl's `malloc()`, `free()`, `realloc()`, `strdup()` and
   `calloc()` call Nintendo's wrappers directly (Sword `0x7101778330`,
-  `...340`, `...350`, `...360`, `...370`). Each one tail-calls through a table
-  of five pointers that `curl_global_init_mem` fills (`0x71017782f0`;
-  `0x71017782a0` sets the defaults, `main`'s allocator and `strdup`).
-  Upstream's `curl_memory.h` calls through the `Curl_cmalloc`, ... variables
-  instead. So no function that allocates matches. `0x7101778330`'s code equals
-  upstream's `sh_freeentry`, and `curl_free`'s too (a tail call through a GOT
-  pointer), but it's the `malloc` wrapper, so it isn't named.
-- **`struct Curl_easy`.** Nintendo's `struct UserDefined` is 0x68 bytes larger.
-  `Curl_open` initialises three new byte fields right after `proxyauth` (`set`
-  + `0x58`: 1, 0, 0). So `set.fdebug` is 8 bytes further on than upstream's.
-  `set.dns_cache_timeout` and `set.verbose` (`0x6c8`, upstream `0x660`) are
-  0x68 bytes further on, and so is every field after `set` (`state.*`,
-  `info.*` ...). `sizeof(struct Curl_easy)` is `0x5140`.
-- **`struct connectdata`.** It holds four `ssl_connect_data`s with the `nn::ssl`
-  backend's fields, which aren't known.
-- **Sockets, time, files and zlib.** Sockets go through `nnsocket*`, and
-  `SOCKERRNO` through `nnsocketGetLastErrno`. `send` gets flags 0 (no
-  `MSG_NOSIGNAL`) and there's no `MSG_FASTOPEN` path, unlike with musl's
-  headers. The errno values are Linux's. Time comes from
-  `nnosGetSystemTick`, the resolver from `nnsocketGetHostByNameWithOptions`
-  and `nn::nsd::ResolveEx`. `fopen`/`fread`/`fclose` are stubs that abort.
-  `ZLIB_VERSION` is `"1.2.11.f-NINTENDO-SDK-v1"`, and the zlib calls go to
+  `...340`, `...350`, `...360`, `...370`), not the `Curl_cmalloc`, ...
+  variables of upstream's `curl_memory.h`. Each wrapper is a tail call through
+  a table of five pointers (Sword `0x71027fc480`, through the GOT) that
+  `curl_global_init_mem` fills (`0x71017782f0`). `0x71017782a0` sets the
+  defaults (`main`'s `malloc`, `free`, `realloc` and `calloc`, and the SDK's
+  `strdup`). An aligned allocation pair over the table follows them
+  (`0x7101778380`, `0x71017783e0`, used by the resolver thread). They're in
+  `lib/curl/nintendo/Unk_17782a0.c`, and `curl_memory.h` calls the wrappers.
+- **`global_init`** calls the defaults' setter when it sets the memory
+  functions, then the `SDK MW+Nintendo+NintendoSDK_libcurl-7_3_2-Release` tag
+  function (`0x7101778420`) and the resolver thread's setup (`0x7101778ce0`,
+  which returns NULL when it fails). `curl_global_cleanup` calls the thread's
+  teardown (`0x7101779030`) first.
+- **`struct UserDefined` is 0x68 bytes larger.** `Curl_open` initialises three
+  new byte fields right after `proxyauth` (`set` + `0x58`: 1, 0, 0), and
+  `struct ssl_primary_config` has 0x30 bytes more between `verifystatus` and
+  `CApath`: `Curl_clone_primary_ssl_config` (`0x7101777010`) copies `CApath`
+  from +0x48 (upstream +0x18) and `sessionid` from +0x78, and
+  `set.proxy_ssl = set.ssl` copies 0xe0 bytes, not 0xb0. `Curl_setopt` stores
+  options of Nintendo's into the new fields (a bool at +0x13, 8-byte values at
+  +0x18, +0x28, +0x30 (a `CURLOPTTYPE_FUNCTIONPOINT`) and +0x38, a bool at
+  +0x40). `sizeof(struct Curl_easy)` is `0x5140`.
+- **TLS: `nn::ssl`.** `struct ssl_connect_data` is 0x120 bytes (the backend
+  indexes `conn->ssl[]` by 0x120), so `struct connectdata` is 0x450 bytes
+  larger after `ssl[]`. `USE_SSL` is on, with upstream's `vtls/vtls.c` and
+  `vtls/nnssl.h`, the `curlssl_*` mapping that `vtls.c`'s functions in the
+  binary show (`USE_NINTENDO_SSL` is this repository's name for it).
+  `Curl_ssl_backend` returns 30, which isn't one of curl.h's values. The
+  backend's functions are Sword `0x71017775a0`-`0x7101778060`. Init, cleanup,
+  version (`"nn::ssl"`), random (zeros), data_pending and two that return
+  FALSE are in `vtls/nnssl.c`. Connect (`0x7101777650`), close, recv and send
+  aren't reconstructed yet.
+- **Sockets: the SDK's, BSD-style.** `struct sockaddr` starts with a length
+  byte (`Curl_he2ai` stores `sin_family` with `strb` at +1), and `SOL_SOCKET`
+  (0xffff), `SO_ERROR` (0x1007), `SO_NOSIGPIPE` (0x800) and `SO_KEEPALIVE` (8)
+  have BSD values (`Curl_is_connected`, `singleipconnect`), but errno values
+  and the `POLL*` flags are Linux's (`Curl_write_plain` checks 11 and 115, and
+  `Curl_socket_check`'s `POLLWRNORM` is 0x100). There's no `sockaddr_storage`
+  (`Curl_updateconninfo` passes 0x100, curl's `cbuf[256]`). Every call goes
+  through `nnsocket*` (`SOCKERRNO` through `nnsocketGetLastErrno`), and `send`
+  gets flags 0. `lib/curl/nnsocket` reconstructs these headers, first on
+  lib/curl's include path (curl's own `curl.h` includes `<sys/socket.h>`).
+  `curlx_nonblock` doesn't read `F_GETFL`: it sets 0x802 or 2.
+- **Time, stdio and `gethostbyname`.** curl calls Nintendo's functions
+  (Sword `0x71017786c0`-`0x7101778ae0`, `lib/curl/nintendo/Unk_17786c0.c`):
+  `time()` and `curlx_tvnow()` from `nn::os` ticks; `fwrite`, `fputs`,
+  `fflush`, `fprintf` and `vfprintf`, which accept only `stdout` and `stderr`
+  and print nothing in a release build; `fclose`, `fopen`, `fread`, `fseek`,
+  `fgets` and `stat`, which abort; and a `gethostbyname` that passes the SDK's
+  resolver options to `nnsocketGetHostByNameWithOptions`
+  (`Curl_ipv4_resolve_r` takes them). `lib/curl/lib/curl_nnstdio.h` redirects
+  the calls, after `curl_printf.h`'s `fprintf` (progress.c and cookie.c call
+  Nintendo's `fprintf`), and `curl_mfprintf` calls `vfprintf`.
+- **zlib.** `ZLIB_VERSION` is `"1.2.11.f-NINTENDO-SDK-v1"` in the SDK's
+  `zlib.h` (now in `lib/curl/zlib/zlib.h` too), and the zlib calls go to
   YEBIS's zlib in `main` (`inflateInit_` `0x71005918f0`, `inflateEnd`
   `0x7100593530`).
+
+The matches as the changes went in, `check.py` over the libcurl area (395
+functions, both games; each step includes the names `tools/sweep_attribute.py`
+could pin with it):
+
+| Step | Matching |
+|---|---:|
+| Unmodified upstream | 102 |
+| Allocation wrappers, `global_init` | 161 |
+| `struct UserDefined` | 205 |
+| Time, stdio, `gethostbyname` | 230 |
+| `struct ssl_connect_data` (0x120 bytes) | 291 |
+| SDK sockets, `ZLIB_VERSION` | 307 |
+| `USE_SSL`, `vtls.c` | 347 |
+| The `nn::ssl` backend's small functions, progress.c's stdio | 356 |
+
+The 356 are 110,068 bytes (22,444 before).
+
+#### What doesn't match
+
+- **The resolver thread.** Nintendo's `asyn-thread.c` runs the lookup in an
+  `nn::os` thread (`nnosCreateThread`, `"LibcurlResolver"`,
+  `0x7101778b10`-`0x7101779250`, `Curl_thread_join` at `0x7101779250`), locks
+  `nn::os` mutexes (`nnosLockMutex`) and passes three resolver options of its
+  own (`0x71017556a0`). `Curl_resolver_*`, `destroy_async_data` and the
+  thread's functions aren't reconstructed.
+- **`Curl_setopt` and `create_conn`.** Nintendo's options (the new fields
+  above, `nn::nsd::ResolveEx` through `0x7101778430`) and its proxy settings
+  from `nn::nifm` (`0x71017785c0`, called from `create_conn`).
+- **The `nn::ssl` backend's connect, close, recv and send.**
+- **`Curl_infof`, `Curl_failf`, `Curl_debug`, `Curl_poll`,
+  `Curl_socket_check`, `Curl_pgrsUpdate`, `Curl_http`, `Curl_getinfo`,
+  `Curl_flush_cookies`**: close, with smaller differences not explained yet
+  (`Curl_flush_cookies` calls an SDK import where curl calls `fclose`).
+
+These files are upstream's, changed only where marked, so the
+`// NON_MATCHING: <reason>` comments that `M` functions get elsewhere can't go
+in them: this section is that comment for every `M` function under
+`lib/curl`.
 
 #### Names and `check.py`
 
@@ -2624,7 +2700,26 @@ changed by Nintendo too far to recognise). They're in
 `data/unidentified_functions.csv`, which `check.py` skips and counts apart
 from the functions known to be absent. Nintendo's glue (the allocator wrappers and
 table, the `nn::ssl` backend, the `nsd`/`nifm` code, the resolver thread, the
-stubs) isn't public and stays unnamed.
+stubs) isn't public, so it has no names but placeholders.
+
+With Nintendo's changes ("Nintendo's changes" above) the same sweep, rerun
+after each step, pinned 151 more names (taken out of
+`data/unidentified_functions.csv` where they were there): most have the same
+code as an original now, 21 are pinned by the call graph (their code
+differs, their callers or callees are the same). Some are named by hand: `curl_mfprintf`
+(`0x7101759270`, the last of `mprintf.c`'s functions, a variadic
+`(FILE *, format, ...)` that Nintendo's code calls with `stderr`),
+`Curl_ipv4_resolve_r` (called from `Curl_resolver_getaddrinfo` and the
+resolver thread, with `Curl_inet_pton`, `Curl_ip2addr` and `Curl_he2ai`
+inside), `Curl_thread_join` (pinned, Nintendo's), and five `vtls.c`
+functions whose code is the same as another's, by their place in `vtls.c`
+and their callers: `Curl_ssl_set_engine` and `Curl_ssl_set_engine_default`
+(`Curl_setopt`'s `CURLOPT_SSLENGINE` and `CURLOPT_SSLENGINE_DEFAULT`),
+`Curl_ssl_cert_status_request` and `Curl_ssl_false_start` (its
+`CURLOPT_SSL_VERIFYSTATUS` and `CURLOPT_SSL_FALSESTART`) and
+`Curl_ssl_data_pending` (`Curl_conn_data_pending`). The 13 `vtls.c`
+functions that aren't in the binary are in `data/unidentified_functions.csv`.
+Nintendo's functions are `Unk_<Sword address>`.
 
 `check.py --update` (both games), with everything before. The 100 new
 matches are libcurl's (Lua, PhysX and the rest give 8,804, as before), and the
