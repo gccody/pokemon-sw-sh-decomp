@@ -1,7 +1,7 @@
 // Scope: common
 //
 // A class on Unk_2434918 (vtable 0x71024356d0): a reference and a word of its
-// own, after its base's fields (in their tail padding). Placeholder names:
+// own, after its base's fields. Placeholder names:
 // rename once the class is known.
 #include "unsorted/unk_133d350/Unk_2434918.h"
 
@@ -11,6 +11,11 @@ public:
     const Unk_239a418_Type* vf_type() override;
     bool vf7(bool value) override;
 
+    u64 field_100;
+    u64 field_108;
+    u64 field_110;
+    u64 field_118;
+    u64 field_120;
     Unk_239a418_Ref<Unk_239a418> field_128;
     u64 field_130;
 };
