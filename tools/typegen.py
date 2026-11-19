@@ -327,6 +327,7 @@ class ClassPlan:
     end: tuple = ()                          # the last one's parent: ("cut", getter) | ("zero",) | ("global", type)
     forward: int | None = None               # the getter vf_type tail-calls, when it isn't inlined
     bare: bool = False                       # vf_type only, not virtual here: its thunks aren't written
+    member: str = "vf_type"                  # its name: vtables.py's vf<slot> for the other slots
 
 
 @dataclass
@@ -526,6 +527,11 @@ def render(t: Types, expr: dict[int, str], classes: list[ClassPlan]) -> str:
         th = ", ".join(f"0x{a + BASE:x} (+0x{o:x})" for o, a in c.thunks)
         how = [f"// Its getter is too big to be inlined: vf_type and the thunks tail-call it (0x{c.forward + BASE:x})."] \
             if c.forward is not None else []
+        if c.bare and not c.thunks:
+            return [f"// vtable 0x{c.group + BASE:x}: a type getter in its slot {c.member[2:]}, whose class",
+                    "// isn't known: declared without its bases or its vtable, which it doesn't use.",
+                    f"struct {c.name} {{", *((*getter(c.top), "") if c.top in own else ()),
+                    f"    {TYPE} {c.member}();", "};", ""]
         if c.bare:
             return [f"// vtable 0x{c.group + BASE:x}: vf_type (its thunks {th} aren't written: they",
                     "// call it, and the original's is inline, emitted with the class's vtable).",
@@ -561,7 +567,7 @@ def render(t: Types, expr: dict[int, str], classes: list[ClassPlan]) -> str:
             out += declare(c)
     for c in classes:
         out += [f"// 0x{c.vf_type + BASE:x}", *(f"// 0x{a + BASE:x}" for _, a in c.thunks if not c.bare),
-                f"{TYPE} {c.name}::vf_type() {{",
+                f"{TYPE} {c.name}::{c.member}() {{",
                 f"    return {'Unk_GetType()' if c.top in own else expr[c.top]};", "}", ""]
     if kinds:
         out += ["// Whether an object's type is the template argument or one derived from it,",
@@ -591,7 +597,7 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int])
     def free(f: int, name: str) -> bool:
         r = rows.get(f)
         return r is not None and r.scope == "common" and r.shield is not None \
-            and (r.status == "U" and not r.name and (only is None or f in only) or r.name == name)
+            and (only is None or f in only or r.status == "O") and (not r.name and r.status == "U" or r.name == name)
 
     def forwarder(f: int, name: str) -> bool:
         """A forwarder vtables.py wrote (matched, named as its placeholder's member), or a free one."""
@@ -670,6 +676,32 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int])
             if rows[k.end[1]].name != n:
                 names.append((k.end[1], n))
         keep.append((k, names))
+    # Getters in other vtable slots (other layouts, secondary vtables' copies,
+    # classes left out above): each a plain member of its owner vtable's class.
+    covered = {f for _, names in keep for f, _ in names}
+    owner = vt.owners(t.m.vtables)
+    by_addr = {v.addr: v for v in t.m.vtables}
+    for f, g in sorted(t.getters.items()):
+        if f not in t.slot_of or f in covered or f not in owner:
+            continue
+        v, slot = by_addr[owner[f][0]], owner[f][1]
+        c = ClassPlan(vt.class_name(v), v.addr, f, [], g.top, bare=True, member=f"vf{slot}")
+        names = [(f, vt.mangle(c.name, c.member))]
+        if c.name in taken or not free(f, names[0][1]) or rows[f].status == "O":
+            continue
+        ch = chain_of(t, expr, f)
+        if ch is None:
+            skipped.append(f"{c.name}: its type's chain")
+            continue
+        c.inlined, c.end = ch
+        if c.end[0] == "cut":
+            n = getter_name(c.end[1])
+            if n is None:
+                skipped.append(f"{c.name}: the getter it calls is named otherwise")
+                continue
+            if rows[c.end[1]].name != n:
+                names.append((c.end[1], n))
+        keep.append((c, names))
     return keep, expr, skipped
 
 
@@ -761,9 +793,13 @@ def cmd_write(t: Types, args) -> None:
     n_files = 0
     written = set()
     for _, cs in sorted(by_seg.items()):
-        bare = [c for c in cs if getattr(c, "bare", False)]  # apart: their types inline differently with more callers
+        # apart: the bare ones (their types inline differently next to forwarder
+        # classes, whose getters then have more callers), and the slot getters
+        bare = [c for c in cs if getattr(c, "bare", False) and c.thunks]
+        loose = [c for c in cs if getattr(c, "bare", False) and not c.thunks]
         rest = [c for c in cs if not getattr(c, "bare", False)]
-        for part in [*partition(t, expr, sorted(rest, key=key)), *partition(t, expr, sorted(bare, key=key))]:
+        for part in [*partition(t, expr, sorted(rest, key=key)), *partition(t, expr, sorted(bare, key=key)),
+                     *partition(t, expr, sorted(loose, key=key))]:
             (OUT_DIR / f"Unk_{key(part[0]):x}.cpp").write_text(render(t, expr, part), encoding="utf-8",
                                                                 newline="\n")
             written |= {c.name for c in part}
