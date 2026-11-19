@@ -5,11 +5,6 @@
 #include <types.h>
 #include "gflib3/Unk_239a4c0.h"
 
-// Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_1425a50(void* self);
-void Unk_1429f10(void* self);
-void Unk_142c700(void* self);
-
 class Unk_2438e00 {
 public:
     virtual ~Unk_2438e00();
@@ -422,48 +417,6 @@ void Unk_24399b0::vf21() {}
 // 0x7101424f60
 void Unk_24399b0::vf22() {}
 
-class Unk_2439900 {
-public:
-    virtual ~Unk_2439900();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-};
-
-// 0x7101425990
-void Unk_2439900::vf6() {
-    Unk_1425a50(this);
-}
-
-class Unk_2439948 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x71014259c0
-void Unk_2439948::vf5() {
-    Unk_1425a50(this);
-}
-
-class Unk_2439988 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x71014259d0
-void Unk_2439988::vf0() {
-    Unk_1425a50(this);
-}
-
 class Unk_2439b28_Obj {
 public:
     virtual void vf0();
@@ -539,40 +492,8 @@ public:
     virtual void vf10();
 };
 
-// 0x7101429d60
-void Unk_243a0d0::vf6() {
-    Unk_1429f10(this);
-}
-
 // 0x7101429c90
 void Unk_243a0d0::vf9() {}
-
-class Unk_243a138 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7101429e30
-void Unk_243a138::vf5() {
-    Unk_1429f10(this);
-}
-
-class Unk_243a178 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7101429e40
-void Unk_243a178::vf0() {
-    Unk_1429f10(this);
-}
 
 class Unk_243a308 {
 public:
@@ -588,11 +509,6 @@ public:
     virtual void vf10();
 };
 
-// 0x710142c6d0
-void Unk_243a308::vf6() {
-    Unk_142c700(this);
-}
-
 // 0x710142bd00
 u32 Unk_243a308::vf7() {
     return 1;
@@ -603,33 +519,6 @@ void Unk_243a308::vf8() {}
 
 // 0x710142bd20
 void Unk_243a308::vf10() {}
-
-class Unk_243a370 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x710142c6e0
-void Unk_243a370::vf5() {
-    Unk_142c700(this);
-}
-
-class Unk_243a3b0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x710142c6f0
-void Unk_243a3b0::vf0() {
-    Unk_142c700(this);
-}
 
 class Unk_243a3d8 {
 public:

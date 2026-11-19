@@ -5,9 +5,6 @@
 #include <types.h>
 #include "gflib3/Unk_239a4c0.h"
 
-// Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_ee21f0(void* self);
-
 // Tail-called by lifted functions. Placeholders, like the forwarders' callees.
 void Unk_ed3f30(u64);
 
@@ -76,11 +73,6 @@ public:
     virtual void vf13();
 };
 
-// 0x7100ee2180
-void Unk_23f7e30::vf6() {
-    Unk_ee21f0(this);
-}
-
 // 0x7100ee14a0
 void Unk_23f7e30::vf12() {}
 
@@ -103,25 +95,8 @@ public:
     virtual void vf11();
 };
 
-// 0x7100ee21b0
-void Unk_23f7eb0::vf5() {
-    Unk_ee21f0(this);
-}
-
 // 0x7100ee14b0
 void Unk_23f7eb0::vf10() {}
 
 // 0x7100ee14d0
 void Unk_23f7eb0::vf11() {}
-
-class Unk_23f7f20 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100ee21c0
-void Unk_23f7f20::vf0() {
-    Unk_ee21f0(this);
-}

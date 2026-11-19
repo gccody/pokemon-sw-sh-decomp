@@ -5,9 +5,7 @@
 #include <types.h>
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_b2cc40(void* self);
 void Unk_b2d2b0(void* self);
-void Unk_b2e480(void* self);
 
 class Unk_23cea48 {
 public:
@@ -31,11 +29,6 @@ public:
     u32 field_84;
 };
 PKMN_OFFSET_ASSERT(Unk_23cea48, field_84, 0x84);
-
-// 0x7100b2d790
-void Unk_23cea48::vf6() {
-    Unk_b2cc40(this);
-}
 
 // 0x7100b2d2a0
 void Unk_23cea48::vf8() {
@@ -102,33 +95,6 @@ void Unk_23ceb40::vf6() {
     field_c = 4;
 }
 
-class Unk_23cead8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100b2d7c0
-void Unk_23cead8::vf5() {
-    Unk_b2cc40(this);
-}
-
-class Unk_23ceb18 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100b2d7d0
-void Unk_23ceb18::vf0() {
-    Unk_b2cc40(this);
-}
-
 class Unk_23ceba0 {
 public:
     virtual void vf0();
@@ -144,11 +110,6 @@ public:
     virtual void vf10();
 };
 
-// 0x7100b2e450
-void Unk_23ceba0::vf6() {
-    Unk_b2e480(this);
-}
-
 // 0x7100b2dd00
 u32 Unk_23ceba0::vf7() {
     return 1;
@@ -156,30 +117,3 @@ u32 Unk_23ceba0::vf7() {
 
 // 0x7100b2dd10
 void Unk_23ceba0::vf8() {}
-
-class Unk_23cec08 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100b2e460
-void Unk_23cec08::vf5() {
-    Unk_b2e480(this);
-}
-
-class Unk_23cec48 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100b2e470
-void Unk_23cec48::vf0() {
-    Unk_b2e480(this);
-}
