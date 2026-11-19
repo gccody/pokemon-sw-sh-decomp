@@ -2,6 +2,7 @@ Sword,Shield,Size,Name
 0x7101aa1b78,0x7101aa1b78,8,_ZN5physxL6gTableE@GuTriangleMesh
 0x7101ae49b0,0x7101ae49fa,17,_ZZN6google8protobuf7strings8AlphaNumC1ENS1_3HexEE9hexdigits@strutil
 0x7101b12870,0x7101b12870,16,utf8_decode.limits@lutf8lib
+0x7101b14ad0,0x7101b14ad0,,Unk_1b14ad0
 0x7101b14ed4,0x7101b14ed4,49,_ZN5physx20g_CanUseContactCacheE
 0x7101b14f50,0x7101b14f50,128,_ZZN5physx6shdfnd18lowestSetBitUnsafeEjE5table
 0x7101b14fd0,0x7101b14fd0,128,_ZN5physx2Dy12_GLOBAL__N_18bitTableE@DyConstraintPartition
@@ -87,6 +88,8 @@ Sword,Shield,Size,Name
 0x7101f0c4b8,0x7101f0c4b8,,Unk_1f0c4b8
 0x7101f0c4ec,0x7101f0c4ec,,Unk_1f0c4ec
 0x7101f10c68,0x7101f10c68,,Unk_1f10c68
+0x7101f118f4,0x7101f118f4,,Unk_1f118f4
+0x7101f1190e,0x7101f1190e,,Unk_1f1190e
 0x7101f12228,0x7101f12228,,Unk_1f12228
 0x7101f123cc,0x7101f123cc,,Unk_1f123cc
 0x7101f124f0,0x7101f124f0,,Unk_1f124f0

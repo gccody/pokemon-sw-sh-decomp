@@ -546,9 +546,13 @@ void Unk_7f19d0(Unk_7ee6b0* self) {
     self->field_342 = 1;
 }
 
+static inline u16 Unk_7ee6b0_Species(const Unk_7ee6b0* self) {
+    return self->field_60.field_27_5 ? self->field_2a0 : self->field_60.field_10;
+}
+
 // 0x71007ef200
 u16 Unk_7ef200(const Unk_7ee6b0* self) {
-    return self->field_60.field_27_5 ? self->field_2a0 : self->field_60.field_10;
+    return Unk_7ee6b0_Species(self);
 }
 
 // 0x71007ef260
@@ -661,4 +665,207 @@ u32 Unk_7ef8d0(const Unk_7ee6b0* self) {
     if (Unk_7f8790_check(reinterpret_cast<const Unk_7f8790*>(&condition)))
         return 0;
     return Unk_7f89e0(&condition);
+}
+
+// 0x71007f1cf0
+void Unk_7f1cf0(Unk_7ee6b0* self) {
+    self->field_60.field_27_6 = 0;
+    self->field_60.field_1e6 = 0x1f;
+}
+
+// 0x71007f22a0
+bool Unk_7f22a0(Unk_7ee6b0* self, u16 types, u32 arg2) {
+    u8 old1 = self->field_2ac;
+    u8 old2 = self->field_2ad;
+    u8 old3 = self->field_2ae;
+    u8 type1 = types & 0x1f;
+    u8 type2 = (types >> 5) & 0x1f;
+    u8 type3 = (types >> 10) & 0x1f;
+    self->field_2ac = type1;
+    self->field_2ad = type2;
+    self->field_2ae = type3;
+    self->field_2b0 = arg2;
+    if (old1 == type1 && old2 == type2) {
+        if (old3 == type3)
+            return false;
+    } else if (old1 == type2 && old2 == type1 && old3 == type3) {
+        return false;
+    }
+    return true;
+}
+
+// 0x71007f24c0
+void Unk_7f24c0(Unk_7ee6b0* self, u8 arg1, u8 arg2, bool same, u32 arg4, u32 arg5) {
+    u32 old = self->field_34c;
+    self->field_34c = arg4;
+    self->field_350 = arg5;
+    self->field_34a = arg1;
+    self->field_341 = arg2;
+    if (old == arg4) {
+        if (same)
+            self->field_348++;
+        else
+            self->field_348 = 0;
+    } else {
+        self->field_348 = same;
+    }
+}
+
+// 0x71007f2570
+void Unk_7f2570(Unk_7ee6b0* self, u16 value) {
+    self->field_33a = value != 0 ? value : 1;
+}
+
+// 0x71007f2650
+bool Unk_7f2650(const Unk_7ee6b0* self, u8 turnsAgo, u8 index, Unk_7ee6b0_Action* out) {
+    if (turnsAgo < 3) {
+        s32 turn = self->field_453 - turnsAgo;
+        if (turn < 0)
+            turn += 3;
+        u8 count = self->field_450[turn];
+        if (count > index) {
+            *out = self->field_378[turn].field_0[static_cast<u8>(count - index - 1)];
+            return true;
+        }
+        return false;
+    }
+    return false;
+}
+
+// 0x71007f26d0
+void Unk_7f26d0(Unk_7ee6b0* self, u32 index, u8 value) {
+    self->field_361[index] = value;
+}
+
+// 0x71007f26e0
+void Unk_7f26e0(Unk_7ee6b0* self, u32 index) {
+    if (self->field_361[index] != 0xff)
+        self->field_361[index]++;
+}
+
+// 0x71007f2700
+void Unk_7f2700(Unk_7ee6b0* self, u8 index, u32 value) {
+    if (index <= 3)
+        self->field_368[index] = value;
+}
+
+// 0x71007f2720
+void Unk_7f2720(Unk_7ee6b0* self, u8 index, u32 value) {
+    if (index <= 3) {
+        u32 sum = self->field_368[index] + value;
+        self->field_368[index] = sum < 0xffff ? sum : 0xffff;
+    }
+}
+
+// 0x71007f2750
+u32 Unk_7f2750(const Unk_7ee6b0* self, u8 index) {
+    if (index > 3)
+        return 0;
+    return self->field_368[index];
+}
+
+// 0x71007f29e0
+bool Unk_7f29e0(const Unk_7ee6b0* self, const Unk_7ee6b0* other) {
+    if (self->field_60.field_27_5 || other->field_60.field_27_5)
+        return false;
+    if (other->field_456 == 0)
+        return true;
+    return false;
+}
+
+// 0x71007f2ed0
+bool Unk_7f2ed0(const Unk_7ee6b0* self, u8 pokeId) {
+    for (u8 i = 0; i < self->field_60.field_1c5; i++) {
+        if (self->field_60.field_1c6[i] == pokeId)
+            return true;
+    }
+    return false;
+}
+
+// 0x71007f3090
+void Unk_7f3090(Unk_7ee6b0* self, u8 count) {
+    u8 value = self->field_2c4 + count;
+    self->field_2c4 = value < 10 ? value : 10;
+    self->field_2c6 = 1;
+}
+
+// 0x71007f31a0
+bool Unk_7f31a0(const Unk_7ee6b0* self) {
+    if (self->field_60.field_28_1)
+        return true;
+    return Unk_7f7b60(Unk_7ee6b0_Species(self), self->field_33d, 0x35) == 0;
+}
+
+// 0x71007f3500
+void Unk_7f3500(Unk_7ee6b0* self) {
+    if (self->field_299 < Unk_803e30_get())
+        self->field_299++;
+}
+
+// 0x71007f3610
+void Unk_7f3610(Unk_7f3610_Self* self, const Unk_7f3610_Self* other) {
+    Unk_7f4450(&self->field_20, &other->field_20);
+    Unk_7fc750_set(static_cast<Unk_7fc750*>(self->field_0),
+                   static_cast<const Unk_7fc750_arg1*>(other->field_0));
+    self->field_3c = other->field_3c;
+    self->field_3d = other->field_3d;
+    self->field_3e = other->field_3e;
+    self->field_3f = other->field_3f;
+    self->field_40 = other->field_40;
+}
+
+// 0x71007f37f0
+u8 Unk_7f37f0(const Unk_7f3610_Self* self) {
+    return self->field_20.field_9[self->field_3e];
+}
+
+// 0x71007f3800
+void Unk_7f3800(Unk_7f3610_Self* self) {
+    u8 index = self->field_3e;
+    if (index < 2 && self->field_20.field_9[index] != 0) {
+        self->field_3e = index + 1;
+        Unk_7fc920_set(static_cast<Unk_7fc920*>(self->field_0));
+    }
+}
+
+// 0x71007f3830
+bool Unk_7f3830(const Unk_7f3610_Self* self) {
+    u8 index = self->field_3e;
+    if (index > 1)
+        return true;
+    return self->field_20.field_9[index] == 0;
+}
+
+// 0x71007f3860
+u32 Unk_7f3860(const Unk_7f3610_Self* self) {
+    u8 index = self->field_3e;
+    if (index == 0)
+        return 0;
+    return self->field_20.field_c[index - 1];
+}
+
+// 0x71007f3880
+u32 Unk_7f3880(const Unk_7f3610_Self* self) {
+    u8 index = self->field_3e;
+    if (index == 0)
+        return 0;
+    return self->field_20.field_14[index - 1];
+}
+
+// 0x71007f7080
+u64 Unk_7f7080(u64 max) {
+    return Unk_7f8c00(Unk_27ced28, max);
+}
+
+// 0x71007f7590
+u32 Unk_7f7590(u32 power, u32 attack, u32 level, u32 defense) {
+    return power * attack * (level * 2 / 5 + 2) / defense / 50 + 2;
+}
+
+// 0x71007f76c0
+u32 Unk_7f76c0(u32 a, u32 b) {
+    u32 low = a > b ? b : a;
+    u32 high = a > b ? a : b;
+    u32 range = high - low + 1;
+    return low + Unk_7f8c20(Unk_27ced28, range);
 }
