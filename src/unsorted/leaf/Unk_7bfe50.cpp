@@ -3,6 +3,19 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
+namespace nn {
+namespace crypto {
+u64 GenerateCryptographicallyRandomBytes(void*, u64);
+}
+}  // namespace nn
+
+// 0x71007bfe50
+u32 Unk_7bfe50_call() {
+    u32 l4;
+    nn::crypto::GenerateCryptographicallyRandomBytes(&l4, 4);
+    return l4;
+}
+
 struct Unk_7bfe80 {
     u8 _0[0xa8];
     u8 field_a8;

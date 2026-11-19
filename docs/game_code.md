@@ -1623,6 +1623,20 @@ global one (classes on the object declare an empty one of their own).
 constructors a batch before had left out (check.py: 41,579 matching, 42
 not matching).
 
+### Batch 36: locals on the stack
+
+`sub sp, sp, #N` / `add sp, sp, #N` belong to the frame, and the frame's
+other addresses (`add x1, sp, #8`, `sub x0, x29, #4`, loads and stores at
+`[x29, #-k]` or `[sp, #k]`) are locals: `LocalAddr`, x29-relative. Each is
+declared uninitialized at the top (`u32 l4;`), typed by how it's read or
+written, or, when only its address is passed on, by its size up to the next
+local or the frame record. That's the out-parameter shape: `u32 l4;
+Unk_<T>(self, &l4); return l4;`, including SDK calls
+(`nn::crypto::GenerateCryptographicallyRandomBytes(&l4, 4)`).
+
+The trial wrote 545 functions; 38 match (check.py: 41,617 matching, 42 not
+matching).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1648,7 +1662,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after Batch 35: check.py reports 41,579 matching and 42 not
+State after Batch 36: check.py reports 41,617 matching and 42 not
 matching, in both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the

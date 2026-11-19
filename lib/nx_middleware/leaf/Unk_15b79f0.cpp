@@ -304,6 +304,16 @@ void Unk_15bad00_set(Unk_15bad00* self) {
     self->field_121 = 0;
 }
 
+namespace nn { namespace os { u64 GenerateRandomBytes(void*, u64); } }
+
+// 0x71015baf90
+u32 Unk_15baf90_call() {
+    u32 l4;
+    l4 = 0;
+    nn::os::GenerateRandomBytes(&l4, 4);
+    return l4;
+}
+
 // 0x71015bb240
 void Unk_15bb240_update() {
 }
