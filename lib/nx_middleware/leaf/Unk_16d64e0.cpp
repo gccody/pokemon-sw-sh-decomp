@@ -305,16 +305,16 @@ bool Unk_16ef590_get(const Unk_16ef590* self, u32 value) {
 
 struct Unk_16ef5f0 {
     u8 _0[0x2d8];
-    u64 field_2d8;
+    void* field_2d8;
 };
 PKMN_OFFSET_ASSERT(Unk_16ef5f0, field_2d8, 0x2d8);
 
-void Unk_16ef600(u64);
+void Unk_16ef600(void*, u32);
 
 // 0x71016ef5f0
-void Unk_16ef5f0_call(const Unk_16ef5f0* self) {
-    if (self->field_2d8 != 0) {
-        Unk_16ef600(self->field_2d8);
+void Unk_16ef5f0_call(const Unk_16ef5f0* self, u32 value) {
+    if (self->field_2d8 != nullptr) {
+        Unk_16ef600(self->field_2d8, value);
     }
 }
 

@@ -61,11 +61,11 @@ void Unk_11969a0_set(const Unk_11969a0* self, Unk_11969a0* value) {
     *value = *self;
 }
 
-void Unk_11969d0();
+void Unk_11969d0(void*);
 
 // 0x71011969b0
-void Unk_11969b0_call() {
-    Unk_11969d0();
+void Unk_11969b0_call(void* self) {
+    Unk_11969d0(self);
 }
 
 // 0x71011969c0

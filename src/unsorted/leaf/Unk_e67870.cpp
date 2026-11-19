@@ -7,7 +7,7 @@
 void Unk_e67870() {}
 
 // 0x7100e67880
-u32 Unk_e67880_get() {
+u32 Unk_e67880_get(u64 /*unused*/) {
     return 1;
 }
 

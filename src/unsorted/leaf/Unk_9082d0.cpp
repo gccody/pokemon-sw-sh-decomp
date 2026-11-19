@@ -30,15 +30,15 @@ u32 Unk_9082d0_get(const Unk_9082d0* self) {
 
 struct Unk_90de80 {
     u8 _0[0x738];
-    u64 field_738;
+    void* field_738;
 };
 PKMN_OFFSET_ASSERT(Unk_90de80, field_738, 0x738);
 
-void Unk_8f4430(u64);
+void Unk_8f4430(void*);
 
 // 0x710090de80
 void Unk_90de80_call(const Unk_90de80* self) {
-    if (self->field_738 != 0) {
+    if (self->field_738 != nullptr) {
         Unk_8f4430(self->field_738);
     }
 }

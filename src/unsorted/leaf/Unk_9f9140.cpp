@@ -27,11 +27,11 @@ bool Unk_9f9140_check(const Unk_9f9140* self) {
 
 struct Unk_9f9320 {
     u8 _0[0x10];
-    u64 field_10;
+    void* field_10;
 };
 PKMN_OFFSET_ASSERT(Unk_9f9320, field_10, 0x10);
 
-void Unk_140c020(u64, u32, u32);
+void Unk_140c020(void*, u32, u32);
 
 // 0x71009f9320
 void Unk_9f9320_call(const Unk_9f9320* self) {
@@ -40,11 +40,11 @@ void Unk_9f9320_call(const Unk_9f9320* self) {
 
 struct Unk_9f9330 {
     u8 _0[0x10];
-    u64 field_10;
+    void* field_10;
 };
 PKMN_OFFSET_ASSERT(Unk_9f9330, field_10, 0x10);
 
-void Unk_140c020(u64, u32, u32);
+void Unk_140c020(void*, u32, u32);
 
 // 0x71009f9330
 void Unk_9f9330_call(const Unk_9f9330* self) {
@@ -53,11 +53,11 @@ void Unk_9f9330_call(const Unk_9f9330* self) {
 
 struct Unk_9f9340 {
     u8 _0[0x10];
-    u64 field_10;
+    void* field_10;
 };
 PKMN_OFFSET_ASSERT(Unk_9f9340, field_10, 0x10);
 
-void Unk_140bff0(u64);
+void Unk_140bff0(void*);
 
 // 0x71009f9340
 void Unk_9f9340_call(const Unk_9f9340* self) {
@@ -142,278 +142,278 @@ void Unk_a41880_update() {}
 // 0x7100a42630
 void Unk_a42630_update() {}
 
-void Unk_a38ab0(void*, u64, u64, u32);
+void Unk_a38ab0(void*, void*, void*, u32);
 
 // 0x7100a42640
-void Unk_a42640_call(void* self, u64 value, u64 arg2) {
+void Unk_a42640_call(void* self, void* value, void* arg2) {
     Unk_a38ab0(self, value, arg2, 0);
 }
 
-void Unk_a38e50(void*, u64, u64, u32);
+void Unk_a38e50(void*, void*, void*, u32);
 
 // 0x7100a42650
-void Unk_a42650_call(void* self, u64 value, u64 arg2) {
+void Unk_a42650_call(void* self, void* value, void* arg2) {
     Unk_a38e50(self, value, arg2, 0);
 }
 
-void Unk_a39390(void*, u64, u64, u32);
+void Unk_a39390(void*, void*, void*, u32);
 
 // 0x7100a42660
-void Unk_a42660_call(void* self, u64 value, u64 arg2) {
+void Unk_a42660_call(void* self, void* value, void* arg2) {
     Unk_a39390(self, value, arg2, 0);
 }
 
-void Unk_a39880(void*, u64, u64, u32);
+void Unk_a39880(void*, void*, void*, u32);
 
 // 0x7100a42670
-void Unk_a42670_call(void* self, u64 value, u64 arg2) {
+void Unk_a42670_call(void* self, void* value, void* arg2) {
     Unk_a39880(self, value, arg2, 0);
 }
 
-void Unk_a39eb0(void*, u64, u64, u32);
+void Unk_a39eb0(void*, void*, void*, u32);
 
 // 0x7100a42680
-void Unk_a42680_call(void* self, u64 value, u64 arg2) {
+void Unk_a42680_call(void* self, void* value, void* arg2) {
     Unk_a39eb0(self, value, arg2, 0);
 }
 
-void Unk_a3a270(void*, u64, u64, u32);
+void Unk_a3a270(void*, void*, void*, u32);
 
 // 0x7100a42750
-void Unk_a42750_call(void* self, u64 value, u64 arg2) {
+void Unk_a42750_call(void* self, void* value, void* arg2) {
     Unk_a3a270(self, value, arg2, 0);
 }
 
-void Unk_a3a4f0(void*, u64, u64, u32);
+void Unk_a3a4f0(void*, void*, void*, u32);
 
 // 0x7100a42760
-void Unk_a42760_call(void* self, u64 value, u64 arg2) {
+void Unk_a42760_call(void* self, void* value, void* arg2) {
     Unk_a3a4f0(self, value, arg2, 0);
 }
 
-void Unk_a3a770(void*, u64, u64, u32);
+void Unk_a3a770(void*, void*, void*, u32);
 
 // 0x7100a42770
-void Unk_a42770_call(void* self, u64 value, u64 arg2) {
+void Unk_a42770_call(void* self, void* value, void* arg2) {
     Unk_a3a770(self, value, arg2, 0);
 }
 
-void Unk_a3aa00(void*, u64, u64, u32);
+void Unk_a3aa00(void*, void*, void*, u32);
 
 // 0x7100a42780
-void Unk_a42780_call(void* self, u64 value, u64 arg2) {
+void Unk_a42780_call(void* self, void* value, void* arg2) {
     Unk_a3aa00(self, value, arg2, 0);
 }
 
-void Unk_a3ae20(void*, u64, u64, u32);
+void Unk_a3ae20(void*, void*, void*, u32);
 
 // 0x7100a42790
-void Unk_a42790_call(void* self, u64 value, u64 arg2) {
+void Unk_a42790_call(void* self, void* value, void* arg2) {
     Unk_a3ae20(self, value, arg2, 0);
 }
 
-void Unk_a3b260(void*, u64, u64, u32);
+void Unk_a3b260(void*, void*, u64, u32);
 
 // 0x7100a427a0
-void Unk_a427a0_call(void* self, u64 value, u64 arg2) {
+void Unk_a427a0_call(void* self, void* value, u64 arg2) {
     Unk_a3b260(self, value, arg2, 0);
 }
 
-void Unk_a3b050(void*, u64, u64, u32);
+void Unk_a3b050(void*, void*, u64, u32);
 
 // 0x7100a427b0
-void Unk_a427b0_call(void* self, u64 value, u64 arg2) {
+void Unk_a427b0_call(void* self, void* value, u64 arg2) {
     Unk_a3b050(self, value, arg2, 0);
 }
 
-void Unk_a3b650(void*, u64, u64, u32);
+void Unk_a3b650(void*, void*, u64, u32);
 
 // 0x7100a427c0
-void Unk_a427c0_call(void* self, u64 value, u64 arg2) {
+void Unk_a427c0_call(void* self, void* value, u64 arg2) {
     Unk_a3b650(self, value, arg2, 0);
 }
 
-void Unk_a3b4f0(void*, u64, u64, u32);
+void Unk_a3b4f0(void*, void*, u64, u32);
 
 // 0x7100a427d0
-void Unk_a427d0_call(void* self, u64 value, u64 arg2) {
+void Unk_a427d0_call(void* self, void* value, u64 arg2) {
     Unk_a3b4f0(self, value, arg2, 0);
 }
 
-void Unk_a3bf50(void*, u64, u64, u32);
+void Unk_a3bf50(void*, void*, u64, u32);
 
 // 0x7100a427e0
-void Unk_a427e0_call(void* self, u64 value, u64 arg2) {
+void Unk_a427e0_call(void* self, void* value, u64 arg2) {
     Unk_a3bf50(self, value, arg2, 0);
 }
 
-void Unk_a3b7d0(void*, u64, u64, u32);
+void Unk_a3b7d0(void*, void*, u64, u32);
 
 // 0x7100a427f0
-void Unk_a427f0_call(void* self, u64 value, u64 arg2) {
+void Unk_a427f0_call(void* self, void* value, u64 arg2) {
     Unk_a3b7d0(self, value, arg2, 0);
 }
 
 // 0x7100a42800
 void Unk_a42800_update() {}
 
-void Unk_a3c990(void*, u64, u64, u32);
+void Unk_a3c990(void*, void*, u64, u32);
 
 // 0x7100a42810
-void Unk_a42810_call(void* self, u64 value, u64 arg2) {
+void Unk_a42810_call(void* self, void* value, u64 arg2) {
     Unk_a3c990(self, value, arg2, 0);
 }
 
-void Unk_a3c810(void*, u64, u64, u32);
+void Unk_a3c810(void*, void*, u64, u32);
 
 // 0x7100a42820
-void Unk_a42820_call(void* self, u64 value, u64 arg2) {
+void Unk_a42820_call(void* self, void* value, u64 arg2) {
     Unk_a3c810(self, value, arg2, 0);
 }
 
-void Unk_a3cc70(void*, u64, u64, u32);
+void Unk_a3cc70(void*, void*, u64, u32);
 
 // 0x7100a42970
-void Unk_a42970_call(void* self, u64 value, u64 arg2) {
+void Unk_a42970_call(void* self, void* value, u64 arg2) {
     Unk_a3cc70(self, value, arg2, 0);
 }
 
 // 0x7100a42980
 void Unk_a42980_update() {}
 
-void Unk_a38ab0(void*, u64, u64, u32);
+void Unk_a38ab0(void*, void*, void*, u32);
 
 // 0x7100a42990
-void Unk_a42990_call(void* self, u64 value, u64 arg2) {
+void Unk_a42990_call(void* self, void* value, void* arg2) {
     Unk_a38ab0(self, value, arg2, 1);
 }
 
-void Unk_a38e50(void*, u64, u64, u32);
+void Unk_a38e50(void*, void*, void*, u32);
 
 // 0x7100a429a0
-void Unk_a429a0_call(void* self, u64 value, u64 arg2) {
+void Unk_a429a0_call(void* self, void* value, void* arg2) {
     Unk_a38e50(self, value, arg2, 0);
 }
 
-void Unk_a39880(void*, u64, u64, u32);
+void Unk_a39880(void*, void*, void*, u32);
 
 // 0x7100a429b0
-void Unk_a429b0_call(void* self, u64 value, u64 arg2) {
+void Unk_a429b0_call(void* self, void* value, void* arg2) {
     Unk_a39880(self, value, arg2, 1);
 }
 
-void Unk_a39390(void*, u64, u64, u32);
+void Unk_a39390(void*, void*, void*, u32);
 
 // 0x7100a429c0
-void Unk_a429c0_call(void* self, u64 value, u64 arg2) {
+void Unk_a429c0_call(void* self, void* value, void* arg2) {
     Unk_a39390(self, value, arg2, 1);
 }
 
-void Unk_a39eb0(void*, u64, u64, u32);
+void Unk_a39eb0(void*, void*, void*, u32);
 
 // 0x7100a429d0
-void Unk_a429d0_call(void* self, u64 value, u64 arg2) {
+void Unk_a429d0_call(void* self, void* value, void* arg2) {
     Unk_a39eb0(self, value, arg2, 1);
 }
 
-void Unk_a3a270(void*, u64, u64, u32);
+void Unk_a3a270(void*, void*, void*, u32);
 
 // 0x7100a42aa0
-void Unk_a42aa0_call(void* self, u64 value, u64 arg2) {
+void Unk_a42aa0_call(void* self, void* value, void* arg2) {
     Unk_a3a270(self, value, arg2, 1);
 }
 
-void Unk_a3a4f0(void*, u64, u64, u32);
+void Unk_a3a4f0(void*, void*, void*, u32);
 
 // 0x7100a42ab0
-void Unk_a42ab0_call(void* self, u64 value, u64 arg2) {
+void Unk_a42ab0_call(void* self, void* value, void* arg2) {
     Unk_a3a4f0(self, value, arg2, 1);
 }
 
-void Unk_a3a770(void*, u64, u64, u32);
+void Unk_a3a770(void*, void*, void*, u32);
 
 // 0x7100a42ac0
-void Unk_a42ac0_call(void* self, u64 value, u64 arg2) {
+void Unk_a42ac0_call(void* self, void* value, void* arg2) {
     Unk_a3a770(self, value, arg2, 1);
 }
 
-void Unk_a3aa00(void*, u64, u64, u32);
+void Unk_a3aa00(void*, void*, void*, u32);
 
 // 0x7100a42ad0
-void Unk_a42ad0_call(void* self, u64 value, u64 arg2) {
+void Unk_a42ad0_call(void* self, void* value, void* arg2) {
     Unk_a3aa00(self, value, arg2, 1);
 }
 
-void Unk_a3ae20(void*, u64, u64, u32);
+void Unk_a3ae20(void*, void*, void*, u32);
 
 // 0x7100a42ae0
-void Unk_a42ae0_call(void* self, u64 value, u64 arg2) {
+void Unk_a42ae0_call(void* self, void* value, void* arg2) {
     Unk_a3ae20(self, value, arg2, 1);
 }
 
-void Unk_a3b260(void*, u64, u64, u32);
+void Unk_a3b260(void*, void*, u64, u32);
 
 // 0x7100a42af0
-void Unk_a42af0_call(void* self, u64 value, u64 arg2) {
+void Unk_a42af0_call(void* self, void* value, u64 arg2) {
     Unk_a3b260(self, value, arg2, 1);
 }
 
-void Unk_a3b050(void*, u64, u64, u32);
+void Unk_a3b050(void*, void*, u64, u32);
 
 // 0x7100a42b00
-void Unk_a42b00_call(void* self, u64 value, u64 arg2) {
+void Unk_a42b00_call(void* self, void* value, u64 arg2) {
     Unk_a3b050(self, value, arg2, 1);
 }
 
-void Unk_a3b650(void*, u64, u64, u32);
+void Unk_a3b650(void*, void*, u64, u32);
 
 // 0x7100a42b10
-void Unk_a42b10_call(void* self, u64 value, u64 arg2) {
+void Unk_a42b10_call(void* self, void* value, u64 arg2) {
     Unk_a3b650(self, value, arg2, 1);
 }
 
-void Unk_a3b4f0(void*, u64, u64, u32);
+void Unk_a3b4f0(void*, void*, u64, u32);
 
 // 0x7100a42b20
-void Unk_a42b20_call(void* self, u64 value, u64 arg2) {
+void Unk_a42b20_call(void* self, void* value, u64 arg2) {
     Unk_a3b4f0(self, value, arg2, 1);
 }
 
-void Unk_a3bf50(void*, u64, u64, u32);
+void Unk_a3bf50(void*, void*, u64, u32);
 
 // 0x7100a42b30
-void Unk_a42b30_call(void* self, u64 value, u64 arg2) {
+void Unk_a42b30_call(void* self, void* value, u64 arg2) {
     Unk_a3bf50(self, value, arg2, 1);
 }
 
-void Unk_a3b7d0(void*, u64, u64, u32);
+void Unk_a3b7d0(void*, void*, u64, u32);
 
 // 0x7100a42b40
-void Unk_a42b40_call(void* self, u64 value, u64 arg2) {
+void Unk_a42b40_call(void* self, void* value, u64 arg2) {
     Unk_a3b7d0(self, value, arg2, 1);
 }
 
 // 0x7100a42b50
 void Unk_a42b50_update() {}
 
-void Unk_a3c810(void*, u64, u64, u32);
+void Unk_a3c810(void*, void*, u64, u32);
 
 // 0x7100a42b60
-void Unk_a42b60_call(void* self, u64 value, u64 arg2) {
+void Unk_a42b60_call(void* self, void* value, u64 arg2) {
     Unk_a3c810(self, value, arg2, 1);
 }
 
-void Unk_a3c990(void*, u64, u64, u32);
+void Unk_a3c990(void*, void*, u64, u32);
 
 // 0x7100a42b70
-void Unk_a42b70_call(void* self, u64 value, u64 arg2) {
+void Unk_a42b70_call(void* self, void* value, u64 arg2) {
     Unk_a3c990(self, value, arg2, 1);
 }
 
-void Unk_a3cc70(void*, u64, u64, u32);
+void Unk_a3cc70(void*, void*, u64, u32);
 
 // 0x7100a42cc0
-void Unk_a42cc0_call(void* self, u64 value, u64 arg2) {
+void Unk_a42cc0_call(void* self, void* value, u64 arg2) {
     Unk_a3cc70(self, value, arg2, 1);
 }
 
@@ -614,10 +614,10 @@ void Unk_a5d520_update() {}
 // 0x7100a5da20
 void Unk_a5da20_update() {}
 
-void Unk_954bd0(u64);
+void Unk_954bd0(void*);
 
 // 0x7100a5da30
-void Unk_a5da30_call(void* /*unused*/, u64 value) {
+void Unk_a5da30_call(void* /*unused*/, void* value) {
     Unk_954bd0(value);
 }
 
@@ -648,10 +648,10 @@ void Unk_a5ef30_call(u64 self, u64 value) {
 void Unk_a5ef70_update() {}
 
 void Unk_140b690(u64, void*, u32);
-void Unk_962c50(u64, u32);
+void Unk_962c50(void*, u32);
 
 // 0x7100a5ef80
-void Unk_a5ef80_call(u64 self, u64 value) {
+void Unk_a5ef80_call(u64 self, void* value) {
     u32 l4;
     Unk_140b690(self, &l4, 1);
     Unk_962c50(value, l4);
@@ -2614,15 +2614,15 @@ void Unk_a65c10_set(const Unk_a65c10* self, Unk_a65c10* value) {
 }
 
 struct Unk_a65c20 {
-    u64 field_0;
+    void* field_0;
 };
 PKMN_OFFSET_ASSERT(Unk_a65c20, field_0, 0x0);
 
-void Unk_981350(u64);
+void Unk_981350(void*, void*);
 
 // 0x7100a65c20
-void Unk_a65c20_call(const Unk_a65c20* self) {
-    Unk_981350(self->field_0);
+void Unk_a65c20_call(const Unk_a65c20* self, void* value) {
+    Unk_981350(self->field_0, value);
 }
 
 // 0x7100a65c30
@@ -4384,7 +4384,7 @@ void Unk_a68590_set(const Unk_a68590* self, Unk_a68590_arg1* value) {
 }
 
 struct Unk_a685a0 {
-    u64 field_0;
+    void* field_0;
     u32 field_8;
     u32 field_c;
 };
@@ -4392,10 +4392,10 @@ PKMN_OFFSET_ASSERT(Unk_a685a0, field_0, 0x0);
 PKMN_OFFSET_ASSERT(Unk_a685a0, field_8, 0x8);
 PKMN_OFFSET_ASSERT(Unk_a685a0, field_c, 0xc);
 
-void Unk_9891e0(u64, u32, u32, u64);
+void Unk_9891e0(void*, u32, u32, void*);
 
 // 0x7100a685a0
-void Unk_a685a0_call(const Unk_a685a0* self, u64 value) {
+void Unk_a685a0_call(const Unk_a685a0* self, void* value) {
     Unk_9891e0(self->field_0, self->field_c, self->field_8, value);
 }
 
@@ -4902,7 +4902,7 @@ void Unk_a69450_set(Unk_a69450* self, Unk_a69450_arg1* value) {
 }
 
 struct Unk_a69580 {
-    u64 field_0;
+    void* field_0;
     u32 field_8;
     u32 field_c;
 };
@@ -4910,10 +4910,10 @@ PKMN_OFFSET_ASSERT(Unk_a69580, field_0, 0x0);
 PKMN_OFFSET_ASSERT(Unk_a69580, field_8, 0x8);
 PKMN_OFFSET_ASSERT(Unk_a69580, field_c, 0xc);
 
-void Unk_9891e0(u64, u32, u32, u64);
+void Unk_9891e0(void*, u32, u32, void*);
 
 // 0x7100a69580
-void Unk_a69580_call(const Unk_a69580* self, u64 value) {
+void Unk_a69580_call(const Unk_a69580* self, void* value) {
     Unk_9891e0(self->field_0, self->field_c, self->field_8, value);
 }
 
@@ -5151,10 +5151,10 @@ void Unk_a69e70_set(Unk_a69e70* self, Unk_a69e70_arg1* value) {
     value->field_8 = v0;
 }
 
-void Unk_ee3c60(u64);
+void Unk_ee3c60(void*);
 
 // 0x7100a69ff0
-void Unk_a69ff0_call(void* /*unused*/, u64 value) {
+void Unk_a69ff0_call(void* /*unused*/, void* value) {
     Unk_ee3c60(value);
 }
 
@@ -5167,10 +5167,10 @@ void Unk_a6a010_update() {}
 // 0x7100a6a020
 void Unk_a6a020_update() {}
 
-void Unk_ee3c20(u64);
+void Unk_ee3c20(void*);
 
 // 0x7100a6a170
-void Unk_a6a170_call(void* /*unused*/, u64 value) {
+void Unk_a6a170_call(void* /*unused*/, void* value) {
     Unk_ee3c20(value);
 }
 
@@ -5787,14 +5787,14 @@ void Unk_a6b970_set(const Unk_a6b970* self, Unk_a6b970_arg1* value) {
 }
 
 struct Unk_a6b980 {
-    u64 field_0;
-    u64 field_8;
+    void* field_0;
+    void* field_8;
 };
 PKMN_OFFSET_ASSERT(Unk_a6b980, field_0, 0x0);
 PKMN_OFFSET_ASSERT(Unk_a6b980, field_8, 0x8);
 
-void Unk_965af0(u64, u32);
-void Unk_ed2ed0(u64, u32);
+void Unk_965af0(void*, u32);
+void Unk_ed2ed0(void*, u32);
 
 // 0x7100a6b980
 void Unk_a6b980_call(const Unk_a6b980* self) {
@@ -6103,11 +6103,11 @@ void Unk_a6bbf0_set(const Unk_a6bbf0* self, Unk_a6bbf0_arg1* value) {
 }
 
 struct Unk_a6bc00 {
-    u64 field_0;
+    void* field_0;
 };
 PKMN_OFFSET_ASSERT(Unk_a6bc00, field_0, 0x0);
 
-void Unk_97fdd0(u64, u32);
+void Unk_97fdd0(void*, u32);
 
 // 0x7100a6bc00
 void Unk_a6bc00_call(const Unk_a6bc00* self) {
@@ -6411,11 +6411,11 @@ void Unk_a6c180_set(const Unk_a6c180* self, Unk_a6c180_arg1* value) {
 }
 
 struct Unk_a6c190 {
-    u64 field_0;
+    void* field_0;
 };
 PKMN_OFFSET_ASSERT(Unk_a6c190, field_0, 0x0);
 
-void Unk_954450(u64);
+void Unk_954450(void*);
 
 // 0x7100a6c190
 void Unk_a6c190_call(const Unk_a6c190* self) {
@@ -6456,11 +6456,11 @@ void Unk_a6c1c0_set(const Unk_a6c1c0* self, Unk_a6c1c0_arg1* value) {
 }
 
 struct Unk_a6c1d0 {
-    u64 field_0;
+    void* field_0;
 };
 PKMN_OFFSET_ASSERT(Unk_a6c1d0, field_0, 0x0);
 
-void Unk_954570(u64);
+void Unk_954570(void*);
 
 // 0x7100a6c1d0
 void Unk_a6c1d0_call(const Unk_a6c1d0* self) {
@@ -6501,11 +6501,11 @@ void Unk_a6c200_set(const Unk_a6c200* self, Unk_a6c200_arg1* value) {
 }
 
 struct Unk_a6c210 {
-    u64 field_0;
+    void* field_0;
 };
 PKMN_OFFSET_ASSERT(Unk_a6c210, field_0, 0x0);
 
-void Unk_98c900(u64);
+void Unk_98c900(void*);
 
 // 0x7100a6c210
 void Unk_a6c210_call(const Unk_a6c210* self) {

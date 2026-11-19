@@ -34,14 +34,14 @@ void Unk_410f90_set(Unk_410f90* self, u32 value) {
     self->field_8 = 0;
 }
 
-void Unk_412d20();
-void Unk_412ed0();
+void Unk_412d20(u32, u32, u32, void*, u32);
+void Unk_412ed0(u32, u32, u32, void*, u32);
 
 // 0x7100413160
-void Unk_413160_call(void* /*unused*/, u64 /*unused*/, u64 /*unused*/, u64 /*unused*/, u64 /*unused*/, u32 arg5) {
+void Unk_413160_call(u32 self, u32 value, u32 arg2, void* arg3, u32 arg4, u32 arg5) {
     if (arg5 != 0) {
-        Unk_412ed0();
+        Unk_412ed0(self, value, arg2, arg3, arg4);
         return;
     }
-    Unk_412d20();
+    Unk_412d20(self, value, arg2, arg3, arg4);
 }

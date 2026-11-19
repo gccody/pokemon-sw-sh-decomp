@@ -114,13 +114,13 @@ void Unk_d0b220_call(Unk_d0b220* self) {
 
 struct Unk_d0b570 {
     u8 _0[0x2a8];
-    u64 field_2a8;
+    void* field_2a8;
 };
 PKMN_OFFSET_ASSERT(Unk_d0b570, field_2a8, 0x2a8);
 
-void Unk_5c89c0(u64);
+void Unk_5c89c0(void*, void*, void*, u32);
 
 // 0x7100d0b570
-void Unk_d0b570_call(const Unk_d0b570* self) {
-    Unk_5c89c0(self->field_2a8);
+void Unk_d0b570_call(const Unk_d0b570* self, void* value, void* arg2, u32 arg3) {
+    Unk_5c89c0(self->field_2a8, value, arg2, arg3);
 }

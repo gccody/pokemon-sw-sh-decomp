@@ -4,6 +4,6 @@
 #include <types.h>
 
 // 0x71004e3c30
-u32 Unk_4e3c30_get() {
+u32 Unk_4e3c30_get(u64 /*unused*/) {
     return 1;
 }

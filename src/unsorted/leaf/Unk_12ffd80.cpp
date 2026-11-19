@@ -90,11 +90,11 @@ void Unk_1306cc0_set(Unk_1306cc0* self, u32 value) {
     }
 }
 
-void Unk_1306cf0();
+void Unk_1306cf0(void*);
 
 // 0x7101306ce0
-void Unk_1306ce0_call() {
-    Unk_1306cf0();
+void Unk_1306ce0_call(void* self) {
+    Unk_1306cf0(self);
 }
 
 struct Unk_13077f0 {
@@ -108,10 +108,10 @@ bool Unk_13077f0_check(const Unk_13077f0* self, u32 value) {
     return ((self->field_af8 == 3) | value) != 1;
 }
 
-void Unk_1307de0(void*, u64, u32, u32);
+void Unk_1307de0(void*, void*, u32, u32);
 
 // 0x7101307dd0
-void Unk_1307dd0_call(void* self, u64 value, bool arg2) {
+void Unk_1307dd0_call(void* self, void* value, bool arg2) {
     Unk_1307de0(self, value, 0xa, arg2);
 }
 
@@ -199,11 +199,11 @@ void Unk_1309a80_set(Unk_1309a80* self) {
 // 0x710130abe0
 void Unk_130abe0() {}
 
-void Unk_67c4e0();
+void Unk_67c4e0(void*, u32);
 
 // 0x710130ac20
-void Unk_130ac20_call() {
-    Unk_67c4e0();
+void Unk_130ac20_call(void* self, u32 value) {
+    Unk_67c4e0(self, value);
 }
 
 struct Unk_67bdb0;

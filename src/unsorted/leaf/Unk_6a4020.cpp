@@ -100,7 +100,7 @@ PKMN_OFFSET_ASSERT(Unk_6a4cc0, field_b0, 0xb0);
 void Unk_163ece0(u64);
 
 // 0x71006a4cc0
-void Unk_6a4cc0_call(const Unk_6a4cc0* self) {
+void Unk_6a4cc0_call(const Unk_6a4cc0* self, u64 /*unused*/) {
     if (self->field_b0 != 0) {
         Unk_163ece0(self->field_b0);
     }
@@ -115,7 +115,7 @@ PKMN_OFFSET_ASSERT(Unk_6a4cd0, field_b0, 0xb0);
 void Unk_163ecf0(u64);
 
 // 0x71006a4cd0
-void Unk_6a4cd0_call(const Unk_6a4cd0* self) {
+void Unk_6a4cd0_call(const Unk_6a4cd0* self, u64 /*unused*/) {
     if (self->field_b0 != 0) {
         Unk_163ecf0(self->field_b0);
     }

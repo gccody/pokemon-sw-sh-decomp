@@ -4,7 +4,7 @@
 #include <types.h>
 
 // 0x71015b79f0
-void Unk_15b79f0_update() {
+void Unk_15b79f0_update(u64 /*unused*/, u64 /*unused*/) {
 }
 
 struct Unk_15b7a70 {
@@ -200,18 +200,18 @@ u64 Unk_15b9280_get(const Unk_15b9280* self) {
     return self->field_10;
 }
 
-void Unk_15c0b80();
+void Unk_15c0b80(void*);
 
 // 0x71015b9320
-void Unk_15b9320_call() {
-    Unk_15c0b80();
+void Unk_15b9320_call(void* self) {
+    Unk_15c0b80(self);
 }
 
-void Unk_15c0c80();
+void Unk_15c0c80(void*);
 
 // 0x71015b9330
-void Unk_15b9330_call() {
-    Unk_15c0c80();
+void Unk_15b9330_call(void* self) {
+    Unk_15c0c80(self);
 }
 
 struct Unk_15b9c70_60 {
@@ -444,12 +444,12 @@ struct Unk_15becb0 {
 };
 PKMN_OFFSET_ASSERT(Unk_15becb0, field_8, 0x8);
 
-void Unk_15becc0();
+void Unk_15becc0(void*, void*);
 
 // 0x71015becb0
-void Unk_15becb0_call(Unk_15becb0* self) {
+void Unk_15becb0_call(Unk_15becb0* self, void* value) {
     self->field_8 = 0;
-    Unk_15becc0();
+    Unk_15becc0(self, value);
 }
 
 struct Unk_15beeb0 {

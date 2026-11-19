@@ -55,11 +55,11 @@ void Unk_1277480_update() {}
 void Unk_1277490_update() {}
 
 struct Unk_1278360 {
-    u64 field_0;
+    void* field_0;
 };
 PKMN_OFFSET_ASSERT(Unk_1278360, field_0, 0x0);
 
-void Unk_1277bd0(u64);
+void Unk_1277bd0(void*);
 
 // 0x7101278360
 void Unk_1278360_call(const Unk_1278360* self) {

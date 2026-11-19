@@ -5,24 +5,24 @@
 
 struct Unk_11ba640 {
     u8 _0[0x138];
-    u64 field_138;
+    void* field_138;
 };
 PKMN_OFFSET_ASSERT(Unk_11ba640, field_138, 0x138);
 
-void Unk_11bba20(u64);
+void Unk_11bba20(void*, u64);
 
 // 0x71011ba640
-void Unk_11ba640_call(const Unk_11ba640* self) {
-    Unk_11bba20(self->field_138);
+void Unk_11ba640_call(const Unk_11ba640* self, u64 value) {
+    Unk_11bba20(self->field_138, value);
 }
 
 struct Unk_11ba650 {
     u8 _0[0x138];
-    u64 field_138;
+    void* field_138;
 };
 PKMN_OFFSET_ASSERT(Unk_11ba650, field_138, 0x138);
 
-void Unk_11bbe00(u64);
+void Unk_11bbe00(void*);
 
 // 0x71011ba650
 void Unk_11ba650_call(const Unk_11ba650* self) {

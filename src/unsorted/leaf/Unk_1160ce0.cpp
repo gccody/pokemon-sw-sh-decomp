@@ -261,13 +261,13 @@ struct Unk_1165170 {
 };
 PKMN_OFFSET_ASSERT(Unk_1165170, field_68, 0x68);
 PKMN_OFFSET_ASSERT(Unk_1165170, field_3e0, 0x3e0);
-void Unk_1165190();
+void Unk_1165190(void*);
 
 // 0x7101165170
-void Unk_1165170_call(const Unk_1165170* self) {
+void Unk_1165170_call(Unk_1165170* self) {
     if (self->field_3e0 != 0) {
         if (self->field_68 != 0) {
-            Unk_1165190();
+            Unk_1165190(self);
             return;
         }
         return;

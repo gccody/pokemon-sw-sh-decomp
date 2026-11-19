@@ -34,11 +34,11 @@ void Unk_116d7e0_call(void* self) {
     Unk_116d6f0(self);
 }
 
-u32 Unk_116db10();
+u32 Unk_116db10(void*);
 
 // 0x710116d900
-bool Unk_116d900_call() {
-    u32 r0 = Unk_116db10();
+bool Unk_116d900_call(void* self) {
+    u32 r0 = Unk_116db10(self);
     return (r0 | 1) == 3;
 }
 
@@ -274,11 +274,11 @@ void Unk_11726b0_set(Unk_11726b0* self, f32 fvalue, f32 farg1) {
 
 struct Unk_11729c0 {
     u8 _0[0x80];
-    u64 field_80;
+    void* field_80;
 };
 PKMN_OFFSET_ASSERT(Unk_11729c0, field_80, 0x80);
 
-u64 Unk_1173a10(u64);
+u64 Unk_1173a10(void*);
 
 // 0x71011729c0
 bool Unk_11729c0_call(const Unk_11729c0* self) {

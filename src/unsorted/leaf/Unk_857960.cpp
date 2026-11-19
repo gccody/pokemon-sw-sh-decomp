@@ -2319,10 +2319,10 @@ const u8* Unk_859160_update(Unk_859160* self) {
     return Unk_23b1170;
 }
 
-void Unk_7e8d00(u64, u64);
+void Unk_7e8d00(void*, void*);
 
 // 0x7100859440
-void Unk_859440_call(u64 self, u64 value) {
+void Unk_859440_call(void* self, void* value) {
     Unk_7e8d00(self, value);
 }
 
@@ -2599,11 +2599,11 @@ void Unk_85bbb0_call(void* self, u64 value) {
     Unk_85bb00(self, value, 2);
 }
 
-void Unk_81b550();
+void Unk_81b550(void*, u32);
 
 // 0x710085ef10
-void Unk_85ef10_call() {
-    Unk_81b550();
+void Unk_85ef10_call(void* self, u32 value) {
+    Unk_81b550(self, value);
 }
 
 void Unk_8608d0(void*, u64, u32, u32);
@@ -2620,11 +2620,11 @@ void Unk_860980_call(void* self, u64 value) {
     Unk_8608d0(self, value, 0xc, 1);
 }
 
-void Unk_81b6e0();
+void Unk_81b6e0(void*, u32);
 
 // 0x7100860f20
-void Unk_860f20_call() {
-    Unk_81b6e0();
+void Unk_860f20_call(void* self, u32 value) {
+    Unk_81b6e0(self, value);
 }
 
 void Unk_861190(void*, u64, u32);

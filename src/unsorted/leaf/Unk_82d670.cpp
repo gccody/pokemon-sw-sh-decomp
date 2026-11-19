@@ -28,25 +28,25 @@ void Unk_82d670_set(Unk_82d670* self) {
     self->field_8 = 0;
 }
 
-void Unk_7eb260();
+void Unk_7eb260(u32);
 
 // 0x710082d990
-void Unk_82d990_call() {
-    Unk_7eb260();
+void Unk_82d990_call(u32 self) {
+    Unk_7eb260(self);
 }
 
-void Unk_780d70();
+void Unk_780d70(u32);
 
 // 0x710082da60
-void Unk_82da60_call() {
-    Unk_780d70();
+void Unk_82da60_call(u32 self) {
+    Unk_780d70(self);
 }
 
-void Unk_7812a0();
+void Unk_7812a0(u32);
 
 // 0x710082da70
-void Unk_82da70_call() {
-    Unk_7812a0();
+void Unk_82da70_call(u32 self) {
+    Unk_7812a0(self);
 }
 
 struct Unk_27cf224_Data {

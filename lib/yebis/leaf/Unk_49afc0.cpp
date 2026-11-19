@@ -18,9 +18,9 @@ u32 Unk_49afc0_update(Unk_49afc0* self, f32 fvalue, f32 farg1) {
     return 0;
 }
 
-void Unk_49ca70(void*, u64, u32);
+void Unk_49ca70(void*, void*, u32);
 
 // 0x710049c8d0
-void Unk_49c8d0_call(void* self, u64 value) {
+void Unk_49c8d0_call(void* self, void* value) {
     Unk_49ca70(self, value, 0xffffffff);
 }

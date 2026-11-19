@@ -289,11 +289,11 @@ void Unk_f900f0_set(const Unk_f900f0* self, Unk_f900f0_arg1* value) {
 }
 
 struct Unk_f90100 {
-    u64 field_0;
+    void* field_0;
 };
 PKMN_OFFSET_ASSERT(Unk_f90100, field_0, 0x0);
 
-void Unk_f89de0(u64, u32);
+void Unk_f89de0(void*, u32);
 
 // 0x7100f90100
 void Unk_f90100_call(const Unk_f90100* self) {

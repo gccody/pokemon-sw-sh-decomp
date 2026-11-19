@@ -213,11 +213,11 @@ u64 Unk_1435810_get() {
 
 struct Unk_1435ec0 {
     u8 _0[0x88];
-    u64 field_88;
+    void* field_88;
 };
 PKMN_OFFSET_ASSERT(Unk_1435ec0, field_88, 0x88);
 
-void Unk_eb8a30(u64, u32);
+void Unk_eb8a30(void*, u32);
 
 // 0x7101435ec0
 void Unk_1435ec0_call(const Unk_1435ec0* self) {

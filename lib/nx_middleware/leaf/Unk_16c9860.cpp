@@ -3,17 +3,17 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
-void Unk_16c9870(u64, u32);
+void Unk_16c9870(void*, u32);
 
 // 0x71016c9860
-void Unk_16c9860_call(void* /*unused*/, u64 value) {
+void Unk_16c9860_call(void* /*unused*/, void* value) {
     Unk_16c9870(value, 1);
 }
 
-void Unk_16c9e60(u64, u32);
+void Unk_16c9e60(void*, u32);
 
 // 0x71016c9f90
-void Unk_16c9f90_call(void* /*unused*/, u64 value) {
+void Unk_16c9f90_call(void* /*unused*/, void* value) {
     Unk_16c9e60(value, 1);
 }
 
@@ -23,10 +23,10 @@ struct Unk_16ca5a0 {
 };
 PKMN_OFFSET_ASSERT(Unk_16ca5a0, field_18, 0x18);
 
-void Unk_16d2390(u64, u64, u32);
+void Unk_16d2390(u64, void*, u32);
 
 // 0x71016ca5a0
-void Unk_16ca5a0_call(const Unk_16ca5a0* self, u64 value, bool arg2) {
+void Unk_16ca5a0_call(const Unk_16ca5a0* self, void* value, bool arg2) {
     if (self->field_18 != 0) {
         Unk_16d2390(self->field_18, value, arg2);
     }
@@ -117,5 +117,5 @@ u32 Unk_16cb980_get(const Unk_16cb980* self) {
 }
 
 // 0x71016cb9a0
-void Unk_16cb9a0_update() {
+void Unk_16cb9a0_update(void* /*unused*/, u64 /*unused*/) {
 }

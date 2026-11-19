@@ -49,28 +49,28 @@ void Unk_fcd760_set(const Unk_fcd760* self, Unk_fcd760_arg1* value) {
 
 struct Unk_fce9c0 {
     u8 _0[0x750];
-    u64 field_750;
+    void* field_750;
 };
 PKMN_OFFSET_ASSERT(Unk_fce9c0, field_750, 0x750);
 
-void Unk_14bd880(u64, u32);
+void Unk_14bd880(void*, u32, u32);
 
 // 0x7100fce9c0
-void Unk_fce9c0_call(const Unk_fce9c0* self, u32 value) {
-    Unk_14bd880(self->field_750, value);
+void Unk_fce9c0_call(const Unk_fce9c0* self, u32 value, u32 arg2) {
+    Unk_14bd880(self->field_750, value, arg2);
 }
 
 struct Unk_fce9d0 {
     u8 _0[0x750];
-    u64 field_750;
+    void* field_750;
 };
 PKMN_OFFSET_ASSERT(Unk_fce9d0, field_750, 0x750);
 
-void Unk_14bd880(u64, u32);
+void Unk_14bd880(void*, u32, u32);
 
 // 0x7100fce9d0
-void Unk_fce9d0_call(const Unk_fce9d0* self, u32 value) {
-    Unk_14bd880(self->field_750, (value & 0xff) + 6);
+void Unk_fce9d0_call(const Unk_fce9d0* self, u8 value, u32 arg2) {
+    Unk_14bd880(self->field_750, value + 6, arg2);
 }
 
 struct Unk_fcec80_738 {
@@ -119,13 +119,13 @@ struct Unk_fcff00 {
 };
 PKMN_OFFSET_ASSERT(Unk_fcff00, field_710, 0x710);
 
-void Unk_fcd070();
+void Unk_fcd070(void*);
 
 // 0x7100fcff00
-void Unk_fcff00_call(const Unk_fcff00* self) {
+void Unk_fcff00_call(Unk_fcff00* self) {
     if ((self->field_710->field_58 & 1) == 0) {
         self->field_710->field_58 = self->field_710->field_58 | 1;
-        Unk_fcd070();
+        Unk_fcd070(self);
     }
 }
 
@@ -141,23 +141,23 @@ struct Unk_fcff20 {
 };
 PKMN_OFFSET_ASSERT(Unk_fcff20, field_718, 0x718);
 
-void Unk_fcd070();
+void Unk_fcd070(void*);
 
 // 0x7100fcff20
-void Unk_fcff20_call(const Unk_fcff20* self) {
+void Unk_fcff20_call(Unk_fcff20* self) {
     if ((self->field_718->field_58 & 1) == 0) {
         self->field_718->field_58 = self->field_718->field_58 | 1;
-        Unk_fcd070();
+        Unk_fcd070(self);
     }
 }
 
 struct Unk_fd15c0 {
     u8 _0[0x730];
-    u64 field_730;
+    void* field_730;
 };
 PKMN_OFFSET_ASSERT(Unk_fd15c0, field_730, 0x730);
 
-void Unk_14e1b40(u64);
+void Unk_14e1b40(void*);
 void Unk_fcd580(void*, u32);
 
 // 0x7100fd15c0

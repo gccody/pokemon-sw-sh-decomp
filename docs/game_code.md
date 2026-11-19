@@ -1776,6 +1776,98 @@ RTTI name's own mangling (template classes' too), and a library class that
 a game class declares as its base (`vtables.py`, since Batch 41) is still
 the library's. 31 more match (check.py: 44,576 matching, 42 not matching).
 
+### Parameters the code says a function takes (`leafgen.py widen`, 2026-11-19)
+
+A leaf's parameters used to be the argument registers it reads, and a tail
+call's arguments the ones it wrote, up to the last. That's too few when it
+passes registers on that it doesn't read: `ldr x0, [x0, #0x5a0] ; b
+Unk_e809d0` (0x7100e809c0) was `Unk_e809c0_call(const Unk_e809c0*)`, but
+Unk_e809d0 reads x1 too, and the leaf's 189 callers pass it. A hand-written
+caller that passes the second argument couldn't call the matched name.
+
+The rule now: **a function takes the argument registers its code reads,
+itself or by passing them on untouched to what it calls, and the ones its
+callers write for it.** `tools/nx/argregs.py` reads both from the
+instructions:
+
+- `Params` (`Resolver.params`): x0..x7 read before they're written, on any
+  path, directly or through a copy (`mov x19, x1`). At a `bl T` or a tail
+  call `b T`, the registers T reads (recursively, four levels deep) count as
+  read; at an indirect call (`blr`/`br`) only those the function moved
+  there for it (nothing says the target takes a register left untouched).
+  The base of a load or store is a pointer, a register only read as `w<n>`
+  32 bits. A function that stores x7 as it got it on the stack is variadic
+  (`...`'s save area): those stores aren't parameters.
+- `call_sites`: at each `bl F` / `b F`, the argument registers the caller
+  wrote and didn't read again, when the write reaches the call with no
+  conditional branch after it (one before a branch may be for the other
+  path). With `-O3` a register isn't written for nothing, and x0..x7 don't
+  survive a call: such a value is an argument. `adrp`/`adr` or an `add` to
+  `sp` is a pointer.
+
+`leafgen.inferred_types` turns that into parameter types: the ones declared
+now, then one per further register, `void*` for a pointer, `u32` for 32
+bits, `u64` otherwise; a placeholder callee's `u64` that it dereferences
+becomes `void*` (no source spells it yet; a second choice keeps the
+integers, for callers that pass a global or a computed value there).
+`SIGNATURES` holds them, and `call_params(T)` is what a call to T passes:
+T's prototype if it's a leaf already written (`KNOWN`), then `SIGNATURES`,
+the longest caller's (`TAIL_TYPES`), or the parameters **T's placeholder name
+in functions.csv** spells (`_Z10Unk_e809d0PvS_`: `NAMED`). So the name is
+the signature: once a placeholder is renamed, every later run (`write`,
+`vtables.py write`, ...) passes what it takes. `lift` pads a tail call (and
+a call in a frame, before the first call) to that many arguments with the
+registers the function leaves untouched, which makes them its parameters;
+a field passed to a `void*` parameter holds a `void*` (a global too); a leaf
+whose callers write more than it reads gets the rest as unused parameters
+(`u32 /*unused*/`). Mangled names now spell substitutions (`encode_params`:
+`(void*, void*)` is `PvS_`), so a placeholder can take two pointers.
+
+`write` and `scan` infer the candidates' signatures (and their unnamed
+callees', without the pointer upgrade) before the last lifting pass;
+`--no-signatures` turns that off. `widen` does it for what's written:
+
+```sh
+python tools/leafgen.py widen --names widen.csv --report widen_report.csv
+python tools/funcs.py name --force --from-file widen.csv
+python tools/check.py                    # every renamed function should still be OK
+python tools/check.py --update
+```
+
+It takes every matched leaf in `src/unsorted/leaf` and `lib/*/leaf` (`--dir`
+for fewer) and every placeholder callee they declare, widens them, and
+writes again each leaf that is widened or declares something that is.
+Until nothing changes: a leaf called by another leaf's prototype (KNOWN)
+gets its callers written again too. A leaf that doesn't lift or compile
+again, or whose new declarations disagree with the rest of its file (a
+global read as `u64` by its neighbours), stays as it is, and so does
+everything it declares (a placeholder with a second choice tries that
+first). Another source that calls one of them keeps it too (it would pass
+other arguments); one that only declares it, or takes its address (the
+battle sequence tables in `src/unsorted/Unk_9be950.cpp`), gets the new
+declaration. `--only` limits the leaves that may change (a keep run).
+
+The run: 550 matched leaves and 924 placeholder callees are narrower than
+their code says (`--report`). 531 of the leaves take more parameters now
+(19 stay), and 158 more are renamed because a parameter they pass on is a
+pointer now; 776 placeholders are renamed (364 take more parameters, 412
+take pointers), 148 stay: 132 because a caller can't be written again, 16
+because other sources call them: `vtables.py`'s members (`Unk_68d9b0`,
+called by `Unk_11cb690`'s with a `u64` field, is one), the battle
+sequence functions (`Unk_8ea3b0`, `Unk_8ea490`, `Unk_140b690`), NEX and
+`leafgen.py members`. 1,465 functions renamed, all of them still matching
+(check.py: 49,967 matching; the only REGRESSIONs, 53 `vector<Unk_239a418_Ref<T>>`
+growth functions of `src/gflib3/families`, are master's, since the
+reference's copy constructor changed). `Unk_e809c0_call` is
+`(const Unk_e809c0*, void*)` and `Unk_e809d0` `(void*, void*)` now.
+
+Next: `vtables.py write` passes what a placeholder's name says too (it
+lifts with leafgen's `call_params`, but `NAMED` is only filled when
+`cast_member` runs first), so with `NAMED` filled from functions.csv
+there, `widen` could rename the 12 placeholders `src/unsorted/virtual`
+calls and `vtables.py write --only <empty>` would write their callers
+again.
+
 ### The largest functions: generated tables (2026-11-19)
 
 The four largest undecompiled functions of game code were tables written out
@@ -1865,9 +1957,9 @@ yet, both on register allocation alone (same instructions):
   reference is null, call the creator with a copy, and hand the result to
   `Unk_e809c0_call(target ? target : self->field_70, result)`.
   `Unk_e809c0_call` really takes two arguments (it passes the second to
-  `Unk_e809d0`): leafgen's one-argument placeholder is wrong, and nothing
-  else calls either. The wrapper keeps the target's adjusted pointer
-  between its AddRef and its Release, where the original recomputes it.
+  `Unk_e809d0`): it does now (`leafgen.py widen`, above), and nothing else
+  calls either. The wrapper keeps the target's adjusted pointer between its
+  AddRef and its Release, where the original recomputes it.
 
 libc++'s `rehash`/`__rehash` of 51 unordered_maps on Unk_2771620's
 allocator, keyed by u64 (37) or u32 (14), match by explicit instantiation
@@ -2002,9 +2094,8 @@ Looked at and left:
   inlined, its size 0x5f0 and alignment 16), sets its parent
   (`0x7100e7fe20`), pushes a reference to it into a vector at `+0x78` and
   returns it. Their derived members vary like the factories' do. The
-  wrappers around them (`0x7100790140`, 188) also need `Unk_e809c0_call`'s
-  real signature (two arguments), which is leafgen's one-argument
-  placeholder now;
+  wrappers around them (`0x7100790140`, 188) also needed `Unk_e809c0_call`'s
+  real signature (two arguments), which it has since `leafgen.py widen`;
 - `0x7100005e20` (54) and `0x7100010530` (55): per-TU copies of one path
   builder: a name that doesn't start with `"data:/"` (the global at
   `0x710239a578`) gets it prepended (`alloca`, `strcat`) before the name is

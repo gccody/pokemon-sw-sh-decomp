@@ -48,12 +48,12 @@ struct Unk_f07b60 {
 PKMN_OFFSET_ASSERT(Unk_f07b60, field_a0, 0xa0);
 PKMN_OFFSET_ASSERT(Unk_f07b60, field_a3, 0xa3);
 
-void Unk_f06a50();
+void Unk_f06a50(void*);
 
 // 0x7100f07b60
 bool Unk_f07b60_call(Unk_f07b60* self) {
     self->field_a3 = 1;
-    Unk_f06a50();
+    Unk_f06a50(self);
     return self->field_a0 == 3;
 }
 

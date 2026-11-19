@@ -6,11 +6,11 @@
 // 0x7100ea2fe0
 void Unk_ea2fe0() {}
 
-void Unk_ea2e20();
+void Unk_ea2e20(void*);
 
 // 0x7100ea37a0
-void Unk_ea37a0_call() {
-    Unk_ea2e20();
+void Unk_ea37a0_call(void* self) {
+    Unk_ea2e20(self);
 }
 
 struct Unk_ea3d10 {

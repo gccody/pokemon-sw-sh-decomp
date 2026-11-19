@@ -3139,25 +3139,25 @@ void Unk_86b8b0_call(void* self, u32 value) {
     Unk_86b540(self, 0, value);
 }
 
-void Unk_81b320();
+void Unk_81b320(void*, u32);
 
 // 0x710086ea90
-void Unk_86ea90_call() {
-    Unk_81b320();
+void Unk_86ea90_call(void* self, u32 value) {
+    Unk_81b320(self, value);
 }
 
-void Unk_81b860();
+void Unk_81b860(void*, u32);
 
 // 0x710086eb40
-void Unk_86eb40_call() {
-    Unk_81b860();
+void Unk_86eb40_call(void* self, u32 value) {
+    Unk_81b860(self, value);
 }
 
-void Unk_86f720();
+void Unk_86f720(void*, u32);
 
 // 0x710086f5f0
-void Unk_86f5f0_call() {
-    Unk_86f720();
+void Unk_86f5f0_call(void* self, u32 value) {
+    Unk_86f720(self, value);
 }
 
 void Unk_86fe60(void*, u64, u32);
@@ -3202,18 +3202,18 @@ void Unk_879680_call(void* self, u64 value) {
     Unk_879590(self, value, 4);
 }
 
-void Unk_87a210();
+void Unk_87a210(void*, u32);
 
 // 0x710087a1b0
-void Unk_87a1b0_call() {
-    Unk_87a210();
+void Unk_87a1b0_call(void* self, u32 value) {
+    Unk_87a210(self, value);
 }
 
-void Unk_87a7b0();
+void Unk_87a7b0(void*, u32);
 
 // 0x710087a750
-void Unk_87a750_call() {
-    Unk_87a7b0();
+void Unk_87a750_call(void* self, u32 value) {
+    Unk_87a7b0(self, value);
 }
 
 struct Unk_27d0f84_Data {

@@ -13,6 +13,6 @@ u32 Unk_49eb10_get() {
 extern u32 Unk_24e55a8;
 
 // 0x710049eb20
-u32 Unk_49eb20_get() {
+u32 Unk_49eb20_get(u32 /*unused*/) {
     return Unk_24e55a8;
 }

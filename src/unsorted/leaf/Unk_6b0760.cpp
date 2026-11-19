@@ -46,11 +46,11 @@ void Unk_6b0b50_set(Unk_6b0b50* self) {
     self->field_f8 = 0;
 }
 
-extern u64 Unk_27fc0a8;
-void Unk_172bd80(u64);
+extern void* Unk_27fc0a8;
+void Unk_172bd80(void*);
 
 // 0x71006b1490
-void Unk_6b1490_call() {
+void Unk_6b1490_call(u64 /*unused*/) {
     if (Unk_27fc0a8 != 0) {
         Unk_172bd80(Unk_27fc0a8);
     }

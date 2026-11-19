@@ -34,7 +34,7 @@ void Unk_3043c0_set(Unk_3043c0* self) {
 }
 
 // 0x71003045d0
-u32 Unk_3045d0_get() {
+u32 Unk_3045d0_get(void* /*unused*/, u32 /*unused*/) {
     return 1;
 }
 

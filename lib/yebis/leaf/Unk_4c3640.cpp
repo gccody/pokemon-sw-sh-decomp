@@ -11,5 +11,5 @@ const u8* Unk_4c3640_get() {
 }
 
 // 0x71004c4090
-void Unk_4c4090_update() {
+void Unk_4c4090_update(void* /*unused*/, u64 /*unused*/) {
 }

@@ -11,9 +11,9 @@ const u8* Unk_13a3530_get() {
 }
 
 struct Unk_66efd0;
-extern u64 Unk_24ba5a8;
+extern void* Unk_24ba5a8;
 u32 Unk_66efd0_update(Unk_66efd0*, u32);
-void Unk_da5b40(u64);
+void Unk_da5b40(void*);
 
 // 0x71013a3f20
 u32 Unk_13a3f20_call(Unk_66efd0* self) {
@@ -23,9 +23,9 @@ u32 Unk_13a3f20_call(Unk_66efd0* self) {
 }
 
 struct Unk_66efd0;
-extern u64 Unk_24ba5a8;
+extern void* Unk_24ba5a8;
 u32 Unk_66efd0_update(Unk_66efd0*, u32);
-void Unk_a74310(u64, u32);
+void Unk_a74310(void*, u32);
 
 // 0x71013a45a0
 u32 Unk_13a45a0_call(Unk_66efd0* self) {
@@ -35,9 +35,9 @@ u32 Unk_13a45a0_call(Unk_66efd0* self) {
 }
 
 struct Unk_66efd0;
-extern u64 Unk_24ba5a8;
+extern void* Unk_24ba5a8;
 u32 Unk_66efd0_update(Unk_66efd0*, u32);
-void Unk_14856c0(u64);
+void Unk_14856c0(void*);
 
 // 0x71013a4680
 u32 Unk_13a4680_call(Unk_66efd0* self) {
@@ -47,9 +47,9 @@ u32 Unk_13a4680_call(Unk_66efd0* self) {
 }
 
 struct Unk_66efd0;
-extern u64 Unk_24ba5a8;
+extern void* Unk_24ba5a8;
 u32 Unk_66efd0_update(Unk_66efd0*, u32);
-void Unk_1296460(u64);
+void Unk_1296460(void*);
 
 // 0x71013a46c0
 u32 Unk_13a46c0_call(Unk_66efd0* self) {

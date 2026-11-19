@@ -22,7 +22,7 @@ bool Unk_106db10_check(const Unk_106db10* self, const Unk_106db10_arg1* value) {
 void Unk_106db80() {}
 
 // 0x710106db90
-u32 Unk_106db90_get() {
+u32 Unk_106db90_get(u64 /*unused*/, u64 /*unused*/) {
     return 1;
 }
 

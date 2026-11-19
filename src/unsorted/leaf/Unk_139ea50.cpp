@@ -114,16 +114,16 @@ struct Unk_13a2320 {
 };
 PKMN_OFFSET_ASSERT(Unk_13a2320, field_60, 0x60);
 PKMN_OFFSET_ASSERT(Unk_13a2320, field_c8, 0xc8);
-void Unk_13a2370();
+void Unk_13a2370(void*);
 
 // 0x71013a2320
-u32 Unk_13a2320_get(const Unk_13a2320* self) {
+u32 Unk_13a2320_get(Unk_13a2320* self) {
     if (self->field_c8 != 0) {
         return 1;
     }
     if (self->field_60->field_8 != nullptr) {
         if (self->field_60->field_8->field_170 != 0) {
-            Unk_13a2370();
+            Unk_13a2370(self);
             return 1;
         }
         return 0;

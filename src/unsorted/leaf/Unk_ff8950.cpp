@@ -11,10 +11,10 @@ struct Unk_ff8950 {
 };
 PKMN_OFFSET_ASSERT(Unk_ff8950, field_30, 0x30);
 PKMN_OFFSET_ASSERT(Unk_ff8950, field_80, 0x80);
-void Unk_ff8820(void*, u32, u32, u32, u64, u64, u64, u64);
+void Unk_ff8820(void*, u32, u32, u32, void*, void*, void*, void*);
 
 // 0x7100ff8950
-void Unk_ff8950_update(Unk_ff8950* self, u64 value, u64 arg2, u64 arg3, u64 arg4) {
+void Unk_ff8950_update(Unk_ff8950* self, void* value, void* arg2, void* arg3, void* arg4) {
     if (self->field_80 != 0) {
         return;
     }

@@ -44,7 +44,7 @@ void Unk_5eb450_call(Unk_5eb450* self) {
 extern u64 Unk_24ba120;
 struct Unk_5ec9d0_0_2a0 {
     u8 _0[0x168];
-    u64 field_168;
+    void* field_168;
     u8 _170[0x2080];
     u8 field_21f0;
 };
@@ -62,7 +62,7 @@ struct Unk_5ec9d0 {
 };
 PKMN_OFFSET_ASSERT(Unk_5ec9d0, field_0, 0x0);
 
-void Unk_5f21d0(u64, void*);
+void Unk_5f21d0(void*, void*);
 void Unk_5f7930(u64);
 
 // 0x71005ec9d0
@@ -138,11 +138,11 @@ void Unk_5ee0e0_set(const Unk_5ee0e0* self, Unk_5ee0e0_arg1* value) {
 }
 
 struct Unk_5f1b00 {
-    u64 field_0;
+    void* field_0;
 };
 PKMN_OFFSET_ASSERT(Unk_5f1b00, field_0, 0x0);
 
-void Unk_5efcd0(u64);
+void Unk_5efcd0(void*);
 
 // 0x71005f1b00
 void Unk_5f1b00_call(const Unk_5f1b00* self) {

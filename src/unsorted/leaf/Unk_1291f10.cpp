@@ -70,11 +70,11 @@ void Unk_12923b0_set(const Unk_12923b0* self, Unk_12923b0_arg1* value) {
 }
 
 struct Unk_12923c0 {
-    u64 field_0;
+    void* field_0;
 };
 PKMN_OFFSET_ASSERT(Unk_12923c0, field_0, 0x0);
 
-void Unk_126b5d0(u64);
+void Unk_126b5d0(void*);
 
 // 0x71012923c0
 void Unk_12923c0_call(const Unk_12923c0* self) {
@@ -115,11 +115,11 @@ void Unk_12923f0_set(const Unk_12923f0* self, Unk_12923f0_arg1* value) {
 }
 
 struct Unk_1292400 {
-    u64 field_0;
+    void* field_0;
 };
 PKMN_OFFSET_ASSERT(Unk_1292400, field_0, 0x0);
 
-void Unk_126b790(u64);
+void Unk_126b790(void*);
 
 // 0x7101292400
 void Unk_1292400_call(const Unk_1292400* self) {

@@ -259,11 +259,11 @@ void Unk_f7c6f0_set(const Unk_f7c6f0* self, Unk_f7c6f0_arg1* value) {
 }
 
 struct Unk_f7cb20 {
-    u64 field_0;
+    void* field_0;
 };
 PKMN_OFFSET_ASSERT(Unk_f7cb20, field_0, 0x0);
 
-void Unk_f7dbe0(u64, u32);
+void Unk_f7dbe0(void*, u32);
 
 // 0x7100f7cb20
 void Unk_f7cb20_call(const Unk_f7cb20* self) {

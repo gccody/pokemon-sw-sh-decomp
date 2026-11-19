@@ -57,11 +57,11 @@ void Unk_3095c0_call(Unk_3095c0* self) {
 
 struct Unk_309740 {
     u8 _0[0x10];
-    u64 field_10;
+    void* field_10;
 };
 PKMN_OFFSET_ASSERT(Unk_309740, field_10, 0x10);
 
-void Unk_3089c0(u64, void*);
+void Unk_3089c0(void*, void*);
 
 // 0x7100309740
 void Unk_309740_call(Unk_309740* self) {

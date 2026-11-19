@@ -87,12 +87,12 @@ PKMN_OFFSET_ASSERT(Unk_1311c60, field_230, 0x230);
 PKMN_OFFSET_ASSERT(Unk_1311c60, field_234, 0x234);
 PKMN_OFFSET_ASSERT(Unk_1311c60, field_23c, 0x23c);
 
-void Unk_1311cc0(void*, u64);
-void Unk_13120e0(void*, u64, u64, u32, u32);
-void Unk_67bfa0(u64);
+void Unk_1311cc0(void*, void*);
+void Unk_13120e0(void*, void*, void*, u32, u32);
+void Unk_67bfa0(void*);
 
 // 0x7101311c60
-void Unk_1311c60_call(Unk_1311c60* self, u64 value, u64 arg2) {
+void Unk_1311c60_call(Unk_1311c60* self, void* value, void* arg2) {
     self->field_22c = 0;
     self->field_230 = 0;
     self->field_234 = 0;
@@ -135,18 +135,18 @@ void Unk_13193e0_setField6c(Unk_13193e0* self, u32 value) {
     self->field_6c = value;
 }
 
-void Unk_131d440();
+void Unk_131d440(void*);
 
 // 0x710131d430
-void Unk_131d430_call() {
-    Unk_131d440();
+void Unk_131d430_call(void* self) {
+    Unk_131d440(self);
 }
 
-u32 Unk_eb6530();
+u32 Unk_eb6530(void*);
 
 // 0x710131dbc0
-u32 Unk_131dbc0_call() {
-    u32 r0 = Unk_eb6530();
+u32 Unk_131dbc0_call(void* self) {
+    u32 r0 = Unk_eb6530(self);
     return ~r0 & 1;
 }
 

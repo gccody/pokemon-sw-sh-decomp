@@ -7,15 +7,15 @@
 
 struct Unk_144dd60 {
     u8 _0[0x78];
-    u64 field_78;
+    void* field_78;
 };
 PKMN_OFFSET_ASSERT(Unk_144dd60, field_78, 0x78);
 
-void Unk_1446ed0(u64);
+void Unk_1446ed0(void*, u64);
 
 // 0x710144dd60
-void Unk_144dd60_call(const Unk_144dd60* self) {
-    Unk_1446ed0(self->field_78);
+void Unk_144dd60_call(const Unk_144dd60* self, u64 value) {
+    Unk_1446ed0(self->field_78, value);
 }
 
 // 0x710144ebb0

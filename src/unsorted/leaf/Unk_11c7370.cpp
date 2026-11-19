@@ -180,11 +180,11 @@ void Unk_11c9a20_set(const Unk_11c9a20* self, Unk_11c9a20_arg1* value) {
 }
 
 struct Unk_11c9b40 {
-    u64 field_0;
+    void* field_0;
 };
 PKMN_OFFSET_ASSERT(Unk_11c9b40, field_0, 0x0);
 
-void Unk_11f01c0(u64);
+void Unk_11f01c0(void*);
 
 // 0x71011c9b40
 void Unk_11c9b40_call(const Unk_11c9b40* self) {

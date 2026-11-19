@@ -108,8 +108,8 @@ void Unk_ea2510_set(const Unk_ea2510* self, Unk_ea2510_arg1* value) {
     value->field_0 = self->field_0;
 }
 
-extern u64 Unk_24ba5c8;
-void Unk_130e7d0(u64);
+extern void* Unk_24ba5c8;
+void Unk_130e7d0(void*);
 
 // 0x7100ea2920
 u32 Unk_ea2920_call() {

@@ -4,5 +4,5 @@
 #include <types.h>
 
 // 0x710055ba20
-void Unk_55ba20_update() {
+void Unk_55ba20_update(u64 /*unused*/) {
 }

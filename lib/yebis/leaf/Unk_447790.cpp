@@ -20,6 +20,6 @@ void Unk_447790_call(const Unk_447790* self) {
 }
 
 // 0x71004486a0
-u64 Unk_4486a0_get() {
+u64 Unk_4486a0_get(u64 /*unused*/, u32 /*unused*/, u32 /*unused*/, u32 /*unused*/, u32 /*unused*/, u32 /*unused*/, u32 /*unused*/, u32 /*unused*/) {
     return 0;
 }

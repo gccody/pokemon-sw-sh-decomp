@@ -4,6 +4,6 @@
 #include <types.h>
 
 // 0x71004cbbb0
-u32 Unk_4cbbb0_get() {
+u32 Unk_4cbbb0_get(u64 /*unused*/, u64 /*unused*/, u32 /*unused*/) {
     return 1;
 }

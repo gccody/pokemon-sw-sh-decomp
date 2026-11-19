@@ -43,10 +43,10 @@ void Unk_115a250_call(Unk_115a250* self) {
     }
 }
 
-void Unk_115a2e0(void*, u64, u32, u64);
+void Unk_115a2e0(void*, u64, u32, void*);
 
 // 0x710115a510
-void Unk_115a510_call(void* self, u32 value, u64 arg2) {
+void Unk_115a510_call(void* self, u32 value, void* arg2) {
     Unk_115a2e0(self, 0, value, arg2);
 }
 
@@ -249,12 +249,12 @@ struct Unk_115bde0 {
 };
 PKMN_OFFSET_ASSERT(Unk_115bde0, field_3c0, 0x3c0);
 
-void Unk_115bc90();
+void Unk_115bc90(void*);
 
 // 0x710115bde0
 void Unk_115bde0_call(Unk_115bde0* self, u32 value) {
     self->field_3c0 = ~value & 1;
-    Unk_115bc90();
+    Unk_115bc90(self);
 }
 
 struct Unk_115bfa0 {

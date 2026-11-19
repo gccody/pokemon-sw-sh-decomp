@@ -19,12 +19,12 @@ struct Unk_8a7e70 {
 };
 PKMN_OFFSET_ASSERT(Unk_8a7e70, field_0, 0x0);
 
-void Unk_896c30(u64);
+void Unk_896c30(u64, u32);
 
 // 0x71008a7e70
-void Unk_8a7e70_call(const Unk_8a7e70* self) {
+void Unk_8a7e70_call(const Unk_8a7e70* self, u32 value) {
     if (self->field_0 != 0) {
-        Unk_896c30(self->field_0);
+        Unk_896c30(self->field_0, value);
     }
 }
 

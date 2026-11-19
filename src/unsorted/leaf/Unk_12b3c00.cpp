@@ -135,11 +135,11 @@ void Unk_12b3de0_set(const Unk_12b3de0* self, Unk_12b3de0_arg1* value) {
     value->field_0 = self->field_0;
 }
 
-void Unk_12b4ac0();
+void Unk_12b4ac0(void*, u32);
 
 // 0x71012b4ab0
-void Unk_12b4ab0_call() {
-    Unk_12b4ac0();
+void Unk_12b4ab0_call(void* self, u32 value) {
+    Unk_12b4ac0(self, value);
 }
 
 // 0x71012b7a50

@@ -90,11 +90,11 @@ void Unk_5df190_call(Unk_5df190* self, u64 value) {
 }
 
 struct Unk_5e1f40 {
-    u64 field_0;
+    void* field_0;
 };
 PKMN_OFFSET_ASSERT(Unk_5e1f40, field_0, 0x0);
 
-void Unk_5e1dc0(u64);
+void Unk_5e1dc0(void*);
 
 // 0x71005e1f40
 void Unk_5e1f40_call(const Unk_5e1f40* self) {

@@ -450,7 +450,7 @@ const u8* Unk_1715ab0_get(const Unk_1715ab0* self) {
 }
 
 // 0x7101715c80
-u32 Unk_1715c80_get() {
+u32 Unk_1715c80_get(u64 /*unused*/) {
     return 1;
 }
 

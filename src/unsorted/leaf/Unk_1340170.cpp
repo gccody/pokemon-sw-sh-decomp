@@ -134,14 +134,14 @@ struct Unk_13439a0 {
 };
 PKMN_OFFSET_ASSERT(Unk_13439a0, field_5cb, 0x5cb);
 
-u32 Unk_eb6530();
+u32 Unk_eb6530(void*);
 
 // 0x71013439a0
-u32 Unk_13439a0_call(const Unk_13439a0* self) {
+u32 Unk_13439a0_call(Unk_13439a0* self) {
     if (self->field_5cb == 0) {
         return 0;
     }
-    u32 r0 = Unk_eb6530();
+    u32 r0 = Unk_eb6530(self);
     return ~r0 & 1;
 }
 

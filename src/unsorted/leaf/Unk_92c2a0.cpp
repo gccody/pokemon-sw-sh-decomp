@@ -59,11 +59,11 @@ void Unk_92c2e0_set(const Unk_92c2e0* self, Unk_92c2e0_arg1* value) {
 }
 
 struct Unk_92c2f0 {
-    u64 field_0;
+    void* field_0;
 };
 PKMN_OFFSET_ASSERT(Unk_92c2f0, field_0, 0x0);
 
-void Unk_92b890(u64);
+void Unk_92b890(void*);
 
 // 0x710092c2f0
 void Unk_92c2f0_call(const Unk_92c2f0* self) {

@@ -5,15 +5,15 @@
 
 struct Unk_10ff510 {
     u8 _0[0x8];
-    u64 field_8;
+    void* field_8;
 };
 PKMN_OFFSET_ASSERT(Unk_10ff510, field_8, 0x8);
 
-void Unk_15c90e0(u64);
+void Unk_15c90e0(void*);
 
 // 0x71010ff510
 void Unk_10ff510_call(const Unk_10ff510* self) {
-    if (self->field_8 != 0) {
+    if (self->field_8 != nullptr) {
         Unk_15c90e0(self->field_8);
     }
 }

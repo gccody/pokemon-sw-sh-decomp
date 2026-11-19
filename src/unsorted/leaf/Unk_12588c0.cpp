@@ -5,7 +5,7 @@
 
 struct Unk_12588c0_0 {
     u8 _0[0x5d8];
-    u64 field_5d8;
+    void* field_5d8;
 };
 PKMN_OFFSET_ASSERT(Unk_12588c0_0, field_5d8, 0x5d8);
 
@@ -14,7 +14,7 @@ struct Unk_12588c0 {
 };
 PKMN_OFFSET_ASSERT(Unk_12588c0, field_0, 0x0);
 
-void Unk_14ee830(u64);
+void Unk_14ee830(void*);
 
 // 0x71012588c0
 void Unk_12588c0_call(const Unk_12588c0* self) {

@@ -7,13 +7,13 @@
 
 struct Unk_1180260 {
     u8 _0[0x400];
-    u64 field_400;
-    u64 field_408;
+    void* field_400;
+    void* field_408;
 };
 PKMN_OFFSET_ASSERT(Unk_1180260, field_400, 0x400);
 PKMN_OFFSET_ASSERT(Unk_1180260, field_408, 0x408);
 
-u32 Unk_eb9750(u64);
+u32 Unk_eb9750(void*);
 
 // 0x7101180260
 u32 Unk_1180260_call(const Unk_1180260* self) {

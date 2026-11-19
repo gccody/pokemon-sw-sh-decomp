@@ -338,12 +338,12 @@ struct Unk_141c5a0 {
     u8 _0[0x4c0];
     u64 field_4c0;
     u8 _4c8[0x158];
-    u64 field_620;
+    void* field_620;
 };
 PKMN_OFFSET_ASSERT(Unk_141c5a0, field_4c0, 0x4c0);
 PKMN_OFFSET_ASSERT(Unk_141c5a0, field_620, 0x620);
 
-void Unk_14eead0(u64, u32, u32);
+void Unk_14eead0(void*, u32, u32);
 void Unk_1500c40(u64);
 
 // 0x710141c5a0
@@ -360,14 +360,14 @@ struct Unk_141e650 {
 };
 PKMN_OFFSET_ASSERT(Unk_141e650, field_5e8, 0x5e8);
 
-u32 Unk_eb6530();
+u32 Unk_eb6530(void*);
 
 // 0x710141e650
-u32 Unk_141e650_call(const Unk_141e650* self) {
+u32 Unk_141e650_call(Unk_141e650* self) {
     if (self->field_5e8 == 0) {
         return 0;
     }
-    u32 r0 = Unk_eb6530();
+    u32 r0 = Unk_eb6530(self);
     return ~r0 & 1;
 }
 

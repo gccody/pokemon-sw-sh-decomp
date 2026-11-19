@@ -36,15 +36,15 @@ void Unk_934e70_call(Unk_934e70* self, u32 value) {
 }
 
 struct Unk_936440 {
-    u64 field_0;
+    void* field_0;
 };
 PKMN_OFFSET_ASSERT(Unk_936440, field_0, 0x0);
 
-void Unk_9356c0(u64);
+void Unk_9356c0(void*, void*);
 
 // 0x7100936440
-void Unk_936440_call(const Unk_936440* self) {
-    Unk_9356c0(self->field_0);
+void Unk_936440_call(const Unk_936440* self, void* value) {
+    Unk_9356c0(self->field_0, value);
 }
 
 // 0x7100936450

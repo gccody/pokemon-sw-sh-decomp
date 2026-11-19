@@ -4,6 +4,6 @@
 #include <types.h>
 
 // 0x7100587510
-u32 Unk_587510_get() {
+u32 Unk_587510_get(u64 /*unused*/) {
     return 1;
 }

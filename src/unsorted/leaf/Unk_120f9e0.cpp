@@ -70,11 +70,11 @@ void Unk_1210f70_set(const Unk_1210f70* self, Unk_1210f70_arg1* value) {
 }
 
 struct Unk_1210f80 {
-    u64 field_0;
+    void* field_0;
 };
 PKMN_OFFSET_ASSERT(Unk_1210f80, field_0, 0x0);
 
-void Unk_1210b40(u64);
+void Unk_1210b40(void*);
 
 // 0x7101210f80
 void Unk_1210f80_call(const Unk_1210f80* self) {

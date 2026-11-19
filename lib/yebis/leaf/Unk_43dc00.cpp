@@ -53,46 +53,46 @@ u32 Unk_43dc00_get(Unk_43dc00* self) {
 }
 
 // 0x710043fc90
-u32 Unk_43fc90_get() {
+u32 Unk_43fc90_get(u64 /*unused*/) {
     return 0;
 }
 
 // 0x7100440c00
-u32 Unk_440c00_get() {
+u32 Unk_440c00_get(u64 /*unused*/, u32 /*unused*/) {
     return 1;
 }
 
 // 0x7100440c40
-u32 Unk_440c40_get() {
+u32 Unk_440c40_get(u64 /*unused*/, u32 /*unused*/) {
     return 1;
 }
 
 // 0x7100440c60
-u32 Unk_440c60_get() {
+u32 Unk_440c60_get(u64 /*unused*/, u32 /*unused*/, u32 /*unused*/) {
     return 1;
 }
 
 // 0x7100440c80
-u32 Unk_440c80_get() {
+u32 Unk_440c80_get(u64 /*unused*/) {
     return 1;
 }
 
 // 0x7100440cb0
-u32 Unk_440cb0_get() {
+u32 Unk_440cb0_get(u64 /*unused*/, u32 /*unused*/) {
     return 1;
 }
 
 // 0x7100440cf0
-u32 Unk_440cf0_get() {
+u32 Unk_440cf0_get(u64 /*unused*/, u32 /*unused*/) {
     return 1;
 }
 
 // 0x7100440d50
-u32 Unk_440d50_get() {
+u32 Unk_440d50_get(u64 /*unused*/, u32 /*unused*/) {
     return 1;
 }
 
 // 0x7100442c50
-u32 Unk_442c50_get() {
+u32 Unk_442c50_get(u64 /*unused*/) {
     return 1;
 }

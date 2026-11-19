@@ -326,16 +326,16 @@ u8 Unk_ffc570_getFielda0(const Unk_ffc570* self) {
 
 struct Unk_ffc780 {
     u8 _0[0x88];
-    u64 field_88;
+    void* field_88;
 };
 PKMN_OFFSET_ASSERT(Unk_ffc780, field_88, 0x88);
 
 void Unk_ffcc10(void*);
-void Unk_ffc7b0(u64);
+void Unk_ffc7b0(void*);
 
 // 0x7100ffc780
 void Unk_ffc780_call(Unk_ffc780* self) {
-    if (self->field_88 != 0) {
+    if (self->field_88 != nullptr) {
         Unk_ffc7b0(self->field_88);
     }
     Unk_ffcc10(self);
@@ -426,15 +426,15 @@ bool Unk_ffe100_check(const Unk_ffe100* self) {
 
 struct Unk_ffe110 {
     u8 _0[0x138];
-    u64 field_138;
+    void* field_138;
 };
 PKMN_OFFSET_ASSERT(Unk_ffe110, field_138, 0x138);
 
-void Unk_8e0670(u64);
+void Unk_8e0670(void*);
 
 // 0x7100ffe110
 void Unk_ffe110_call(const Unk_ffe110* self) {
-    if (self->field_138 != 0) {
+    if (self->field_138 != nullptr) {
         Unk_8e0670(self->field_138);
     }
 }

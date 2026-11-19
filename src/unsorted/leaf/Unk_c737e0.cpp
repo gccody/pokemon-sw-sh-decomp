@@ -25,13 +25,13 @@ bool Unk_c737e0_check(const Unk_c737e0* self) {
 
 struct Unk_c739f0 {
     u8 _0[0x5e8];
-    u64 field_5e8;
-    u64 field_5f0;
+    void* field_5e8;
+    void* field_5f0;
 };
 PKMN_OFFSET_ASSERT(Unk_c739f0, field_5e8, 0x5e8);
 PKMN_OFFSET_ASSERT(Unk_c739f0, field_5f0, 0x5f0);
 
-void Unk_c73490(u64, u32);
+void Unk_c73490(void*, u32);
 
 // 0x7100c739f0
 void Unk_c739f0_call(const Unk_c739f0* self) {
