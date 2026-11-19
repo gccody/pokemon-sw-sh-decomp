@@ -210,3 +210,46 @@ PKMN_OFFSET_ASSERT(Unk_ea5d70, field_10, 0x10);
 bool Unk_ea5d70_check(const Unk_ea5d70* self) {
     return self->field_10 == 0;
 }
+
+struct Unk_ea5dd0_210 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6(u64);
+};
+
+struct Unk_ea5dd0 {
+    u8 _0[0x210];
+    Unk_ea5dd0_210* field_210;
+};
+PKMN_OFFSET_ASSERT(Unk_ea5dd0, field_210, 0x210);
+
+// 0x7100ea5dd0
+void Unk_ea5dd0_call(const Unk_ea5dd0* self, u64 value) {
+    self->field_210->vf6(value);
+}
+
+struct Unk_ea5de0_210 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7(u64);
+};
+
+struct Unk_ea5de0 {
+    u8 _0[0x210];
+    Unk_ea5de0_210* field_210;
+};
+PKMN_OFFSET_ASSERT(Unk_ea5de0, field_210, 0x210);
+
+// 0x7100ea5de0
+void Unk_ea5de0_call(const Unk_ea5de0* self, u64 value) {
+    self->field_210->vf7(value);
+}

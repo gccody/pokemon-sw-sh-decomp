@@ -982,6 +982,38 @@ void Unk_7f4fb0_call(Unk_7f4fb0* self) {
     Unk_e87fe0(0xcdb8b54649071c03, &self->field_310);
 }
 
+struct Unk_7f6e10_0 {
+    virtual void vf0();
+};
+
+struct Unk_7f6e10_8 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3(void*, u64, u64);
+};
+
+struct Unk_7f6e10 {
+    Unk_7f6e10_0* field_0;
+    Unk_7f6e10_8* field_8;
+    u64 field_10;
+    u64 field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_7f6e10, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_7f6e10, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_7f6e10, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_7f6e10, field_18, 0x18);
+
+// 0x71007f6e10
+void Unk_7f6e10_call(Unk_7f6e10* self) {
+    Unk_7f6e10_0* v0 = self->field_0;
+    self->field_0 = nullptr;
+    if (v0 != nullptr) {
+        v0->vf0();
+        self->field_8->vf3(v0, self->field_10, self->field_18);
+    }
+}
+
 struct Unk_7f6e70_8 {
     virtual void vf0();
     virtual void vf1();

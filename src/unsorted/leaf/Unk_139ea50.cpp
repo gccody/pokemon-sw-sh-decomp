@@ -62,6 +62,40 @@ u32 Unk_13a1200_getField8(const Unk_13a1200* self) {
     return self->field_8;
 }
 
+struct Unk_13a1800 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10(u32);
+    virtual void vf11();
+    virtual void vf12();
+    u8 _8[0x278];
+    u8 field_280;
+};
+PKMN_OFFSET_ASSERT(Unk_13a1800, field_280, 0x280);
+
+u32 Unk_13a3290();
+void Unk_13a3220(void*, u64);
+void Unk_66b8c0(void*);
+
+// 0x71013a1800
+void Unk_13a1800_call(Unk_13a1800* self, u64 value) {
+    if (self->field_280 != 0) {
+        u32 r0 = Unk_13a3290();
+        self->vf10(r0);
+        Unk_13a3220(self, value);
+        Unk_66b8c0(self);
+        self->vf12();
+    }
+}
+
 struct Unk_13a2320_60_8 {
     u8 _0[0x170];
     u8 field_170;

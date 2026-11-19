@@ -1518,6 +1518,28 @@ limit goes to 256 bytes (more paths fit).
 The trial wrote 711 functions; 87 match (check.py: 40,094 matching, 42 not
 matching).
 
+### Batch 32: what the mismatches showed
+
+Compiling a sample of the trials' mismatches alone and comparing them
+with the original found four fixes:
+
+- **A virtual tail call after other calls** (`br x4` after the epilogue)
+  is the function's last statement, not something it returns (58
+  `unique_ptr`-like releases: take the pointer, null it, destroy the
+  object and free it through its allocator).
+- **A virtual call's object** loaded before an earlier call is held in a
+  local, like a call's arguments.
+- **Locals are declared in the order the function loads them**, not by
+  name: clang numbers the callee-saved registers in that order.
+- **A copied head.** A callable's copy that moves its first 16 bytes or
+  more with `ldp`/`stp` and then copies a reference (Batch 24) starts with
+  one struct, `Unk_<addr>_head`, assigned whole (`copy_head`).
+- **`br xN`** (N < 8) as a virtual tail call passes x1..x(N-1) on: clang
+  takes the first register after the arguments.
+
+The trial wrote 634 functions; 170 match (check.py: 40,264 matching, 42
+not matching).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1543,7 +1565,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after Batch 31: check.py reports 40,094 matching and 42 not
+State after Batch 32: check.py reports 40,264 matching and 42 not
 matching, in both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the

@@ -166,6 +166,34 @@ void Unk_fd15c0_call(Unk_fd15c0* self) {
     Unk_14e1b40(self->field_730);
 }
 
+struct Unk_fd28b0_730 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+};
+
+struct Unk_fd28b0 {
+    u8 _0[0x730];
+    Unk_fd28b0_730* field_730;
+};
+PKMN_OFFSET_ASSERT(Unk_fd28b0, field_730, 0x730);
+
+void Unk_fcd580(void*, u32);
+
+// 0x7100fd28b0
+void Unk_fd28b0_call(Unk_fd28b0* self) {
+    Unk_fcd580(self, 1);
+    self->field_730->vf10();
+}
+
 struct Unk_fd35b0_0 {
     u8 _0[0x4c0];
     u64 field_4c0;

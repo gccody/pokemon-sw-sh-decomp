@@ -161,6 +161,32 @@ void Unk_93cbb0_call(const Unk_93cbb0* self) {
     }
 }
 
+struct Unk_93cbc0_68 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9(u64);
+};
+
+struct Unk_93cbc0 {
+    u8 _0[0x68];
+    Unk_93cbc0_68* field_68;
+};
+PKMN_OFFSET_ASSERT(Unk_93cbc0, field_68, 0x68);
+
+// 0x710093cbc0
+void Unk_93cbc0_call(const Unk_93cbc0* self, u64 value) {
+    if (self->field_68 != nullptr) {
+        self->field_68->vf9(value);
+    }
+}
+
 struct Unk_93cbe0 {
     u8 _0[0x68];
     u64 field_68;

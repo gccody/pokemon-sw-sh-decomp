@@ -1088,6 +1088,29 @@ void Unk_16b6d10_set(Unk_16b6d10* self, bool value) {
     self->field_c2 = value;
 }
 
+struct Unk_16b6db0 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+};
+
+// 0x71016b6db0
+void Unk_16b6db0_call(Unk_16b6db0* self) {
+    self->vf13();
+    self->vf12();
+}
+
 struct Unk_16b7b10 {
     u8 _0[0x78];
     u64 field_78;

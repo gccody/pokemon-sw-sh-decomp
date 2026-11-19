@@ -1223,6 +1223,17 @@ u32 Unk_17914b0_get(const Unk_17914b0* self) {
     return self->field_28;
 }
 
+struct Unk_17914c0 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2(u64, u64, u64, u64);
+};
+
+// 0x71017914c0
+void Unk_17914c0_call(Unk_17914c0* self, u64 value, u64 arg2, u64 arg3, u64 arg4) {
+    self->vf2(value, arg2, arg3, arg4);
+}
+
 struct Unk_17914d0 {
     u8 _0[0x10];
     u64 field_10;
@@ -1797,6 +1808,71 @@ u64 Unk_179a9f0_get(const Unk_179a9f0* self) {
 void Unk_179aa60_update() {
 }
 
+struct Unk_179f4d0_40 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17(u64, u64);
+};
+
+struct Unk_179f4d0 {
+    u8 _0[0x40];
+    Unk_179f4d0_40* field_40;
+};
+PKMN_OFFSET_ASSERT(Unk_179f4d0, field_40, 0x40);
+
+// 0x710179f4d0
+void Unk_179f4d0_call(const Unk_179f4d0* self, u64 value, u64 arg2) {
+    self->field_40->vf17(value, arg2);
+}
+
+struct Unk_179f4e0_40 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18(u64, u64, u64, u64);
+};
+
+struct Unk_179f4e0 {
+    u8 _0[0x40];
+    Unk_179f4e0_40* field_40;
+};
+PKMN_OFFSET_ASSERT(Unk_179f4e0, field_40, 0x40);
+
+// 0x710179f4e0
+void Unk_179f4e0_call(const Unk_179f4e0* self, u64 value, u64 arg2, u64 arg3, u64 arg4) {
+    self->field_40->vf18(value, arg2, arg3, arg4);
+}
+
 struct Unk_17a0140 {
     u8 _0[0x8];
     u32 field_8;
@@ -2016,6 +2092,27 @@ void Unk_17b3640(void*, u64, u64, u64, u64, u64, u64, u32);
 // 0x71017b9040
 void Unk_17b9040_call(void* self, u64 value, u64 arg2, u64 arg3, u64 arg4, u64 arg5, u64 arg6, u32 arg7) {
     Unk_17b3640(self, value, arg2, arg3, arg4, arg5, arg6, arg7);
+}
+
+struct Unk_17b9100 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4(u32);
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+};
+
+// 0x71017b9100
+void Unk_17b9100_call(Unk_17b9100* self, u32 /*unused*/, bool arg2) {
+    self->vf11();
+    self->vf4(arg2);
 }
 
 struct Unk_17b9920_28_20 {
