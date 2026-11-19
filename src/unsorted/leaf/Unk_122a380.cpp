@@ -464,6 +464,19 @@ void Unk_122b600_update() {}
 // 0x710122b610
 void Unk_122b610_update() {}
 
+struct Unk_122b620_arg1 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_122b620_arg1, field_0, 0x0);
+
+u32 Unk_11611a0(u64);
+
+// 0x710122b620
+u32 Unk_122b620_call(void* /*unused*/, const Unk_122b620_arg1* value) {
+    u32 r0 = Unk_11611a0(value->field_0);
+    return ~r0 & 1;
+}
+
 // 0x710122b640
 void Unk_122b640_update() {}
 

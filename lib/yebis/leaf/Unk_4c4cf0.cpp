@@ -18,3 +18,19 @@ void Unk_4c4d70_update() {
 // 0x71004c4d80
 void Unk_4c4d80_update() {
 }
+
+void Unk_4c4700();
+
+// 0x71004c5b30
+u32 Unk_4c5b30_call() {
+    Unk_4c4700();
+    return 1;
+}
+
+void Unk_4c4700();
+
+// 0x71004c5b50
+u32 Unk_4c5b50_call() {
+    Unk_4c4700();
+    return 1;
+}

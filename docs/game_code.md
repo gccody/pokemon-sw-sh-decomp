@@ -1383,6 +1383,33 @@ calls). Left: the copies that start with an `ldp` pair before the reference
 callable's struct with a `Unk_239a418_Ref` member copied as a whole
 (check.py: 38,634 matching, 107 not matching).
 
+### Batch 25: calls in a frame
+
+The lifter now takes straight-line functions that call: the prologue and
+epilogue (the frame record and callee-saved registers saved to the stack,
+`_is_frame`) are skipped, `bl T` is a call whose arguments are the registers
+written since the previous call (or passed on from the caller, before the
+first), x0-x18 are clobbered after it, x19-x28 keep their values, and w0/x0
+read afterwards is its result (`u32` or `u64` as the function reads it,
+held in a local `r<n>`). A final `b T` after the epilogue is the last call
+of a void function. A call may change any memory, so a load before it that
+is used after it is held in a local (Batch 22's value locals), and a
+function returns x0 only if it wrote it after the last call. A frame
+without a call, or a call without a frame, is refused.
+
+Callees are declared like tail-call targets (`Unk_<T>` with `void*` for
+pointers). A callee already matched (`KNOWN`) is called by its own
+prototype; one named already as another caller's placeholder is called with
+the parameters its mangled name spells (`placeholder_params`); other named
+callees (SDK functions, members) are refused. Two functions of one file
+that declare a callee with different return types don't compile together,
+so `write_files` drops the later one (`consistent_declarations`).
+
+The trial wrote 780 functions; 194 match (check.py: 38,828 matching, 107
+not matching). Most of the others pass a pointer where the callee's other
+callers pass an integer (or the other way round), so their callee's mangled
+name differs, or reload a field the original kept in a register.
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1408,7 +1435,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after Batch 24: check.py reports 38,634 matching and 107 not
+State after Batch 25: check.py reports 38,828 matching and 107 not
 matching, in both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the

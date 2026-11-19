@@ -3,6 +3,14 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
+u32 Unk_eb6530();
+
+// 0x7100f496c0
+u32 Unk_f496c0_call() {
+    u32 r0 = Unk_eb6530();
+    return ~r0 & 1;
+}
+
 struct Unk_f497a0 {
     u8 _0[0x5cc];
     u32 field_5cc;
@@ -23,6 +31,30 @@ PKMN_OFFSET_ASSERT(Unk_f498c0, field_5cc, 0x5cc);
 // 0x7100f498c0
 u32 Unk_f498c0_getField5cc(const Unk_f498c0* self) {
     return self->field_5cc;
+}
+
+void Unk_f498d0(void*, u64, u64);
+
+// 0x7100f499f0
+void Unk_f499f0_call(void* self) {
+    Unk_f498d0(self, 0x307f2287c63245da, 0xcc0cfcb797e44c58);
+    Unk_f498d0(self, 0x307b9d87c62f2e04, 0x5f635651ac509cb1);
+}
+
+u32 Unk_eb6530();
+
+// 0x7100f4a350
+u32 Unk_f4a350_call() {
+    u32 r0 = Unk_eb6530();
+    return ~r0 & 1;
+}
+
+u32 Unk_eb6530();
+
+// 0x7100f4b430
+u32 Unk_f4b430_call() {
+    u32 r0 = Unk_eb6530();
+    return ~r0 & 1;
 }
 
 void Unk_f4ae60();
@@ -83,6 +115,14 @@ PKMN_OFFSET_ASSERT(Unk_f4bc10, field_10, 0x10);
 // 0x7100f4bc10
 void Unk_f4bc10_set(const Unk_f4bc10* self, Unk_f4bc10* value) {
     *value = *self;
+}
+
+u32 Unk_eb6530();
+
+// 0x7100f4c7f0
+u32 Unk_f4c7f0_call() {
+    u32 r0 = Unk_eb6530();
+    return ~r0 & 1;
 }
 
 void Unk_f4c3d0();

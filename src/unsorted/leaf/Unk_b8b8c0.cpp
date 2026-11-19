@@ -184,6 +184,30 @@ void Unk_ba00a0_set(const Unk_ba00a0* self, Unk_ba00a0* value) {
     *value = *self;
 }
 
+struct Unk_ba00c0_arg1 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_ba00c0_arg1, field_0, 0x0);
+
+struct Unk_ba00c0_0 {
+    u8 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_ba00c0_0, field_0, 0x0);
+
+struct Unk_ba00c0 {
+    Unk_ba00c0_0* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_ba00c0, field_0, 0x0);
+
+void Unk_599a80(u64);
+
+// 0x7100ba00c0
+u32 Unk_ba00c0_call(const Unk_ba00c0* self, const Unk_ba00c0_arg1* value) {
+    Unk_599a80(value->field_0);
+    self->field_0->field_0 = 1;
+    return 0;
+}
+
 // 0x7100ba0100
 void Unk_ba0100_update() {}
 

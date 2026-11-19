@@ -5,6 +5,14 @@
 
 #include "gflib3/Unk_239a418.h"
 
+u32 Unk_eb6530();
+
+// 0x7100f434e0
+u32 Unk_f434e0_call() {
+    u32 r0 = Unk_eb6530();
+    return ~r0 & 1;
+}
+
 struct Unk_f43630 {
     u8 _0[0x5cc];
     u32 field_5cc;

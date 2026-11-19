@@ -103,3 +103,11 @@ PKMN_OFFSET_ASSERT(Unk_e3aca0, field_80, 0x80);
 u8* Unk_e3aca0_getField80Ptr(Unk_e3aca0* self) {
     return &self->field_80;
 }
+
+u64 Unk_ead710();
+
+// 0x7100e3b3d0
+bool Unk_e3b3d0_call() {
+    u64 r0 = Unk_ead710();
+    return r0 != 0;
+}

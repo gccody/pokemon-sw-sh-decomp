@@ -1846,6 +1846,21 @@ u32 Unk_17ac720_get(const Unk_17ac720* self) {
     return self->field_a8->field_8 - (self->field_60 != 0);
 }
 
+struct Unk_17ace20_arg2 {
+    u8 _0[0xb8];
+    u64 field_b8;
+};
+PKMN_OFFSET_ASSERT(Unk_17ace20_arg2, field_b8, 0xb8);
+
+u64 Unk_179ba80(u64, u32);
+void Unk_1788310(u64, u64);
+
+// 0x71017ace20
+void Unk_17ace20_call(void* /*unused*/, u64 value, const Unk_17ace20_arg2* arg2) {
+    u64 r0 = Unk_179ba80(arg2->field_b8, 1);
+    Unk_1788310(value, r0);
+}
+
 // 0x71017b3330
 void Unk_17b3330_update() {
 }

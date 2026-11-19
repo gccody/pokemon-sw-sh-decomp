@@ -14,6 +14,26 @@ u64 Unk_162eec0_get(const Unk_162eec0* self) {
     return self->field_20;
 }
 
+struct Unk_162fe20 {
+    u8 _0[0x8];
+    u64 field_8;
+    u64 field_10;
+    u8 field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_162fe20, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_162fe20, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_162fe20, field_18, 0x18);
+
+u64 Unk_162fa90();
+
+// 0x710162fe20
+bool Unk_162fe20_call(Unk_162fe20* self) {
+    u64 r0 = Unk_162fa90();
+    self->field_10 = r0;
+    self->field_18 = r0 != self->field_8;
+    return r0 != self->field_8;
+}
+
 struct Unk_162fef0 {
     u32 field_0;
     u8 _4[0x4];

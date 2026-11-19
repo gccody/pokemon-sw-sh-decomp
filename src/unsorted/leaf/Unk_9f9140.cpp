@@ -5590,6 +5590,22 @@ void Unk_a6b970_set(const Unk_a6b970* self, Unk_a6b970_arg1* value) {
     value->field_0 = self->field_0;
 }
 
+struct Unk_a6b980 {
+    u64 field_0;
+    u64 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_a6b980, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_a6b980, field_8, 0x8);
+
+void Unk_965af0(u64, u32);
+void Unk_ed2ed0(u64, u32);
+
+// 0x7100a6b980
+void Unk_a6b980_call(const Unk_a6b980* self) {
+    Unk_ed2ed0(self->field_8, 1);
+    Unk_965af0(self->field_0, 1);
+}
+
 struct Unk_a6b9f0_arg1 {
     u64 field_0;
     Unk_239a418* field_8;

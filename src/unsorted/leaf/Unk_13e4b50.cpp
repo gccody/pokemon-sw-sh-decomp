@@ -16,3 +16,59 @@ extern const u8 Unk_24360d8[] __attribute__((visibility("hidden")));
 const u8* Unk_13e6560_get() {
     return Unk_24360d8;
 }
+
+struct Unk_13e67c0_arg1 {
+    u8 _0[0x8];
+    u16 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_13e67c0_arg1, field_8, 0x8);
+
+u64 Unk_786b80(u16);
+
+// 0x71013e67c0
+u64 Unk_13e67c0_call(void* /*unused*/, const Unk_13e67c0_arg1* value) {
+    u64 r0 = Unk_786b80(value->field_8);
+    return r0 & 1;
+}
+
+struct Unk_13e6800_arg1 {
+    u8 _0[0x8];
+    u16 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_13e6800_arg1, field_8, 0x8);
+
+u64 Unk_786e20(u16);
+
+// 0x71013e6800
+u64 Unk_13e6800_call(void* /*unused*/, const Unk_13e6800_arg1* value) {
+    u64 r0 = Unk_786e20(value->field_8);
+    return r0 & 1;
+}
+
+struct Unk_13e68e0_arg1 {
+    u8 _0[0x8];
+    u8 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_13e68e0_arg1, field_8, 0x8);
+
+u64 Unk_786de0(u8);
+
+// 0x71013e68e0
+u64 Unk_13e68e0_call(void* /*unused*/, const Unk_13e68e0_arg1* value) {
+    u64 r0 = Unk_786de0(value->field_8);
+    return r0 & 0xffff;
+}
+
+struct Unk_13e6900_arg1 {
+    u8 _0[0x8];
+    u32 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_13e6900_arg1, field_8, 0x8);
+
+u64 Unk_786ad0(u32);
+
+// 0x71013e6900
+u64 Unk_13e6900_call(void* /*unused*/, const Unk_13e6900_arg1* value) {
+    u64 r0 = Unk_786ad0(value->field_8);
+    return r0 & 1;
+}

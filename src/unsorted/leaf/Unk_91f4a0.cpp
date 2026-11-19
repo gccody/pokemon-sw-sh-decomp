@@ -17,6 +17,14 @@ void Unk_91f4b0_call(void* self) {
     Unk_eb6230(self, 3);
 }
 
+u32 Unk_eb6530();
+
+// 0x710091f4c0
+u32 Unk_91f4c0_call() {
+    u32 r0 = Unk_eb6530();
+    return ~r0 & 1;
+}
+
 struct Unk_91f910 {
     u8 _0[0x5f0];
     u64 field_5f0;

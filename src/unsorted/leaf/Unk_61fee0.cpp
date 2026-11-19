@@ -330,6 +330,19 @@ void Unk_640440_set(const Unk_640440* self, Unk_640440* value) {
     *value = *self;
 }
 
+void Unk_641370();
+void Unk_6418a0(void*);
+void Unk_641e30(void*);
+void Unk_6425a0(void*);
+
+// 0x7100641330
+void Unk_641330_call(void* self) {
+    Unk_641370();
+    Unk_6418a0(self);
+    Unk_641e30(self);
+    Unk_6425a0(self);
+}
+
 // 0x71006431e0
 void Unk_6431e0_update() {}
 

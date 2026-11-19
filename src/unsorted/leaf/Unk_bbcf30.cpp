@@ -7858,6 +7858,31 @@ void Unk_c18050_call(const Unk_c18050* self) {
     Unk_c5ac90(self->field_780);
 }
 
+struct Unk_c1b030_arg2 {
+    u64 field_0;
+    u64 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_c1b030_arg2, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_c1b030_arg2, field_8, 0x8);
+
+struct Unk_c1b030 {
+    u8 _0[0x570];
+    u64 field_570;
+    u64 field_578;
+};
+PKMN_OFFSET_ASSERT(Unk_c1b030, field_570, 0x570);
+PKMN_OFFSET_ASSERT(Unk_c1b030, field_578, 0x578);
+
+void Unk_c1b060();
+
+// 0x7100c1b030
+void Unk_c1b030_call(Unk_c1b030* self, u32 /*unused*/, const Unk_c1b030_arg2* arg2) {
+    Unk_c1b060();
+    u64 v0 = arg2->field_0;
+    self->field_578 = arg2->field_8;
+    self->field_570 = v0;
+}
+
 void Unk_c1e8f0(void*, u64, u64, u32);
 
 // 0x7100c1eef0

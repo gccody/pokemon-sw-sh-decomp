@@ -941,11 +941,28 @@ u32 Unk_13aca70_get() {
     return 1;
 }
 
+u64 Unk_7c2280();
+
+// 0x71013ad0e0
+u64 Unk_13ad0e0_call() {
+    u64 r0 = Unk_7c2280();
+    return r0 & 0xff;
+}
+
 void Unk_d25c50();
 
 // 0x71013ad180
 void Unk_13ad180_call() {
     Unk_d25c50();
+}
+
+extern u64 Unk_24ba638;
+u64 Unk_c442a0(u64, u32);
+
+// 0x71013ae7f0
+u64 Unk_13ae7f0_call() {
+    u64 r0 = Unk_c442a0(Unk_24ba638, 2);
+    return r0 & 1;
 }
 
 // 0x71013ae820

@@ -192,6 +192,15 @@ void Unk_eb6820_set(const Unk_eb6820* self, Unk_eb6820* value) {
     *value = *self;
 }
 
+void Unk_eb6a00();
+void Unk_eb6ba0(void*);
+
+// 0x7100eb6b70
+void Unk_eb6b70_call(void* self) {
+    Unk_eb6a00();
+    Unk_eb6ba0(self);
+}
+
 struct Unk_14e4110;
 struct Unk_eb7070 {
     u8 _0[0x18];

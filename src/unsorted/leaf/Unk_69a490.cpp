@@ -111,3 +111,23 @@ void Unk_69b100(u64);
 void Unk_69c1e0_call(const Unk_69c1e0* self) {
     Unk_69b100(self->field_50);
 }
+
+struct Unk_69c250_50 {
+    u8 _0[0x68];
+    u64 field_68;
+};
+PKMN_OFFSET_ASSERT(Unk_69c250_50, field_68, 0x68);
+
+struct Unk_69c250 {
+    u8 _0[0x50];
+    Unk_69c250_50* field_50;
+};
+PKMN_OFFSET_ASSERT(Unk_69c250, field_50, 0x50);
+
+u32 Unk_418310(u64);
+
+// 0x710069c250
+bool Unk_69c250_call(const Unk_69c250* self) {
+    u32 r0 = Unk_418310(self->field_50->field_68);
+    return r0 == 0;
+}

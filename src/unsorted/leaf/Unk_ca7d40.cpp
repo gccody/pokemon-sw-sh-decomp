@@ -10,6 +10,15 @@ void Unk_ca7d40_call() {
     Unk_ca7d50();
 }
 
+void Unk_ca85a0();
+void Unk_ca86e0(void*, u32);
+
+// 0x7100ca8570
+void Unk_ca8570_call(void* self) {
+    Unk_ca85a0();
+    Unk_ca86e0(self, 0);
+}
+
 struct Unk_ca92b0 {
     u8 _0[0xa0];
     u64 field_a0;

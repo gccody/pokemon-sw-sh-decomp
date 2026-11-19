@@ -160,3 +160,11 @@ PKMN_OFFSET_ASSERT(Unk_e9b2e0, field_8, 0x8);
 void Unk_e9b2e0_set(const Unk_e9b2e0* self, Unk_e9b2e0* value) {
     *value = *self;
 }
+
+u32 Unk_e9ccb0();
+
+// 0x7100e9cef0
+u32 Unk_e9cef0_call() {
+    u32 r0 = Unk_e9ccb0();
+    return r0 & 0xff;
+}

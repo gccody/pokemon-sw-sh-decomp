@@ -133,6 +133,21 @@ void Unk_124c520_set(const Unk_124c520* self, Unk_124c520* value) {
     *value = *self;
 }
 
+struct Unk_1250410 {
+    u8 _0[0x90];
+    u64 field_90;
+};
+PKMN_OFFSET_ASSERT(Unk_1250410, field_90, 0x90);
+
+void Unk_124f4a0(void*);
+void Unk_eb8a30(u64, u32);
+
+// 0x7101250410
+void Unk_1250410_call(Unk_1250410* self) {
+    Unk_eb8a30(self->field_90, 1);
+    Unk_124f4a0(self);
+}
+
 // 0x7101251220
 void Unk_1251220_update() {}
 
