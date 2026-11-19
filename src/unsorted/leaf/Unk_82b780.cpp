@@ -33,6 +33,16 @@ void Unk_82b7a0_setField0(Unk_82b7a0* self, u8 value) {
     self->field_0 = value;
 }
 
+struct Unk_82b7b0 {
+    u8 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_82b7b0, field_0, 0x0);
+
+// 0x710082b7b0
+bool Unk_82b7b0_check(const Unk_82b7b0* self, u8 value) {
+    return self->field_0 == (value);
+}
+
 struct Unk_82b7c0 {
     u8 field_0;
 };

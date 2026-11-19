@@ -142,6 +142,22 @@ bool Unk_786bd0_check(const Unk_786bd0* self) {
     return self->field_0->field_1c == 4;
 }
 
+struct Unk_786bf0_0 {
+    u8 _0[0x1c];
+    u8 field_1c;
+};
+PKMN_OFFSET_ASSERT(Unk_786bf0_0, field_1c, 0x1c);
+
+struct Unk_786bf0 {
+    Unk_786bf0_0* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_786bf0, field_0, 0x0);
+
+// 0x7100786bf0
+bool Unk_786bf0_check(const Unk_786bf0* self, u8 value) {
+    return self->field_0->field_1c == (value);
+}
+
 extern u64 Unk_27cecf0;
 void Unk_785ee0(u64, u32);
 

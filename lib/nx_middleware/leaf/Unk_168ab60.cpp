@@ -1102,6 +1102,22 @@ void Unk_16b7b10_set(Unk_16b7b10* self) {
     self->field_80 = 0xffff00;
 }
 
+struct Unk_16b8770 {
+    u8 _0[0xb8];
+    u8 field_b8;
+    u8 _b9[0x2];
+    u8 field_bb;
+};
+PKMN_OFFSET_ASSERT(Unk_16b8770, field_b8, 0xb8);
+PKMN_OFFSET_ASSERT(Unk_16b8770, field_bb, 0xbb);
+
+// 0x71016b8770
+void Unk_16b8770_set(Unk_16b8770* self, u8 value) {
+    if (self->field_b8 == (value)) {
+        self->field_bb = 1;
+    }
+}
+
 struct Unk_16bcc90 {
     u8 _0[0xf8];
     u32 field_f8;

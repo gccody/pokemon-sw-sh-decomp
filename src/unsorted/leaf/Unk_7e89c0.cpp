@@ -745,6 +745,11 @@ void Unk_7eb460_call() {
     Unk_7eb3d0();
 }
 
+// 0x71007eb5c0
+bool Unk_7eb5c0_check(u16 self) {
+    return (self) == 0xf1;
+}
+
 extern const u8 Unk_1f10c68[] __attribute__((visibility("hidden")));
 struct Unk_7eba90 {
     u32 field_0;
