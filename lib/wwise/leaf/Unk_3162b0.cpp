@@ -219,6 +219,30 @@ u32 Unk_31b0a0_get(const Unk_31b0a0* self) {
 void Unk_31b530_update() {
 }
 
+struct Unk_31bb10 {
+    u8 _0[0x68];
+    u64 field_68;
+    u8 _70[0x20];
+    u64 field_90;
+};
+PKMN_OFFSET_ASSERT(Unk_31bb10, field_68, 0x68);
+PKMN_OFFSET_ASSERT(Unk_31bb10, field_90, 0x90);
+
+u32 Unk_30ad70(void*, u64, u64, u32);
+u32 Unk_30e9f0(u64);
+void Unk_31bb90(void*, u64, u64, u32, void*, u32);
+
+// 0x710031bb10
+void Unk_31bb10_call(Unk_31bb10* self, u64 value, u64 arg2, bool arg3) {
+    s32 l24;
+    u32 r0 = Unk_30ad70(self, value, arg2, arg3);
+    if (r0 == 1) {
+        u32 r1 = Unk_30e9f0(self->field_90);
+        Unk_31bb90(self, value, arg2, 0 - r1, &l24, arg3);
+        self->field_68 = l24;
+    }
+}
+
 struct Unk_31ce50 {
     u8 _0[0xa8];
     u32 field_a8;

@@ -166,6 +166,22 @@ void Unk_fd15c0_call(Unk_fd15c0* self) {
     Unk_14e1b40(self->field_730);
 }
 
+struct Unk_fd2880 {
+    u8 _0[0x730];
+    u64 field_730;
+};
+PKMN_OFFSET_ASSERT(Unk_fd2880, field_730, 0x730);
+
+void Unk_14e6550(u64, void*, u32, u32);
+
+// 0x7100fd2880
+void Unk_fd2880_call(const Unk_fd2880* self) {
+    u64 l8;
+    u64 v0 = self->field_730;
+    l8 = 0;
+    Unk_14e6550(v0, &l8, 1, 0);
+}
+
 struct Unk_fd28b0_730 {
     virtual void vf0();
     virtual void vf1();

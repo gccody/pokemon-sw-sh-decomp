@@ -1045,6 +1045,38 @@ u32 Unk_13b0130_get() {
     return 1;
 }
 
+struct Unk_13b01c0_arg1 {
+    u8 _0[0x8];
+    u64 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_13b01c0_arg1, field_8, 0x8);
+
+u64 Unk_136d3c0(void*);
+
+// 0x71013b01c0
+u64 Unk_13b01c0_call(void* /*unused*/, const Unk_13b01c0_arg1* value) {
+    u64 l8;
+    l8 = value->field_8;
+    u64 r0 = Unk_136d3c0(&l8);
+    return r0 & 1;
+}
+
+struct Unk_13b01f0_arg1 {
+    u8 _0[0x8];
+    u64 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_13b01f0_arg1, field_8, 0x8);
+
+void Unk_136d1a0(void*);
+
+// 0x71013b01f0
+u32 Unk_13b01f0_call(void* /*unused*/, const Unk_13b01f0_arg1* value) {
+    u64 l8;
+    l8 = value->field_8;
+    Unk_136d1a0(&l8);
+    return 1;
+}
+
 // 0x71013b09e0
 u32 Unk_13b09e0_get() {
     return 1;

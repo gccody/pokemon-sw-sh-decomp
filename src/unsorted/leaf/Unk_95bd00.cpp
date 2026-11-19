@@ -1728,6 +1728,14 @@ void Unk_96fb30_update() {}
 // 0x710096fb40
 void Unk_96fb40_update() {}
 
+void Unk_9795d0(void*, void*);
+
+// 0x71009746f0
+void Unk_9746f0_call(void* self) {
+    u64 l8;
+    Unk_9795d0(self, &l8);
+}
+
 struct Unk_97ad20_3b0 {
     virtual void vf0();
     virtual void vf1();
