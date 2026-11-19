@@ -1,6 +1,7 @@
 // Scope: common
 // Small virtual functions of a library class (tools/leafgen.py members): placeholder
 // member names vf<slot>, placeholder structs. The class's name is its RTTI's.
+// RTTI: N2nn3nex21OutputEmulationDeviceE
 #include <types.h>
 
 struct Unk_160fdc0 {
