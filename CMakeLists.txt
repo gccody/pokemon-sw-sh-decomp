@@ -235,13 +235,16 @@ pkmn_library_settings(lib/curl
 # NEX 4.6.8 (Nintendo's online library, NintendoSDK middleware): the game's
 # clang 7.0.x and flags, except that NEX was built with strict aliasing (its
 # inlined ByteStream reads keep a size_t across a u32 store but not across a
-# u64 one: type-based alias analysis). Its containers are libc++'s (RTTI
+# u64 one: type-based alias analysis), and with -fno-builtin (111 of its 289
+# memcpy/memset/memmove calls pass a constant size of 64 bytes or less, which
+# clang expands inline when they're builtins, like Pia's; InetAddress calls
+# memset(..., 16)). Its containers are libc++'s (RTTI
 # std::__1::list<nn::nex::URLProbe, nn::nex::MemAllocator<...>>), so libc++
 # 7.0.1's headers come first; lib/nex/include holds the reconstructed headers.
 pkmn_library_settings(lib/nex
   EVIDENCE "docs/compiler.md, section NEX 4.6.8"
   DEFINES _GNU_SOURCE _LIBCPP_HAS_MUSL_LIBC _LIBCPP_HAS_THREAD_API_PTHREAD
-  OPTIONS -fstrict-aliasing
+  OPTIONS -fstrict-aliasing -fno-builtin
   INCLUDES lib/nex/include
   SYSTEM_INCLUDES include/libcxx)
 
