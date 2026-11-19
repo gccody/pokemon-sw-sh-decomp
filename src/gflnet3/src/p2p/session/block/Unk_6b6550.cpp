@@ -76,7 +76,8 @@ public:
 
     void Unk_6b6d70(const u64& peer, bool arg2);
 
-    u8 _70[0xc0];
+    u8 _70[0xa0];
+    u8 _110[0x20];
     std::vector<Unk_23a33b8_Peer, Unk_2771620_Allocator<Unk_23a33b8_Peer>> field_130;
     u8 _160[0x8];
     Unk_23a3638* field_168;  // the ping listener
