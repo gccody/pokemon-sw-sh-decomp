@@ -181,6 +181,11 @@ public:
 // 0x7100b99210
 void Unk_23d24b0::vf4() {}
 
+// 0x7100b99220
+void Unk_23d24b0::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_23d24f8 {
 public:
     virtual ~Unk_23d24f8();
@@ -193,6 +198,11 @@ public:
 
 // 0x7100b995a0
 void Unk_23d24f8::vf4() {}
+
+// 0x7100b995b0
+void Unk_23d24f8::vf5() {
+    ::operator delete(this);
+}
 
 class Unk_23d2540 {
 public:
@@ -207,6 +217,11 @@ public:
 // 0x7100b99930
 void Unk_23d2540::vf4() {}
 
+// 0x7100b99940
+void Unk_23d2540::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_23d2588 {
 public:
     virtual ~Unk_23d2588();
@@ -219,6 +234,11 @@ public:
 
 // 0x7100b99e00
 void Unk_23d2588::vf4() {}
+
+// 0x7100b99e10
+void Unk_23d2588::vf5() {
+    ::operator delete(this);
+}
 
 class Unk_23d25d0 {
 public:
@@ -233,6 +253,11 @@ public:
 // 0x7100b9a030
 void Unk_23d25d0::vf4() {}
 
+// 0x7100b9a040
+void Unk_23d25d0::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_23d2618 {
 public:
     virtual ~Unk_23d2618();
@@ -246,6 +271,11 @@ public:
 // 0x7100b9a260
 void Unk_23d2618::vf4() {}
 
+// 0x7100b9a270
+void Unk_23d2618::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_23d2660 {
 public:
     virtual ~Unk_23d2660();
@@ -258,6 +288,11 @@ public:
 
 // 0x7100b9a340
 void Unk_23d2660::vf4() {}
+
+// 0x7100b9a350
+void Unk_23d2660::vf5() {
+    ::operator delete(this);
+}
 
 class Unk_23d2728 {
 public:

@@ -53,3 +53,8 @@ u8 Unk_23bf658::vf1() {
 
 // 0x710092c5a0
 void Unk_23bf658::vf6() {}
+
+// 0x710092c640
+void Unk_23bf658::vf7() {
+    ::operator delete(this);
+}

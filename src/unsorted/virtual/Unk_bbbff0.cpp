@@ -1241,6 +1241,11 @@ public:
 // 0x7100c008f0
 void Unk_23d7bc0::vf4() {}
 
+// 0x7100c00900
+void Unk_23d7bc0::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_23d7c08 {
 public:
     virtual ~Unk_23d7c08();
@@ -1253,6 +1258,11 @@ public:
 
 // 0x7100c00cc0
 void Unk_23d7c08::vf4() {}
+
+// 0x7100c00cd0
+void Unk_23d7c08::vf5() {
+    ::operator delete(this);
+}
 
 class Unk_23d7c50 {
 public:
@@ -1267,6 +1277,11 @@ public:
 // 0x7100c00d60
 void Unk_23d7c50::vf4() {}
 
+// 0x7100c00d70
+void Unk_23d7c50::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_23d7c98 {
 public:
     virtual ~Unk_23d7c98();
@@ -1279,6 +1294,11 @@ public:
 
 // 0x7100c01110
 void Unk_23d7c98::vf4() {}
+
+// 0x7100c01120
+void Unk_23d7c98::vf5() {
+    ::operator delete(this);
+}
 
 class Unk_23d7ce0 {
 public:
@@ -1293,6 +1313,11 @@ public:
 // 0x7100c011b0
 void Unk_23d7ce0::vf4() {}
 
+// 0x7100c011c0
+void Unk_23d7ce0::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_23d7d28 {
 public:
     virtual ~Unk_23d7d28();
@@ -1305,6 +1330,11 @@ public:
 
 // 0x7100c01440
 void Unk_23d7d28::vf4() {}
+
+// 0x7100c01450
+void Unk_23d7d28::vf5() {
+    ::operator delete(this);
+}
 
 class Unk_23d7d70 {
 public:
@@ -1319,6 +1349,11 @@ public:
 // 0x7100c01500
 void Unk_23d7d70::vf4() {}
 
+// 0x7100c01510
+void Unk_23d7d70::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_23d7db8 {
 public:
     virtual ~Unk_23d7db8();
@@ -1331,6 +1366,11 @@ public:
 
 // 0x7100c015b0
 void Unk_23d7db8::vf4() {}
+
+// 0x7100c015c0
+void Unk_23d7db8::vf5() {
+    ::operator delete(this);
+}
 
 class Unk_23d7e00 : public Unk_23d4470 {
 public:
@@ -1370,6 +1410,11 @@ public:
 // 0x7100c03600
 void Unk_23d7ee8::vf4() {}
 
+// 0x7100c03610
+void Unk_23d7ee8::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_23d7f30 {
 public:
     virtual ~Unk_23d7f30();
@@ -1382,6 +1427,11 @@ public:
 
 // 0x7100c04290
 void Unk_23d7f30::vf4() {}
+
+// 0x7100c042a0
+void Unk_23d7f30::vf5() {
+    ::operator delete(this);
+}
 
 class Unk_23d7f78 : public Unk_23d4470 {
 public:
@@ -1592,6 +1642,11 @@ public:
 // 0x7100c09850
 void Unk_23d8878::vf4() {}
 
+// 0x7100c09860
+void Unk_23d8878::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_23d88c0 {
 public:
     virtual ~Unk_23d88c0();
@@ -1605,6 +1660,11 @@ public:
 // 0x7100c09ad0
 void Unk_23d88c0::vf4() {}
 
+// 0x7100c09ae0
+void Unk_23d88c0::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_23d8908 {
 public:
     virtual ~Unk_23d8908();
@@ -1617,6 +1677,11 @@ public:
 
 // 0x7100c09ef0
 void Unk_23d8908::vf4() {}
+
+// 0x7100c09f00
+void Unk_23d8908::vf5() {
+    ::operator delete(this);
+}
 
 class Unk_23d8950 : public Unk_23d4470 {
 public:
@@ -1669,6 +1734,11 @@ public:
 // 0x7100c0b730
 void Unk_23d8af8::vf4() {}
 
+// 0x7100c0b740
+void Unk_23d8af8::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_23d8b40 {
 public:
     virtual ~Unk_23d8b40();
@@ -1681,6 +1751,11 @@ public:
 
 // 0x7100c0ba10
 void Unk_23d8b40::vf4() {}
+
+// 0x7100c0ba20
+void Unk_23d8b40::vf5() {
+    ::operator delete(this);
+}
 
 class Unk_23d8b88 {
 public:
@@ -1695,6 +1770,11 @@ public:
 // 0x7100c0bab0
 void Unk_23d8b88::vf4() {}
 
+// 0x7100c0bac0
+void Unk_23d8b88::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_23d8bd0 {
 public:
     virtual ~Unk_23d8bd0();
@@ -1707,6 +1787,11 @@ public:
 
 // 0x7100c0bd70
 void Unk_23d8bd0::vf4() {}
+
+// 0x7100c0bd80
+void Unk_23d8bd0::vf5() {
+    ::operator delete(this);
+}
 
 class Unk_23d8c18 {
 public:
@@ -1721,6 +1806,11 @@ public:
 // 0x7100c0be10
 void Unk_23d8c18::vf4() {}
 
+// 0x7100c0be20
+void Unk_23d8c18::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_23d8c60 {
 public:
     virtual ~Unk_23d8c60();
@@ -1734,6 +1824,11 @@ public:
 // 0x7100c0c020
 void Unk_23d8c60::vf4() {}
 
+// 0x7100c0c030
+void Unk_23d8c60::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_23d8ca8 {
 public:
     virtual ~Unk_23d8ca8();
@@ -1746,6 +1841,11 @@ public:
 
 // 0x7100c0c0c0
 void Unk_23d8ca8::vf4() {}
+
+// 0x7100c0c0d0
+void Unk_23d8ca8::vf5() {
+    ::operator delete(this);
+}
 
 class Unk_23d8cf0 : public Unk_23d4470 {
 public:

@@ -23,6 +23,11 @@ Unk_23dc748::~Unk_23dc748() {}
 // 0x7100c602c0
 void Unk_23dc748::vf4() {}
 
+// 0x7100c602d0
+void Unk_23dc748::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_23dc790 : public Unk_23dc748 {
 public:
     void vf4() override;
@@ -35,6 +40,11 @@ public:
 // 0x7100c60850
 void Unk_23dc790::vf4() {}
 
+// 0x7100c60860
+void Unk_23dc790::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_23dc7d8 : public Unk_23dc748 {
 public:
     void vf4() override;
@@ -46,6 +56,11 @@ public:
 
 // 0x7100c60a50
 void Unk_23dc7d8::vf4() {}
+
+// 0x7100c60a60
+void Unk_23dc7d8::vf5() {
+    ::operator delete(this);
+}
 
 class Unk_23dcc30 {
 public:

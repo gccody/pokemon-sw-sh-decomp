@@ -133,6 +133,11 @@ public:
 // 0x71009b02f0
 void Unk_23c4b08::vf4() {}
 
+// 0x71009b0300
+void Unk_23c4b08::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_23c4b50 {
 public:
     virtual ~Unk_23c4b50();

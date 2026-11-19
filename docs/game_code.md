@@ -1578,6 +1578,50 @@ name gives (check.py: 41,027 matching, 42 not matching).
 Two trials, 29 matches: most functions that call these also do things
 the lifter doesn't (loops, stack locals). check.py: 41,056 matching, 42
 not matching.
+### Batch 35: implicit destructors with their constructors, `destroy_deallocate`
+
+A census of why `write` leaves classes out (the refusal points in
+`derive_external`, and the owners of the D2s classes share) found two
+cheap groups.
+
+**Classes with nothing but their destructors.** 238 classes in
+game/battle_engine have 2-slot vtables: an empty D2 (`0x710081c590`, a
+`ret`) and their own `b operator delete` D0, right after their
+constructor. Their constructors (`src/unsorted/ctor`) all call
+`Unk_23acc98`'s (`0x710082a930`), whose own vtable holds the same D2: it's
+the root, with an empty inline destructor, and the others' destructors are
+implicit, so clang uses its D2 for theirs. With no function to be a key
+function, a class's vtable, and its D0 with it, is emitted in its
+constructor's TU. `owners()` had given the D2 to a sibling,
+`Unk_23acbb8` (the lowest of the tied vtables), and `write` wrote it an
+out-of-line destructor.
+
+- `ctor_bases` follows the constructors (`find_ctors`' shapes) from a
+  class to its base, and `ctor_roots` finds, for an empty D2 in slot 0 of
+  2-slot vtables, the class up that chain whose own 2-slot vtable holds it
+  and whose base's doesn't.
+- `write` gives such a D2 to its root and leaves the root to `ctors`
+  (`Unk_81c590.cpp` goes; `Unk_23acbb8` is a constructor class now).
+- `ctors` (`implicit_dtors`) declares those classes without a destructor
+  and the root with `virtual ~R() {}`, when each D0 lies in its
+  constructor's segment, and names the D0s and the root's D2
+  (`_ZN11Unk_23acbb8D2Ev` becomes `_ZN11Unk_23acc98D2Ev`).
+
+**`destroy_deallocate`.** Most of the classes with a `b operator delete`
+after their destructors have an empty destructor pair and 7 slots: the
+D2 and D0, two clones, `destroy` (a `ret`), a `b operator delete` and a
+call. That's libc++'s `std::function` callable
+(`__func`: `__clone()`, `__clone(__base*)`, `destroy()`,
+`destroy_deallocate()`, `operator()`; no `target`s without RTTI) for a
+trivially destructible lambda, whose `destroy_deallocate` frees the
+object without destroying anything. `write` writes a `b operator delete`
+after the destructors as `void vfN() { ::operator delete(this); }`: the
+global one (classes on the object declare an empty one of their own).
+
+237 new D0s, one constructor (`Unk_23acbb8`'s) and 285 `destroy_deallocate`s:
+523 functions match, every candidate the trial wrote except two
+constructors a batch before had left out (check.py: 41,579 matching, 42
+not matching).
 
 ## What's left of the small functions
 
@@ -1604,7 +1648,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after Batch 34: check.py reports 41,056 matching and 42 not
+State after Batch 35: check.py reports 41,579 matching and 42 not
 matching, in both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
@@ -1626,6 +1670,12 @@ python tools/funcs.py name --force --from-file keep.csv
 python tools/check.py --update
 python tools/check.py --no-build --record-data
 ```
+
+A trial with every candidate doesn't build any more: since Batch 25 the
+lifter gives `write` members with calls and virtual calls it can't declare.
+Trial a new kind with `--only` listing its candidates (named functions are
+always kept), as Batch 34 did. `ctors --only` lists every constructor to
+write, named or not, and the D0s of `implicit_dtors` too.
 
 Before committing a change to `vtables.py`, check that:
 

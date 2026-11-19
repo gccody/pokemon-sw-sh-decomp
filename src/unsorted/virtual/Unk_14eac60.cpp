@@ -769,6 +769,11 @@ public:
 // 0x71015064c0
 void Unk_24466a8::vf4() {}
 
+// 0x71015064d0
+void Unk_24466a8::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_24466f0 {
 public:
     virtual ~Unk_24466f0();
@@ -781,3 +786,8 @@ public:
 
 // 0x7101506540
 void Unk_24466f0::vf4() {}
+
+// 0x7101506550
+void Unk_24466f0::vf5() {
+    ::operator delete(this);
+}

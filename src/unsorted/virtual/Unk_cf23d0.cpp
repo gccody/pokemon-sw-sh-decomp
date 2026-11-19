@@ -180,6 +180,11 @@ Unk_23e4b58::~Unk_23e4b58() {}
 // 0x7100cf4430
 void Unk_23e4b58::vf4() {}
 
+// 0x7100cf4440
+void Unk_23e4b58::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_23e4ba0 {
 public:
     virtual void vf0();

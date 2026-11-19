@@ -105,3 +105,8 @@ Unk_23ea450::~Unk_23ea450() {}
 
 // 0x7100d4a8f0
 void Unk_23ea450::vf4() {}
+
+// 0x7100d4a900
+void Unk_23ea450::vf5() {
+    ::operator delete(this);
+}

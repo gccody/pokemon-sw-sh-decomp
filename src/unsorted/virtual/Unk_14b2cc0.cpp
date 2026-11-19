@@ -521,6 +521,11 @@ PKMN_OFFSET_ASSERT(Unk_24430f0, field_8, 0x8);
 // 0x71014bcf80
 void Unk_24430f0::vf1() {}
 
+// 0x71014bcf00
+void Unk_24430f0::vf2() {
+    ::operator delete(this);
+}
+
 // 0x71014bcf10
 void Unk_24430f0::vf3() {}
 

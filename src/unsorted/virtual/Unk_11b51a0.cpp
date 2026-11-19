@@ -17,6 +17,11 @@ public:
 // 0x71011b51a0
 void Unk_241f360::vf4() {}
 
+// 0x71011b51b0
+void Unk_241f360::vf5() {
+    ::operator delete(this);
+}
+
 class Unk_241f3a8 {
 public:
     virtual ~Unk_241f3a8();
@@ -29,3 +34,8 @@ public:
 
 // 0x71011b52a0
 void Unk_241f3a8::vf4() {}
+
+// 0x71011b52b0
+void Unk_241f3a8::vf5() {
+    ::operator delete(this);
+}
