@@ -73,7 +73,7 @@ void Unk_816f90(const Unk_8139c0_Self* self,
                 u32 arg5,
                 u16 arg6,
                 u16 arg7) {
-    Unk_7f2590_Arg arg;
+    Unk_7ee6b0_Action arg;
     arg.field_0 = arg6;
     arg.field_2 = arg7;
     arg.field_4 = arg5;
