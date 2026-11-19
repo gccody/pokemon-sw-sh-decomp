@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "gflib3/Unk_239a418.h"
+#include "unsorted/Unk_d0c0.h"
 
 // What frees the owned object: destroys it and gives its memory back to the
 // allocator, with the size and alignment it was allocated with.
@@ -120,7 +121,8 @@ public:
     u64 field_f8;
     Unk_23f4760 field_100;
     std::unique_ptr<Unk_23f47c0, Unk_23f4660_Deleter> field_5a0;
-    Unk_239a418_Ref<Unk_239a418> field_5c0;
+    // Its name: the apps' frames find their views by it (Unk_a7bb80_Views).
+    Unk_d0c0_String field_5c0;
     u64 field_5c8;
 };
 static_assert(sizeof(Unk_23f4660) == 0x5d0, "Unk_23f4660");
