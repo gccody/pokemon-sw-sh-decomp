@@ -36,6 +36,28 @@ bool Unk_14e4120_check(const Unk_14e4120* self) {
     return self->field_280 >= 2 && self->field_280 <= 5;
 }
 
+struct Unk_14e4140 {
+    u8 _0[0x82];
+    u8 field_82;
+    u8 field_83;
+    u8 _84[0x1fc];
+    u32 field_280;
+};
+PKMN_OFFSET_ASSERT(Unk_14e4140, field_82, 0x82);
+PKMN_OFFSET_ASSERT(Unk_14e4140, field_83, 0x83);
+PKMN_OFFSET_ASSERT(Unk_14e4140, field_280, 0x280);
+
+// 0x71014e4140
+bool Unk_14e4140_check(const Unk_14e4140* self) {
+    if (self->field_280 == 5) {
+        if (self->field_82 != 0) {
+            return self->field_83 != 0;
+        }
+        return 0;
+    }
+    return 0;
+}
+
 struct Unk_14e4180 {
     u8 _0[0x280];
     u32 field_280;

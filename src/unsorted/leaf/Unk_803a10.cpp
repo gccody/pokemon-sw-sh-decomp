@@ -161,6 +161,24 @@ u8* Unk_803dc0_getField4Ptr(Unk_803dc0* self) {
     return &self->field_4;
 }
 
+struct Unk_803dd0 {
+    u8 _0[0x2];
+    u16 field_2;
+    u8 _4[0x1c];
+    u32 field_20;
+};
+PKMN_OFFSET_ASSERT(Unk_803dd0, field_2, 0x2);
+PKMN_OFFSET_ASSERT(Unk_803dd0, field_20, 0x20);
+
+// 0x7100803dd0
+void Unk_803dd0_update(Unk_803dd0* self, u32 value) {
+    if ((self->field_2 & 0x3c00) != 0) {
+        return;
+    }
+    self->field_20 = value;
+    self->field_2 = self->field_2 | 0x4000;
+}
+
 struct Unk_803df0 {
     u8 _0[0x3];
     u8 field_3;

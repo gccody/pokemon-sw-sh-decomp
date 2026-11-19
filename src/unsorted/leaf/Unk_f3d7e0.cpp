@@ -47,6 +47,24 @@ bool Unk_f3d810_check(const Unk_f3d810* self) {
     return self->field_70 == 0;
 }
 
+struct Unk_f3da70 {
+    u8 _0[0x78];
+    u64 field_78;
+    u8 field_80;
+};
+PKMN_OFFSET_ASSERT(Unk_f3da70, field_78, 0x78);
+PKMN_OFFSET_ASSERT(Unk_f3da70, field_80, 0x80);
+void Unk_eb7730(u64);
+
+// 0x7100f3da70
+void Unk_f3da70_update(Unk_f3da70* self) {
+    if (self->field_80 != 0) {
+        return;
+    }
+    Unk_eb7730(self->field_78);
+    self->field_80 = 1;
+}
+
 struct Unk_f3dab0 {
     u8 _0[0x78];
     u64 field_78;

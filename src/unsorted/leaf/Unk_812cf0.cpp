@@ -165,3 +165,25 @@ PKMN_OFFSET_ASSERT(Unk_813320, field_4f, 0x4f);
 void Unk_813320_setField4f(Unk_813320* self, u8 value) {
     self->field_4f = value;
 }
+
+struct Unk_813330 {
+    u8 _0[0x4c];
+    u8 field_4c;
+    u8 field_4d;
+    u8 _4e[0x1];
+    u8 field_4f;
+};
+PKMN_OFFSET_ASSERT(Unk_813330, field_4c, 0x4c);
+PKMN_OFFSET_ASSERT(Unk_813330, field_4d, 0x4d);
+PKMN_OFFSET_ASSERT(Unk_813330, field_4f, 0x4f);
+
+// 0x7100813330
+bool Unk_813330_check(const Unk_813330* self) {
+    if (self->field_4d == 0) {
+        if (self->field_4f != 0) {
+            return self->field_4c == 0;
+        }
+        return 0;
+    }
+    return self->field_4c == 0;
+}

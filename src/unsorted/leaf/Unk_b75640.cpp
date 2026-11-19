@@ -179,6 +179,44 @@ u32 Unk_b7e3c0_getField10(const Unk_b7e3c0* self) {
     return self->field_10;
 }
 
+struct Unk_b7f290_arg1 {
+    u32 field_0;
+    u8 field_4;
+    u8 _5[0x3];
+    u64 field_8;
+    u64 field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_b7f290_arg1, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_b7f290_arg1, field_4, 0x4);
+PKMN_OFFSET_ASSERT(Unk_b7f290_arg1, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_b7f290_arg1, field_10, 0x10);
+struct Unk_b7f290 {
+    u8 _0[0x88];
+    u32 field_88;
+    u8 field_8c;
+    u8 _8d[0x3];
+    u64 field_90;
+    u64 field_98;
+};
+PKMN_OFFSET_ASSERT(Unk_b7f290, field_88, 0x88);
+PKMN_OFFSET_ASSERT(Unk_b7f290, field_8c, 0x8c);
+PKMN_OFFSET_ASSERT(Unk_b7f290, field_90, 0x90);
+PKMN_OFFSET_ASSERT(Unk_b7f290, field_98, 0x98);
+
+// 0x7100b7f290
+bool Unk_b7f290_check(const Unk_b7f290* self, const Unk_b7f290_arg1* value) {
+    if (self->field_88 == value->field_0) {
+        if (self->field_8c == value->field_4) {
+            if (self->field_90 == value->field_8) {
+                return self->field_98 == value->field_10;
+            }
+            return 0;
+        }
+        return 0;
+    }
+    return 0;
+}
+
 struct Unk_b7f2f0 {
     u8 _0[0xc8];
     u64 field_c8;
@@ -188,6 +226,44 @@ PKMN_OFFSET_ASSERT(Unk_b7f2f0, field_c8, 0xc8);
 // 0x7100b7f2f0
 u64 Unk_b7f2f0_getFieldc8(const Unk_b7f2f0* self) {
     return self->field_c8;
+}
+
+struct Unk_b7fa70_arg1 {
+    u32 field_0;
+    u8 field_4;
+    u8 _5[0x3];
+    u64 field_8;
+    u64 field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_b7fa70_arg1, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_b7fa70_arg1, field_4, 0x4);
+PKMN_OFFSET_ASSERT(Unk_b7fa70_arg1, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_b7fa70_arg1, field_10, 0x10);
+struct Unk_b7fa70 {
+    u8 _0[0xd0];
+    u32 field_d0;
+    u8 field_d4;
+    u8 _d5[0x3];
+    u64 field_d8;
+    u64 field_e0;
+};
+PKMN_OFFSET_ASSERT(Unk_b7fa70, field_d0, 0xd0);
+PKMN_OFFSET_ASSERT(Unk_b7fa70, field_d4, 0xd4);
+PKMN_OFFSET_ASSERT(Unk_b7fa70, field_d8, 0xd8);
+PKMN_OFFSET_ASSERT(Unk_b7fa70, field_e0, 0xe0);
+
+// 0x7100b7fa70
+bool Unk_b7fa70_check(const Unk_b7fa70* self, const Unk_b7fa70_arg1* value) {
+    if (self->field_d0 == value->field_0) {
+        if (self->field_d4 == value->field_4) {
+            if (self->field_d8 == value->field_8) {
+                return self->field_e0 == value->field_10;
+            }
+            return 0;
+        }
+        return 0;
+    }
+    return 0;
 }
 
 // 0x7100b80fd0

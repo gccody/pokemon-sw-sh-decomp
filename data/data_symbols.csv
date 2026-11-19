@@ -2321,6 +2321,7 @@ Sword,Shield,Size,Name
 0x71024bb9fd,0x71024bb9fd,,Unk_24bb9fd
 0x71024bbbc8,0x71024bbbc8,,Unk_24bbbc8
 0x71024bbbd0,0x71024bbbd0,,Unk_24bbbd0
+0x71024bbbe0,0x71024bbbe0,,Unk_24bbbe0
 0x71024bbbf0,0x71024bbbf0,,Unk_24bbbf0
 0x71024bbc18,0x71024bbc18,,Unk_24bbc18
 0x71024bcb48,0x71024bcb48,,Unk_24bcb48
@@ -4362,4 +4363,6 @@ Sword,Shield,Size,Name
 0x71027fd850,0x71027fd850,,Unk_27fd850
 0x71027fdb08,0x71027fdb08,,Unk_27fdb08
 0x71027fdb10,0x71027fdb10,,Unk_27fdb10
+0x71027fdb20,0x71027fdb20,,Unk_27fdb20
+0x71027fdb28,0x71027fdb28,,Unk_27fdb28
 0x71027fdb30,0x71027fdb30,,Unk_27fdb30

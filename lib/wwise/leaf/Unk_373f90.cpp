@@ -23,6 +23,34 @@ void Unk_373f90_set(Unk_373f90* self, u32 value) {
     }
 }
 
+struct Unk_373fd0 {
+    u8 _0[0x10];
+    u64 field_10;
+    u8 _18[0x50];
+    u32 field_68;
+    s32 field_6c;
+    u8 _70[0x4];
+    u32 field_74;
+};
+PKMN_OFFSET_ASSERT(Unk_373fd0, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_373fd0, field_68, 0x68);
+PKMN_OFFSET_ASSERT(Unk_373fd0, field_6c, 0x6c);
+PKMN_OFFSET_ASSERT(Unk_373fd0, field_74, 0x74);
+
+// 0x7100373fd0
+bool Unk_373fd0_get(const Unk_373fd0* self) {
+    if (self->field_10 != 0) {
+        if (self->field_68 == 3) {
+            return 1;
+        }
+        if (self->field_6c <= 1) {
+            return self->field_74 == 0;
+        }
+        return 0;
+    }
+    return 1;
+}
+
 // 0x7100377580
 void Unk_377580_update() {
 }
@@ -172,6 +200,58 @@ PKMN_OFFSET_ASSERT(Unk_384e70, field_9e, 0x9e);
 // 0x7100384e70
 u32 Unk_384e70_get(const Unk_384e70* self) {
     return (self->field_9e >> 3) & 1;
+}
+
+struct Unk_387770_70 {
+    u8 _0[0x8];
+    u32 field_8;
+    u8 _c[0x4];
+    u64 field_10;
+    u8 _18[0x70];
+    u16 field_88;
+    u16 field_8a;
+    u8 _8c[0x4];
+    s16 field_90;
+    u8 _92[0x2];
+    s16 field_94;
+};
+PKMN_OFFSET_ASSERT(Unk_387770_70, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_387770_70, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_387770_70, field_88, 0x88);
+PKMN_OFFSET_ASSERT(Unk_387770_70, field_8a, 0x8a);
+PKMN_OFFSET_ASSERT(Unk_387770_70, field_90, 0x90);
+PKMN_OFFSET_ASSERT(Unk_387770_70, field_94, 0x94);
+struct Unk_387770 {
+    u8 _0[0x70];
+    Unk_387770_70* field_70;
+};
+PKMN_OFFSET_ASSERT(Unk_387770, field_70, 0x70);
+void Unk_381f40();
+
+// 0x7100387770
+void Unk_387770_update(const Unk_387770* self) {
+    if (self->field_70 != nullptr) {
+        if (self->field_70->field_90 <= 0) {
+            if (self->field_70->field_94 <= 0) {
+                if (self->field_70->field_88 == 0) {
+                    if (self->field_70->field_8a == 0) {
+                        if (self->field_70->field_10 == 0) {
+                            if (self->field_70->field_8 != 0) {
+                                return;
+                            }
+                            Unk_381f40();
+                            return;
+                        }
+                        return;
+                    }
+                    return;
+                }
+                return;
+            }
+            return;
+        }
+        return;
+    }
 }
 
 struct Unk_3887a0 {

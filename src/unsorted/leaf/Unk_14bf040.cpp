@@ -196,6 +196,29 @@ void Unk_14c3420_set(const Unk_14c3420* self, Unk_14c3420* value) {
     *value = *self;
 }
 
+struct Unk_14c5180_58 {
+    u8 _0[0x89];
+    u8 field_89;
+};
+PKMN_OFFSET_ASSERT(Unk_14c5180_58, field_89, 0x89);
+struct Unk_14c5180 {
+    u8 _0[0x58];
+    Unk_14c5180_58* field_58;
+};
+PKMN_OFFSET_ASSERT(Unk_14c5180, field_58, 0x58);
+
+// 0x71014c5180
+u32 Unk_14c5180_update(const Unk_14c5180* self) {
+    if (self->field_58->field_89 != 1) {
+        if (self->field_58->field_89 == 0) {
+            self->field_58->field_89 = 1;
+            return 1;
+        }
+        return 0;
+    }
+    return 1;
+}
+
 struct Unk_14c51b0 {
     u8 _0[0x58];
     u64 field_58;

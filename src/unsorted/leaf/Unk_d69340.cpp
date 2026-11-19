@@ -74,6 +74,29 @@ void Unk_d69340_call(Unk_d69340* self) {
     }
 }
 
+struct Unk_d69840 {
+    u8 _0[0x720];
+    u8 field_720;
+    u8 field_721;
+};
+PKMN_OFFSET_ASSERT(Unk_d69840, field_720, 0x720);
+PKMN_OFFSET_ASSERT(Unk_d69840, field_721, 0x721);
+
+// 0x7100d69840
+void Unk_d69840_set(Unk_d69840* self, u8 value) {
+    if (self->field_721 == value) {
+        if (self->field_720 != 0) {
+            if (self->field_720 != value) {
+                self->field_720 = value;
+                return;
+            }
+            return;
+        }
+        return;
+    }
+    self->field_720 = value;
+}
+
 struct Unk_d69870 {
     u8 _0[0x727];
     u8 field_727;

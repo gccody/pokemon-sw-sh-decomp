@@ -263,6 +263,33 @@ void Unk_12eb050_set(const Unk_12eb050* self, Unk_12eb050_arg1* value) {
     value->field_0 = self->field_0;
 }
 
+struct Unk_12eb060_0_5e8 {
+    u8 _0[0x58];
+    u8 field_58;
+};
+PKMN_OFFSET_ASSERT(Unk_12eb060_0_5e8, field_58, 0x58);
+struct Unk_12eb060_arg1 {
+    u32 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_12eb060_arg1, field_0, 0x0);
+struct Unk_12eb060_0 {
+    u8 _0[0x5e8];
+    Unk_12eb060_0_5e8* field_5e8;
+};
+PKMN_OFFSET_ASSERT(Unk_12eb060_0, field_5e8, 0x5e8);
+struct Unk_12eb060 {
+    Unk_12eb060_0* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_12eb060, field_0, 0x0);
+
+// 0x71012eb060
+void Unk_12eb060_update(const Unk_12eb060* self, const Unk_12eb060_arg1* value) {
+    if (value->field_0 != 0) {
+        return;
+    }
+    self->field_0->field_5e8->field_58 = self->field_0->field_5e8->field_58 | 1;
+}
+
 // 0x71012eb090
 void Unk_12eb090_update() {}
 

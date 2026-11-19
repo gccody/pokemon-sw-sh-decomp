@@ -391,3 +391,29 @@ void Unk_1334ae0_update() {}
 
 // 0x7101334af0
 void Unk_1334af0_update() {}
+
+struct Unk_1334c20 {
+    u8 _0[0x68];
+    u8 field_68;
+    u8 _69[0xf];
+    u8 field_78;
+    u8 _79[0x3];
+    u32 field_7c;
+    u64 field_80;
+};
+PKMN_OFFSET_ASSERT(Unk_1334c20, field_68, 0x68);
+PKMN_OFFSET_ASSERT(Unk_1334c20, field_78, 0x78);
+PKMN_OFFSET_ASSERT(Unk_1334c20, field_7c, 0x7c);
+PKMN_OFFSET_ASSERT(Unk_1334c20, field_80, 0x80);
+void Unk_67bfa0(u64);
+
+// 0x7101334c20
+void Unk_1334c20_update(Unk_1334c20* self) {
+    if (self->field_78 != 0) {
+        return;
+    }
+    Unk_67bfa0(self->field_80);
+    self->field_68 = 0;
+    self->field_7c = 0;
+    self->field_78 = 1;
+}

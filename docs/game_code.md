@@ -1504,6 +1504,20 @@ such compares in game code up to 128 bytes), but most of them sit in
 functions with loops or several branches: 10 match (check.py: 40,007
 matching, 42 not matching).
 
+### Batch 31: decision trees
+
+`decision_tree` generalizes `two_paths` to several forward branches without
+joins: every path through the function (up to 16; an unconditional `b`
+inside it is followed, one out of it is a tail call) is lifted on its own,
+with each branch on it recorded as taken or as the condition it runs under
+(`Lifted.splits`). The code between two branches must come out the same on
+every path through it, and each path ends in its own return; it's written
+as nested `if (<the fallthrough's condition>) { ...; return; }`. The size
+limit goes to 256 bytes (more paths fit).
+
+The trial wrote 711 functions; 87 match (check.py: 40,094 matching, 42 not
+matching).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1529,7 +1543,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after Batch 30: check.py reports 40,007 matching and 42 not
+State after Batch 31: check.py reports 40,094 matching and 42 not
 matching, in both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the

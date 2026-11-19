@@ -142,6 +142,57 @@ void Unk_eef830_set(const Unk_eef830* self, Unk_eef830_arg1* value) {
     value->field_0 = self->field_0;
 }
 
+struct Unk_ef3930_5d0_1f8 {
+    u8 _0[0x58];
+    u8 field_58;
+};
+PKMN_OFFSET_ASSERT(Unk_ef3930_5d0_1f8, field_58, 0x58);
+
+struct Unk_ef3930_5d0_60 {
+    u32 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_ef3930_5d0_60, field_0, 0x0);
+
+struct Unk_ef3930_5d0 {
+    u8 _0[0x60];
+    Unk_ef3930_5d0_60* field_60;
+    u8 field_68;
+    u8 _69[0x18f];
+    Unk_ef3930_5d0_1f8* field_1f8;
+};
+PKMN_OFFSET_ASSERT(Unk_ef3930_5d0, field_60, 0x60);
+PKMN_OFFSET_ASSERT(Unk_ef3930_5d0, field_68, 0x68);
+PKMN_OFFSET_ASSERT(Unk_ef3930_5d0, field_1f8, 0x1f8);
+
+struct Unk_ef3930 {
+    u8 _0[0x5d0];
+    Unk_ef3930_5d0* field_5d0;
+    u8 _5d8[0xc0];
+    u64 field_698;
+};
+PKMN_OFFSET_ASSERT(Unk_ef3930, field_5d0, 0x5d0);
+PKMN_OFFSET_ASSERT(Unk_ef3930, field_698, 0x698);
+
+u32 Unk_ef8720(void*, u32);
+u64 Unk_ef8700(void*, u32, u32);
+
+// 0x7100ef3930
+void Unk_ef3930_call(Unk_ef3930* self) {
+    if (self->field_5d0->field_60->field_0 == 0) {
+        if (self->field_5d0->field_1f8->field_58 != 1)
+            return;
+        if (self->field_698 != 0xd009f2ab0d98b2d7)
+            return;
+        u32 r0 = Unk_ef8720(&self->field_5d0->field_68, 1);
+        if (r0 == 0)
+            return;
+        u64 r1 = Unk_ef8700(&self->field_5d0->field_68, 1, 0);
+        if (r1 == 0xd009f2ab0d98b2d7)
+            return;
+        self->field_698 = r1;
+    }
+}
+
 struct Unk_ef3dd0 {
     u8 _0[0x4c0];
     u64 field_4c0;

@@ -96,6 +96,28 @@ void Unk_30b6a0_set(Unk_30b6a0* self, u32 value, u32 arg2, u32 arg3) {
     self->field_44 = self->field_44 | 1;
 }
 
+struct Unk_30b9d0 {
+    u8 _0[0x10];
+    u64 field_10;
+    u64 field_18;
+    u8 _20[0x24];
+    u8 field_44;
+};
+PKMN_OFFSET_ASSERT(Unk_30b9d0, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_30b9d0, field_18, 0x18);
+PKMN_OFFSET_ASSERT(Unk_30b9d0, field_44, 0x44);
+
+// 0x710030b9d0
+bool Unk_30b9d0_get(const Unk_30b9d0* self) {
+    if (self->field_18 != 0) {
+        return 0;
+    }
+    if ((self->field_44 & 2) == 0) {
+        return self->field_10 == 0;
+    }
+    return 0;
+}
+
 struct Unk_30c7d0_10 {
     u8 _0[0x20];
     u32 field_20;

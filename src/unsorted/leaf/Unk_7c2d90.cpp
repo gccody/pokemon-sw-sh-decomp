@@ -374,6 +374,39 @@ bool Unk_7caaf0_check(const Unk_7caaf0* self) {
     return self->field_88->field_0 < 2;
 }
 
+struct Unk_7cabc0_88 {
+    u32 field_0;
+    u8 _4[0xa5d];
+    u8 field_a61;
+    u8 _a62[0xe];
+    u8 field_a70;
+};
+PKMN_OFFSET_ASSERT(Unk_7cabc0_88, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_7cabc0_88, field_a61, 0xa61);
+PKMN_OFFSET_ASSERT(Unk_7cabc0_88, field_a70, 0xa70);
+struct Unk_7cabc0 {
+    u8 _0[0x88];
+    Unk_7cabc0_88* field_88;
+    u8 _90[0xc0];
+    u32 field_150;
+};
+PKMN_OFFSET_ASSERT(Unk_7cabc0, field_88, 0x88);
+PKMN_OFFSET_ASSERT(Unk_7cabc0, field_150, 0x150);
+
+// 0x71007cabc0
+bool Unk_7cabc0_get(const Unk_7cabc0* self) {
+    if (self->field_150 == 2) {
+        return 0;
+    }
+    if (self->field_88->field_0 <= 1) {
+        if ((self->field_88->field_a61 & 0x1c) != 0) {
+            return 0;
+        }
+        return self->field_88->field_a70 == 0;
+    }
+    return 0;
+}
+
 struct Unk_7cac10_88 {
     u8 _0[0xa70];
     u8 field_a70;

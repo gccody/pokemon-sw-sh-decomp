@@ -515,6 +515,36 @@ void Unk_172dea0_call(const Unk_172dea0* self) {
     }
 }
 
+struct Unk_172e080_70 {
+    u8 _0[0x90];
+    u32 field_90;
+};
+PKMN_OFFSET_ASSERT(Unk_172e080_70, field_90, 0x90);
+struct Unk_172e080 {
+    u8 _0[0x70];
+    Unk_172e080_70* field_70;
+    u8 _78[0x5c];
+    u32 field_d4;
+    u32 field_d8;
+};
+PKMN_OFFSET_ASSERT(Unk_172e080, field_70, 0x70);
+PKMN_OFFSET_ASSERT(Unk_172e080, field_d4, 0xd4);
+PKMN_OFFSET_ASSERT(Unk_172e080, field_d8, 0xd8);
+
+// 0x710172e080
+u32 Unk_172e080_get(const Unk_172e080* self) {
+    if (self->field_70 != nullptr) {
+        if (self->field_d8 >= 2 && self->field_d8 <= 7) {
+            return 0;
+        }
+        if (self->field_d4 == 3) {
+            return self->field_70->field_90;
+        }
+        return 0;
+    }
+    return 0;
+}
+
 struct Unk_17315c0 {
     u8 _0[0x8];
     u32 field_8;
