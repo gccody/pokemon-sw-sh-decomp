@@ -77,6 +77,7 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
+import re
 import struct
 import sys
 from dataclasses import dataclass, field
@@ -86,6 +87,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import BASE, ROOT  # noqa: E402
 
 OUT_DIR = ROOT / "src" / "gflib3" / "families"
+# another generator's output (tools/shapes.py): what it defines isn't kept here
+OTHER_DIRS = (ROOT / "src" / "unsorted" / "families",)
 VECTOR_FILE = "Unk_5ac520.cpp"
 FACTORY_FILE = "Unk_8d4190.cpp"
 SINGLETON_FILE = "Unk_7c20.cpp"
@@ -854,6 +857,9 @@ SCALAR = {1: "u8", 2: "u16", 4: "u32", 8: "u64"}
 SCALAR_CODE = {"u8": "h", "u16": "t", "u32": "j", "u64": "m"}
 REF = "Unk_Ref"
 PAIR = "Unk_239a418_RefPair"
+# what a reference copied from a const& is kept as: its copy tests its own pointer
+# (src/gflib3/Unk_239a418.h), which the factories' code shows
+REF2 = "Unk_239a418_Ref2<Unk_239a418>"
 
 
 @dataclass
@@ -1313,10 +1319,11 @@ def object_name(f: ObjectFactory) -> str:
 def object_class(f: ObjectFactory) -> str:
     bases = f"public {f.base.name}" + (", public Unk_1085320_Interface" if f.interface else "")
     align = "alignas(16) " if f.align == 16 else ""
+    copied = {k for k, p in enumerate(f.params) if p.kind == "ref" and not p.moved}
     ps = []
     for k, p in enumerate(f.params):
         t = object_type(p.kind)
-        ps.append(f"{t} a{k}" if p.by_value else f"{cref(t)} a{k}")
+        ps.append((f"{REF2 if k in copied else t} a{k}") if p.by_value else f"{cref(t)} a{k}")
     inits = []
     for s in f.members:
         if s.param is not None:
@@ -1324,7 +1331,8 @@ def object_class(f: ObjectFactory) -> str:
     fields = []
     for s in f.members:
         if s.param is not None:
-            fields.append(f"    {object_type(s.kind)} field_{s.offset:x};")
+            t = REF2 if s.param in copied and s.kind == "ref" else object_type(s.kind)
+            fields.append(f"    {t} field_{s.offset:x};")
         else:
             fields.append(member(s.offset, {"u8": 1, "u16": 2, "u32": 4, "u64": 8}[s.kind], s.value))
     out = [f"// 0x{f.addr + BASE:x}"]
@@ -1673,8 +1681,28 @@ void Unk_7c20_Reset(T*& instance) {
 
 # ------------------------------------------------------------------------- commands
 
+ADDR_COMMENT = re.compile(r"^// 0x(71[0-9a-f]{8})$", re.M)
+_elsewhere: set[int] | None = None
+
+
+def written_elsewhere(dirs=None) -> set[int]:
+    """The functions other generators' files define (their address comments), relative to BASE."""
+    global _elsewhere
+    if dirs is None and _elsewhere is not None:
+        return _elsewhere
+    out = set()
+    for d in dirs if dirs is not None else OTHER_DIRS:
+        for p in sorted(d.glob("*.cpp")) if d.exists() else ():
+            out.update(int(x, 16) - BASE for x in ADDR_COMMENT.findall(p.read_text(encoding="utf-8")))
+    if dirs is None:
+        _elsewhere = out
+    return out
+
+
 def kept(m: Module, a: int, name: str, only: set[int] | None, everything: bool) -> bool:
     r = m.rows[a]
+    if a in written_elsewhere():
+        return False
     return everything or (only is not None and a in only) or (r.status == "O" and r.name == name)
 
 

@@ -994,12 +994,12 @@ template Unk_23c9ff0* Unk_New::Create<Unk_23c9ff0>(Unk_239a418_Allocator*,
 // 0x7100cfc840
 class Unk_23e52a8 : public Unk_239a418 {
 public:
-    Unk_23e52a8(Unk_Ref a0) : field_60(a0) {}
+    Unk_23e52a8(Unk_239a418_Ref2<Unk_239a418> a0) : field_60(a0) {}
     ~Unk_23e52a8() override;
     virtual void vf6();
     virtual void vf7();
 
-    Unk_Ref field_60;
+    Unk_239a418_Ref2<Unk_239a418> field_60;
 };
 static_assert(sizeof(Unk_23e52a8) == 0x68, "Unk_23e52a8");
 template Unk_23e52a8* Unk_New::Create<Unk_23e52a8>(Unk_239a418_Allocator*, const Unk_Ref&);
@@ -1114,7 +1114,8 @@ template Unk_240be88* Unk_New::Create<Unk_240be88>(Unk_239a418_Allocator*, Unk_2
 // 0x7101085320
 class Unk_240d540 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_240d540(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_240d540(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_240d540() override;
     virtual void vf6();
     virtual void vf7();
@@ -1125,7 +1126,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_240d540) == 0x88, "Unk_240d540");
 template Unk_240d540* Unk_New::Create<Unk_240d540>(Unk_239a418_Allocator*,
@@ -1146,7 +1147,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_240d668) == 0x88, "Unk_240d668");
 template Unk_240d668* Unk_New::Create<Unk_240d668>(Unk_239a418_Allocator*,
@@ -1156,7 +1157,8 @@ template Unk_240d668* Unk_New::Create<Unk_240d668>(Unk_239a418_Allocator*,
 // 0x71010875e0
 class Unk_240d8f0 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_240d8f0(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_240d8f0(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_240d8f0() override;
     virtual void vf6();
     virtual void vf7();
@@ -1167,7 +1169,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_240d8f0) == 0x88, "Unk_240d8f0");
 template Unk_240d8f0* Unk_New::Create<Unk_240d8f0>(Unk_239a418_Allocator*,
@@ -1210,7 +1212,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_240dd68) == 0x88, "Unk_240dd68");
 template Unk_240dd68* Unk_New::Create<Unk_240dd68>(Unk_239a418_Allocator*,
@@ -1220,7 +1222,8 @@ template Unk_240dd68* Unk_New::Create<Unk_240dd68>(Unk_239a418_Allocator*,
 // 0x710108b600
 class Unk_240dfc8 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_240dfc8(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_240dfc8(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_240dfc8() override;
     virtual void vf6();
     virtual void vf7();
@@ -1231,7 +1234,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_240dfc8) == 0x88, "Unk_240dfc8");
 template Unk_240dfc8* Unk_New::Create<Unk_240dfc8>(Unk_239a418_Allocator*,
@@ -1252,7 +1255,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_240e0f0) == 0x88, "Unk_240e0f0");
 template Unk_240e0f0* Unk_New::Create<Unk_240e0f0>(Unk_239a418_Allocator*,
@@ -1262,7 +1265,8 @@ template Unk_240e0f0* Unk_New::Create<Unk_240e0f0>(Unk_239a418_Allocator*,
 // 0x710108dc90
 class Unk_240e350 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_240e350(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_240e350(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_240e350() override;
     virtual void vf6();
     virtual void vf7();
@@ -1273,7 +1277,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_240e350) == 0x88, "Unk_240e350");
 template Unk_240e350* Unk_New::Create<Unk_240e350>(Unk_239a418_Allocator*,
@@ -1283,7 +1287,8 @@ template Unk_240e350* Unk_New::Create<Unk_240e350>(Unk_239a418_Allocator*,
 // 0x710108fb20
 class Unk_240e6a0 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_240e6a0(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_240e6a0(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_240e6a0() override;
     virtual void vf6();
     virtual void vf7();
@@ -1294,7 +1299,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_240e6a0) == 0x88, "Unk_240e6a0");
 template Unk_240e6a0* Unk_New::Create<Unk_240e6a0>(Unk_239a418_Allocator*,
@@ -1315,7 +1320,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_240e7c8) == 0x88, "Unk_240e7c8");
 template Unk_240e7c8* Unk_New::Create<Unk_240e7c8>(Unk_239a418_Allocator*,
@@ -1325,7 +1330,8 @@ template Unk_240e7c8* Unk_New::Create<Unk_240e7c8>(Unk_239a418_Allocator*,
 // 0x7101092a10
 class Unk_240eba0 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_240eba0(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_240eba0(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_240eba0() override;
     virtual void vf6();
     virtual void vf7();
@@ -1336,7 +1342,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_240eba0) == 0x88, "Unk_240eba0");
 template Unk_240eba0* Unk_New::Create<Unk_240eba0>(Unk_239a418_Allocator*,
@@ -1357,7 +1363,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_240ecc8) == 0x88, "Unk_240ecc8");
 template Unk_240ecc8* Unk_New::Create<Unk_240ecc8>(Unk_239a418_Allocator*,
@@ -1367,7 +1373,8 @@ template Unk_240ecc8* Unk_New::Create<Unk_240ecc8>(Unk_239a418_Allocator*,
 // 0x7101094dd0
 class Unk_240ef28 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_240ef28(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_240ef28(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_240ef28() override;
     virtual void vf6();
     virtual void vf7();
@@ -1378,7 +1385,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_240ef28) == 0x88, "Unk_240ef28");
 template Unk_240ef28* Unk_New::Create<Unk_240ef28>(Unk_239a418_Allocator*,
@@ -1388,7 +1395,8 @@ template Unk_240ef28* Unk_New::Create<Unk_240ef28>(Unk_239a418_Allocator*,
 // 0x7101096980
 class Unk_240f1b0 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_240f1b0(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_240f1b0(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_240f1b0() override;
     virtual void vf6();
     virtual void vf7();
@@ -1399,7 +1407,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_240f1b0) == 0x88, "Unk_240f1b0");
 template Unk_240f1b0* Unk_New::Create<Unk_240f1b0>(Unk_239a418_Allocator*,
@@ -1409,7 +1417,8 @@ template Unk_240f1b0* Unk_New::Create<Unk_240f1b0>(Unk_239a418_Allocator*,
 // 0x7101097c40
 class Unk_240f388 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_240f388(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_240f388(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_240f388() override;
     virtual void vf6();
     virtual void vf7();
@@ -1420,7 +1429,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_240f388) == 0x88, "Unk_240f388");
 template Unk_240f388* Unk_New::Create<Unk_240f388>(Unk_239a418_Allocator*,
@@ -1430,7 +1439,8 @@ template Unk_240f388* Unk_New::Create<Unk_240f388>(Unk_239a418_Allocator*,
 // 0x710109a750
 class Unk_240f840 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_240f840(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_240f840(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_240f840() override;
     virtual void vf6();
     virtual void vf7();
@@ -1441,7 +1451,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_240f840) == 0x88, "Unk_240f840");
 template Unk_240f840* Unk_New::Create<Unk_240f840>(Unk_239a418_Allocator*,
@@ -1462,7 +1472,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_240f968) == 0x88, "Unk_240f968");
 template Unk_240f968* Unk_New::Create<Unk_240f968>(Unk_239a418_Allocator*,
@@ -1472,7 +1482,8 @@ template Unk_240f968* Unk_New::Create<Unk_240f968>(Unk_239a418_Allocator*,
 // 0x710109ca30
 class Unk_240fbc8 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_240fbc8(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_240fbc8(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_240fbc8() override;
     virtual void vf6();
     virtual void vf7();
@@ -1483,7 +1494,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_240fbc8) == 0x88, "Unk_240fbc8");
 template Unk_240fbc8* Unk_New::Create<Unk_240fbc8>(Unk_239a418_Allocator*,
@@ -1493,14 +1504,14 @@ template Unk_240fbc8* Unk_New::Create<Unk_240fbc8>(Unk_239a418_Allocator*,
 // 0x710109e7f0
 class Unk_240fcf0 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_240fcf0(Unk_Ref a0) : field_70(a0) {}
+    Unk_240fcf0(Unk_239a418_Ref2<Unk_239a418> a0) : field_70(a0) {}
     ~Unk_240fcf0() override;
     virtual void vf6();
     virtual void vf7();
     virtual void vf8();
 
     u8 field_68 = 0;
-    Unk_Ref field_70;
+    Unk_239a418_Ref2<Unk_239a418> field_70;
 };
 static_assert(sizeof(Unk_240fcf0) == 0x78, "Unk_240fcf0");
 template Unk_240fcf0* Unk_New::Create<Unk_240fcf0>(Unk_239a418_Allocator*, const Unk_Ref&);
@@ -1508,14 +1519,14 @@ template Unk_240fcf0* Unk_New::Create<Unk_240fcf0>(Unk_239a418_Allocator*, const
 // 0x710109f840
 class Unk_240ff08 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_240ff08(Unk_Ref a0) : field_70(a0) {}
+    Unk_240ff08(Unk_239a418_Ref2<Unk_239a418> a0) : field_70(a0) {}
     ~Unk_240ff08() override;
     virtual void vf6();
     virtual void vf7();
     virtual void vf8();
 
     u8 field_68 = 0;
-    Unk_Ref field_70;
+    Unk_239a418_Ref2<Unk_239a418> field_70;
 };
 static_assert(sizeof(Unk_240ff08) == 0x78, "Unk_240ff08");
 template Unk_240ff08* Unk_New::Create<Unk_240ff08>(Unk_239a418_Allocator*, const Unk_Ref&);
@@ -1523,14 +1534,14 @@ template Unk_240ff08* Unk_New::Create<Unk_240ff08>(Unk_239a418_Allocator*, const
 // 0x71010a0a60
 class Unk_2410140 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_2410140(Unk_Ref a0) : field_70(a0) {}
+    Unk_2410140(Unk_239a418_Ref2<Unk_239a418> a0) : field_70(a0) {}
     ~Unk_2410140() override;
     virtual void vf6();
     virtual void vf7();
     virtual void vf8();
 
     u8 field_68 = 0;
-    Unk_Ref field_70;
+    Unk_239a418_Ref2<Unk_239a418> field_70;
     u32 field_78 = 0;
 };
 static_assert(sizeof(Unk_2410140) == 0x80, "Unk_2410140");
@@ -1539,14 +1550,14 @@ template Unk_2410140* Unk_New::Create<Unk_2410140>(Unk_239a418_Allocator*, const
 // 0x71010a2f00
 class Unk_24105d0 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_24105d0(Unk_Ref a0) : field_70(a0) {}
+    Unk_24105d0(Unk_239a418_Ref2<Unk_239a418> a0) : field_70(a0) {}
     ~Unk_24105d0() override;
     virtual void vf6();
     virtual void vf7();
     virtual void vf8();
 
     u8 field_68 = 0;
-    Unk_Ref field_70;
+    Unk_239a418_Ref2<Unk_239a418> field_70;
 };
 static_assert(sizeof(Unk_24105d0) == 0x78, "Unk_24105d0");
 template Unk_24105d0* Unk_New::Create<Unk_24105d0>(Unk_239a418_Allocator*, const Unk_Ref&);
@@ -1554,14 +1565,14 @@ template Unk_24105d0* Unk_New::Create<Unk_24105d0>(Unk_239a418_Allocator*, const
 // 0x71010a3e60
 class Unk_24107e8 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_24107e8(Unk_Ref a0) : field_70(a0) {}
+    Unk_24107e8(Unk_239a418_Ref2<Unk_239a418> a0) : field_70(a0) {}
     ~Unk_24107e8() override;
     virtual void vf6();
     virtual void vf7();
     virtual void vf8();
 
     u8 field_68 = 0;
-    Unk_Ref field_70;
+    Unk_239a418_Ref2<Unk_239a418> field_70;
     u32 field_78 = 0;
 };
 static_assert(sizeof(Unk_24107e8) == 0x80, "Unk_24107e8");
@@ -1570,14 +1581,14 @@ template Unk_24107e8* Unk_New::Create<Unk_24107e8>(Unk_239a418_Allocator*, const
 // 0x71010a5950
 class Unk_24109d0 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_24109d0(Unk_Ref a0) : field_70(a0) {}
+    Unk_24109d0(Unk_239a418_Ref2<Unk_239a418> a0) : field_70(a0) {}
     ~Unk_24109d0() override;
     virtual void vf6();
     virtual void vf7();
     virtual void vf8();
 
     u8 field_68 = 0;
-    Unk_Ref field_70;
+    Unk_239a418_Ref2<Unk_239a418> field_70;
 };
 static_assert(sizeof(Unk_24109d0) == 0x78, "Unk_24109d0");
 template Unk_24109d0* Unk_New::Create<Unk_24109d0>(Unk_239a418_Allocator*, const Unk_Ref&);
@@ -1585,14 +1596,14 @@ template Unk_24109d0* Unk_New::Create<Unk_24109d0>(Unk_239a418_Allocator*, const
 // 0x71010a6860
 class Unk_2410c28 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_2410c28(Unk_Ref a0) : field_70(a0) {}
+    Unk_2410c28(Unk_239a418_Ref2<Unk_239a418> a0) : field_70(a0) {}
     ~Unk_2410c28() override;
     virtual void vf6();
     virtual void vf7();
     virtual void vf8();
 
     u8 field_68 = 0;
-    Unk_Ref field_70;
+    Unk_239a418_Ref2<Unk_239a418> field_70;
     u32 field_78 = 0;
 };
 static_assert(sizeof(Unk_2410c28) == 0x80, "Unk_2410c28");
@@ -1601,14 +1612,14 @@ template Unk_2410c28* Unk_New::Create<Unk_2410c28>(Unk_239a418_Allocator*, const
 // 0x71010a7de0
 class Unk_2410e10 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_2410e10(Unk_Ref a0) : field_70(a0) {}
+    Unk_2410e10(Unk_239a418_Ref2<Unk_239a418> a0) : field_70(a0) {}
     ~Unk_2410e10() override;
     virtual void vf6();
     virtual void vf7();
     virtual void vf8();
 
     u8 field_68 = 0;
-    Unk_Ref field_70;
+    Unk_239a418_Ref2<Unk_239a418> field_70;
 };
 static_assert(sizeof(Unk_2410e10) == 0x78, "Unk_2410e10");
 template Unk_2410e10* Unk_New::Create<Unk_2410e10>(Unk_239a418_Allocator*, const Unk_Ref&);
@@ -1616,13 +1627,13 @@ template Unk_2410e10* Unk_New::Create<Unk_2410e10>(Unk_239a418_Allocator*, const
 // 0x71010aa640
 class Unk_2411500 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_2411500(Unk_Ref a0) : field_70(a0) {}
+    Unk_2411500(Unk_239a418_Ref2<Unk_239a418> a0) : field_70(a0) {}
     ~Unk_2411500() override;
     virtual void vf6();
     virtual void vf7();
 
     u8 field_68 = 0;
-    Unk_Ref field_70;
+    Unk_239a418_Ref2<Unk_239a418> field_70;
 };
 static_assert(sizeof(Unk_2411500) == 0x78, "Unk_2411500");
 template Unk_2411500* Unk_New::Create<Unk_2411500>(Unk_239a418_Allocator*, const Unk_Ref&);
@@ -1908,7 +1919,8 @@ template Unk_2412528* Unk_New::Create<Unk_2412528>(Unk_239a418_Allocator*, Unk_2
 // 0x71010bcdc0
 class Unk_2412c88 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_2412c88(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_2412c88(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_2412c88() override;
     virtual void vf6();
     virtual void vf7();
@@ -1919,7 +1931,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_2412c88) == 0x88, "Unk_2412c88");
 template Unk_2412c88* Unk_New::Create<Unk_2412c88>(Unk_239a418_Allocator*,
@@ -1929,7 +1941,8 @@ template Unk_2412c88* Unk_New::Create<Unk_2412c88>(Unk_239a418_Allocator*,
 // 0x71010be6e0
 class Unk_2412f10 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_2412f10(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_2412f10(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_2412f10() override;
     virtual void vf6();
     virtual void vf7();
@@ -1940,7 +1953,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_2412f10) == 0x88, "Unk_2412f10");
 template Unk_2412f10* Unk_New::Create<Unk_2412f10>(Unk_239a418_Allocator*,
@@ -1950,7 +1963,8 @@ template Unk_2412f10* Unk_New::Create<Unk_2412f10>(Unk_239a418_Allocator*,
 // 0x71010bfde0
 class Unk_2413198 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_2413198(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_2413198(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_2413198() override;
     virtual void vf6();
     virtual void vf7();
@@ -1961,7 +1975,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_2413198) == 0x88, "Unk_2413198");
 template Unk_2413198* Unk_New::Create<Unk_2413198>(Unk_239a418_Allocator*,
@@ -1971,7 +1985,8 @@ template Unk_2413198* Unk_New::Create<Unk_2413198>(Unk_239a418_Allocator*,
 // 0x71010c10a0
 class Unk_2413370 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_2413370(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_2413370(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_2413370() override;
     virtual void vf6();
     virtual void vf7();
@@ -1982,7 +1997,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_2413370) == 0x88, "Unk_2413370");
 template Unk_2413370* Unk_New::Create<Unk_2413370>(Unk_239a418_Allocator*,
@@ -1992,13 +2007,13 @@ template Unk_2413370* Unk_New::Create<Unk_2413370>(Unk_239a418_Allocator*,
 // 0x71010c2ce0
 class Unk_2413498 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_2413498(Unk_Ref a0) : field_68(a0) {}
+    Unk_2413498(Unk_239a418_Ref2<Unk_239a418> a0) : field_68(a0) {}
     ~Unk_2413498() override;
     virtual void vf6();
     virtual void vf7();
     virtual void vf8();
 
-    Unk_Ref field_68;
+    Unk_239a418_Ref2<Unk_239a418> field_68;
     u8 field_70 = 0;
 };
 static_assert(sizeof(Unk_2413498) == 0x78, "Unk_2413498");
@@ -2007,14 +2022,14 @@ template Unk_2413498* Unk_New::Create<Unk_2413498>(Unk_239a418_Allocator*, const
 // 0x71010c4850
 class Unk_2413788 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_2413788(Unk_Ref a0) : field_70(a0) {}
+    Unk_2413788(Unk_239a418_Ref2<Unk_239a418> a0) : field_70(a0) {}
     ~Unk_2413788() override;
     virtual void vf6();
     virtual void vf7();
     virtual void vf8();
 
     u8 field_68 = 0;
-    Unk_Ref field_70;
+    Unk_239a418_Ref2<Unk_239a418> field_70;
 };
 static_assert(sizeof(Unk_2413788) == 0x78, "Unk_2413788");
 template Unk_2413788* Unk_New::Create<Unk_2413788>(Unk_239a418_Allocator*, const Unk_Ref&);
@@ -2022,14 +2037,14 @@ template Unk_2413788* Unk_New::Create<Unk_2413788>(Unk_239a418_Allocator*, const
 // 0x71010c5690
 class Unk_2413960 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_2413960(Unk_Ref a0) : field_70(a0) {}
+    Unk_2413960(Unk_239a418_Ref2<Unk_239a418> a0) : field_70(a0) {}
     ~Unk_2413960() override;
     virtual void vf6();
     virtual void vf7();
     virtual void vf8();
 
     u8 field_68 = 0;
-    Unk_Ref field_70;
+    Unk_239a418_Ref2<Unk_239a418> field_70;
 };
 static_assert(sizeof(Unk_2413960) == 0x78, "Unk_2413960");
 template Unk_2413960* Unk_New::Create<Unk_2413960>(Unk_239a418_Allocator*, const Unk_Ref&);
@@ -2037,7 +2052,8 @@ template Unk_2413960* Unk_New::Create<Unk_2413960>(Unk_239a418_Allocator*, const
 // 0x71010c7860
 class Unk_2413d48 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_2413d48(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_2413d48(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_2413d48() override;
     virtual void vf6();
     virtual void vf7();
@@ -2048,7 +2064,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_2413d48) == 0x88, "Unk_2413d48");
 template Unk_2413d48* Unk_New::Create<Unk_2413d48>(Unk_239a418_Allocator*,
@@ -2058,7 +2074,8 @@ template Unk_2413d48* Unk_New::Create<Unk_2413d48>(Unk_239a418_Allocator*,
 // 0x71010c9360
 class Unk_2413fd0 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_2413fd0(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_2413fd0(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_2413fd0() override;
     virtual void vf6();
     virtual void vf7();
@@ -2069,7 +2086,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_2413fd0) == 0x88, "Unk_2413fd0");
 template Unk_2413fd0* Unk_New::Create<Unk_2413fd0>(Unk_239a418_Allocator*,
@@ -2079,14 +2096,14 @@ template Unk_2413fd0* Unk_New::Create<Unk_2413fd0>(Unk_239a418_Allocator*,
 // 0x71010cccf0
 class Unk_24141d8 : public Unk_239a418 {
 public:
-    Unk_24141d8(Unk_Ref a0) : field_60(a0) {}
+    Unk_24141d8(Unk_239a418_Ref2<Unk_239a418> a0) : field_60(a0) {}
     ~Unk_24141d8() override;
     virtual void vf6();
     virtual void vf7();
     virtual void vf8();
     virtual void vf9();
 
-    Unk_Ref field_60;
+    Unk_239a418_Ref2<Unk_239a418> field_60;
     u32 field_68 = 0;
 };
 static_assert(sizeof(Unk_24141d8) == 0x70, "Unk_24141d8");
@@ -2095,14 +2112,14 @@ template Unk_24141d8* Unk_New::Create<Unk_24141d8>(Unk_239a418_Allocator*, const
 // 0x71010ccf80
 class Unk_24142a0 : public Unk_239a418 {
 public:
-    Unk_24142a0(Unk_Ref a0) : field_60(a0) {}
+    Unk_24142a0(Unk_239a418_Ref2<Unk_239a418> a0) : field_60(a0) {}
     ~Unk_24142a0() override;
     virtual void vf6();
     virtual void vf7();
     virtual void vf8();
     virtual void vf9();
 
-    Unk_Ref field_60;
+    Unk_239a418_Ref2<Unk_239a418> field_60;
     u64 field_68 = 0;
 };
 static_assert(sizeof(Unk_24142a0) == 0x70, "Unk_24142a0");
@@ -2149,7 +2166,8 @@ template Unk_24147b8* Unk_New::Create<Unk_24147b8>(Unk_239a418_Allocator*, Unk_2
 // 0x71010d1ee0
 class Unk_24148b8 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_24148b8(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_24148b8(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_24148b8() override;
     virtual void vf6();
     virtual void vf7();
@@ -2160,7 +2178,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_24148b8) == 0x88, "Unk_24148b8");
 template Unk_24148b8* Unk_New::Create<Unk_24148b8>(Unk_239a418_Allocator*,
@@ -2170,7 +2188,8 @@ template Unk_24148b8* Unk_New::Create<Unk_24148b8>(Unk_239a418_Allocator*,
 // 0x71010d5c70
 class Unk_2414d00 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_2414d00(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_2414d00(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_2414d00() override;
     virtual void vf6();
     virtual void vf7();
@@ -2181,7 +2200,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_2414d00) == 0x88, "Unk_2414d00");
 template Unk_2414d00* Unk_New::Create<Unk_2414d00>(Unk_239a418_Allocator*,
@@ -2191,7 +2210,8 @@ template Unk_2414d00* Unk_New::Create<Unk_2414d00>(Unk_239a418_Allocator*,
 // 0x71010d7fe0
 class Unk_2415100 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_2415100(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_2415100(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_2415100() override;
     virtual void vf6();
     virtual void vf7();
@@ -2202,7 +2222,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_2415100) == 0x88, "Unk_2415100");
 template Unk_2415100* Unk_New::Create<Unk_2415100>(Unk_239a418_Allocator*,
@@ -2223,7 +2243,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_2415228) == 0x88, "Unk_2415228");
 template Unk_2415228* Unk_New::Create<Unk_2415228>(Unk_239a418_Allocator*,
@@ -2233,14 +2253,14 @@ template Unk_2415228* Unk_New::Create<Unk_2415228>(Unk_239a418_Allocator*,
 // 0x71010dab20
 class Unk_2415328 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_2415328(Unk_Ref a0) : field_70(a0) {}
+    Unk_2415328(Unk_239a418_Ref2<Unk_239a418> a0) : field_70(a0) {}
     ~Unk_2415328() override;
     virtual void vf6();
     virtual void vf7();
     virtual void vf8();
 
     u8 field_68 = 0;
-    Unk_Ref field_70;
+    Unk_239a418_Ref2<Unk_239a418> field_70;
 };
 static_assert(sizeof(Unk_2415328) == 0x78, "Unk_2415328");
 template Unk_2415328* Unk_New::Create<Unk_2415328>(Unk_239a418_Allocator*, const Unk_Ref&);
@@ -2248,14 +2268,14 @@ template Unk_2415328* Unk_New::Create<Unk_2415328>(Unk_239a418_Allocator*, const
 // 0x71010dbda0
 class Unk_2415538 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_2415538(Unk_Ref a0) : field_70(a0) {}
+    Unk_2415538(Unk_239a418_Ref2<Unk_239a418> a0) : field_70(a0) {}
     ~Unk_2415538() override;
     virtual void vf6();
     virtual void vf7();
     virtual void vf8();
 
     u8 field_68 = 0;
-    Unk_Ref field_70;
+    Unk_239a418_Ref2<Unk_239a418> field_70;
     u32 field_78 = 0;
 };
 static_assert(sizeof(Unk_2415538) == 0x80, "Unk_2415538");
@@ -2264,7 +2284,8 @@ template Unk_2415538* Unk_New::Create<Unk_2415538>(Unk_239a418_Allocator*, const
 // 0x71010decc0
 class Unk_2415868 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_2415868(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_2415868(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_2415868() override;
     virtual void vf6();
     virtual void vf7();
@@ -2275,7 +2296,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_2415868) == 0x88, "Unk_2415868");
 template Unk_2415868* Unk_New::Create<Unk_2415868>(Unk_239a418_Allocator*,
@@ -2285,7 +2306,8 @@ template Unk_2415868* Unk_New::Create<Unk_2415868>(Unk_239a418_Allocator*,
 // 0x71010dfee0
 class Unk_2415a40 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_2415a40(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_2415a40(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_2415a40() override;
     virtual void vf6();
     virtual void vf7();
@@ -2296,7 +2318,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_2415a40) == 0x88, "Unk_2415a40");
 template Unk_2415a40* Unk_New::Create<Unk_2415a40>(Unk_239a418_Allocator*,
@@ -2327,7 +2349,8 @@ template Unk_2415b68* Unk_New::Create<Unk_2415b68>(Unk_239a418_Allocator*,
 // 0x71010e22b0
 class Unk_2415df0 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_2415df0(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_2415df0(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_2415df0() override;
     virtual void vf6();
     virtual void vf7();
@@ -2338,7 +2361,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_2415df0) == 0x88, "Unk_2415df0");
 template Unk_2415df0* Unk_New::Create<Unk_2415df0>(Unk_239a418_Allocator*,
@@ -2348,7 +2371,8 @@ template Unk_2415df0* Unk_New::Create<Unk_2415df0>(Unk_239a418_Allocator*,
 // 0x71010e6dd0
 class Unk_2416438 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_2416438(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_2416438(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_2416438() override;
     virtual void vf6();
     virtual void vf7();
@@ -2359,7 +2383,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_2416438) == 0x88, "Unk_2416438");
 template Unk_2416438* Unk_New::Create<Unk_2416438>(Unk_239a418_Allocator*,
@@ -2369,7 +2393,8 @@ template Unk_2416438* Unk_New::Create<Unk_2416438>(Unk_239a418_Allocator*,
 // 0x71010e8530
 class Unk_24166c0 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_24166c0(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_24166c0(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_24166c0() override;
     virtual void vf6();
     virtual void vf7();
@@ -2380,7 +2405,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_24166c0) == 0x88, "Unk_24166c0");
 template Unk_24166c0* Unk_New::Create<Unk_24166c0>(Unk_239a418_Allocator*,
@@ -2433,7 +2458,8 @@ template Unk_2416cc8* Unk_New::Create<Unk_2416cc8>(Unk_239a418_Allocator*,
 // 0x71010eec20
 class Unk_24170c8 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_24170c8(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_24170c8(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_24170c8() override;
     virtual void vf6();
     virtual void vf7();
@@ -2444,7 +2470,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_24170c8) == 0x88, "Unk_24170c8");
 template Unk_24170c8* Unk_New::Create<Unk_24170c8>(Unk_239a418_Allocator*,
@@ -2465,7 +2491,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_24171f0) == 0x88, "Unk_24171f0");
 template Unk_24171f0* Unk_New::Create<Unk_24171f0>(Unk_239a418_Allocator*,
@@ -2475,14 +2501,14 @@ template Unk_24171f0* Unk_New::Create<Unk_24171f0>(Unk_239a418_Allocator*,
 // 0x71010f1600
 class Unk_24172f0 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_24172f0(Unk_Ref a0) : field_70(a0) {}
+    Unk_24172f0(Unk_239a418_Ref2<Unk_239a418> a0) : field_70(a0) {}
     ~Unk_24172f0() override;
     virtual void vf6();
     virtual void vf7();
     virtual void vf8();
 
     u8 field_68 = 0;
-    Unk_Ref field_70;
+    Unk_239a418_Ref2<Unk_239a418> field_70;
     u32 field_78 = 0;
 };
 static_assert(sizeof(Unk_24172f0) == 0x80, "Unk_24172f0");
@@ -2491,7 +2517,8 @@ template Unk_24172f0* Unk_New::Create<Unk_24172f0>(Unk_239a418_Allocator*, const
 // 0x71010f36a0
 class Unk_2417870 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_2417870(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_2417870(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_2417870() override;
     virtual void vf6();
     virtual void vf7();
@@ -2502,7 +2529,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_2417870) == 0x88, "Unk_2417870");
 template Unk_2417870* Unk_New::Create<Unk_2417870>(Unk_239a418_Allocator*,
@@ -2512,7 +2539,8 @@ template Unk_2417870* Unk_New::Create<Unk_2417870>(Unk_239a418_Allocator*,
 // 0x71011026d0
 class Unk_24184a0 : public Unk_239a418, public Unk_1085320_Interface {
 public:
-    Unk_24184a0(Unk_239a418_RefPair a0, Unk_Ref a1) : field_68(a0), field_80(a1) {}
+    Unk_24184a0(Unk_239a418_RefPair a0, Unk_239a418_Ref2<Unk_239a418> a1)
+        : field_68(a0), field_80(a1) {}
     ~Unk_24184a0() override;
     virtual void vf6();
     virtual void vf7();
@@ -2523,7 +2551,7 @@ public:
 
     Unk_239a418_RefPair field_68;
     u64 field_78 = 0;
-    Unk_Ref field_80;
+    Unk_239a418_Ref2<Unk_239a418> field_80;
 };
 static_assert(sizeof(Unk_24184a0) == 0x88, "Unk_24184a0");
 template Unk_24184a0* Unk_New::Create<Unk_24184a0>(Unk_239a418_Allocator*,
