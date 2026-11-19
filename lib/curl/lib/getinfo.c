@@ -238,6 +238,9 @@ static CURLcode getinfo_long(struct Curl_easy *data, CURLINFO info,
   case CURLINFO_PROTOCOL:
     *param_longp = data->info.conn_protocol;
     break;
+  case CURLINFO_Unk_LONG_50: /* Pokemon SwSh decomp: Nintendo's (curl.h) */
+    *param_longp = (long)data->set.ssl.primary.field_20;
+    break;
 
   default:
     return CURLE_UNKNOWN_OPTION;
