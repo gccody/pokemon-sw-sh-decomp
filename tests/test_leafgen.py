@@ -546,3 +546,11 @@ def test_library_class_members():
     text = leafgen.render_class_file(["PPFX", "CTinyEffect"], [(ADDR, "", decl, definition)])
     assert "namespace PPFX {\nclass CTinyEffect {\npublic:\n    u32 vf4();\n};\n}  // namespace PPFX" in text
     assert leafgen.as_member("u32 Unk_123450_get(u32 self) {\n    return self;\n}\n", ["A"], "vf2") is None
+
+
+def test_declarations_without_overloads():
+    """vtables.py's files take no second parameter list for a callee: a call to it
+    could be ambiguous."""
+    entries = [(1, "void Unk_10(u64);\n", ""), (2, "void Unk_10(void*);\n", "")]
+    assert [e[0] for e in leafgen.consistent_declarations(entries)] == [1, 2]
+    assert [e[0] for e in leafgen.consistent_declarations(entries, overloads=False)] == [1]

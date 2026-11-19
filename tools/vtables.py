@@ -877,6 +877,7 @@ class Lifted:
     prefix: str = ""                # leafgen's name of the first argument's struct (Unk_<addr>)
     callee: tuple | None = None     # a final tail call: (its target, its parameter types)
     globals: tuple = ()             # ((address, type), ...): the extern Unk_<address> it reads or writes
+    structs: str = ""               # cast_member: its own placeholder structs and declarations
 
     def named(self, text: str, cls: str) -> str:
         """`text` with leafgen's names of the structs the class's fields point
@@ -890,7 +891,72 @@ class Lifted:
 
 def lift_member(m: Model, f: int) -> Lifted | None:
     """Lifted for f if leafgen can lift it and it touches nothing but fields
-    of `this` (after the vptr), the fields they point to, and scalar arguments."""
+    of `this` (after the vptr), the fields they point to, and scalar arguments;
+    otherwise cast_member's."""
+    lf = _lift_member(m, f)
+    return lf if lf is not None else cast_member(m, f)
+
+
+CAST_MEMBERS = True  # cast_member's fallback (off: the old lifts only)
+_HOOKS: list = []
+_CAST_OK: set = set()  # render_file: the cast members whose declarations its file can take
+
+
+def cast_member(m: Model, f: int) -> Lifted | None:
+    """f as a member through leafgen's whole lifter (calls, guards, decision
+    trees, ...), `this` cast to the placeholder struct leafgen reads it
+    through, the struct (and its callees' declarations) put before the file's
+    classes: Lifted.structs. Its return and parameter types must be scalars,
+    as an override's must match the base's; and it must compile alone."""
+    import leafgen as L
+
+    if not CAST_MEMBERS or m.sizes.get(f, 0) > 256:
+        return None
+    if not _HOOKS:  # leafgen's view of the executable (GOT, data, imports, named functions)
+        import argparse
+        try:
+            L.candidates(argparse.Namespace(area=["game"], max=4, reach=["call"]))
+            L.KNOWN.update(L.known_prototypes(ROOT / "src" / "unsorted" / "leaf"))
+            _HOOKS.append(True)
+        except (OSError, KeyError, ValueError):  # no executable (the tests): no fallback
+            _HOOKS.append(False)
+    if not _HOOKS[0]:
+        return None
+    try:
+        structs, func = L.generate(f + BASE, m.img[f:f + m.sizes[f]])
+    except (L.LiftError, ValueError, KeyError, IndexError):
+        return None
+    x = _LIFTED.fullmatch(func)
+    if x is None:
+        return None
+    rtype, body = x.group(1), x.group(3)
+    params = [p.strip() for p in x.group(2).split(",")] if x.group(2) else []
+    if rtype != "void" and rtype not in PARAM_CODES:
+        return None
+    if params:
+        first = params.pop(0)
+        if first.endswith(" self") and first[:-5].endswith("*") and first[:-5].removeprefix("const ").startswith("Unk_"):
+            t = first[:-5]
+            own = t.removeprefix("const ")[:-1]
+            if re.search(rf"PKMN_OFFSET_ASSERT\({own}, field_[0-7],", structs):
+                return None  # the vptr read as a field
+            body = f"    {t} self = reinterpret_cast<{t}>(this);\n" + body
+        elif first.endswith(" self") or not first.startswith("void* /*unused*/"):
+            return None
+    if any(q.split()[0] not in PARAM_CODES for q in params):
+        return None
+    src = "#include <types.h>\n"
+    if "Unk_239a458" in structs + body:
+        src += L.REF_HEADER + "\n"
+    src += f"{structs}\nstruct Unk_Cast {{\n    virtual {rtype} vf9({', '.join(params)});\n}};\n" \
+           f"{rtype} Unk_Cast::vf9({', '.join(params)}) {{\n{body}}}\n"
+    clang = ROOT / "toolchain" / "clang" / "bin" / ("clang++.exe" if sys.platform == "win32" else "clang++")
+    if L._compiles_text(src, clang) is not None:
+        return None
+    return Lifted(rtype, tuple(params), body, (), "", None, (), structs)
+
+
+def _lift_member(m: Model, f: int) -> Lifted | None:
     import leafgen as L
 
     if m.sizes.get(f, 0) > 64:
@@ -2003,6 +2069,8 @@ def render_class(m: Model, spec: ClassSpec,
         x = defined.get(i)
         if x is None or signature(x) is None:
             continue
+        if x.kind == "lifted" and x.lifted.structs and x.addr not in _CAST_OK:
+            continue  # its declarations conflict with another's in this file: declared only
         if x.kind == "lifted":
             body = "{\n" + x.lifted.named(x.lifted.body, cls) + "}"
         elif x.kind == "element":
@@ -2194,6 +2262,8 @@ def render_external(m: Model, spec: ClassSpec, here: list[Member]) -> tuple[str,
                             f"    return {getter}();\n}}")
             names.append((x.addr, mangle(cls, "vf_type")))
         elif x.kind == "lifted":
+            if x.lifted.structs and x.addr not in _CAST_OK:
+                continue
             name = e.slot(x.slot)[1]
             defs.append(f"// 0x{x.addr + BASE:x}\n{x.lifted.rtype} {cls}::{name}({', '.join(x.lifted.params)}) "
                         f"{{\n{x.lifted.named(x.lifted.body, cls)}}}")
@@ -2247,6 +2317,23 @@ def render_file(m: Model, entries: list[tuple[ClassSpec, list[Member]]],
     if externs:
         parts += ["// Globals other TUs define, named after their addresses.",
                   *(f"extern {t} Unk_{a:x};" for a, t in externs), ""]
+    import leafgen as L
+    casts = [(x.addr, x.lifted.structs, "") for _, xs in entries for x in xs
+             if x.kind == "lifted" and x.lifted.structs]
+    _CAST_OK.clear()
+    # the file's own callee declarations first: a cast member may not declare one of them otherwise
+    own_decls = [f"void {callee_name(t)[0]}(void*);" for t in callees]
+    own_decls += [f"void {callee_name(t)[0]}({', '.join(types)});" for t, types in tails]
+    first = [(-1, "".join(d + "\n" for d in own_decls), "")]
+    _CAST_OK.update(a for a, _, _ in L.consistent_declarations(first + casts, overloads=False) if a != -1)
+    cast_ok = _CAST_OK
+    if casts:
+        parts += ["// Lifted through their own placeholder structs (cast_member).",
+                  *(st.rstrip("\n") + "\n" for a, st, _ in casts if a in cast_ok)]
+        if any("Unk_239a4" in x.lifted.structs + x.lifted.body for _, xs in entries for x in xs
+               if x.kind == "lifted" and x.lifted.structs and x.addr in cast_ok) and L.REF_HEADER not in parts:
+            at = next(i for i, q in enumerate(parts) if q.startswith("#include <types.h>"))
+            parts.insert(at + 1, L.REF_HEADER)
     here = {spec.v.addr: xs for spec, xs in entries}
     done: set[int] = set()
     names: list[tuple[int, str]] = []
