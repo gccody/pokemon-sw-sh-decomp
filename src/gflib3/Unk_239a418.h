@@ -18,7 +18,10 @@
 class Unk_239a418_Handle;
 
 // A reference: adds one when copied (slot 2 of the +0x48 vtable), drops it
-// when it goes (slot 3).
+// when it goes (slot 3). The copy tests the other reference's pointer, not
+// its own copy: the battle sequence functions (src/battle/battle_scene) show
+// it, where a null reference is used unchecked and the pointer it was loaded
+// as stays in a register instead of folding to zero.
 template <class T>
 class Unk_239a418_Ref {
 public:
@@ -184,8 +187,8 @@ Unk_239a418_Ref<T>::Unk_239a418_Ref(T* ptr) : m_ptr(ptr) {
 
 template <class T>
 Unk_239a418_Ref<T>::Unk_239a418_Ref(const Unk_239a418_Ref& other) : m_ptr(other.m_ptr) {
-    if (m_ptr)
-        static_cast<Unk_239a458*>(m_ptr)->vf4();
+    if (other.m_ptr)
+        static_cast<Unk_239a458*>(other.m_ptr)->vf4();
 }
 
 template <class T>
