@@ -2464,6 +2464,68 @@ allocator of `src/unsorted/Unk_2771620.h`:
 and the sweep (`sweep <object>`: which groups an object's functions have the
 shape of). A sweep object is any TU that instantiates the candidates, compiled
 with the build's flags; a shape match still has to be named and checked.
+### Inlined factories and creators (`familygen.py` again, 2026-11-19)
+
+Two more families, read by following one path through each function
+(`walk`: symbolic registers and stack slots, the allocator stack's overflow
+check and null references skipped) rather than by fixed offsets:
+
+| Family | File | Candidates | Matched |
+|---|---|---:|---:|
+| `Unk_New::Create<T>` of classes on the object (constructor `0x71005e2350` out of line) and on `Unk_23f4660` (`0x7100e7f820`, inherited) | `Unk_1085320.cpp` | 249, 110 parsed | 87 (28,028 bytes) |
+| `Unk_790260_Owner::Create<T>`: the creators | `Unk_790260.cpp` | 115, 106 parsed | 74 (42,380 bytes) |
+
+- **Objects.** A class on the object takes its own constructor's
+  parameters: what the factory loads from an argument before the base's
+  constructor is a by-value parameter (a reference moved in or copied from a
+  const&, `Unk_239a418_RefPair` — a reference and a u64 moved together — n
+  u64s, or a scalar), what it loads after is a const&. Members come from
+  those parameters (copied when a reference is added after the store, moved
+  otherwise) or are constants; every by-value reference is dropped once,
+  in reverse order, unless it was moved into a member. Classes on
+  `Unk_23f4660` inherit its constructor (`(void*, u64, u64)`, now declared
+  in its header) and start their members at `0x5cb`: the base's last
+  fields are a u16 and a u8 (its constructor stores them so), and the
+  Itanium ABI puts a derived class's members in a non-POD base's tail
+  padding. The header's `u64 field_5c8` is now `u16 field_5c8; u8 field_5ca`.
+- **Creators.** All 115 of the main shape share one owner layout (allocator
+  at `+0x8`, a vector of references at `+0x78` whose slow path is the
+  matched `0x7100790490`, `field_a8` passed to the base, a flag at `+0xc0`
+  cleared) and one template (`CREATOR_HEADER`). It matches only when the
+  parent is set and the vector's reference made through `result.m_ptr`, not
+  the new object: through the object, clang keeps `object + 0x48` in a
+  callee-saved register across `0x7100e7fe20` and reuses it, where the
+  original computes it again.
+- Not matched (left out by the trial): 23 objects and 32 creators whose
+  members are stored in another order than their offsets (sub-objects with
+  their own constructors: arrays of 0x40-byte entries, for one), 1 whose
+  members are stored partly before its vptrs (`0x71011f6130`), and 2
+  creators whose `Create` clang doesn't inline. Not parsed: 17 objects with
+  a vector member reserved in the constructor (`b.eq` in the walk), 19
+  with members that call (creator-like, `0x7101005a30`), 9 creators with
+  other vptr layouts, and the creators' wrappers (`0x7100790140`).
+
+Still left from the list above:
+
+- the 118 lookups (`0x7100795bc0`): everything but the loop's block
+  placement matches with a `std::find_if`. The original's exit phi has the
+  vector's *end* on the empty-vector edge and on exhaustion, and the found
+  iterator only on the match edge, so the match edge needs a copy (`mov
+  x21, x22`) and falls through after the body, and block placement rotates
+  the increment to the top. clang 7 gives *begin* on the empty edge
+  (the iterator travels through `find_if` as an `i64` and is
+  `inttoptr`'d back; the guard comes from the late LoopRotate, after GVN,
+  so no equality replaces it), which merges the empty and found edges.
+  Tried without success: a `find_if` returning `last`, `last != first`,
+  `end()` read before `begin()`, iterators by reference, raw pointers, a
+  hand loop with `break`, a `while` with the condition, a vector of
+  references;
+- the path builders (`0x7100005e20`, `0x7100010530`) inline the name from a
+  reference (`0x71005cfaf0`'s body) and call `0x71005e6180` (a constructor
+  from a name and a flag) and the parser `0x71000105b0`: decompile
+  `0x71005cfaf0` as an inline function first;
+- the finders under a spinlock, `0x71005ca410` and `0x71005d0130`: not
+  looked at in this round.
 
 ## What's left of the small functions
 
