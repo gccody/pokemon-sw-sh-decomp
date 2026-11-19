@@ -2021,6 +2021,43 @@ for d in gflnet3 network battle contents; do
 done
 ```
 
+## Code around the generated messages
+
+**Result: the code that sends and receives the messages (gflnet3's channels
+and sessions, the game's `prog/network`) was built like gflib3, with the
+protobuf runtime's headers and the generated ones on its include path.**
+`src/gflnet3` and `src/network` share one `pkmn_library_settings` entry
+(`CMakeLists.txt`, after the generated code's): gflib3's defines and libc++
+headers, protobuf's `HAVE_PTHREAD` and `GOOGLE_PROTOBUF_NO_RTTI` (the headers
+read them), and `INCLUDES lib/protobuf` plus every directory with `.proto`
+files, since the generated headers include each other by bare name. No codegen
+flag differs.
+
+- **libc++ and gflib3.** Each channel makes its messages from a gflib3 heap
+  (`std::unique_ptr` with gflib3's allocator deleter, its per-thread
+  allocator stack) and accesses them with the heap current (gflib3's heap
+  scope, `0x710065da00`/`0x710065daf0`), like the gflib3 code in
+  `src/unsorted`.
+- **The generated headers.** The channels inline the messages' accessors
+  (`mutable_result()`, `result()`, `message_case()`), and their calls go to
+  the generated code's out-of-line functions (`clear_message()`, the
+  messages' constructors and `CopyFrom`, `default_instance()`), and to the
+  runtime's `ParseFromArray`/`SerializeToArray` and the virtual `ByteSize()`
+  (3.0.0's, an `int`). Built this way, gflnet3's block and ping channels'
+  functions match in both games (`src/gflnet3/src/p2p/`).
+- **No `NDEBUG` yet.** gflib3 keeps its asserts, and none of these
+  functions inlines a protobuf `DCHECK`, so nothing says the code was built
+  with `NDEBUG`. The generated code's own directories are inside
+  `src/gflnet3` and `src/network`, so they get both entries; theirs adds
+  `NDEBUG` and the same include directories, and every generated function
+  that matched still does.
+
+The calls also show which of a data holder's two same-code functions is
+`clear_message()`: the inlined `mutable_<field>()` calls it. In the block
+and ping data holders that is the first of the two (`0x71006c0480`,
+`0x71006bdb90`), which `sweep_attribute.py` had named `Clear()`; the names are
+swapped.
+
 ## Wwise
 
 **Result: Wwise 2017.2, built with upstream clang 6.0.x (like PhysX, not the
