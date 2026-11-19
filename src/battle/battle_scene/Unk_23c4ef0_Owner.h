@@ -17,6 +17,14 @@ struct Unk_23c4ef0_Light;
 struct Unk_23c4ef0_Name;
 struct Unk_23c4ef0_Scene;
 
+// A vector of three floats in a NEON register (the reader sets its lanes one
+// by one, the fourth to 0). Copies go through two general registers: the game
+// is built with -mno-implicit-float (docs/compiler.md).
+struct Unk_23c4ef0_Vec {
+    float32x4_t v;
+};
+static_assert(sizeof(Unk_23c4ef0_Vec) == 0x10, "Unk_23c4ef0_Vec");
+
 // A battle position's object: a reference held at +0x548 for each one.
 class Unk_23c4ef0_Poke : public Unk_239a418 {
 public:
@@ -80,13 +88,18 @@ public:
     virtual void vf63();
     virtual void vf64();
 
-    u8 _60[0x3f0 - 0x60];
+    u8 _60[0x3d0 - 0x60];
+    Unk_23c4ef0_Vec field_3d0;
+    u8 _3e0[0x3f0 - 0x3e0];
     float32x4_t field_3f0;
     float32x4_t field_400;
-    u8 _410[0x4b0 - 0x410];
+    u8 _410[0x4a8 - 0x410];
+    Unk_239a418_Ref<Unk_239a418> field_4a8;
     bool field_4b0;
 };
+PKMN_OFFSET_ASSERT(Unk_23c4ef0_Poke, field_3d0, 0x3d0);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Poke, field_3f0, 0x3f0);
+PKMN_OFFSET_ASSERT(Unk_23c4ef0_Poke, field_4a8, 0x4a8);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Poke, field_4b0, 0x4b0);
 
 // A pointer and a count, iterated as a range.
@@ -111,6 +124,15 @@ struct Unk_23c4ef0_Groups {
     u64 field_0;
     std::unordered_map<s32, Unk_239a418_Ref<Unk_23c4ef0_Group>> field_8;
 };
+
+// Three of these at +0x1f40, set from the sequence (leaf setters at
+// 0x71008a7f60 and 0x71008a7f70).
+struct Unk_23c4ef0_Range {
+    u64 field_0;
+    u32 field_8;
+    u32 field_c;
+};
+static_assert(sizeof(Unk_23c4ef0_Range) == 0x10, "Unk_23c4ef0_Range");
 
 class Unk_23c4ef0_Owner : public Unk_239a4c0 {
 public:
@@ -467,17 +489,28 @@ public:
     void Unk_9650e0(const Unk_23c4ef0_Name* name);
     void Unk_965220(bool arg1, u32 pos);
     void Unk_965790(bool arg1, u32 arg2);
+    void Unk_95bc30(bool arg1);
+    void Unk_961750(const Unk_239a418_Ref<Unk_23c4ef0_Poke>& poke,
+                    s32 frames,
+                    s32 arg3,
+                    const Unk_23c4ef0_Vec* arg4,
+                    bool arg5,
+                    bool arg6);
 
     u64 field_58;
     u8 _60[0x58];
     Unk_239a418_Allocator* field_b8;
-    u8 _c0[0x458 - 0xc0];
+    u8 _c0[0xd8 - 0xc0];
+    void* field_d8;
+    u8 _e0[0x458 - 0xe0];
     void* field_458;
     u8 _460[0x4a8 - 0x460];
     Unk_23c4ef0_Light* field_4a8;
     u8 _4b0[0x4c8 - 0x4b0];
     Unk_23c4ef0_Light* field_4c8;
-    u8 _4d0[0x548 - 0x4d0];
+    u8 _4d0[0x508 - 0x4d0];
+    void* field_508;
+    u8 _510[0x548 - 0x510];
     // Each position's object, and a second one.
     Unk_239a418_Ref<Unk_23c4ef0_Poke> field_548[7];
     Unk_239a418_Ref<Unk_23c4ef0_Poke> field_580[7];
@@ -486,17 +519,25 @@ public:
     Unk_23c4ef0_Scene* field_5c8;
     u8 _5d0[0x640 - 0x5d0];
     Unk_23c4ef0_Groups* field_640;
-    u8 _648[0x1754 - 0x648];
+    u8 _648[0x660 - 0x648];
+    Unk_23c4ef0_Groups* field_660;
+    u8 _668[0x1754 - 0x668];
     u32 field_1754;
+    u8 _1758[0x1f40 - 0x1758];
+    Unk_23c4ef0_Range field_1f40[3];
 };
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_58, 0x58);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_b8, 0xb8);
+PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_d8, 0xd8);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_458, 0x458);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_4a8, 0x4a8);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_4c8, 0x4c8);
+PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_508, 0x508);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_548, 0x548);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_580, 0x580);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_5b8, 0x5b8);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_5c8, 0x5c8);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_640, 0x640);
+PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_660, 0x660);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_1754, 0x1754);
+PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_1f40, 0x1f40);
