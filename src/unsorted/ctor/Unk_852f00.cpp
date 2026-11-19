@@ -5,17 +5,7 @@
 // vtable is another TU's).
 // A class with nothing but its destructors has no key function: its destructor
 // is implicit, and its vtable and D0 are emitted here, with its constructor.
-
-class Unk_23acc98 {
-public:
-    Unk_23acc98();
-    virtual ~Unk_23acc98() {}
-};
-
-class Unk_23ae520 : public Unk_23acc98 {
-public:
-    Unk_23ae520();
-};
+#include "unsorted/ctor/Unk_23acc98.h"
 
 // 0x7100852f00
-Unk_23ae520::Unk_23ae520() {}
+Unk_23ae520::Unk_23ae520(const Unk_23acc98_Arg& arg) : Unk_23acc98(arg) {}

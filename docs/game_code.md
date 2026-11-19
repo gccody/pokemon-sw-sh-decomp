@@ -1776,6 +1776,45 @@ RTTI name's own mangling (template classes' too), and a library class that
 a game class declares as its base (`vtables.py`, since Batch 41) is still
 the library's. 31 more match (check.py: 44,576 matching, 42 not matching).
 
+### The largest functions: generated tables (2026-11-19)
+
+The four largest undecompiled functions of game code were tables written out
+in full, and they matched by hand-written source with a generated body, about
+2.2% of the code by bytes:
+
+- **Battle sequence tables** (`src/unsorted/Unk_9be950.cpp`,
+  `src/unsorted/Unk_23c4ef0.h`): the constructors of `Unk_23c4ef0`
+  (`0x71009be950`, 239,176 bytes) and of the `Unk_23c4f18` it holds
+  (`0x71009fd0e0`, 239,124 bytes) fill an `unordered_map<u64, function>`
+  each with 385 `emplace`s, inlined: the same 385 hashes in both, mapped to
+  functions of the same segment (one table's are mostly the `Unk_<addr>_update`
+  no-ops). The map's memory comes from gflib3's allocator through a container
+  allocator (`src/unsorted/Unk_2771620.h`) that pushes it on the thread's
+  allocator stack (TLS slot `Unk_2771620`, 16 entries) while it constructs,
+  and the map itself is made the same way (`Unk_2771620_MakeUnique`). The
+  hashes must be `u64` literals (`ul`): a hex literal below 2^63 is a `long`,
+  and libc++'s `emplace` then constructs the node first
+  (`__emplace_unique_impl`), a different function. The destructors, `vf2`
+  (`map->find(*hash)->second(...)`) and the map's `rehash`/`__rehash` match
+  too. `Unk_23c4ef0::vf2` (`0x71009f93a0`, a `switch` on the hash) and the
+  `Unk_95c520` it calls aren't decompiled.
+- **239 objects on `Unk_23acc98`** (`src/unsorted/Unk_7e0080.h`,
+  `src/unsorted/Unk_81c630.cpp`): `0x710081c630` (48,600 bytes) allocates and
+  constructs each of 239 members of an object, each a class of its own on
+  `Unk_23acc98` whose constructor passes its argument to `Unk_23acc98`'s
+  (`0x710082a930`, which copies 0x60 bytes from it); `0x71007e0080` (13,356
+  bytes) is the object's destructor. The constructors were `vtables.py
+  ctors`' already, as `Unk_D::Unk_D() {}`: `CTOR_PARAMS` gives a root's
+  family the parameter, and their classes go in a header of their own
+  (`src/unsorted/ctor/Unk_23acc98.h`), which the constructor files and
+  `Unk_81c630.cpp` include (a class defined elsewhere in `src/` would stop
+  `ctors` from writing it). `ctors` also takes a constructor whose vptr is
+  in a page's first GOT slot (`ldr x8, [x8]`): one more of the family.
+
+The libraries' largest win was FreeType 2.8.1 in YEBIS (docs/compiler.md,
+"FreeType 2.8.1"): 373 functions, 184,584 bytes. Byte progress after these:
+25.16% (check.py: 44,938 matching, 42 not matching).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1799,10 +1838,11 @@ Larger shapes have their own blockers:
 - 16-byte values returned in `x0`:`x1`;
 - functions that read a field after storing to it.
 
-## Handoff (2026-11-17, updated 2026-11-18)
+## Handoff (2026-11-17, updated 2026-11-19)
 
-State after Batch 43: check.py reports 44,576 matching and 42 not
-matching, in both games. Every batch above came from `tools/leafgen.py` and
+State after the generated tables and FreeType (2026-11-19): check.py
+reports 44,938 matching and 42 not matching, in both games; 25.16% of the
+code by bytes. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
 generator and rewrite them, don't edit them by hand.
@@ -1863,6 +1903,16 @@ Other pitfalls:
 
 The 2026-11-17 list is done as far as the generators go (Batches 9-21 and
 the bases of #62-#76). What's left, roughly by yield:
+
+0. **By bytes (2026-11-19):** the generators' batches add a few KB each now.
+   What moved the byte count was public code (FreeType, found by its strings)
+   and the largest functions (generated tables, "The largest functions"
+   above). Next by size: functions that are one block repeated (rank the
+   unmatched ones by how many 12-instruction windows recur; at the top are
+   `0x7100f76f20`, `0x7101315d00`, `0x7100bc27d0`, `0x710165e380` and
+   `0x710138a350`, 5-10 KB each), `Unk_95c520` (16,612 bytes: 43 lookups in
+   a map of hashes, each feeding a `switch`) and the 239 functions of
+   `Unk_23c4ef0`'s table (52 to 2,316 bytes).
 
 1. **More hand-written bases.** Each unlocks the classes that share or
    tail-call its D2. `tools/vtables.py show` on a D2's vtable and a census
