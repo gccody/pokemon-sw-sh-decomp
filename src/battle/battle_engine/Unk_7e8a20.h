@@ -7,7 +7,7 @@
 // the class is known.
 #include <types.h>
 
-class Unk_7e8a20;
+struct Unk_7e8a20;
 
 void Unk_7e94d0(Unk_7e8a20* self);
 void Unk_7e9510(Unk_7e8a20* self);
