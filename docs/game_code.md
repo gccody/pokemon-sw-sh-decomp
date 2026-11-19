@@ -2065,8 +2065,8 @@ move and copy constructors (manager at +0x10, copier at +0x18).
 
 The battle sequence tables (`src/unsorted/Unk_23c4ef0.h`) map 385 hashes to
 248 functions `Unk_<addr>(void* seq, Unk_23c4ef0_Owner* owner, const u64*
-cmd)` (167 KB, in the tables' TU, `0x71009be950`-`0x7100a6c510`). 81 of them
-match (20.6 KB, `src/battle/battle_scene/Unk_a38ab0.cpp`). What they share:
+cmd)` (167 KB, in the tables' TU, `0x71009be950`-`0x7100a6c510`). 87 of them
+match (23.0 KB, `src/battle/battle_scene/Unk_a38ab0.cpp`). What they share:
 
 - The owner is the battle scene's view system, a class on gflib3's
   `Unk_239a4c0` with 340 virtual slots (vtables `0x71023c0970` and
@@ -2110,7 +2110,7 @@ What blocks the others:
   same.
 - A few differ in one register or one stack slot: `0x7100a58b70`,
   `0x7100a59270`, `0x7100a599d0`, `0x7100a5f360`, `0x7100a5f4a0`,
-  `0x7100a46d60`, `0x7100a51f00`.
+  `0x7100a46d60`, `0x7100a51f00`, `0x7100a50e30`.
 - `Unk_95c520` (16,612 bytes, the conditions `Unk_23c4ef0::vf2` checks): 43
   lookups in the command's parameter map (`cmd+0x18`, `find(hash)->second`)
   feeding switches on the owner's state; regular, but long.
