@@ -46,6 +46,20 @@ def test_other_literals_and_other_tus_are_compared_as_bytes(tmp_path):
     assert RULES[0].original_rel("./../../../../../../outside.h") is None
 
 
+def test_work_dir_outside_root(tmp_path):
+    # YEBIS compiled C:/workspace/YEBIS_draft/src/GPU/miniz.c as ../src/GPU/miniz.c,
+    # from a sibling of src/; lib/miniz/ stands for src/GPU/
+    rule = SourcePathRule("lib/miniz/", "lib/miniz/", "C:/workspace/YEBIS_draft/src/GPU/", "../../nx/")
+    p = SourcePaths([rule], tmp_path)
+    tu = f"{tmp_path.as_posix()}/lib/miniz/miniz.c"
+    assert p.compare(tu, tu, "../src/GPU/miniz.c") is True
+    assert p.compare(tu, tu, "../src/GPU/other.c") is False
+    assert p.compare(tu, tu, "C:/workspace/YEBIS_draft/src/GPU/miniz.c") is True
+    # names a file outside Root: not one of ours
+    assert rule.original_rel("../include/PPFX/ppfxTypes.h") is None
+    assert rule.original_rel("../../../../../../../x.h") is None
+
+
 def test_longest_source_wins(tmp_path):
     rules = RULES + [SourcePathRule("lib/physx/", "lib/physx/", "D:/elsewhere/", "x/")]
     p = SourcePaths(rules, tmp_path)
@@ -58,6 +72,11 @@ def test_read_and_lint(tmp_path, write_csv):
     good = write_csv("source_paths.csv", ",".join(HEADER) + "\n"
                      f"lib/physx/PxShared/,lib/physx/,{ORIGINAL},PxShared/src/compiler/nx/,strings\n")
     assert lint_source_paths(good, tmp_path) == []
+    outside = write_csv("outside.csv", ",".join(HEADER) + "\n"
+                        f"lib/physx/,lib/physx/,{ORIGINAL},../../nx/,strings\n"
+                        f"lib/physx/a/,lib/physx/,{ORIGINAL},nx/../x/,strings\n")
+    errors = lint_source_paths(outside, tmp_path)
+    assert len(errors) == 1 and "nx/../x/" in errors[0]
     assert read_source_paths(good)[0].workdir == "PxShared/src/compiler/nx/"
     bad = write_csv("bad.csv", ",".join(HEADER) + "\n"
                     "lib/physx,lib/other/,relative/,..\\x/,\n")
