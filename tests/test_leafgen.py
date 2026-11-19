@@ -508,3 +508,13 @@ def test_static_object_of_the_tu(monkeypatch):
                                                str_w(1, 8, 4), RET))
     assert 'extern Unk_27ce9dc_Data Unk_27ce9dc __attribute__((visibility("hidden")));' in structs
     assert "    Unk_27ce9dc.field_4 = value;\n" in func
+
+
+def test_abort_ends_a_path(monkeypatch):
+    """cbnz w1, L ; <clear bit 0 of +0x20> ; ret ; L: <frame> ; bl abort: the
+    other path calls abort(), an SDK import that doesn't return (C linkage)."""
+    monkeypatch.setattr(leafgen, "IMPORTS", {ADDR + 0x1C + 0x100: "abort"})
+    words = (0x350000A1, 0xF9401008, 0x927FF908, 0xF9001008, RET, 0xA9BF7BFD, 0x910003FD, 0x94000040)
+    structs, func = leafgen.generate(ADDR, code(*words))
+    assert 'extern "C" [[noreturn]] void abort();' in structs
+    assert func.endswith("        return;\n    }\n    abort();\n}\n")
