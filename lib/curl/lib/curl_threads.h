@@ -23,7 +23,21 @@
  ***************************************************************************/
 #include "curl_setup.h"
 
-#if defined(USE_THREADS_POSIX)
+#if defined(USE_THREADS_POSIX) && 1 /* Pokemon SwSh decomp */
+/* Nintendo's SDK build runs the resolver on nn::os threads and locks nn::os
+   mutexes (asyn-thread.c's code in the binary calls nnosLockMutex, ...).
+   The thread functions are Nintendo's (lib/curl/nintendo/Unk_1778b10.c). */
+#  include "curl_nnos.h"
+struct Unk_1778b10_Thread;
+#  define CURL_STDCALL
+#  define curl_mutex_t           nnosMutexType
+#  define curl_thread_t          struct Unk_1778b10_Thread *
+#  define curl_thread_t_null     (struct Unk_1778b10_Thread *)0
+#  define Curl_mutex_init(m)     nnosInitializeMutex(m, false, 1)
+#  define Curl_mutex_acquire(m)  nnosLockMutex(m)
+#  define Curl_mutex_release(m)  nnosUnlockMutex(m)
+#  define Curl_mutex_destroy(m)  nnosFinalizeMutex(m)
+#elif defined(USE_THREADS_POSIX)
 #  define CURL_STDCALL
 #  define curl_mutex_t           pthread_mutex_t
 #  define curl_thread_t          pthread_t *
