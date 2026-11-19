@@ -39,6 +39,12 @@ struct Unk_55b270 {
 };
 PKMN_OFFSET_ASSERT(Unk_55b270, field_78, 0x78);
 
+struct Unk_55b550 {
+    u8 _0[0x98];
+    u64 field_98;
+};
+PKMN_OFFSET_ASSERT(Unk_55b550, field_98, 0x98);
+
 struct Unk_55b6b0 {
     u8 _0[0x90];
     u8 field_90;
@@ -80,6 +86,7 @@ public:
     void vf15();
     u32 vf16();
     const u8* vf17();
+    bool vf20();
     const u8* vf21();
     const u8* vf23();
     u32 vf24();
@@ -157,6 +164,12 @@ void SiSDK3::SiGfxNXShader::vf14() {
 const u8* SiSDK3::SiGfxNXShader::vf17() {
     const Unk_55b270* self = reinterpret_cast<const Unk_55b270*>(this);
     return &self->field_78;
+}
+
+// 0x710055b550
+bool SiSDK3::SiGfxNXShader::vf20() {
+    const Unk_55b550* self = reinterpret_cast<const Unk_55b550*>(this);
+    return self->field_98 != 0;
 }
 
 // 0x710055b560

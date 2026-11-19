@@ -9,6 +9,24 @@ struct Unk_573770 {
 };
 PKMN_OFFSET_ASSERT(Unk_573770, field_10, 0x10);
 
+struct Unk_571db0 {
+    u8 _0[0x158];
+    u64 field_158;
+    u8 _160[0x8];
+    u64 field_168;
+};
+PKMN_OFFSET_ASSERT(Unk_571db0, field_158, 0x158);
+PKMN_OFFSET_ASSERT(Unk_571db0, field_168, 0x168);
+
+struct Unk_571dd0 {
+    u8 _0[0x90];
+    u64 field_90;
+    u8 _98[0x8];
+    u64 field_a0;
+};
+PKMN_OFFSET_ASSERT(Unk_571dd0, field_90, 0x90);
+PKMN_OFFSET_ASSERT(Unk_571dd0, field_a0, 0xa0);
+
 struct Unk_5725b0 {
     u8 _0[0xb8];
     u32 field_b8;
@@ -43,6 +61,8 @@ namespace SiSDK3 {
 class SiGfxShaderEffectVariationList {
 public:
     u32 vf4();
+    u64 vf8();
+    u64 vf9();
     u32 vf11();
     u32 vf13();
     u8 vf16();
@@ -50,6 +70,24 @@ public:
     u64 vf21();
 };
 }  // namespace SiSDK3
+
+// 0x7100571db0
+u64 SiSDK3::SiGfxShaderEffectVariationList::vf8() {
+    const Unk_571db0* self = reinterpret_cast<const Unk_571db0*>(this);
+    if (self->field_168 == 0) {
+        return 0;
+    }
+    return self->field_158;
+}
+
+// 0x7100571dd0
+u64 SiSDK3::SiGfxShaderEffectVariationList::vf9() {
+    const Unk_571dd0* self = reinterpret_cast<const Unk_571dd0*>(this);
+    if (self->field_a0 == 0) {
+        return 0;
+    }
+    return self->field_90;
+}
 
 // 0x71005725b0
 u32 SiSDK3::SiGfxShaderEffectVariationList::vf11() {

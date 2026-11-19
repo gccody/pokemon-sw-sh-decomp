@@ -27,6 +27,12 @@ struct Unk_54ea50 {
 };
 PKMN_OFFSET_ASSERT(Unk_54ea50, field_20, 0x20);
 
+struct Unk_54ea60 {
+    u8 _0[0x24];
+    u32 field_24;
+};
+PKMN_OFFSET_ASSERT(Unk_54ea60, field_24, 0x24);
+
 struct Unk_54ed00 {
     u8 _0[0x78];
     u64 field_78;
@@ -40,6 +46,7 @@ public:
     u64 vf5();
     u64 vf6();
     u32 vf7();
+    u32 vf8();
     void vf17();
     u64 vf18();
     u32 vf19();
@@ -62,6 +69,13 @@ u64 SiSDK3::SiGfxNXDescriptorSet::vf6() {
 u32 SiSDK3::SiGfxNXDescriptorSet::vf7() {
     const Unk_54ea50* self = reinterpret_cast<const Unk_54ea50*>(this);
     return self->field_20;
+}
+
+// 0x710054ea60
+u32 SiSDK3::SiGfxNXDescriptorSet::vf8() {
+    Unk_54ea60* self = reinterpret_cast<Unk_54ea60*>(this);
+    self->field_24 = self->field_24 + 1;
+    return 1;
 }
 
 // 0x710054ecf0

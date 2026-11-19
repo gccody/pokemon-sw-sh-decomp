@@ -21,6 +21,42 @@ struct Unk_4bd8d0 {
 };
 PKMN_OFFSET_ASSERT(Unk_4bd8d0, field_40, 0x40);
 
+struct Unk_4be540_arg1 {
+    u64 field_0;
+    u64 field_8;
+    u64 field_10;
+    u64 field_18;
+    u8 _20[0x8];
+    u64 field_28;
+    u64 field_30;
+};
+PKMN_OFFSET_ASSERT(Unk_4be540_arg1, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_4be540_arg1, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_4be540_arg1, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_4be540_arg1, field_18, 0x18);
+PKMN_OFFSET_ASSERT(Unk_4be540_arg1, field_28, 0x28);
+PKMN_OFFSET_ASSERT(Unk_4be540_arg1, field_30, 0x30);
+
+struct Unk_4be540 {
+    u8 _0[0x30];
+    u64 field_30;
+    u8 _38[0x28];
+    u64 field_60;
+    u8 _68[0x8];
+    u64 field_70;
+    u64 field_78;
+    u64 field_80;
+    u64 field_88;
+    u64 field_90;
+};
+PKMN_OFFSET_ASSERT(Unk_4be540, field_30, 0x30);
+PKMN_OFFSET_ASSERT(Unk_4be540, field_60, 0x60);
+PKMN_OFFSET_ASSERT(Unk_4be540, field_70, 0x70);
+PKMN_OFFSET_ASSERT(Unk_4be540, field_78, 0x78);
+PKMN_OFFSET_ASSERT(Unk_4be540, field_80, 0x80);
+PKMN_OFFSET_ASSERT(Unk_4be540, field_88, 0x88);
+PKMN_OFFSET_ASSERT(Unk_4be540, field_90, 0x90);
+
 struct Unk_4be6c0 {
     u8 _0[0xa0];
     u64 field_a0;
@@ -63,6 +99,7 @@ public:
     u32 vf4();
     u32 vf5(u32 value);
     u32 vf6();
+    void vf11(Unk_4be540_arg1* value);
     void vf12(u64 value);
     u64 vf13();
     void vf14(u64 value);
@@ -83,6 +120,19 @@ u32 SiSDK3::SiFixedHeapAllocator2::vf5(u32 value) {
 u32 SiSDK3::SiFixedHeapAllocator2::vf6() {
     const Unk_4bd8d0* self = reinterpret_cast<const Unk_4bd8d0*>(this);
     return self->field_40;
+}
+
+// 0x71004be540
+void SiSDK3::SiFixedHeapAllocator2::vf11(Unk_4be540_arg1* value) {
+    const Unk_4be540* self = reinterpret_cast<const Unk_4be540*>(this);
+    if (value != nullptr) {
+        value->field_0 = self->field_30;
+        value->field_8 = self->field_70;
+        value->field_28 = self->field_88;
+        value->field_10 = self->field_78;
+        value->field_18 = self->field_80 - self->field_60;
+        value->field_30 = self->field_90;
+    }
 }
 
 // 0x71004be6c0

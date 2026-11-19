@@ -33,6 +33,57 @@ struct Unk_55cc50 {
 };
 PKMN_OFFSET_ASSERT(Unk_55cc50, field_64, 0x64);
 
+struct Unk_55d3e0_d8 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15(u64);
+};
+
+struct Unk_55d3e0 {
+    u8 _0[0xd8];
+    Unk_55d3e0_d8* field_d8;
+};
+PKMN_OFFSET_ASSERT(Unk_55d3e0, field_d8, 0xd8);
+
+struct Unk_55d400_d8 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+};
+
+struct Unk_55d400 {
+    u8 _0[0xd8];
+    Unk_55d400_d8* field_d8;
+};
+PKMN_OFFSET_ASSERT(Unk_55d400, field_d8, 0xd8);
+
 struct Unk_55ccc0 {
     u8 _0[0x78];
     u8 field_78;
@@ -75,6 +126,47 @@ struct Unk_55cd20 {
 };
 PKMN_OFFSET_ASSERT(Unk_55cd20, field_c8, 0xc8);
 
+struct Unk_55d3c0_d8 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+    virtual void vf25();
+    virtual void vf26();
+    virtual void vf27();
+    virtual void vf28();
+    virtual void vf29();
+    virtual void vf30();
+    virtual void vf31(u64);
+};
+
+struct Unk_55d3c0 {
+    u8 _0[0xd8];
+    Unk_55d3c0_d8* field_d8;
+};
+PKMN_OFFSET_ASSERT(Unk_55d3c0, field_d8, 0xd8);
+
 struct Unk_55d510 {
     u8 _0[0xe0];
     u64 field_e0;
@@ -86,6 +178,24 @@ struct Unk_55d520 {
     u64 field_e8;
 };
 PKMN_OFFSET_ASSERT(Unk_55d520, field_e8, 0xe8);
+
+struct Unk_55d420 {
+    u8 _0[0xc8];
+    u64 field_c8;
+    u32 field_d0;
+    u8 _d4[0xc];
+    u64 field_e0;
+    u64 field_e8;
+    u8 _f0[0x1c];
+    u8 field_10c;
+};
+PKMN_OFFSET_ASSERT(Unk_55d420, field_c8, 0xc8);
+PKMN_OFFSET_ASSERT(Unk_55d420, field_d0, 0xd0);
+PKMN_OFFSET_ASSERT(Unk_55d420, field_e0, 0xe0);
+PKMN_OFFSET_ASSERT(Unk_55d420, field_e8, 0xe8);
+PKMN_OFFSET_ASSERT(Unk_55d420, field_10c, 0x10c);
+
+void Unk_55cd70(void*, u32, u32, u32);
 
 struct Unk_55cb20 {
     u8 _0[0x30];
@@ -119,6 +229,8 @@ public:
     void vf12();
     void vf13();
     void vf14();
+    void vf15(u64 value);
+    void vf16();
     const u8* vf17();
     u64 vf18();
     u64 vf19();
@@ -126,8 +238,10 @@ public:
     u64 vf21();
     u64 vf22();
     u64 vf23();
+    void vf24(u64 value);
     u64 vf25();
     u64 vf26();
+    u32 vf27(u64 value, u64 arg2);
     const u8* vf29();
     u32 vf30();
     const u8* vf3();
@@ -240,6 +354,42 @@ u64 SiSDK3::SiGfxNXSurface::vf22() {
 u64 SiSDK3::SiGfxNXSurface::vf23() {
     const Unk_55cd20* self = reinterpret_cast<const Unk_55cd20*>(this);
     return self->field_c8;
+}
+
+// 0x710055d3c0
+void SiSDK3::SiGfxNXSurface::vf24(u64 value) {
+    const Unk_55d3c0* self = reinterpret_cast<const Unk_55d3c0*>(this);
+    if (self->field_d8 != nullptr) {
+        self->field_d8->vf31(value);
+    }
+}
+
+// 0x710055d3e0
+void SiSDK3::SiGfxNXSurface::vf15(u64 value) {
+    const Unk_55d3e0* self = reinterpret_cast<const Unk_55d3e0*>(this);
+    if (self->field_d8 != nullptr) {
+        self->field_d8->vf15(value);
+    }
+}
+
+// 0x710055d400
+void SiSDK3::SiGfxNXSurface::vf16() {
+    const Unk_55d400* self = reinterpret_cast<const Unk_55d400*>(this);
+    if (self->field_d8 != nullptr) {
+        self->field_d8->vf16();
+    }
+}
+
+// 0x710055d420
+u32 SiSDK3::SiGfxNXSurface::vf27(u64 value, u64 arg2) {
+    Unk_55d420* self = reinterpret_cast<Unk_55d420*>(this);
+    self->field_e0 = value;
+    self->field_e8 = arg2;
+    self->field_c8 = 0;
+    self->field_d0 = 0;
+    self->field_10c = 0;
+    Unk_55cd70(self, 3, 0, 0);
+    return 1;
 }
 
 // 0x710055d500

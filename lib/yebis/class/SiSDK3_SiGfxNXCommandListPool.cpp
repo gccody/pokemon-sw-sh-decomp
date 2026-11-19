@@ -33,6 +33,18 @@ struct Unk_54f610 {
 };
 PKMN_OFFSET_ASSERT(Unk_54f610, field_78, 0x78);
 
+struct Unk_54f620 {
+    u8 _0[0x38];
+    u64 field_38;
+    u8 _40[0x10];
+    u64 field_50;
+    u8 _58[0x20];
+    s32 field_78;
+};
+PKMN_OFFSET_ASSERT(Unk_54f620, field_38, 0x38);
+PKMN_OFFSET_ASSERT(Unk_54f620, field_50, 0x50);
+PKMN_OFFSET_ASSERT(Unk_54f620, field_78, 0x78);
+
 struct Unk_54f6c0 {
     u8 _0[0x78];
     u32 field_78;
@@ -47,6 +59,7 @@ public:
     u64 vf6();
     u32 vf7();
     u32 vf10();
+    u64 vf11();
     void vf13();
 };
 }  // namespace SiSDK3
@@ -73,6 +86,18 @@ u32 SiSDK3::SiGfxNXCommandListPool::vf7() {
 u32 SiSDK3::SiGfxNXCommandListPool::vf10() {
     const Unk_54f610* self = reinterpret_cast<const Unk_54f610*>(this);
     return self->field_78;
+}
+
+// 0x710054f620
+u64 SiSDK3::SiGfxNXCommandListPool::vf11() {
+    const Unk_54f620* self = reinterpret_cast<const Unk_54f620*>(this);
+    if (self->field_38 != 0) {
+        if (self->field_78 >= 1) {
+            return self->field_50;
+        }
+        return 0;
+    }
+    return 0;
 }
 
 // 0x710054f6c0

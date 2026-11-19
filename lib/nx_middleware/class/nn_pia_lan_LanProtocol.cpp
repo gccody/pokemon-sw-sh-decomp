@@ -3,6 +3,17 @@
 // member names vf<slot>, placeholder structs. The class's name is its RTTI's.
 #include <types.h>
 
+struct Unk_173d1f0 {
+    u8 _0[0x30];
+    u64 field_30;
+    u8 field_38;
+    u8 _39[0x7];
+    u64 field_40;
+};
+PKMN_OFFSET_ASSERT(Unk_173d1f0, field_30, 0x30);
+PKMN_OFFSET_ASSERT(Unk_173d1f0, field_38, 0x38);
+PKMN_OFFSET_ASSERT(Unk_173d1f0, field_40, 0x40);
+
 struct Unk_1674ea0 {
     u8 _0[0x30];
     u64 field_30;
@@ -16,6 +27,7 @@ class LanProtocol {
 public:
     void vf2();
     u32 vf4();
+    void vf8();
     u32 vf11();
     u64 vf12();
 };
@@ -41,4 +53,12 @@ u32 nn::pia::lan::LanProtocol::vf11() {
 u64 nn::pia::lan::LanProtocol::vf12() {
     const Unk_1674ea0* self = reinterpret_cast<const Unk_1674ea0*>(this);
     return self->field_30;
+}
+
+// 0x710173d1f0
+void nn::pia::lan::LanProtocol::vf8() {
+    Unk_173d1f0* self = reinterpret_cast<Unk_173d1f0*>(this);
+    self->field_30 = 0;
+    self->field_40 = 0;
+    self->field_38 = 0xfd;
 }

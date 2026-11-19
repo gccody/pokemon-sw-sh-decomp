@@ -3,17 +3,70 @@
 // member names vf<slot>, placeholder structs. The class's name is its RTTI's.
 #include <types.h>
 
+struct Unk_15f71b0_e0_0 {
+    u8 _0[0x18];
+    u64 field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_15f71b0_e0_0, field_18, 0x18);
+
+struct Unk_15f71b0_e0 {
+    Unk_15f71b0_e0_0* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_15f71b0_e0, field_0, 0x0);
+
+struct Unk_15f71b0 {
+    u8 _0[0xe0];
+    Unk_15f71b0_e0* field_e0;
+};
+PKMN_OFFSET_ASSERT(Unk_15f71b0, field_e0, 0xe0);
+
 struct Unk_160fed0 {
     u8 _0[0x180];
     u8 field_180;
 };
 PKMN_OFFSET_ASSERT(Unk_160fed0, field_180, 0x180);
 
+struct Unk_160fee0 {
+    u8 _0[0x114];
+    u32 field_114;
+};
+PKMN_OFFSET_ASSERT(Unk_160fee0, field_114, 0x114);
+
+struct Unk_160fef0 {
+    u8 _0[0x114];
+    u32 field_114;
+};
+PKMN_OFFSET_ASSERT(Unk_160fef0, field_114, 0x114);
+
+struct Unk_160ff00 {
+    u8 _0[0x114];
+    u32 field_114;
+};
+PKMN_OFFSET_ASSERT(Unk_160ff00, field_114, 0x114);
+
+struct Unk_160ff10 {
+    u8 _0[0x114];
+    u32 field_114;
+};
+PKMN_OFFSET_ASSERT(Unk_160ff10, field_114, 0x114);
+
+struct Unk_160ff20 {
+    u8 _0[0x114];
+    u32 field_114;
+};
+PKMN_OFFSET_ASSERT(Unk_160ff20, field_114, 0x114);
+
 struct Unk_160ff30 {
     u8 _0[0x118];
     u8 field_118;
 };
 PKMN_OFFSET_ASSERT(Unk_160ff30, field_118, 0x118);
+
+struct Unk_160ff40 {
+    u8 _0[0x118];
+    u8 field_118;
+};
+PKMN_OFFSET_ASSERT(Unk_160ff40, field_118, 0x118);
 
 struct Unk_160ff50 {
     u8 _0[0x10c];
@@ -75,12 +128,50 @@ struct Unk_160ffe0 {
 };
 PKMN_OFFSET_ASSERT(Unk_160ffe0, field_1f0, 0x1f0);
 
+struct Unk_160fff0_328 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4(u64);
+};
+
+struct Unk_160fff0 {
+    u8 _0[0x328];
+    Unk_160fff0_328* field_328;
+};
+PKMN_OFFSET_ASSERT(Unk_160fff0, field_328, 0x328);
+
+struct Unk_1610000_328 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+};
+
+struct Unk_1610000 {
+    u8 _0[0x328];
+    Unk_1610000_328* field_328;
+};
+PKMN_OFFSET_ASSERT(Unk_1610000, field_328, 0x328);
+
 namespace nn {
 namespace nex {
 class PRUDPEndPoint {
 public:
+    u64 vf4();
     u8 vf6();
+    bool vf7();
+    bool vf8();
+    bool vf9();
+    bool vf10();
+    bool vf11();
     u8 vf12();
+    bool vf13();
     void vf16(u32 value);
     u32 vf17();
     u32 vf18();
@@ -91,9 +182,17 @@ public:
     u32 vf26();
     u32 vf27();
     u64 vf31();
+    void vf35(u64 value);
+    void vf36();
 };
 }  // namespace nex
 }  // namespace nn
+
+// 0x71015f71b0
+u64 nn::nex::PRUDPEndPoint::vf4() {
+    const Unk_15f71b0* self = reinterpret_cast<const Unk_15f71b0*>(this);
+    return self->field_e0->field_0->field_18;
+}
 
 // 0x710160fed0
 u8 nn::nex::PRUDPEndPoint::vf6() {
@@ -101,10 +200,46 @@ u8 nn::nex::PRUDPEndPoint::vf6() {
     return self->field_180;
 }
 
+// 0x710160fee0
+bool nn::nex::PRUDPEndPoint::vf7() {
+    const Unk_160fee0* self = reinterpret_cast<const Unk_160fee0*>(this);
+    return self->field_114 == 0;
+}
+
+// 0x710160fef0
+bool nn::nex::PRUDPEndPoint::vf8() {
+    const Unk_160fef0* self = reinterpret_cast<const Unk_160fef0*>(this);
+    return self->field_114 == 1;
+}
+
+// 0x710160ff00
+bool nn::nex::PRUDPEndPoint::vf9() {
+    const Unk_160ff00* self = reinterpret_cast<const Unk_160ff00*>(this);
+    return self->field_114 == 3;
+}
+
+// 0x710160ff10
+bool nn::nex::PRUDPEndPoint::vf10() {
+    const Unk_160ff10* self = reinterpret_cast<const Unk_160ff10*>(this);
+    return self->field_114 == 4;
+}
+
+// 0x710160ff20
+bool nn::nex::PRUDPEndPoint::vf11() {
+    const Unk_160ff20* self = reinterpret_cast<const Unk_160ff20*>(this);
+    return self->field_114 == 2;
+}
+
 // 0x710160ff30
 u8 nn::nex::PRUDPEndPoint::vf12() {
     const Unk_160ff30* self = reinterpret_cast<const Unk_160ff30*>(this);
     return self->field_118;
+}
+
+// 0x710160ff40
+bool nn::nex::PRUDPEndPoint::vf13() {
+    const Unk_160ff40* self = reinterpret_cast<const Unk_160ff40*>(this);
+    return self->field_118 == 0;
 }
 
 // 0x710160ff50
@@ -165,4 +300,16 @@ u32 nn::nex::PRUDPEndPoint::vf27() {
 u64 nn::nex::PRUDPEndPoint::vf31() {
     const Unk_160ffe0* self = reinterpret_cast<const Unk_160ffe0*>(this);
     return self->field_1f0;
+}
+
+// 0x710160fff0
+void nn::nex::PRUDPEndPoint::vf35(u64 value) {
+    const Unk_160fff0* self = reinterpret_cast<const Unk_160fff0*>(this);
+    self->field_328->vf4(value);
+}
+
+// 0x7101610000
+void nn::nex::PRUDPEndPoint::vf36() {
+    const Unk_1610000* self = reinterpret_cast<const Unk_1610000*>(this);
+    self->field_328->vf7();
 }

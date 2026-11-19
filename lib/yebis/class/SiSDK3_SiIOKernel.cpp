@@ -33,6 +33,12 @@ struct Unk_57d860 {
 };
 PKMN_OFFSET_ASSERT(Unk_57d860, field_38, 0x38);
 
+struct Unk_57d950 {
+    u8 _0[0x48];
+    u64 field_48;
+};
+PKMN_OFFSET_ASSERT(Unk_57d950, field_48, 0x48);
+
 namespace SiSDK3 {
 class SiIOKernel {
 public:
@@ -41,6 +47,7 @@ public:
     u64 vf7();
     u32 vf13(u64 value);
     u64 vf14();
+    u64 vf17(u32 value);
 };
 }  // namespace SiSDK3
 
@@ -67,6 +74,15 @@ u32 SiSDK3::SiIOKernel::vf13(u64 value) {
 u64 SiSDK3::SiIOKernel::vf14() {
     const Unk_57d860* self = reinterpret_cast<const Unk_57d860*>(this);
     return self->field_38;
+}
+
+// 0x710057d950
+u64 SiSDK3::SiIOKernel::vf17(u32 value) {
+    const Unk_57d950* self = reinterpret_cast<const Unk_57d950*>(this);
+    if (value != 1) {
+        return 0;
+    }
+    return self->field_48;
 }
 
 // 0x710057dd30

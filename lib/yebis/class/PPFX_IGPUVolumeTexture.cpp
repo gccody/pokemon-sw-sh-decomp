@@ -9,6 +9,18 @@ struct Unk_447300 {
 };
 PKMN_OFFSET_ASSERT(Unk_447300, field_80, 0x80);
 
+struct Unk_447650 {
+    u8 _0[0x7c];
+    u32 field_7c;
+};
+PKMN_OFFSET_ASSERT(Unk_447650, field_7c, 0x7c);
+
+struct Unk_447660 {
+    u8 _0[0x78];
+    u32 field_78;
+};
+PKMN_OFFSET_ASSERT(Unk_447660, field_78, 0x78);
+
 struct Unk_447680 {
     u8 _0[0x78];
     u32 field_78;
@@ -32,6 +44,8 @@ class IGPUVolumeTexture {
 public:
     u32 vf12();
     void vf13();
+    u32 vf14();
+    u32 vf15(u32 value);
     u32 vf16();
     u32 vf19();
     u32 vf20();
@@ -48,6 +62,23 @@ u32 PPFX::IGPUVolumeTexture::vf12() {
 
 // 0x7100447310
 void PPFX::IGPUVolumeTexture::vf13() {
+}
+
+// 0x7100447650
+u32 PPFX::IGPUVolumeTexture::vf14() {
+    Unk_447650* self = reinterpret_cast<Unk_447650*>(this);
+    self->field_7c = 0xffffffff;
+    return 0;
+}
+
+// 0x7100447660
+u32 PPFX::IGPUVolumeTexture::vf15(u32 value) {
+    Unk_447660* self = reinterpret_cast<Unk_447660*>(this);
+    if (value > 0xf) {
+        return 0xfffffffa;
+    }
+    self->field_78 = value;
+    return 0;
 }
 
 // 0x7100447680
