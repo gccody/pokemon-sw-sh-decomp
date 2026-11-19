@@ -918,7 +918,7 @@ def cast_member(m: Model, f: int) -> Lifted | None:
             L.candidates(argparse.Namespace(area=["game"], max=4, reach=["call"]))
             L.KNOWN.update(L.known_prototypes(ROOT / "src" / "unsorted" / "leaf"))
             _HOOKS.append(True)
-        except (OSError, KeyError, ValueError):  # no executable (the tests): no fallback
+        except (OSError, KeyError, ValueError, SystemExit):  # no executable (the tests): no fallback
             _HOOKS.append(False)
     if not _HOOKS[0]:
         return None
