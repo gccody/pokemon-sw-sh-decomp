@@ -3,87 +3,87 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
-void Unk_ca7d50();
+void Unk_ca7d50(void*);
 
 // 0x7100ca7d40
-void Unk_ca7d40_call() {
-    Unk_ca7d50();
+void Unk_ca7d40_call(void* self) {
+    Unk_ca7d50(self);
 }
 
-void Unk_ca85a0();
+void Unk_ca85a0(void*);
 void Unk_ca86e0(void*, u32);
 
 // 0x7100ca8570
 void Unk_ca8570_call(void* self) {
-    Unk_ca85a0();
+    Unk_ca85a0(self);
     Unk_ca86e0(self, 0);
 }
 
 struct Unk_ca92b0 {
     u8 _0[0xa0];
-    u64 field_a0;
+    void* field_a0;
 };
 PKMN_OFFSET_ASSERT(Unk_ca92b0, field_a0, 0xa0);
 
-void Unk_caefc0(u64);
+void Unk_caefc0(void*, void*);
 
 // 0x7100ca92b0
-void Unk_ca92b0_call(const Unk_ca92b0* self) {
-    Unk_caefc0(self->field_a0);
+void Unk_ca92b0_call(const Unk_ca92b0* self, void* value) {
+    Unk_caefc0(self->field_a0, value);
 }
 
 struct Unk_caa7a0 {
     u8 _0[0xa0];
-    u64 field_a0;
+    void* field_a0;
 };
 PKMN_OFFSET_ASSERT(Unk_caa7a0, field_a0, 0xa0);
 
-void Unk_cae8c0(u64);
+void Unk_cae8c0(void*);
 
 // 0x7100caa7a0
 void Unk_caa7a0_call(const Unk_caa7a0* self) {
     Unk_cae8c0(self->field_a0);
 }
 
-void Unk_cacf60(void*, u64, u64, u64, u32);
+void Unk_cacf60(void*, void*, u64, u64, u32);
 
 // 0x7100cacf50
-void Unk_cacf50_call(void* self, u64 value, u64 arg2, u64 arg3) {
+void Unk_cacf50_call(void* self, void* value, u64 arg2, u64 arg3) {
     Unk_cacf60(self, value, arg2, arg3, 0);
 }
 
-void Unk_cacf60(void*, u64, u64, u64, u32);
+void Unk_cacf60(void*, void*, u64, u64, u32);
 
 // 0x7100cad140
-void Unk_cad140_call(void* self, u64 value, u64 arg2, u64 arg3) {
+void Unk_cad140_call(void* self, void* value, u64 arg2, u64 arg3) {
     Unk_cacf60(self, value, arg2, arg3, 1);
 }
 
-void Unk_caeb90(void*, u64, u64, u64, u32);
+void Unk_caeb90(void*, void*, u64, u64, u32);
 
 // 0x7100caeb80
-void Unk_caeb80_call(void* self, u64 value, u64 arg2, u64 arg3) {
+void Unk_caeb80_call(void* self, void* value, u64 arg2, u64 arg3) {
     Unk_caeb90(self, value, arg2, arg3, 0);
 }
 
-void Unk_caeb90(void*, u64, u64, u64, u32);
+void Unk_caeb90(void*, void*, u64, u64, u32);
 
 // 0x7100caed70
-void Unk_caed70_call(void* self, u64 value, u64 arg2, u64 arg3) {
+void Unk_caed70_call(void* self, void* value, u64 arg2, u64 arg3) {
     Unk_caeb90(self, value, arg2, arg3, 1);
 }
 
-void Unk_caf7d0(void*, u64, u64, u64, u32);
+void Unk_caf7d0(void*, void*, u64, u64, u32);
 
 // 0x7100caf7c0
-void Unk_caf7c0_call(void* self, u64 value, u64 arg2, u64 arg3) {
+void Unk_caf7c0_call(void* self, void* value, u64 arg2, u64 arg3) {
     Unk_caf7d0(self, value, arg2, arg3, 0);
 }
 
-void Unk_caf7d0(void*, u64, u64, u64, u32);
+void Unk_caf7d0(void*, void*, u64, u64, u32);
 
 // 0x7100caf9b0
-void Unk_caf9b0_call(void* self, u64 value, u64 arg2, u64 arg3) {
+void Unk_caf9b0_call(void* self, void* value, u64 arg2, u64 arg3) {
     Unk_caf7d0(self, value, arg2, arg3, 1);
 }
 

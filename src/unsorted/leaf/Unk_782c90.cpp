@@ -59,18 +59,18 @@ u32 Unk_784f30() {
     return 0x810;
 }
 
-void Unk_784f60(void*, u64, u32);
+void Unk_784f60(void*, void*, u32);
 
 // 0x7100784f40
-u32 Unk_784f40_call(void* self, u64 value) {
+u32 Unk_784f40_call(void* self, void* value) {
     Unk_784f60(self, value, 1);
     return 0x814;
 }
 
-void Unk_785330(void*, u64, u32);
+void Unk_785330(void*, void*, u32);
 
 // 0x7100785320
-void Unk_785320_call(void* self, u64 value) {
+void Unk_785320_call(void* self, void* value) {
     Unk_785330(self, value, 1);
 }
 

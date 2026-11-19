@@ -4,6 +4,6 @@
 #include <types.h>
 
 // 0x7100552af0
-u32 Unk_552af0_get() {
+u32 Unk_552af0_get(u64 /*unused*/) {
     return 1;
 }

@@ -4,22 +4,22 @@
 #include <types.h>
 
 extern u64 Unk_24ba170;
-void Unk_6aed00(u64);
+void Unk_6aed00(u64, void*, u64);
 
 // 0x7101061760
-void Unk_1061760_call() {
+void Unk_1061760_call(void* /*unused*/, void* value, u64 arg2) {
     if (Unk_24ba170 != 0) {
-        Unk_6aed00(Unk_24ba170);
+        Unk_6aed00(Unk_24ba170, value, arg2);
     }
 }
 
 extern u64 Unk_24ba170;
-void Unk_6aed80(u64);
+void Unk_6aed80(u64, u32);
 
 // 0x7101061780
-void Unk_1061780_call() {
+void Unk_1061780_call(void* /*unused*/, u32 value) {
     if (Unk_24ba170 != 0) {
-        Unk_6aed80(Unk_24ba170);
+        Unk_6aed80(Unk_24ba170, value);
     }
 }
 

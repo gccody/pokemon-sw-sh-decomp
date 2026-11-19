@@ -22,11 +22,11 @@ void Unk_f280f0_set(const Unk_f280f0* self, bool value) {
 
 struct Unk_f28570 {
     u8 _0[0x5f0];
-    u64 field_5f0;
+    void* field_5f0;
 };
 PKMN_OFFSET_ASSERT(Unk_f28570, field_5f0, 0x5f0);
 
-void Unk_14e1b40(u64);
+void Unk_14e1b40(void*);
 
 // 0x7100f28570
 void Unk_f28570_call(const Unk_f28570* self) {

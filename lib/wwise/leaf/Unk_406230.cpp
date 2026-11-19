@@ -22,9 +22,9 @@ u32 Unk_406230_update(Unk_406230* self, u16 value, u16 arg2) {
     return 0;
 }
 
-void Unk_4071b0();
+void Unk_4071b0(u32, void*);
 
 // 0x71004071a0
-void Unk_4071a0_call() {
-    Unk_4071b0();
+void Unk_4071a0_call(u32 self, void* value) {
+    Unk_4071b0(self, value);
 }

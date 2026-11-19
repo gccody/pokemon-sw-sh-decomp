@@ -52,20 +52,20 @@ bool Unk_373fd0_get(const Unk_373fd0* self) {
 }
 
 // 0x7100377580
-void Unk_377580_update() {
+void Unk_377580_update(u64 /*unused*/) {
 }
 
 struct Unk_378ab0 {
     u8 _0[0x18];
-    u64 field_18;
+    void* field_18;
 };
 PKMN_OFFSET_ASSERT(Unk_378ab0, field_18, 0x18);
 
-void Unk_375490(u64);
+void Unk_375490(void*);
 
 // 0x7100378ab0
 void Unk_378ab0_call(const Unk_378ab0* self) {
-    if (self->field_18 != 0) {
+    if (self->field_18 != nullptr) {
         Unk_375490(self->field_18);
     }
 }
@@ -105,11 +105,11 @@ void Unk_37cdf0_call() {
     Unk_37ce00(0);
 }
 
-u32 Unk_37f4b0();
+u32 Unk_37f4b0(void*);
 
 // 0x710037f540
-bool Unk_37f540_call() {
-    u32 r0 = Unk_37f4b0();
+bool Unk_37f540_call(void* self) {
+    u32 r0 = Unk_37f4b0(self);
     return r0 == 1;
 }
 
@@ -226,10 +226,10 @@ struct Unk_387770 {
     Unk_387770_70* field_70;
 };
 PKMN_OFFSET_ASSERT(Unk_387770, field_70, 0x70);
-void Unk_381f40();
+void Unk_381f40(void*);
 
 // 0x7100387770
-void Unk_387770_update(const Unk_387770* self) {
+void Unk_387770_update(Unk_387770* self) {
     if (self->field_70 != nullptr) {
         if (self->field_70->field_90 <= 0) {
             if (self->field_70->field_94 <= 0) {
@@ -239,7 +239,7 @@ void Unk_387770_update(const Unk_387770* self) {
                             if (self->field_70->field_8 != 0) {
                                 return;
                             }
-                            Unk_381f40();
+                            Unk_381f40(self);
                             return;
                         }
                         return;
@@ -256,15 +256,15 @@ void Unk_387770_update(const Unk_387770* self) {
 
 struct Unk_3887a0 {
     u8 _0[0x68];
-    u64 field_68;
+    void* field_68;
 };
 PKMN_OFFSET_ASSERT(Unk_3887a0, field_68, 0x68);
 
-void Unk_3633e0(u64);
+void Unk_3633e0(void*);
 
 // 0x71003887a0
 void Unk_3887a0_call(const Unk_3887a0* self) {
-    if (self->field_68 != 0) {
+    if (self->field_68 != nullptr) {
         Unk_3633e0(self->field_68);
     }
 }

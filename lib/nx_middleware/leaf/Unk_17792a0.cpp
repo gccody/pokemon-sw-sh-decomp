@@ -4,7 +4,7 @@
 #include <types.h>
 
 // 0x71017792a0
-void Unk_17792a0_update() {
+void Unk_17792a0_update(void* /*unused*/) {
 }
 
 struct Unk_17796b0_30 {
@@ -25,7 +25,7 @@ void Unk_17796b0_set(const Unk_17796b0* self) {
 }
 
 // 0x71017796c0
-void Unk_17796c0_update() {
+void Unk_17796c0_update(void* /*unused*/) {
 }
 
 struct Unk_17796d0 {
@@ -109,7 +109,7 @@ void Unk_17796d0_set(Unk_17796d0* self) {
 }
 
 // 0x7101779710
-void Unk_1779710_update() {
+void Unk_1779710_update(u64 /*unused*/) {
 }
 
 struct Unk_1779890 {
@@ -255,15 +255,15 @@ void Unk_177cff0_set(Unk_177cff0* self) {
 
 struct Unk_1780850 {
     u8 _0[0x30];
-    u64 field_30;
+    void* field_30;
 };
 PKMN_OFFSET_ASSERT(Unk_1780850, field_30, 0x30);
 
-void Unk_17822e0(u64, u32);
+void Unk_17822e0(void*, u32);
 
 // 0x7101780850
 void Unk_1780850_call(const Unk_1780850* self, u32 value) {
-    if (self->field_30 != 0) {
+    if (self->field_30 != nullptr) {
         Unk_17822e0(self->field_30, 1 << value);
     }
 }

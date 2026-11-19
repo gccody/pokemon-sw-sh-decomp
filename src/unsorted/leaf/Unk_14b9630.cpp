@@ -15,6 +15,6 @@ u32 Unk_14b9630_get(const Unk_14b9630* self) {
 }
 
 // 0x71014ba810
-u32 Unk_14ba810_get() {
+u32 Unk_14ba810_get(u64 /*unused*/) {
     return 1;
 }

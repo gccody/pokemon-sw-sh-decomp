@@ -7,11 +7,11 @@
 
 struct Unk_12ef5d0 {
     u8 _0[0x68];
-    u64 field_68;
+    void* field_68;
 };
 PKMN_OFFSET_ASSERT(Unk_12ef5d0, field_68, 0x68);
 
-void Unk_15032c0(u64);
+void Unk_15032c0(void*);
 
 // 0x71012ef5d0
 void Unk_12ef5d0_call(const Unk_12ef5d0* self) {
@@ -20,11 +20,11 @@ void Unk_12ef5d0_call(const Unk_12ef5d0* self) {
 
 struct Unk_12ef5e0 {
     u8 _0[0x68];
-    u64 field_68;
+    void* field_68;
 };
 PKMN_OFFSET_ASSERT(Unk_12ef5e0, field_68, 0x68);
 
-void Unk_1505a30(u64);
+void Unk_1505a30(void*);
 
 // 0x71012ef5e0
 void Unk_12ef5e0_call(const Unk_12ef5e0* self) {
@@ -33,11 +33,11 @@ void Unk_12ef5e0_call(const Unk_12ef5e0* self) {
 
 struct Unk_12ef5f0 {
     u8 _0[0x68];
-    u64 field_68;
+    void* field_68;
 };
 PKMN_OFFSET_ASSERT(Unk_12ef5f0, field_68, 0x68);
 
-void Unk_1505cf0(u64);
+void Unk_1505cf0(void*);
 
 // 0x71012ef5f0
 void Unk_12ef5f0_call(const Unk_12ef5f0* self) {
@@ -61,7 +61,7 @@ void Unk_12ef600_call(Unk_12ef600* self) {
 
 struct Unk_12ef620_60 {
     u8 _0[0x48];
-    u64 field_48;
+    void* field_48;
 };
 PKMN_OFFSET_ASSERT(Unk_12ef620_60, field_48, 0x48);
 
@@ -71,11 +71,11 @@ struct Unk_12ef620 {
 };
 PKMN_OFFSET_ASSERT(Unk_12ef620, field_60, 0x60);
 
-u32 Unk_14db6e0(u64);
+u32 Unk_14db6e0(void*);
 
 // 0x71012ef620
 bool Unk_12ef620_call(const Unk_12ef620* self) {
-    if (self->field_60->field_48 == 0) {
+    if (self->field_60->field_48 == nullptr) {
         return false;
     }
     u32 r0 = Unk_14db6e0(self->field_60->field_48);

@@ -4,11 +4,11 @@
 #include <types.h>
 
 struct Unk_8ffe50 {
-    u64 field_0;
+    void* field_0;
 };
 PKMN_OFFSET_ASSERT(Unk_8ffe50, field_0, 0x0);
 
-void Unk_8ff9a0(u64);
+void Unk_8ff9a0(void*);
 
 // 0x71008ffe50
 u32 Unk_8ffe50_call(const Unk_8ffe50* self) {

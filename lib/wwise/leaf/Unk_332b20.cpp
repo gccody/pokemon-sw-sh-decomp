@@ -4,7 +4,7 @@
 #include <types.h>
 
 // 0x7100332b20
-u32 Unk_332b20_get() {
+u32 Unk_332b20_get(u64 /*unused*/, u32 /*unused*/, u32 /*unused*/, u64 /*unused*/, u32 /*unused*/, u32 /*unused*/) {
     return 4;
 }
 

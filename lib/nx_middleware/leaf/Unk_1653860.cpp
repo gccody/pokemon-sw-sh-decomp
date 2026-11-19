@@ -24,7 +24,7 @@ bool Unk_1653860_call(const Unk_1653860* self, const Unk_1653860_arg1* value) {
 }
 
 // 0x7101653bb0
-void Unk_1653bb0_update() {
+void Unk_1653bb0_update(void* /*unused*/, void* /*unused*/) {
 }
 
 extern u64 Unk_27f9db8;
@@ -115,7 +115,7 @@ u64 Unk_1654d80_get() {
 }
 
 // 0x7101655170
-void Unk_1655170_update() {
+void Unk_1655170_update(u64 /*unused*/) {
 }
 
 struct Unk_1655180 {
@@ -158,10 +158,10 @@ void Unk_1655330_set(Unk_1655330* self) {
     self->field_28 = 1;
 }
 
-void Unk_16571e0(u64, void*, u32, u64, u32);
+void Unk_16571e0(void*, void*, u32, void*, u32);
 
 // 0x71016560d0
-void Unk_16560d0_call(void* self, u64 value, u64 arg2) {
+void Unk_16560d0_call(void* self, void* value, void* arg2) {
     Unk_16571e0(arg2, self, 0x10, value, 0x10);
 }
 

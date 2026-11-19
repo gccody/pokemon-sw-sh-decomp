@@ -399,13 +399,13 @@ struct Unk_1334c20 {
     u8 field_78;
     u8 _79[0x3];
     u32 field_7c;
-    u64 field_80;
+    void* field_80;
 };
 PKMN_OFFSET_ASSERT(Unk_1334c20, field_68, 0x68);
 PKMN_OFFSET_ASSERT(Unk_1334c20, field_78, 0x78);
 PKMN_OFFSET_ASSERT(Unk_1334c20, field_7c, 0x7c);
 PKMN_OFFSET_ASSERT(Unk_1334c20, field_80, 0x80);
-void Unk_67bfa0(u64);
+void Unk_67bfa0(void*);
 
 // 0x7101334c20
 void Unk_1334c20_update(Unk_1334c20* self) {

@@ -12,30 +12,30 @@ u32 Unk_1397a50() {
 
 struct Unk_1399e80 {
     u8 _0[0xa0];
-    u64 field_a0;
+    void* field_a0;
 };
 PKMN_OFFSET_ASSERT(Unk_1399e80, field_a0, 0xa0);
 
-void Unk_139f9b0(u64);
+void Unk_139f9b0(void*);
 
 // 0x7101399e80
 void Unk_1399e80_call(const Unk_1399e80* self) {
-    if (self->field_a0 != 0) {
+    if (self->field_a0 != nullptr) {
         Unk_139f9b0(self->field_a0);
     }
 }
 
 struct Unk_139a160 {
     u8 _0[0xa8];
-    u64 field_a8;
+    void* field_a8;
 };
 PKMN_OFFSET_ASSERT(Unk_139a160, field_a8, 0xa8);
 
-void Unk_13a0a70(u64);
+void Unk_13a0a70(void*);
 
 // 0x710139a160
 void Unk_139a160_call(const Unk_139a160* self) {
-    if (self->field_a8 != 0) {
+    if (self->field_a8 != nullptr) {
         Unk_13a0a70(self->field_a8);
     }
 }

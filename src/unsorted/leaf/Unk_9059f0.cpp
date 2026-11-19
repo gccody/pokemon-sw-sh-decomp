@@ -3,10 +3,10 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
-void Unk_905af0(void*, u64, u32, u64);
+void Unk_905af0(void*, void*, u32, void*);
 
 // 0x71009059f0
-void Unk_9059f0_call(void* self, u64 value, u32 arg2, u64 arg3) {
+void Unk_9059f0_call(void* self, void* value, u32 arg2, void* arg3) {
     if (arg2 != 0) {
         if (arg2 == 1) {
             Unk_905af0(self, value, arg2, arg3);

@@ -4,7 +4,7 @@
 #include <types.h>
 
 // 0x7100e71990
-u32 Unk_e71990_get() {
+u32 Unk_e71990_get(u64 /*unused*/) {
     return 1;
 }
 

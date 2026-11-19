@@ -11,7 +11,7 @@ void Unk_46e350_call(void* self) {
 }
 
 // 0x7100471460
-void Unk_471460_update() {
+void Unk_471460_update(u64 /*unused*/, u32 /*unused*/, u32 /*unused*/) {
 }
 
 extern const u8 Unk_24e4c18[] __attribute__((visibility("hidden")));

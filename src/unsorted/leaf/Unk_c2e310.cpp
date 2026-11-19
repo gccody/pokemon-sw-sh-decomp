@@ -24,19 +24,19 @@ void Unk_c2e310_call(Unk_c2e310* self) {
 
 struct Unk_c2e330 {
     u8 _0[0x4c0];
-    u64 field_4c0;
+    void* field_4c0;
     u8 _4c8[0x110];
     u32 field_5d8;
 };
 PKMN_OFFSET_ASSERT(Unk_c2e330, field_4c0, 0x4c0);
 PKMN_OFFSET_ASSERT(Unk_c2e330, field_5d8, 0x5d8);
 
-void Unk_1500c90(u64);
+void Unk_1500c90(void*);
 
 // 0x7100c2e330
 void Unk_c2e330_call(Unk_c2e330* self) {
     self->field_5d8 = 0;
-    if (self->field_4c0 != 0) {
+    if (self->field_4c0 != nullptr) {
         Unk_1500c90(self->field_4c0);
     }
 }
@@ -270,11 +270,11 @@ struct Unk_c33590 {
     virtual void vf16();
 };
 
-void Unk_c335c0();
+void Unk_c335c0(void*);
 
 // 0x7100c33590
 void Unk_c33590_call(Unk_c33590* self) {
-    Unk_c335c0();
+    Unk_c335c0(self);
     self->vf16();
 }
 

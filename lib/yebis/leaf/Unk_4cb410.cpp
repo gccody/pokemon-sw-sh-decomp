@@ -4,5 +4,5 @@
 #include <types.h>
 
 // 0x71004cb410
-void Unk_4cb410_update() {
+void Unk_4cb410_update(u64 /*unused*/) {
 }

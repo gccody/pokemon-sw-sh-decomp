@@ -1349,11 +1349,11 @@ const u8* Unk_885f50_update(Unk_885f50* self) {
     return Unk_23b5d80;
 }
 
-void Unk_81b550();
+void Unk_81b550(void*, u32);
 
 // 0x7100885f70
-void Unk_885f70_call() {
-    Unk_81b550();
+void Unk_885f70_call(void* self, u32 value) {
+    Unk_81b550(self, value);
 }
 
 extern const u8 Unk_23b5da0[] __attribute__((visibility("hidden")));
@@ -1747,11 +1747,11 @@ const u8* Unk_888ee0_update(Unk_888ee0* self) {
     return Unk_23b6190;
 }
 
-void Unk_81b6e0();
+void Unk_81b6e0(void*, u32);
 
 // 0x7100888f00
-void Unk_888f00_call() {
-    Unk_81b6e0();
+void Unk_888f00_call(void* self, u32 value) {
+    Unk_81b6e0(self, value);
 }
 
 extern const u8 Unk_23b61b0[] __attribute__((visibility("hidden")));
@@ -2013,18 +2013,18 @@ const u8* Unk_88a420_update(Unk_88a420* self) {
     return Unk_23b6390;
 }
 
-void Unk_81b230();
+void Unk_81b230(void*, u32);
 
 // 0x710088a580
-void Unk_88a580_call() {
-    Unk_81b230();
+void Unk_88a580_call(void* self, u32 value) {
+    Unk_81b230(self, value);
 }
 
-void Unk_81b320();
+void Unk_81b320(void*, u32);
 
 // 0x710088a590
-void Unk_88a590_call() {
-    Unk_81b320();
+void Unk_88a590_call(void* self, u32 value) {
+    Unk_81b320(self, value);
 }
 
 extern const u8 Unk_23b63c0[] __attribute__((visibility("hidden")));
@@ -2490,11 +2490,11 @@ const u8* Unk_88c7f0_update(Unk_88c7f0* self) {
     return Unk_23b6810;
 }
 
-void Unk_81b860();
+void Unk_81b860(void*, u32);
 
 // 0x710088c810
-void Unk_88c810_call() {
-    Unk_81b860();
+void Unk_88c810_call(void* self, u32 value) {
+    Unk_81b860(self, value);
 }
 
 extern const u8 Unk_23b6830[] __attribute__((visibility("hidden")));
@@ -2521,11 +2521,11 @@ const u8* Unk_88cd70_update(Unk_88cd70* self) {
     return Unk_23b6860;
 }
 
-void Unk_88cec0();
+void Unk_88cec0(void*, u32);
 
 // 0x710088cde0
-void Unk_88cde0_call() {
-    Unk_88cec0();
+void Unk_88cde0_call(void* self, u32 value) {
+    Unk_88cec0(self, value);
 }
 
 extern const u8 Unk_23b68a0[] __attribute__((visibility("hidden")));
@@ -2768,11 +2768,11 @@ const u8* Unk_88de30_update(Unk_88de30* self) {
     return Unk_23b6a80;
 }
 
-void Unk_88df70();
+void Unk_88df70(void*, u32);
 
 // 0x710088dea0
-void Unk_88dea0_call() {
-    Unk_88df70();
+void Unk_88dea0_call(void* self, u32 value) {
+    Unk_88df70(self, value);
 }
 
 extern const u8 Unk_23b6ad0[] __attribute__((visibility("hidden")));

@@ -40,6 +40,6 @@ void Unk_1046490_call(Unk_1046490* self) {
 void Unk_10466d0();
 
 // 0x71010466c0
-void Unk_10466c0_call() {
+void Unk_10466c0_call(void* /*unused*/) {
     Unk_10466d0();
 }

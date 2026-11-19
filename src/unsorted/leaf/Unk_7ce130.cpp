@@ -102,16 +102,16 @@ void Unk_7d0ac0_set(Unk_7d0ac0* self) {
 
 struct Unk_7d0ad0 {
     u8 _0[0x98];
-    u64 field_98;
+    void* field_98;
 };
 PKMN_OFFSET_ASSERT(Unk_7d0ad0, field_98, 0x98);
 
-void Unk_892bc0(u64);
+void Unk_892bc0(void*, void*);
 
 // 0x71007d0ad0
-void Unk_7d0ad0_call(const Unk_7d0ad0* self) {
-    if (self->field_98 != 0) {
-        Unk_892bc0(self->field_98);
+void Unk_7d0ad0_call(const Unk_7d0ad0* self, void* value) {
+    if (self->field_98 != nullptr) {
+        Unk_892bc0(self->field_98, value);
     }
 }
 
@@ -222,17 +222,17 @@ void Unk_7d0c10_set(Unk_7d0c10* self) {
     self->field_2b5 = self->field_2b5 | 0x40;
 }
 
-void Unk_7d82c0(void*, u64, u32);
+void Unk_7d82c0(void*, void*, u32);
 
 // 0x71007d1c90
-void Unk_7d1c90_call(void* self, u64 value) {
+void Unk_7d1c90_call(void* self, void* value) {
     Unk_7d82c0(self, value, 0);
 }
 
-void Unk_7d82c0(void*, u64, u32);
+void Unk_7d82c0(void*, void*, u32);
 
 // 0x71007d1ec0
-void Unk_7d1ec0_call(void* self, u64 value) {
+void Unk_7d1ec0_call(void* self, void* value) {
     Unk_7d82c0(self, value, 1);
 }
 
@@ -241,10 +241,10 @@ u32 Unk_7d23f0_get() {
     return 1;
 }
 
-void Unk_7d8d00(void*, u64, u32);
+void Unk_7d8d00(void*, void*, u32);
 
 // 0x71007d2990
-void Unk_7d2990_call(void* self, u64 value) {
+void Unk_7d2990_call(void* self, void* value) {
     Unk_7d8d00(self, value, 0);
 }
 
@@ -486,10 +486,10 @@ u32 Unk_7d2c20_call(const Unk_7d2c20* self) {
     return 1;
 }
 
-void Unk_7d8960(void*, u64, u32);
+void Unk_7d8960(void*, void*, u32);
 
 // 0x71007d2d30
-void Unk_7d2d30_call(void* self, u64 value) {
+void Unk_7d2d30_call(void* self, void* value) {
     Unk_7d8960(self, value, 0);
 }
 
@@ -523,11 +523,11 @@ struct Unk_7d90d0 {
 PKMN_OFFSET_ASSERT(Unk_7d90d0, field_58, 0x58);
 
 u8 Unk_7cb850_getField174(const Unk_7cb850*);
-void Unk_8aabb0(u64, u32, u32);
-void Unk_8aabe0(u64, u32);
+void Unk_8aabb0(void*, u32, u32);
+void Unk_8aabe0(void*, u32);
 
 // 0x71007d90d0
-void Unk_7d90d0_call(const Unk_7d90d0* self, u64 value, u32 arg2) {
+void Unk_7d90d0_call(const Unk_7d90d0* self, void* value, u32 arg2) {
     u8 r0 = Unk_7cb850_getField174(self->field_58);
     Unk_8aabb0(value, 1, 0x44);
     Unk_8aabe0(value, r0 & 0xff);

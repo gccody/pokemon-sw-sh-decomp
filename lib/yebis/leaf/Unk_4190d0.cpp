@@ -60,15 +60,15 @@ u32 Unk_423950_update(Unk_423950* self, u32 value, bool arg2, const Unk_423950_a
 
 struct Unk_423b80 {
     u8 _0[0x198];
-    u64 field_198;
+    void* field_198;
 };
 PKMN_OFFSET_ASSERT(Unk_423b80, field_198, 0x198);
 
-void Unk_4534a0(u64);
+void Unk_4534a0(void*, void*);
 
 // 0x7100423b80
-void Unk_423b80_call(const Unk_423b80* self) {
-    Unk_4534a0(self->field_198);
+void Unk_423b80_call(const Unk_423b80* self, void* value) {
+    Unk_4534a0(self->field_198, value);
 }
 
 struct Unk_423b90 {

@@ -3,11 +3,11 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
-void Unk_aac6c0();
+void Unk_aac6c0(void*, u32, u32, u64);
 
 // 0x7100aac6b0
-void Unk_aac6b0_call() {
-    Unk_aac6c0();
+void Unk_aac6b0_call(void* self, u32 value, u32 arg2, u64 arg3) {
+    Unk_aac6c0(self, value, arg2, arg3);
 }
 
 struct Unk_aad500 {
@@ -169,11 +169,11 @@ void Unk_ab3ac0_call(void* self) {
     Unk_eb6230(self, 3);
 }
 
-u32 Unk_eb6530();
+u32 Unk_eb6530(void*);
 
 // 0x7100ab3ad0
-u32 Unk_ab3ad0_call() {
-    u32 r0 = Unk_eb6530();
+u32 Unk_ab3ad0_call(void* self) {
+    u32 r0 = Unk_eb6530(self);
     return ~r0 & 1;
 }
 

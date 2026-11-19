@@ -85,15 +85,15 @@ void Unk_80e250_call(const Unk_80e250* self, u32 value, u32 arg2, u32 arg3) {
 
 struct Unk_80e2a0 {
     u8 _0[0x18];
-    u64 field_18;
+    void* field_18;
 };
 PKMN_OFFSET_ASSERT(Unk_80e2a0, field_18, 0x18);
 
-void Unk_816500(u64, u32, u32, u32, u32, u32, u32, u32);
+void Unk_816500(void*, u32, u32, u32, u32, u32, u32, u32);
 
 // 0x710080e2a0
-void Unk_80e2a0_call(const Unk_80e2a0* self, u32 value, u32 arg2, u32 arg3, bool arg4, u32 arg5) {
-    Unk_816500(self->field_18, arg5, 0xb8, value & 0xff, 0, arg2 & 0xffff, arg3 & 0xff, arg4);
+void Unk_80e2a0_call(const Unk_80e2a0* self, u8 value, u16 arg2, u8 arg3, bool arg4, u32 arg5) {
+    Unk_816500(self->field_18, arg5, 0xb8, value, 0, arg2, arg3, arg4);
 }
 
 struct Unk_80e820 {

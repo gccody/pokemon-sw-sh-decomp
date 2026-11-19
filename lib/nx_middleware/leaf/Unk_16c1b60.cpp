@@ -20,7 +20,7 @@ void Unk_16c1b60_set(Unk_16c1b60* self, u32 value) {
 }
 
 // 0x71016c1b80
-void Unk_16c1b80_update() {
+void Unk_16c1b80_update(u64 /*unused*/, void* /*unused*/) {
 }
 
 struct Unk_16c1b90 {
@@ -37,7 +37,7 @@ void Unk_16c1b90_set(Unk_16c1b90* self) {
 }
 
 // 0x71016c1ba0
-void Unk_16c1ba0_update() {
+void Unk_16c1ba0_update(u64 /*unused*/) {
 }
 
 struct Unk_16c1c00_arg1 {

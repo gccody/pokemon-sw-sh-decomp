@@ -11,10 +11,10 @@ struct Unk_fa9340 {
 };
 PKMN_OFFSET_ASSERT(Unk_fa9340, field_38, 0x38);
 PKMN_OFFSET_ASSERT(Unk_fa9340, field_290, 0x290);
-void Unk_fa9190(void*, u32, u32, u32, u32, u64, u64, u64);
+void Unk_fa9190(void*, u32, u32, u32, u32, void*, void*, void*);
 
 // 0x7100fa9340
-void Unk_fa9340_update(Unk_fa9340* self, u32 value, u64 arg2, u64 arg3, u64 arg4) {
+void Unk_fa9340_update(Unk_fa9340* self, u32 value, void* arg2, void* arg3, void* arg4) {
     if (self->field_290 != 0) {
         return;
     }
@@ -30,10 +30,10 @@ struct Unk_fa9870 {
 };
 PKMN_OFFSET_ASSERT(Unk_fa9870, field_38, 0x38);
 PKMN_OFFSET_ASSERT(Unk_fa9870, field_290, 0x290);
-void Unk_fa9190(void*, u32, u32, u32, u32, u64, u64, u64);
+void Unk_fa9190(void*, u32, u32, u32, u32, void*, void*, void*);
 
 // 0x7100fa9870
-void Unk_fa9870_update(Unk_fa9870* self, u32 value, u64 arg2, u64 arg3, u64 arg4) {
+void Unk_fa9870_update(Unk_fa9870* self, u32 value, void* arg2, void* arg3, void* arg4) {
     if (self->field_290 != 0) {
         return;
     }
@@ -56,7 +56,7 @@ void Unk_fa98f0_call(const Unk_fa98f0* self) {
 
 struct Unk_fa9900 {
     u8 _0[0x28];
-    u64 field_28;
+    void* field_28;
     u8 _30[0x58];
     u8 field_88;
     u8 _89[0x3];
@@ -66,7 +66,7 @@ PKMN_OFFSET_ASSERT(Unk_fa9900, field_28, 0x28);
 PKMN_OFFSET_ASSERT(Unk_fa9900, field_88, 0x88);
 PKMN_OFFSET_ASSERT(Unk_fa9900, field_8c, 0x8c);
 
-void Unk_eb8a80(u64, u32);
+void Unk_eb8a80(void*, u32);
 
 // 0x7100fa9900
 void Unk_fa9900_call(Unk_fa9900* self) {

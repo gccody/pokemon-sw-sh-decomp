@@ -4,7 +4,7 @@
 #include <types.h>
 
 // 0x71003a7b70
-void Unk_3a7b70_update() {
+void Unk_3a7b70_update(u64 /*unused*/, u64 /*unused*/, u64 /*unused*/, u64 /*unused*/, void* /*unused*/) {
 }
 
 struct Unk_3a7b80 {

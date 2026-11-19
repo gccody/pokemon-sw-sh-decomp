@@ -3,51 +3,51 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
-extern u64 Unk_27790f0;
-void Unk_6c2e30(u64);
+extern void* Unk_27790f0;
+void Unk_6c2e30(void*);
 
 // 0x7101049aa0
-void Unk_1049aa0_call() {
+void Unk_1049aa0_call(u64 /*unused*/) {
     if (Unk_27790f0 != 0) {
         Unk_6c2e30(Unk_27790f0);
     }
 }
 
-extern u64 Unk_27790f0;
-void Unk_6c2fa0(u64);
+extern void* Unk_27790f0;
+void Unk_6c2fa0(void*, u64);
 
 // 0x7101049ac0
-void Unk_1049ac0_call() {
+void Unk_1049ac0_call(void* /*unused*/, u64 value) {
     if (Unk_27790f0 != 0) {
-        Unk_6c2fa0(Unk_27790f0);
+        Unk_6c2fa0(Unk_27790f0, value);
     }
 }
 
-extern u64 Unk_27790f0;
-void Unk_6c2ea0(u64);
+extern void* Unk_27790f0;
+void Unk_6c2ea0(void*, u64);
 
 // 0x7101049ae0
-void Unk_1049ae0_call() {
+void Unk_1049ae0_call(void* /*unused*/, u64 value) {
     if (Unk_27790f0 != 0) {
-        Unk_6c2ea0(Unk_27790f0);
+        Unk_6c2ea0(Unk_27790f0, value);
     }
 }
 
-extern u64 Unk_27790f0;
-void Unk_6c2e60(u64);
+extern void* Unk_27790f0;
+void Unk_6c2e60(void*);
 
 // 0x7101049b00
-void Unk_1049b00_call() {
+void Unk_1049b00_call(u64 /*unused*/) {
     if (Unk_27790f0 != 0) {
         Unk_6c2e60(Unk_27790f0);
     }
 }
 
-extern u64 Unk_27790f0;
-void Unk_6c3140(u64);
+extern void* Unk_27790f0;
+void Unk_6c3140(void*);
 
 // 0x7101049b20
-void Unk_1049b20_call() {
+void Unk_1049b20_call(u64 /*unused*/) {
     if (Unk_27790f0 != 0) {
         Unk_6c3140(Unk_27790f0);
     }

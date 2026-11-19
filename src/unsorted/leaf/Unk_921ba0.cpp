@@ -5,18 +5,18 @@
 
 struct Unk_921ba0 {
     u8 _0[0x80];
-    u64 field_80;
+    void* field_80;
     u8 _88[0x30];
     u32 field_b8;
 };
 PKMN_OFFSET_ASSERT(Unk_921ba0, field_80, 0x80);
 PKMN_OFFSET_ASSERT(Unk_921ba0, field_b8, 0xb8);
 
-void Unk_9228b0(u64);
+void Unk_9228b0(void*, void*);
 
 // 0x7100921ba0
-void Unk_921ba0_call(Unk_921ba0* self) {
-    Unk_9228b0(self->field_80);
+void Unk_921ba0_call(Unk_921ba0* self, void* value) {
+    Unk_9228b0(self->field_80, value);
     self->field_b8 = 0;
 }
 

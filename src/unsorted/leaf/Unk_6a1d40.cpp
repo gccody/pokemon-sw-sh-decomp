@@ -9,11 +9,11 @@ struct Unk_6a1d40 {
 };
 PKMN_OFFSET_ASSERT(Unk_6a1d40, field_58, 0x58);
 
-void Unk_6a1bd0();
+void Unk_6a1bd0(void*);
 
 // 0x71006a1d40
 void Unk_6a1d40_call(Unk_6a1d40* self, u64 value) {
-    Unk_6a1bd0();
+    Unk_6a1bd0(self);
     self->field_58 = value;
 }
 

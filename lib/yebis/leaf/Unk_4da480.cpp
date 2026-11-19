@@ -4,6 +4,6 @@
 #include <types.h>
 
 // 0x71004da480
-u32 Unk_4da480_get() {
+u32 Unk_4da480_get(u64 /*unused*/) {
     return 1;
 }

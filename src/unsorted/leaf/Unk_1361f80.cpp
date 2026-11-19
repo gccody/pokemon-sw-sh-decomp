@@ -36,7 +36,7 @@ bool Unk_1362080_check(const Unk_1362080* self) {
     return self->field_b8 != 0;
 }
 
-extern u64 Unk_24ba588;
+extern void* Unk_24ba588;
 struct Unk_1362190 {
     u8 _0[0x190];
     u8 field_190;
@@ -46,12 +46,12 @@ struct Unk_1362190 {
 PKMN_OFFSET_ASSERT(Unk_1362190, field_190, 0x190);
 PKMN_OFFSET_ASSERT(Unk_1362190, field_198, 0x198);
 
-u64 Unk_eadb70(u64);
+u64 Unk_eadb70(void*, u32, u32);
 
 // 0x7101362190
-void Unk_1362190_call(Unk_1362190* self) {
+void Unk_1362190_call(Unk_1362190* self, u32 value, u32 arg2) {
     self->field_190 = 1;
-    u64 r0 = Unk_eadb70(Unk_24ba588);
+    u64 r0 = Unk_eadb70(Unk_24ba588, value, arg2);
     self->field_198 = r0;
 }
 

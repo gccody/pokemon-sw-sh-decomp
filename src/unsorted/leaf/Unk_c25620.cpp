@@ -18,19 +18,19 @@ struct Unk_c25620 {
     Unk_c25620_0* field_0;
 };
 PKMN_OFFSET_ASSERT(Unk_c25620, field_0, 0x0);
-void Unk_c25650();
-void Unk_c257b0();
+void Unk_c25650(void*);
+void Unk_c257b0(void*);
 
 // 0x7100c25620
-void Unk_c25620_call(const Unk_c25620* self) {
+void Unk_c25620_call(Unk_c25620* self) {
     if (self->field_0->field_280->field_0 != 2) {
         if (self->field_0->field_280->field_0 == 1) {
-            Unk_c25650();
+            Unk_c25650(self);
             return;
         }
         return;
     }
-    Unk_c257b0();
+    Unk_c257b0(self);
 }
 
 struct Unk_c25e80 {
@@ -132,12 +132,12 @@ struct Unk_c262e0 {
 };
 PKMN_OFFSET_ASSERT(Unk_c262e0, field_58, 0x58);
 
-void Unk_c21b90(void*);
+void Unk_c21b90(void*, void*);
 void Unk_c338e0(void*, void*);
 
 // 0x7100c262e0
-void Unk_c262e0_call(Unk_c262e0* self) {
-    Unk_c21b90(&self->field_58);
+void Unk_c262e0_call(Unk_c262e0* self, void* value) {
+    Unk_c21b90(&self->field_58, value);
     Unk_c338e0(self, &self->field_58);
 }
 

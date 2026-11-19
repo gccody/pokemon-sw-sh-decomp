@@ -35,5 +35,5 @@ void Unk_594550_set(Unk_594550* self, u32 value, f32 fvalue, f32 farg1, f32 farg
 }
 
 // 0x7100594580
-void Unk_594580_update() {
+void Unk_594580_update(void* /*unused*/) {
 }

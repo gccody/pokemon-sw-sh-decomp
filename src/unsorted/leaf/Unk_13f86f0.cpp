@@ -7,15 +7,15 @@
 
 struct Unk_13f86f0 {
     u8 _0[0x470];
-    u64 field_470;
+    void* field_470;
 };
 PKMN_OFFSET_ASSERT(Unk_13f86f0, field_470, 0x470);
 
-void Unk_e3e110(u64);
+void Unk_e3e110(void*);
 
 // 0x71013f86f0
 void Unk_13f86f0_call(const Unk_13f86f0* self) {
-    if (self->field_470 != 0) {
+    if (self->field_470 != nullptr) {
         Unk_e3e110(self->field_470);
     }
 }
@@ -48,15 +48,20 @@ void Unk_13fa0a0_call(Unk_13fa0a0* self) {
 
 struct Unk_13fa740 {
     u8 _0[0x460];
-    u64 field_460;
+    void* field_460;
 };
 PKMN_OFFSET_ASSERT(Unk_13fa740, field_460, 0x460);
 
-void Unk_13fa750(u64);
+void Unk_13fa750(void*, u64);
 
 // 0x71013fa740
-void Unk_13fa740_call(const Unk_13fa740* self) {
-    Unk_13fa750(self->field_460);
+void Unk_13fa740_call(const Unk_13fa740* self,
+                      u64 value,
+                      u64 /*unused*/,
+                      u64 /*unused*/,
+                      u64 /*unused*/,
+                      u64 /*unused*/) {
+    Unk_13fa750(self->field_460, value);
 }
 
 struct Unk_13faad0_460 {

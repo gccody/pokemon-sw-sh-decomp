@@ -39,9 +39,9 @@ void Unk_1652990_update() {
 }
 
 extern u8 Unk_27f9db0;
-extern u64 Unk_27fc098;
+extern void* Unk_27fc098;
 void Unk_171aa70();
-void Unk_1721360(u64);
+void Unk_1721360(void*);
 void Unk_17220c0();
 
 // 0x7101652a50

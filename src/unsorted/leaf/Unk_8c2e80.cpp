@@ -104,11 +104,11 @@ u64 Unk_8c4400_call(void* self, const Unk_8c4400_arg1* value) {
     return r0 & 1;
 }
 
-u64 Unk_8c6180();
+u64 Unk_8c6180(void*);
 
 // 0x71008c4560
-u64 Unk_8c4560_call() {
-    u64 r0 = Unk_8c6180();
+u64 Unk_8c4560_call(void* self) {
+    u64 r0 = Unk_8c6180(self);
     return r0 & 1;
 }
 

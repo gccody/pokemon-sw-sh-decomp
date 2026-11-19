@@ -123,11 +123,11 @@ PKMN_OFFSET_ASSERT(Unk_800720, field_30, 0x30);
 PKMN_OFFSET_ASSERT(Unk_800720, field_38, 0x38);
 PKMN_OFFSET_ASSERT(Unk_800720, field_40, 0x40);
 
-void Unk_800760();
+void Unk_800760(void*, void*, u64, u64);
 void Unk_800a70_set(Unk_800a70*);
 
 // 0x7100800720
-void Unk_800720_call(Unk_800720* self, u32 /*unused*/, u64 arg2) {
+void Unk_800720_call(Unk_800720* self, void* value, u64 arg2, u64 arg3) {
     self->field_38 = 0;
     self->field_40 = 0;
     self->field_28 = nullptr;
@@ -137,7 +137,7 @@ void Unk_800720_call(Unk_800720* self, u32 /*unused*/, u64 arg2) {
     self->field_20 = 0;
     self->field_8 = nullptr;
     self->field_10 = 0;
-    Unk_800760();
+    Unk_800760(self, value, arg2, arg3);
     Unk_800a70_set(self->field_8);
     Unk_800a70_set(self->field_28);
 }

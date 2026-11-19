@@ -145,10 +145,10 @@ struct Unk_fd82c0 {
 PKMN_OFFSET_ASSERT(Unk_fd82c0, field_68, 0x68);
 
 void Unk_7f4580(void*);
-void Unk_fbe550(void*, u64);
+void Unk_fbe550(void*, void*);
 
 // 0x7100fd82c0
-void Unk_fd82c0_call(const Unk_fd82c0* self, u64 value) {
+void Unk_fd82c0_call(const Unk_fd82c0* self, void* value) {
     Unk_7f4580(&self->field_68->field_a0);
     Unk_fbe550(&self->field_68->field_a0, value);
 }

@@ -4,7 +4,7 @@
 #include <types.h>
 
 // 0x71005393f0
-u32 Unk_5393f0_get() {
+u32 Unk_5393f0_get(u64 /*unused*/) {
     return 1;
 }
 

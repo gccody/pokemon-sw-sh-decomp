@@ -63,16 +63,16 @@ void Unk_35b620_set(Unk_35b620* self) {
 extern u64 Unk_24bbbe8;
 struct Unk_35c6b0 {
     u8 _0[0x10];
-    u64 field_10;
+    void* field_10;
 };
 PKMN_OFFSET_ASSERT(Unk_35c6b0, field_10, 0x10);
-void Unk_3be1a0(u64, u64, void*);
+void Unk_3be1a0(u64, void*, void*);
 
 // 0x710035c6b0
 u32 Unk_35c6b0_get(Unk_35c6b0* self) {
-    if (self->field_10 != 0) {
+    if (self->field_10 != nullptr) {
         Unk_3be1a0(Unk_24bbbe8, self->field_10, self);
-        self->field_10 = 0;
+        self->field_10 = nullptr;
     }
     return 1;
 }
@@ -181,7 +181,7 @@ void Unk_369090_set(Unk_369090* self) {
 }
 
 // 0x71003690a0
-void Unk_3690a0_update() {
+void Unk_3690a0_update(u64 /*unused*/) {
 }
 
 struct Unk_369910_50 {

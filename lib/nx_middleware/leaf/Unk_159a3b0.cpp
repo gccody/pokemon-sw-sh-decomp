@@ -103,11 +103,11 @@ void Unk_15a5880_set(Unk_15a5880* self, bool value) {
 
 struct Unk_15a5920 {
     u8 _0[0x18];
-    u64 field_18;
+    void* field_18;
 };
 PKMN_OFFSET_ASSERT(Unk_15a5920, field_18, 0x18);
 
-u64 Unk_15bc520(u64);
+u64 Unk_15bc520(void*);
 
 // 0x71015a5920
 bool Unk_15a5920_call(const Unk_15a5920* self) {

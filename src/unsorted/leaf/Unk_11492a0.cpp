@@ -16,34 +16,34 @@ void Unk_11492a0_setField70(Unk_11492a0* self, u64 value) {
 
 struct Unk_11492b0 {
     u8 _0[0x68];
-    u64 field_68;
+    void* field_68;
     u64 field_70;
 };
 PKMN_OFFSET_ASSERT(Unk_11492b0, field_68, 0x68);
 PKMN_OFFSET_ASSERT(Unk_11492b0, field_70, 0x70);
 
-void Unk_11492d0(u64);
+void Unk_11492d0(void*, void*, u64);
 
 // 0x71011492b0
-void Unk_11492b0_call(const Unk_11492b0* self) {
+void Unk_11492b0_call(const Unk_11492b0* self, void* value, u64 arg2) {
     if (self->field_70 != 0) {
-        Unk_11492d0(self->field_68);
+        Unk_11492d0(self->field_68, value, arg2);
     }
 }
 
 struct Unk_1149550 {
     u8 _0[0x68];
-    u64 field_68;
+    void* field_68;
     u64 field_70;
 };
 PKMN_OFFSET_ASSERT(Unk_1149550, field_68, 0x68);
 PKMN_OFFSET_ASSERT(Unk_1149550, field_70, 0x70);
 
-void Unk_1149570(u64);
+void Unk_1149570(void*, void*);
 
 // 0x7101149550
-void Unk_1149550_call(const Unk_1149550* self) {
+void Unk_1149550_call(const Unk_1149550* self, void* value) {
     if (self->field_70 != 0) {
-        Unk_1149570(self->field_68);
+        Unk_1149570(self->field_68, value);
     }
 }

@@ -94,7 +94,7 @@ u32 Unk_67be60_call(Unk_67be60* self, u64 value) {
 
 struct Unk_67bf70 {
     u8 _0[0x58];
-    u64 field_58;
+    void* field_58;
     u8 _60[0x1a];
     u16 field_7a;
     u8 field_7c;
@@ -103,7 +103,7 @@ PKMN_OFFSET_ASSERT(Unk_67bf70, field_58, 0x58);
 PKMN_OFFSET_ASSERT(Unk_67bf70, field_7a, 0x7a);
 PKMN_OFFSET_ASSERT(Unk_67bf70, field_7c, 0x7c);
 
-u32 Unk_67bfc0(u64);
+u32 Unk_67bfc0(void*);
 
 // 0x710067bf70
 void Unk_67bf70_call(Unk_67bf70* self) {
@@ -521,31 +521,31 @@ u32 Unk_685810_getField2a8(const Unk_685810* self) {
 
 struct Unk_685dc0 {
     u8 _0[0xc0];
-    u64 field_c0;
+    void* field_c0;
 };
 PKMN_OFFSET_ASSERT(Unk_685dc0, field_c0, 0xc0);
 
-void Unk_179f410(u64);
+void Unk_179f410(void*);
 
 // 0x7100685dc0
 void Unk_685dc0_call(const Unk_685dc0* self) {
-    if (self->field_c0 != 0) {
+    if (self->field_c0 != nullptr) {
         Unk_179f410(self->field_c0);
     }
 }
 
 struct Unk_685dd0 {
     u8 _0[0xc0];
-    u64 field_c0;
+    void* field_c0;
 };
 PKMN_OFFSET_ASSERT(Unk_685dd0, field_c0, 0xc0);
 
-void Unk_179ef20(u64);
+void Unk_179ef20(void*, void*);
 
 // 0x7100685dd0
-void Unk_685dd0_call(const Unk_685dd0* self) {
-    if (self->field_c0 != 0) {
-        Unk_179ef20(self->field_c0);
+void Unk_685dd0_call(const Unk_685dd0* self, void* value) {
+    if (self->field_c0 != nullptr) {
+        Unk_179ef20(self->field_c0, value);
     }
 }
 
@@ -665,11 +665,11 @@ void Unk_6869d0_set(const Unk_6869d0* self, Unk_6869d0_arg1* value) {
 }
 
 struct Unk_686dd0 {
-    u64 field_0;
+    void* field_0;
 };
 PKMN_OFFSET_ASSERT(Unk_686dd0, field_0, 0x0);
 
-void Unk_686b00(u64);
+void Unk_686b00(void*);
 
 // 0x7100686dd0
 void Unk_686dd0_call(const Unk_686dd0* self) {
@@ -877,10 +877,10 @@ struct Unk_687450 {
 };
 PKMN_OFFSET_ASSERT(Unk_687450, field_58, 0x58);
 
-void Unk_1798ad0(u64, u64, u64);
+void Unk_1798ad0(u64, void*, u64);
 
 // 0x7100687450
-void Unk_687450_call(const Unk_687450* self, u64 value, u64 arg2) {
+void Unk_687450_call(const Unk_687450* self, u64 value, void* arg2) {
     Unk_1798ad0(self->field_58, arg2, value);
 }
 

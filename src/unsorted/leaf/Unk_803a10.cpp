@@ -228,11 +228,11 @@ u32 Unk_803e30_get() {
     return 3;
 }
 
-u32 Unk_8047c0();
+u32 Unk_8047c0(u32, u32);
 
 // 0x7100804160
-bool Unk_804160_call() {
-    u32 r0 = Unk_8047c0();
+bool Unk_804160_call(u32 self, u32 value) {
+    u32 r0 = Unk_8047c0(self, value);
     return (r0 & 0xff) != 0x12;
 }
 

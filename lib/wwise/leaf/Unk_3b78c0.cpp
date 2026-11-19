@@ -74,7 +74,7 @@ void Unk_3babc0_set(Unk_3babc0* self) {
 }
 
 // 0x71003babe0
-void Unk_3babe0_update() {
+void Unk_3babe0_update(u64 /*unused*/) {
 }
 
 struct Unk_3bd6b0 {
@@ -110,7 +110,7 @@ void Unk_3bd6b0_set(Unk_3bd6b0* self) {
 }
 
 // 0x71003bd6e0
-void Unk_3bd6e0_update() {
+void Unk_3bd6e0_update(u64 /*unused*/) {
 }
 
 struct Unk_3bd790 {

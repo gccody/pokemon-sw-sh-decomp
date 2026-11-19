@@ -411,16 +411,16 @@ bool Unk_16c6c10_check(const Unk_16c6c10* self) {
     return self->field_d8 >= 2 && self->field_d8 <= 4;
 }
 
-extern u64 Unk_27fb310;
-void Unk_16c6d90(u64);
+extern void* Unk_27fb310;
+void Unk_16c6d90(void*);
 
 // 0x71016c6d80
 void Unk_16c6d80_call() {
     Unk_16c6d90(Unk_27fb310);
 }
 
-extern u64 Unk_27fb310;
-void Unk_16c6f40(u64);
+extern void* Unk_27fb310;
+void Unk_16c6f40(void*);
 
 // 0x71016c6f30
 void Unk_16c6f30_call() {
@@ -445,7 +445,7 @@ void Unk_16c7e70_set(Unk_16c7e70* self, u32 value) {
 void Unk_15a1030();
 
 // 0x71016c8010
-void Unk_16c8010_call() {
+void Unk_16c8010_call(u64 /*unused*/) {
     Unk_15a1030();
 }
 
@@ -473,46 +473,46 @@ void Unk_16c8410_set(Unk_16c8410* self, u32 value) {
 
 struct Unk_16c84d0 {
     u8 _0[0x90];
-    u64 field_90;
+    void* field_90;
 };
 PKMN_OFFSET_ASSERT(Unk_16c84d0, field_90, 0x90);
 
-void Unk_16ca5d0(u64);
+void Unk_16ca5d0(void*, void*);
 
 // 0x71016c84d0
-void Unk_16c84d0_call(const Unk_16c84d0* self) {
-    if (self->field_90 != 0) {
-        Unk_16ca5d0(self->field_90);
+void Unk_16c84d0_call(const Unk_16c84d0* self, void* value) {
+    if (self->field_90 != nullptr) {
+        Unk_16ca5d0(self->field_90, value);
     }
 }
 
 struct Unk_16c84e0 {
     u8 _0[0x90];
-    u64 field_90;
+    void* field_90;
 };
 PKMN_OFFSET_ASSERT(Unk_16c84e0, field_90, 0x90);
 
-void Unk_16ca610(u64);
+void Unk_16ca610(void*, u32);
 
 // 0x71016c84e0
-void Unk_16c84e0_call(const Unk_16c84e0* self) {
-    if (self->field_90 != 0) {
-        Unk_16ca610(self->field_90);
+void Unk_16c84e0_call(const Unk_16c84e0* self, u32 value) {
+    if (self->field_90 != nullptr) {
+        Unk_16ca610(self->field_90, value);
     }
 }
 
 struct Unk_16c8c70 {
     u8 _0[0x90];
-    u64 field_90;
+    void* field_90;
 };
 PKMN_OFFSET_ASSERT(Unk_16c8c70, field_90, 0x90);
 
-void Unk_16ca310(u64);
+void Unk_16ca310(void*, void*);
 
 // 0x71016c8c70
-void Unk_16c8c70_call(const Unk_16c8c70* self) {
-    if (self->field_90 != 0) {
-        Unk_16ca310(self->field_90);
+void Unk_16c8c70_call(const Unk_16c8c70* self, void* value) {
+    if (self->field_90 != nullptr) {
+        Unk_16ca310(self->field_90, value);
     }
 }
 

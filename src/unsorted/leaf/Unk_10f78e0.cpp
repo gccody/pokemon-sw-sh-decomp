@@ -51,11 +51,11 @@ void Unk_10f7c20_set(Unk_10f7c20* self) {
 
 struct Unk_10f7c30 {
     u8 _0[0x310];
-    u64 field_310;
+    void* field_310;
 };
 PKMN_OFFSET_ASSERT(Unk_10f7c30, field_310, 0x310);
 
-void Unk_10f95c0(u64);
+void Unk_10f95c0(void*);
 
 // 0x71010f7c30
 void Unk_10f7c30_call(const Unk_10f7c30* self) {

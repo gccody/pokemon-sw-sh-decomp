@@ -212,18 +212,18 @@ u8* Unk_13e2ed0_getField60Ptr(Unk_13e2ed0* self) {
     return &self->field_60;
 }
 
-void Unk_13e32b0();
+void Unk_13e32b0(u64, void*, u32, void*);
 
 // 0x71013e35c0
-void Unk_13e35c0_call() {
-    Unk_13e32b0();
+void Unk_13e35c0_call(u64 self, void* value, u32 arg2, void* arg3) {
+    Unk_13e32b0(self, value, arg2, arg3);
 }
 
-void Unk_13e3450();
+void Unk_13e3450(u64, void*, u32, void*);
 
 // 0x71013e35d0
-void Unk_13e35d0_call() {
-    Unk_13e3450();
+void Unk_13e35d0_call(u64 self, void* value, u32 arg2, void* arg3) {
+    Unk_13e3450(self, value, arg2, arg3);
 }
 
 struct Unk_27f02b4_Data {

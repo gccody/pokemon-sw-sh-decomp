@@ -3,24 +3,24 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
-void Unk_1624e60(u64, void*, u64, u64);
+void Unk_1624e60(void*, void*, u64, u64);
 
 // 0x7101624e40
-void Unk_1624e40_call(void* self, u64 value, u64 arg2, u64 arg3) {
+void Unk_1624e40_call(void* self, u64 value, u64 arg2, void* arg3) {
     Unk_1624e60(arg3, self, value, arg2);
 }
 
-void Unk_1624fe0(u64, void*, u64, u64);
+void Unk_1624fe0(void*, void*, u64, u64);
 
 // 0x7101624fc0
-void Unk_1624fc0_call(void* self, u64 value, u64 arg2, u64 arg3) {
+void Unk_1624fc0_call(void* self, u64 value, u64 arg2, void* arg3) {
     Unk_1624fe0(arg3, self, value, arg2);
 }
 
-void Unk_1625150(u64, void*, u64, u64);
+void Unk_1625150(void*, void*, u64, u64);
 
 // 0x7101625130
-void Unk_1625130_call(void* self, u64 value, u64 arg2, u64 arg3) {
+void Unk_1625130_call(void* self, u64 value, u64 arg2, void* arg3) {
     Unk_1625150(arg3, self, value, arg2);
 }
 
@@ -148,11 +148,11 @@ u32 Unk_162c030_get(const Unk_162c030* self) {
     return (self->field_11 >> 2) & 1;
 }
 
-void Unk_162cae0();
+void Unk_162cae0(u64);
 
 // 0x710162c180
-void Unk_162c180_call() {
-    Unk_162cae0();
+void Unk_162c180_call(u64 self) {
+    Unk_162cae0(self);
 }
 
 extern u32 Unk_27f9610 __attribute__((visibility("hidden")));

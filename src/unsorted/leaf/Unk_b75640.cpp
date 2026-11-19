@@ -27,7 +27,7 @@ PKMN_OFFSET_ASSERT(Unk_b75640, field_40, 0x40);
 PKMN_OFFSET_ASSERT(Unk_b75640, field_48, 0x48);
 
 // 0x7100b75640
-void Unk_b75640_set(Unk_b75640* self) {
+void Unk_b75640_set(Unk_b75640* self, u64 /*unused*/) {
     self->field_40 = 0;
     self->field_48 = 0;
     self->field_30 = 0;
@@ -84,11 +84,11 @@ u64 Unk_b79510_getFieldb0(const Unk_b79510* self) {
     return self->field_b0;
 }
 
-void Unk_b79e10();
+void Unk_b79e10(void*);
 
 // 0x7100b79df0
-void Unk_b79df0_call() {
-    Unk_b79e10();
+void Unk_b79df0_call(void* self) {
+    Unk_b79e10(self);
 }
 
 // 0x7100b79e00
@@ -126,11 +126,11 @@ void Unk_b7a110_set(const Unk_b7a110* self, Unk_b7a110* value) {
     *value = *self;
 }
 
-void Unk_b7a150();
+void Unk_b7a150(void*);
 
 // 0x7100b7a130
-void Unk_b7a130_call() {
-    Unk_b7a150();
+void Unk_b7a130_call(void* self) {
+    Unk_b7a150(self);
 }
 
 // 0x7100b7a140

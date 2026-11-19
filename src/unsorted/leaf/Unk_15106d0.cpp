@@ -29,7 +29,7 @@ extern u64 Unk_24ba668;
 u32 Unk_105c390(u64);
 
 // 0x71015106f0
-u32 Unk_15106f0_call() {
+u32 Unk_15106f0_call(u64 /*unused*/) {
     u32 r0 = Unk_105c390(Unk_24ba668);
     return ~r0 & 1;
 }

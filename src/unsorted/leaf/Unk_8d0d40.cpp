@@ -5,7 +5,7 @@
 
 struct Unk_8d0d40_60 {
     u8 _0[0x78];
-    u64 field_78;
+    void* field_78;
 };
 PKMN_OFFSET_ASSERT(Unk_8d0d40_60, field_78, 0x78);
 
@@ -15,11 +15,11 @@ struct Unk_8d0d40 {
 };
 PKMN_OFFSET_ASSERT(Unk_8d0d40, field_60, 0x60);
 
-u32 Unk_14db6e0(u64);
+u32 Unk_14db6e0(void*);
 
 // 0x71008d0d40
 bool Unk_8d0d40_call(const Unk_8d0d40* self) {
-    if (self->field_60->field_78 == 0) {
+    if (self->field_60->field_78 == nullptr) {
         return false;
     }
     u32 r0 = Unk_14db6e0(self->field_60->field_78);

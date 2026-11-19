@@ -4,5 +4,5 @@
 #include <types.h>
 
 // 0x71005635f0
-void Unk_5635f0_update() {
+void Unk_5635f0_update(u32 /*unused*/) {
 }

@@ -204,11 +204,11 @@ u16 Unk_1443df0_get(const Unk_1443df0* self) {
 
 struct Unk_1448b60 {
     u8 _0[0x3198];
-    u64 field_3198;
+    void* field_3198;
 };
 PKMN_OFFSET_ASSERT(Unk_1448b60, field_3198, 0x3198);
 
-void Unk_14bacd0(u64);
+void Unk_14bacd0(void*);
 
 // 0x7101448b60
 void Unk_1448b60_call(const Unk_1448b60* self) {

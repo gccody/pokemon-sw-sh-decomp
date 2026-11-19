@@ -116,7 +116,7 @@ void Unk_a775f0_call(const Unk_a775f0* self, bool value) {
 
 struct Unk_a77780_70 {
     u8 _0[0x170];
-    u64 field_170;
+    void* field_170;
 };
 PKMN_OFFSET_ASSERT(Unk_a77780_70, field_170, 0x170);
 
@@ -126,7 +126,7 @@ struct Unk_a77780 {
 };
 PKMN_OFFSET_ASSERT(Unk_a77780, field_70, 0x70);
 
-void Unk_a77610(void*, u64);
+void Unk_a77610(void*, void*);
 
 // 0x7100a77780
 void Unk_a77780_call(Unk_a77780* self) {

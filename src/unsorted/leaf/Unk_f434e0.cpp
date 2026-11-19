@@ -5,11 +5,11 @@
 
 #include "gflib3/Unk_239a418.h"
 
-u32 Unk_eb6530();
+u32 Unk_eb6530(void*);
 
 // 0x7100f434e0
-u32 Unk_f434e0_call() {
-    u32 r0 = Unk_eb6530();
+u32 Unk_f434e0_call(void* self) {
+    u32 r0 = Unk_eb6530(self);
     return ~r0 & 1;
 }
 

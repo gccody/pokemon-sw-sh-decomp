@@ -95,7 +95,7 @@ void Unk_341f80_set(Unk_341f80* self) {
 }
 
 // 0x7100343eb0
-void Unk_343eb0_update() {
+void Unk_343eb0_update(u64 /*unused*/, u64 /*unused*/) {
 }
 
 struct Unk_349940 {
@@ -114,7 +114,7 @@ void Unk_349940_update(const Unk_349940* self) {
 }
 
 // 0x7100349be0
-void Unk_349be0_update() {
+void Unk_349be0_update(u64 /*unused*/, u32 /*unused*/, u32 /*unused*/, u32 /*unused*/) {
 }
 
 void Unk_34a670(void*, u32);

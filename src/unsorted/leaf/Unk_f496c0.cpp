@@ -3,11 +3,11 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
-u32 Unk_eb6530();
+u32 Unk_eb6530(void*);
 
 // 0x7100f496c0
-u32 Unk_f496c0_call() {
-    u32 r0 = Unk_eb6530();
+u32 Unk_f496c0_call(void* self) {
+    u32 r0 = Unk_eb6530(self);
     return ~r0 & 1;
 }
 
@@ -63,27 +63,27 @@ void Unk_f49b20_call(void* self, bool value) {
     Unk_f498d0(self, 0x307b9a87c62f28eb, 0x5f635651ac509cb1);
 }
 
-u32 Unk_eb6530();
+u32 Unk_eb6530(void*);
 
 // 0x7100f4a350
-u32 Unk_f4a350_call() {
-    u32 r0 = Unk_eb6530();
+u32 Unk_f4a350_call(void* self) {
+    u32 r0 = Unk_eb6530(self);
     return ~r0 & 1;
 }
 
-u32 Unk_eb6530();
+u32 Unk_eb6530(void*);
 
 // 0x7100f4b430
-u32 Unk_f4b430_call() {
-    u32 r0 = Unk_eb6530();
+u32 Unk_f4b430_call(void* self) {
+    u32 r0 = Unk_eb6530(self);
     return ~r0 & 1;
 }
 
-void Unk_f4ae60();
+void Unk_f4ae60(void*, void*);
 
 // 0x7100f4b450
-void Unk_f4b450_call() {
-    Unk_f4ae60();
+void Unk_f4b450_call(void* self, void* value) {
+    Unk_f4ae60(self, value);
 }
 
 struct Unk_f4b560 {
@@ -163,19 +163,19 @@ void Unk_f4c140_set(Unk_f4c140* self, u32 value) {
     self->field_5d0 = 0;
 }
 
-u32 Unk_eb6530();
+u32 Unk_eb6530(void*);
 
 // 0x7100f4c7f0
-u32 Unk_f4c7f0_call() {
-    u32 r0 = Unk_eb6530();
+u32 Unk_f4c7f0_call(void* self) {
+    u32 r0 = Unk_eb6530(self);
     return ~r0 & 1;
 }
 
-void Unk_f4c3d0();
+void Unk_f4c3d0(void*, void*);
 
 // 0x7100f4c810
-void Unk_f4c810_call() {
-    Unk_f4c3d0();
+void Unk_f4c810_call(void* self, void* value) {
+    Unk_f4c3d0(self, value);
 }
 
 struct Unk_f4c920 {
