@@ -2339,6 +2339,10 @@ typedef enum {
   CURLINFO_PROTOCOL         = CURLINFO_LONG   + 48,
   CURLINFO_SCHEME           = CURLINFO_STRING + 49,
   /* Fill in new entries below here! */
+  /* Pokemon SwSh decomp: Nintendo's SDK build has one more, whose name
+     isn't known: Curl_getinfo (Sword 0x7101755b70) returns
+     data->set.ssl.primary.field_20 for it. */
+  CURLINFO_Unk_LONG_50      = CURLINFO_LONG   + 50,
 
   CURLINFO_LASTONE          = 49
 } CURLINFO;
