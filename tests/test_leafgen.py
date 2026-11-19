@@ -518,3 +518,13 @@ def test_abort_ends_a_path(monkeypatch):
     structs, func = leafgen.generate(ADDR, code(*words))
     assert 'extern "C" [[noreturn]] void abort();' in structs
     assert func.endswith("        return;\n    }\n    abort();\n}\n")
+
+
+def test_stack_local_passed_by_address():
+    """sub sp, sp, #0x20 ; stp x29, x30, [sp, #0x10] ; add x29, sp, #0x10 ;
+    sub x0, x29, #4 ; mov w1, #4 ; bl T ; ldur w0, [x29, #-4] ; <epilogue> ; ret:
+    a 4-byte local filled by the callee, then returned."""
+    words = (0xD10083FF, 0xA9017BFD, 0x910043FD, 0xD10013A0, 0x52800081, 0x94000040, 0xB85FC3A0, 0xA9417BFD,
+             0x910083FF, RET)
+    _, func = leafgen.generate(ADDR, code(*words))
+    assert func == ("u32 Unk_123450_call() {\n    u32 l4;\n    Unk_123564(&l4, 4);\n    return l4;\n}\n")

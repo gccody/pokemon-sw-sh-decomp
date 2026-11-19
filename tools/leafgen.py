@@ -135,6 +135,11 @@ class VSlot:
 
 
 @dataclass(frozen=True)
+class LocalAddr:
+    off: int              # the address of a local on the stack: x29 + off (off < 0)
+
+
+@dataclass(frozen=True)
 class CallRet:
     index: int            # what the index-th call (Lifted.calls) returned in x0/w0
 
@@ -595,9 +600,31 @@ def lift(code: bytes, addr: int | None = None, path: list | None = None, split: 
             return Op("&", v, Const(1 << bit, width_of(ops[0])), width_of(ops[0])), mn == "tbz"
         return v, mn == "cbz"
 
+    fp = 0  # x29 = sp + fp
+
+    def local(mem: str) -> tuple[object, int] | None:
+        """(LocalAddr, 0) for a load or store of a local: [x29, #-k] or [sp, #k]."""
+        m = re.match(r"^\[(sp|x29)(?:, #(-?0x[0-9a-f]+|-?\d+))?\]$", mem.strip())
+        if not m:
+            return None
+        k = int(m.group(2), 0) if m.group(2) else 0
+        off = k if m.group(1) == "x29" else k - fp
+        if off >= 0:
+            raise LiftError("the frame record or the caller's frame")
+        return LocalAddr(off), 0
+
     for idx, (mn, ops) in enumerate(insns[:-1]):
+        if mn == "add" and [o.strip() for o in ops[:2]] == ["x29", "sp"]:
+            fp = _imm(ops[2]) if len(ops) > 2 else 0
         if _is_frame(mn, ops):
             framed = True
+            continue
+        if mn in ("add", "sub") and len(ops) == 3 and ops[1].strip() in ("sp", "x29") and ops[2].strip().startswith("#"):
+            imm = _imm(ops[2])
+            off = (imm if mn == "add" else -imm) - (fp if ops[1].strip() == "sp" else 0)
+            if off >= 0:
+                raise LiftError("the frame record's address")
+            put(ops[0], LocalAddr(off))
             continue  # the frame record and the callee-saved registers (x19-x28), kept across calls
         if mn in ("bl", "blr") and addr is not None:
             if mn == "blr":
@@ -676,9 +703,10 @@ def lift(code: bytes, addr: int | None = None, path: list | None = None, split: 
             out.vcall = (v.obj, v.slot)
         elif mn in ("ldr", "ldur") or mn in LOADS:
             dst, mem = ops
-            base, off = _mem(mem)
+            loc = local(mem)
+            base, off = (None, 0) if loc else _mem(mem)
             kind = _reg(dst)[0]
-            b = get(f"x{base}")
+            b = loc[0] if loc else get(f"x{base}")
             if isinstance(b, Page):
                 # A GOT slot: the address of a global another TU defines.
                 slot = b.addr + off - BASE
@@ -707,7 +735,8 @@ def lift(code: bytes, addr: int | None = None, path: list | None = None, split: 
             out.load_seq.setdefault(ld, set()).add(out.stores_done)
         elif mn in ("str", "stur") or mn in STORES:
             src, mem = ops
-            base, off = _mem(mem)
+            loc = local(mem)
+            base, off = (None, 0) if loc else _mem(mem)
             kind = _reg(src)[0]
             if mn in STORES:
                 t = int_type(STORES[mn])
@@ -717,7 +746,7 @@ def lift(code: bytes, addr: int | None = None, path: list | None = None, split: 
                 t = "f64"
             else:
                 t = int_type(8 if kind == "x" else 4)
-            b = get(f"x{base}")
+            b = loc[0] if loc else get(f"x{base}")
             if isinstance(b, Page) and data_at(b.addr + off) == "":
                 b, off = GlobalPtr(b.addr + off - BASE, hidden=True), 0  # a global of this TU
             if isinstance(b, Page) or (isinstance(b, GlobalPtr) and off != 0):
@@ -911,6 +940,8 @@ def _is_frame(mn: str, ops: list[str]) -> bool:
         return o[0] in _CALLEE_SAVED and o[1] in _CALLEE_SAVED
     if mn in ("str", "ldr") and len(o) >= 2 and o[1].startswith("[sp"):
         return o[0] in _CALLEE_SAVED
+    if mn in ("sub", "add") and o[:2] == ["sp", "sp"]:
+        return True  # the frame's locals
     return (mn == "mov" and o == ["x29", "sp"]) or (mn == "add" and o[:2] == ["x29", "sp"])
 
 
@@ -989,6 +1020,8 @@ class Emitter:
         self.heads: list[StructDef] = []       # copy_head's struct
         self.statics: set[int] = set()        # static objects of this TU written through (absolute)
         self.ns_forward: set[str] = set()     # types of an import's namespace (render_call)
+        self.stack: dict[int, str] = {}       # locals on the stack: offset from x29 -> type
+        self.stack_addr: set[int] = set()     # ... and the ones whose address is taken
         self.passed: set[Arg] = set()         # arguments passed on to a call
         self.call_types: dict[int, str] = {}  # call index -> the type of the result it returns
 
@@ -1033,15 +1066,27 @@ class Emitter:
         """The type of the field (or global) a store writes."""
         if isinstance(base, GlobalPtr):
             return self.globals[base.addr]
+        if isinstance(base, LocalAddr):
+            return self.stack[base.off]
         return self.structs[base].fields[off]
 
     def set_type(self, base: object, off: int, t: str) -> None:
         if isinstance(base, GlobalPtr):
             self.globals[base.addr] = t
+        elif isinstance(base, LocalAddr):
+            self.stack[base.off] = t
         else:
             self.structs[base].fields[off] = t
 
     def field_expr(self, load_base: object, offset: int, t: str) -> str:
+        if isinstance(load_base, LocalAddr):  # a local on the stack, read or written whole
+            if offset != 0:
+                raise LiftError("a local's field")
+            old = self.stack.get(load_base.off)
+            if old is not None and old != t:
+                raise LiftError("a local read as two types")
+            self.stack[load_base.off] = t
+            return f"l{-load_base.off:x}"
         if isinstance(load_base, GlobalPtr) and load_base.hidden:
             self.hidden.add(load_base.addr)
         if isinstance(load_base, GlobalPtr):   # the global itself (offset 0): `extern <t> Unk_<addr>;`
@@ -1132,7 +1177,7 @@ class Emitter:
             return int_type(e.width, e.op == ">>s")
         if isinstance(e, Select):
             return int_type(e.width)
-        if isinstance(e, AddrOf):
+        if isinstance(e, (AddrOf, LocalAddr)):
             return "ptr"
         if isinstance(e, DataAddr):
             return "data"
@@ -1147,6 +1192,9 @@ class Emitter:
     def expr(self, e: object, want: str | None = None) -> str:
         if e in self.locals:
             return self.locals[e]
+        if isinstance(e, LocalAddr):  # a local's address, passed on
+            self.stack_addr.add(e.off)
+            return f"&l{-e.off:x}"
         if isinstance(e, Const):
             return _const(e.value, want or int_type(e.width))
         if isinstance(e, Arg):
@@ -1268,6 +1316,23 @@ class Emitter:
         s = StructDef(f"Unk_{self.short}", dict(fields))
         func = f"void Unk_{self.short}_set(const {s.name}* self, {s.name}* value) {{\n    *value = *self;\n}}\n"
         return render_struct(s), func
+
+    def stack_decls(self) -> list[str]:
+        """The locals on the stack, uninitialized (what's stored to them is a
+        statement): typed by how they're read or written, or, when only their
+        address is passed on, by their size, up to the next local or the frame
+        record."""
+        offs = sorted(set(self.stack) | self.stack_addr)
+        out = []
+        for i, off in enumerate(offs):
+            t = self.stack.get(off)
+            if t is None:
+                size = (offs[i + 1] if i + 1 < len(offs) else 0) - off
+                t = {1: "u8", 2: "u16", 4: "u32", 8: "u64"}.get(size)
+                if t is None:
+                    raise LiftError("a local of another size")
+            out.append(f"    {t} l{-off:x};")
+        return out
 
     def copy_head(self) -> int | None:
         """The number of stores at the start that copy x0's first 16 bytes or
@@ -1669,7 +1734,7 @@ class Emitter:
                 raise LiftError("cbz: the other path returns something")
             other = f" {_const(lf.else_value, ret_type)}" if ret_type != "void" else ""
             body[i] = f"    if ({test}) return{other};"
-        body = decls + self.guarded(body, ret_type)
+        body = self.stack_decls() + decls + self.guarded(body, ret_type)
         params = []
         for i in range(max(self.arg_types, default=-1) + 1):
             t = self.arg_types.get(i)
