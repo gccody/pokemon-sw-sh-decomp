@@ -4,6 +4,7 @@
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
 #include "gflib3/Unk_239a4c0.h"
+#include "unsorted/Unk_23c44f8.h"
 
 class Unk_24432a8_Obj {
 public:
@@ -233,6 +234,17 @@ PKMN_OFFSET_ASSERT(Unk_2443d60, field_58, 0x58);
 
 // 0x71014d6ca0: its key function
 Unk_2443d60::~Unk_2443d60() {}
+
+class Unk_2443ca8 : public Unk_23c44f8 {
+public:
+    ~Unk_2443ca8() override;
+    void vf7(s32) override;
+    Unk_239a418_Ref<Unk_239a418> field_80;
+};
+PKMN_OFFSET_ASSERT(Unk_2443ca8, field_80, 0x80);
+
+// 0x71014d6de0: its key function
+Unk_2443ca8::~Unk_2443ca8() {}
 
 class Unk_2443e50 : public Unk_239a4c0 {
 public:
