@@ -5,6 +5,7 @@
 // (the family's operator delete is empty), and their thunks tail-call it.
 // Placeholder names: rename once the classes are known.
 #include "gflib3/Unk_239a418.h"
+#include "unsorted/Unk_d0c0.h"
 
 // Another class on the object, from the same TU (vtable 0x71023f4318): nothing
 // of its own to destroy, but an out-of-line destructor and its own type. 13
@@ -43,9 +44,11 @@ public:
     virtual void vf9();
     virtual u32 vf10();
 
+    // Handles (the objects' vf2) of the app's frame and of the app.
     Unk_239a418_Ref<Unk_239a418> field_60;
     Unk_239a418_Ref<Unk_239a418> field_68;
-    Unk_239a418_Ref<Unk_239a418> field_70;
+    // The state's name: its vf7 sets it ("boxtray_in", ...).
+    Unk_d0c0_String field_70;
 };
 static_assert(sizeof(Unk_23f43c8) == 0x78, "Unk_23f43c8");
 static_assert(__builtin_offsetof(Unk_23f43c8, field_60) == 0x60, "Unk_23f43c8::field_60");

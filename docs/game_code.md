@@ -2305,6 +2305,70 @@ undecompiled walks. `_Z11Unk_14e1a00mj` and `_Z11Unk_14e1a30mj` are
 `Unk_2444570`'s bool setters, but their leaf-generated callers fixed the
 names to `(u64, u32)`, and with those types the compare comes out reversed.
 
+## The contents' apps (`src/contents`)
+
+The menu apps of `prog/contents/...` (the box, the bag, Battle Stadium,
+Mystery Gift, ...) are hand-written code on one framework, which
+`src/contents/common/framework.h` reconstructs. An app is a set of states,
+one TU each (the box's are the segments named `boxtray_in`, `marking`, ...):
+a class on `Unk_23f43c8` whose vf7 enters the state, vf8 runs a frame of it
+(1 when it's done) and vf9 leaves it. tools/vtables.py wrote their small
+slots; the classes are declared again in `src/contents/<app>/state/*.cpp`
+with the fields the hand-written functions use. What the states do:
+
+- **Their name.** vf7 starts with `field_70 = Unk_d0c0_String("boxtray_in");`:
+  `Unk_d0c0_String` (0x710000d0c0) is an 8-byte reference to a string object
+  (`Unk_2399470`, on `Unk_239a4c0`), moved into the field. It and the names
+  are gflib3's, in `unsorted/Unk_d0c0.h` (the battle sequence uses them too).
+- **Their app and frame.** `field_68` and `field_60` are handles (an object's
+  vf2): the object is the handle's +0x60, through the object's +0x50
+  interface. A state casts them with the type getters: `Unk_DynamicCast<T>`
+  checks for null first, converts to the interface, and walks the type's
+  parents (`Unk_61a530<T>`, typegen's template, inlined or not as clang
+  decides). The app (the box's `Unk_23c63c8`) may be null; the frame
+  (`Unk_23f41d0`) is dereferenced, so clang drops its null paths.
+- **Their views**, by hashed name: `Unk_StateView<T>(this, "View_Top")` looks
+  in the frame's views (+0x548) for the one whose name (`Unk_23f4660` +0x5c0)
+  has that hash. Names are `Unk_5cfaf0_Name`s: 64-bit FNV-1a from Game Freak's
+  basis `0xcbf29ce484222645`, folded for a literal by a constexpr
+  constructor, with a string object that keeps the characters (null for a
+  literal). `tools/funcs.py show` only has the hash when the name's string is
+  dropped; hashing every rodata string finds it (`TipsView`,
+  `SystemMessageView`). The lookup (`std::find_if` with a lambda that copies
+  the name) is a template member defined in `contents/common/views.h`.
+  Whether clang inlines it depends on how big the cast inside is: in the box,
+  the lookup of `View_Top` is called (0x7100a7bb80) and those of
+  `SystemMessageView` and `TipsView` are inlined. Assigning the result to a
+  local first, then to the field, keeps the field's store after the name's
+  destructor, as in the original.
+- **Checks.** A view that has to be there is checked with `UNK_CHECK`, which
+  calls `nn::diag::detail::AbortImpl("", "", "", 0)`: Game Freak's assert
+  without its strings.
+- **Sounds** are named by static `Unk_5cfad0_Literal`s (hash, characters,
+  count: the TU's .data.rel.ro, no destructor) that `Unk_1502120` plays.
+
+Matching details learned on the box's states:
+
+- A function template is no `inline` function: give a helper template the
+  keyword, or clang's threshold for it is 225 instead of 325.
+- A temporary passed by value (an argument's copy) has no lifetime markers,
+  so it gets a stack slot of its own; a temporary bound to a `const&` shares
+  one with the others. The box's `Unk_23f64b0::Unk_ebb140` takes its
+  reference by value for that reason.
+- A `switch` and an `if` chain compare in different orders: the box's `tips`
+  state (0x7100a8a130) is a `switch` on the app's mode.
+- tools/leafgen.py's names fix a leaf callee's parameters as it saw them.
+  Calling one with other types goes through an inline wrapper with a
+  `reinterpret_cast` to its placeholder struct (or `u64`), which costs
+  nothing. But some leaves pass `x0` through without using it and are named
+  without parameters (`_Z15Unk_a96af0_callv`, `_Z15Unk_a8b7e0_callv`,
+  `_Z10Unk_eb6530v`, `_Z15Unk_ab3ad0_callv`): a caller that passes a view to
+  one can't be written. Most of the box's vf8s that are left call one.
+- Not solved: the box's `pokeicon_release` vf8s (0x7100a82ae0, 0x7100a87b00)
+  `switch` on a menu item with a jump table from 0, cases 19-21 (1, 6-11)
+  distinct and the others the default's code; every spelling tried gives a
+  range check from the lowest case instead.
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's

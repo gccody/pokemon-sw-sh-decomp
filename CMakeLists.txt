@@ -116,10 +116,12 @@ pkmn_library_settings(src/demo
   DEFINES _GNU_SOURCE _LIBCPP_HAS_MUSL_LIBC _LIBCPP_HAS_THREAD_API_PTHREAD
   SYSTEM_INCLUDES include/libcxx)
 
-# Pokemon Camp's own code (prog/contents/pokecamp/source; its generated
-# protobuf messages under include/ have their own entries below), built like
-# the code in src/unsorted.
-pkmn_library_settings(src/contents/pokecamp/source
+# The contents' apps (prog/contents/...: the box, the bag, Battle Stadium,
+# Pokemon Camp's own code in prog/contents/pokecamp/source, ...) likewise:
+# they're on gflib3's objects and use libc++ (std::find_if over their views).
+# Their generated protobuf messages have entries of their own below, with the
+# same defines and libc++.
+pkmn_library_settings(src/contents
   EVIDENCE "docs/compiler.md, section gflib3"
   DEFINES _GNU_SOURCE _LIBCPP_HAS_MUSL_LIBC _LIBCPP_HAS_THREAD_API_PTHREAD
   SYSTEM_INCLUDES include/libcxx)
