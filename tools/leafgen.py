@@ -869,7 +869,8 @@ def lift(code: bytes, addr: int | None = None, path: list | None = None, split: 
         else:
             raise LiftError(mn)
 
-    if framed != bool(inner):
+    # One path of several (two_paths, decision_tree) may set up the function's frame and not call.
+    if framed != bool(inner) and not (framed and path is not None):
         raise LiftError("a frame without a call" if framed else "bl without a frame")
     if tail_br or noreturn:
         out.noreturn = noreturn
@@ -2642,6 +2643,7 @@ def cmd_members(args) -> int:
     only = {int(x, 16) for x in args.only.read_text().split()} if args.only else None
     classes: dict[tuple, list] = {}
     extra: dict[tuple, tuple] = {}  # class -> (declarations before it, its RTTI name)
+    prior: set[int] = set()  # members an earlier run wrote: they keep their slots
     why: Counter = Counter()
     # placeholder classes defined anywhere else under src/ aren't ours to write
     taken = V.defined_classes(ROOT / "src", skip=args.out)
@@ -2682,11 +2684,14 @@ def cmd_members(args) -> int:
         if cls is None:
             why["class name"] += 1
             continue
-        if len(cls) == 1 and cls[0] in taken:
+        if game and len(cls) == 1 and cls[0] in taken:  # (a library's class may be a game class's base there)
             why["class written elsewhere"] += 1  # by vtables.py, by hand, ...
             continue
         # unnamed and undecompiled, or one of ours from an earlier run (written again with its class)
-        if r.name and not r.name.startswith(_member_prefix(cls, f"vf{slot}")) or not r.name and r.status != "U":
+        member = f"vf{slot}"
+        prefix = "_ZN" + name[1:-1] + f"{len(member)}{member}E" if name and name.startswith("N") \
+            else _member_prefix(cls, member)  # the RTTI name's own mangling (templates too)
+        if r.name and not r.name.startswith(prefix) or not r.name and r.status != "U":
             continue
         try:
             structs, func = generate(f + BASE, m.img[f:f + r.size("sword")])
@@ -2698,10 +2703,13 @@ def cmd_members(args) -> int:
             why["not a member"] += 1
             continue
         classes.setdefault(tuple(cls), []).append((f + BASE, structs, *mem))
+        if r.name:
+            prior.add(f + BASE)
         extra[tuple(cls)] = (before, name or "")
     clang = ROOT / "toolchain" / "clang" / "bin" / ("clang++.exe" if sys.platform == "win32" else "clang++")
     kept = {}
     for cls, members in classes.items():
+        members.sort(key=lambda x: x[0] not in prior)  # the earlier run's first, so a new one never displaces one
         seen, ok = set(), []
         for x in members:  # one member per slot (a function in two of the class's vtables)
             member = x[2].split("(", 1)[0].rsplit(" ", 1)[-1]
