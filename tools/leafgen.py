@@ -178,6 +178,55 @@ GOT: dict[int, int] = {}
 # Unk_239a418_Ref<T> calls them as `static_cast<Unk_239a458*>(p)->vf4()` and
 # `->vf5()`, `ldr x8, [p, #0x48]! ; ldr x1, [x8, #0x10 or #0x18] ; br x1` in a
 # tail call. Every class on the object has that interface there.
+# SDK imports called through the PLT (absolute stub address -> symbol name):
+# check.py resolves a call to the name through the stub. Set by candidates().
+IMPORTS: dict[int, str] = {}
+
+_BUILTIN = {"h": "u8", "t": "u16", "j": "u32", "m": "u64", "a": "s8", "s": "s16", "i": "s32", "l": "s64",
+            "b": "bool", "c": "char", "f": "f32", "d": "f64"}
+
+
+def demangle_simple(name: str) -> tuple[list[str], str, list[str]] | None:
+    """(namespaces, name, parameter types) of a free function whose mangled name
+    has only source names and builtin or `void*`/`const char*` parameters
+    (`_ZN2nn3ldn15MakeIpv4AddressEhhhh`), ([], name, None) for a C name, None
+    for anything else."""
+    if not name.startswith("_Z"):
+        return ([], name, None) if re.fullmatch(r"[A-Za-z_]\w*", name) else None
+    rest, parts = name[2:], []
+    nested = rest.startswith("N")
+    if nested:
+        rest = rest[1:]
+    while rest and rest[0].isdigit():
+        n = int(re.match(r"\d+", rest).group())
+        rest = rest[len(str(n)):]
+        parts.append(rest[:n])
+        rest = rest[n:]
+        if not nested:
+            break
+    if nested:
+        if not rest.startswith("E"):
+            return None
+        rest = rest[1:]
+    if not parts or any(not re.fullmatch(r"[A-Za-z_]\w*", x) for x in parts):
+        return None
+    params = []
+    if rest == "v":
+        rest = ""
+    while rest:
+        for code, t in (("PKc", "const char*"), ("PKv", "const void*"), ("Pv", "void*"), ("Pc", "char*")):
+            if rest.startswith(code):
+                params.append(t)
+                rest = rest[len(code):]
+                break
+        else:
+            if rest[0] not in _BUILTIN:
+                return None
+            params.append(_BUILTIN[rest[0]])
+            rest = rest[1:]
+    return parts[:-1], parts[-1], params
+
+
 # Sizes of the struct types copy_head makes (a struct's field of that type).
 NESTED: dict[str, int] = {}
 
@@ -890,6 +939,7 @@ class Emitter:
         self.hidden: set[int] = set()         # globals of this TU (relative)
         self.protos: set[str] = set()         # the callees' declarations (render_call)
         self.heads: list[StructDef] = []       # copy_head's struct
+        self.statics: set[int] = set()        # static objects of this TU written through (absolute)
         self.passed: set[Arg] = set()         # arguments passed on to a call
         self.call_types: dict[int, str] = {}  # call index -> the type of the result it returns
 
@@ -904,6 +954,10 @@ class Emitter:
             parent = self.struct_for(base.base)
             name = f"{parent.name}_{base.offset:x}"
             self.set_field(parent, base.offset, f"{name}*")
+        elif isinstance(base, DataAddr) and data_at(base.addr) == "":
+            # a static object of this TU (adrp + add): `extern Unk_<addr>_Data Unk_<addr>`, hidden
+            name = f"Unk_{base.addr - BASE:x}_Data"
+            self.statics.add(base.addr)
         else:
             raise LiftError("dereference of a computed pointer")
         s = StructDef(name)
@@ -949,6 +1003,8 @@ class Emitter:
             return f"Unk_{load_base.addr:x}"
         s = self.struct_for(load_base)
         self.set_field(s, offset, t)
+        if isinstance(load_base, DataAddr):
+            return f"Unk_{load_base.addr - BASE:x}.field_{offset:x}"
         return f"{self.ptr(load_base)}->field_{offset:x}"
 
     def choose_locals(self) -> list[str]:
@@ -1275,6 +1331,32 @@ class Emitter:
             args = self.known_args(c.args, ptypes)
             self.protos.add(f"{ret} {callee}({', '.join(ptypes)});")
             rt = ret
+        elif c.target in IMPORTS:
+            # An SDK import: declared by its own (simple) name, in its namespaces.
+            dm = demangle_simple(IMPORTS[c.target])
+            if dm is None or dm[2] is None or len(dm[2]) != len(c.args):
+                raise LiftError("callee: an import")
+            spaces, fname, ptypes = dm
+            args = []
+            for e, pt in zip(c.args, ptypes):
+                if isinstance(e, Arg) and not e.fp:
+                    if self.arg_types.setdefault(e.index, pt) != pt:
+                        raise LiftError("callee: an argument of another type")
+                    self.passed.add(e)
+                    args.append(self.arg_name(e.index))
+                elif pt.endswith("*") and (self.is_pointer(e) or self.type_of(e) == "ptr"):
+                    args.append(self.expr(e))
+                elif not pt.endswith("*") and not self.is_pointer(e) and self.type_of(e) in CALL_CODES:
+                    args.append(self.expr(e, pt if pt in CALL_CODES else None))
+                else:
+                    raise LiftError("callee: an argument of another type")
+            # one declaration for every caller in a file: what the result is read as is the caller's
+            rt = {4: "u32", 8: "u64"}.get(width, "void")
+            decl = f"u64 {fname}({', '.join(ptypes)});"
+            for ns in reversed(spaces):
+                decl = f"namespace {ns} {{ {decl} }}"
+            self.protos.add(decl)
+            callee = "::".join([*spaces, fname])
         elif c.target in NAMED:
             # Named already, as another caller's placeholder: call it with the
             # parameters its name spells.
@@ -1484,8 +1566,13 @@ class Emitter:
         if lf.ret is not None:
             if isinstance(lf.ret, Arg) and lf.ret.index == 0 and not lf.ret.fp:
                 raise LiftError("returns self")
-            rt = self.type_of(lf.ret)
-            if rt == "data":  # a string literal, or a table the TU defines
+            rt = "global" if isinstance(lf.ret, GlobalPtr) else self.type_of(lf.ret)
+            if rt == "global":  # a global's address, from the GOT (or adrp + add for one of this TU)
+                if lf.ret.hidden:
+                    raise LiftError("address of a global of the TU")
+                t = self.globals.setdefault(lf.ret.addr, "u8")
+                rt, rhs = f"{t}*", f"&Unk_{lf.ret.addr:x}"
+            elif rt == "data":  # a string literal, or a table the TU defines
                 text = data_at(lf.ret.addr)
                 if text is None:
                     raise LiftError("address of code or a vtable")
@@ -1700,6 +1787,8 @@ class Emitter:
         order = sorted(self.structs.values(), key=lambda s: -s.name.count("_"))
         for s in [*self.heads, *order]:  # a copied head first: the others hold it
             out.append(render_struct(s))
+        out += [f'extern Unk_{a - BASE:x}_Data Unk_{a - BASE:x} __attribute__((visibility("hidden")));'
+                for a in sorted(self.statics)]
         out += sorted(self.protos)
         return "\n".join(out)
 
@@ -1801,10 +1890,12 @@ def two_paths(addr: int, code: bytes) -> tuple[str, str] | None:
                 if shared is not None:
                     e.structs, e.arg_types, e.fp_types = shared.structs, shared.arg_types, shared.fp_types
                     e.globals, e.tables, e.hidden = shared.globals, shared.tables, shared.hidden
+                    e.statics = shared.statics
                 elif emitters:
                     e.structs, e.arg_types, e.fp_types = emitters[0].structs, emitters[0].arg_types, \
                         emitters[0].fp_types
                     e.globals, e.tables, e.hidden = emitters[0].globals, emitters[0].tables, emitters[0].hidden
+                    e.statics = emitters[0].statics
                 emitters.append(e)
             cond = emitters[1].guard_cond(fall.split[0], fall.split[1], True)
             out = [(Emitter.render_tail if lf.tail is not None else Emitter.render)(e)
@@ -1907,6 +1998,7 @@ def decision_tree(addr: int, code: bytes) -> tuple[str, str] | None:
                 if base is not None:
                     e.structs, e.arg_types, e.fp_types = base.structs, base.arg_types, base.fp_types
                     e.globals, e.tables, e.hidden = base.globals, base.tables, base.hidden
+                    e.statics = base.statics
                 ems.append(e)
                 conds.append([e.guard_cond(v[0], v[1], True) if v is not None else None for v, _ in lf.splits])
                 out.append((Emitter.render_tail if lf.tail is not None else Emitter.render)(e))
@@ -1967,6 +2059,7 @@ def generate_one(addr: int, code: bytes) -> tuple[str, str]:
         second.globals = first.globals
         second.tables = first.tables
         second.hidden = first.hidden
+        second.statics = first.statics
         second.call_types = first.call_types
         return render(second)
     except ValueError as e:  # an operand list of another shape (shifted or extended registers ...)
@@ -2046,6 +2139,7 @@ def candidates(args) -> list[tuple[int, bytes]]:
     out = []
     rows = read_functions_csv()
     NAMED.update({f.sword + BASE: f.name for f in rows if f.name and f.sword is not None})
+    IMPORTS.update({pc + BASE: name for pc, name in dyn.plt.items()})
     for f in rows:
         if f.status != "U" or f.scope != "common" or f.name or f.sword is None:
             continue
@@ -2378,6 +2472,8 @@ def write_files(out_dir: Path, lifted: dict[int, tuple[str, str]]) -> None:
 
 
 STRUCT_NAME = re.compile(r"\bstruct (Unk_\w+)")
+STRUCT_DEF = re.compile(r"^struct (Unk_\w+) \{", re.M)
+EXTERN = re.compile(r"^extern (.+?) (Unk_[0-9a-f]+)\b", re.M)
 DECL = re.compile(r"^([\w*]+) (Unk_[0-9a-f]+)\((.*)\);$", re.M)
 
 
@@ -2391,18 +2487,29 @@ def consistent_declarations(entries: list[tuple[int, str, str]]) -> list[tuple[i
     seen: dict[tuple[str, str], str] = {}
     structs: set[str] = set()
     funcs: set[str] = set()
+    externs: dict[str, str] = {}
+    defs: set[str] = set()   # structs defined (a static object's struct is named after it, not the function)
     out = []
     for e in entries:
         decls = {(m.group(2), m.group(3)): m.group(1) for m in DECL.finditer(e[1])}
         names = set(STRUCT_NAME.findall(e[1]) + STRUCT_NAME.findall(e[2]))
         called = {name for name, _ in decls}
-        if any(seen.get(k, r) != r for k, r in decls.items()) or called & (structs | names) or names & funcs:
+        defined = set(STRUCT_DEF.findall(e[1]))
+        ext = {m.group(2): m.group(1) for m in EXTERN.finditer(e[1])}
+        if any(externs.get(k, t) != t for k, t in ext.items()):
+            print(f"  dropped 0x{e[0]:x}: declares a global another function of its file declares otherwise",
+                  file=sys.stderr)
+            continue
+        if any(seen.get(k, r) != r for k, r in decls.items()) or called & (structs | names) or names & funcs \
+                or defined & defs:
             print(f"  dropped 0x{e[0]:x}: declares a callee another function of its file declares otherwise",
                   file=sys.stderr)
             continue
         seen.update(decls)
         structs |= names
         funcs |= called
+        defs |= defined
+        externs.update(ext)
         out.append(e)
     return out
 
