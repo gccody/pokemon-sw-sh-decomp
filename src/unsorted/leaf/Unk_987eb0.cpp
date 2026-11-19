@@ -177,6 +177,22 @@ void Unk_98a880_call(const Unk_98a880* self, const Unk_98a880_arg1* value) {
     Unk_93a240(r0 + 0x30, value->field_0);
 }
 
+struct Unk_98aac0 {
+    u8 _0[0x20];
+    u64 field_20;
+};
+PKMN_OFFSET_ASSERT(Unk_98aac0, field_20, 0x20);
+extern "C" [[noreturn]] void abort();
+
+// 0x710098aac0
+void Unk_98aac0_set(Unk_98aac0* self, u32 value) {
+    if (value == 0) {
+        self->field_20 = self->field_20 & 0xfffffffffffffffe;
+        return;
+    }
+    abort();
+}
+
 struct Unk_98aee0_0 {
     u8 _0[0x20];
     u64 field_20;

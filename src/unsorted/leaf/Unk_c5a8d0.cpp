@@ -14,6 +14,23 @@ void Unk_c5a8d0_set(Unk_c5a8d0* self, bool value) {
     self->field_85 = value;
 }
 
+struct Unk_c5ac00 {
+    u8 _0[0x82];
+    u8 field_82;
+    u8 _83[0xa1bd];
+    u8 field_a240;
+};
+PKMN_OFFSET_ASSERT(Unk_c5ac00, field_82, 0x82);
+PKMN_OFFSET_ASSERT(Unk_c5ac00, field_a240, 0xa240);
+
+extern "C" void* memcpy(void*, const void*, unsigned long);
+
+// 0x7100c5ac00
+void Unk_c5ac00_call(Unk_c5ac00* self, void* value) {
+    memcpy(&self->field_a240, value, 0xa20);
+    self->field_82 = 1;
+}
+
 struct Unk_c627e0 {
     virtual void vf0();
     virtual void vf1();

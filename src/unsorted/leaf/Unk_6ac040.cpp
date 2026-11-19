@@ -3,6 +3,38 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
+namespace nn {
+namespace os {
+struct MutexType;
+}
+}  // namespace nn
+struct Unk_6ac040 {
+    u8 _0[0xac];
+    bool field_ac;
+    u8 _ad[0x3];
+    u8 field_b0;
+};
+PKMN_OFFSET_ASSERT(Unk_6ac040, field_ac, 0xac);
+PKMN_OFFSET_ASSERT(Unk_6ac040, field_b0, 0xb0);
+
+namespace nn {
+namespace os {
+u64 LockMutex(MutexType*);
+}
+}  // namespace nn
+namespace nn {
+namespace os {
+u64 UnlockMutex(MutexType*);
+}
+}  // namespace nn
+
+// 0x71006ac040
+void Unk_6ac040_call(Unk_6ac040* self, bool value) {
+    nn::os::LockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_b0));
+    self->field_ac = value;
+    nn::os::UnlockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_b0));
+}
+
 // 0x71006ace10
 void Unk_6ace10_update() {}
 

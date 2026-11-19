@@ -323,6 +323,20 @@ u32 Unk_136b860() {
     return 0x110;
 }
 
+struct Unk_136b870 {
+    u8 _0[0x60];
+    u8 field_60;
+};
+PKMN_OFFSET_ASSERT(Unk_136b870, field_60, 0x60);
+
+extern "C" void* memcpy(void*, const void*, unsigned long);
+
+// 0x710136b870
+u32 Unk_136b870_call(const Unk_136b870* self, void* value) {
+    memcpy(value, &self->field_60, 0x110);
+    return 0x110;
+}
+
 void Unk_136d010();
 
 // 0x710136d000
@@ -495,6 +509,44 @@ void Unk_1370980_set(Unk_1370980* self) {
     self->field_6830 = 0;
 }
 
+struct Unk_1377780 {
+    u8 _0[0x60];
+    u8 field_60;
+    u8 _61[0x2af];
+    u64 field_310;
+    u64 field_318;
+    u64 field_320;
+    u64 field_328;
+    u64 field_330;
+    u64 field_338;
+    u64 field_340;
+    u16 field_348;
+};
+PKMN_OFFSET_ASSERT(Unk_1377780, field_60, 0x60);
+PKMN_OFFSET_ASSERT(Unk_1377780, field_310, 0x310);
+PKMN_OFFSET_ASSERT(Unk_1377780, field_318, 0x318);
+PKMN_OFFSET_ASSERT(Unk_1377780, field_320, 0x320);
+PKMN_OFFSET_ASSERT(Unk_1377780, field_328, 0x328);
+PKMN_OFFSET_ASSERT(Unk_1377780, field_330, 0x330);
+PKMN_OFFSET_ASSERT(Unk_1377780, field_338, 0x338);
+PKMN_OFFSET_ASSERT(Unk_1377780, field_340, 0x340);
+PKMN_OFFSET_ASSERT(Unk_1377780, field_348, 0x348);
+
+extern "C" void* memset(void*, int, unsigned long);
+
+// 0x7101377780
+void Unk_1377780_call(Unk_1377780* self) {
+    memset(&self->field_60, 0, 0x2b0);
+    self->field_348 = 0;
+    self->field_340 = 0;
+    self->field_310 = 0xffffffffffffffff;
+    self->field_338 = 0;
+    self->field_330 = 0;
+    self->field_328 = 0;
+    self->field_320 = 0;
+    self->field_318 = 0;
+}
+
 struct Unk_1377d30 {
     u8 _0[0x31f];
     u8 field_31f;
@@ -537,6 +589,26 @@ PKMN_OFFSET_ASSERT(Unk_1377d60, field_31f, 0x31f);
 // 0x7101377d60
 bool Unk_1377d60_check(const Unk_1377d60* self) {
     return self->field_31f == 2;
+}
+
+struct Unk_1377d90 {
+    u8 _0[0x60];
+    u8 field_60;
+    u8 _61[0x2be];
+    u8 field_31f;
+    u8 _320[0x2c];
+    u8 field_34c;
+};
+PKMN_OFFSET_ASSERT(Unk_1377d90, field_60, 0x60);
+PKMN_OFFSET_ASSERT(Unk_1377d90, field_31f, 0x31f);
+PKMN_OFFSET_ASSERT(Unk_1377d90, field_34c, 0x34c);
+
+extern "C" void* memcpy(void*, const void*, unsigned long);
+
+// 0x7101377d90
+void Unk_1377d90_call(Unk_1377d90* self) {
+    memcpy(&self->field_60, &self->field_34c, 0x2ec);
+    self->field_31f = 1;
 }
 
 struct Unk_1378bd0 {

@@ -45,6 +45,198 @@ bool Unk_10fad40_check(const Unk_10fad40* self) {
     return self->field_50 == 2;
 }
 
+namespace nn {
+namespace os {
+struct MutexType;
+}
+}  // namespace nn
+struct Unk_10fae10 {
+    u8 _0[0xfc];
+    u32 field_fc;
+    u8 _100[0x220];
+    u8 field_320;
+};
+PKMN_OFFSET_ASSERT(Unk_10fae10, field_fc, 0xfc);
+PKMN_OFFSET_ASSERT(Unk_10fae10, field_320, 0x320);
+
+namespace nn {
+namespace os {
+u64 LockMutex(MutexType*);
+}
+}  // namespace nn
+namespace nn {
+namespace os {
+u64 UnlockMutex(MutexType*);
+}
+}  // namespace nn
+
+// 0x71010fae10
+void Unk_10fae10_call(Unk_10fae10* self, u32 value) {
+    nn::os::LockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_320));
+    self->field_fc = value;
+    nn::os::UnlockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_320));
+}
+
+namespace nn {
+namespace os {
+struct MutexType;
+}
+}  // namespace nn
+struct Unk_10fd8d0 {
+    u8 _0[0xf8];
+    u8 field_f8;
+    u8 _f9[0x227];
+    u8 field_320;
+};
+PKMN_OFFSET_ASSERT(Unk_10fd8d0, field_f8, 0xf8);
+PKMN_OFFSET_ASSERT(Unk_10fd8d0, field_320, 0x320);
+
+namespace nn {
+namespace os {
+u64 LockMutex(MutexType*);
+}
+}  // namespace nn
+namespace nn {
+namespace os {
+u64 UnlockMutex(MutexType*);
+}
+}  // namespace nn
+
+// 0x71010fd8d0
+void Unk_10fd8d0_call(Unk_10fd8d0* self) {
+    nn::os::LockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_320));
+    self->field_f8 = 0;
+    nn::os::UnlockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_320));
+}
+
+namespace nn {
+namespace os {
+struct MutexType;
+}
+}  // namespace nn
+struct Unk_10fd900 {
+    u8 _0[0xf9];
+    u8 field_f9;
+    u8 _fa[0x226];
+    u8 field_320;
+};
+PKMN_OFFSET_ASSERT(Unk_10fd900, field_f9, 0xf9);
+PKMN_OFFSET_ASSERT(Unk_10fd900, field_320, 0x320);
+
+namespace nn {
+namespace os {
+u64 LockMutex(MutexType*);
+}
+}  // namespace nn
+namespace nn {
+namespace os {
+u64 UnlockMutex(MutexType*);
+}
+}  // namespace nn
+
+// 0x71010fd900
+void Unk_10fd900_call(Unk_10fd900* self) {
+    nn::os::LockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_320));
+    self->field_f9 = 1;
+    nn::os::UnlockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_320));
+}
+
+namespace nn {
+namespace os {
+struct MutexType;
+}
+}  // namespace nn
+struct Unk_10fd9a0 {
+    u8 _0[0x340];
+    u8 field_340;
+    u8 _341[0x17];
+    u8 field_358;
+};
+PKMN_OFFSET_ASSERT(Unk_10fd9a0, field_340, 0x340);
+PKMN_OFFSET_ASSERT(Unk_10fd9a0, field_358, 0x358);
+
+namespace nn {
+namespace os {
+u64 LockMutex(MutexType*);
+}
+}  // namespace nn
+namespace nn {
+namespace os {
+u64 UnlockMutex(MutexType*);
+}
+}  // namespace nn
+
+// 0x71010fd9a0
+void Unk_10fd9a0_call(Unk_10fd9a0* self) {
+    nn::os::LockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_358));
+    self->field_340 = 0;
+    nn::os::UnlockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_358));
+}
+
+namespace nn {
+namespace os {
+struct MutexType;
+}
+}  // namespace nn
+struct Unk_10fda30 {
+    u8 _0[0x378];
+    u8 field_378;
+    u8 _379[0x17];
+    u8 field_390;
+};
+PKMN_OFFSET_ASSERT(Unk_10fda30, field_378, 0x378);
+PKMN_OFFSET_ASSERT(Unk_10fda30, field_390, 0x390);
+
+namespace nn {
+namespace os {
+u64 LockMutex(MutexType*);
+}
+}  // namespace nn
+namespace nn {
+namespace os {
+u64 UnlockMutex(MutexType*);
+}
+}  // namespace nn
+
+// 0x71010fda30
+void Unk_10fda30_call(Unk_10fda30* self) {
+    nn::os::LockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_390));
+    self->field_378 = 0;
+    nn::os::UnlockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_390));
+}
+
+namespace nn {
+namespace os {
+struct MutexType;
+}
+}  // namespace nn
+struct Unk_10fdac0 {
+    u8 _0[0x3b0];
+    u8 field_3b0;
+    u8 _3b1[0x17];
+    u8 field_3c8;
+};
+PKMN_OFFSET_ASSERT(Unk_10fdac0, field_3b0, 0x3b0);
+PKMN_OFFSET_ASSERT(Unk_10fdac0, field_3c8, 0x3c8);
+
+namespace nn {
+namespace os {
+u64 LockMutex(MutexType*);
+}
+}  // namespace nn
+namespace nn {
+namespace os {
+u64 UnlockMutex(MutexType*);
+}
+}  // namespace nn
+
+// 0x71010fdac0
+void Unk_10fdac0_call(Unk_10fdac0* self) {
+    nn::os::LockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_3c8));
+    self->field_3b0 = 0;
+    nn::os::UnlockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_3c8));
+}
+
 // 0x71010fe180
 void Unk_10fe180_update() {}
 

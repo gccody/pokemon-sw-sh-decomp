@@ -25,6 +25,48 @@ u8* Unk_1062370_getField2a0Ptr(Unk_1062370* self) {
     return &self->field_2a0;
 }
 
+namespace nn {
+namespace os {
+struct MutexType;
+}
+}  // namespace nn
+struct Unk_1064920_arg1 {
+    u64 field_0;
+    u64 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_1064920_arg1, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_1064920_arg1, field_8, 0x8);
+
+struct Unk_1064920 {
+    u8 _0[0x550];
+    u64 field_550;
+    u64 field_558;
+    u8 field_560;
+};
+PKMN_OFFSET_ASSERT(Unk_1064920, field_550, 0x550);
+PKMN_OFFSET_ASSERT(Unk_1064920, field_558, 0x558);
+PKMN_OFFSET_ASSERT(Unk_1064920, field_560, 0x560);
+
+namespace nn {
+namespace os {
+u64 LockMutex(MutexType*);
+}
+}  // namespace nn
+namespace nn {
+namespace os {
+u64 UnlockMutex(MutexType*);
+}
+}  // namespace nn
+
+// 0x7101064920
+void Unk_1064920_call(Unk_1064920* self, const Unk_1064920_arg1* value) {
+    nn::os::LockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_560));
+    u64 v0 = value->field_0;
+    self->field_558 = value->field_8;
+    self->field_550 = v0;
+    nn::os::UnlockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_560));
+}
+
 struct Unk_1064e20 {
     u8 _0[0xc0];
     u8 field_c0;

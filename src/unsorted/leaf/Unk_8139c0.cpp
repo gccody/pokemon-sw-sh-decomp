@@ -23,6 +23,24 @@ void Unk_8139d0_clearField0(Unk_8139d0* self) {
     self->field_0 = 0;
 }
 
+struct Unk_8139e0 {
+    u32 field_0;
+    u32 field_4;
+    u8 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_8139e0, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_8139e0, field_4, 0x4);
+PKMN_OFFSET_ASSERT(Unk_8139e0, field_8, 0x8);
+
+extern "C" void* memcpy(void*, const void*, unsigned long);
+
+// 0x71008139e0
+void Unk_8139e0_call(Unk_8139e0* self, void* value, u16 arg2) {
+    memcpy(&self->field_8, value, arg2);
+    self->field_0 = arg2;
+    self->field_4 = 0;
+}
+
 struct Unk_813a20 {
     u8 _0[0x8];
     u8 field_8;
