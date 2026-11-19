@@ -83,6 +83,52 @@ def place_shape(img: bytes, f: int, size: int) -> int | None:
     return f if w[-1] == 0xD65F03C0 else None
 
 
+TYPES = {1: "u8", 2: "u16", 4: "u32", 8: "u64"}
+
+
+def copied_fields(img: bytes, f: int, size: int) -> list[tuple[int, int]] | None:
+    """The (offset, width) of each field slot 3 copies after the vptr: loads
+    from x0 (`ldr`, any width, or `ldp` of two u64s) whose registers are
+    stored to x1 at the same offsets, or None for any other code."""
+    w = struct.unpack_from(f"<{size // 4}I", img, f)[3:-1]
+    loaded: dict[int, tuple[int, int]] = {}   # register -> (offset, width)
+    out = []
+    for x in w:
+        if (x & 0x3B000000) == 0x39000000 and (x >> 26) & 1 == 0:  # ldr/str unsigned immediate
+            scale, rn, rt, load = x >> 30, (x >> 5) & 31, x & 31, (x >> 22) & 1
+            off = ((x >> 10) & 0xFFF) << scale
+            if load and rn == 0:
+                loaded[rt] = (off, 1 << scale)
+            elif not load and rn == 1 and loaded.get(rt) == (off, 1 << scale):
+                out.append((off, 1 << scale))
+            else:
+                return None
+        elif (x & 0xFFC00000) in (0xA9400000, 0xA9000000):  # ldp/stp x, x, [xn, #imm]
+            rt, rt2, rn = x & 31, (x >> 10) & 31, (x >> 5) & 31
+            imm = ((x >> 15) & 0x7F)
+            off = (imm - 0x80 if imm & 0x40 else imm) * 8
+            if x & 0x400000 and rn == 0:
+                loaded[rt], loaded[rt2] = (off, 8), (off + 8, 8)
+            elif not x & 0x400000 and rn == 1 and loaded.get(rt) == (off, 8) and loaded.get(rt2) == (off + 8, 8):
+                out += [(off, 8), (off + 8, 8)]
+            else:
+                return None
+        else:
+            return None
+    return sorted(out) if len(out) == len(set(out)) else None
+
+
+def field_lines(fields: list[tuple[int, int]]) -> list[str]:
+    """Members at those offsets, of those widths: one after a gap aligned to land there."""
+    out, at = [], 8
+    for off, width in fields:
+        natural = (at + width - 1) // width * width
+        align = "" if off == natural else f"alignas({off & -off}) "
+        out.append(f"    {align}{TYPES[width]} field_{off:x};")
+        at = off + width
+    return out
+
+
 def adrp_add(img: bytes, at: int) -> int:
     """The address an adrp+add pair at `at` makes."""
     w0, w1 = struct.unpack_from("<II", img, at)
@@ -109,19 +155,22 @@ def candidates(m, rows: dict) -> list[tuple[object, int, int, int]]:
             continue
         if adrp_add(m.img, s2[1]) != v.addr or adrp_add(m.img, p3) != v.addr:
             continue
-        out.append((v, f2, f3, s2[0]))
+        fields = copied_fields(m.img, f3, m.sizes[f3])
+        if fields is None:
+            continue
+        out.append((v, f2, f3, s2[0], fields))
     return out
 
 
-def render(classes: list[tuple[str, int, int, int, int]]) -> str:
-    """One file: each class (name, vtable, slot 2, slot 3, size) and its two copies."""
+def render(classes: list[tuple]) -> str:
+    """One file: each class (name, vtable, slot 2, slot 3, size, fields) and its two copies."""
     out = ["// Scope: common",
            "// Copies of type-erased callables, slots 2 and 3 of their vtables",
            "// (tools/clonegen.py, generated: rewrite, don't edit). Placeholder classes",
            "// named after their vtables, as tools/vtables.py names them.",
            "#include <new>", "", "#include <types.h>", ""]
-    for name, vt_addr, f2, f3, size in classes:
-        fields = [f"    u64 field_{8 + 8 * i:x};" for i in range((size - 8) // 8)]
+    for name, vt_addr, f2, f3, size, copied in classes:
+        fields = field_lines(copied)
         out += [f"// vtable 0x{vt_addr + BASE:x}: what it holds is copied whole. Its vtable is",
                 "// reached directly (adrp/add), not through the GOT: the callable's class is",
                 "// local to its TU (a lambda's), so the vtable isn't preemptible.",
@@ -142,12 +191,12 @@ def selection(m, rows: dict, only: set[int] | None):
             and (only is None or f in only or r.status == "O") and (not r.name and r.status == "U" or r.name == name)
 
     keep = []
-    for v, f2, f3, size in candidates(m, rows):
+    for v, f2, f3, size, fields in candidates(m, rows):
         name = vt.class_name(v)
         n2, n3 = vt.mangle(name, "vf2"), vt.mangle(name, "vf3", "PS_")
         if not (free(f2, n2) and free(f3, n3)):
             continue
-        keep.append(((name, v.addr, f2, f3, size), [(f2, n2), (f3, n3)]))
+        keep.append(((name, v.addr, f2, f3, size, fields), [(f2, n2), (f3, n3)]))
     return keep
 
 
