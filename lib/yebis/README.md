@@ -102,7 +102,9 @@ an address to its type: a vtable slot (destructors), or a caller that's a
 virtual function of a class whose vtable group's functions store
 `SiArray<T>`'s vtable at the same offset of `this` that it calls the instance
 on. 23 of the 47 copies of `Unk_4bf190` have such a caller; the other 24 are
-called only from functions of no known class.
+called only from functions of no known class, so each is instantiated for a
+placeholder pointee named after its copy (`Unk_<addr>*`): the code doesn't
+depend on the type.
 
 `SiPool<T, 16>` (`SiCore_Pool.h`) hands out T's from blocks (`DataArray`, the
 first one inside the pool) and keeps them in a free and a used list. Its

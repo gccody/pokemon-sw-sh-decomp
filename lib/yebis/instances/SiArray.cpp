@@ -11,6 +11,33 @@ struct NVNsync {};
 class NVNtexture;
 class NVNtextureView;
 
+// The element types of the copies of Unk_4bf190 that no caller ties to a type
+// (placeholders named after each copy: the code doesn't depend on the type).
+struct Unk_4c2650;
+struct Unk_4cb8c0;
+struct Unk_4db5f0;
+struct Unk_4db790;
+struct Unk_4dc510;
+struct Unk_4de350;
+struct Unk_4e0d50;
+struct Unk_4e7a40;
+struct Unk_4e7c40;
+struct Unk_4ea9b0;
+struct Unk_4f6f70;
+struct Unk_4fb4b0;
+struct Unk_536a10;
+struct Unk_542aa0;
+struct Unk_54f7e0;
+struct Unk_56ed60;
+struct Unk_56ef00;
+struct Unk_56f0a0;
+struct Unk_56f240;
+struct Unk_56f3e0;
+struct Unk_56f720;
+struct Unk_56fb40;
+struct Unk_5744f0;
+struct Unk_579a40;
+
 namespace SiSDK3 {
 class ISiAllocator;
 class ISiGfxDevice;
@@ -358,3 +385,54 @@ template bool SiSDK3::SiArray<SiSDK3::SiGfxShaderEffect*, 16>::Unk_4bf190(size_t
 template bool SiSDK3::SiArray<SiSDK3::ISiGfxShaderEffectVariationList::ShaderVariationItem*, 16>::Unk_4bf190(size_t, bool);
 // 0x7100587040
 template bool SiSDK3::SiArray<SiSDK3::SiIOVFSEntry*, 16>::Unk_4bf190(size_t, bool);
+
+// The other 24 copies of Unk_4bf190: called only from inline Adds of no known
+// class, so their element types aren't known; each gets a placeholder.
+// 0x71004c2650
+template bool SiSDK3::SiArray<Unk_4c2650*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004cb8c0
+template bool SiSDK3::SiArray<Unk_4cb8c0*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004db5f0
+template bool SiSDK3::SiArray<Unk_4db5f0*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004db790
+template bool SiSDK3::SiArray<Unk_4db790*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004dc510
+template bool SiSDK3::SiArray<Unk_4dc510*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004de350
+template bool SiSDK3::SiArray<Unk_4de350*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004e0d50
+template bool SiSDK3::SiArray<Unk_4e0d50*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004e7a40
+template bool SiSDK3::SiArray<Unk_4e7a40*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004e7c40
+template bool SiSDK3::SiArray<Unk_4e7c40*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004ea9b0
+template bool SiSDK3::SiArray<Unk_4ea9b0*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004f6f70
+template bool SiSDK3::SiArray<Unk_4f6f70*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004fb4b0
+template bool SiSDK3::SiArray<Unk_4fb4b0*, 16>::Unk_4bf190(size_t, bool);
+// 0x7100536a10
+template bool SiSDK3::SiArray<Unk_536a10*, 16>::Unk_4bf190(size_t, bool);
+// 0x7100542aa0
+template bool SiSDK3::SiArray<Unk_542aa0*, 16>::Unk_4bf190(size_t, bool);
+// 0x710054f7e0
+template bool SiSDK3::SiArray<Unk_54f7e0*, 16>::Unk_4bf190(size_t, bool);
+// 0x710056ed60
+template bool SiSDK3::SiArray<Unk_56ed60*, 16>::Unk_4bf190(size_t, bool);
+// 0x710056ef00
+template bool SiSDK3::SiArray<Unk_56ef00*, 16>::Unk_4bf190(size_t, bool);
+// 0x710056f0a0
+template bool SiSDK3::SiArray<Unk_56f0a0*, 16>::Unk_4bf190(size_t, bool);
+// 0x710056f240
+template bool SiSDK3::SiArray<Unk_56f240*, 16>::Unk_4bf190(size_t, bool);
+// 0x710056f3e0
+template bool SiSDK3::SiArray<Unk_56f3e0*, 16>::Unk_4bf190(size_t, bool);
+// 0x710056f720
+template bool SiSDK3::SiArray<Unk_56f720*, 16>::Unk_4bf190(size_t, bool);
+// 0x710056fb40
+template bool SiSDK3::SiArray<Unk_56fb40*, 16>::Unk_4bf190(size_t, bool);
+// 0x71005744f0
+template bool SiSDK3::SiArray<Unk_5744f0*, 16>::Unk_4bf190(size_t, bool);
+// 0x7100579a40
+template bool SiSDK3::SiArray<Unk_579a40*, 16>::Unk_4bf190(size_t, bool);
