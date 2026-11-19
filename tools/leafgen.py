@@ -2307,6 +2307,15 @@ def main(argv: list[str] | None = None) -> int:
         if name == "write":
             p.add_argument("--out", type=Path, default=ROOT / "src" / "unsorted" / "leaf")
             p.add_argument("--only", type=Path, help="file of addresses (one per line) to write; default all")
+    p = sub.add_parser("members", help="library classes' small virtual functions, as members (cmd_members)")
+    p.add_argument("--area", action="append", required=True, help="library area(s): middleware, yebis, wwise, ...")
+    p.add_argument("--max", type=int, default=128)
+    p.add_argument("--out", type=Path, required=True)
+    p.add_argument("--only", type=Path, help="file of addresses (one per line) to write; default all")
+    p = sub.add_parser("member-names", help="Name,Sword,Shield of the members `members` wrote, from a build")
+    p.add_argument("--out", type=Path, required=True)
+    p.add_argument("--dir", type=Path, required=True)
+    p.add_argument("--build", type=Path, default=ROOT / "build" / "sword")
     p = sub.add_parser("names", help="mangled names of the leaf functions in a build, as Name,Sword,Shield")
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--dir", type=Path, default=ROOT / "src" / "unsorted" / "leaf", help="the sources' directory")
@@ -2314,6 +2323,10 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     if args.cmd == "names":
         return cmd_names(args)
+    if args.cmd == "members":
+        return cmd_members(args)
+    if args.cmd == "member-names":
+        return cmd_member_names(args)
 
     KNOWN.update(known_prototypes(ROOT / "src" / "unsorted" / "leaf"))
     cands = candidates(args)
@@ -2488,6 +2501,207 @@ def known_prototypes(leaf_dir: Path) -> dict[int, tuple[str, str, list[str]]]:
 
 NAME = re.compile(r"Unk_([0-9a-f]+)_(?:set|get|check|update|call)")
 CALLEE = re.compile(r"_Z\d+Unk_([0-9a-f]+)\w+")  # a tail call's target, undefined in the objects
+
+
+# --------------------------------------------------------------------------- library classes' members
+def _type_name(mangled: str) -> list[str] | None:
+    """The names of a typeinfo's class, `N4PPFX16SiYebisAllocatorE` -> [PPFX,
+    SiYebisAllocator] (namespaces or enclosing classes: both mangle alike);
+    None for templates and anything else that isn't plain source names."""
+    rest = mangled[1:-1] if mangled.startswith("N") and mangled.endswith("E") else mangled
+    parts = []
+    while rest:
+        m = re.match(r"\d+", rest)
+        if not m:
+            return None
+        n = int(m.group())
+        rest = rest[len(m.group()):]
+        name, rest = rest[:n], rest[n:]
+        if not re.fullmatch(r"[A-Za-z_]\w*", name):
+            return None
+        parts.append(name)
+    return parts or None
+
+
+def _member_prefix(parts: list[str], member: str) -> str:
+    return "_ZN" + "".join(f"{len(x)}{x}" for x in parts + [member]) + "E"
+
+
+_SIG = re.compile(r"^(.+?) (Unk_[0-9a-f]+_\w+)\((.*)\) \{$")
+
+
+def as_member(func: str, cls: list[str], member: str) -> tuple[str, str] | None:
+    """A lifted function's text as a member of class cls: (its declaration in
+    the class, its definition). Its first parameter (self) is `this`, cast to
+    the placeholder struct the body reads through; non-const, so the member's
+    mangled name doesn't depend on whether the body writes through it."""
+    lines = func.rstrip("\n").split("\n")
+    m = _SIG.match(lines[0])
+    if not m:
+        return None
+    ret, params = m.group(1), [x.strip() for x in m.group(3).split(",") if x.strip()]
+    body = lines[1:-1]
+    if params:
+        first = params.pop(0)
+        if first.endswith(" self"):
+            t = first[:-len(" self")]
+            if t.endswith("*") and t.removeprefix("const ").startswith("Unk_"):
+                body = [f"    {t} self = reinterpret_cast<{t}>(this);"] + body
+            elif t != "void*":
+                return None  # self as an integer: not a member's this
+        elif not first.startswith("void* /*unused*/"):
+            return None
+    decl = f"    {ret} {member}({', '.join(params)});"
+    qual = "::".join(cls + [member])
+    definition = f"{ret} {qual}({', '.join(params)}) {{\n" + "".join(x + "\n" for x in body) + "}\n"
+    return decl, definition
+
+
+def render_class_file(cls: list[str], members: list[tuple[int, str, str, str]]) -> str:
+    """One library class's members: (addr, structs, declaration, definition)."""
+    out = ["// Scope: common",
+           "// Small virtual functions of a library class (tools/leafgen.py members): placeholder",
+           "// member names vf<slot>, placeholder structs. The class's name is its RTTI's.",
+           "#include <types.h>", ""]
+    if any(REF_HEADER.split('"')[1] in st or "Unk_239a458" in d for _, st, _, d in members):
+        out[-1:] = ["", REF_HEADER, ""]
+    for _, structs, _, _ in members:
+        if structs.strip():
+            out += [structs.rstrip("\n"), ""]
+    head = f"class {cls[-1]} {{\npublic:\n" + "\n".join(d for _, _, d, _ in members) + "\n};"
+    for ns in reversed(cls[:-1]):
+        head = f"namespace {ns} {{\n{head}\n}}  // namespace {ns}"
+    out += [head, ""]
+    for addr, _, _, definition in sorted(members):
+        out += [f"// 0x{addr:x}", definition]
+    return "\n".join(out).rstrip("\n") + "\n"
+
+
+def cmd_members(args) -> int:
+    """Library classes' small virtual functions (slot kinds constant, ret,
+    zero, null, small, trap), lifted like the leaf functions and written as
+    members `vf<slot>` of their class: its RTTI name (YEBIS, NEX/Pia, SDK
+    classes) or, without RTTI, `Unk_<vtable>` like vtables.py's. Only the
+    libraries: vtables.py writes Game Freak's classes. One file per class."""
+    import vtables as V
+    from common import load_module, nso_path, read_functions_csv
+    from nx.module import DynInfo
+    from nx.nso import Nso
+    from segments import c_string
+
+    candidates(argparse.Namespace(area=["game"], max=4, reach=["call"]))  # the hooks (GOT, DATA_AT, ...)
+    KNOWN.update(known_prototypes(ROOT / "src" / "unsorted" / "leaf"))
+    m = V.load("sword")
+    mod = load_module("sword")
+    dyn = DynInfo(Nso(nso_path("sword").read_bytes()), m.img, mod["text_end"])
+    by = {v.addr: v for v in m.vtables}
+    rows = {f.sword: f for f in read_functions_csv() if f.sword is not None}
+    only = {int(x, 16) for x in args.only.read_text().split()} if args.only else None
+    classes: dict[tuple, list] = {}
+    why: Counter = Counter()
+    for f, (va, slot) in V.owners(m.vtables).items():
+        v = by.get(va)
+        r = rows.get(f)
+        if v is None or r is None or r.status != "U" or r.name or r.scope != "common":
+            continue
+        if V.vtable_area(m, v) not in args.area or slot < 2 or r.size("sword") > args.max:
+            continue
+        if V.slot_kind(m.pattern(f)) not in ("constant", "ret", "zero", "null", "small", "trap"):
+            continue
+        if only is not None and f + BASE not in only:
+            continue
+        g = by.get(v.group, v)
+        if g.typeinfo is not None:
+            p_ = dyn.slots.get(g.typeinfo + 8)
+            name = c_string(m.img, p_, 0, len(m.img)) if isinstance(p_, int) else None
+            cls = _type_name(name) if name else None
+        else:
+            cls = [V.class_name(g)]
+        if cls is None:
+            why["class name"] += 1
+            continue
+        try:
+            structs, func = generate(f + BASE, m.img[f:f + r.size("sword")])
+        except LiftError as e:
+            why[str(e).split(" ")[0]] += 1
+            continue
+        mem = as_member(func, cls, f"vf{slot}")
+        if mem is None:
+            why["not a member"] += 1
+            continue
+        classes.setdefault(tuple(cls), []).append((f + BASE, structs, *mem))
+    clang = ROOT / "toolchain" / "clang" / "bin" / ("clang++.exe" if sys.platform == "win32" else "clang++")
+    kept = {}
+    for cls, members in classes.items():
+        seen, ok = set(), []
+        for x in members:  # one member per slot (a function in two of the class's vtables)
+            member = x[2].split("(", 1)[0].rsplit(" ", 1)[-1]
+            if member in seen:
+                continue
+            seen.add(member)
+            if _compiles_text(render_class_file(list(cls), [x]), clang) is None:
+                ok.append(x)
+            else:
+                why["doesn't compile"] += 1
+        if ok:
+            kept[cls] = ok
+    args.out.mkdir(parents=True, exist_ok=True)
+    from common import clang_format
+    written = []
+    for cls, members in kept.items():
+        path = args.out / ("_".join(cls) + ".cpp")
+        path.write_text(render_class_file(list(cls), members), encoding="utf-8", newline="\n")
+        written.append(path)
+    clang_format(written)
+    print(f"wrote {sum(len(x) for x in kept.values())} members of {len(kept)} classes; refused: "
+          + ", ".join(f"{k} {n}" for k, n in why.most_common(8)), file=sys.stderr)
+    return 0
+
+
+def _compiles_text(src: str, clang: Path) -> str | None:
+    import subprocess
+
+    extra = []
+    if REF_HEADER in src:
+        extra = ["-D__ELF__", "-fno-exceptions", "-fno-rtti", "-I", str(ROOT / "src"),
+                 "-isystem", str(ROOT / "include" / "libcxx"), "-isystem", str(ROOT / "include" / "libc"),
+                 "-D_GNU_SOURCE", "-D_LIBCPP_HAS_MUSL_LIBC", "-D_LIBCPP_HAS_THREAD_API_PTHREAD"]
+    r = subprocess.run([str(clang), "-fsyntax-only", "-std=c++17", "-Wall", "-Wextra", "-Wno-unused-parameter",
+                        "-Werror", "--target=aarch64-none-elf", "-nostdinc++", "-I", str(ROOT / "include"),
+                        *extra, "-x", "c++", "-"], input=src, capture_output=True, text=True)
+    return None if r.returncode == 0 else r.stderr[:200]
+
+
+def cmd_member_names(args) -> int:
+    """Name,Sword,Shield of the members in --dir's class files, from the
+    objects of a build: the symbol that starts with the member's own prefix
+    (class, vf<slot>), whatever its parameters mangle to."""
+    import elfobj
+    from common import read_functions_csv
+
+    want: dict[str, int] = {}
+    for path in args.dir.glob("*.cpp"):
+        text = path.read_text(encoding="utf-8")
+        for m in re.finditer(r"^// 0x([0-9a-f]+)\n.*? ([\w:]+)::(vf\d+)\(", text, re.M):
+            want[_member_prefix(m.group(2).split("::"), m.group(3))] = int(m.group(1), 16)
+    stems = {p.name for p in args.dir.glob("*.cpp")}
+    found: dict[int, str] = {}
+    for o in args.build.rglob("*.o*"):
+        if o.name.rsplit(".", 1)[0] not in stems:
+            continue
+        for sym in elfobj.parse(o.read_bytes()).symbols:
+            if sym.type != "STT_FUNC" or sym.shndx == "SHN_UNDEF":
+                continue
+            for prefix, addr in want.items():
+                if sym.name.startswith(prefix):
+                    found[addr] = sym.name
+    rows = [f for f in read_functions_csv() if f.sword is not None and f.sword + BASE in found and not f.name]
+    with open(args.out, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write("Name,Sword,Shield\n")
+        for f in rows:
+            fh.write(f"{found[f.sword + BASE]},{f.sword_str},{f.shield_str}\n")
+    print(f"{len(rows)} names to {args.out}", file=sys.stderr)
+    return 0
 
 
 def cmd_names(args) -> int:

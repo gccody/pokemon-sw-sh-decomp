@@ -528,3 +528,21 @@ def test_stack_local_passed_by_address():
              0x910083FF, RET)
     _, func = leafgen.generate(ADDR, code(*words))
     assert func == ("u32 Unk_123450_call() {\n    u32 l4;\n    Unk_123564(&l4, 4);\n    return l4;\n}\n")
+
+
+def test_library_class_members():
+    """A library class's small virtual function as a member of its RTTI-named
+    class: `this` cast to the placeholder struct, member name vf<slot>."""
+    assert leafgen._type_name("N4PPFX16SiYebisAllocatorE") == ["PPFX", "SiYebisAllocator"]
+    assert leafgen._type_name("10StationURL") == ["StationURL"]
+    assert leafgen._type_name("N2nn3pia5ListIiEE") is None  # a template
+    assert leafgen._member_prefix(["PPFX", "SiYebisAllocator"], "vf5") == "_ZN4PPFX16SiYebisAllocator3vf5E"
+    func = "u32 Unk_123450_get(const Unk_123450* self) {\n    return self->field_8;\n}\n"
+    decl, definition = leafgen.as_member(func, ["PPFX", "CTinyEffect"], "vf4")
+    assert decl == "    u32 vf4();"
+    assert definition == ("u32 PPFX::CTinyEffect::vf4() {\n"
+                          "    const Unk_123450* self = reinterpret_cast<const Unk_123450*>(this);\n"
+                          "    return self->field_8;\n}\n")
+    text = leafgen.render_class_file(["PPFX", "CTinyEffect"], [(ADDR, "", decl, definition)])
+    assert "namespace PPFX {\nclass CTinyEffect {\npublic:\n    u32 vf4();\n};\n}  // namespace PPFX" in text
+    assert leafgen.as_member("u32 Unk_123450_get(u32 self) {\n    return self;\n}\n", ["A"], "vf2") is None
