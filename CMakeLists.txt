@@ -327,6 +327,21 @@ foreach(_dir IN LISTS PKMN_PROTO_DIRS)
     SYSTEM_INCLUDES include/libcxx)
 endforeach()
 
+# Game Freak's code that sends and receives those messages: gflnet3's channels
+# and sessions (lib/gflnet3) and the game's network code (prog/network). It is
+# built like gflib3 (libc++, no NDEBUG) and includes the generated headers, so
+# it gets the runtime's and the generated code's include directories and the
+# defines the runtime's headers depend on. The generated code's own
+# directories are inside these, so they get both entries (the same flags).
+foreach(_dir IN ITEMS src/gflnet3 src/network)
+  pkmn_library_settings(${_dir}
+    EVIDENCE "docs/compiler.md, section Code around the generated messages"
+    DEFINES _GNU_SOURCE _LIBCPP_HAS_MUSL_LIBC _LIBCPP_HAS_THREAD_API_PTHREAD HAVE_PTHREAD
+      GOOGLE_PROTOBUF_NO_RTTI
+    INCLUDES lib/protobuf ${PKMN_PROTO_DIRS}
+    SYSTEM_INCLUDES include/libcxx)
+endforeach()
+
 # lib/physx's files with PhysX v3.4.2's code (see the entry above) aren't in
 # the repository, because that code isn't BSD-licensed. tools/get_physx.py
 # generates them from NVIDIA's public repository. Stop here until they're all
