@@ -33,11 +33,74 @@ struct Unk_555c40 {
 };
 PKMN_OFFSET_ASSERT(Unk_555c40, field_64, 0x64);
 
+struct Unk_555c60 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+    virtual void vf25();
+    virtual void vf26();
+};
+
 struct Unk_555cb0 {
     u8 _0[0x78];
     u8 field_78;
 };
 PKMN_OFFSET_ASSERT(Unk_555cb0, field_78, 0x78);
+
+struct Unk_555cc0 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+    virtual void vf25();
+    virtual void vf26();
+    u8 _8[0x349];
+    u8 field_351;
+};
+PKMN_OFFSET_ASSERT(Unk_555cc0, field_351, 0x351);
 
 struct Unk_556950 {
     u8 _0[0x260];
@@ -114,11 +177,13 @@ public:
     u64 vf7();
     const u8* vf8();
     void vf9();
+    void vf10();
     void vf11();
     void vf12();
     void vf13();
     void vf14();
     const u8* vf17();
+    u32 vf18();
     const u8* vf29();
     const u8* vf30();
     u32 vf31();
@@ -182,6 +247,12 @@ const u8* SiSDK3::SiGfxNXRenderTarget::vf8() {
 void SiSDK3::SiGfxNXRenderTarget::vf9() {
 }
 
+// 0x7100555c60
+void SiSDK3::SiGfxNXRenderTarget::vf10() {
+    Unk_555c60* self = reinterpret_cast<Unk_555c60*>(this);
+    self->vf26();
+}
+
 // 0x7100555c70
 void SiSDK3::SiGfxNXRenderTarget::vf11() {
 }
@@ -202,6 +273,17 @@ void SiSDK3::SiGfxNXRenderTarget::vf14() {
 const u8* SiSDK3::SiGfxNXRenderTarget::vf17() {
     const Unk_555cb0* self = reinterpret_cast<const Unk_555cb0*>(this);
     return &self->field_78;
+}
+
+// 0x7100555cc0
+u32 SiSDK3::SiGfxNXRenderTarget::vf18() {
+    Unk_555cc0* self = reinterpret_cast<Unk_555cc0*>(this);
+    if (self->field_351 != 0) {
+        return 0;
+    }
+    self->vf26();
+    self->field_351 = 1;
+    return 1;
 }
 
 // 0x7100556950

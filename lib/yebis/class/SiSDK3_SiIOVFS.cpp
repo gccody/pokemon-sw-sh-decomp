@@ -15,6 +15,14 @@ struct Unk_584d80 {
 };
 PKMN_OFFSET_ASSERT(Unk_584d80, field_18, 0x18);
 
+struct Unk_584d90 {
+    u8 _0[0x18];
+    u8 field_18;
+    u8 field_19;
+};
+PKMN_OFFSET_ASSERT(Unk_584d90, field_18, 0x18);
+PKMN_OFFSET_ASSERT(Unk_584d90, field_19, 0x19);
+
 struct Unk_584db0 {
     u8 _0[0x19];
     u8 field_19;
@@ -62,6 +70,7 @@ class SiIOVFS {
 public:
     u32 vf4();
     u8 vf7();
+    u32 vf8();
     u32 vf9();
     u8 vf10();
     u64 vf11();
@@ -78,6 +87,16 @@ public:
 u8 SiSDK3::SiIOVFS::vf7() {
     const Unk_584d80* self = reinterpret_cast<const Unk_584d80*>(this);
     return self->field_18;
+}
+
+// 0x7100584d90
+u32 SiSDK3::SiIOVFS::vf8() {
+    Unk_584d90* self = reinterpret_cast<Unk_584d90*>(this);
+    if (self->field_18 == 0) {
+        return 0;
+    }
+    self->field_19 = 1;
+    return 1;
 }
 
 // 0x7100584db0

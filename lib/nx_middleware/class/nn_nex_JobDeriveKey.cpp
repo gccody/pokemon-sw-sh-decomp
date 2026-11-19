@@ -3,10 +3,18 @@
 // member names vf<slot>, placeholder structs. The class's name is its RTTI's.
 #include <types.h>
 
+struct Unk_15a91d0 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+};
+
 namespace nn {
 namespace nex {
 class JobDeriveKey {
 public:
+    void vf2();
     void vf4();
     u32 vf8();
     void vf9();
@@ -16,6 +24,12 @@ public:
 };
 }  // namespace nex
 }  // namespace nn
+
+// 0x71015a91d0
+void nn::nex::JobDeriveKey::vf2() {
+    Unk_15a91d0* self = reinterpret_cast<Unk_15a91d0*>(this);
+    self->vf3();
+}
 
 // 0x71015a91e0
 void nn::nex::JobDeriveKey::vf4() {

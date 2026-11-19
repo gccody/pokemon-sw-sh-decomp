@@ -63,6 +63,30 @@ struct Unk_4f9e70 {
 };
 PKMN_OFFSET_ASSERT(Unk_4f9e70, field_270, 0x270);
 
+struct Unk_4fa370_378 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14(u64, u64, u64, u64, u64);
+};
+
+struct Unk_4fa370 {
+    u8 _0[0x378];
+    Unk_4fa370_378* field_378;
+};
+PKMN_OFFSET_ASSERT(Unk_4fa370, field_378, 0x378);
+
 struct Unk_4faa70 {
     u8 _0[0x248];
     bool field_248;
@@ -151,6 +175,7 @@ public:
     u8 vf35();
     u32 vf36();
     u32 vf37();
+    void vf48(u64 value, u64 arg2, u64 arg3, u64 arg4, u64 arg5);
     void vf77();
     void vf80(bool value);
     u8 vf81();
@@ -306,6 +331,14 @@ u32 SiSDK3::SiGfxNXDevice::vf36() {
 // 0x71004f9e90
 u32 SiSDK3::SiGfxNXDevice::vf37() {
     return 1;
+}
+
+// 0x71004fa370
+void SiSDK3::SiGfxNXDevice::vf48(u64 value, u64 arg2, u64 arg3, u64 arg4, u64 arg5) {
+    const Unk_4fa370* self = reinterpret_cast<const Unk_4fa370*>(this);
+    if (self->field_378 != nullptr) {
+        self->field_378->vf14(value, arg2, arg3, arg4, arg5);
+    }
 }
 
 // 0x71004fa520

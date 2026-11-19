@@ -15,6 +15,22 @@ struct Unk_16d3b50 {
 };
 PKMN_OFFSET_ASSERT(Unk_16d3b50, field_8, 0x8);
 
+struct Unk_16d3da0_10 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6(u64);
+};
+
+struct Unk_16d3da0 {
+    u8 _0[0x10];
+    Unk_16d3da0_10* field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_16d3da0, field_10, 0x10);
+
 namespace nn {
 namespace pia {
 namespace nex {
@@ -26,6 +42,7 @@ public:
     void vf6();
     void vf7();
     void vf12();
+    void vf13(u64 value);
 };
 }  // namespace nex
 }  // namespace pia
@@ -43,6 +60,14 @@ void nn::pia::nex::NexNatRelayInterface::vf2(u64 value) {
 void nn::pia::nex::NexNatRelayInterface::vf3() {
     Unk_16d3b50* self = reinterpret_cast<Unk_16d3b50*>(this);
     self->field_8 = 0;
+}
+
+// 0x71016d3da0
+void nn::pia::nex::NexNatRelayInterface::vf13(u64 value) {
+    const Unk_16d3da0* self = reinterpret_cast<const Unk_16d3da0*>(this);
+    if (self->field_10 != nullptr) {
+        self->field_10->vf6(value);
+    }
 }
 
 // 0x71016d5cd0

@@ -129,6 +129,12 @@ struct Unk_4ce5a0 {
 };
 PKMN_OFFSET_ASSERT(Unk_4ce5a0, field_128, 0x128);
 
+struct Unk_4cebe0 {
+    u8 _0[0x2b0];
+    u64 field_2b0;
+};
+PKMN_OFFSET_ASSERT(Unk_4cebe0, field_2b0, 0x2b0);
+
 struct Unk_4cf6a0 {
     u8 _0[0x2b0];
     u64 field_2b0;
@@ -159,6 +165,7 @@ public:
     const u8* vf27();
     const u8* vf29();
     u32 vf30();
+    bool vf35(u32 value);
     u64 vf37();
 };
 }  // namespace SiSDK3
@@ -281,6 +288,15 @@ const u8* SiSDK3::SiGfxKernel::vf29() {
 u32 SiSDK3::SiGfxKernel::vf30() {
     const Unk_4ce5a0* self = reinterpret_cast<const Unk_4ce5a0*>(this);
     return self->field_128;
+}
+
+// 0x71004cebe0
+bool SiSDK3::SiGfxKernel::vf35(u32 value) {
+    const Unk_4cebe0* self = reinterpret_cast<const Unk_4cebe0*>(this);
+    if (value != 8) {
+        return false;
+    }
+    return self->field_2b0 != 0;
 }
 
 // 0x71004cf6a0

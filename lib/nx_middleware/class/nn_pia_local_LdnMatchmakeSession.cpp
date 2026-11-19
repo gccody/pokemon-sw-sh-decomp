@@ -15,6 +15,24 @@ struct Unk_167e450 {
 };
 PKMN_OFFSET_ASSERT(Unk_167e450, field_558, 0x558);
 
+struct Unk_167e830_550 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+};
+
+struct Unk_167e830 {
+    u8 _0[0x550];
+    Unk_167e830_550* field_550;
+};
+PKMN_OFFSET_ASSERT(Unk_167e830, field_550, 0x550);
+
 struct Unk_167e860 {
     u8 _0[0x78];
     u8 field_78;
@@ -30,6 +48,7 @@ public:
     u64 vf7();
     u32 vf21();
     u64 vf36();
+    void vf37();
     u32 vf38();
     const u8* vf44();
 };
@@ -47,6 +66,14 @@ u64 nn::pia::local::LdnMatchmakeSession::vf36() {
 u64 nn::pia::local::LdnMatchmakeSession::vf7() {
     const Unk_167e7c0* self = reinterpret_cast<const Unk_167e7c0*>(this);
     return self->field_550;
+}
+
+// 0x710167e830
+void nn::pia::local::LdnMatchmakeSession::vf37() {
+    const Unk_167e830* self = reinterpret_cast<const Unk_167e830*>(this);
+    if (self->field_550 != nullptr) {
+        self->field_550->vf8();
+    }
 }
 
 // 0x710167e850

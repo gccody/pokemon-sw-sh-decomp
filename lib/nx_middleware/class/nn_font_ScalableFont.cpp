@@ -47,6 +47,21 @@ struct Unk_177d300 {
 };
 PKMN_OFFSET_ASSERT(Unk_177d300, field_28, 0x28);
 
+struct Unk_177d310_arg1 {
+    u16 field_0;
+    u8 field_2;
+};
+PKMN_OFFSET_ASSERT(Unk_177d310_arg1, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_177d310_arg1, field_2, 0x2);
+
+struct Unk_177d310 {
+    u8 _0[0x2c];
+    u16 field_2c;
+    u8 field_2e;
+};
+PKMN_OFFSET_ASSERT(Unk_177d310, field_2c, 0x2c);
+PKMN_OFFSET_ASSERT(Unk_177d310, field_2e, 0x2e);
+
 struct Unk_177d7c0 {
     u8 _0[0x24];
     u32 field_24;
@@ -78,6 +93,7 @@ public:
     u32 vf10();
     u32 vf11();
     void vf13(u32 value);
+    void vf14(const Unk_177d310_arg1* value);
     u32 vf21();
     u32 vf22();
     u32 vf23();
@@ -143,6 +159,14 @@ u32 nn::font::ScalableFont::vf11() {
 void nn::font::ScalableFont::vf13(u32 value) {
     Unk_177d300* self = reinterpret_cast<Unk_177d300*>(this);
     self->field_28 = value;
+}
+
+// 0x710177d310
+void nn::font::ScalableFont::vf14(const Unk_177d310_arg1* value) {
+    Unk_177d310* self = reinterpret_cast<Unk_177d310*>(this);
+    u16 v0 = value->field_0;
+    self->field_2e = value->field_2;
+    self->field_2c = v0;
 }
 
 // 0x710177d7b0

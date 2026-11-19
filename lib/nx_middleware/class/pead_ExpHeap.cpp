@@ -15,6 +15,12 @@ struct Unk_1718420 {
 };
 PKMN_OFFSET_ASSERT(Unk_1718420, field_38, 0x38);
 
+struct Unk_1718f90 {
+    u8 _0[0x100];
+    u32 field_100;
+};
+PKMN_OFFSET_ASSERT(Unk_1718f90, field_100, 0x100);
+
 struct Unk_1719140 {
     u8 _0[0xd4];
     u32 field_d4;
@@ -32,6 +38,7 @@ class ExpHeap {
 public:
     u64 vf12();
     u64 vf14();
+    bool vf18();
     u32 vf19();
     u32 vf20();
     u32 vf21();
@@ -50,6 +57,12 @@ u64 pead::ExpHeap::vf12() {
 u64 pead::ExpHeap::vf14() {
     const Unk_1718420* self = reinterpret_cast<const Unk_1718420*>(this);
     return self->field_38;
+}
+
+// 0x7101718f90
+bool pead::ExpHeap::vf18() {
+    const Unk_1718f90* self = reinterpret_cast<const Unk_1718f90*>(this);
+    return self->field_100 == 0;
 }
 
 // 0x7101718fa0

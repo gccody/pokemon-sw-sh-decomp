@@ -9,12 +9,28 @@ struct Unk_3d57b0 {
 };
 PKMN_OFFSET_ASSERT(Unk_3d57b0, field_78, 0x78);
 
+extern u32 Unk_2382e78;
+
+struct Unk_3d57e0_70 {
+    u8 _0[0x10];
+    u32 field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_3d57e0_70, field_10, 0x10);
+
+struct Unk_3d57e0 {
+    u8 _0[0x70];
+    Unk_3d57e0_70* field_70;
+};
+PKMN_OFFSET_ASSERT(Unk_3d57e0, field_70, 0x70);
+
 class Unk_23842a8 {
 public:
     u64 vf2();
+    u32 vf22();
     u32 vf26();
     u32 vf27();
     u32 vf28();
+    u32 vf30();
     u32 vf31();
     void vf39();
     u32 vf7();
@@ -67,6 +83,20 @@ u32 Unk_23842a8::vf13() {
 u64 Unk_23842a8::vf2() {
     const Unk_3d57b0* self = reinterpret_cast<const Unk_3d57b0*>(this);
     return self->field_78;
+}
+
+// 0x71003d57d0
+u32 Unk_23842a8::vf22() {
+    return Unk_2382e78;
+}
+
+// 0x71003d57e0
+u32 Unk_23842a8::vf30() {
+    const Unk_3d57e0* self = reinterpret_cast<const Unk_3d57e0*>(this);
+    if (self->field_70 == nullptr) {
+        return 0;
+    }
+    return self->field_70->field_10;
 }
 
 // 0x71003d5800

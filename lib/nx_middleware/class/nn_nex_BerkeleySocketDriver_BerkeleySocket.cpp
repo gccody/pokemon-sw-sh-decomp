@@ -15,6 +15,14 @@ struct Unk_1621f90 {
 };
 PKMN_OFFSET_ASSERT(Unk_1621f90, field_15, 0x15);
 
+struct Unk_16177a0 {
+    u8 _0[0xc];
+    u32 field_c;
+};
+PKMN_OFFSET_ASSERT(Unk_16177a0, field_c, 0xc);
+
+namespace nn { namespace socket { u64 SetSockOpt(s32, s32, s32, const void*, u32); } }
+
 struct Unk_1621fc0 {
     u8 _0[0xc];
     u32 field_c;
@@ -30,6 +38,7 @@ public:
     u8 vf10();
     u32 vf11();
     u32 vf15();
+    bool vf16(u8 value);
     void vf17();
     u32 vf18();
     const char* vf19();
@@ -53,6 +62,15 @@ u8 nn::nex::BerkeleySocketDriver::BerkeleySocket::vf9() {
 // 0x7101617790
 u32 nn::nex::BerkeleySocketDriver::BerkeleySocket::vf15() {
     return 1;
+}
+
+// 0x71016177a0
+bool nn::nex::BerkeleySocketDriver::BerkeleySocket::vf16(u8 value) {
+    const Unk_16177a0* self = reinterpret_cast<const Unk_16177a0*>(this);
+    u32 l4;
+    l4 = value;
+    u32 r0 = nn::socket::SetSockOpt(self->field_c, 0, 4, &l4, 4);
+    return r0 == 0;
 }
 
 // 0x7101621f90

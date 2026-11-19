@@ -33,6 +33,29 @@ struct Unk_4ff8a0 {
 };
 PKMN_OFFSET_ASSERT(Unk_4ff8a0, field_64, 0x64);
 
+struct Unk_4ff8c0 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+};
+
 struct Unk_4ff910 {
     u8 _0[0x98];
     u8 field_98;
@@ -72,6 +95,7 @@ public:
     u64 vf7();
     const u8* vf8();
     void vf9();
+    void vf10();
     void vf11();
     void vf12();
     void vf13();
@@ -130,6 +154,12 @@ const u8* SiSDK3::SiGfxNXFont::vf8() {
 
 // 0x71004ff8b0
 void SiSDK3::SiGfxNXFont::vf9() {
+}
+
+// 0x71004ff8c0
+void SiSDK3::SiGfxNXFont::vf10() {
+    Unk_4ff8c0* self = reinterpret_cast<Unk_4ff8c0*>(this);
+    self->vf19();
 }
 
 // 0x71004ff8d0

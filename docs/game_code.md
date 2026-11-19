@@ -1713,6 +1713,22 @@ The trial wrote 1,899 members of 507 classes; 1,893 match: 799 in YEBIS, 814
 in NEX/Pia and the SDK, 280 in Wwise (check.py: 43,994 matching, 42 not
 matching).
 
+### Batch 40: the libraries' other virtual functions
+
+`members --all-kinds` takes every slot function the lifter handles
+(calls, guards, decision trees, ...), not only the small kinds, up to 256
+bytes, and writes the members it wrote before again with their class
+(rows named with a member's own prefix), so one run sees each class whole
+and gives each `vf<slot>` one function. A class file that compiles member by
+member but not together (two members declaring overloads of one placeholder
+callee) keeps the members that still compile with the others.
+
+The trial wrote 2,599 members, 708 of them new; 358 of the new ones match.
+Rewritten with its class, one earlier member's slot went to another of the
+class's functions (its name moved with it, and the old function is a
+placeholder again), and one, `SiSDK3::SiGfxShaderGraphNodeType::vf2`, is no
+longer written (check.py: 44,351 matching, 42 not matching).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1738,7 +1754,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after Batch 39: check.py reports 43,994 matching and 42 not
+State after Batch 40: check.py reports 44,351 matching and 42 not
 matching, in both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the

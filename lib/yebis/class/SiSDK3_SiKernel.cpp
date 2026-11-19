@@ -15,6 +15,16 @@ struct Unk_4c07c0 {
 };
 PKMN_OFFSET_ASSERT(Unk_4c07c0, field_48, 0x48);
 
+extern u64 Unk_24e8f30;
+
+extern u64 Unk_24e8f30;
+
+struct Unk_4c07f0 {
+    u8 _0[0x480];
+    s32 field_480;
+};
+PKMN_OFFSET_ASSERT(Unk_4c07f0, field_480, 0x480);
+
 struct Unk_4c0800 {
     u8 _0[0x484];
     bool field_484;
@@ -80,6 +90,9 @@ class SiKernel {
 public:
     u32 vf4();
     u64 vf5();
+    void vf6(u64 value);
+    u64 vf7();
+    bool vf8();
     void vf9(bool value);
     u8 vf10();
     u64 vf12();
@@ -100,6 +113,22 @@ public:
 u64 SiSDK3::SiKernel::vf5() {
     const Unk_4c07c0* self = reinterpret_cast<const Unk_4c07c0*>(this);
     return self->field_48;
+}
+
+// 0x71004c07d0
+void SiSDK3::SiKernel::vf6(u64 value) {
+    Unk_24e8f30 = value;
+}
+
+// 0x71004c07e0
+u64 SiSDK3::SiKernel::vf7() {
+    return Unk_24e8f30;
+}
+
+// 0x71004c07f0
+bool SiSDK3::SiKernel::vf8() {
+    const Unk_4c07f0* self = reinterpret_cast<const Unk_4c07f0*>(this);
+    return self->field_480 > 0;
 }
 
 // 0x71004c0800

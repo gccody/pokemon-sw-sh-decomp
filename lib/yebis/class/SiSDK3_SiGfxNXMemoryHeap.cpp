@@ -27,6 +27,19 @@ struct Unk_552be0 {
 };
 PKMN_OFFSET_ASSERT(Unk_552be0, field_5c, 0x5c);
 
+struct Unk_552f00 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+};
+
 struct Unk_553040 {
     u8 _0[0x80];
     u8 field_80;
@@ -59,6 +72,7 @@ public:
     u64 vf6();
     const u8* vf7();
     void vf10();
+    void vf11();
     void vf12();
     void vf13();
     void vf14();
@@ -108,6 +122,12 @@ const u8* SiSDK3::SiGfxNXMemoryHeap::vf7() {
 
 // 0x7100552ef0
 void SiSDK3::SiGfxNXMemoryHeap::vf10() {
+}
+
+// 0x7100552f00
+void SiSDK3::SiGfxNXMemoryHeap::vf11() {
+    Unk_552f00* self = reinterpret_cast<Unk_552f00*>(this);
+    self->vf9();
 }
 
 // 0x7100552f10

@@ -45,6 +45,51 @@ struct Unk_576c20 {
 };
 PKMN_OFFSET_ASSERT(Unk_576c20, field_a8, 0xa8);
 
+struct Unk_578ad0_a8 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12(u64, u64);
+};
+
+struct Unk_578ad0 {
+    u8 _0[0xa8];
+    Unk_578ad0_a8* field_a8;
+};
+PKMN_OFFSET_ASSERT(Unk_578ad0, field_a8, 0xa8);
+
+struct Unk_578ae0_a8 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13(u64, u64);
+};
+
+struct Unk_578ae0 {
+    u8 _0[0xa8];
+    Unk_578ae0_a8* field_a8;
+};
+PKMN_OFFSET_ASSERT(Unk_578ae0, field_a8, 0xa8);
+
 struct Unk_578af0 {
     u8 _0[0x58];
     bool field_58;
@@ -67,6 +112,8 @@ public:
     const u8* vf9();
     u64 vf10();
     u64 vf11();
+    void vf15(u64 value, u64 arg2);
+    void vf16(u64 value, u64 arg2);
     void vf18(bool value);
     u8 vf19();
 };
@@ -106,6 +153,18 @@ u64 SiSDK3::SiGfxShaderEffect::vf10() {
 u64 SiSDK3::SiGfxShaderEffect::vf11() {
     const Unk_576c20* self = reinterpret_cast<const Unk_576c20*>(this);
     return self->field_a8;
+}
+
+// 0x7100578ad0
+void SiSDK3::SiGfxShaderEffect::vf15(u64 value, u64 arg2) {
+    const Unk_578ad0* self = reinterpret_cast<const Unk_578ad0*>(this);
+    self->field_a8->vf12(value, arg2);
+}
+
+// 0x7100578ae0
+void SiSDK3::SiGfxShaderEffect::vf16(u64 value, u64 arg2) {
+    const Unk_578ae0* self = reinterpret_cast<const Unk_578ae0*>(this);
+    self->field_a8->vf13(value, arg2);
 }
 
 // 0x7100578af0

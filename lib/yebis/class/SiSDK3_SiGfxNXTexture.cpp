@@ -33,6 +33,34 @@ struct Unk_55f330 {
 };
 PKMN_OFFSET_ASSERT(Unk_55f330, field_1c0, 0x1c0);
 
+struct Unk_55f350 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+};
+
 struct Unk_561d80 {
     u8 _0[0x320];
     u32 field_320;
@@ -76,6 +104,15 @@ struct Unk_562310 {
     u64 field_318;
 };
 PKMN_OFFSET_ASSERT(Unk_562310, field_318, 0x318);
+
+struct Unk_562340 {
+    u8 _0[0x148];
+    u64 field_148;
+    u8 _150[0x28];
+    u64 field_178;
+};
+PKMN_OFFSET_ASSERT(Unk_562340, field_148, 0x148);
+PKMN_OFFSET_ASSERT(Unk_562340, field_178, 0x178);
 
 struct Unk_562360 {
     u8 _0[0xb0];
@@ -128,6 +165,7 @@ public:
     u64 vf7();
     const u8* vf8();
     void vf9();
+    void vf10();
     void vf11();
     void vf12();
     void vf13();
@@ -142,6 +180,7 @@ public:
     u64 vf34();
     u32 vf35();
     u64 vf36();
+    bool vf37();
     const u8* vf38();
     u64 vf40();
     u64 vf41();
@@ -196,6 +235,12 @@ const u8* SiSDK3::SiGfxNXTexture::vf8() {
 
 // 0x710055f340
 void SiSDK3::SiGfxNXTexture::vf9() {
+}
+
+// 0x710055f350
+void SiSDK3::SiGfxNXTexture::vf10() {
+    Unk_55f350* self = reinterpret_cast<Unk_55f350*>(this);
+    self->vf24();
 }
 
 // 0x710055f360
@@ -276,6 +321,15 @@ u32 SiSDK3::SiGfxNXTexture::vf35() {
 // 0x7100562330
 u64 SiSDK3::SiGfxNXTexture::vf36() {
     return 0;
+}
+
+// 0x7100562340
+bool SiSDK3::SiGfxNXTexture::vf37() {
+    const Unk_562340* self = reinterpret_cast<const Unk_562340*>(this);
+    if (self->field_148 != 0) {
+        return 1;
+    }
+    return self->field_178 != 0;
 }
 
 // 0x7100562360

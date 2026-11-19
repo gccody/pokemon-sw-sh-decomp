@@ -21,6 +21,12 @@ struct Unk_4c7120 {
 };
 PKMN_OFFSET_ASSERT(Unk_4c7120, field_64, 0x64);
 
+struct Unk_4c7130 {
+    u8 _0[0x140];
+    u32 field_140;
+};
+PKMN_OFFSET_ASSERT(Unk_4c7130, field_140, 0x140);
+
 struct Unk_4c7b10 {
     u8 _0[0x80];
     u32 field_80;
@@ -51,6 +57,7 @@ public:
     u32 vf4();
     const u8* vf5();
     const u8* vf7();
+    void vf8();
     u32 vf17();
     const u8* vf19();
     u32 vf20();
@@ -86,6 +93,12 @@ const u8* SiSDK3::SiStringTable::vf5() {
 const u8* SiSDK3::SiStringTable::vf7() {
     const Unk_4c7120* self = reinterpret_cast<const Unk_4c7120*>(this);
     return &self->field_64;
+}
+
+// 0x71004c7130
+void SiSDK3::SiStringTable::vf8() {
+    Unk_4c7130* self = reinterpret_cast<Unk_4c7130*>(this);
+    self->field_140 = self->field_140 + 1;
 }
 
 // 0x71004c7b10

@@ -3,6 +3,11 @@
 // member names vf<slot>, placeholder structs. The class's name is its RTTI's.
 #include <types.h>
 
+struct Unk_3a5d60_arg1 {
+    u32 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_3a5d60_arg1, field_0, 0x0);
+
 struct Unk_3a5db0 {
     u8 _0[0x10];
     u8 field_10;
@@ -11,6 +16,7 @@ PKMN_OFFSET_ASSERT(Unk_3a5db0, field_10, 0x10);
 
 class Unk_2382f10 {
 public:
+    u32 vf8(Unk_3a5d60_arg1* value);
     void vf9();
     void vf10();
     u32 vf11();
@@ -19,6 +25,12 @@ public:
     void vf14();
     void vf15();
 };
+
+// 0x71003a5d60
+u32 Unk_2382f10::vf8(Unk_3a5d60_arg1* value) {
+    value->field_0 = 1;
+    return 1;
+}
 
 // 0x71003a5d70
 void Unk_2382f10::vf9() {

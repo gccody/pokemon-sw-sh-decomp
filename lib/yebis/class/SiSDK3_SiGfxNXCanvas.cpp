@@ -33,6 +33,29 @@ struct Unk_4fcb90 {
 };
 PKMN_OFFSET_ASSERT(Unk_4fcb90, field_6c, 0x6c);
 
+struct Unk_4fcbb0 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+};
+
 struct Unk_4fcc00 {
     u8 _0[0x80];
     u8 field_80;
@@ -93,6 +116,40 @@ struct Unk_4fdcd0 {
 };
 PKMN_OFFSET_ASSERT(Unk_4fdcd0, field_118, 0x118);
 
+struct Unk_4fe010_140 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24(u64);
+};
+
+struct Unk_4fe010 {
+    u8 _0[0x140];
+    Unk_4fe010_140* field_140;
+};
+PKMN_OFFSET_ASSERT(Unk_4fe010, field_140, 0x140);
+
 struct Unk_4fe120 {
     u8 _0[0x198];
     u64 field_198;
@@ -126,6 +183,7 @@ public:
     u64 vf7();
     const u8* vf8();
     void vf9();
+    void vf10();
     void vf11();
     void vf12();
     void vf13();
@@ -143,6 +201,7 @@ public:
     u32 vf29();
     u32 vf30();
     u32 vf31();
+    void vf45(u64 value);
     u32 vf46();
     u32 vf47();
     u64 vf48();
@@ -196,6 +255,12 @@ const u8* SiSDK3::SiGfxNXCanvas::vf8() {
 
 // 0x71004fcba0
 void SiSDK3::SiGfxNXCanvas::vf9() {
+}
+
+// 0x71004fcbb0
+void SiSDK3::SiGfxNXCanvas::vf10() {
+    Unk_4fcbb0* self = reinterpret_cast<Unk_4fcbb0*>(this);
+    self->vf19();
 }
 
 // 0x71004fcbc0
@@ -277,6 +342,14 @@ u32 SiSDK3::SiGfxNXCanvas::vf30() {
 u32 SiSDK3::SiGfxNXCanvas::vf31() {
     const Unk_4fdcd0* self = reinterpret_cast<const Unk_4fdcd0*>(this);
     return self->field_118;
+}
+
+// 0x71004fe010
+void SiSDK3::SiGfxNXCanvas::vf45(u64 value) {
+    const Unk_4fe010* self = reinterpret_cast<const Unk_4fe010*>(this);
+    if (self->field_140 != nullptr) {
+        self->field_140->vf24(value);
+    }
 }
 
 // 0x71004fe030

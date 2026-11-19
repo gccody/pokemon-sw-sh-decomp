@@ -33,6 +33,28 @@ struct Unk_57bef0 {
 };
 PKMN_OFFSET_ASSERT(Unk_57bef0, field_130, 0x130);
 
+struct Unk_57b430 {
+    u8 _0[0xe8];
+    u64 field_e8;
+};
+PKMN_OFFSET_ASSERT(Unk_57b430, field_e8, 0xe8);
+
+struct Unk_57b440 {
+    u8 _0[0x88];
+    u64 field_88;
+    u64 field_90;
+    u64 field_98;
+    u8 _a0[0x8];
+    u64 field_a8;
+    u8 _b0[0x78];
+    u64 field_128;
+};
+PKMN_OFFSET_ASSERT(Unk_57b440, field_88, 0x88);
+PKMN_OFFSET_ASSERT(Unk_57b440, field_90, 0x90);
+PKMN_OFFSET_ASSERT(Unk_57b440, field_98, 0x98);
+PKMN_OFFSET_ASSERT(Unk_57b440, field_a8, 0xa8);
+PKMN_OFFSET_ASSERT(Unk_57b440, field_128, 0x128);
+
 struct Unk_57bf30 {
     u8 _0[0x160];
     u32 field_160;
@@ -77,6 +99,8 @@ public:
     u64 vf10();
     u64 vf11();
     const u8* vf18();
+    bool vf19();
+    u32 vf20();
     void vf26(u32 value);
     u32 vf27();
     void vf28(u32 value);
@@ -96,6 +120,22 @@ u64 SiSDK3::SiIOBinaryArchive::vf10() {
 u64 SiSDK3::SiIOBinaryArchive::vf11() {
     const Unk_57afd0* self = reinterpret_cast<const Unk_57afd0*>(this);
     return self->field_f0;
+}
+
+// 0x710057b430
+bool SiSDK3::SiIOBinaryArchive::vf19() {
+    const Unk_57b430* self = reinterpret_cast<const Unk_57b430*>(this);
+    return self->field_e8 == 0;
+}
+
+// 0x710057b440
+u32 SiSDK3::SiIOBinaryArchive::vf20() {
+    Unk_57b440* self = reinterpret_cast<Unk_57b440*>(this);
+    self->field_88 = 0xb0;
+    self->field_90 = 3;
+    self->field_98 = 0xa000000000;
+    self->field_a8 = self->field_128;
+    return 1;
 }
 
 // 0x710057b4f0

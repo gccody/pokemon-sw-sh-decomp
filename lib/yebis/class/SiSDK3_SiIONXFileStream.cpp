@@ -9,6 +9,16 @@ struct Unk_58b820 {
 };
 PKMN_OFFSET_ASSERT(Unk_58b820, field_10, 0x10);
 
+struct Unk_5886c0 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6(u64, u64, u64);
+};
+
 struct Unk_588940 {
     u8 _0[0x20];
     u8 field_20;
@@ -20,6 +30,91 @@ struct Unk_588950 {
     u8 field_20;
 };
 PKMN_OFFSET_ASSERT(Unk_588950, field_20, 0x20);
+
+struct Unk_589030 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23(u32);
+};
+
+struct Unk_58a7e0 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+    virtual void vf25();
+    virtual void vf26();
+    virtual void vf27();
+    virtual void vf28();
+    virtual void vf29();
+    virtual void vf30();
+    virtual void vf31();
+    virtual void vf32();
+    virtual void vf33();
+    virtual void vf34();
+    virtual void vf35();
+    virtual void vf36();
+    virtual void vf37();
+    virtual void vf38();
+    virtual void vf39();
+    virtual void vf40();
+    virtual void vf41();
+    virtual void vf42();
+    virtual void vf43();
+    virtual void vf44();
+    virtual void vf45();
+    virtual void vf46(u64, u32);
+};
+
+struct Unk_58b840 {
+    u8 _0[0x24];
+    u32 field_24;
+    u32 field_28;
+};
+PKMN_OFFSET_ASSERT(Unk_58b840, field_24, 0x24);
+PKMN_OFFSET_ASSERT(Unk_58b840, field_28, 0x28);
 
 struct Unk_58b750 {
     u8 _0[0x90];
@@ -62,8 +157,12 @@ class SiIONXFileStream {
 public:
     u32 vf4();
     u32 vf5();
+    void vf7(u64 value, u64 arg2, u64 arg3);
     u32 vf11();
     u32 vf12();
+    void vf25(bool value);
+    void vf48(u64 value, bool arg2);
+    bool vf71();
     u64 vf73();
     u64 vf74();
     u64 vf75();
@@ -75,6 +174,12 @@ public:
 };
 }  // namespace SiSDK3
 
+// 0x71005886c0
+void SiSDK3::SiIONXFileStream::vf7(u64 value, u64 arg2, u64 arg3) {
+    Unk_5886c0* self = reinterpret_cast<Unk_5886c0*>(this);
+    self->vf6(value, arg2, arg3);
+}
+
 // 0x7100588940
 u32 SiSDK3::SiIONXFileStream::vf11() {
     const Unk_588940* self = reinterpret_cast<const Unk_588940*>(this);
@@ -85,6 +190,18 @@ u32 SiSDK3::SiIONXFileStream::vf11() {
 u32 SiSDK3::SiIONXFileStream::vf12() {
     const Unk_588950* self = reinterpret_cast<const Unk_588950*>(this);
     return (self->field_20 >> 4) & 1;
+}
+
+// 0x7100589030
+void SiSDK3::SiIONXFileStream::vf25(bool value) {
+    Unk_589030* self = reinterpret_cast<Unk_589030*>(this);
+    self->vf23(value);
+}
+
+// 0x710058a7e0
+void SiSDK3::SiIONXFileStream::vf48(u64 value, bool arg2) {
+    Unk_58a7e0* self = reinterpret_cast<Unk_58a7e0*>(this);
+    self->vf46(value, arg2);
 }
 
 // 0x710058b630
@@ -142,4 +259,10 @@ u32 SiSDK3::SiIONXFileStream::vf4() {
 // 0x710058b830
 u32 SiSDK3::SiIONXFileStream::vf5() {
     return 1;
+}
+
+// 0x710058b840
+bool SiSDK3::SiIONXFileStream::vf71() {
+    const Unk_58b840* self = reinterpret_cast<const Unk_58b840*>(this);
+    return self->field_28 != self->field_24;
 }

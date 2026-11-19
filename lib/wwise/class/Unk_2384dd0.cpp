@@ -15,6 +15,12 @@ struct Unk_404540 {
 };
 PKMN_OFFSET_ASSERT(Unk_404540, field_18, 0x18);
 
+struct Unk_4045c0 {
+    u8 _0[0x10];
+    u64 field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_4045c0, field_10, 0x10);
+
 class Unk_2384dd0 {
 public:
     void vf3();
@@ -30,6 +36,7 @@ public:
     u32 vf21();
     u32 vf22();
     u32 vf23();
+    bool vf24();
     u32 vf27();
 };
 
@@ -93,6 +100,12 @@ u32 Unk_2384dd0::vf18() {
 // 0x71004045b0
 u32 Unk_2384dd0::vf23() {
     return 0;
+}
+
+// 0x71004045c0
+bool Unk_2384dd0::vf24() {
+    const Unk_4045c0* self = reinterpret_cast<const Unk_4045c0*>(this);
+    return self->field_10 != 0;
 }
 
 // 0x71004045d0

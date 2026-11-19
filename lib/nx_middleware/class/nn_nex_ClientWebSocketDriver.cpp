@@ -3,6 +3,32 @@
 // member names vf<slot>, placeholder structs. The class's name is its RTTI's.
 #include <types.h>
 
+struct Unk_1617ed0_arg1 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22(void*);
+};
+
 struct Unk_1622040 {
     u8 _0[0x8];
     bool field_8;
@@ -19,6 +45,7 @@ namespace nn {
 namespace nex {
 class ClientWebSocketDriver {
 public:
+    void vf3(Unk_1617ed0_arg1* value);
     void vf7(bool value);
     u8 vf8();
     void vf11();
@@ -30,6 +57,13 @@ public:
 };
 }  // namespace nex
 }  // namespace nn
+
+// 0x7101617ed0
+void nn::nex::ClientWebSocketDriver::vf3(Unk_1617ed0_arg1* value) {
+    if (value != nullptr) {
+        value->vf22(value);
+    }
+}
 
 // 0x7101622040
 void nn::nex::ClientWebSocketDriver::vf7(bool value) {

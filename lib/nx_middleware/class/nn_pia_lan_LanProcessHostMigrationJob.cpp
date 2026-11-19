@@ -9,6 +9,15 @@ struct Unk_16709f0 {
 };
 PKMN_OFFSET_ASSERT(Unk_16709f0, field_1a1, 0x1a1);
 
+struct Unk_1670a00 {
+    u8 _0[0xc4];
+    u8 field_c4;
+    u8 _c5[0xdc];
+    u8 field_1a1;
+};
+PKMN_OFFSET_ASSERT(Unk_1670a00, field_c4, 0xc4);
+PKMN_OFFSET_ASSERT(Unk_1670a00, field_1a1, 0x1a1);
+
 namespace nn {
 namespace pia {
 namespace lan {
@@ -18,6 +27,7 @@ public:
     u8 vf8();
     void vf9();
     u32 vf10();
+    void vf12();
 };
 }  // namespace lan
 }  // namespace pia
@@ -27,6 +37,14 @@ public:
 u8 nn::pia::lan::LanProcessHostMigrationJob::vf8() {
     const Unk_16709f0* self = reinterpret_cast<const Unk_16709f0*>(this);
     return self->field_1a1;
+}
+
+// 0x7101670a00
+void nn::pia::lan::LanProcessHostMigrationJob::vf12() {
+    Unk_1670a00* self = reinterpret_cast<Unk_1670a00*>(this);
+    if (self->field_c4 != 0) {
+        self->field_1a1 = 0;
+    }
 }
 
 // 0x7101670a10
