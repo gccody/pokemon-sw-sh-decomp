@@ -1495,6 +1495,15 @@ Bigger size limits add nothing (`--max 512` lifts 7 more than 128): what's
 left is loops and nested branches. check.py: 39,997 matching, 42 not
 matching.
 
+### Batch 30: compares with an extended argument
+
+`cmp w8, w1, uxtb` (or `uxth`) compares with an argument of 8 or 16 bits,
+which the caller needn't have extended (the AAPCS64 leaves its upper bits
+unspecified): the argument becomes a `u8` (`u16`). The shape is common (490
+such compares in game code up to 128 bytes), but most of them sit in
+functions with loops or several branches: 10 match (check.py: 40,007
+matching, 42 not matching).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1520,7 +1529,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after Batch 29: check.py reports 39,997 matching and 42 not
+State after Batch 30: check.py reports 40,007 matching and 42 not
 matching, in both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the

@@ -149,6 +149,30 @@ u8 Unk_7fc860_getField2(const Unk_7fc860* self) {
     return self->field_2;
 }
 
+struct Unk_7fc870 {
+    u8 _0[0x1];
+    u8 field_1;
+    u8 field_2;
+};
+PKMN_OFFSET_ASSERT(Unk_7fc870, field_1, 0x1);
+PKMN_OFFSET_ASSERT(Unk_7fc870, field_2, 0x2);
+
+// 0x71007fc870
+void Unk_7fc870_set(Unk_7fc870* self, u8 value) {
+    self->field_2 = self->field_1 < (value) ? self->field_1 : value;
+}
+
+struct Unk_7fc8b0 {
+    u8 _0[0x2];
+    u8 field_2;
+};
+PKMN_OFFSET_ASSERT(Unk_7fc8b0, field_2, 0x2);
+
+// 0x71007fc8b0
+void Unk_7fc8b0_set(Unk_7fc8b0* self, u8 value) {
+    self->field_2 = (self->field_2 < (value) ? value : self->field_2) - value;
+}
+
 struct Unk_7fc8d0 {
     u8 _0[0x1];
     u8 field_1;

@@ -121,6 +121,13 @@ void Unk_7c5910_call(const Unk_7c5910* self, u32 value) {
     Unk_7faf80(self->field_150, self->field_88->field_3a5, value & 0xff);
 }
 
+void Unk_804810(u32);
+
+// 0x71007c7a00
+void Unk_7c7a00_call(u8 self) {
+    Unk_804810(self);
+}
+
 struct Unk_7c84b0_88 {
     u8 _0[0x3a6];
     u8 field_3a6;
