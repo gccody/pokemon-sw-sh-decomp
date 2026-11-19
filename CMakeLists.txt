@@ -200,13 +200,15 @@ pkmn_library_settings(lib/tlsf
   COMPILER_VERSION 6.0.1
   DEFINES NDEBUG)
 
-# Wwise itself (proprietary): placeholders for its small functions, written by
-# tools/leafgen.py (lib/wwise/README.md), with the compiler and flags the TLSF
-# corpus identified for the whole Wwise block.
+# Wwise itself (proprietary): placeholders and decompiled code
+# (lib/wwise/README.md), with the compiler and flags the TLSF corpus identified
+# for the whole Wwise block, and floating-point contraction: the block has
+# 1,390 fused multiply-adds, and PhysX, Lua and YEBIS none.
 pkmn_library_settings(lib/wwise
   EVIDENCE "docs/compiler.md, section Wwise"
   COMPILER_VERSION 6.0.1
-  DEFINES NDEBUG)
+  DEFINES NDEBUG
+  OPTIONS -ffp-contract=on)
 
 # libcurl 7.55.1, Nintendo's SDK build (NintendoSDK_libcurl-7_3_2-Release in
 # the middleware block): clang 7.0.x -O3 with the game's global flags, like

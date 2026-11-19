@@ -2025,12 +2025,14 @@ done
 
 **Result: Wwise 2017.2, built with upstream clang 6.0.x (like PhysX, not the
 game's 7.0.1) at `-O2` or `-O3`, with the game's codegen flags. That means
-strict aliasing off, unlike PhysX.**
+strict aliasing off, unlike PhysX. Floating-point contraction is on (see
+"Floating-point contraction").**
 
 ```
 clang 6.0.0 or 6.0.1  --target=aarch64-none-elf -mcpu=cortex-a57+fp+simd+crypto+crc
   -O3 (or -O2) -DNDEBUG -D__ELF__ -funwind-tables -mno-implicit-float -fPIC
   -fno-omit-frame-pointer -fno-strict-aliasing -ffunction-sections -fdata-sections
+  -ffp-contract=on (or fast)
   C++: -fno-exceptions -fno-rtti (from the binary, not from the corpus)
 ```
 
@@ -2194,6 +2196,35 @@ The other figures reproduce exactly.
   reproducer didn't trigger it in clang 6.0.1 either, so it depends on the
   source too.
 
+### Floating-point contraction
+
+Wwise's floating-point code multiplies and adds in one instruction. Counting
+the fused multiply-add words (scalar `fmadd`/`fmsub`/`fnmadd`/`fnmsub`, and
+the vector `fmla`/`fmls`) by region:
+
+| Region | Scalar fused | Vector fused | Words |
+|---|---:|---:|---:|
+| Wwise | 1,390 | 374 | 274,396 |
+| PhysX | 0 | 0 | 772,820 |
+| YEBIS | 0 | 0 | 400,884 |
+| Lua | 0 | 0 | 41,276 |
+| Game code | 107 | 3,923 | 4,113,852 |
+
+clang 6 and 7 don't contract `a * b + c` in C++ unless asked
+(`-ffp-contract=on` or `fast`, or `-ffast-math`), and PhysX, YEBIS and Lua,
+full of floating-point code, have no fused instruction at all. (Game code's,
+mostly vector ones, haven't been looked at; with the game's flags they can
+only come from explicit fused-multiply-add calls or intrinsics.) So Wwise was
+built with contraction, and `pkmn_library_settings(lib/wwise ...)` adds
+`-ffp-contract=on`. The Wwise resampler loops (`0x71003d81b0`,
+`0x71003d8320`: linear interpolation, `location * (b - a) + a`) only come
+out with an `fmadd` with it. `on` (fusing within one expression, the
+operands in source order) and `fast` (fusing in the backend, across
+statements) aren't told apart by a matched function yet: `on` keeps the
+`fmadd` operands in the order the source writes them, which is what the
+resampler's two loops show for the same expression written twice. TLSF and
+the matched integer code compile the same either way.
+
 ### Reproducing
 
 Fetch the sources into `toolchain/candidates/src` (all small). `samplecount/tlsf`
@@ -2272,6 +2303,7 @@ give no hit with clang 6.0.1 or 7.0.1, as C or as C++ (`-x c++
   and no other public code in Wwise compiles to the same instructions.
 - **`-g`.** Undetermined: no `ldr` pair in the `stackinuse` order, but 11
   unexplained unpaired loads in the other order (fingerprint above).
+- **`-ffp-contract=on` vs `fast`** (see "Floating-point contraction").
 - **Whether every Wwise library used the same configuration.** Only the
   memory manager's TLSF was compiled. The plugin-registration stubs and the
   codecs are separate libraries in the Wwise SDK.
