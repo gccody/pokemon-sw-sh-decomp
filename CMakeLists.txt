@@ -328,12 +328,14 @@ foreach(_dir IN LISTS PKMN_PROTO_DIRS)
 endforeach()
 
 # Game Freak's code that sends and receives those messages: gflnet3's channels
-# and sessions (lib/gflnet3) and the game's network code (prog/network). It is
+# and sessions (lib/gflnet3), the game's network code (prog/network) and the
+# channels of battle_logic, btl_spot and comp_organize. It is
 # built like gflib3 (libc++, no NDEBUG) and includes the generated headers, so
 # it gets the runtime's and the generated code's include directories and the
 # defines the runtime's headers depend on. The generated code's own
 # directories are inside these, so they get both entries (the same flags).
-foreach(_dir IN ITEMS src/gflnet3 src/network)
+foreach(_dir IN ITEMS src/gflnet3 src/network src/battle/battle_logic src/contents/btl_spot
+    src/contents/comp_organize)
   pkmn_library_settings(${_dir}
     EVIDENCE "docs/compiler.md, section Code around the generated messages"
     DEFINES _GNU_SOURCE _LIBCPP_HAS_MUSL_LIBC _LIBCPP_HAS_THREAD_API_PTHREAD HAVE_PTHREAD
