@@ -190,6 +190,14 @@ pkmn_library_settings(lib/tlsf
   COMPILER_VERSION 6.0.1
   DEFINES NDEBUG)
 
+# Wwise itself (proprietary): placeholders for its small functions, written by
+# tools/leafgen.py (lib/wwise/README.md), with the compiler and flags the TLSF
+# corpus identified for the whole Wwise block.
+pkmn_library_settings(lib/wwise
+  EVIDENCE "docs/compiler.md, section Wwise"
+  COMPILER_VERSION 6.0.1
+  DEFINES NDEBUG)
+
 # libcurl 7.55.1, Nintendo's SDK build (NintendoSDK_libcurl-7_3_2-Release in
 # the middleware block): clang 7.0.x -O3 with the game's global flags, like
 # Game Freak's code (84 functions byte for byte). The defines are curl's own

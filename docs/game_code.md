@@ -1479,6 +1479,22 @@ The trial wrote 711 functions; 123 match: 37 in game code, 25 in NEX/Pia
 and the SDK, 61 in YEBIS. `--record-data` recorded 36 globals, each at the
 address its name gives (check.py: 39,826 matching, 42 not matching).
 
+### Batch 29: Wwise, and `if` without `else`
+
+- **Wwise.** Its leaf functions go to `lib/wwise/leaf`, built with clang
+  6.0.1 like `lib/tlsf` (its own `pkmn_library_settings` entry, evidence
+  docs/compiler.md, "Wwise"): 166 match, of 190 written.
+- **`if (c) { A } B`.** `two_paths` also takes a branch that skips into code
+  the fallthrough runs too: the fallthrough's path is the code before the
+  branch, A and B, the branch's path the code before it and B, and B must
+  come out the same at the end of both. 6 match, of about 20 written: B
+  usually differs between the paths (a call's local is numbered after A's
+  calls, or clang keeps a value in another register).
+
+Bigger size limits add nothing (`--max 512` lifts 7 more than 128): what's
+left is loops and nested branches. check.py: 39,997 matching, 42 not
+matching.
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1504,7 +1520,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after Batch 28: check.py reports 39,826 matching and 42 not
+State after Batch 29: check.py reports 39,997 matching and 42 not
 matching, in both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the

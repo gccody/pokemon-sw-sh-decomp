@@ -57,6 +57,20 @@ void Unk_e68380_set(const Unk_e68380* self, Unk_e68380_arg1* value) {
     value->field_0 = self->field_0;
 }
 
+struct Unk_e68f30 {
+    u8 _0[0x73];
+    u8 field_73;
+};
+PKMN_OFFSET_ASSERT(Unk_e68f30, field_73, 0x73);
+
+// 0x7100e68f30
+u32 Unk_e68f30_get(Unk_e68f30* self) {
+    if (self->field_73 != 0) {
+        self->field_73 = 0;
+    }
+    return 1;
+}
+
 struct Unk_e69de0_5d8 {
     u8 _0[0x30];
     f32 field_30;

@@ -224,6 +224,29 @@ u64 Unk_15ce860_get(const Unk_15ce860* self) {
     return self->field_20->field_10;
 }
 
+struct Unk_15d0d70_18 {
+    u8 _0[0x58];
+    u64 field_58;
+    u64 field_60;
+};
+PKMN_OFFSET_ASSERT(Unk_15d0d70_18, field_58, 0x58);
+PKMN_OFFSET_ASSERT(Unk_15d0d70_18, field_60, 0x60);
+
+struct Unk_15d0d70 {
+    u8 _0[0x18];
+    Unk_15d0d70_18* field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_15d0d70, field_18, 0x18);
+void Unk_15d0da0();
+
+// 0x71015d0d70
+u64 Unk_15d0d70_get(const Unk_15d0d70* self) {
+    if (self->field_18->field_60 == self->field_18->field_58) {
+        Unk_15d0da0();
+    }
+    return 0;
+}
+
 struct Unk_15d2cd0 {
     u8 _0[0x18];
     u32 field_18;
