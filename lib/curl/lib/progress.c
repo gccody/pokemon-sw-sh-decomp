@@ -25,6 +25,7 @@
 #include "urldata.h"
 #include "sendf.h"
 #include "progress.h"
+#include "strtoofft.h" /* Pokemon SwSh decomp: CURL_OFF_T_MAX (7.58.0 has it in curl_setup.h) */
 #include "curl_printf.h"
 
 /* Provide a string that is 2 + 1 + 2 + 1 + 2 = 8 letters long (plus the zero
@@ -360,6 +361,9 @@ int Curl_pgrsUpdate(struct connectdata *conn)
   curl_off_t total_transfer;
   curl_off_t total_expected_transfer;
   curl_off_t timespent;
+#if 1 /* Pokemon SwSh decomp */
+  curl_off_t timespent_ms; /* milliseconds */
+#endif
   struct Curl_easy *data = conn->data;
   int nowindex = data->progress.speeder_c% CURR_TIME;
   int checkindex;
@@ -371,12 +375,34 @@ int Curl_pgrsUpdate(struct connectdata *conn)
   curl_off_t dlestimate=0;
   curl_off_t total_estimate;
   bool shownow=FALSE;
+#if 1 /* Pokemon SwSh decomp */
+  curl_off_t dl = data->progress.downloaded;
+  curl_off_t ul = data->progress.uploaded;
+#endif
 
   now = Curl_tvnow(); /* what time is it */
 
   /* The time spent so far (from the start) */
   data->progress.timespent = Curl_tvdiff_us(now, data->progress.start);
   timespent = (curl_off_t)data->progress.timespent/1000000; /* seconds */
+#if 1 /* Pokemon SwSh decomp */
+  /* Nintendo's SDK build has curl 7.58.0's speeds in milliseconds
+     (Curl_pgrsUpdate, Sword 0x7101765700, compares the sizes with
+     CURL_OFF_T_MAX/1000): this block is 7.58.0's. */
+  timespent_ms = (curl_off_t)data->progress.timespent/1000; /* ms */
+
+  /* The average download speed this far */
+  if(dl < CURL_OFF_T_MAX/1000)
+    data->progress.dlspeed = (dl * 1000 / (timespent_ms>0?timespent_ms:1));
+  else
+    data->progress.dlspeed = (dl / (timespent>0?timespent:1));
+
+  /* The average upload speed this far */
+  if(ul < CURL_OFF_T_MAX/1000)
+    data->progress.ulspeed = (ul * 1000 / (timespent_ms>0?timespent_ms:1));
+  else
+    data->progress.ulspeed = (ul / (timespent>0?timespent:1));
+#else
 
   /* The average download speed this far */
   data->progress.dlspeed = (curl_off_t)
@@ -387,6 +413,7 @@ int Curl_pgrsUpdate(struct connectdata *conn)
   data->progress.ulspeed = (curl_off_t)
     (data->progress.uploaded/
      (timespent>0?timespent:1));
+#endif
 
   /* Calculations done at most once a second, unless end is reached */
   if(data->progress.lastshow != now.tv_sec) {
