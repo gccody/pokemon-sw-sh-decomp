@@ -2436,6 +2436,21 @@ allocator of `src/unsorted/Unk_2771620.h`:
   `__push_back_slow_path` instances that `tools/familygen.py` already writes
   (`src/gflib3/families`, with pointer elements where they're 8 bytes), so
   they're left to it.
+- The same sweep over other containers on the allocator found 4 maps'
+  `operator[]` (`__emplace_unique_key_args`, u32 and u64 keys), 2 deques
+  (`push_back`, `__add_back_capacity` and the `__split_buffer` members that
+  grow their block maps), 5 members of vectors of `Unk_239a418_Ref` and 7 of
+  vectors of `unique_ptr`s with `Unk_23f4660_Deleter`
+  (`Unk_2771620_{Map,Deque,RefVector,OwnerVector}.cpp`). The 18 other
+  members of vectors of references it found (`reserve`, push_back slow
+  paths) are familygen's. The references' members (`__append`,
+  `__swap_out_circular_buffer`) matched with a copy constructor that tests
+  the copy's own pointer; since `Unk_239a418_Ref`'s copy tests the other
+  reference's (for the battle sequence functions) they don't (`M`), like
+  familygen's. `unordered_map`'s
+  `operator[]` has 12 instances too, but they call `rehash` instances that
+  `src/unsorted/Unk_597350.cpp` names with empty mapped types; the `int`-keyed
+  `rehash` instances' `__rehash` callees don't match.
 
 ## What's left of the small functions
 
