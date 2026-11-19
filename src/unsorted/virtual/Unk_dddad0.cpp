@@ -3,6 +3,7 @@
 // Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
+#include "unsorted/Unk_23f5d00.h"
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
 void Unk_ddf8c0(void* self);
@@ -62,3 +63,14 @@ public:
 void Unk_23f0b10::vf0() {
     Unk_ddf8c0(this);
 }
+
+class Unk_23f0d10 : public Unk_23f5d00 {
+public:
+    ~Unk_23f0d10() override;
+    u8* vf5() override;
+    Unk_23f5d00_Member<void> field_180;
+};
+PKMN_OFFSET_ASSERT(Unk_23f0d10, field_180, 0x180);
+
+// 0x7100de4cc0: its key function
+Unk_23f0d10::~Unk_23f0d10() {}

@@ -1637,6 +1637,42 @@ Unk_<T>(self, &l4); return l4;`, including SDK calls
 The trial wrote 545 functions; 38 match (check.py: 41,617 matching, 42 not
 matching).
 
+### Batch 37: base D2s with references, template members
+
+Two shapes from a census of the D2s of classes on hand-written bases that
+`write` refuses (the D2s that call or inline a hand-written base's D2,
+grouped by pattern):
+
+- **A base whose inline D2 has references of its own.** 22 classes on
+  `Unk_23c44f8` (inline destructor, three references) have 232-byte D2s:
+  their vptrs, a member at +0x80, then `Unk_23c44f8`'s D2 inlined, which
+  stores its vptrs and releases +0x78, +0x68 and +0x60 before the object's
+  part. `ref_members` took the inlined D2 to be the object's.
+  It now takes the base's D2 as it is: the class's references, then the
+  base's (its loads follow, and its statics follow the class's vtable).
+  Their `vf7`s aren't written, so a class on an inline base with references
+  and nothing else to be its key function gets its destructor written out
+  (Batch 18), as on the empty base. 16 hold a reference; the other 6 hold a
+  callable at +0x80, which `ref_members` doesn't read yet.
+- **A member of a class template.** The 19 classes on `Unk_23f5d00` that
+  store their vptrs and then only tail-call its D2 (#74): clang skips the
+  vptr stores of a destructor whose body is empty when every member's
+  destructor has an empty body too (`CanSkipVTablePointerInitialization`),
+  and a destructor whose body it hasn't seen isn't empty
+  (`FunctionDecl::hasTrivialBody`). A class template's members are
+  instantiated at the end of the TU, and an out-of-line destructor is
+  emitted where it's defined. So a member of a class template with an empty
+  user-provided destructor gives exactly these D2s, D0s and thunks; a plain
+  class's doesn't (checked with clang 7.0.1 and the game's flags). The
+  member is `Unk_23f5d00_Member<void>` (`src/unsorted/Unk_23f5d00.h`) at
+  +0x180; what it really is isn't known. `tail_members` reads the shape
+  (`_STORED_ONLY`), and the destructor is the key function.
+
+To size the trial, `write` ran with every candidate before and after the
+change (`--out` to a scratch directory), and `--only` listed the 172 new
+ones. All 172 match: 16 classes with 6 functions each (D2, D0, four
+thunks) and 19 with 4 (check.py: 41,789 matching, 42 not matching).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1662,7 +1698,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after Batch 36: check.py reports 41,617 matching and 42 not
+State after Batch 37: check.py reports 41,789 matching and 42 not
 matching, in both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
@@ -1732,9 +1768,9 @@ the bases of #62-#76). What's left, roughly by yield:
      (3), `Unk_23da950`'s `0x7100c277c0` (3; it inlines `Unk_239a418::vf5`
      for the reference at +0x100), and `Unk_2398c40` (owned objects with
      allocator deleters). `Unk_23f5d00` (#74) and `Unk_2419350` (#76) are
-     done; 19 classes on `Unk_23f5d00` store their vptrs before the tail
-     call, which an empty `~X() {}` doesn't (#74), and `Unk_23f5d00`'s
-     constructor needs a root class under `Unk_239a4c0_Base`;
+     done, and so are the 19 classes on `Unk_23f5d00` that store their
+     vptrs before the tail call (Batch 37); `Unk_23f5d00`'s constructor
+     needs a root class under `Unk_239a4c0_Base`;
    - the owner heuristic: a D2 belongs to the class whose vtable it stores.
      165 D2s (slot 0 of a primary vtable) store another vtable than their
      owner's: the hand-written bases' (`Unk_23f43c8`'s, with 247 vtables,
