@@ -1,8 +1,7 @@
 // Scope: common
 //
-// The UI tree node (src/unsorted/unk_14b14a0/Unk_2444570.h): its constructor,
-// destructor (the key function: its vtable and thunks are emitted here) and
-// the members of its TU.
+// The UI tree node (src/unsorted/unk_14b14a0/Unk_2444570.h): its constructor
+// and the members of its TU.
 #include "unsorted/unk_14b14a0/Unk_2444570.h"
 
 // 0x71014e19a0
@@ -35,11 +34,9 @@ void Unk_2444570::vf10() {
     field_80 = true;
 }
 
-// 0x71014e1ba0, thunks 0x71014e1d70 (+0x48) and 0x71014e1e60 (+0x50); the
-// D0s are traps (the class is abstract)
-Unk_2444570::~Unk_2444570() {}
-
-// 0x71014e1c80
+// 0x71014e1c80. The key function: the vtable, the implicit destructor
+// (0x71014e1ba0) and its thunks (0x71014e1d70 for +0x48, 0x71014e1e60 for
+// +0x50) are emitted here; the D0s are traps (the class is abstract).
 void Unk_2444570::vf7(u64 arg) {
     static_cast<Unk_2444570_98_Base*>(field_98.m_ptr)->vf5(&field_88, arg);
 }
@@ -53,3 +50,6 @@ void Unk_2444570::vf8() {
 void Unk_2444570::vf9(u64 arg) {
     field_98.m_ptr->vf7(&field_88, arg);
 }
+
+// 0x71014e2aa0 (its D0 and thunks tail-call it)
+Unk_24446c0::~Unk_24446c0() {}
