@@ -18,8 +18,6 @@ struct Unk_aa3130;
 u32 Unk_aa3130_call(const Unk_aa3130* self);
 struct Unk_aa6650;
 bool Unk_aa6650_check(const Unk_aa6650* self);
-struct Unk_e807f0;
-void Unk_e807f0_call(Unk_e807f0* self, bool value);
 struct Unk_a96b10;
 void Unk_a96b10_call(const Unk_a96b10* self);
 struct Unk_aa75b0;

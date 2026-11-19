@@ -114,6 +114,12 @@ public:
 };
 
 // Functions of the views (Unk_23f4660).
+// tools/leafgen.py's placeholder for one of them, with its own struct.
+struct Unk_e807f0;
+void Unk_e807f0_call(Unk_e807f0* self, bool value);
+inline void Unk_ViewE807f0(Unk_23f4660* view, bool value) {
+    Unk_e807f0_call(reinterpret_cast<Unk_e807f0*>(view), value);
+}
 void Unk_e806b0(Unk_23f4660* view, bool visible, bool children);
 // tools/leafgen.py's placeholder, with the view as a u64.
 void Unk_e80580(u64 view, u32 arg1, u32 arg2);
