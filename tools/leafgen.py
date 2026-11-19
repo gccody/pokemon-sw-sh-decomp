@@ -2528,6 +2528,40 @@ def _member_prefix(parts: list[str], member: str) -> str:
     return "_ZN" + "".join(f"{len(x)}{x}" for x in parts + [member]) + "E"
 
 
+_SCALARS = {"bool", "char", "signed char", "unsigned char", "short", "unsigned short", "int", "unsigned int",
+            "long", "unsigned long", "char const*", "void*"}
+
+
+def template_class(mangled: str, demangled: str) -> tuple[list[str], list[str]] | None:
+    """A template class's RTTI name, `N2nn3nex20PseudoGlobalVariableIbEE` with
+    its demangling `nn::nex::PseudoGlobalVariable<bool>`: (the names, the
+    last with its arguments, for the definitions; the declarations before its
+    class: the classes its arguments name, the primary template). Only type
+    arguments (classes, scalars), one level of template, None otherwise."""
+    m = re.fullmatch(r"((?:\w+::)*)(\w+)<(.*)>", demangled)
+    if not m or "<" in m.group(3) or "(" in m.group(3) or not mangled.startswith("N"):
+        return None
+    spaces = [x for x in m.group(1).split("::") if x]
+    args = [a.strip() for a in m.group(3).split(",")]
+    decls = []
+    for a in args:
+        if a in _SCALARS:
+            continue
+        if not re.fullmatch(r"(?:[A-Za-z_]\w*::)*[A-Za-z_]\w*", a):  # a class (not a value)
+            return None
+        *ns, name = a.split("::")
+        d = f"class {name};"
+        for n in reversed(ns):
+            d = f"namespace {n} {{ {d} }}"
+        decls.append(d)
+    params = ", ".join(f"class T{i}" for i in range(len(args)))
+    head = f"template <{params}> class {m.group(2)};"
+    for n in reversed(spaces):
+        head = f"namespace {n} {{ {head} }}"
+    decls.append(head)
+    return spaces + [f"{m.group(2)}<{', '.join(args)}>"], decls
+
+
 _SIG = re.compile(r"^(.+?) (Unk_[0-9a-f]+_\w+)\((.*)\) \{$")
 
 
@@ -2558,18 +2592,26 @@ def as_member(func: str, cls: list[str], member: str) -> tuple[str, str] | None:
     return decl, definition
 
 
-def render_class_file(cls: list[str], members: list[tuple[int, str, str, str]]) -> str:
-    """One library class's members: (addr, structs, declaration, definition)."""
+def render_class_file(cls: list[str], members: list[tuple[int, str, str, str]], before: list[str] = (),
+                      rtti: str = "") -> str:
+    """One library class's members: (addr, structs, declaration, definition).
+    A template class (template_class) is an explicit specialization, after
+    the declarations `before`."""
     out = ["// Scope: common",
            "// Small virtual functions of a library class (tools/leafgen.py members): placeholder",
            "// member names vf<slot>, placeholder structs. The class's name is its RTTI's.",
            "#include <types.h>", ""]
     if any(REF_HEADER.split('"')[1] in st or "Unk_239a458" in d for _, st, _, d in members):
         out[-1:] = ["", REF_HEADER, ""]
+    if rtti:
+        out[3:3] = [f"// RTTI: {rtti}"]
     for _, structs, _, _ in members:
         if structs.strip():
             out += [structs.rstrip("\n"), ""]
-    head = f"class {cls[-1]} {{\npublic:\n" + "\n".join(d for _, _, d, _ in members) + "\n};"
+    if before:
+        out += [*before, ""]
+    special = "template <> " if "<" in cls[-1] else ""
+    head = f"{special}class {cls[-1]} {{\npublic:\n" + "\n".join(d for _, _, d, _ in members) + "\n};"
     for ns in reversed(cls[:-1]):
         head = f"namespace {ns} {{\n{head}\n}}  // namespace {ns}"
     out += [head, ""]
@@ -2599,12 +2641,14 @@ def cmd_members(args) -> int:
     rows = {f.sword: f for f in read_functions_csv() if f.sword is not None}
     only = {int(x, 16) for x in args.only.read_text().split()} if args.only else None
     classes: dict[tuple, list] = {}
+    extra: dict[tuple, tuple] = {}  # class -> (declarations before it, its RTTI name)
     why: Counter = Counter()
     # placeholder classes defined anywhere else under src/ aren't ours to write
     taken = V.defined_classes(ROOT / "src", skip=args.out)
-    own = V.prefer_stored(m, V.owners(m.vtables))
+    own = V.owners(m.vtables)
     if any(in_area("game", a) or a in ("gflib3", "gflnet3", "startup") for a in args.area):
-        # game code: the owners vtables.py gives (an empty D2's root, ctor_roots)
+        # game code: the owners vtables.py gives (the stored vtable's, an empty D2's root)
+        own = V.prefer_stored(m, own)
         own.update((d2, (r, 0)) for d2, r in V.ctor_roots(m, V.ctor_bases(m)).items())
     game = any(in_area("game", a) or a in ("gflib3", "gflnet3", "startup") for a in args.area)
     for f, (va, slot) in own.items():
@@ -2621,10 +2665,16 @@ def cmd_members(args) -> int:
         if only is not None and f + BASE not in only:
             continue
         g = by.get(v.group, v)
+        before: list[str] = []
+        name = None
         if g.typeinfo is not None:
             p_ = dyn.slots.get(g.typeinfo + 8)
             name = c_string(m.img, p_, 0, len(m.img)) if isinstance(p_, int) else None
             cls = _type_name(name) if name else None
+            if cls is None and name:
+                t = template_class(name, demangled(name))
+                if t is not None:
+                    cls, before = t
         elif game:
             cls = [V.class_name(v)]  # the vtable's own class, as vtables.py names it
         else:
@@ -2648,6 +2698,7 @@ def cmd_members(args) -> int:
             why["not a member"] += 1
             continue
         classes.setdefault(tuple(cls), []).append((f + BASE, structs, *mem))
+        extra[tuple(cls)] = (before, name or "")
     clang = ROOT / "toolchain" / "clang" / "bin" / ("clang++.exe" if sys.platform == "win32" else "clang++")
     kept = {}
     for cls, members in classes.items():
@@ -2657,16 +2708,16 @@ def cmd_members(args) -> int:
             if member in seen:
                 continue
             seen.add(member)
-            if _compiles_text(render_class_file(list(cls), [x]), clang) is None:
+            if _compiles_text(render_class_file(list(cls), [x], *extra[cls]), clang) is None:
                 ok.append(x)
             else:
                 why["doesn't compile"] += 1
-        if ok and _compiles_text(render_class_file(list(cls), ok), clang) is not None:
+        if ok and _compiles_text(render_class_file(list(cls), ok, *extra[cls]), clang) is not None:
             # members that compile alone but not together (overloads of one placeholder
             # callee): keep each one only if the file still compiles with it
             together = []
             for x in ok:
-                if _compiles_text(render_class_file(list(cls), together + [x]), clang) is None:
+                if _compiles_text(render_class_file(list(cls), together + [x], *extra[cls]), clang) is None:
                     together.append(x)
                 else:
                     why["doesn't compile with the others"] += 1
@@ -2677,13 +2728,22 @@ def cmd_members(args) -> int:
     from common import clang_format
     written = []
     for cls, members in kept.items():
-        path = args.out / ("_".join(cls) + ".cpp")
-        path.write_text(render_class_file(list(cls), members), encoding="utf-8", newline="\n")
+        path = args.out / (re.sub(r"\W+", "_", "_".join(cls)).strip("_") + ".cpp")
+        path.write_text(render_class_file(list(cls), members, *extra[cls]), encoding="utf-8", newline="\n")
         written.append(path)
     clang_format(written)
     print(f"wrote {sum(len(x) for x in kept.values())} members of {len(kept)} classes; refused: "
           + ", ".join(f"{k} {n}" for k, n in why.most_common(8)), file=sys.stderr)
     return 0
+
+
+def demangled(type_name: str) -> str:
+    """A type's mangled name (as RTTI spells it) demangled, by llvm-cxxfilt."""
+    import subprocess
+
+    tool = ROOT / "toolchain" / "llvm-19" / "bin" / ("llvm-cxxfilt.exe" if sys.platform == "win32" else "llvm-cxxfilt")
+    r = subprocess.run([str(tool), "_ZTS" + type_name], capture_output=True, text=True)
+    return r.stdout.strip().removeprefix("typeinfo name for ")
 
 
 def _compiles_text(src: str, clang: Path) -> str | None:
@@ -2710,6 +2770,12 @@ def cmd_member_names(args) -> int:
     want: dict[str, int] = {}
     for path in args.dir.glob("*.cpp"):
         text = path.read_text(encoding="utf-8")
+        rtti = re.search(r"^// RTTI: (\S+)$", text, re.M)
+        if rtti and rtti.group(1).startswith("N"):  # the class's own nested name, as mangled
+            for m in re.finditer(r"^// 0x([0-9a-f]+)\n.*?::(vf\d+)\(", text, re.M):
+                v = m.group(2)
+                want["_ZN" + rtti.group(1)[1:-1] + f"{len(v)}{v}E"] = int(m.group(1), 16)
+            continue
         for m in re.finditer(r"^// 0x([0-9a-f]+)\n.*? ([\w:]+)::(vf\d+)\(", text, re.M):
             want[_member_prefix(m.group(2).split("::"), m.group(3))] = int(m.group(1), 16)
     stems = {p.name for p in args.dir.glob("*.cpp")}

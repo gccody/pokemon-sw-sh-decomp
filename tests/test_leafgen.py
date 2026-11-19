@@ -554,3 +554,16 @@ def test_declarations_without_overloads():
     entries = [(1, "void Unk_10(u64);\n", ""), (2, "void Unk_10(void*);\n", "")]
     assert [e[0] for e in leafgen.consistent_declarations(entries)] == [1, 2]
     assert [e[0] for e in leafgen.consistent_declarations(entries, overloads=False)] == [1]
+
+
+def test_template_class_members():
+    """A template class's RTTI name, with type arguments only: an explicit
+    specialization, after the primary template and the argument's class."""
+    cls, before = leafgen.template_class("N2nn3nex20PseudoGlobalVariableINS0_7DDLDeclE",
+                                         "nn::nex::PseudoGlobalVariable<nn::nex::DDLDecl>")
+    assert cls == ["nn", "nex", "PseudoGlobalVariable<nn::nex::DDLDecl>"]
+    assert before == ["namespace nn { namespace nex { class DDLDecl; } }",
+                      "namespace nn { namespace nex { template <class T0> class PseudoGlobalVariable; } }"]
+    assert leafgen.template_class("N2nn3nex1XILi0EEE", "nn::nex::X<0>") is None  # not a type argument
+    text = leafgen.render_class_file(cls, [(ADDR, "", "    u32 vf3();", "u32 a() {}\n")], before, "N2nn3nex1XE")
+    assert "template <> class PseudoGlobalVariable<nn::nex::DDLDecl> {" in text and "// RTTI: N2nn3nex1XE" in text
