@@ -140,6 +140,18 @@ class CallRet:
 
 
 @dataclass(frozen=True)
+class VTarget:
+    obj: object           # a virtual call: `ldr x8, [obj] ; ldr x8, [x8, #slot] ; blr x8` with x0 = obj
+    slot: int
+
+
+@dataclass(frozen=True)
+class RefTarget:
+    obj: object           # a reference added or dropped (REF_SLOTS) through the interface at REF_IFACE
+    slot: int
+
+
+@dataclass(frozen=True)
 class Call:
     target: int           # bl T (absolute)
     args: tuple           # x0.. at the call, up to the last one written since the previous call
@@ -347,7 +359,7 @@ def guard_shape(insns: list[tuple[str, list[str]]], addr: int | None) -> tuple[i
     to = (_imm(insns[k][1][1]) - addr) // 4
     if not k + 1 < to < len(insns):
         raise LiftError(f"{mn} out of the function")
-    rest = [(m, [o.strip() for o in ops]) for m, ops in insns[to:]]
+    rest = [(m, [o.strip() for o in ops]) for m, ops in insns[to:] if not _is_frame(m, ops)]
     zero: int | None = None  # what the other path returns (None: nothing)
     if rest == [("ret", [])]:
         pass
@@ -382,6 +394,8 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
     k, zero = None, None
     if shape is not None:
         k, insns, zero = shape
+    if shape is None and insns and insns[-1][0] == "br":
+        insns = insns + [("ret", [])]  # a virtual tail call, handled in the loop
     tail = None
     if not insns:
         raise LiftError("doesn't end with ret")
@@ -398,6 +412,22 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
     written: set[tuple[str, int]] = set()
     since: set[tuple[str, int]] = set()   # written since the last call
     framed = False
+    inner = 0                             # calls before the last instruction (bl, blr): need a frame
+
+    def call_args(virtual: bool) -> tuple:
+        """x0.. at a call: up to the last one written since the previous call
+        (or the start), the ones before it passed on; for a virtual call x0 is
+        the object, and the rest follow."""
+        if any(("f", i) in since for i in range(8)):
+            raise LiftError("floating-point call argument")
+        n = max((i + 1 for i in range(8) if ("x", i) in since), default=0)
+        args = []
+        for i in range(1 if virtual else 0, n):
+            v = regs.get(("x", i))
+            if v is None:
+                raise LiftError("call argument the previous call left")
+            args.append(v)
+        return tuple(args)
 
     def get(r: str) -> object:
         kind, n = _reg(r)
@@ -433,20 +463,20 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
         if _is_frame(mn, ops):
             framed = True
             continue  # the frame record and the callee-saved registers (x19-x28), kept across calls
-        if mn == "bl" and addr is not None:
-            if k is not None:
-                raise LiftError("cbz in a function that calls")
-            if any(("f", i) in since for i in range(8)):
-                raise LiftError("floating-point call argument")
-            n = max((i + 1 for i in range(8) if ("x", i) in since), default=0)
-            args = []
-            for i in range(n):
-                v = regs.get(("x", i))
-                if v is None:
-                    raise LiftError("call argument the previous call left")
-                args.append(v)
-            out.calls.append(Call(_imm(ops[0]), tuple(args), out.stores_done))
+        if mn in ("bl", "blr") and addr is not None:
+            if mn == "blr":
+                since.discard(("x", _reg(ops[0])[1]))
+                v = get(ops[0])
+                target = virtual_target(v)
+                if target is None and isinstance(v, VSlot) and regs.get(("x", 0)) == Iface(v.obj):
+                    target = RefTarget(v.obj, v.slot)
+                elif target is None or regs.get(("x", 0)) != target.obj:
+                    raise LiftError("blr")
+            else:
+                target = _imm(ops[0])
+            out.calls.append(Call(target, call_args(mn == "blr"), out.stores_done))
             out.stores_done += 1
+            inner += 1
             for i in list(range(19)):
                 regs.pop(("x", i), None)
             for i in range(32):
@@ -461,6 +491,7 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
                 raise LiftError(f"{mn} of a computed value")
             out.guard = (v, mn == "cbz")
             out.guard_seq = out.stores_done
+            out.stores_done += 1  # what's loaded after it is read inside the guard
             out.guard_stores = len(out.stores)
             out.zero_else = zero is not None
             out.else_value = zero or 0
@@ -485,6 +516,12 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
             put(dst, VSlot(get(f"x{base}").obj, off))
         elif mn == "br" and idx == len(insns) - 2:
             v = get(ops[0])
+            target = virtual_target(v)
+            if target is not None and regs.get(("x", 0)) == target.obj:
+                since.discard(("x", _reg(ops[0])[1]))  # the function's address, not an argument
+                out.calls.append(Call(target, call_args(True), out.stores_done))
+                out.stores_done += 1
+                continue
             if not isinstance(v, VSlot) or regs.get(("x", 0)) != Iface(v.obj):
                 raise LiftError("br")
             out.vcall = (v.obj, v.slot)
@@ -642,8 +679,11 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
         else:
             raise LiftError(mn)
 
-    if framed != bool(out.calls):
+    if framed != bool(inner):
         raise LiftError("a frame without a call" if framed else "bl without a frame")
+    if out.calls and insns[-1][0] == "ret" and out.calls[-1].seq == out.stores_done - 1 and \
+            isinstance(out.calls[-1].target, VTarget) and not inner:
+        return out  # a virtual tail call (br), the function's last statement
     if out.vcall is not None:
         if out.guard is not None and out.zero_else:
             raise LiftError("cbz: returns something")
@@ -689,6 +729,16 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
 
 
 _CALLEE_SAVED = {f"x{i}" for i in range(19, 31)}
+
+
+def virtual_target(v: object) -> VTarget | None:
+    """A virtual function loaded from an object's vptr: `ldr x8, [obj] ; ldr x8,
+    [x8, #slot]`."""
+    if isinstance(v, Load) and v.type == "u64" and isinstance(v.base, Load) and v.base.offset == 0 and \
+            v.base.type == "u64" and v.offset % 8 == 0 and isinstance(v.base.base, (Arg, Load)) and \
+            not (isinstance(v.base.base, Arg) and v.base.base.fp):
+        return VTarget(v.base.base, v.offset)
+    return None
 
 
 def _is_frame(mn: str, ops: list[str]) -> bool:
@@ -757,6 +807,7 @@ def _is_pointer_like(e: object) -> bool:
 class StructDef:
     name: str
     fields: dict[int, str] = field(default_factory=dict)  # offset -> type (a type name or "<struct>*")
+    vslots: dict[int, tuple] = field(default_factory=dict)  # vtable offset -> (return type, parameter types)
 
 
 class Emitter:
@@ -1064,8 +1115,8 @@ class Emitter:
                 if not any(_may_alias((ld.base, ld.offset, ld.type), x) for x in between) and \
                         not any(epoch <= c.seq < seq for c in lf.calls):
                     continue
-                if len(epochs) > 1 or (lf.guard is not None and epoch > lf.guard_seq):
-                    raise LiftError("read before a store, then reloaded or read after the guard")
+                if len(epochs) > 1:
+                    raise LiftError("read before a store, then reloaded")
                 need[ld] = epoch
         out: dict[int, list[tuple[Load, str]]] = {}
         for n, (ld, epoch) in enumerate(sorted(need.items(), key=lambda x: (x[1], repr(x[0])))):
@@ -1080,6 +1131,23 @@ class Emitter:
         lf = self.lifted
         c = lf.calls[j]
         width = lf.ret_width.get(j)
+        if isinstance(c.target, VTarget):
+            return self.render_virtual(j, c, width)
+        if isinstance(c.target, RefTarget):
+            obj = c.target.obj
+            if width or c.args:
+                raise LiftError("reference call with arguments or a result")
+            if isinstance(obj, Arg):
+                self.arg_types[obj.index] = "Unk_239a418*"
+                self.passed.add(obj)
+                p = self.arg_name(obj.index)
+            elif isinstance(obj, Load):
+                p = self.locals.get(obj) or self.field_expr(obj.base, obj.offset, "Unk_239a418*")
+                if self.stored_type(obj.base, obj.offset) != "Unk_239a418*":
+                    raise LiftError("interface of a field of another type")
+            else:
+                raise LiftError("interface of a computed pointer")
+            return f"    static_cast<Unk_239a458*>({p})->{REF_SLOTS[c.target.slot]}();"
         if c.target in KNOWN:
             ret, callee, ptypes = KNOWN[c.target]
             if len(ptypes) != len(c.args) or (width and ret == "void"):
@@ -1133,6 +1201,42 @@ class Emitter:
             return f"    {call};"
         if rt not in CALL_CODES:
             raise LiftError(f"call result of type {rt}")
+        self.call_types[j] = rt
+        self.locals[CallRet(j)] = f"r{j}"
+        return f"    {rt} r{j} = {call};"
+
+    def render_virtual(self, j: int, c: Call, width: int | None) -> str:
+        """`obj->vf<N>(args...)`: obj's struct becomes polymorphic, with virtual
+        functions declared up to the slot (none defined, so no vtable is
+        emitted here) and its fields after the vptr."""
+        obj, slot = c.target.obj, c.target.slot
+        s = self.struct_for(obj)
+        args, types = [], []
+        for e in c.args:
+            if isinstance(e, Arg) and not e.fp:
+                t = self.arg_types.setdefault(e.index, "u64")
+                self.passed.add(e)
+                args.append(self.arg_name(e.index))
+                types.append("void*" if t.endswith("*") else t)
+            elif self.is_pointer(e) or self.type_of(e) == "ptr":
+                args.append(self.expr(e))
+                types.append("void*")
+            else:
+                t = self.type_of(e)
+                if t not in CALL_CODES:
+                    raise LiftError(f"call argument of type {t}")
+                args.append(self.expr(e, t))
+                types.append(t)
+        rt = {4: "u32", 8: "u64"}.get(width, "void")
+        old = s.vslots.get(slot)
+        if old is not None and old != (rt, tuple(types)):
+            raise LiftError("virtual function called two ways")
+        s.vslots[slot] = (rt, tuple(types))
+        if isinstance(obj, Arg):
+            self.passed.add(obj)  # its virtual functions aren't const
+        call = f"{self.ptr(obj)}->vf{slot // 8}({', '.join(args)})"
+        if not width:
+            return f"    {call};"
         self.call_types[j] = rt
         self.locals[CallRet(j)] = f"r{j}"
         return f"    {rt} r{j} = {call};"
@@ -1193,14 +1297,18 @@ class Emitter:
 
         events = sorted([(q, 0, i) for i, q in enumerate(lf.store_seq)] +
                         [(c.seq, 1, j) for j, c in enumerate(lf.calls)])
+        def guard_at(seq: int) -> None:
+            if lf.guard is not None and self.before is None and seq > lf.guard_seq:
+                hold(lf.guard_seq)
+                self.before = len(body)
+
         for seq, kind, i in events:
+            guard_at(seq)
             hold(seq)
             if kind == 1:
                 body.append(self.render_call(i))
                 continue
             base, off, t, value = lf.stores[i]
-            if i == lf.guard_stores:
-                self.before = len(body)
             if isinstance(value, AddrOf):
                 raise LiftError("stores an address")
             lhs = self.field_expr(base, off, t)
@@ -1216,6 +1324,7 @@ class Emitter:
             if isinstance(value, Const) and value.value == 0 and ft.endswith("*"):
                 rhs = "nullptr"
             body.append(f"    {lhs} = {rhs};")
+        guard_at(lf.stores_done + 1)
         hold(lf.stores_done)
         if self.before is None:
             self.before = len(body)
@@ -1440,6 +1549,14 @@ class Emitter:
 def render_struct(s: StructDef) -> str:
     lines = [f"struct {s.name} {{"]
     pos = 0
+    if s.vslots:
+        # Polymorphic: the vptr at 0, a virtual function per slot up to the last one called.
+        if 0 in s.fields:
+            raise LiftError("vptr read as a field")
+        for slot in range(0, max(s.vslots) + 8, 8):
+            rt, types = s.vslots.get(slot, ("void", ()))
+            lines.append(f"    virtual {rt} vf{slot // 8}({', '.join(types)});")
+        pos = 8
     asserts = []
     for off in sorted(s.fields):
         t = s.fields[off]

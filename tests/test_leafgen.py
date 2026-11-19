@@ -407,3 +407,23 @@ def test_calls_in_a_frame():
     entries = [(1, "u64 Unk_123564(u64);\n", ""), (2, structs, func)]
     assert [e[0] for e in leafgen.consistent_declarations(entries)] == [1]
     assert leafgen.placeholder_params("_Z11Unk_164d2f0Pvj", 0x710164D2F0) == ["void*", "u32"]
+
+
+def test_guard_in_a_frame_and_virtual_calls():
+    """... mov x19, x0 ; ldr x0, [x0, #8] ; cbz x0, L ; ldr x8, [x0, #0x48]! ;
+    ldr x8, [x8, #0x18] ; blr x8 ; str xzr, [x19, #8] ; L: <epilogue> ; ret:
+    Unk_239a418_Ref's destructor, the guard skipping to the epilogue. And
+    ldr x0, [x0, #0x2c0] ; cbz x0, L ; ldr x8, [x0] ; ldr x1, [x8, #0x10] ; br x1 ;
+    L: ret: a virtual tail call on a polymorphic placeholder."""
+    ldr_pre = 0xF8400C00 | (0x48 << 12) | 0 << 5 | 8
+    words = (0xF81E0FF3, 0xA9017BFD, 0x910043FD, 0xAA0003F3, ldr_x(0, 0, 8), cbz_x(0, 5), ldr_pre,
+             ldr_x(8, 8, 0x18), 0xD63F0100, str_x(31, 19, 8), 0xA9417BFD, 0xF84207F3, RET)
+    _, func = leafgen.generate(ADDR, code(*words))
+    assert func == ("void Unk_123450_call(Unk_123450* self) {\n    if (self->field_8 != nullptr) {\n"
+                    "        static_cast<Unk_239a458*>(self->field_8)->vf5();\n"
+                    "        self->field_8 = nullptr;\n    }\n}\n")
+    words = (ldr_x(0, 0, 0x2C0), cbz_x(0, 4), ldr_x(8, 0, 0), ldr_x(1, 8, 0x10), 0xD61F0020, RET)
+    structs, func = leafgen.generate(ADDR, code(*words))
+    assert "struct Unk_123450_2c0 {\n    virtual void vf0();\n    virtual void vf1();\n    virtual void vf2();\n};" \
+        in structs
+    assert "        self->field_2c0->vf2();\n" in func
