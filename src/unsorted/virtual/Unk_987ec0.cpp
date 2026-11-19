@@ -4,6 +4,7 @@
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
 #include "unsorted/Unk_23c44f8.h"
+#include "unsorted/Unk_23d4470.h"
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
 void Unk_9895d0(void* self);
@@ -431,6 +432,64 @@ PKMN_OFFSET_ASSERT(Unk_23c2dd8, field_80, 0x80);
 // 0x710099a270: its key function
 Unk_23c2dd8::~Unk_23c2dd8() {}
 
+class Unk_23c2e90 : public Unk_23c44f8 {
+public:
+    ~Unk_23c2e90() override;
+    void vf7(s32) override;
+    Unk_23d4470_Callable field_80;
+};
+PKMN_OFFSET_ASSERT(Unk_23c2e90, field_80, 0x80);
+
+// 0x710099a810: its key function
+Unk_23c2e90::~Unk_23c2e90() {}
+
+class Unk_23c2f48 : public Unk_23c44f8 {
+public:
+    ~Unk_23c2f48() override;
+    void vf7(s32) override;
+    Unk_23d4470_Callable field_80;
+};
+PKMN_OFFSET_ASSERT(Unk_23c2f48, field_80, 0x80);
+
+// 0x710099adb0: its key function
+Unk_23c2f48::~Unk_23c2f48() {}
+
+class Unk_23c3000 : public Unk_23c44f8 {
+public:
+    ~Unk_23c3000() override;
+    void vf7(s32) override;
+    Unk_23d4470_Callable field_80;
+};
+PKMN_OFFSET_ASSERT(Unk_23c3000, field_80, 0x80);
+
+// 0x710099b350: its key function
+Unk_23c3000::~Unk_23c3000() {}
+
+class Unk_23c30b8 : public Unk_23c44f8 {
+public:
+    ~Unk_23c30b8() override;
+    void vf7(s32) override;
+    Unk_23d4470_Callable field_80;
+};
+PKMN_OFFSET_ASSERT(Unk_23c30b8, field_80, 0x80);
+
+// 0x710099b8f0: its key function
+Unk_23c30b8::~Unk_23c30b8() {}
+
+class Unk_23c3228 : public Unk_23c44f8 {
+public:
+    ~Unk_23c3228() override;
+    void vf7(s32) override;
+    u8 _80[0x10];
+    Unk_23d4470_Callable field_90;
+    Unk_23d4470_Callable field_110;
+};
+PKMN_OFFSET_ASSERT(Unk_23c3228, field_90, 0x90);
+PKMN_OFFSET_ASSERT(Unk_23c3228, field_110, 0x110);
+
+// 0x710099c550: its key function
+Unk_23c3228::~Unk_23c3228() {}
+
 class Unk_23c3508 : public Unk_23c44f8 {
 public:
     ~Unk_23c3508() override;
@@ -551,6 +610,28 @@ PKMN_OFFSET_ASSERT(Unk_23c3cf0, field_80, 0x80);
 
 // 0x71009a1350: its key function
 Unk_23c3cf0::~Unk_23c3cf0() {}
+
+class Unk_23c3da8 : public Unk_23c44f8 {
+public:
+    ~Unk_23c3da8() override;
+    void vf7(s32) override;
+    Unk_23d4470_Callable field_80;
+};
+PKMN_OFFSET_ASSERT(Unk_23c3da8, field_80, 0x80);
+
+// 0x71009a18f0: its key function
+Unk_23c3da8::~Unk_23c3da8() {}
+
+class Unk_23c3e60 : public Unk_23c44f8 {
+public:
+    ~Unk_23c3e60() override;
+    void vf7(s32) override;
+    Unk_23d4470_Callable field_80;
+};
+PKMN_OFFSET_ASSERT(Unk_23c3e60, field_80, 0x80);
+
+// 0x71009a1e90: its key function
+Unk_23c3e60::~Unk_23c3e60() {}
 
 class Unk_23c3f18 : public Unk_23c44f8 {
 public:
