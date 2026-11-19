@@ -1752,6 +1752,20 @@ matching).
 would compete for the same classes: game code's classes are left to
 `vtables.py`.
 
+### Batch 42: template library classes
+
+About 850 of the libraries' unmatched virtual functions belong to template
+classes (`nn::nex::DataStoreClientTemplate<nn::nex::DataStoreLogicServerClient>`,
+`nn::nex::PseudoGlobalVariable<bool>`, ...), whose RTTI names `members`
+refused. `template_class` takes the demangled name (llvm-cxxfilt) when all
+its arguments are types (classes, scalars): the primary template and the
+argument classes are declared, and the members go in an explicit
+specialization, whose members mangle as the instantiation's. Each class file
+now records its RTTI name (`// RTTI: ...`), and `member-names` takes the
+mangled prefix from it.
+
+75 more match (check.py: 44,545 matching, 42 not matching).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1777,7 +1791,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after Batch 41: check.py reports 44,470 matching and 42 not
+State after Batch 42: check.py reports 44,545 matching and 42 not
 matching, in both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
