@@ -14,3 +14,10 @@ void Unk_4c94c0_call() {
 u32 Unk_4c9b90_get() {
     return 1;
 }
+
+extern u8 Unk_24e8f60;
+
+// 0x71004c9eb0
+u8* Unk_4c9eb0_get() {
+    return &Unk_24e8f60;
+}

@@ -808,3 +808,43 @@ void Unk_7d64a0(void*, u64, u64, u64);
 void Unk_7dfdd0_call(void* self, u64 value, u64 arg2) {
     Unk_7d64a0(self, value, arg2, 0);
 }
+
+struct Unk_27cebd0_Data {
+    u32 field_0;
+    u32 field_4;
+    u32 field_8;
+    u8 _c[0xc];
+    u32 field_18;
+    u16 field_1c;
+    u8 _1e[0x2];
+    u32 field_20;
+    u16 field_24;
+};
+PKMN_OFFSET_ASSERT(Unk_27cebd0_Data, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_27cebd0_Data, field_4, 0x4);
+PKMN_OFFSET_ASSERT(Unk_27cebd0_Data, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_27cebd0_Data, field_18, 0x18);
+PKMN_OFFSET_ASSERT(Unk_27cebd0_Data, field_1c, 0x1c);
+PKMN_OFFSET_ASSERT(Unk_27cebd0_Data, field_20, 0x20);
+PKMN_OFFSET_ASSERT(Unk_27cebd0_Data, field_24, 0x24);
+
+extern Unk_27cebd0_Data Unk_27cebd0 __attribute__((visibility("hidden")));
+namespace nn {
+namespace ldn {
+u64 MakeIpv4Address(u8, u8, u8, u8);
+}
+}  // namespace nn
+
+// 0x71007e3730
+void Unk_7e3730_call() {
+    u32 r0 = nn::ldn::MakeIpv4Address(0x7f, 0, 0, 1);
+    Unk_27cebd0.field_0 = r0;
+    u32 r1 = nn::ldn::MakeIpv4Address(0xff, 0xff, 0xff, 0xff);
+    Unk_27cebd0.field_4 = r1;
+    u32 r2 = nn::ldn::MakeIpv4Address(0, 0, 0, 0);
+    Unk_27cebd0.field_24 = 0xffff;
+    Unk_27cebd0.field_1c = 0;
+    Unk_27cebd0.field_8 = r2;
+    Unk_27cebd0.field_18 = 0;
+    Unk_27cebd0.field_20 = 0xffffffff;
+}

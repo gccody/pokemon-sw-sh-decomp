@@ -80,6 +80,20 @@ void Unk_3fcd40_call(Unk_3fcd40* self, u32 value) {
     }
 }
 
+struct Unk_3ff910 {
+    u8 _0[0x8];
+    u64 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_3ff910, field_8, 0x8);
+
+namespace nn { namespace os { u64 GetCurrentThread(); } }
+
+// 0x71003ff910
+void Unk_3ff910_call(Unk_3ff910* self) {
+    u64 r0 = nn::os::GetCurrentThread();
+    self->field_8 = r0;
+}
+
 struct Unk_3ffdb0 {
     u8 _0[0x210];
     u8 field_210;

@@ -18,6 +18,34 @@ u32 Unk_16180d0_get() {
     return 1;
 }
 
+struct Unk_1618410 {
+    u8 _0[0xa];
+    u16 field_a;
+};
+PKMN_OFFSET_ASSERT(Unk_1618410, field_a, 0xa);
+
+namespace nn { namespace socket { u64 InetHtons(u16); } }
+
+// 0x7101618410
+void Unk_1618410_call(Unk_1618410* self, u16 value) {
+    u32 r0 = nn::socket::InetHtons(value);
+    self->field_a = r0;
+}
+
+struct Unk_16184b0 {
+    u8 _0[0xc];
+    u32 field_c;
+};
+PKMN_OFFSET_ASSERT(Unk_16184b0, field_c, 0xc);
+
+namespace nn { namespace socket { u64 InetHtonl(u32); } }
+
+// 0x71016184b0
+void Unk_16184b0_call(Unk_16184b0* self, u32 value) {
+    u32 r0 = nn::socket::InetHtonl(value);
+    self->field_c = r0;
+}
+
 struct Unk_1618570 {
     u8 _0[0xc];
     u32 field_c;
