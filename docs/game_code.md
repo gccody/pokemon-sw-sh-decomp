@@ -2414,6 +2414,29 @@ shares it with the outer lock; the scrambled view's read and write
 overloads (the block passed by reference: 6 adds, 4 overwrites) or another
 store's (10 writes calling other callees), not written yet.
 
+### Containers on Unk_2771620's allocator (2026-11-19)
+
+Two more families of the shape groups are libc++ templates on the container
+allocator of `src/unsorted/Unk_2771620.h`:
+
+- 24 × 652 bytes in `game/unk_133d350`: `vector::__emplace_back_slow_path` of
+  a type-erased callable (0x80 bytes, 16-aligned: four operations, then 0x60
+  bytes of storage; `src/unsorted/families/Unk_1382340.cpp`). The callables
+  added are empty, so constructing one only stores its operations, which are
+  leafgen's `Unk_<addr>_call`/`_update` after each slow path. The operations
+  are a struct copied whole: copied field by field, `__swap_out_circular_buffer`
+  costs 260 against the inliner's 250 and stays out of line.
+- 44 members of vectors of trivially copyable elements
+  (`src/unsorted/families/Unk_2771620_Vector.cpp`: 18 `__push_back_slow_path`,
+  17 `reserve`, 3 `__append`, 3 `assign`, 3 `__swap_out_circular_buffer` of
+  `insert`), found by compiling the templates for elements of every size and
+  alignment up to 0x200 and hashing them the way the shape groups are hashed.
+  Only the element's size and alignment show in the code, so each function
+  gets a placeholder element named after it. The sweep found 36 more
+  `__push_back_slow_path` instances that `tools/familygen.py` already writes
+  (`src/gflib3/families`, with pointer elements where they're 8 bytes), so
+  they're left to it.
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
