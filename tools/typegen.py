@@ -326,6 +326,7 @@ class ClassPlan:
     inlined: list[int] = field(default_factory=list)  # the types vf_type initialises, its own first
     end: tuple = ()                          # the last one's parent: ("cut", getter) | ("zero",) | ("global", type)
     forward: int | None = None               # the getter vf_type tail-calls, when it isn't inlined
+    bare: bool = False                       # vf_type only, not virtual here: its thunks aren't written
 
 
 @dataclass
@@ -525,6 +526,12 @@ def render(t: Types, expr: dict[int, str], classes: list[ClassPlan]) -> str:
         th = ", ".join(f"0x{a + BASE:x} (+0x{o:x})" for o, a in c.thunks)
         how = [f"// Its getter is too big to be inlined: vf_type and the thunks tail-call it (0x{c.forward + BASE:x})."] \
             if c.forward is not None else []
+        if c.bare:
+            return [f"// vtable 0x{c.group + BASE:x}: vf_type (its thunks {th} aren't written: they",
+                    "// call it, and the original's is inline, emitted with the class's vtable).",
+                    "// Declared without its bases or its vtable: vf_type doesn't use them.",
+                    f"struct {c.name} {{", *((*getter(c.top), "") if c.top in own else ()),
+                    f"    {TYPE} vf_type();", "};", ""]
         return [f"// vtable 0x{c.group + BASE:x}: vf_type and its thunks {th}.", *how,
                 "// Its base and its other functions aren't written here.",
                 f"class {c.name} : public Unk_239a418 {{", "public:",
@@ -553,7 +560,7 @@ def render(t: Types, expr: dict[int, str], classes: list[ClassPlan]) -> str:
         if c.top not in own:
             out += declare(c)
     for c in classes:
-        out += [f"// 0x{c.vf_type + BASE:x}", *(f"// 0x{a + BASE:x}" for _, a in c.thunks),
+        out += [f"// 0x{c.vf_type + BASE:x}", *(f"// 0x{a + BASE:x}" for _, a in c.thunks if not c.bare),
                 f"{TYPE} {c.name}::vf_type() {{",
                 f"    return {'Unk_GetType()' if c.top in own else expr[c.top]};", "}", ""]
     if kinds:
@@ -612,13 +619,17 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int])
         names = [(c.vf_type, vt.mangle(c.name, "vf_type"))]
         names += [(a, f"_ZThn{o}_N{len(c.name)}{c.name}7vf_typeEv") for o, a in c.thunks]
         if c.forward is None:
+            if not all(a in t.getters for _, a in c.thunks):
+                # `sub x0, x0, #N ; b vf_type`: the original's vf_type is inline,
+                # emitted with its class's vtable in a TU not written here.
+                # Defined strongly with a vtable around it, its thunks would lose
+                # the adjustment, so it's written alone, as a plain member.
+                c.bare = True
+                names = names[:1]
             if not all(free(f, n) for f, n in names):
                 continue
-            if not all(a in t.getters for _, a in c.thunks):
-                skipped.append(f"{c.name}: its thunks call it (its own TU's vtable, not written here)")
-                continue
             ch = chain_of(t, expr, c.vf_type)
-            if ch is None or any(chain_of(t, expr, a) != ch for _, a in c.thunks):
+            if ch is None or not c.bare and any(chain_of(t, expr, a) != ch for _, a in c.thunks):
                 skipped.append(f"{c.name}: its type's chain")
                 continue
         else:
@@ -630,7 +641,7 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int])
                 skipped.append(f"{c.name}: its getter's chain or name")
                 continue
             names.append((c.forward, n))
-            if only is not None and not all(f in only for f, _ in names):
+            if only is not None and not all(f in only or rows[f].name == n for f, n in names):
                 continue  # all of it matched in the trial, or none of it is written
         c.inlined, c.end = ch
         if c.end[0] == "cut":
@@ -750,7 +761,9 @@ def cmd_write(t: Types, args) -> None:
     n_files = 0
     written = set()
     for _, cs in sorted(by_seg.items()):
-        for part in partition(t, expr, sorted(cs, key=key)):
+        bare = [c for c in cs if getattr(c, "bare", False)]  # apart: their types inline differently with more callers
+        rest = [c for c in cs if not getattr(c, "bare", False)]
+        for part in [*partition(t, expr, sorted(rest, key=key)), *partition(t, expr, sorted(bare, key=key))]:
             (OUT_DIR / f"Unk_{key(part[0]):x}.cpp").write_text(render(t, expr, part), encoding="utf-8",
                                                                 newline="\n")
             written |= {c.name for c in part}
