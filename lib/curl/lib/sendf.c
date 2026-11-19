@@ -797,8 +797,25 @@ static int showit(struct Curl_easy *data, curl_infotype type,
     case CURLINFO_TEXT:
     case CURLINFO_HEADER_OUT:
     case CURLINFO_HEADER_IN:
+#if 1 /* Pokemon SwSh decomp */
+    {
+      /* Nintendo's SDK build doesn't write to data->set.err: it copies the
+         text into a NUL-terminated buffer (malloc(size + 1), memcpy) and
+         frees it again (Curl_debug, Sword 0x7101766ed0; Curl_infof and
+         Curl_failf inline it). What it does with the buffer in between, a
+         release build leaves out: nothing else reads it. */
+      char *buf = malloc(size + 1);
+      if(buf) {
+        memcpy(buf, ptr, size);
+        buf[size] = '\0';
+        free(buf);
+      }
+      (void)s_infotype;
+    }
+#else
       fwrite(s_infotype[type], 2, 1, data->set.err);
       fwrite(ptr, size, 1, data->set.err);
+#endif
 #ifdef CURL_DOES_CONVERSIONS
       if(size != conv_size) {
         /* we had untranslated data so we need an explicit newline */
