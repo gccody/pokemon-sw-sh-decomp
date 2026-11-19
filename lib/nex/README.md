@@ -8,8 +8,8 @@ is `nn::nex::ByteStream`); everything the executable doesn't name keeps a
 placeholder (`Unk_<addr>` functions and structs, `vf<slot>` virtual
 functions, `m_`/`field_<offset>` members).
 
-How it was built (clang 7.0.x `-O3`, the game's flags but strict aliasing,
-libc++ 7.0.1's containers) is in `docs/compiler.md`, section "NEX 4.6.8", and
+How it was built (clang 7.0.x `-O3`, the game's flags but strict aliasing
+and `-fno-builtin`, libc++ 7.0.1's containers) is in `docs/compiler.md`, section "NEX 4.6.8", and
 the `pkmn_library_settings(lib/nex ...)` entry of `CMakeLists.txt`.
 
 ## Layout
@@ -22,6 +22,24 @@ the `pkmn_library_settings(lib/nex ...)` entry of `CMakeLists.txt`.
   what the calls use (`Call.h`).
 - `DataStoreDDLDeclarations.cpp`: the destructors of
   `_DDL_DataStoreKeyValue` and `DataStoreKeyValue`, written by hand.
+- `ddl/Classes.cpp`: the other DDL data classes' destructors, written by
+  `tools/nexclasses.py write lib/nex/ddl/Classes.cpp`. The members are read
+  from each `_DDL_X`'s destructor (Strings, `qVector`s and `qList`s, member
+  classes); the scalars, which leave no trace there, are padding.
+- `DDLDeclarations.cpp`, `ProtocolDDLDeclarations.cpp`
+  (`include/nn/nex/DDLDeclarations.h`): `DDLDeclarations` and each library's
+  and protocol's declarations class (slot 2 is each one's key function), and
+  their `PseudoGlobalVariable`s. The OnlineCore ones are in the base class's
+  TU, whose destructor their D0s and D2s inline; the protocols' call it.
+- `core/PseudoGlobalVariable.cpp` (`include/nn/nex/PseudoGlobalVariable.h`):
+  `PseudoGlobalVariableRoot` and the template `PseudoGlobalVariable<T>`,
+  explicitly instantiated for its scalar and pointer arguments here (and for
+  the DDL declarations above). Its slot 2, which allocates the instances,
+  isn't written.
+- `core/RefCountedObject.cpp` (`include/nn/nex/RefCountedObject.h`):
+  `RefCountedObject`, `qBuffer` and `Key`.
+- `socket/InetAddress.cpp`: `InetAddress`'s constructor and reset, the
+  evidence for `-fno-builtin` (`docs/compiler.md`).
 - `ddl/Streams.h`, `ddl/Streams.cpp`: the DDL stream functions, written by
   `tools/nexddl.py streams --write lib/nex/ddl/Streams.cpp`. Each writes
   (`Unk_<addr>_write`) or reads (`Unk_<addr>_read`) one structure to or from
