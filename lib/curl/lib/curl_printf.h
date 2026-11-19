@@ -53,4 +53,7 @@
 # define sprintf sprintf_was_used
 # define vsprintf vsprintf_was_used
 
+/* Pokemon SwSh decomp: Nintendo's time and stdio functions */
+#include "curl_nnstdio.h"
+
 #endif /* HEADER_CURL_PRINTF_H */

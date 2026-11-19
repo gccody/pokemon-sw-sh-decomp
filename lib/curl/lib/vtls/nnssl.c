@@ -85,7 +85,7 @@ bool Unk_1777f40(void)
 }
 
 /* Sword 0x7101777f50: curlssl_data_pending() */
-int Unk_1777f50(const struct connectdata *conn, int sockindex)
+bool Unk_1777f50(const struct connectdata *conn, int sockindex)
 {
   int pending = 0;
   nnResult result = nnsslConnectionPending(

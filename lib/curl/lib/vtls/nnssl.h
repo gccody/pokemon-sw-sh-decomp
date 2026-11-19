@@ -22,8 +22,8 @@ CURLcode Unk_1777f00(struct Curl_easy *data, unsigned char *entropy,
                      size_t length);            /* Sword 0x7101777f00 */
 bool Unk_1777f30(void);                         /* Sword 0x7101777f30 */
 bool Unk_1777f40(void);                         /* Sword 0x7101777f40 */
-int Unk_1777f50(const struct connectdata *conn,
-                int sockindex);                 /* Sword 0x7101777f50 */
+bool Unk_1777f50(const struct connectdata *conn,
+                 int sockindex);                 /* Sword 0x7101777f50 */
 
 /* Curl_ssl_backend() returns 30 (Sword 0x71017771a0): not one of curl.h's
    CURLSSLBACKEND_* values. */
