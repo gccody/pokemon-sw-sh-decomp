@@ -2951,8 +2951,13 @@ def cmd_write(m: Model, args) -> None:
     ctor_classes = defined_classes(CTOR_DIR) if CTOR_DIR.exists() else set()
     skipped = HANDWRITTEN | {v.addr for v in m.vtables if class_name(v) in ctor_classes}
 
+    # The type getters tools/typegen.py writes (src/unsorted/types) are its.
+    import typegen
+    typed = typegen.written_addresses()
+
     def kept(f: int) -> bool:
-        return written(f) and f not in handwritten and (only is None or f in only or bool(rows[f].name))
+        return written(f) and f not in handwritten and f not in typed \
+            and (only is None or f in only or bool(rows[f].name))
 
     own = prefer_stored(m, owners(m.vtables))
     # An empty D2 shared by classes with nothing but their destructors is
