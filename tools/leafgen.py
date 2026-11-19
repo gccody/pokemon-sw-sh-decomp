@@ -181,6 +181,11 @@ GOT: dict[int, int] = {}
 # not declare as a placeholder: set by candidates().
 NAMED: dict[int, str] = {}
 
+# A placeholder callee's parameter types, as most of its callers in this run
+# pass them (a pointer where any of them passes one): absolute address ->
+# types. Set by main between two passes (unify_calls).
+CALL_PARAMS: dict[int, tuple] = {}
+
 REF_IFACE = 0x48
 REF_SLOTS = {0x10: "vf4", 0x18: "vf5"}
 REF_HEADER = '#include "gflib3/Unk_239a418.h"'
@@ -296,6 +301,8 @@ class Lifted:
     loads: Counter = field(default_factory=Counter)  # how often each load ran (more than once: reloaded)
     store_seq: list[int] = field(default_factory=list)  # per store: how many store instructions came before
     guard_seq: int = 0        # store instructions before the guard
+    more_guards: list = field(default_factory=list)  # later guards to the same exit: (value, nonzero, seq)
+    guard_kind: str = ""      # the first guard's mnemonic
     vcall: tuple | None = None  # a final virtual tail call through REF_IFACE: (object, slot)
     calls: list = field(default_factory=list)  # Call, in order: a function with a frame
     ret_width: dict = field(default_factory=dict)  # call index -> widest read of its result (4: w0, 8: x0)
@@ -314,7 +321,8 @@ def callee_name(target: int, types: list[str]) -> tuple[str, str]:
     return name, f"_Z{len(name)}{name}" + ("".join(CALL_CODES[t] for t in types) or "v")
 
 
-GUARDS = ("cbz", "cbnz")
+GUARDS = ("cbz", "cbnz", "tbz", "tbnz", *(f"b.{c}" for c in ("eq", "ne", "hi", "hs", "lo", "ls", "gt", "ge",
+                                                               "lt", "le")))
 
 
 CODE_TYPES = {v: k for k, v in CALL_CODES.items()}
@@ -354,11 +362,14 @@ def guard_shape(insns: list[tuple[str, list[str]]], addr: int | None) -> tuple[i
         return None
     k = ks[0]
     mn = insns[k][0]
-    if len(ks) > 1 or addr is None:
-        raise LiftError(f"{mn}: more than one branch" if len(ks) > 1 else f"{mn} without an address")
-    to = (_imm(insns[k][1][1]) - addr) // 4
+    if addr is None:
+        raise LiftError(f"{mn} without an address")
+    to = (_imm(insns[k][1][-1]) - addr) // 4
     if not k + 1 < to < len(insns):
         raise LiftError(f"{mn} out of the function")
+    # More guards to the same place, before it: early returns (Lifted.more_guards).
+    if any((_imm(insns[j][1][-1]) - addr) // 4 != to or j > to for j in ks[1:]):
+        raise LiftError(f"{mn}: more than one branch")
     rest = [(m, [o.strip() for o in ops]) for m, ops in insns[to:] if not _is_frame(m, ops)]
     zero: int | None = None  # what the other path returns (None: nothing)
     if rest == [("ret", [])]:
@@ -379,7 +390,7 @@ def guard_shape(insns: list[tuple[str, list[str]]], addr: int | None) -> tuple[i
         raise LiftError(f"{mn}: {'a tail call' if path[-1][0] == 'b' else 'the path falls'} or a constant")
     if path[-1][0] not in ("ret", "b"):
         path = path + [("ret", [])]
-    return k, path, zero
+    return tuple(ks), path, zero
 
 
 def lift(code: bytes, addr: int | None = None) -> Lifted:
@@ -459,6 +470,22 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
     def width_of(r: str) -> int:
         return 8 if _reg(r)[0] in "xd" else 4
 
+    def guard_value(mn: str, ops: list[str]) -> tuple[object, bool]:
+        """(value, nonzero): the rest of the function runs if value != 0
+        (nonzero) or == 0. cbz/cbnz test a register, tbz/tbnz one of its bits,
+        b.<cond> the flags (value is then the condition the rest runs under)."""
+        if mn.startswith("b."):
+            if flags is None:
+                raise LiftError(f"{mn} without flags")
+            return Cmp(COND_INV[mn[2:]], flags.a, flags.b, flags.test), True
+        v = get(ops[0])
+        if not isinstance(v, (Load, Arg, CallRet)) or (isinstance(v, Load) and width_of(ops[0]) < WIDTH[v.type]):
+            raise LiftError(f"{mn} of a computed value")
+        if mn in ("tbz", "tbnz"):
+            bit = _imm(ops[1])
+            return Op("&", v, Const(1 << bit, width_of(ops[0])), width_of(ops[0])), mn == "tbz"
+        return v, mn == "cbz"
+
     for idx, (mn, ops) in enumerate(insns[:-1]):
         if _is_frame(mn, ops):
             framed = True
@@ -485,11 +512,13 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
             since.clear()
             flags = None
             continue
-        if idx == k:
-            v = get(ops[0])
-            if not isinstance(v, (Load, Arg)) or (isinstance(v, Load) and width_of(ops[0]) < WIDTH[v.type]):
-                raise LiftError(f"{mn} of a computed value")
-            out.guard = (v, mn == "cbz")
+        if k is not None and idx in k[1:]:
+            out.more_guards.append((*guard_value(mn, ops), out.stores_done))
+            out.stores_done += 1
+            continue
+        if k is not None and idx == k[0]:
+            out.guard = guard_value(mn, ops)
+            out.guard_kind = mn
             out.guard_seq = out.stores_done
             out.stores_done += 1  # what's loaded after it is read inside the guard
             out.guard_stores = len(out.stores)
@@ -720,7 +749,7 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
         out.ret = regs[("f", 0)]
     if out.guard is not None and out.ret is not None and not out.zero_else:
         # The other path returns x0 as it was at the branch: 0 if cbz tested it.
-        if not out.guard[1] or _reg(insns[k][1][0])[1] != 0:
+        if out.more_guards or out.guard_kind != "cbz" or _reg(insns[k[0]][1][0])[1] != 0:
             raise LiftError("cbz: the other path returns something")
         out.zero_else = True
     if out.zero_else and (out.ret is None or ("f", 0) in written):
@@ -1178,12 +1207,19 @@ class Emitter:
             self.protos.add(f"{rt} {callee}({', '.join(ptypes)});")
         else:
             args, types = [], []
-            for e in c.args:
+            want = CALL_PARAMS.get(c.target, ())
+            want = want if len(want) == len(c.args) else ()
+            for pos, e in enumerate(c.args):
+                pt = want[pos] if want else None
                 if isinstance(e, Arg) and not e.fp:
-                    t = self.arg_types.setdefault(e.index, "void*" if e.index == 0 else "u64")
+                    t = self.arg_types.setdefault(e.index, pt or ("void*" if e.index == 0 else "u64"))
                     self.passed.add(e)
                     args.append(self.arg_name(e.index))
                     types.append("void*" if t.endswith("*") else t)
+                elif pt == "void*" and isinstance(e, Load) and e.type in ("u64", "s64") and                         not isinstance(e.base, GlobalPtr) and not self.is_pointer(e):
+                    # what the callee's other callers pass as a pointer: the field holds one
+                    args.append(self.field_expr(e.base, e.offset, "void*"))
+                    types.append("void*")
                 elif self.is_pointer(e) or self.type_of(e) == "ptr":
                     args.append(self.expr(e))
                     types.append("void*")
@@ -1281,6 +1317,7 @@ class Emitter:
         if lf.vcall is not None and isinstance(lf.vcall[0], Load):
             self.field_expr(lf.vcall[0].base, lf.vcall[0].offset, "Unk_239a418*")
         self.before = None
+        self.early: list[tuple[int, str]] = []
 
         def known(ld: Load) -> str | None:
             if isinstance(ld.base, GlobalPtr):
@@ -1297,10 +1334,18 @@ class Emitter:
 
         events = sorted([(q, 0, i) for i, q in enumerate(lf.store_seq)] +
                         [(c.seq, 1, j) for j, c in enumerate(lf.calls)])
+        more = list(lf.more_guards)
+
         def guard_at(seq: int) -> None:
             if lf.guard is not None and self.before is None and seq > lf.guard_seq:
                 hold(lf.guard_seq)
                 self.before = len(body)
+            while more and seq > more[0][2]:
+                v, cbz, gseq = more.pop(0)
+                hold(gseq)
+                test = self.guard_cond(v, cbz, False)
+                self.early.append((len(body), test))
+                body.append(None)  # the return, once the function's type is known
 
         for seq, kind, i in events:
             guard_at(seq)
@@ -1363,6 +1408,11 @@ class Emitter:
                     rt = ft
             ret_type = rt
             body.append(f"    return {rhs};")
+        for i, test in self.early:
+            if ret_type != "void" and not lf.zero_else:
+                raise LiftError("cbz: the other path returns something")
+            other = f" {_const(lf.else_value, ret_type)}" if ret_type != "void" else ""
+            body[i] = f"    if ({test}) return{other};"
         body = decls + self.guarded(body, ret_type)
         params = []
         for i in range(max(self.arg_types, default=-1) + 1):
@@ -1445,6 +1495,8 @@ class Emitter:
         `Unk_<T>(args...);`, T declared with `void*` for pointers, so that its
         name doesn't depend on this function's placeholder structs."""
         lf = self.lifted
+        if lf.more_guards:
+            raise LiftError("cbz: more than one branch before a tail call")
         if lf.tail in KNOWN:
             return self.render_known_tail(KNOWN[lf.tail])
         decls = self.choose_locals()
@@ -1501,21 +1553,28 @@ class Emitter:
         structs = self.render_structs()
         return (structs + "\n" if structs else "") + proto, func
 
+    def guard_cond(self, v: object, nonzero: bool, runs: bool) -> str:
+        """The condition under which the rest of the function runs (runs) or
+        the function returns (not runs), for a guard (value, nonzero)."""
+        if isinstance(v, Cmp):
+            return self.cond(v if runs == nonzero else Cmp(COND_INV[v.cond], v.a, v.b, v.test))
+        w = 8 if self.is_pointer(v) or WIDTH.get(self.type_of(v), 8) == 8 else 4
+        return self.cond(Cmp("ne" if runs == nonzero else "eq", v, Const(0, w)))
+
     def guarded(self, body: list[str], ret_type: str) -> list[str]:
         """body (the statements, and the return last if it returns) under lf.guard."""
         lf = self.lifted
         if lf.guard is None:
             return body
         v, nonzero = lf.guard
-        w = 8 if self.is_pointer(v) or WIDTH.get(self.type_of(v), 8) == 8 else 4
         n = getattr(self, "before", None)
         n = lf.guard_stores if n is None else n
         before, body = body[:n], body[n:]  # done either way
         if lf.zero_else:
-            test = self.cond(Cmp("eq" if nonzero else "ne", v, Const(0, w)))
+            test = self.guard_cond(v, nonzero, False)
             other = _const(lf.else_value, ret_type)
             return [*before, f"    if ({test}) {{", f"        return {other};", "    }", *body]
-        test = self.cond(Cmp("ne" if nonzero else "eq", v, Const(0, w)))
+        test = self.guard_cond(v, nonzero, True)
         return [*before, f"    if ({test}) {{", *("    " + line for line in body), "    }"]
 
     def function_name(self, ret_type: str) -> str:
@@ -1735,6 +1794,14 @@ def main(argv: list[str] | None = None) -> int:
             except LiftError:
                 del lifted[addr]
     lifted = callable_tails(lifted, why)
+    CALL_PARAMS.update(unify_calls(lifted))
+    if CALL_PARAMS:  # again, with the callees' parameters as most of their callers pass them
+        for addr, code in cands:
+            if addr in lifted and "_call(" in lifted[addr][1]:
+                try:
+                    lifted[addr] = generate(addr, code)
+                except LiftError:
+                    del lifted[addr]
     print(f"{len(cands)} candidates, {len(lifted)} lifted", file=sys.stderr)
     if args.cmd == "scan":
         kinds = Counter(func.split("(")[0].rsplit("_", 1)[1] for _, func in lifted.values())
@@ -1753,6 +1820,24 @@ def main(argv: list[str] | None = None) -> int:
 
 
 PROTO = re.compile(r"^void (Unk_([0-9a-f]+))\((.*)\);$", re.M)
+
+
+def unify_calls(lifted: dict[int, tuple[str, str]]) -> dict[int, tuple]:
+    """The parameter types to declare each called placeholder with: by
+    position, `void*` where any caller passes a pointer, otherwise the type most
+    callers pass. Callers that disagree in number are left alone."""
+    seen: dict[int, list[tuple]] = {}
+    for structs, _ in lifted.values():
+        for m in DECL.finditer(structs):
+            params = tuple(x.strip() for x in m.group(3).split(",") if x.strip())
+            seen.setdefault(int(m.group(2)[4:], 16) + BASE, []).append(params)
+    out = {}
+    for target, lists in seen.items():
+        if len({len(x) for x in lists}) != 1 or len(lists) < 2:
+            continue
+        out[target] = tuple("void*" if "void*" in col else Counter(col).most_common(1)[0][0]
+                            for col in zip(*lists))
+    return out
 
 
 def unify_arity(lifted: dict[int, tuple[str, str]]) -> dict[int, list[str]]:
@@ -1814,7 +1899,7 @@ def callable_tails(lifted: dict[int, tuple[str, str]], why: Counter) -> dict[int
     return out
 
 
-_DEF = re.compile(r"^(.+?) (Unk_[0-9a-f]+_(?:set|get|check|update|call))\((.*)\) \{$", re.M)
+_DEF = re.compile(r"^(.+?) (Unk_[0-9a-f]+_(?:set|get|check|update|call)\w*)\((.*)\) \{$", re.M)
 _STRUCT_PTR = re.compile(r"^(const )?(Unk_[0-9a-f_]+)\*$")
 
 
@@ -1987,6 +2072,7 @@ def write_files(out_dir: Path, lifted: dict[int, tuple[str, str]]) -> None:
     print(f"wrote {len(lifted)} functions into {len(by_seg)} files", file=sys.stderr)
 
 
+STRUCT_NAME = re.compile(r"\bstruct (Unk_\w+)")
 DECL = re.compile(r"^([\w*]+) (Unk_[0-9a-f]+)\((.*)\);$", re.M)
 
 
@@ -1994,16 +2080,24 @@ def consistent_declarations(entries: list[tuple[int, str, str]]) -> list[tuple[i
     """The entries whose callee declarations agree with the ones before them:
     two functions of one file that declare a callee with the same parameters
     and different return types (one reads its result, as u32 or u64, the
-    other doesn't) don't compile together. The later one is dropped."""
+    other doesn't) don't compile together, nor a callee and a struct of the
+    same name (`Unk_<addr>` is both a placeholder function and the struct of
+    that function's first argument). The later one is dropped."""
     seen: dict[tuple[str, str], str] = {}
+    structs: set[str] = set()
+    funcs: set[str] = set()
     out = []
     for e in entries:
         decls = {(m.group(2), m.group(3)): m.group(1) for m in DECL.finditer(e[1])}
-        if any(seen.get(k, r) != r for k, r in decls.items()):
+        names = set(STRUCT_NAME.findall(e[1]) + STRUCT_NAME.findall(e[2]))
+        called = {name for name, _ in decls}
+        if any(seen.get(k, r) != r for k, r in decls.items()) or called & (structs | names) or names & funcs:
             print(f"  dropped 0x{e[0]:x}: declares a callee another function of its file declares otherwise",
                   file=sys.stderr)
             continue
         seen.update(decls)
+        structs |= names
+        funcs |= called
         out.append(e)
     return out
 

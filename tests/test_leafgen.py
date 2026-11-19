@@ -281,7 +281,7 @@ def test_guarded_getter_returns_0_otherwise():
 @pytest.mark.parametrize("words, why", [
     ((ldr_x(8, 0, 8), cbz_x(8, 2), ldr_w(0, 8, 0), 0x52800020, RET), "falls"),   # into L: mov w0, #1
     ((ldr_x(8, 0, 8), cbz_x(8, 2), ldr_w(0, 8, 0), 0xAA0103E0, RET), "other code"),  # L: mov x0, x1
-    ((ldr_x(8, 0, 8), cbz_x(8, 3), cbz_x(8, 2), str_w(1, 8, 0), RET), "more than one"),
+    ((ldr_x(8, 0, 8), cbz_x(8, 3), cbz_x(8, 1), str_w(1, 8, 0), RET), "more than one"),  # other targets
     ((cbz_x(1, 2), 0x14000000 | 0x40, 0x2A1F03E0, RET), "tail call"),   # 0, or what the tail call returns
 ])
 def test_guard_refused(words, why):
@@ -427,3 +427,18 @@ def test_guard_in_a_frame_and_virtual_calls():
     assert "struct Unk_123450_2c0 {\n    virtual void vf0();\n    virtual void vf1();\n    virtual void vf2();\n};" \
         in structs
     assert "        self->field_2c0->vf2();\n" in func
+
+
+def test_more_guards_are_early_returns():
+    """ldr x8, [x0, #8] ; cbz x8, L ; ldr x9, [x8, #0x10] ; cbz x9, L ; str w1,
+    [x9] ; L: ret: two guards to the same exit, the second an early return
+    inside the first."""
+    _, func = leafgen.generate(ADDR, code(ldr_x(8, 0, 8), cbz_x(8, 4), ldr_x(9, 8, 0x10), cbz_x(9, 2),
+                                          str_w(1, 9, 0), RET))
+    assert func == ("void Unk_123450_set(const Unk_123450* self, u32 value) {\n"
+                    "    if (self->field_8 != nullptr) {\n"
+                    "        if (self->field_8->field_10 == nullptr) return;\n"
+                    "        self->field_8->field_10->field_0 = value;\n    }\n}\n")
+    # nor a callee named like a struct of the file
+    entries = [(1, "struct Unk_123564 {\n    u64 field_0;\n};\n", ""), (2, "void Unk_123564(u64);\n", "")]
+    assert [e[0] for e in leafgen.consistent_declarations(entries)] == [1]
