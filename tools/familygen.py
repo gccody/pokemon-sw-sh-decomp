@@ -8,7 +8,7 @@
 
 Unmatched functions that are the same code once branch targets and
 adrp/lo12 fields are masked are instances of one source: a template, or a
-class shape repeated. Three such families are on gflib3's allocator
+class shape repeated. Five such families are on gflib3's allocator
 (src/unsorted/Unk_2771620.h) and its reference-counted object
 (src/gflib3/Unk_239a418.h). This tool finds their instances and writes them,
 in src/gflib3/families:
@@ -40,6 +40,32 @@ in src/gflib3/families:
   the one at +0x48) destroys the instance a global of theirs holds, the way
   Unk_239a418::vf3 destroys an object. The function doesn't use `this`, so
   its +0x48 thunk is a copy of it.
+- `objects`: the same factory (`Unk_New::Create<T>`) for classes on a base
+  constructed out of line (`OBJECT_BASES`): gflib3's object itself
+  (0x71005e2350, no arguments: T's constructor takes the factory's) and
+  Unk_23f4660 (0x7100e7f820, three: T inherits them). These factories are
+  read by following one path through them (`walk`: symbolic registers, the
+  allocator stack's overflow check and null references skipped), which gives
+  what is loaded from each argument and when, what is stored to the object,
+  and the references added and dropped. An argument loaded before the
+  base's constructor is a by-value parameter: a reference moved in (the
+  argument cleared) or copied from a const& (a reference added), a
+  reference and a u64 moved together (`Unk_239a418_RefPair`), n u64s
+  (`Unk_1085320_Words<n>`), or a scalar; one loaded after it is a const&
+  read where a member is initialised. Members are the stores after the
+  base's constructor: from a parameter (copied when a reference is added
+  after the store, else moved) or constants, laid out like `factories`'.
+  Each by-value reference must be dropped once, in reverse order, unless it
+  was moved into a member. Members stored before the vtable is loaded are a
+  parent's (`<T>_Parent`), as in `factories`. A derived class's members
+  start at the base's data size: Unk_23f4660's tail padding (0x5cb) is used.
+- `creators`: a template member of an owner (`Unk_790260_Owner::Create<T>`)
+  that makes a T on Unk_23f4660 with the owner's allocator (the factory
+  inlined: `construction` on the walk's events up to the result), sets its
+  parent (0x7100e7fe20), pushes a reference to it into the owner's vector
+  (whose slow path is the `vectors` instance 0x7100790490) and returns one.
+  Everything after the construction must do what the seed's (0x7100790260)
+  does, compared symbolically.
 
 A row is kept (written again) when its name is the one written for it and
 check.py matched it; `--only` adds addresses, `--all` writes every
@@ -516,6 +542,1017 @@ using Unk_Ref = Unk_239a418_Ref<Unk_239a418>;
 """
 
 
+# ------------------------------------------------------------------------- the walk
+
+class Sym:
+    """A symbolic register value: `kind` names what it is, `key` the rest of it,
+    `delta` a constant added (a pointer's adjustment)."""
+    __slots__ = ("kind", "key", "delta")
+
+    def __init__(self, kind: str, key: tuple = (), delta: int = 0):
+        self.kind, self.key, self.delta = kind, key, delta
+
+    def plus(self, n: int) -> Sym:
+        return Sym(self.kind, self.key, self.delta + n)
+
+    def ident(self) -> tuple:
+        return (self.kind, self.key)
+
+    def __eq__(self, other):
+        return isinstance(other, Sym) and (self.kind, self.key, self.delta) == (other.kind, other.key, other.delta)
+
+    def __hash__(self):
+        return hash((self.kind, self.key, self.delta))
+
+    def __repr__(self):
+        return f"Sym({self.kind}, {self.key}, {self.delta:#x})"
+
+
+class WalkError(Exception):
+    pass
+
+
+def _split_ops(op_str: str) -> list[str]:
+    out, cur, depth = [], "", 0
+    for ch in op_str:
+        depth += ch == "["
+        depth -= ch == "]"
+        if ch == "," and not depth:
+            out.append(cur.strip())
+            cur = ""
+        else:
+            cur += ch
+    if cur.strip():
+        out.append(cur.strip())
+    return out
+
+
+def _reg(op: str) -> tuple[int, int] | None:
+    """(number, width in bytes) of a general register operand; 31 is the zero register."""
+    if op in ("xzr", "wzr"):
+        return XZR, 8 if op[0] == "x" else 4
+    if op == "sp":
+        return SP, 8
+    if op in ("fp", "lr"):
+        return (29 if op == "fp" else 30), 8
+    if len(op) > 1 and op[0] in "xw" and op[1:].isdigit():
+        return int(op[1:]), 8 if op[0] == "x" else 4
+    return None
+
+
+def _imm(op: str) -> int:
+    return int(op.lstrip("#"), 0)
+
+
+def _mem(ops: list[str], i: int) -> tuple[int, int, str] | None:
+    """(base register, offset, mode) of ops[i], a memory operand: mode is "" (offset),
+    "pre" (written back first) or "post" (written back after, by ops[i + 1])."""
+    s = ops[i]
+    if not s.startswith("["):
+        return None
+    pre = s.endswith("!")
+    inner = [x.strip() for x in s.strip("[]!").split(",")]
+    base = _reg(inner[0])
+    if base is None:
+        return None
+    if len(inner) == 1:
+        if len(ops) > i + 1 and ops[i + 1].startswith("#"):
+            return base[0], _imm(ops[i + 1]), "post"
+        return base[0], 0, ""
+    if len(inner) == 2 and inner[1].startswith("#"):
+        return base[0], _imm(inner[1]), "pre" if pre else ""
+    return base[0], 0, "reg"   # register offset
+
+
+SP = 32
+STORE_WIDTH = {"str": 0, "stur": 0, "strb": 1, "sturb": 1, "strh": 2, "sturh": 2, "stp": 0}
+LOAD_WIDTH = {"ldr": 0, "ldur": 0, "ldrb": 1, "ldurb": 1, "ldrh": 2, "ldurh": 2, "ldp": 0}
+INV_COND = {"eq": "ne", "ne": "eq", "hs": "lo", "lo": "hs", "hi": "ls", "ls": "hi", "ge": "lt", "lt": "ge",
+            "gt": "le", "le": "gt"}
+
+
+@dataclass
+class Walk:
+    """What one path through a function did, in order: `events` are
+    ("store", base, offset, width, value), ("load", base, offset, width, value),
+    ("call", target), ("vcall", object, slot) and ("ret",)."""
+    events: list = field(default_factory=list)
+
+
+def disassemble(m: Module, a: int, size: int) -> list[tuple[int, str, list[str]]]:
+    import capstone
+    md = capstone.Cs(capstone.CS_ARCH_ARM64, capstone.CS_MODE_ARM)
+    out = [(i.address, i.mnemonic, _split_ops(i.op_str)) for i in md.disasm(m.img[a:a + size], a)]
+    if len(out) != size // 4:
+        raise WalkError("undecodable word")
+    return out
+
+
+def walk(m: Module, a: int, size: int, regs: dict[int, object], choose) -> Walk:
+    """Follow one path through a function from `regs`, the symbolic arguments.
+
+    Loads through argument pointers give symbolic values; a load from what a
+    symbolic value points at is its vptr, a load from a vptr a slot, and `blr`
+    of a slot a virtual call. adrp + ldr through the GOT gives ("got", target).
+    `choose(mnemonic, value, target)` picks a conditional branch's way: True to
+    branch, False to fall through, None to refuse the function. A register
+    written by anything not followed is unknown (None); using an unknown
+    pointer refuses the function (WalkError)."""
+    insns = disassemble(m, a, size)
+    at = {p: k for k, (p, _, _) in enumerate(insns)}
+    w = Walk()
+    r: dict[int, object] = dict(regs)
+    pages: dict[int, int] = {}
+    stack: dict[int, object] = {}       # what's stored at [sp, #offset] (sp moves only around the body)
+    flags: tuple | None = None
+    k, steps = 0, 0
+
+    def get(op: str):
+        rg = _reg(op)
+        if rg is None:
+            raise WalkError(f"operand {op}")
+        if rg[0] == XZR:
+            return 0
+        v = r.get(rg[0])
+        if isinstance(v, int) and rg[1] == 4:
+            return v & 0xFFFFFFFF
+        return v
+
+    def put(op: str, v) -> None:
+        rg = _reg(op)
+        if rg is None:
+            raise WalkError(f"operand {op}")
+        if rg[0] != XZR:
+            r[rg[0]] = v & 0xFFFFFFFF if isinstance(v, int) and rg[1] == 4 else v
+            pages.pop(rg[0], None)
+
+    def clobber() -> None:
+        for n in range(0, 19):
+            r.pop(n, None)
+            pages.pop(n, None)
+
+    while True:
+        steps += 1
+        if k >= len(insns) or steps > 4 * len(insns):
+            raise WalkError("ran off the function")
+        pc, mn, ops = insns[k]
+        k += 1
+        if mn in ("nop", "cmp", "cmn", "tst"):
+            if mn == "cmp" and len(ops) == 2:
+                flags = (get(ops[0]), _imm(ops[1]) if ops[1].startswith("#") else get(ops[1]))
+            continue
+        if mn == "ret":
+            w.events.append(("ret",))
+            return w
+        if mn == "mov" and len(ops) == 2:
+            put(ops[0], _imm(ops[1]) if ops[1].startswith("#") else get(ops[1]))
+            continue
+        if mn in ("movz", "movn", "movk"):
+            v = _imm(ops[1])
+            sh = int(ops[2].split("#")[1], 0) if len(ops) > 2 else 0
+            width = _reg(ops[0])[1]
+            if mn == "movk":
+                old = get(ops[0])
+                if not isinstance(old, int):
+                    raise WalkError("movk of an unknown value")
+                put(ops[0], (old & ~(0xFFFF << sh)) | (v << sh))
+            else:
+                v <<= sh
+                put(ops[0], (~v) & ((1 << (8 * width)) - 1) if mn == "movn" else v)
+            continue
+        if mn == "orr" and len(ops) == 3 and _reg(ops[1]) and _reg(ops[1])[0] == XZR and ops[2].startswith("#"):
+            put(ops[0], _imm(ops[2]))
+            continue
+        if mn == "adrp":
+            put(ops[0], None)
+            pages[_reg(ops[0])[0]] = _imm(ops[1])
+            continue
+        if mn in ("add", "sub") and len(ops) == 3 and ops[2].startswith("#"):
+            src = _reg(ops[1])
+            n = _imm(ops[2]) * (1 if mn == "add" else -1)
+            if src and src[0] in pages:
+                put(ops[0], Sym("adr", (pages[src[0]] + n,)))
+                continue
+            v = Sym("sp", (), 0) if src and src[0] == SP else get(ops[1])
+            if _reg(ops[0])[0] == SP:
+                continue
+            put(ops[0], v.plus(n) if isinstance(v, Sym) else (v + n) & 0xFFFFFFFFFFFFFFFF if isinstance(v, int)
+                else None)
+            continue
+        if mn in STORE_WIDTH or mn in LOAD_WIDTH:
+            pair = mn in ("stp", "ldp")
+            regs_ = ops[:2] if pair else ops[:1]
+            mem = _mem(ops, 2 if pair else 1)
+            if mem is None:
+                raise WalkError(f"{mn} {ops}")
+            base, off, mode = mem
+            rw = _reg(regs_[0])
+            if rw is None:
+                raise WalkError(f"{mn} {ops}")     # a SIMD register
+            width = (STORE_WIDTH.get(mn) if mn in STORE_WIDTH else LOAD_WIDTH[mn]) or rw[1]
+            if base in pages and mode == "" and not pair and mn == "ldr":
+                slot = pages[base] + off
+                v = m.slots.get(slot)
+                put(regs_[0], Sym("got", (v,)) if v is not None else Sym("data", (slot,)))
+                w.events.append(("got", v))
+                continue
+            bv = None if base == SP else r.get(base)
+            ea_off = 0 if mode == "post" else off
+            if mode == "reg":
+                if mn in STORE_WIDTH:
+                    w.events.append(("store", bv, None, width, None))
+                    continue
+                put(regs_[0], None)
+                continue
+            for j, op in enumerate(regs_):
+                o = ea_off + j * width
+                if mn in STORE_WIDTH:
+                    if base == SP:
+                        stack[o] = get(op) if width == 8 else None
+                    else:
+                        w.events.append(("store", bv, (bv.delta if isinstance(bv, Sym) else 0) + o, width,
+                                         get(op)))
+                else:
+                    if base == SP:
+                        put(op, stack.get(o) if width == 8 and mode == "" else None)
+                        continue
+                    if bv is None:
+                        put(op, None)
+                        continue
+                    if not isinstance(bv, Sym):
+                        raise WalkError(f"load through {bv!r}")
+                    v = Sym("mem", (bv.ident(), bv.delta + o, width))
+                    w.events.append(("load", bv, bv.delta + o, width, v))
+                    put(op, v)
+            if mode in ("pre", "post") and base != SP:
+                if not isinstance(bv, Sym):
+                    raise WalkError("write-back of an unknown base")
+                r[base] = bv.plus(off)
+            continue
+        if mn == "bl":
+            t = _imm(ops[0])
+            w.events.append(("call", t, {n: r.get(n) for n in range(8)}))
+            clobber()
+            r[0] = Sym("ret", (t, pc))
+            continue
+        if mn == "blr":
+            f = get(ops[0])
+            if not (isinstance(f, Sym) and f.kind == "mem"):
+                raise WalkError("blr of an unknown function")
+            (vkind, vkey), slot = f.key[0], f.key[1]
+            if vkind != "mem" or f.delta:
+                raise WalkError("blr of a function not in a vtable")
+            obj_ident, obj_off, _ = vkey
+            obj = Sym(obj_ident[0], obj_ident[1], obj_off)
+            if r.get(0) != obj:
+                raise WalkError("a virtual call on another object than x0")
+            w.events.append(("vcall", obj, slot, {n: r.get(n) for n in range(1, 8)}))
+            clobber()
+            r[0] = Sym("ret", (obj.ident(), obj.delta, slot, pc))
+            continue
+        if mn == "b":
+            k = at.get(_imm(ops[0]))
+            if k is None:
+                raise WalkError("a branch out of the function")
+            continue
+        if mn in ("cbz", "cbnz") or mn.startswith("b."):
+            if mn.startswith("b."):
+                value, tgt = (mn[2:], flags), _imm(ops[0])
+            else:
+                value, tgt = get(ops[0]), _imm(ops[1])
+            way = choose(mn, value, tgt)
+            if way is None:
+                raise WalkError(f"{mn} at +{pc - a:#x}")
+            if way:
+                k = at.get(tgt)
+                if k is None:
+                    raise WalkError("a branch out of the function")
+            continue
+        if mn.startswith("b") and mn not in ("bic", "bics", "bfi", "bfxil"):
+            raise WalkError(f"{mn}")
+        # anything else: its destination is unknown
+        if ops and _reg(ops[0]):
+            put(ops[0], None)
+            continue
+        raise WalkError(f"{mn} {ops}")
+
+
+# ------------------------------------------------------------------------- objects
+
+OBJECT_CTOR = 0x5E2350      # Unk_239a418::Unk_239a418()
+OBJECT_SLOTS = 6            # its primary vtable's slots
+ABORT = 0x17E8FE0           # abort (PLT)
+OBJECT_FILE = "Unk_1085320.cpp"
+# the functions the objects and creators call out of line, named as declared
+OUT_OF_LINE = {
+    0xE7F820: "_ZN11Unk_23f4660C2EPvmm",
+    0xE7FE20: "_ZN11Unk_23f466010Unk_e7fe20E15Unk_239a418_RefI11Unk_239a418E",
+}
+REF_ADD, REF_DROP = 0x10, 0x18      # the +0x48 interface's slots: add a reference, drop one
+ALLOC_NEW = 0x10                    # the allocator's slot 2
+SCALAR = {1: "u8", 2: "u16", 4: "u32", 8: "u64"}
+SCALAR_CODE = {"u8": "h", "u16": "t", "u32": "j", "u64": "m"}
+REF = "Unk_Ref"
+PAIR = "Unk_239a418_RefPair"
+
+
+@dataclass
+class Param:
+    kind: str           # "ref", "pair" (a reference and a u64), "words<n>" (n u64s), or a scalar type
+    by_value: bool      # constructed before the base (a by-value parameter), else a const&
+    moved: bool         # moved from the argument (which is cleared), else copied
+
+
+@dataclass
+class Member:
+    offset: int
+    kind: str                   # "ref", "pair", "words<n>", or a scalar type
+    param: int | None = None    # initialised from this parameter, else to `value`
+    value: int | None = None    # a constant (None without a param: uninitialised)
+    moved: bool = False         # std::move(param)
+
+
+@dataclass(frozen=True)
+class ObjectBase:
+    """A base the factories construct out of line: its constructor, data size
+    (where a derived class's members start: the tail padding is reused),
+    primary vtable's slots and constructor's parameters (none: the class
+    takes its own; some: the class inherits them)."""
+    name: str
+    ctor: int
+    size: int
+    slots: int
+    args: tuple = ()
+
+
+OBJECT_BASES = {
+    OBJECT_CTOR: ObjectBase("Unk_239a418", OBJECT_CTOR, 0x60, OBJECT_SLOTS),
+    0xE7F820: ObjectBase("Unk_23f4660", 0xE7F820, 0x5CB, 17, ("void*", "u64", "u64")),
+}
+
+
+@dataclass
+class ObjectFactory:
+    addr: int
+    cls: str
+    size: int
+    align: int
+    extra_slots: int
+    interface: bool             # an interface of its own at +0x60
+    params: list
+    members: list
+    base: ObjectBase = OBJECT_BASES[OBJECT_CTOR]
+    parented: bool = False      # its members are a parent's: stored before its vptrs
+
+
+def object_candidates(m: Module) -> list[int]:
+    out = []
+    for a, r in m.rows.items():
+        if not r.sword_size or r.sword_size > 1200 or r.status not in "UO":
+            continue
+        if r.status == "O" and not r.name.startswith("_ZN7Unk_New6Create"):
+            continue
+        calls = [t for t in (bl_target(p, w) for p, w in m.words(a, r.sword_size)) if t is not None]
+        if calls and calls[0] == GET_TLS and sum(calls.count(c) for c in OBJECT_BASES) == 1:
+            out.append(a)
+    return sorted(out)
+
+
+def _object_choose(mn: str, value, target: int, abort_at: set[int]):
+    """An object factory's path: past the allocator stack's overflow check (a
+    branch to abort), on with the allocation and every reference not null."""
+    if mn.startswith("b."):
+        return False if target in abort_at else None
+    if isinstance(value, Sym) and value.kind in ("ret", "mem"):
+        return mn == "cbnz"
+    if isinstance(value, int) and mn in ("cbz", "cbnz"):
+        return (value == 0) == (mn == "cbz")
+    return None
+
+
+def _is_stack(v) -> bool:
+    return isinstance(v, Sym) and v.kind == "ret" and v.key[0] == GET_TLS
+
+
+def _object_params(loads: dict, clears: dict, adds: dict, ctor: int) -> list[Param] | str:
+    params = []
+    for n in sorted(loads):
+        ls = loads[n]
+        shape = sorted({(off, width) for off, width, _, _ in ls})
+        after = {i > ctor for _, _, i, _ in ls}
+        cleared = clears.get(n, set())
+        vid = next(v for off, _, _, v in ls if off == 0) if any(off == 0 for off, _, _, _ in ls) else None
+        if len(after) != 1:
+            return f"argument {n} read before and after the constructor"
+        if cleared - {0}:
+            return f"argument {n} cleared at {sorted(cleared)}"
+        copied = any(i < ctor for i in adds.get(vid, []))
+        words = len(shape) > 1 and shape == [(8 * k, 8) for k in range(len(shape))]
+        if words and not cleared and not adds.get(vid):
+            params.append(Param(f"words{len(shape)}", after == {False}, False))
+        elif after == {False}:
+            if shape == [(0, 8)] and cleared:
+                params.append(Param("ref", True, True))
+            elif shape == [(0, 8)] and copied:
+                params.append(Param("ref", True, False))
+            elif shape == [(0, 8), (8, 8)] and (cleared or copied):
+                params.append(Param("pair", True, bool(cleared)))
+            elif len(shape) == 1 and shape[0][0] == 0 and not cleared:
+                params.append(Param(SCALAR[shape[0][1]], True, False))
+            else:
+                return f"argument {n}: {shape}"
+        else:
+            if len(shape) != 1 or shape[0][0] != 0 or cleared:
+                return f"argument {n}: {shape} by reference"
+            params.append(Param("ref" if shape == [(0, 8)] and adds.get(vid) else SCALAR[shape[0][1]], False, False))
+    if sorted(loads) != list(range(2, 2 + len(params))):
+        return f"arguments {sorted(loads)}"
+    return params
+
+
+def parse_object(m: Module, a: int) -> ObjectFactory | str:
+    """An object factory's class and its constructor, or why it isn't one this tool writes."""
+    size = m.rows[a].sword_size
+    abort_at = {p for p, w in m.words(a, size) if bl_target(p, w) == ABORT}
+    regs = {1: Sym("alloc")}
+    for n in range(2, 8):
+        regs[n] = Sym("arg", (n,))
+    try:
+        w = walk(m, a, size, regs, lambda mn, v, t: _object_choose(mn, v, t, abort_at))
+    except WalkError as e:
+        return f"walk: {e}"
+    return construction(a, w.events)
+
+
+def construction(a: int, ev: list, inherited: bool = False, allocator: Sym | None = None) -> ObjectFactory | str:
+    """The class an allocation is constructed as, from a walk's events: the
+    base's constructor called on it, then its vptrs and members stored, and
+    the allocation recorded. `inherited`: the base's arguments are the
+    caller's to check (a creator's); else they are the factory's arguments,
+    by value, in order. `allocator`: what the allocation is made through (the
+    factory's second argument by default)."""
+    allocator = allocator or Sym("alloc")
+    alloc = next((e for e in ev if e[0] == "vcall" and e[1] == allocator and e[2] == ALLOC_NEW), None)
+    ctors = [i for i, e in enumerate(ev) if e[0] == "call" and e[1] in OBJECT_BASES]
+    if alloc is None or len(ctors) != 1:
+        return "not the factory's shape"
+    ctor = ctors[0]
+    ob = OBJECT_BASES[ev[ctor][1]]
+    obj = ev[ctor][2][0]
+    alloc_size, alloc_align = alloc[3].get(1), alloc[3].get(2)
+    if not (isinstance(obj, Sym) and obj.kind == "ret" and obj.key[:2] == (allocator.ident(), allocator.delta)
+            and not obj.delta):
+        return "the constructor isn't called on the allocation"
+    if not isinstance(alloc_size, int) or alloc_align not in (8, 16):
+        return "not the factory's shape"
+    oid = obj.ident()
+    loads: dict[int, list] = {}
+    clears: dict[int, set] = {}
+    adds: dict[tuple, list] = {}
+    drops: list = []
+    stores: list = []
+    vptrs: dict[int, tuple] = {}
+    for i, e in enumerate(ev):
+        if e[0] == "load":
+            base = e[1]
+            if base.kind == "arg":
+                if base.delta:
+                    return "a load through an adjusted argument"
+                loads.setdefault(base.key[0], []).append((e[2], e[3], i, e[4].ident()))
+            elif base.ident() == oid:
+                return "reads the object"
+        elif e[0] == "store":
+            base, off, width, val = e[1:]
+            if _is_stack(base):
+                continue
+            if isinstance(base, Sym) and base.kind == "arg":
+                if val != 0 or base.delta:
+                    return "a store to an argument"
+                clears.setdefault(base.key[0], set()).add(off)
+                continue
+            if not (isinstance(base, Sym) and base.ident() == oid):
+                return f"a store through {base!r}"
+            if i < ctor:
+                return "a store to the object before its constructor"
+            if off is None:
+                return "an indexed store to the object"
+            record = {8: allocator, 0x10: obj, 0x18: alloc_size, 0x20: alloc_align}
+            if off in record:
+                if width != 8 or val != record[off]:
+                    return f"a store at +{off:#x}"
+                continue
+            if isinstance(val, Sym) and val.kind == "got":
+                if width != 8:
+                    return "a narrow vptr store"
+                vptrs[off] = (val.key[0], val.delta)
+                continue
+            if off < ob.size:
+                return f"a store at +{off:#x}"
+            stores.append((off, width, val, i))
+        elif e[0] == "vcall":
+            o, slot = e[1], e[2]
+            if o == allocator:
+                if slot != ALLOC_NEW:
+                    return f"the allocator's slot {slot:#x}"
+                continue
+            if o.delta != 0x48 or slot not in (REF_ADD, REF_DROP):
+                return f"a virtual call {slot:#x} on {o!r}"
+            if slot == REF_ADD:
+                adds.setdefault((o.kind, o.key), []).append(i)
+            else:
+                drops.append(((o.kind, o.key), i))
+        elif e[0] == "call" and e[1] != GET_TLS and e[1] not in OBJECT_BASES:
+            return f"a call to {e[1] + BASE:#x}"
+    # the vptrs: one vtable's, at 0, 0x48 and 0x50, and at 0x60 for an interface
+    if not {0, 0x48, 0x50} <= set(vptrs) <= {0, 0x48, 0x50, 0x60} or len({v for v, _ in vptrs.values()}) != 1:
+        return f"vptrs at {sorted(vptrs)}"
+    vt = vptrs[0][0]
+    d = {off: dd for off, (_, dd) in vptrs.items()}
+    extra = (d[0x48] - 0x20) // 8 - ob.slots
+    if d[0] != 0x10 or extra < 0 or d[0x50] != d[0x48] + 0x40 or (0x60 in d and d[0x60] != d[0x50] + 0x28):
+        return f"vtable offsets {sorted(d.values())}"
+    if 0x60 in d and ob.size != 0x60:
+        return "an interface after a bigger base"
+    if ob.args:
+        # the class inherits the base's constructor: its arguments are the factory's
+        if inherited:
+            if loads or clears:
+                return "reads its arguments"
+        else:
+            regs = ev[ctor][2]
+            want = [Sym("mem", (("arg", (n,)), 0, 8)) for n in range(2, 2 + len(ob.args))]
+            if [regs.get(k) for k in range(1, 1 + len(ob.args))] != want or sorted(loads) != list(
+                    range(2, 2 + len(ob.args))) or any(i > ctor or (o, wd) != (0, 8) for n in loads
+                                                         for o, wd, i, _ in loads[n]) or clears or adds:
+                return "the base's arguments aren't the factory's"
+        params = [Param(t, True, False) for t in ob.args]
+        loads = {}
+    else:
+        params = _object_params(loads, clears, adds, ctor)
+        if isinstance(params, str):
+            return params
+    start = 0x68 if 0x60 in d else ob.size
+    members = _object_members(params, loads, stores, adds, drops, ctor, alloc_size, start)
+    if isinstance(members, str):
+        return members
+    if ob.args and any(s.param is not None for s in members):
+        return "a member from the base's arguments"
+    # members stored before the vtable is loaded: a class between it and the base holds them
+    got = next((i for i, e in enumerate(ev) if i > ctor and e[0] == "got" and e[1] == vt), None)
+    parented = got is not None and any(i < got for _, _, _, i in stores)
+    if parented and not ob.args and params:
+        return "a parent's members from its parameters"
+    return ObjectFactory(a, placeholder(vt), alloc_size, alloc_align, extra, 0x60 in d, params, members, ob,
+                         parented)
+
+
+def _object_members(params, loads, stores, adds, drops, ctor, size, start) -> list[Member] | str:
+    """The members from `start` to `size`: the parameters' and the constants'."""
+    vids = {n: next(v for off, _, _, v in loads[n] if off == 0) for n in loads}
+    by_vid = {}
+    for n, v in vids.items():
+        by_vid[v[1][0]] = n        # a load's ident: ("mem", (("arg", (n,)), off, width))
+    special: dict[int, Member] = {}
+    consts: dict[int, int] = {}
+    seen = set()
+    for off, width, val, i in stores:
+        if isinstance(val, int):
+            for k in range(width):
+                consts[off + k] = (val >> (8 * k)) & 0xFF
+            continue
+        if not (isinstance(val, Sym) and val.kind == "mem" and val.key[0][0] == "arg" and not val.delta):
+            return f"stores {val!r} at +{off:#x}"
+        n, comp, cw = val.key[0][1][0], val.key[1], val.key[2]
+        p = params[n - 2]
+        if (n, comp) in seen:
+            return f"argument {n} stored twice"
+        seen.add((n, comp))
+        if p.kind in ("ref", "pair"):
+            if comp == 8 and p.kind == "pair":
+                continue                  # checked with its reference
+            if comp != 0 or width != 8:
+                return f"argument {n} stored at +{off:#x}"
+            if p.kind == "pair":
+                tail = [s for s in stores if s[0] == off + 8]
+                if len(tail) != 1 or tail[0][2] != Sym("mem", (("arg", (n,)), 8, 8)):
+                    return f"argument {n}'s pair split"
+            vid = vids[n]
+            later = [j for j in adds.get(vid, []) if j > i]
+            moved = not later
+            if moved and not p.by_value:
+                return f"argument {n} moved from a reference"
+            special[off] = Member(off, p.kind, n - 2, moved=moved)
+        elif p.kind.startswith("words"):
+            if comp:
+                continue                  # checked with the first word
+            nw = int(p.kind[5:])
+            got = {s[0]: s[2] for s in stores if off <= s[0] < off + 8 * nw and s[1] == 8}
+            if got != {off + 8 * k: Sym("mem", (("arg", (n,)), 8 * k, 8)) for k in range(nw)}:
+                return f"argument {n}'s words split"
+            special[off] = Member(off, p.kind, n - 2)
+        else:
+            if comp != 0 or SCALAR.get(width) != p.kind and SCALAR.get(cw) != p.kind:
+                return f"argument {n} stored at +{off:#x} as {width}"
+            special[off] = Member(off, SCALAR[width], n - 2)
+    # every reference added once per copy and dropped once per by-value copy
+    for n, p in enumerate(params, 2):
+        if p.kind not in ("ref", "pair"):
+            continue
+        vid = vids[n]
+        mems = [s for s in special.values() if s.param == n - 2]
+        want_adds = (p.by_value and not p.moved) + sum(not s.moved for s in mems)
+        if len(adds.get(vid, [])) != want_adds:
+            return f"argument {n}'s references added {len(adds.get(vid, []))} times"
+        want_drops = 1 if p.by_value and not any(s.moved for s in mems) else 0
+        if sum(1 for v, _ in drops if v == vid) != want_drops:
+            return f"argument {n}'s references dropped"
+    if len(drops) != sum(1 for v, _ in drops if v in vids.values()):
+        return "drops a reference it doesn't hold"
+    order = [by_vid[v[1][0]] for v, _ in drops]
+    if order != sorted(order, reverse=True):
+        return "drops its parameters out of order"
+    widths = {"ref": 8, "pair": 16, "u8": 1, "u16": 2, "u32": 4, "u64": 8}
+    widths.update({s.kind: 8 * int(s.kind[5:]) for s in special.values() if s.kind.startswith("words")})
+    out = []
+    off = start
+    for so in sorted(special) + [size]:
+        if so < off:
+            return f"members overlap at +{so:#x}"
+        gap = {b: v for b, v in consts.items() if off <= b < so}
+        if so > off:
+            out += [Member(o, SCALAR[wd], value=v) for o, wd, v in layout(off, so, gap)]
+        if so == size:
+            break
+        s = special[so]
+        if any(so <= b < so + widths[s.kind] for b in consts):
+            return f"a constant inside the member at +{so:#x}"
+        out.append(s)
+        off = so + widths[s.kind]
+    if any(b >= size or b < start for b in consts):
+        return "stores outside its members"
+    return out
+
+
+def mangle_types(types: list[str], subs: list[str]) -> str:
+    """Itanium mangling of the types of a template argument pack, with the
+    substitutions `subs` already made (extended in place)."""
+    def name(n: str) -> str:
+        return f"{len(n)}{n}"
+
+    def sub(full: str) -> str | None:
+        if full in subs:
+            i = subs.index(full)
+            return "S_" if i == 0 else f"S{_b36(i - 1)}_"
+        return None
+
+    def plain(t: str) -> tuple[str, str]:
+        """(mangled with substitutions, the full spelling) of a type without cv or &."""
+        if t in SCALAR_CODE:
+            return SCALAR_CODE[t], SCALAR_CODE[t]
+        if t == "void*":
+            s = sub("Pv")
+            if s:
+                return s, "Pv"
+            subs.append("Pv")
+            return "Pv", "Pv"
+        if t == REF:
+            tmpl, arg = name("Unk_239a418_Ref"), name("Unk_239a418")
+            full = f"{tmpl}I{arg}E"
+            s = sub(full)
+            if s:
+                return s, full
+            out = sub(tmpl) or tmpl
+            if tmpl not in subs:
+                subs.append(tmpl)
+            out += "I" + (sub(arg) or arg) + "E"
+            if arg not in subs:
+                subs.append(arg)
+            subs.append(full)
+            return out, full
+        full = name(t)
+        s = sub(full)
+        if s:
+            return s, full
+        subs.append(full)
+        return full, full
+
+    out = ""
+    for t in types:
+        ref = t.endswith("&") and not t.endswith("&&")
+        base = t.removeprefix("const ").removesuffix(" const&").rstrip("&")
+        if not ref:
+            out += plain(base)[0]
+            continue
+        full_k = "K" + plain_full(base)
+        s = sub("R" + full_k)
+        if s:
+            out += s
+            continue
+        sk = sub(full_k)
+        if sk:
+            out += "R" + sk
+        else:
+            out += "RK" + plain(base)[0]
+            subs.append(full_k)
+        subs.append("R" + full_k)
+    return out
+
+
+def _b36(n: int) -> str:
+    digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    s = ""
+    while True:
+        s = digits[n % 36] + s
+        n //= 36
+        if not n:
+            return s
+
+
+def plain_full(t: str) -> str:
+    if t in SCALAR_CODE:
+        return SCALAR_CODE[t]
+    if t == "void*":
+        return "Pv"
+    if t == REF:
+        return "15Unk_239a418_RefI11Unk_239a418E"
+    return f"{len(t)}{t}"
+
+
+def object_type(kind: str) -> str:
+    if kind.startswith("words"):
+        return f"Unk_1085320_Words{kind[5:]}"
+    return {"ref": REF, "pair": PAIR}.get(kind, kind)
+
+
+def words_struct(kind: str) -> str:
+    n = int(kind[5:])
+    body = "".join(f"    u64 field_{8 * k:x};\n" for k in range(n))
+    return f"struct {object_type(kind)} {{\n{body}}};\n"
+
+
+def cref(t: str) -> str:
+    return f"{t} const&" if t.endswith("*") else f"const {t}&"
+
+
+def create_args(f: ObjectFactory) -> list[str]:
+    """Create's argument types (its pack, as deduced from them)."""
+    out = []
+    for p in f.params:
+        t = object_type(p.kind)
+        out.append(t if p.moved else cref(t))
+    return out
+
+
+def object_name(f: ObjectFactory) -> str:
+    cls = mangled_class(f.cls)
+    subs = ["7Unk_New", "7Unk_New6Create", cls]
+    pack = mangle_types(create_args(f), subs)
+    return f"_ZN7Unk_New6CreateI{cls}J{pack}EEEPT_P21Unk_239a418_AllocatorDpOT0_"
+
+
+def object_class(f: ObjectFactory) -> str:
+    bases = f"public {f.base.name}" + (", public Unk_1085320_Interface" if f.interface else "")
+    align = "alignas(16) " if f.align == 16 else ""
+    ps = []
+    for k, p in enumerate(f.params):
+        t = object_type(p.kind)
+        ps.append(f"{t} a{k}" if p.by_value else f"{cref(t)} a{k}")
+    inits = []
+    for s in f.members:
+        if s.param is not None:
+            inits.append(f"field_{s.offset:x}(" + (f"std::move(a{s.param})" if s.moved else f"a{s.param}") + ")")
+    fields = []
+    for s in f.members:
+        if s.param is not None:
+            fields.append(f"    {object_type(s.kind)} field_{s.offset:x};")
+        else:
+            fields.append(member(s.offset, {"u8": 1, "u16": 2, "u32": 4, "u64": 8}[s.kind], s.value))
+    out = [f"// 0x{f.addr + BASE:x}"]
+    base = f.base.name
+    if f.parented:
+        parent = f"{f.cls}_Parent"
+        out += ["// Its members are its parent's: they're stored before its vptrs.",
+                f"class {align}{parent} : {bases} {{", "public:", f"    using {base}::{base};",
+                f"    ~{parent}() override;", ""] + fields + ["};"]
+        bases, base, fields = f"public {parent}", parent, []
+    out += [f"class {align}{f.cls} : {bases} {{", "public:"]
+    if f.base.args or f.parented:
+        out.append(f"    using {base}::{base};")
+    else:
+        ctor = f"    {f.cls}({', '.join(ps)})"
+        out.append(ctor + (" : " + ", ".join(inits) if inits else "") + " {}")
+    out.append(f"    ~{f.cls}() override;")
+    out += [f"    virtual void vf{f.base.slots + k}();" for k in range(f.extra_slots)]
+    if fields:
+        out += [""] + fields
+    args = ", ".join(t if t.endswith("&") else t + "&&" for t in create_args(f))
+    out += ["};", f'static_assert(sizeof({f.cls}) == {f.size:#x}, "{f.cls}");',
+            f"template {f.cls}* Unk_New::Create<{f.cls}>(Unk_239a418_Allocator*" + (", " + args if args else "")
+            + ");"]
+    return "\n".join(out) + "\n"
+
+
+OBJECT_HEADER = """// Scope: common
+//
+// Unk_New::Create (src/gflib3/Unk_New.h) of classes derived directly from
+// gflib3's object (src/gflib3/Unk_239a418.h), its constructor out of line
+// (0x71005e2350) and theirs inline, and of classes on Unk_23f4660
+// (src/unsorted/Unk_23f4660.h), which inherit its constructor. The classes are named after their vtables;
+// their constructors take what the factories read from the arguments: a
+// reference or a reference and a u64 (moved in, or copied from a const&), a
+// scalar by value, or a const& read after the base is constructed; their
+// members are what the factories store after the base: those parameters and
+// constants. Written by tools/familygen.py: regenerate, don't edit.
+#include <utility>
+
+#include "gflib3/Unk_New.h"
+#include "unsorted/Unk_23f4660.h"
+
+using Unk_Ref = Unk_239a418_Ref<Unk_239a418>;
+
+// A reference and a u64 passed together (moved: only the reference is cleared).
+struct Unk_239a418_RefPair {
+    Unk_Ref field_0;
+    u64 field_8;
+};
+
+// Stands for the interface at +0x60 some of the classes have: each its own,
+// only its vptr's place matters here.
+class Unk_1085320_Interface {
+public:
+    virtual void vf0();
+};
+"""
+
+
+# ------------------------------------------------------------------------- creators
+
+CREATOR_SEED = 0x790260         # the first: Unk_790260_Owner::Create<Unk_23a8? >
+CREATOR_FILE = "Unk_790260.cpp"
+SET_PARENT = 0xE7FE20           # Unk_23f4660::Unk_e7fe20(Ref)
+ABORT_IMPL = 0x17E9BC0          # nn::diag::detail::AbortImpl (PLT)
+CREATOR_PUSH = 0x790490         # the owner's vector's __push_back_slow_path (vectors' Unk_790490)
+CREATOR_CALLS = (GET_TLS, 0xE7F820, SET_PARENT, GET_TLS, CREATOR_PUSH, ABORT, ABORT_IMPL)
+OWNER = "Unk_790260_Owner"
+
+
+def creator_candidates(m: Module) -> list[int]:
+    out = []
+    for a, r in m.rows.items():
+        if not r.sword_size or r.sword_size > 1200 or r.status not in "UO":
+            continue
+        if r.status == "O" and not r.name.startswith(f"_ZN{mangled_class(OWNER)}6Create"):
+            continue
+        calls = tuple(t for t in (bl_target(p, w) for p, w in m.words(a, r.sword_size)) if t is not None)
+        if calls == CREATOR_CALLS:
+            out.append(a)
+    return sorted(out)
+
+
+def abort_blocks(m: Module, a: int, size: int, targets: tuple) -> set[int]:
+    """The addresses of the blocks that end in a call to one of `targets` (abort)."""
+    out = set()
+    words = dict(m.words(a, size))
+    for p, w in words.items():
+        if bl_target(p, w) in targets:
+            q = p
+            while q in words:
+                out.add(q)
+                prev = words.get(q - 4)
+                if prev is None or (prev & 0x7C000000) in (0x14000000, 0x54000000) or (prev & 0x7E000000) in (
+                        0x34000000, 0x36000000) or prev == 0xD65F03C0 or bl_target(q - 4, prev) is not None:
+                    break
+                q -= 4
+    return out
+
+
+def _creator_tail(ev: list, obj: Sym) -> list:
+    """What a creator does after the construction, for comparing with the seed's:
+    calls, virtual calls and stores outside the stack, symbolically (the
+    object and stack addresses by kind, not by where they were made)."""
+    def norm(v):
+        if isinstance(v, Sym) and v.kind == "sp":
+            return ("sp",)
+        if isinstance(v, Sym) and v.ident() == obj.ident():
+            return ("obj", v.delta)
+        if isinstance(v, Sym) and v.kind == "mem":
+            inner = Sym(v.key[0][0], v.key[0][1])
+            return ("mem", norm(inner), v.key[1], v.key[2], v.delta)
+        return v
+
+    out = []
+    for e in ev:
+        if e[0] == "call":
+            out.append(("call", e[1], tuple(norm(e[2].get(k)) for k in range(2))))
+        elif e[0] == "vcall":
+            out.append(("vcall", norm(e[1]), e[2]))
+        elif e[0] == "store" and not _is_stack(e[1]):
+            out.append(("store", norm(e[1]), e[2], e[3], norm(e[4])))
+    return out
+
+
+def parse_creator(m: Module, a: int, seed_tail: list | None = None) -> ObjectFactory | str:
+    """A creator's class (the construction part of it), or why it isn't one this tool writes."""
+    size = m.rows[a].sword_size
+    abort_at = abort_blocks(m, a, size, (ABORT, ABORT_IMPL))
+
+    def choose(mn, value, target):
+        if target in abort_at or mn == "b.hs":
+            return False        # not to abort, and the vector's fast path
+        return _object_choose(mn, value, target, abort_at)
+
+    regs = {0: Sym("self"), 1: Sym("parent"), 2: Sym("a2"), 8: Sym("sret")}
+    try:
+        w = walk(m, a, size, regs, choose)
+    except WalkError as e:
+        return f"walk: {e}"
+    ev = w.events
+    cut = next((i for i, e in enumerate(ev) if e[0] == "store" and e[1] == Sym("sret")), None)
+    if cut is None:
+        return "no result"
+    allocator = Sym("mem", (("self", ()), 8, 8))
+    f = construction(a, ev[:cut], inherited=True, allocator=allocator)
+    if isinstance(f, str):
+        return f
+    if f.base.name != "Unk_23f4660" or f.interface:
+        return "not on Unk_23f4660"
+    ctor = next(e for e in ev if e[0] == "call" and e[1] == f.base.ctor)
+    want = [Sym("self"), Sym("a2"), Sym("mem", (("self", ()), 0xA8, 8))]
+    if [ctor[2].get(k) for k in (1, 2, 3)] != want:
+        return "the base's arguments aren't the owner's"
+    tail = _creator_tail(ev[cut:], ctor[2][0])
+    if seed_tail is not None and tail != seed_tail:
+        return "the creator's tail differs"
+    f.creator_tail = tail
+    return f
+
+
+def creator_name(cls: str) -> str:
+    o = mangled_class(OWNER)
+    return (f"_ZN{o}6CreateI{mangled_class(cls)}EE15Unk_239a418_RefIT_ERKS2_I11Unk_239a418Em")
+
+
+def creator_class(f: ObjectFactory) -> str:
+    text = object_class(f)
+    lines = text.rstrip("\n").split("\n")
+    assert lines[-1].startswith("template ")
+    lines[-1] = (f"template Unk_239a418_Ref<{f.cls}> {OWNER}::Create<{f.cls}>(const Unk_Ref& parent, u64 a2);")
+    return "\n".join(lines) + "\n"
+
+
+CREATOR_HEADER = """// Scope: common
+//
+// The creators of an owner (Unk_790260_Owner, placeholder): each makes a class
+// on Unk_23f4660 (src/unsorted/Unk_23f4660.h) with the owner's allocator,
+// sets its parent, keeps a reference to it and returns one. One template, an
+// instance per class; the classes are named after their vtables, their
+// members are what the creators store after Unk_23f4660's constructor.
+// Written by tools/familygen.py: regenerate, don't edit.
+#include <nn/os.h>
+
+#include "gflib3/Unk_New.h"
+#include "unsorted/Unk_23f4660.h"
+#include "unsorted/Unk_2771620.h"
+
+using Unk_Ref = Unk_239a418_Ref<Unk_239a418>;
+
+// The element of the owner's vector (its push_back's slow path is
+// 0x7100790490, in Unk_5ac520.cpp).
+struct Unk_790490 : Unk_239a418 {};
+
+class Unk_790260_Owner {
+public:
+    template <class T>
+    Unk_239a418_Ref<T> Create(const Unk_Ref& parent, u64 a2);
+
+    u64 field_0;
+    Unk_239a418_Allocator* field_8;
+    u8 _10[0x68];
+    std::vector<Unk_239a418_Ref<Unk_790490>, Unk_2771620_Allocator<Unk_239a418_Ref<Unk_790490>>> field_78;
+    u64 field_a8;
+    u8 _b0[0x10];
+    bool field_c0;
+};
+PKMN_OFFSET_ASSERT(Unk_790260_Owner, field_78, 0x78);
+PKMN_OFFSET_ASSERT(Unk_790260_Owner, field_a8, 0xa8);
+PKMN_OFFSET_ASSERT(Unk_790260_Owner, field_c0, 0xc0);
+
+template <class T>
+Unk_239a418_Ref<T> Unk_790260_Owner::Create(const Unk_Ref& parent, u64 a2) {
+    if (!parent.m_ptr)
+        nn::diag::detail::AbortImpl("", "", "", 0);
+    Unk_239a418_Ref<T> result(Unk_New().Create<T>(field_8, this, a2, u64(field_a8)));
+    // Through the result, not the new object: clang then computes the
+    // object's interface again for the vector's reference, as the original does.
+    result.m_ptr->Unk_e7fe20(parent);
+    field_78.push_back(
+        Unk_239a418_Ref<Unk_790490>(static_cast<Unk_790490*>(static_cast<Unk_239a418*>(result.m_ptr))));
+    field_c0 = false;
+    return result;
+}
+"""
+
+
 # ------------------------------------------------------------------------- singletons
 
 @dataclass
@@ -646,9 +1683,11 @@ class Plan:
     vectors: dict = field(default_factory=dict)     # address -> variant
     factories: list = field(default_factory=list)
     singletons: list = field(default_factory=list)
+    objects: list = field(default_factory=list)
+    creators: list = field(default_factory=list)
     names: dict = field(default_factory=dict)       # address -> name
     candidates: dict = field(default_factory=dict)  # family -> [addresses]
-    skipped: list = field(default_factory=list)     # (address, reason)
+    skipped: list = field(default_factory=list)     # (family, address, reason)
 
 
 def plan(m: Module, only: set[int] | None = None, everything: bool = False) -> Plan:
@@ -666,7 +1705,7 @@ def plan(m: Module, only: set[int] | None = None, everything: bool = False) -> P
     for a in fc:
         f = parse_factory(m, a)
         if isinstance(f, str):
-            p.skipped.append((a, f))
+            p.skipped.append(("factories", a, f))
             continue
         n = factory_name(f.cls)
         if f.cls in classes or not kept(m, a, n, only, everything):
@@ -681,6 +1720,36 @@ def plan(m: Module, only: set[int] | None = None, everything: bool = False) -> P
         if all(kept(m, a, n, only, everything) for a, n in ns.items()):
             p.singletons.append(s)
             p.names.update(ns)
+    oc = object_candidates(m)
+    p.candidates["objects"] = oc
+    for a in oc:
+        o = parse_object(m, a)
+        if isinstance(o, str):
+            p.skipped.append(("objects", a, o))
+            continue
+        n = object_name(o)
+        if o.cls in classes or not kept(m, a, n, only, everything):
+            continue
+        classes.add(o.cls)
+        p.objects.append(o)
+        p.names[a] = n
+    cc = creator_candidates(m)
+    p.candidates["creators"] = cc
+    seed = parse_creator(m, CREATOR_SEED)
+    seed_tail = None if isinstance(seed, str) else seed.creator_tail
+    for a in cc:
+        c = parse_creator(m, a, seed_tail)
+        if isinstance(c, str):
+            p.skipped.append(("creators", a, c))
+            continue
+        n = creator_name(c.cls)
+        if c.cls in classes or not kept(m, a, n, only, everything):
+            continue
+        classes.add(c.cls)
+        p.creators.append(c)
+        p.names[a] = n
+    if p.objects or p.creators:
+        p.names.update(OUT_OF_LINE)
     return p
 
 
@@ -692,6 +1761,13 @@ def sources(p: Plan) -> dict[str, str]:
         out[FACTORY_FILE] = FACTORY_HEADER + "\n" + "\n".join(factory_class(f) for f in p.factories)
     if p.singletons:
         out[SINGLETON_FILE] = SINGLETON_HEADER + "\n" + "\n".join(singleton_class(s) for s in p.singletons)
+    if p.creators:
+        out[CREATOR_FILE] = CREATOR_HEADER + "\n" + "\n".join(creator_class(c) for c in p.creators)
+    if p.objects:
+        words = sorted({q.kind for o in p.objects for q in o.params if q.kind.startswith("words")},
+                       key=lambda k: int(k[5:]))
+        out[OBJECT_FILE] = (OBJECT_HEADER + "".join("\n" + words_struct(k) for k in words) + "\n"
+                            + "\n".join(object_class(o) for o in p.objects))
     return out
 
 
@@ -701,7 +1777,7 @@ def cmd_write(m: Module, args) -> None:
     only = {int(x, 16) - BASE for x in args.only.read_text(encoding="utf-8").split()} if args.only else None
     p = plan(m, only, args.all)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    for f in (VECTOR_FILE, FACTORY_FILE, SINGLETON_FILE):
+    for f in (VECTOR_FILE, FACTORY_FILE, SINGLETON_FILE, OBJECT_FILE, CREATOR_FILE):
         (OUT_DIR / f).unlink(missing_ok=True)
     written = []
     for f, text in sources(p).items():
@@ -715,7 +1791,9 @@ def cmd_write(m: Module, args) -> None:
             r = m.rows[a]
             fh.write(f"{n},{r.sword_str},{r.shield_str}\n")
     print(f"{len(p.vectors)} vector functions, {len(p.factories)} factories, "
-          f"{len(p.singletons)} singletons; {len(p.names)} names in {args.names}", file=sys.stderr)
+          f"{len(p.singletons)} singletons, {len(p.objects)} objects, {len(p.creators)} creators; "
+          f"{len(p.names)} names in {args.names}",
+          file=sys.stderr)
 
 
 def cmd_census(m: Module, args) -> None:
@@ -725,12 +1803,12 @@ def cmd_census(m: Module, args) -> None:
         size = sum(m.rows[a].sword_size for a in addrs)
         dsize = sum(m.rows[a].sword_size for a in done)
         print(f"{fam:12s} {len(addrs):5d} candidates ({size:7d} bytes), {len(done):5d} matched ({dsize:7d} bytes)")
-    reasons: dict[str, int] = {}
-    for _, why in p.skipped:
-        key = why.split(" at ")[0]
+    reasons: dict[tuple[str, str], int] = {}
+    for fam, _, why in p.skipped:
+        key = (fam, why.split(" at ")[0])
         reasons[key] = reasons.get(key, 0) + 1
-    for why, n in sorted(reasons.items(), key=lambda kv: -kv[1]):
-        print(f"  factories not written: {n:4d} {why}")
+    for (fam, why), n in sorted(reasons.items(), key=lambda kv: (kv[0][0], -kv[1])):
+        print(f"  {fam} not written: {n:4d} {why}")
 
 
 def main(argv: list[str] | None = None) -> int:
