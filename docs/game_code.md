@@ -2018,6 +2018,49 @@ Looked at and left:
   `0x71005b2f30`, 174 each): vtables.py's inline-destructor shape, which
   needs a key function for each class.
 
+## Hand-decompiled game code: the camp, Poke Jobs, the summary (2026-11-19)
+
+Real decompilation in `game/pokecamp` and its neighbours (38 functions,
+43 KB): `src/contents/pokecamp/source` (the original's
+`prog/contents/pokecamp/source`, with its own `pkmn_library_settings` entry
+like `src/unsorted`'s) and a few files in `src/unsorted`. What carries over:
+
+- **Names are FNV-1a 64 with the offset basis `0xcbf29ce484222645`**, as
+  `{hash, str, len}` (`src/unsorted/Unk_112dd40.h`). A literal's hash folds
+  at compile time from a constexpr constructor; a name formatted into a
+  `char[N]` buffer is hashed up to its terminator with length `N - 1`. The
+  camp's three sound tables (`Unk_112a570.cpp`, `@Play_Camp_*` to `PMxxx_yy`
+  voices and `kw*` motions) are such names in `Unk_2771620_Map`s, whose
+  values have user-written copy constructors (the nodes are copied field by
+  field).
+- **Data documents** (`src/unsorted/Unk_1106320.h`): a node `{root, index}`
+  returned by value through x8, with element (`0x7101106320`), member by
+  name (`0x71011063e0`) and int/float/string getters. The Poke Job table's
+  accessors (`Unk_129e3b0.cpp`) are `Node job = table.At(i); return
+  job[name].GetInt(0);`: the named local gives the original's stack order.
+  About 150 more callers of the member lookup are left in game code.
+- **std::sort with a lambda** (`Unk_1298270.cpp`, `Unk_12e3f60.cpp`): the
+  libc++ instances (`__sort`, `__sort3/4/5`, `__insertion_sort_incomplete`,
+  7-16 KB a family) match once the comparator's shape does. The original
+  inlines the comparator everywhere; LLVM 7 does that only when the helper
+  the lambda calls is an *inline* (linkonce) function, so `shouldBeDeferred`
+  keeps it out of the lambda until the lambda is inlined. A captured `this`
+  is loaded once per call (lambda prologue), captured pointers are reloaded.
+  The caller of a sort can be a `NON_MATCHING` host for its instances
+  (status M), like `src/field/content`'s.
+- Stack slots tell temporaries from locals: a temporary that outlives a full
+  expression is a named local; an inline helper's slots come first (the
+  inliner moves its allocas to the top of the entry block).
+
+Left: the camp's sort of 9 objects (`0x710120de60`-`0x710120f350`, 5 KB; the
+comparator's null checks are either not inlined or laid out differently,
+attempts in the PR), `0x7101166ce0` (register allocation, `m`), and
+`0x7101298270`, which matches but keeps the leaf generator's name because
+`src/unsorted/leaf/Unk_12994f0.cpp` calls it as `Unk_1298270(void*,
+unsigned int)`. `vector<Unk_23d4470_Callable>::__push_back_slow_path`
+instances (0x7101119870 and others, ~600 bytes each) need that callable's
+move and copy constructors (manager at +0x10, copier at +0x18).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
