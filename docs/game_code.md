@@ -1673,6 +1673,25 @@ change (`--out` to a scratch directory), and `--only` listed the 172 new
 ones. All 172 match: 16 classes with 6 functions each (D2, D0, four
 thunks) and 19 with 4 (check.py: 41,789 matching, 42 not matching).
 
+### Batch 38: callables among the members of inline bases
+
+`tail_members` (Batch 13) reads references and callables before a tail
+call of an out-of-line base's D2. On an inline base, `ref_members` read
+references only, the first of them right after the vptr stores.
+`inline_members` reads what `tail_members` does, a callable first too (its
+manager's load scheduled between the vptr stores, `_VPTRS_CALL`), followed
+by the base's D2 inlined as `ref_dtor_pattern` splices it: the object's,
+or one with references of its own (Batch 37). `tail_members`' decoding is
+`_members`, shared.
+
+The trial wrote 318 new functions for 38 classes: 30 on the object (the
+callables first, then references; their `vf_type`s, getters and type
+thunks too) and 8 on `Unk_23c44f8`, the 6 Batch 37 left out among them.
+All match but `Unk_23c3170`'s D0 and thunks: its D2 (280 bytes, three
+callables) matches, but the original's D0 and thunks inline it and ours
+don't, a cost near clang's threshold. 312 functions are kept (check.py:
+42,101 matching, 42 not matching).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1698,7 +1717,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after Batch 37: check.py reports 41,789 matching and 42 not
+State after Batch 38: check.py reports 42,101 matching and 42 not
 matching, in both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
@@ -1810,8 +1829,10 @@ the bases of #62-#76). What's left, roughly by yield:
    (`base_type_statics` should follow a base `vf_type` that calls its
    parent's getter out of line).
 4. **More member kinds in D2s** (`ref_members`, `tail_members`,
-   `ref_members_empty`): members that are themselves objects (a second
-   object D2 inline), callables first, out-of-line member destructors
+   `inline_members`, `ref_members_empty`): members that are themselves
+   objects (a second object D2 inline), light events (`add x0, x19, #N ;
+   bl Unk_5cf8d0`: in about 50 unmatched D2s, mostly with other members),
+   vectors freed through an allocator, out-of-line member destructors
    (`add x0, x19, #N ; bl T`), owned objects with deleters, polymorphic
    members whose vptr the D2 stores (`Unk_23f5d00`'s +0x60). Each needs its
    idiom read the way `tail_members` reads references and callables.
