@@ -869,3 +869,59 @@ u32 Unk_7f76c0(u32 a, u32 b) {
     u32 range = high - low + 1;
     return low + Unk_7f8c20(Unk_27ced28, range);
 }
+
+// 0x71007f2590
+void Unk_7f2590(Unk_7ee6b0* self, const Unk_7ee6b0_Action* action) {
+    u8 turn = self->field_453;
+    u8* count = &self->field_450[turn];
+    u8 index = *count;
+    if (index == 6) {
+        for (s32 i = 0; i < 5; i++)
+            self->field_378[turn].field_0[i] = self->field_378[turn].field_0[i + 1];
+        index = 5;
+    }
+    self->field_378[turn].field_0[index] = *action;
+    if (*count <= 5)
+        (*count)++;
+}
+
+// 0x71007f2fe0
+void Unk_7f2fe0(Unk_7ee6b0* self, u32 stat, u8 amount) {
+    if (amount == 0)
+        return;
+    u16 total = self->field_2bc;
+    if (total > 509)
+        return;
+    u32 sum = total + amount;
+    amount -= sum > 510 ? sum - 510 : 0;
+    if (amount == 0)
+        return;
+    u8* value;
+    switch (stat) {
+        case 0:
+            value = &self->field_2be;
+            break;
+        case 1:
+            value = &self->field_2bf;
+            break;
+        case 2:
+            value = &self->field_2c0;
+            break;
+        case 3:
+            value = &self->field_2c2;
+            break;
+        case 4:
+            value = &self->field_2c3;
+            break;
+        case 5:
+            value = &self->field_2c1;
+            break;
+        default:
+            return;
+    }
+    u32 next = *value + amount;
+    amount -= next > 252 ? next - 252 : 0;
+    *value += amount;
+    self->field_2bc = total + amount;
+    self->field_2c6 = 1;
+}

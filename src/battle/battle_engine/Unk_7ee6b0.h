@@ -28,9 +28,12 @@ PKMN_SIZE_ASSERT(Unk_7ee6b0_Slot, 0x1c);
 
 // What the battle Pokemon remembers of a turn: up to 6 actions.
 struct Unk_7ee6b0_Action {
-    u32 field_0;
+    u16 field_0;
+    u16 field_2;
     u32 field_4;
-    u32 field_8;
+    u8 field_8;
+    u8 field_9;
+    u8 field_a;
 };
 PKMN_SIZE_ASSERT(Unk_7ee6b0_Action, 0xc);
 struct Unk_7ee6b0_Turn {
@@ -100,7 +103,14 @@ struct Unk_7ee6b0 {
     s8 field_2b8;
     s8 field_2b9;
     s8 field_2ba;
-    u8 _2bb[0x2c4 - 0x2bb];
+    u8 _2bb;
+    u16 field_2bc;  // effort values: their total, then each stat's
+    u8 field_2be;
+    u8 field_2bf;
+    u8 field_2c0;
+    u8 field_2c1;
+    u8 field_2c2;
+    u8 field_2c3;
     u8 field_2c4;
     u8 _2c5;
     u8 field_2c6;

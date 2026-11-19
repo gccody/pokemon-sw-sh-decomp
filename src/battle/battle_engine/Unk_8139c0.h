@@ -45,17 +45,6 @@ struct Unk_816910_List {
     u8 field_8[1];
 };
 
-// What Unk_816f90 passes Unk_7f2590.
-struct Unk_7f2590_Arg {
-    u16 field_0;
-    u16 field_2;
-    u32 field_4;
-    u8 field_8;
-    u8 field_9;
-    u8 field_a;
-};
-PKMN_SIZE_ASSERT(Unk_7f2590_Arg, 0xc);
-
 // The battle Pokemon's member functions (src/battle/battle_engine/Unk_7ee6b0.cpp)
 // and leaf functions on it with types of their own (src/unsorted/leaf).
 void Unk_7f26d0(Unk_7ee6b0* self, u32 index, u8 value);
@@ -66,8 +55,8 @@ u8 Unk_7f0010(const Unk_7ee6b0* self, u8 slot);
 void Unk_7f0040(Unk_7ee6b0* self, u8 slot, u8 value);
 u8 Unk_7f0080(const Unk_7ee6b0* self, u8 slot);
 void Unk_7f00b0(Unk_7ee6b0* self, u8 slot, u8 value);
-void Unk_7f2590(Unk_7ee6b0* self, const Unk_7f2590_Arg* arg);
-void Unk_7f2fe0(Unk_7ee6b0* self, u32 index, u32 value);
+void Unk_7f2590(Unk_7ee6b0* self, const Unk_7ee6b0_Action* action);
+void Unk_7f2fe0(Unk_7ee6b0* self, u32 stat, u8 amount);
 void Unk_7f2150(Unk_7ee6b0* self, const Unk_7ee6b0* other);
 bool Unk_7f22a0(Unk_7ee6b0* self, u16 types, u32 arg2);
 void Unk_7f2380(Unk_7ee6b0* self, u32 arg1, bool arg2);
