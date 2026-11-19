@@ -51,6 +51,28 @@ u64 Unk_b75f00_getFielda8(const Unk_b75f00* self) {
     return self->field_a8;
 }
 
+struct Unk_b794e0_arg1 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_b794e0_arg1, field_0, 0x0);
+
+struct Unk_b794e0 {
+    u8 _0[0x88];
+    u64 field_88;
+    u8 _90[0x40];
+    u32 field_d0;
+};
+PKMN_OFFSET_ASSERT(Unk_b794e0, field_88, 0x88);
+PKMN_OFFSET_ASSERT(Unk_b794e0, field_d0, 0xd0);
+
+// 0x7100b794e0
+bool Unk_b794e0_check(const Unk_b794e0* self, const Unk_b794e0_arg1* value, u32 arg2) {
+    if (self->field_88 != value->field_0) {
+        return false;
+    }
+    return self->field_d0 == arg2;
+}
+
 struct Unk_b79510 {
     u8 _0[0xb0];
     u64 field_b0;

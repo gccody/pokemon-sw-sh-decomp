@@ -5,6 +5,21 @@
 
 #include "gflib3/Unk_239a418.h"
 
+struct Unk_fe5e70 {
+    u8 _0[0x88];
+    u32 field_88;
+};
+PKMN_OFFSET_ASSERT(Unk_fe5e70, field_88, 0x88);
+
+// 0x7100fe5e70
+u32 Unk_fe5e70_update(Unk_fe5e70* self) {
+    if (self->field_88 != 5) {
+        return 0;
+    }
+    self->field_88 = 6;
+    return 1;
+}
+
 struct Unk_fe86a0 {
     u8 _0[0x8];
     Unk_239a418* field_8;

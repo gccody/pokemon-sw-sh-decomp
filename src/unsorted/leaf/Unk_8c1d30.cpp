@@ -58,6 +58,20 @@ u64 Unk_8c1f10_getField68(const Unk_8c1f10* self) {
     return self->field_68;
 }
 
+struct Unk_7fe1d0;
+struct Unk_8c1f20 {
+    u8 _0[0x60];
+    Unk_7fe1d0* field_60;
+};
+PKMN_OFFSET_ASSERT(Unk_8c1f20, field_60, 0x60);
+
+u64 Unk_7fe1d0_getField8(const Unk_7fe1d0*);
+
+// 0x71008c1f20
+void Unk_8c1f20_call(const Unk_8c1f20* self) {
+    Unk_7fe1d0_getField8(self->field_60);
+}
+
 struct Unk_8c1f30 {
     u8 _0[0x60];
     u64 field_60;

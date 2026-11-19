@@ -102,6 +102,20 @@ void Unk_11914a0_update() {}
 // 0x71011914b0
 void Unk_11914b0_update() {}
 
+struct Unk_1164130;
+struct Unk_1191cd0_arg1 {
+    Unk_1164130* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_1191cd0_arg1, field_0, 0x0);
+
+u64 Unk_1164130_getField140(const Unk_1164130*);
+
+// 0x7101191cd0
+bool Unk_1191cd0_call(void* /*unused*/, const Unk_1191cd0_arg1* value) {
+    u64 r0 = Unk_1164130_getField140(value->field_0);
+    return r0 != 0x7c08eae870e235e0;
+}
+
 // 0x7101191d00
 void Unk_1191d00_update() {}
 

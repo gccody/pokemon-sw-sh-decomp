@@ -1430,6 +1430,34 @@ name differs, or reload a field the original kept in a register.
 The trial wrote 1,012 functions; 533 match (check.py: 39,361 matching, 107
 not matching).
 
+### Batch 27: more guards, and callees as their other callers see them
+
+- **More guards.** Several branches to the same exit are early returns
+  (`if (!p) return;`) inside the first guard, and a guard may test a bit
+  (`tbz`/`tbnz`) or the flags (`b.<cond>`, after a `cmp`/`tst`), or a
+  call's result.
+- **Callees.** Within a run, a placeholder callee's parameters are declared
+  the way most of its callers pass them, a pointer where any of them passes
+  one (`unify_calls`, a second pass); a field passed where a pointer is
+  wanted becomes a `void*`. Calls to matched leaf functions with longer
+  names (`Unk_<addr>_getField8`) use their prototypes (`KNOWN`).
+- **Files.** A function whose placeholder callee has the name of a struct
+  in its file (`Unk_<addr>` is both the function at `<addr>` and the struct
+  of that function's first argument) is dropped like a conflicting
+  declaration: one such file failed to compile in the first trial.
+
+The trials of these three changes added 24, 27 and 88 matches; the run
+kept writes 89 functions, 88 match (check.py: 39,703 matching, 42 not
+matching, with #86's libcurl).
+
+What's left for the lifter, by refusal (game code, up to 128 bytes, after
+this batch): stores to TU-local statics in static initialisers (~710,
+which end in a tail call of `__cxa_atexit`), functions with stack locals
+(~510), callees named but not placeholders (~490, mostly constructors of
+the hand-written bases), branches to other code than the exit (~480),
+extended and shifted register operands (~670). Each needs more than a
+pattern: a structurer for `if`/`else`, or the callers' classes.
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1455,8 +1483,8 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after Batch 26: check.py reports 39,361 matching and 107 not
-matching, in both games. Every batch above came from `tools/leafgen.py` and
+State after Batch 27 and #86 (libcurl): check.py reports 39,703 matching
+and 42 not matching, in both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
 generator and rewrite them, don't edit them by hand.

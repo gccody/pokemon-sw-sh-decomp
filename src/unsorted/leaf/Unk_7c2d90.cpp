@@ -847,6 +847,29 @@ u16 Unk_7cc3c0_getField168(const Unk_7cc3c0* self) {
     return self->field_168;
 }
 
+struct Unk_7cc3d0_88 {
+    u8 _0[0xb28];
+    u8 field_b28;
+};
+PKMN_OFFSET_ASSERT(Unk_7cc3d0_88, field_b28, 0xb28);
+
+struct Unk_7cc3d0 {
+    u8 _0[0x88];
+    Unk_7cc3d0_88* field_88;
+    u8 _90[0xd6];
+    u16 field_166;
+};
+PKMN_OFFSET_ASSERT(Unk_7cc3d0, field_88, 0x88);
+PKMN_OFFSET_ASSERT(Unk_7cc3d0, field_166, 0x166);
+
+// 0x71007cc3d0
+bool Unk_7cc3d0_check(const Unk_7cc3d0* self) {
+    if ((self->field_88->field_b28 & 0x10) != 0) {
+        return false;
+    }
+    return self->field_166 != 0;
+}
+
 struct Unk_7cc400 {
     u8 _0[0x164];
     u16 field_164;

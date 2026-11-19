@@ -285,6 +285,20 @@ bool Unk_aa0b40_check(const Unk_aa0b40* self) {
     return self->field_6da == self->field_6d8;
 }
 
+struct Unk_aad500;
+struct Unk_aa3130 {
+    u8 _0[0x5e8];
+    Unk_aad500* field_5e8;
+};
+PKMN_OFFSET_ASSERT(Unk_aa3130, field_5e8, 0x5e8);
+
+u32 Unk_aad500_getField80(const Unk_aad500*);
+
+// 0x7100aa3130
+void Unk_aa3130_call(const Unk_aa3130* self) {
+    Unk_aad500_getField80(self->field_5e8);
+}
+
 struct Unk_aa4660 {
     u8 _0[0x681];
     u8 field_681;

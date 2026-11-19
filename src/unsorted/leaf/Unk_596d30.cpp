@@ -1070,6 +1070,19 @@ u64 Unk_5b6530_getField118(const Unk_5b6530* self) {
     return self->field_118;
 }
 
+struct Unk_5b6e80 {
+    u8 _0[0xf0];
+    u64 field_f0;
+};
+PKMN_OFFSET_ASSERT(Unk_5b6e80, field_f0, 0xf0);
+
+void Unk_5b9ab0(u64);
+
+// 0x71005b6e80
+void Unk_5b6e80_call(const Unk_5b6e80* self) {
+    Unk_5b9ab0(self->field_f0);
+}
+
 struct Unk_5b6ea0 {
     u8 _0[0x130];
     u8 field_130;

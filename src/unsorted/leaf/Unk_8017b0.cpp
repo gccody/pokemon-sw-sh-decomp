@@ -62,6 +62,18 @@ u8 Unk_801860_getField0(const Unk_801860* self) {
     return self->field_0;
 }
 
+struct Unk_801870 {
+    u8 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_801870, field_0, 0x0);
+
+// 0x7100801870
+void Unk_801870_set(Unk_801870* self) {
+    if (self->field_0 <= 3) {
+        self->field_0 = self->field_0 + 1;
+    }
+}
+
 struct Unk_801890 {
     u8 field_0;
 };

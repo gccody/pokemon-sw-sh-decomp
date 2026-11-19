@@ -394,6 +394,23 @@ u8 Unk_16c6880_get(const Unk_16c6880* self) {
     return self->field_b2;
 }
 
+struct Unk_16c6c10 {
+    u8 _0[0xd0];
+    u8 field_d0;
+    u8 _d1[0x7];
+    u32 field_d8;
+};
+PKMN_OFFSET_ASSERT(Unk_16c6c10, field_d0, 0xd0);
+PKMN_OFFSET_ASSERT(Unk_16c6c10, field_d8, 0xd8);
+
+// 0x71016c6c10
+bool Unk_16c6c10_check(const Unk_16c6c10* self) {
+    if (self->field_d0 != 1) {
+        return false;
+    }
+    return self->field_d8 >= 2 && self->field_d8 <= 4;
+}
+
 extern u64 Unk_27fb310;
 void Unk_16c6d90(u64);
 

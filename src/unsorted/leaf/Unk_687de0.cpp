@@ -246,6 +246,30 @@ void Unk_691100_set(Unk_691100* self, Unk_691100_arg1* value) {
     value->field_0 = v0;
 }
 
+struct Unk_691260_e0 {
+    u8 _0[0x2c];
+    u32 field_2c;
+};
+PKMN_OFFSET_ASSERT(Unk_691260_e0, field_2c, 0x2c);
+
+struct Unk_691260 {
+    u8 _0[0xe0];
+    Unk_691260_e0* field_e0;
+    u32 field_e8;
+};
+PKMN_OFFSET_ASSERT(Unk_691260, field_e0, 0xe0);
+PKMN_OFFSET_ASSERT(Unk_691260, field_e8, 0xe8);
+
+// 0x7100691260
+void Unk_691260_set(Unk_691260* self) {
+    if (self->field_e0 != nullptr) {
+        if (self->field_e8 != self->field_e0->field_2c)
+            return;
+        self->field_e0 = nullptr;
+        self->field_e8 = 0xffffffff;
+    }
+}
+
 struct Unk_691b40 {
     u8 _0[0x238];
     u64 field_238;

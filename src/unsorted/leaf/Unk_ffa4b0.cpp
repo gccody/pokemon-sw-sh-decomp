@@ -41,6 +41,19 @@ u32 Unk_ffa4d0_getField74(const Unk_ffa4d0* self) {
     return self->field_74;
 }
 
+struct Unk_ffa4e0 {
+    u8 _0[0x78];
+    u32 field_78;
+};
+PKMN_OFFSET_ASSERT(Unk_ffa4e0, field_78, 0x78);
+
+// 0x7100ffa4e0
+void Unk_ffa4e0_set(Unk_ffa4e0* self) {
+    if (self->field_78 == 8) {
+        self->field_78 = 9;
+    }
+}
+
 struct Unk_ffa640 {
     u8 _0[0x78];
     u32 field_78;
