@@ -29,9 +29,10 @@ class Unk_2444570_98 : public Unk_2444570_98_Base, public Unk_239a458 {};
 class Unk_2444570 : public Unk_239a418 {
 public:
     Unk_2444570();
-    ~Unk_2444570() override;
-    const Unk_239a418_Type* vf_type() override;
+    // Its destructor is implicit: the derived classes' destructors inline it.
+    // The key function: declared before the type getter's override.
     virtual void vf7(u64 arg);
+    const Unk_239a418_Type* vf_type() override;
     virtual void vf8();
     virtual void vf9(u64 arg);
     virtual void vf10();
@@ -78,6 +79,37 @@ static_assert(__builtin_offsetof(Unk_2444570, field_68) == 0x68, "Unk_2444570::f
 static_assert(__builtin_offsetof(Unk_2444570, field_80) == 0x80, "Unk_2444570::field_80");
 static_assert(__builtin_offsetof(Unk_2444570, field_88) == 0x88, "Unk_2444570::field_88");
 static_assert(__builtin_offsetof(Unk_2444570, field_98) == 0x98, "Unk_2444570::field_98");
+
+// A node with two references of its own (vtable 0x71024446c0), from the same
+// TU. Its destructor is out of line (0x71014e2aa0): the classes derived from
+// it tail-call it.
+class Unk_24446c0 : public Unk_2444570 {
+public:
+    ~Unk_24446c0() override;
+    const Unk_239a418_Type* vf_type() override;
+    void vf12() override;
+    void vf15() override;
+    void vf18(bool value) override;
+    void vf19(bool value) override;
+    void vf20(bool value) override;
+    void vf22() override;
+    void vf23() override;
+    virtual void vf27();
+    virtual void vf28();
+    virtual void vf29();
+    virtual void vf30();
+    virtual void vf31();
+
+    u8 _a0[0x118 - 0xa0];
+    Unk_239a418_Ref<Unk_239a418> field_118;
+    u64 field_120;
+    u64 field_128;
+    u64 field_130;
+    Unk_239a418_Ref<Unk_239a418> field_138;
+};
+static_assert(sizeof(Unk_24446c0) == 0x140, "Unk_24446c0");
+static_assert(__builtin_offsetof(Unk_24446c0, field_118) == 0x118, "Unk_24446c0::field_118");
+static_assert(__builtin_offsetof(Unk_24446c0, field_138) == 0x138, "Unk_24446c0::field_138");
 
 // A tree walk (0x71014e2020), not decompiled yet.
 void Unk_14e2020(Unk_2444570* node, bool arg);

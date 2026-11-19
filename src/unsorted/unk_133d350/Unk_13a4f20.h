@@ -1,0 +1,124 @@
+#pragma once
+// A member of several classes (0x438 bytes, no vtable): 45 references,
+// released by its out-of-line destructor (0x71013a4f20). Placeholder names:
+// rename once the class is known.
+#include "gflib3/Unk_239a418.h"
+
+class Unk_13a4f20 {
+public:
+    ~Unk_13a4f20();
+
+    u64 field_0;
+
+    u64 field_8;
+
+    u64 field_10;
+    Unk_239a418_Ref<Unk_239a418> field_18;
+    u64 field_20;
+    u64 field_28;
+    u64 field_30;
+    u64 field_38;
+    u64 field_40;
+    u64 field_48;
+    u64 field_50;
+    u64 field_58;
+    u64 field_60;
+    u64 field_68;
+    u64 field_70;
+    u64 field_78;
+    u64 field_80;
+    u64 field_88;
+    u64 field_90;
+    u64 field_98;
+    u64 field_a0;
+    u64 field_a8;
+    u64 field_b0;
+    u64 field_b8;
+    u64 field_c0;
+    u64 field_c8;
+    u64 field_d0;
+    u64 field_d8;
+    u64 field_e0;
+    u64 field_e8;
+    u64 field_f0;
+    u64 field_f8;
+    u64 field_100;
+    u64 field_108;
+    u64 field_110;
+    u64 field_118;
+    u64 field_120;
+    u64 field_128;
+    u64 field_130;
+    u64 field_138;
+    u64 field_140;
+    u64 field_148;
+    u64 field_150;
+    u64 field_158;
+    u64 field_160;
+    u64 field_168;
+    u64 field_170;
+    u64 field_178;
+    u64 field_180;
+    u64 field_188;
+    u64 field_190;
+    u64 field_198;
+    u64 field_1a0;
+    u64 field_1a8;
+    u64 field_1b0;
+    u64 field_1b8;
+    u64 field_1c0;
+    u64 field_1c8;
+    u64 field_1d0;
+    Unk_239a418_Ref<Unk_239a418> field_1d8;
+    Unk_239a418_Ref<Unk_239a418> field_1e0;
+    Unk_239a418_Ref<Unk_239a418> field_1e8;
+    Unk_239a418_Ref<Unk_239a418> field_1f0;
+    Unk_239a418_Ref<Unk_239a418> field_1f8;
+    Unk_239a418_Ref<Unk_239a418> field_200;
+    Unk_239a418_Ref<Unk_239a418> field_208;
+    Unk_239a418_Ref<Unk_239a418> field_210;
+    Unk_239a418_Ref<Unk_239a418> field_218;
+    Unk_239a418_Ref<Unk_239a418> field_220;
+    Unk_239a418_Ref<Unk_239a418> field_228;
+    Unk_239a418_Ref<Unk_239a418> field_230;
+    Unk_239a418_Ref<Unk_239a418> field_238;
+    Unk_239a418_Ref<Unk_239a418> field_240;
+    Unk_239a418_Ref<Unk_239a418> field_248;
+    Unk_239a418_Ref<Unk_239a418> field_250;
+    Unk_239a418_Ref<Unk_239a418> field_258;
+    Unk_239a418_Ref<Unk_239a418> field_260;
+    Unk_239a418_Ref<Unk_239a418> field_268;
+    Unk_239a418_Ref<Unk_239a418> field_270;
+    Unk_239a418_Ref<Unk_239a418> field_278;
+    Unk_239a418_Ref<Unk_239a418> field_280;
+    Unk_239a418_Ref<Unk_239a418> field_288;
+    Unk_239a418_Ref<Unk_239a418> field_290;
+    Unk_239a418_Ref<Unk_239a418> field_298;
+    Unk_239a418_Ref<Unk_239a418> field_2a0;
+    Unk_239a418_Ref<Unk_239a418> field_2a8;
+    Unk_239a418_Ref<Unk_239a418> field_2b0;
+    Unk_239a418_Ref<Unk_239a418> field_2b8;
+    Unk_239a418_Ref<Unk_239a418> field_2c0;
+    Unk_239a418_Ref<Unk_239a418> field_2c8;
+    Unk_239a418_Ref<Unk_239a418> field_2d0;
+    Unk_239a418_Ref<Unk_239a418> field_2d8;
+    Unk_239a418_Ref<Unk_239a418> field_2e0;
+    Unk_239a418_Ref<Unk_239a418> field_2e8;
+    Unk_239a418_Ref<Unk_239a418> field_2f0;
+    Unk_239a418_Ref<Unk_239a418> field_2f8;
+    Unk_239a418_Ref<Unk_239a418> field_300;
+    Unk_239a418_Ref<Unk_239a418> field_308;
+    Unk_239a418_Ref<Unk_239a418> field_310;
+    u8 _318[0x400 - 0x318];
+    u64 field_400;
+    u64 field_408;
+    Unk_239a418_Ref<Unk_239a418> field_410;
+    Unk_239a418_Ref<Unk_239a418> field_418;
+    Unk_239a418_Ref<Unk_239a418> field_420;
+    Unk_239a418_Ref<Unk_239a418> field_428;
+    u64 field_430;
+};
+static_assert(sizeof(Unk_13a4f20) == 0x438, "Unk_13a4f20");
+static_assert(__builtin_offsetof(Unk_13a4f20, field_1d8) == 0x1d8, "Unk_13a4f20::field_1d8");
+static_assert(__builtin_offsetof(Unk_13a4f20, field_310) == 0x310, "Unk_13a4f20::field_310");
+static_assert(__builtin_offsetof(Unk_13a4f20, field_410) == 0x410, "Unk_13a4f20::field_410");
