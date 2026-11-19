@@ -423,7 +423,8 @@ class Member:
     lifted: Lifted | None = None    # kind "lifted"
 
 
-RTYPE = {"ret": "void", "constant": "u32", "zero": "u32", "null": "void*", "forward": "void", "string": "const char*"}
+RTYPE = {"ret": "void", "constant": "u32", "zero": "u32", "null": "void*", "forward": "void", "string": "const char*",
+         "delete": "void"}
 # The names write gives: members (vfN, vf_type, Unk_GetType, destructors) and thunks.
 WRITTEN = re.compile(r"_Z(?:Thn\d+_)?N\d+(Unk_[0-9a-f]+)(?:D0|D1|D2|\d+vf\d+|7vf_type|11Unk_GetType)E[a-z]+")
 
@@ -949,9 +950,11 @@ def lift_member(m: Model, f: int) -> Lifted | None:
 
 
 def simple_body(x: Member) -> str:
-    """The body of a member of a simple kind (ret, constant, zero, null, string)."""
+    """The body of a member of a simple kind (ret, constant, zero, null, string, delete)."""
     if x.kind == "ret":
         return "{}"
+    if x.kind == "delete":     # the global one: a class on the object has an empty one of its own
+        return "{\n    ::operator delete(this);\n}"
     if x.kind == "constant":
         return f"{{\n    return {x.value if x.value < 10 else hex(x.value)};\n}}"
     if x.kind == "string":
@@ -1005,6 +1008,11 @@ def placeholder_members(m: Model, v: Vtable, own: dict[int, tuple[int, int]], pi
             out.append(Member(i, f, k))
         elif k == "constant":
             out.append(Member(i, f, k, _mov_w0(m, f)))
+        elif k == "forward" and i >= 2 and branch_target(m, f) == m.delete:
+            # `b operator delete` after the destructors: frees the object without
+            # destroying it (what libc++'s std::function's destroy_deallocate is,
+            # for a trivially destructible callable)
+            out.append(Member(i, f, "delete"))
         elif k == "forward" and callee is not None and (t := callee(f)) is not None:
             out.append(Member(i, f, k, t))
         elif k == "small" and (text := string_return(m, f)) is not None:
@@ -1087,7 +1095,7 @@ def class_specs(m: Model, picked: dict[int, list[Member]], own: dict[int, tuple[
     return specs
 
 
-SIMPLE_KINDS = ("ret", "constant", "zero", "null", "forward", "string")
+SIMPLE_KINDS = ("ret", "constant", "zero", "null", "forward", "string", "delete")
 
 
 def _calls_and_statics(m: Model, f: int) -> tuple[list[int], list[int]]:
@@ -2384,6 +2392,113 @@ def branch_target_at(m: Model, at: int) -> int | None:
     return at + 4 * (((w & 0x3FFFFFF) ^ 0x2000000) - 0x2000000)
 
 
+def ctor_bases(m: Model) -> dict[int, int]:
+    """vtable group -> the group whose constructor its constructor calls
+    first: constructors of find_ctors' shapes (CTOR_PATTERN, or zeroing
+    fields), each referring to one group only, that call a function
+    referring to one other group only."""
+    from funcs import pattern_of
+
+    refs: dict[int, set[int]] = defaultdict(set)
+    for v in m.vtables:
+        for f in v.referrers:
+            refs[f].add(v.group)
+    out = {}
+    for f, size in m.funcs:
+        if len(refs.get(f, ())) != 1:
+            continue
+        if not (size == 48 and pattern_of(m.img[f:f + size], f + BASE) == CTOR_PATTERN) and ctor_fields(m, f) is None:
+            continue
+        t = branch_target_at(m, f + 16)
+        if t is None or len(refs.get(t, ())) != 1:
+            continue
+        (d,), (b,) = refs[f], refs[t]
+        if d != b:
+            out[d] = b
+    return out
+
+
+def ctor_roots(m: Model, chain: dict[int, int]) -> dict[int, int]:
+    """An empty D2 (`ret`) -> the root class's vtable that owns it.
+
+    Classes with nothing but their destructors (2-slot vtables) whose
+    destructors are implicit share their base's D2, all the way up to a
+    root with an empty inline destructor (docs/game_code.md, "Bases"). The
+    root is the class up their constructor chain (ctor_bases) whose own
+    2-slot vtable holds the D2 and whose base's doesn't. owners() gives the
+    D2 to the lowest such vtable instead, often a sibling's. Only D2s with
+    one root."""
+    by = {v.addr: v for v in m.vtables}
+    found: dict[int, set[int]] = defaultdict(set)
+    for v in m.vtables:
+        if v.group != v.addr or len(v.slots) != 2 or not isinstance(v.slots[0], int) \
+                or m.pattern(v.slots[0]) != "ret":
+            continue
+        d2, a, top, seen = v.slots[0], v.addr, None, set()
+        while a in chain and a not in seen:
+            seen.add(a)
+            a = chain[a]
+            if len(by[a].slots) != 2 or by[a].slots[0] != d2:
+                break
+            top = a
+        if top is not None:
+            found[d2].add(top)
+    return {d2: next(iter(ts)) for d2, ts in found.items() if len(ts) == 1}
+
+
+def implicit_dtors(m: Model, ctors: list[Ctor], base_of: dict[str, str], roots: dict[int, int], rows: dict,
+                   seg, only: set[int] | None = None) -> tuple[set[str], set[str], dict[int, str]]:
+    """(the classes of `ctors` with an implicit destructor, the roots with an
+    empty inline one, the names of their D0s and the roots' D2s).
+
+    A class whose 2-slot vtable holds a root's D2 (ctor_roots) and a
+    `b operator delete` D0 has nothing that could be its key function, so
+    its vtable, and with it its D0, is emitted in its constructor's TU. It's
+    one when its D0 is in its constructor's segment, unnamed and U (and in
+    `only`, if given) or named so, and every class between it and its root
+    is one too. The root has no base here, and its constructor, if one is
+    written, emits its own D0, which must be one as well."""
+    by = {v.addr: v for v in m.vtables}
+    vt_of = {class_name(v): v for v in m.vtables if v.group == v.addr and not v.offset_to_top}
+    root_of = {d2: class_name(by[r]) for d2, r in roots.items()}
+    ctor_seg = {c.cls: seg(c.addr) for c in ctors}
+
+    def d0(cls: str) -> int | None:
+        v = vt_of.get(cls)
+        if v is None or len(v.slots) != 2 or v.slots[0] not in roots or not isinstance(v.slots[1], int):
+            return None
+        f, r = v.slots[1], rows.get(v.slots[1])
+        ok = m.pattern(f) == "b T" and branch_target(m, f) == m.delete and r is not None \
+            and r.scope == "common" and r.shield is not None and cls in ctor_seg and seg(f) == ctor_seg[cls] \
+            and (r.name == mangle(cls, "D0") or not r.name and r.status == "U" and (only is None or f in only))
+        return f if ok else None
+
+    implicit: set[str] = set()
+    inline: set[str] = set()
+    names: dict[int, str] = {}
+    for c in ctors:
+        v = vt_of.get(c.cls)
+        if v is None or not v.slots or v.slots[0] not in roots:
+            continue
+        d2 = v.slots[0]
+        root, x, path = root_of[d2], c.cls, []
+        while x != root and x is not None and d0(x) is not None and x not in path:
+            path.append(x)
+            x = base_of.get(x)
+        if x != root or root in base_of or (root in ctor_seg and d0(root) is None):
+            continue
+        r = rows.get(d2)
+        if r is None or r.scope != "common" or r.shield is None:
+            continue
+        implicit.update(path)
+        inline.add(root)
+        names.update((d0(p), mangle(p, "D0")) for p in path)
+        if root in ctor_seg:
+            names[d0(root)] = mangle(root, "D0")
+        names[d2] = mangle(root, "D2")
+    return implicit, inline, names
+
+
 def ctor_layout(base_of: dict[str, str], fields_of: dict[str, tuple]) -> dict[str, int]:
     """Where each class's own fields may start: after its base's (8, the vptr,
     for a class without one)."""
@@ -2403,9 +2518,13 @@ def ctor_layout(base_of: dict[str, str], fields_of: dict[str, tuple]) -> dict[st
     return end
 
 
-def render_ctor_file(ctors: list[Ctor], base_of: dict[str, str], fields_of: dict[str, tuple] | None = None) -> str:
+def render_ctor_file(ctors: list[Ctor], base_of: dict[str, str], fields_of: dict[str, tuple] | None = None,
+                     implicit: set[str] = frozenset(), inline: set[str] = frozenset()) -> str:
     """One TU of constructors, with the classes they need declared: each the
-    same way in every file (from base_of and fields_of), bases first."""
+    same way in every file (from base_of and fields_of), bases first. The
+    classes in `implicit` have implicit destructors (no key function: their
+    vtables and D0s are emitted here), the roots in `inline` an empty inline
+    one (implicit_dtors)."""
     from leafgen import WIDTH
 
     fields_of = fields_of or {}
@@ -2415,6 +2534,9 @@ def render_ctor_file(ctors: list[Ctor], base_of: dict[str, str], fields_of: dict
            "// need (a base constructor to call, and a key function elsewhere, so that the",
            "// vtable is another TU's).",
            ""]
+    if any(c.cls in implicit for c in ctors):
+        out[-1:] = ["// A class with nothing but its destructors has no key function: its destructor",
+                    "// is implicit, and its vtable and D0 are emitted here, with its constructor.", ""]
     need: list[str] = []
 
     def add(c: str, seen: tuple = ()) -> None:
@@ -2440,10 +2562,12 @@ def render_ctor_file(ctors: list[Ctor], base_of: dict[str, str], fields_of: dict
             pos = off + WIDTH[t]
         asserts = [f"PKMN_OFFSET_ASSERT({c}, field_{off:x}, 0x{off:x});" for off, _ in fs]
         if c in base_of:
-            out += [f"class {c} : public {base_of[c]} {{", "public:", f"    {c}();", f"    ~{c}() override;",
+            dtor = [] if c in implicit else [f"    ~{c}() override;"]
+            out += [f"class {c} : public {base_of[c]} {{", "public:", f"    {c}();", *dtor,
                     *members, "};", *asserts, ""]
         else:
-            out += [f"class {c} {{", "public:", f"    {c}();", f"    virtual ~{c}();", *members, "};", *asserts, ""]
+            dtor = f"    virtual ~{c}() {{}}" if c in inline else f"    virtual ~{c}();"
+            out += [f"class {c} {{", "public:", f"    {c}();", dtor, *members, "};", *asserts, ""]
     for c in sorted(ctors, key=lambda x: x.addr):
         init = ", ".join(f"field_{off:x}(0)" for off, _ in c.fields)
         out += [f"// {c.addr + BASE:#x}", f"{c.cls}::{c.cls}(){' : ' + init if init else ''} {{}}", ""]
@@ -2457,6 +2581,7 @@ def cmd_ctors(m: Model, args) -> None:
     rows = {f.sword: f for f in read_functions_csv() if f.sword is not None}
     taken = defined_classes(ROOT / "src", skip=args.out)
     ctors = find_ctors(m, rows, taken)
+    only = None
     if args.only:
         only = {int(x, 16) - BASE for x in args.only.read_text(encoding="utf-8").split()}
         ctors = [c for c in ctors if c.addr in only]
@@ -2479,6 +2604,9 @@ def cmd_ctors(m: Model, args) -> None:
     # inlined there; the original calls it, so it's another TU's: leave it out.
     called_here = {(seg_of(c.addr), c.base) for c in ctors if c.base is not None}
     ctors = [c for c in ctors if (seg_of(c.addr), c.cls) not in called_here]
+    # The classes with nothing but their destructors: implicit ones, their
+    # D0s emitted with their constructors.
+    implicit, inline, dtor_names = implicit_dtors(m, ctors, base_of, ctor_roots(m, ctor_bases(m)), rows, seg_of, only)
     files: dict[int, list[Ctor]] = defaultdict(list)
     for c in ctors:
         files[seg_of(c.addr)].append(c)
@@ -2487,7 +2615,8 @@ def cmd_ctors(m: Model, args) -> None:
         old.unlink()
     for cs in files.values():
         name = f"Unk_{min(c.addr for c in cs):x}.cpp"
-        (args.out / name).write_text(render_ctor_file(cs, base_of, fields_of), encoding="utf-8", newline="\n")
+        (args.out / name).write_text(render_ctor_file(cs, base_of, fields_of, implicit, inline),
+                                     encoding="utf-8", newline="\n")
     from common import clang_format
     if not clang_format(sorted(args.out.glob("*.cpp"))):
         print("clang-format isn't on PATH: format the written files before committing them", file=sys.stderr)
@@ -2496,11 +2625,13 @@ def cmd_ctors(m: Model, args) -> None:
         names[c.addr] = ctor_name(c.cls)
         if c.base is not None and not rows[c.base_ctor].name:
             names[c.base_ctor] = ctor_name(c.base)
+    names.update(dtor_names)
     with open(args.names, "w", encoding="utf-8", newline="\n") as fh:
         fh.write("Name,Sword,Shield\n")
         for a, n in sorted(names.items()):
             fh.write(f"{n},{rows[a].sword_str},{rows[a].shield_str}\n")
-    print(f"{len(ctors)} constructors ({sum(c.base is None for c in ctors)} without a base) in {len(files)} files; "
+    print(f"{len(ctors)} constructors ({sum(c.base is None for c in ctors)} without a base, {len(implicit)} with "
+          f"implicit destructors on {len(inline)} roots) in {len(files)} files; "
           f"{len(names)} names in {args.names}", file=sys.stderr)
 
 
@@ -2555,6 +2686,12 @@ def cmd_write(m: Model, args) -> None:
         return written(f) and f not in handwritten and (only is None or f in only or bool(rows[f].name))
 
     own = prefer_stored(m, owners(m.vtables))
+    # An empty D2 shared by classes with nothing but their destructors is
+    # their root's (ctor_roots): those classes are cmd_ctors', with their
+    # constructors.
+    roots = ctor_roots(m, ctor_bases(m))
+    own.update((d2, (r, 0)) for d2, r in roots.items())
+    skipped |= set(roots.values())
     groups = args.area or ["game", "gflib3", "gflnet3", "startup"]
     picked: dict[int, list[Member]] = {}
     for v in m.vtables:
