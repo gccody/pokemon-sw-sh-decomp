@@ -48,7 +48,8 @@ public:
     void Unk_14705a0();
     void Unk_1470600();
 
-    u8 _5d0[0x5e0 - 0x5d0];
+    // Its members start in Unk_23f4660's tail padding (0x5cb).
+    u8 _5cb[0x5e0 - 0x5cb];
     u32 field_5e0;
 };
 static_assert(__builtin_offsetof(Unk_243dc10, field_5e0) == 0x5e0, "Unk_243dc10::field_5e0");
@@ -65,6 +66,7 @@ public:
     void Unk_146c040();
     void Unk_146c0a0();
 
+    u8 _5cb[0x5d0 - 0x5cb];
     u32 field_5d0;
     u8 _5d4[0x5e0 - 0x5d4];
     void* field_5e0;
@@ -110,7 +112,11 @@ public:
 
     void Unk_1478240();
     void Unk_1478290();
+
+    u8 field_5cb;
+    u32 field_5cc;
 };
+static_assert(__builtin_offsetof(Unk_243e520, field_5cc) == 0x5cc, "Unk_243e520::field_5cc");
 
 // The card info view (vtable 0x710243dd28: "ViewCardInfo").
 class Unk_243dd28 : public Unk_23f4660 {
