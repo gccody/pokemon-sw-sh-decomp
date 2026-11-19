@@ -7,7 +7,6 @@
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
 void Unk_96c4a0(void* self);
-void Unk_979390(void* self);
 void Unk_985c80(void* self);
 
 // Lifted through their own placeholder structs (cast_member).
@@ -731,29 +730,6 @@ void Unk_23c1b18::vf3() {
     v0->vf3(v1, v2, v3);
 }
 
-class Unk_23c1930 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-};
-
-// 0x7100978880
-void Unk_23c1930::vf6() {
-    Unk_979390(this);
-}
-
 class Unk_23982a8 {
 public:
     virtual ~Unk_23982a8();
@@ -820,27 +796,6 @@ public:
 // 0x71009788d0
 void Unk_2399bf0::vf11() {}
 
-class Unk_23c19b0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-};
-
-// 0x7100978b10
-void Unk_23c19b0::vf5() {
-    Unk_979390(this);
-}
-
 class Unk_2398328 {
 public:
     virtual void vf0();
@@ -883,18 +838,6 @@ void Unk_2398328::vf8() {
 // 0x7100978b50
 u8 Unk_2398328::vf9() {
     return field_2c;
-}
-
-class Unk_23c1a20 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100978b60
-void Unk_23c1a20::vf0() {
-    Unk_979390(this);
 }
 
 class Unk_23c1bf0 {

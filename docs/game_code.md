@@ -1815,6 +1815,60 @@ The libraries' largest win was FreeType 2.8.1 in YEBIS (docs/compiler.md,
 "FreeType 2.8.1"): 373 functions, 184,584 bytes. Byte progress after these:
 25.16% (check.py: 44,938 matching, 42 not matching).
 
+### Type getters and kind tests (`tools/typegen.py`, 2026-11-19)
+
+The functions that group by shape (unmatched functions hashed with branch
+targets and adrp/lo12 fields masked: 3.7 MB in groups of two or more) were
+led by the type getters: the `vf_type`s of classes on gflib3's object, the
+out-of-line getters they call, and the kind tests that walk a type's
+parents. `tools/typegen.py` rebuilds the type tree from them (every getter's
+stores: 1,737 types, none with two parents) and writes them in
+`src/unsorted/types` (its docstring has the details):
+
+- 364 classes in the object's layout whose `vf_type` and thunks are
+  getter-shaped, and 146 whose `vf_type` and thunks tail-call the
+  class's own getter (vtables.py's forwarders to a placeholder `Unk_<G>(void*)`:
+  their getters are renamed and emitted here, and vtables.py skips what this
+  tool writes);
+- 126 of the 159 kind tests, `Unk_61a530<T>`, one explicit instantiation per T.
+
+The inliner decides how much of a chain a getter inlines with
+`shouldBeDeferred`, which counts the getter's callers in its TU: so the
+levels each function inlines are spelled out (defined inline) and its cut
+declared, never left to clang. What's left: 153 classes whose thunks are
+`sub x0, x0, #N ; b vf_type` (the original's vf_type is inline, emitted with
+its class's vtable; defined strongly here, the thunks lose the adjustment),
+60 forwarder classes whose getter has no other caller in its segment (clang
+inlines it into vf_type, the original didn't: deferred there, with callers
+we don't have), and 33 kind tests whose type isn't named or whose chain
+isn't one this tool spells.
+
+Two more families of the same shape groups are worked out but don't match
+yet, both on register allocation alone (same instructions):
+
+- the lock-and-cast of a weak handle (`Unk_239a418_Handle`: count at +0x54,
+  type at +0x58, object at +0x60 through its +0x50 interface), about 150
+  instances (404-492 bytes, 70 KB; 0x710000e840 is one) plus 360 KB of
+  functions that inline it: a relaxed load of the count, a
+  `compare_exchange_weak` loop, the kind test inlined, the object adopted
+  into the returned reference. Written with the loop as `do ... while`, two
+  null returns and a named result copied out, registers match and only the
+  copy is extra; every spelling without the copy permutes them.
+- 188 wrappers like 0x7100790140 (54 KB) around a per-type creator (the
+  function right after each): take `self->field_58` when the argument's
+  reference is null, call the creator with a copy, and hand the result to
+  `Unk_e809c0_call(target ? target : self->field_70, result)`.
+  `Unk_e809c0_call` really takes two arguments (it passes the second to
+  `Unk_e809d0`): leafgen's one-argument placeholder is wrong, and nothing
+  else calls either. The wrapper keeps the target's adjusted pointer
+  between its AddRef and its Release, where the original recomputes it.
+
+libc++'s `rehash`/`__rehash` of 51 unordered_maps on Unk_2771620's
+allocator, keyed by u64 (37) or u32 (14), match by explicit instantiation
+with a placeholder mapped type (`src/unsorted/Unk_597350.cpp`: their code
+doesn't read it). Two more groups of `__rehash` (24 instances) pass another
+alignment to the allocator and aren't written.
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1840,12 +1894,16 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-19)
 
-State after the generated tables and FreeType (2026-11-19): check.py
+State after the type getters and the map instances (2026-11-19, later):
+check.py reports 46,404 matching and 42 not matching; 26.21% of the code by
+bytes. Before them, after the generated tables and FreeType: check.py
 reports 44,938 matching and 42 not matching, in both games; 25.16% of the
-code by bytes. Every batch above came from `tools/leafgen.py` and
-`tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
-`src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the
-generator and rewrite them, don't edit them by hand.
+code by bytes. Every batch above came from `tools/leafgen.py`,
+`tools/vtables.py` (`write`, `ctors`) and `tools/typegen.py`. Their sources in
+`src/unsorted/leaf`, `src/unsorted/virtual`, `src/unsorted/ctor` and
+`src/unsorted/types` are generated: change the generator and rewrite them,
+don't edit them by hand. Run `typegen.py write` before `vtables.py write`:
+vtables.py skips what typegen writes.
 
 ### How a generator batch is run
 

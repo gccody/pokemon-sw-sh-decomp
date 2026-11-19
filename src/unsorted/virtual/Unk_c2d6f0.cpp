@@ -4,9 +4,6 @@
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
 
-// Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_c38220(void* self);
-
 // Tail-called by lifted functions. Placeholders, like the forwarders' callees.
 void Unk_c54770(u64);
 
@@ -171,11 +168,6 @@ public:
     virtual void vf10();
 };
 
-// 0x7100c38040
-void Unk_23dab28::vf6() {
-    Unk_c38220(this);
-}
-
 // 0x7100c38050
 u32 Unk_23dab28::vf7() {
     return 1;
@@ -183,30 +175,3 @@ u32 Unk_23dab28::vf7() {
 
 // 0x7100c37d70
 void Unk_23dab28::vf10() {}
-
-class Unk_23dab90 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100c38080
-void Unk_23dab90::vf5() {
-    Unk_c38220(this);
-}
-
-class Unk_23dabd0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100c38090
-void Unk_23dabd0::vf0() {
-    Unk_c38220(this);
-}

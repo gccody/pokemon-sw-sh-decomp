@@ -4,10 +4,6 @@
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
 
-// Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_939c20(void* self);
-void Unk_93e3b0(void* self);
-
 class Unk_23c0108 {
 public:
     virtual ~Unk_23c0108();
@@ -45,11 +41,6 @@ public:
 PKMN_OFFSET_ASSERT(Unk_23c0158, field_690, 0x690);
 PKMN_OFFSET_ASSERT(Unk_23c0158, field_698, 0x698);
 PKMN_OFFSET_ASSERT(Unk_23c0158, field_6a0, 0x6a0);
-
-// 0x710093c1b0
-void Unk_23c0158::vf6() {
-    Unk_939c20(this);
-}
 
 // 0x710093a6e0
 u64 Unk_23c0158::vf17() {
@@ -93,33 +84,6 @@ u64 Unk_23c0268::vf17() {
 // 0x710093c440
 void Unk_23c0268::vf18() {}
 
-class Unk_23c0200 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x710093c1e0
-void Unk_23c0200::vf5() {
-    Unk_939c20(this);
-}
-
-class Unk_23c0240 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x710093c1f0
-void Unk_23c0240::vf0() {
-    Unk_939c20(this);
-}
-
 class Unk_23c0560 {
 public:
     virtual ~Unk_23c0560();
@@ -152,49 +116,6 @@ public:
 // 0x710093dfa0
 u32 Unk_23c0560::vf25() {
     return 1;
-}
-
-class Unk_23c06c0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-};
-
-// 0x710093e730
-void Unk_23c06c0::vf6() {
-    Unk_93e3b0(this);
-}
-
-class Unk_23c0708 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x710093e840
-void Unk_23c0708::vf5() {
-    Unk_93e3b0(this);
-}
-
-class Unk_23c0748 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x710093e850
-void Unk_23c0748::vf0() {
-    Unk_93e3b0(this);
 }
 
 class Unk_23c0960 {

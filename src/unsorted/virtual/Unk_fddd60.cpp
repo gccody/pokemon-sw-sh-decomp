@@ -8,7 +8,6 @@
 // Called by forwarders. Placeholders: their real signatures aren't known.
 void Unk_fddd80(void* self);
 void Unk_fdde60(void* self);
-void Unk_fde270(void* self);
 
 // Lifted through their own placeholder structs (cast_member).
 struct Unk_fddd60 {
@@ -34,11 +33,6 @@ public:
     virtual void vf12();
 };
 
-// 0x7100fde040
-void Unk_2404e78::vf6() {
-    Unk_fde270(this);
-}
-
 // 0x7100fddd60
 void Unk_2404e78::vf9() {
     Unk_fddd60* self = reinterpret_cast<Unk_fddd60*>(this);
@@ -57,31 +51,4 @@ void Unk_2404e78::vf11() {
 // 0x7100fddf20
 void Unk_2404e78::vf12() {
     Unk_fdde60(this);
-}
-
-class Unk_2404ef0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100fde150
-void Unk_2404ef0::vf5() {
-    Unk_fde270(this);
-}
-
-class Unk_2404f30 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100fde160
-void Unk_2404f30::vf0() {
-    Unk_fde270(this);
 }

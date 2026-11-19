@@ -5,9 +5,7 @@
 #include <types.h>
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_b3adb0(void* self);
 void Unk_b946e0(void* self);
-void Unk_ba4690(void* self);
 
 // Tail-called by lifted functions. Placeholders, like the forwarders' callees.
 void Unk_b87470(void*, u32, u64);
@@ -141,11 +139,6 @@ public:
     virtual void vf45();
 };
 
-// 0x7100b94120
-void Unk_23d2138::vf6() {
-    Unk_b3adb0(this);
-}
-
 // 0x7100b8ce60
 bool Unk_23d2138::vf14() {
     const Unk_b8ce60* self = reinterpret_cast<const Unk_b8ce60*>(this);
@@ -158,33 +151,6 @@ bool Unk_23d2138::vf14() {
 // 0x7100b94130
 void Unk_23d2138::vf32() {
     Unk_b93690(this, 0);
-}
-
-class Unk_23d22b8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100b94140
-void Unk_23d22b8::vf5() {
-    Unk_b3adb0(this);
-}
-
-class Unk_23d22f8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100b94150
-void Unk_23d22f8::vf0() {
-    Unk_b3adb0(this);
 }
 
 class Unk_23d24b0 {
@@ -566,46 +532,4 @@ void* Unk_23d2f28::vf2(u64 index) {
 void Unk_23d2f28::vf3(u64 index) {
     if (Unk_23d2f28_Obj* obj = m_entries[index].field_8)
         obj->vf16(m_entries[index].field_10);
-}
-
-class Unk_23d2f58 {
-public:
-    virtual ~Unk_23d2f58();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-};
-
-// 0x7100ba4620
-void Unk_23d2f58::vf6() {
-    Unk_ba4690(this);
-}
-
-class Unk_23d2fa0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100ba4650
-void Unk_23d2fa0::vf5() {
-    Unk_ba4690(this);
-}
-
-class Unk_23d2fe0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100ba4660
-void Unk_23d2fe0::vf0() {
-    Unk_ba4690(this);
 }

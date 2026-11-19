@@ -7,10 +7,6 @@
 
 #include "unsorted/Unk_23d4470.inl"
 
-// Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_bc7540(void* self);
-void Unk_c1cdd0(void* self);
-
 // Tail-called by lifted functions. Placeholders, like the forwarders' callees.
 void Unk_ba7db0(u64);
 void Unk_bc17c0(u64, u64, u64, u32);
@@ -2068,40 +2064,8 @@ public:
     virtual void vf12();
 };
 
-// 0x7100c1ac70
-void Unk_23d9830::vf6() {
-    Unk_bc7540(this);
-}
-
 // 0x7100c1ac80
 void Unk_23d9830::vf8() {}
-
-class Unk_23d98a8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100c1ae50
-void Unk_23d98a8::vf5() {
-    Unk_bc7540(this);
-}
-
-class Unk_23d98e8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100c1ae60
-void Unk_23d98e8::vf0() {
-    Unk_bc7540(this);
-}
 
 class Unk_23d9978_Obj {
 public:
@@ -2161,62 +2125,6 @@ void* Unk_23d9978::vf2(u64 index) {
 void Unk_23d9978::vf3(u64 index) {
     if (Unk_23d9978_Obj* obj = m_entries[index].field_8)
         obj->vf16(m_entries[index].field_10);
-}
-
-class Unk_23d9ab8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-};
-
-// 0x7100c1ca60
-void Unk_23d9ab8::vf6() {
-    Unk_c1cdd0(this);
-}
-
-class Unk_23d9b38 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-};
-
-// 0x7100c1cc10
-void Unk_23d9b38::vf5() {
-    Unk_c1cdd0(this);
-}
-
-class Unk_23d9ba8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100c1cc20
-void Unk_23d9ba8::vf0() {
-    Unk_c1cdd0(this);
 }
 
 class Unk_23d9dd0 {

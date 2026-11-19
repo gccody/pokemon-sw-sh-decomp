@@ -6,11 +6,8 @@
 #include "unsorted/Unk_23f43c8.h"
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_8d2bf0(void* self);
 void Unk_8d3f10(void* self);
 void Unk_8da520(void* self);
-void Unk_8dd2f0(void* self);
-void Unk_8e3410(void* self);
 
 // Lifted through their own placeholder structs (cast_member).
 struct Unk_8d2390_700 {
@@ -64,49 +61,6 @@ u32 Unk_23bba38::vf25() {
         self->field_700->field_8c = 4;
     }
     return 1;
-}
-
-class Unk_23bb988 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-};
-
-// 0x71008d2870
-void Unk_23bb988::vf6() {
-    Unk_8d2bf0(this);
-}
-
-class Unk_23bb9d0 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x71008d2940
-void Unk_23bb9d0::vf5() {
-    Unk_8d2bf0(this);
-}
-
-class Unk_23bba10 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x71008d2950
-void Unk_23bba10::vf0() {
-    Unk_8d2bf0(this);
 }
 
 class Unk_23bbc80 : public Unk_23f43c8 {
@@ -277,40 +231,8 @@ public:
     virtual void vf10();
 };
 
-// 0x71008dd200
-void Unk_23bc2c0::vf6() {
-    Unk_8dd2f0(this);
-}
-
 // 0x71008dd190
 void Unk_23bc2c0::vf9() {}
-
-class Unk_23bc328 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x71008dd270
-void Unk_23bc328::vf5() {
-    Unk_8dd2f0(this);
-}
-
-class Unk_23bc368 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x71008dd280
-void Unk_23bc368::vf0() {
-    Unk_8dd2f0(this);
-}
 
 class Unk_23bc390 : public Unk_23f43c8 {
 public:
@@ -346,11 +268,6 @@ public:
     virtual void vf10();
 };
 
-// 0x71008e33e0
-void Unk_23bc760::vf6() {
-    Unk_8e3410(this);
-}
-
 // 0x71008e2200
 u32 Unk_23bc760::vf7() {
     return 1;
@@ -358,30 +275,3 @@ u32 Unk_23bc760::vf7() {
 
 // 0x71008e2330
 void Unk_23bc760::vf10() {}
-
-class Unk_23bc7c8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x71008e33f0
-void Unk_23bc7c8::vf5() {
-    Unk_8e3410(this);
-}
-
-class Unk_23bc808 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x71008e3400
-void Unk_23bc808::vf0() {
-    Unk_8e3410(this);
-}
