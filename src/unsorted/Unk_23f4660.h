@@ -64,12 +64,13 @@ public:
         field_28 = 0;
     }
 
-    Unk_239a418* field_0;
-    u64 field_8;
-    const char* field_10;
-    u64 field_18;
-    Unk_239a418* field_20;
-    u32 field_28;
+    // Empty, as the demo commands' constructors make it (src/demo/Unk_bc27d0.cpp).
+    Unk_239a418* field_0 = nullptr;
+    u64 field_8 = 0xcbf29ce484222645;
+    const char* field_10 = "";
+    u64 field_18 = 0;
+    Unk_239a418* field_20 = nullptr;
+    u32 field_28 = 0;
 };
 static_assert(sizeof(Unk_23f4660_Name) == 0x30, "Unk_23f4660_Name");
 

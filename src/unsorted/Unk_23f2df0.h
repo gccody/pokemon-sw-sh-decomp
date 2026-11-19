@@ -41,6 +41,8 @@ class Unk_23dba78 : public Unk_23dba98 {};
 // A member the derived classes' constructors build with 0x71006835f0; nothing
 // destroys it.
 struct Unk_23f2df0_1e0 {
+    Unk_23f2df0_1e0();  // 0x71006835f0, not decompiled yet (a demo command holds one too)
+
     u64 field_0[0x1c];
 };
 static_assert(sizeof(Unk_23f2df0_1e0) == 0xe0, "Unk_23f2df0_1e0");

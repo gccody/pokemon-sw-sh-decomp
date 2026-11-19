@@ -2160,6 +2160,82 @@ Facts that decided matches:
 The sends per kind (`g15`, `g16`, `g23` shapes), the send to one peer and the
 serializer (member templates of the base, named here) and the channels' D0s
 are families of ten or more and aren't written.
+### The demo player's commands (`src/demo`, 2026-11-19)
+
+The 429 KB segment `0x7100bba3d0`-`0x7100c23050` (in `game/unk_bba3d0`) is
+the demo (cut-scene) player: its strings are `bin/demo/...`,
+`bin/archive/demo/%s.gfpak`, `demoParamList`, `isDemoSkipEnable`. The
+classes on `Unk_23d4470` (the hand-written base, `src/unsorted/Unk_23d4470.h`)
+are the commands of a demo sequence. `0x7100bc27d0` makes one from a description
+(`Unk_23d4470_Desc`: a 64-bit hash, two frames and a value): a `switch` on
+the hash with 96 cases, whose names aren't in the executable (no string
+hashes to any of them), each calling a `Creator<T>` that allocates the
+command from the owner's allocator with the allocator current, constructs it
+and records the allocation in it. 95 creators are out of line; the switch
+inlines two.
+
+What the creators show:
+
+- **The commands are 16-byte aligned.** Every creator asks for alignment 16,
+  and the sizes are multiples of 16 (`Unk_23d4470` itself is 0x350 bytes):
+  the callable's storage is aligned like a `std::function`'s buffer (one
+  allocated alone, `0x7100be2a50`, asks for 0x80 bytes aligned to 16). A
+  derived class's fields still start at 0x348, in the base's tail padding.
+- **The constructors are inherited** (`using Unk_23d4470::Unk_23d4470;`,
+  fields with default member initializers): the owner reference the creator
+  moves into the by-value parameter is released after the whole object is
+  built, which a constructor of the derived class's own would do before its
+  vptr stores. `Unk_239a418_Ref` has a move constructor for it.
+- Some commands are on other commands (`Unk_23d4b50` on `Unk_23d6728`,
+  `Unk_23d8f80` on `Unk_23d7a10`, which share virtual functions) or on an
+  abstract base without a vtable of its own (`Unk_c02310`); a vector of four
+  floats initialized together is a `float32x4_t`.
+
+`src/demo/Unk_bc27d0.cpp` declares the classes again, with the members their
+constructors set (`src/unsorted/virtual/Unk_bbbff0.cpp` has the functions
+`vtables.py` writes for them). 81 creators match (24,856 bytes), with what
+their members turned out to be:
+
+- names: `Unk_23f4660_Name`, empty (the hash of `""` and `""`), and a
+  0x80-byte text followed by its 0x20-byte name (`Unk_23d4470_Text`; vf7 of
+  `Unk_23d7950`, `0x7100bfe1b0`, hashes the text into it);
+- holders of two callables and a reference (`Unk_23dba98`'s shape): the
+  class a command holds is on a base with the same slots (its vptr is
+  stored after the members), named after that base's vtable, or after its
+  vf0 when it has none (`Unk_967200`);
+- `unordered_map`s on `Unk_2771620_Allocator`, whose default constructor
+  takes the thread's current allocator (or the default heap);
+- members with out-of-line constructors (`0x71007910a0`,
+  `Unk_23f2df0_1e0`'s `0x71006835f0`).
+
+Left:
+
+- the 10 creators of one shape group (`0x7100bca180` and the like, classes
+  without fields), for whoever writes that group (the template matches
+  them);
+- 3 creators and an out-of-line constructor (`0x7100bcba80`,
+  `0x7100bcde40`, `0x7100bce7e0`, `0x7100be2540`) that copy a function-local
+  static reference (guard `0x7102773730`, made by `0x71005e6770`). Its
+  atexit destructor is `0x71005e6560`, matched as a free function
+  (`Unk_5e6560_reset`, `src/unsorted/Unk_5e6560.cpp`): it is really
+  `Unk_239a418_Ref<...>::~Unk_239a418_Ref`, and has to be renamed first;
+- `0x7100bd6e20` (`Unk_23d7538`, 0xc90 bytes: holders on `Unk_236d308` with
+  a member built by `0x71005fc550`);
+- the switch, `0x7100bc27d0`. `vf7` has its parameters now. Its closest
+  form so far: a function-scope `command` assigned in each case through a
+  macro (`command = Ref(Creator<T>()(self->field_8,
+  self->field_2b8->vf2(), desc)); command->vf7(...); return command;`, so
+  the inliner sees each Creator and inlines exactly the default's and
+  `0x7100be2540`'s), and a `default:` that returns its own reference (built
+  in the return slot: the original stores the default's command there
+  before `vf7`, and the others' after it). That gives the original's
+  compare tree, case bodies and registers. The default path still differs:
+  clang doesn't infer `nocapture` on the return slot, so it reloads the
+  command from it before `vf7`, and the registers of that path change.
+  With one `vf7` after the switch instead, GVN merges the cases'
+  `&self->field_2b8` into a phi (an extra `add`) and the return slot and
+  the description swap registers. `Unk_239a418_Ref` needs a move
+  assignment and `operator->` for it.
 
 ## What's left of the small functions
 
