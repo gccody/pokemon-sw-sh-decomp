@@ -12,21 +12,6 @@
 #include "unsorted/Unk_23f4660.h"
 #include "unsorted/Unk_2438308.h"
 
-struct Unk_2438308_Node {
-    Unk_2438308_Node* m_next;
-    u64 field_8;
-    u64 field_10;
-    u64 field_18;
-};
-
-struct Unk_2438308_Owned {
-    Unk_2438308_Words<u64> field_0;
-    u64 field_18;
-    u64 field_20;
-    Unk_2438308_List<Unk_2438308_Node> field_28;
-};
-static_assert(sizeof(Unk_2438308_Owned) == 0x38, "Unk_2438308_Owned");
-
 class Unk_2438308 : public Unk_239a4c0 {
 public:
     ~Unk_2438308() override;
