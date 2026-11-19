@@ -180,6 +180,9 @@ static_assert(offsetof(LogMetaData, field_38) == 0x38, "LogMetaData::field_38");
 
 namespace detail {
 void LogImpl(const LogMetaData& metaData, const char* format, ...) noexcept;
+// Doesn't return: nothing follows its calls. Game code passes "" for each
+// string and 0 for the int (src/unsorted/registry).
+[[noreturn]] void AbortImpl(const char*, const char*, const char*, int) noexcept;
 }  // namespace detail
 
 }  // namespace diag

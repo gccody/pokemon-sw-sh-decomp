@@ -1888,6 +1888,67 @@ to its TU, so each class is declared `visibility("hidden")`. The fields are
 the ones slot 3 copies, with their widths; one after a gap is aligned to land
 where it is (a 16-byte aligned capture at +0x10). All 247 classes match (494
 functions, `src/unsorted/clone`). vtables.py skips what clonegen writes.
+### 45 pairs of classes of one template (`tools/registrygen.py`, 2026-11-19)
+
+Eight shape groups of exactly 45 members each (72,360 bytes, all in game
+code: bag, pokecamp, unk_133d350, unk_bba3d0, ...) are one template's code,
+instantiated per type: for the first, `Unk_23aa2c8` and `Unk_23aa308` in
+game/bag. `src/unsorted/registry/Unk_7be640.h` has the bodies and
+`tools/registrygen.py` writes the instances (its docstring has the details):
+
+- an outer class on `Unk_23daca0` (an abstract base with a memory resource
+  at +0x8, which 166 functions' classes use) with eleven entries, each able
+  to hold a TLSF pool resource (`Unk_239f910`, gflib3's, now in
+  `src/gflib3/Unk_65f110.h`) made in a block of the memory resource: `vf2`
+  makes entry 0's through a function of its own, `vf4` frees it, `vf5` the
+  other ten's;
+- an inner class at +0x28, on `Unk_236d228`: an object whose constructor
+  adds it to a global table of 256 pointers (0x7102777f60, count at +0x800)
+  and whose destructor (0x7100003340, not virtual) takes it out, both under
+  gflib3's static lock (`Unk_65f110`'s object, which `Unk_2778770` now
+  spells as the lock it is). It records the block, and a static pointer of
+  its own points at it while it lives.
+
+The originals are inline, emitted in the TU of a factory that makes an
+object holding the outer class (0x71007be520 for the first: allocator stack,
+three vptrs, the outer class at +0x558). With their callers there, LLVM 7's
+inliner defers inlining the inner constructor into the outer one and
+`Unk_236d228`'s D2 into the outer D2 (`shouldBeDeferred`), and the D0
+inlines both levels of D2. The factories aren't one shape, so the instances
+get the same decisions another way: the outer class's key function is `vf2`
+(its vtable, inline D2, D0, `vf4` and `vf5` are emitted with it, and the D0
+is the D2's caller that defers), and the inner constructors are defined in
+a TU of their own (`Unk_7be720.cpp`), so the outer constructors call them.
+Two details matter. The outer destructor is user-declared: an implicit one
+gets clang's inline hint (threshold 325 instead of 250) and nothing is
+deferred. And `Unk_23daca0`'s D2 stores its vptr though its body is empty:
+clang keeps a destructor's vptr stores when a member is an anonymous union
+(`FieldHasTrivialDestructorBody`), the only way found to get it.
+
+Its D2 (0x7100c38fc0, slot 0 of its own vtable, which nothing calls) was
+named `Unk_23daca0`'s constructor by `vtables.py ctors`, whose root pattern
+(a 20-byte vptr store) can't tell a D2 with that body from a constructor of
+a class without a base. It's the D2 now, and its class is defined here
+(`ctors` skips classes defined elsewhere). 32 more of `ctors`' root
+constructors are slot 0 of their own vtables, so D2s too: `find_ctors`
+should leave vtable slots out.
+
+The outer vtable's `vf3` and the inner one's four slots are `vtables.py`'s
+(src/unsorted/virtual): the classes here declare them the same way, and
+`write --only <empty file>` leaves its files unchanged.
+
+What matches: 315 of the 360 functions (all but the D0s),
+`Unk_23daca0`'s D0 (0x7100c38fe0) and the default-resource setter
+(0x7100e7b5e0). The 45 D0s and `Unk_236d228`'s D2 don't: the D2's search
+for `this`. The original compares the first pointer before its loop, merged
+with the test for an empty table (`cmp` of the count times 8, `ccmp`); the
+`std::find` here gives one loop, and so does every loop spelled out tried
+(for, while, do-while, peeled by hand, with indices or a count). Hand-peeled
+comes closest: it then differs only in testing the count, not the count
+times 8, which suggests the original compared the end pointer before
+instcombine could reduce it. They're `M`, with `NON_MATCHING` notes.
+check.py: 46,721 matching and 88 not matching (was 46,404 and 42), in both
+games; 26.44% of the code by bytes.
 
 ## What's left of the small functions
 
