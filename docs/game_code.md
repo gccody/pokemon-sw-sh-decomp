@@ -1884,10 +1884,10 @@ the given storage). `tools/clonegen.py` writes them for every class whose
 slots 2 and 3 store its own vtable: `return new Unk_C(*this);` and
 `new (p) Unk_C(*this);` with the object's u64 fields. The vtable is reached
 directly (adrp/add), not through the GOT, because a lambda's class is local
-to its TU, so each class is declared `visibility("hidden")`. 236 classes
-match (472 functions, `src/unsorted/clone`). 11 more, which copy several
-fields in another order, don't, and aren't written. vtables.py skips what
-clonegen writes.
+to its TU, so each class is declared `visibility("hidden")`. The fields are
+the ones slot 3 copies, with their widths; one after a gap is aligned to land
+where it is (a 16-byte aligned capture at +0x10). All 247 classes match (494
+functions, `src/unsorted/clone`). vtables.py skips what clonegen writes.
 
 ## What's left of the small functions
 
@@ -1915,7 +1915,7 @@ Larger shapes have their own blockers:
 ## Handoff (2026-11-17, updated 2026-11-19)
 
 State after the type getters and the map instances (2026-11-19, later):
-check.py reports 47,162 matching and 42 not matching; 26.52% of the code by
+check.py reports 47,184 matching and 42 not matching; 26.52% of the code by
 bytes. Before them, after the generated tables and FreeType: check.py
 reports 44,938 matching and 42 not matching, in both games; 25.16% of the
 code by bytes. Every batch above came from `tools/leafgen.py`,

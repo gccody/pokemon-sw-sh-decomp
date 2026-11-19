@@ -121,6 +121,99 @@ void Unk_23cfb40::vf3(Unk_23cfb40* p) {
     new (p) Unk_23cfb40(*this);
 }
 
+// vtable 0x71023cfbe0: what it holds is copied whole. Its vtable is
+// reached directly (adrp/add), not through the GOT: the callable's class is
+// local to its TU (a lambda's), so the vtable isn't preemptible.
+class __attribute__((visibility("hidden"))) Unk_23cfbd0 {
+public:
+    virtual ~Unk_23cfbd0();
+    virtual Unk_23cfbd0* vf2();
+    virtual void vf3(Unk_23cfbd0* p);
+
+    alignas(16) u64 field_10;
+    u64 field_18;
+};
+static_assert(sizeof(Unk_23cfbd0) == 0x20, "Unk_23cfbd0");
+
+// 0x7100b48d70
+Unk_23cfbd0* Unk_23cfbd0::vf2() {
+    return new Unk_23cfbd0(*this);
+}
+
+// 0x7100b48db0
+void Unk_23cfbd0::vf3(Unk_23cfbd0* p) {
+    new (p) Unk_23cfbd0(*this);
+}
+
+// vtable 0x71023cfc28: what it holds is copied whole. Its vtable is
+// reached directly (adrp/add), not through the GOT: the callable's class is
+// local to its TU (a lambda's), so the vtable isn't preemptible.
+class __attribute__((visibility("hidden"))) Unk_23cfc18 {
+public:
+    virtual ~Unk_23cfc18();
+    virtual Unk_23cfc18* vf2();
+    virtual void vf3(Unk_23cfc18* p);
+
+    u32 field_8;
+};
+static_assert(sizeof(Unk_23cfc18) == 0x10, "Unk_23cfc18");
+
+// 0x7100b48e20
+Unk_23cfc18* Unk_23cfc18::vf2() {
+    return new Unk_23cfc18(*this);
+}
+
+// 0x7100b48e60
+void Unk_23cfc18::vf3(Unk_23cfc18* p) {
+    new (p) Unk_23cfc18(*this);
+}
+
+// vtable 0x71023cfc70: what it holds is copied whole. Its vtable is
+// reached directly (adrp/add), not through the GOT: the callable's class is
+// local to its TU (a lambda's), so the vtable isn't preemptible.
+class __attribute__((visibility("hidden"))) Unk_23cfc60 {
+public:
+    virtual ~Unk_23cfc60();
+    virtual Unk_23cfc60* vf2();
+    virtual void vf3(Unk_23cfc60* p);
+
+    u16 field_8;
+};
+static_assert(sizeof(Unk_23cfc60) == 0x10, "Unk_23cfc60");
+
+// 0x7100b48ec0
+Unk_23cfc60* Unk_23cfc60::vf2() {
+    return new Unk_23cfc60(*this);
+}
+
+// 0x7100b48f00
+void Unk_23cfc60::vf3(Unk_23cfc60* p) {
+    new (p) Unk_23cfc60(*this);
+}
+
+// vtable 0x71023cfcb8: what it holds is copied whole. Its vtable is
+// reached directly (adrp/add), not through the GOT: the callable's class is
+// local to its TU (a lambda's), so the vtable isn't preemptible.
+class __attribute__((visibility("hidden"))) Unk_23cfca8 {
+public:
+    virtual ~Unk_23cfca8();
+    virtual Unk_23cfca8* vf2();
+    virtual void vf3(Unk_23cfca8* p);
+
+    u32 field_8;
+};
+static_assert(sizeof(Unk_23cfca8) == 0x10, "Unk_23cfca8");
+
+// 0x7100b48f70
+Unk_23cfca8* Unk_23cfca8::vf2() {
+    return new Unk_23cfca8(*this);
+}
+
+// 0x7100b48fb0
+void Unk_23cfca8::vf3(Unk_23cfca8* p) {
+    new (p) Unk_23cfca8(*this);
+}
+
 // vtable 0x71023cfd00: what it holds is copied whole. Its vtable is
 // reached directly (adrp/add), not through the GOT: the callable's class is
 // local to its TU (a lambda's), so the vtable isn't preemptible.
