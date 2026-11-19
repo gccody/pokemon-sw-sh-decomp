@@ -8,15 +8,9 @@
 // are known.
 #include <unordered_map>
 
+#include "battle/battle_scene/Unk_23c4ef0_Owner.h"
 #include "unsorted/Unk_23f5d00.h"
 #include "unsorted/Unk_2771620.h"
-
-// What the tables belong to: its allocator at +0xb8.
-struct Unk_23c4ef0_Owner {
-    u8 _0[0xb8];
-    Unk_239a418_Allocator* field_b8;
-};
-PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_b8, 0xb8);
 
 // A sequence function: called with vf2's first argument, the owner and the hash.
 using Unk_23c4ef0_Func = void (*)(void*, Unk_23c4ef0_Owner*, const u64*);

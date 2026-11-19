@@ -119,6 +119,12 @@ pkmn_library_settings(src/contents/pokecamp/source
   EVIDENCE "docs/compiler.md, section gflib3"
   DEFINES _GNU_SOURCE _LIBCPP_HAS_MUSL_LIBC _LIBCPP_HAS_THREAD_API_PTHREAD
   SYSTEM_INCLUDES include/libcxx)
+# The battle scene's code, placed in its directory: built the same way (its
+# sequence functions share a TU with src/unsorted/Unk_9be950.cpp's tables).
+pkmn_library_settings(src/battle/battle_scene
+  EVIDENCE "docs/compiler.md, section gflib3"
+  DEFINES _GNU_SOURCE _LIBCPP_HAS_MUSL_LIBC _LIBCPP_HAS_THREAD_API_PTHREAD
+  SYSTEM_INCLUDES include/libcxx)
 
 # PhysX 3.4.2, built by NVIDIA: full C++ exceptions (its FDEs have personality
 # and LSDA), strict aliasing, -fno-builtin (fabsf/sqrtf stay library calls),
