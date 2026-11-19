@@ -118,6 +118,8 @@ public:
     static const Unk_239a418_Type* Unk_GetType();
 
     void Unk_1470d30(const Unk_1459e50_Key& key);
+    void Unk_1471d50(u32 arg);
+    void Unk_1471dd0(u32 arg);
 };
 
 struct Unk_14cc6e0;
