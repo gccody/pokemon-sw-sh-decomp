@@ -5,7 +5,6 @@
 #include <types.h>
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_eb6100(void* self);
 void Unk_eb7ce0(void* self);
 void Unk_ec3210(void* self);
 void Unk_ec65c0(void* self);
@@ -34,41 +33,9 @@ public:
 };
 PKMN_OFFSET_ASSERT(Unk_23f5fa8, field_5e0, 0x5e0);
 
-// 0x7100eb6090
-void Unk_23f5fa8::vf6() {
-    Unk_eb6100(this);
-}
-
 // 0x7100eb5f60
 void Unk_23f5fa8::vf10() {
     field_5e0 = 1;
-}
-
-class Unk_23f6040 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x7100eb60c0
-void Unk_23f6040::vf5() {
-    Unk_eb6100(this);
-}
-
-class Unk_23f6080 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100eb60d0
-void Unk_23f6080::vf0() {
-    Unk_eb6100(this);
 }
 
 class Unk_23f6118 {

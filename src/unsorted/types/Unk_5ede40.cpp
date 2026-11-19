@@ -6,6 +6,11 @@
 
 #include "gflib3/Unk_239a418.h"
 
+// The type 0x7102774000: its getter is out of line.
+struct Unk_2774000 {
+    static const Unk_239a418_Type* Unk_GetType();
+};
+
 // The type 0x7102774058: its getter is out of line.
 struct Unk_2774058 {
     static const Unk_239a418_Type* Unk_GetType();
@@ -27,6 +32,18 @@ struct Unk_2774078 {
     }
 };
 
+// A forwarder in slot 5 of vtable 0x710239aba0: it tail-calls its
+// type's getter (0x71005eb880, out of line). Declared without its bases or its vtable.
+struct Unk_239abd0 {
+    const Unk_239a418_Type* vf5();
+};
+
+// A forwarder in slot 0 of vtable 0x710239aba0: it tail-calls its
+// type's getter (0x71005eb880, out of line). Declared without its bases or its vtable.
+struct Unk_239ac28 {
+    const Unk_239a418_Type* vf0();
+};
+
 // vtable 0x710239ac60: a type getter in its slot 13, whose class
 // isn't known: declared without its bases or its vtable, which it doesn't use.
 struct Unk_239ac50 {
@@ -38,6 +55,16 @@ struct Unk_239ac50 {
 struct Unk_239ae00 {
     const Unk_239a418_Type* vf13();
 };
+
+// 0x71005ede40
+const Unk_239a418_Type* Unk_239abd0::vf5() {
+    return Unk_2774000::Unk_GetType();
+}
+
+// 0x71005ede50
+const Unk_239a418_Type* Unk_239ac28::vf0() {
+    return Unk_2774000::Unk_GetType();
+}
 
 // 0x71005ee4d0
 const Unk_239a418_Type* Unk_239ac50::vf13() {

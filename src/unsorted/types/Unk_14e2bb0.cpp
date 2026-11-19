@@ -16,6 +16,24 @@ struct Unk_2444850 {
     static const Unk_239a418_Type* Unk_GetType();
 };
 
+// The type 0x71027e05f0: its getter is out of line.
+struct Unk_2444b38 {
+    static const Unk_239a418_Type* Unk_GetType();
+};
+
+// vtable 0x71024446d0: vf_type and its thunks 0x71014e2c80 (+0x48), 0x71014e2cf0 (+0x50).
+// Its base and its other functions aren't written here.
+class Unk_24446c0 : public Unk_239a418 {
+public:
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_2444b38::Unk_GetType());
+        return &type;
+    }
+
+    ~Unk_24446c0() override;
+    const Unk_239a418_Type* vf_type() override;
+};
+
 // vtable 0x71024449b0: vf_type and its thunks 0x71014e5780 (+0x48), 0x71014e57f0 (+0x50).
 // Its base and its other functions aren't written here.
 class Unk_24449a0 : public Unk_239a418 {
@@ -41,6 +59,13 @@ public:
     ~Unk_2444e90() override;
     const Unk_239a418_Type* vf_type() override;
 };
+
+// 0x71014e2bb0
+// 0x71014e2c80
+// 0x71014e2cf0
+const Unk_239a418_Type* Unk_24446c0::vf_type() {
+    return Unk_GetType();
+}
 
 // 0x71014e56d0
 // 0x71014e5780

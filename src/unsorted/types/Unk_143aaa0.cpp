@@ -16,6 +16,11 @@ struct Unk_23f5318 {
     static const Unk_239a418_Type* Unk_GetType();
 };
 
+// The type 0x71027e05f0: its getter is out of line.
+struct Unk_2444b38 {
+    static const Unk_239a418_Type* Unk_GetType();
+};
+
 // The type 0x71027f0a48: its getter is out of line.
 struct Unk_27f0a48 {
     static const Unk_239a418_Type* Unk_GetType();
@@ -110,6 +115,22 @@ public:
     const Unk_239a418_Type* vf_type() override;
 };
 
+// The type 0x71027e05e0.
+struct Unk_24446c0 {
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_2444b38::Unk_GetType());
+        return &type;
+    }
+};
+
+// The type 0x71027e05d0.
+struct Unk_2445a38 {
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_24446c0::Unk_GetType());
+        return &type;
+    }
+};
+
 // 0x710143aaa0
 // 0x710143abd0
 // 0x710143ac40
@@ -156,6 +177,9 @@ bool Unk_61a530(Unk_239a498* object) {
             return true;
     return false;
 }
+
+// 0x710143d390
+template bool Unk_61a530<Unk_2445a38>(Unk_239a498* object);
 
 // 0x7101441fb0
 template bool Unk_61a530<Unk_23f6a68>(Unk_239a498* object);
