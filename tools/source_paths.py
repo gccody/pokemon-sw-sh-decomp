@@ -18,7 +18,10 @@ of TUs (the longest matching `Source` wins):
     Original    the original's absolute path of `Root`
                 (C:/gitlab-runner/builds/ba119cc0/0/research_and_development/physx/PhysX/)
     WorkDir     the original compiler's working directory, relative to `Root`;
-                relative paths in the original are resolved against it
+                relative paths in the original are resolved against it. It may
+                be outside `Root` (leading `../` segments): YEBIS compiled
+                `src/GPU/miniz.c` as `../src/GPU/miniz.c`, from a sibling of
+                `src/`, and lib/miniz/ is its `src/GPU/`
     Evidence    where the paths come from
 
 A compiled literal of a TU under `Source` that is a path into `Root` (after
@@ -68,8 +71,10 @@ class SourcePathRule:
             return rel
         if _ABSOLUTE.match(n):
             return None
-        rel = _norm(posixpath.join(self.workdir, s.replace("\\", "/")))
-        return None if rel.startswith("../") or rel == ".." else rel
+        # resolved against the vendor's absolute work directory, so a WorkDir
+        # outside Root (../../build/) and a path back into it (../src/GPU/x.c) fold
+        work = posixpath.join(_norm(self.original), self.workdir)
+        return _under(_norm(posixpath.join(work, s.replace("\\", "/"))), _norm(self.original))
 
 
 class SourcePaths:
@@ -122,7 +127,10 @@ def lint_source_paths(path: Path, repo: Path) -> list[str]:
     for i, r in enumerate(read_source_paths(path), start=2):
         where = f"{path.name}:{i}"
         for col, v in (("Source", r.source), ("Root", r.root), ("WorkDir", r.workdir)):
-            if not v.endswith("/") or v.startswith("/") or "\\" in v or ".." in v.split("/"):
+            inner = v
+            while col == "WorkDir" and inner.startswith("../"):
+                inner = inner[3:]  # WorkDir may leave Root, but only by leading ../
+            if not v.endswith("/") or v.startswith("/") or "\\" in v or ".." in inner.split("/"):
                 errors.append(f"{where}: {col} {v!r} must be a relative directory ending in '/' with forward slashes")
         if not r.original.endswith("/") or not _ABSOLUTE.match(r.original):
             errors.append(f"{where}: Original {r.original!r} must be an absolute directory ending in '/'")
