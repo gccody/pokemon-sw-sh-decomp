@@ -217,3 +217,21 @@ def test_object_names():
     assert "class Unk_23c9028 : public Unk_23c9028_Parent {" in text
     assert F.creator_class(f).endswith(
         "template Unk_239a418_Ref<Unk_23c9028> Unk_790260_Owner::Create<Unk_23c9028>(const Unk_Ref& parent, u64 a2);\n")
+
+
+def test_copied_reference_is_ref2():
+    # a reference copied from the factory's const& argument: kept as Unk_239a418_Ref2
+    f = F.ObjectFactory(0, "Unk_5000", 0x68, 8, 0, False, [F.Param("ref", True, False)],
+                        [F.Member(0x60, "ref", 0)])
+    text = F.object_class(f)
+    assert "Unk_5000(Unk_239a418_Ref2<Unk_239a418> a0) : field_60(a0) {}" in text
+    assert "    Unk_239a418_Ref2<Unk_239a418> field_60;" in text
+    assert text.endswith("(Unk_239a418_Allocator*, const Unk_Ref&);\n")
+    # moved in: a plain reference
+    f.params, f.members = [F.Param("ref", True, True)], [F.Member(0x60, "ref", 0, moved=True)]
+    assert "    Unk_Ref field_60;" in F.object_class(f)
+
+
+def test_written_elsewhere(tmp_path):
+    (tmp_path / "a.cpp").write_text("// 0x71006157f0\nstruct X {};\n// not 0x7100000010\n")
+    assert F.written_elsewhere([tmp_path]) == {0x6157F0}
