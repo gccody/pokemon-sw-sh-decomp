@@ -2473,6 +2473,92 @@ python tools/compiler_sweep.py --compiler toolchain/candidates/clang-7.0.1 --var
     -- -isystem toolchain/candidates/sysroot/include -I$D/nx -I$D/include -DFT2_BUILD_LIBRARY
 ```
 
+## miniz 1.15
+
+**Result: YEBIS keeps its own copy of miniz, `src/GPU/miniz.c`, the
+single-file miniz v1.15 r4 (richgel999/miniz `28f5066e33`), with `MZ_MALLOC`
+and `MZ_FREE` sent to YEBIS's allocator, built with clang 7.0.x `-O3` and the
+game's global flags. All 5 of its functions in the executable (7,924 bytes)
+match, in both games, in `lib/miniz`.**
+
+### Where it is
+
+`../src/GPU/miniz.c` (`0x7101aeac13`) is the `__FILE__` that
+`0x710045fe50` passes to YEBIS's allocation function `0x71004b99a0`, with
+`__LINE__` 1010 and `items * size`: miniz's `def_alloc_func`. The TU is
+`0x710045fe50`-`0x7100461d5c`, at the same addresses in both games, and starts a
+`tools/segments.py` segment; YEBIS's `GPUTextureUtil.cpp`
+(`C:/workspace/YEBIS_draft/src/GPU/GPUTextureUtil.cpp`) follows it.
+`def_alloc_func`, `def_free_func` (`0x710045fe80`), `mz_inflate`,
+`tinfl_decompress` and `mz_uncompress` are its 5 functions, in the order the
+TU first references or defines them (`mz_inflate` calls `tinfl_decompress`,
+which miniz defines after `mz_uncompress`). `mz_uncompress` has
+`mz_inflateInit`/`mz_inflateInit2` (with `def_alloc_func`, so the second
+`__FILE__` reference) and `mz_inflateEnd` inlined. A sweep of the whole of
+`main` finds no other miniz function: the remaining hits are 16-byte
+`def_free_func` shapes (load a global, tail call) and a 20-byte
+`mz_free` shape at `0x7100ece150`, which are game functions with other
+globals and callees.
+
+### Version
+
+`tools/compiler_sweep.py` with clang 7.0.1 `-O3` over `0x710045fe50`-`0x7100461d60`,
+each version's `miniz.c` with the two allocator lines redirected the same way:
+
+| Version | Exact hits | Hit bytes | `def_alloc_func` line |
+|---|---:|---:|---:|
+| 1.13 (`56fb6c2010`) | 3 | 7,504 | 961 |
+| 1.14 (`731d5b2f87`) | 3 | 7,504 | 975 |
+| 1.15 first commit (`fe5340afc0`) | 3 | 7,504 | 1007 |
+| **1.15 r4 (`28f5066e33`)** | **5** | **7,924** | **1010** |
+| 2.0.8 (amalgamated release) | 2 | 1,192 | - |
+
+`mz_inflate`, `tinfl_decompress` and `def_free_func` are the same from 1.13 to
+1.15; the `__LINE__` immediate separates the rest. The 1.15 commits between
+`fe5340afc0` and `28f5066e33` put `def_alloc_func` on lines 1007 to 1009, so
+1010 is the last single-file commit, the one released as `miniz_v115_r4`. (1.13
+needs `<time.h>` included first to compile: upstream fixed that in 1.14.)
+
+### Build configuration
+
+- **Flags.** The global flags. clang 7.0.0, 7.0.1 and 7.1.0 give 5; with
+  clang 7.0.1, `-g` gives 5 too, `-fstrict-aliasing` 3, `-O2` and `-Os` 2.
+  clang 8.0.0 gives 3 and 6.0.1 2. No `pkmn_library_settings` entry, like
+  YEBIS's zlib.
+- **Configuration.** Upstream's: none of the `MINIZ_NO_*` switches changes the
+  5 functions, and the functions they'd remove aren't in the executable either
+  way, so nothing says whether YEBIS set them. `MINIZ_USE_UNALIGNED_LOADS_AND_STORES`
+  stays off (miniz turns it on only for x86): with it,
+  `tinfl_decompress` doesn't match (6,636 bytes against 6,312). Compiling it
+  as C or as C++ gives the same code.
+- **Allocator.** `MZ_MALLOC(x)` is a call of `0x71004b99a0` with the allocator
+  in the global `0x710238d5f8` (through the GOT), `x`, `__FILE__`, `__LINE__`
+  and a 64-bit 0, the way YEBIS's own code allocates (`0x710045c1e0` passes
+  its `__FILE__` and line 0x49 the same way); `MZ_FREE(x)` is `0x71004b9a60`
+  with the allocator and `x`. `lib/miniz/miniz.c` replaces upstream's two
+  lines in place and includes `miniz_yebis.h` on a line that is blank
+  upstream, so every line keeps its number (`lib/miniz/README.md`). The
+  allocator functions keep placeholder names, now with C linkage and their
+  real parameters, in `lib/yebis/leaf/Unk_4b99a0.cpp`; both match.
+- **Source path.** `data/source_paths.csv` maps the literal onto
+  `lib/miniz/`. YEBIS compiled from a sibling of `src/` (its literals are
+  `../src/GPU/...` and `../include\PPFX/...`), so the row's `WorkDir` is
+  outside its `Root` (`../../nx/`; the directory's name isn't in the binary),
+  which `tools/source_paths.py` allows for that.
+- **Not in the executable.** The other 77 functions `miniz.c` compiles are in
+  `data/absent_functions.csv`.
+
+### Reproducing
+
+```sh
+mkdir -p toolchain/candidates/download/miniz && cd toolchain/candidates/download/miniz
+curl -LO https://raw.githubusercontent.com/richgel999/miniz/28f5066e33/miniz.c && cd ../../../..
+python tools/compiler_sweep.py --compiler toolchain/candidates/clang-7.0.1 --variant O3=-O3 --min-size 4 \
+    --src lib/miniz/miniz.c --range 0x710045fe50-0x7100461d60 --map-out mz_map.csv \
+    -- -isystem toolchain/candidates/sysroot/include
+diff <(tr -d '\r' < toolchain/candidates/download/miniz/miniz.c) lib/miniz/miniz.c   # the 3 YEBIS lines
+```
+
 ## Nintendo SDK middleware
 
 **Result: Nintendo's SDK 7.3.2 libraries were built with clang 7.0.x at `-O3`
