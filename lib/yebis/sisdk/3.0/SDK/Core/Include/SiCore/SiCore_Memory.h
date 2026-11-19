@@ -1,4 +1,4 @@
-// SiSDK3's allocator interface and its array new/delete, as SiArray uses
+// SiSDK3's allocator interface and its array new/delete, as its containers use
 // them (placeholder names: the slots' names aren't in the executable).
 #pragma once
 
@@ -56,10 +56,14 @@ UNK_POD(float)
 UNK_POD(double)
 #undef UNK_POD
 
-// The array delete: destroys each element (asking the allocator for their
-// count), then frees.
+// 0x710056de40 (SIGFX_SHADER_PREPROCESSOR): the array delete. Destroys each
+// element (asking the allocator for their count), frees, and clears the
+// pointer.
 template <class T>
-inline void SiDeleteArray(ISiAllocator* allocator, T* p, const char* file, int line) {
+void Unk_56de40(ISiAllocator* allocator, T*& p, const char* file, long line) {
+    if (allocator == nullptr || p == nullptr) {
+        return;
+    }
     if (!Unk_PodTraits<T>::value) {
         size_t count = allocator->vf10(p);
         for (size_t i = 0; i < count; i++) {
@@ -67,11 +71,15 @@ inline void SiDeleteArray(ISiAllocator* allocator, T* p, const char* file, int l
         }
     }
     allocator->vf9(p, file, line);
+    p = nullptr;
 }
 
 }  // namespace SiSDK3
 
-#define SI_DELETE_ARRAY(allocator, p) ::SiSDK3::SiDeleteArray(allocator, p, __FILE__, __LINE__)
+#define SI_NEW_ARRAY(allocator, T, count, align) \
+    static_cast<T*>((allocator)->vf8(sizeof(T), count, align, __FILE__, __LINE__))
+#define SI_DELETE_ARRAY(allocator, p) ::SiSDK3::Unk_56de40(allocator, p, __FILE__, __LINE__)
+#define SI_FREE(allocator, p) (allocator)->vf9(p, __FILE__, __LINE__)
 
 // 0x71004bc640: the kernel's allocator, or the default one
 SiSDK3::ISiAllocator* Unk_4bc640();

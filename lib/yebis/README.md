@@ -51,4 +51,26 @@ isn't the array's own). The buffer is an array allocation of the allocator
 element count and vf9 frees. The array delete destroys each element first,
 except for pointers and the builtin types (`unsigned long` isn't one of them,
 `unsigned long long` is: SiArray<unsigned long>'s destructor asks for the count
-and destroys nothing).
+and destroys nothing). It takes the pointer by reference (it clears it), and
+its line parameter is 64-bit: its one out-of-line copy, 0x710056de40, shows
+both.
+
+The members are defined outside the class without `inline`, as the inlining
+shows: the original keeps SiArray<RollingPerfData<float>>'s release
+(0x71004e3050) out of line, which an inline hint would have inlined. That
+instance, its `<int>` twin and two others still inline differently here
+(clang defers the array delete into the destructor instead of the release:
+the original TU's other calls decide that), so they aren't instantiated yet.
+
+`SiDirectLinkedList<T*>` (`SiCore_LinkedList.h`) is intrusive: each element
+type has its own links, at its own offsets.
+
+### Instances of identical code
+
+Template instances whose code doesn't depend on the type (every 8-byte
+element's `Unk_4bf190`, the reserve) are named only where the executable ties
+an address to its type: a vtable slot (destructors), or a caller that's a
+virtual function of a class whose vtable group's functions store
+`SiArray<T>`'s vtable at the same offset of `this` that it calls the instance
+on. 23 of the 47 copies of `Unk_4bf190` have such a caller; the other 24 are
+called only from functions of no known class.

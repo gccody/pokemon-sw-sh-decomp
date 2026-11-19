@@ -307,3 +307,54 @@ template SiSDK3::SiArray<char, 16>::~SiArray();
 template SiSDK3::SiArray<wchar_t, 16>::~SiArray();
 // 0x7100584290 (D1), 0x7100586bc0 (D0)
 template SiSDK3::SiArray<SiSDK3::SiIOVFSEntry*, 16>::~SiArray();
+
+// Unk_4bf190 (8-byte elements), for the element types its callers show: a
+// caller in a class's vtable calls it on this + N, and a function of that
+// vtable group stores SiArray<T>'s vtable at this + N (the other 24 copies of
+// this code are called from inline Adds of no class, and aren't named).
+// 0x71004bf190
+template bool SiSDK3::SiArray<SiSDK3::SiPool<SiSDK3::SiFixedHeapAllocator2::MemoryBlockHeader, 16>::DataArray*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004c27f0
+template bool SiSDK3::SiArray<SiSDK3::SiStringTable*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004c2990
+template bool SiSDK3::SiArray<SiSDK3::ISiKernel::IReportUserHandler*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004c2b30
+template bool SiSDK3::SiArray<SiSDK3::ISiAllocator*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004c8210
+template bool SiSDK3::SiArray<SiSDK3::SiStringTable::Entry*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004d0810
+template bool SiSDK3::SiArray<SiSDK3::ISiGfxDevice*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004d0bd0
+template bool SiSDK3::SiArray<SiSDK3::ISiGfxKernel::EventHandler*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004d27e0
+template bool SiSDK3::SiArray<SiSDK3::ISiGfxImageLoader*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004d2980
+template bool SiSDK3::SiArray<SiSDK3::ISiGfxImageSaver*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004db930
+template bool SiSDK3::SiArray<SiSDK3::SiGfxShaderGraphNodeType*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004dbad0
+template bool SiSDK3::SiArray<SiSDK3::ISiGfxShaderGraphFactory*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004e8240
+template bool SiSDK3::SiArray<SiSDK3::ISiGfxShaderBinaryCachePackage*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004ea5e0
+template bool SiSDK3::SiArray<SiSDK3::SiGfxShaderBinaryCachePackage::EditEntry*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004fe250
+template bool SiSDK3::SiArray<NVNtexture*, 16>::Unk_4bf190(size_t, bool);
+// 0x71004fe3f0
+template bool SiSDK3::SiArray<NVNtextureView*, 16>::Unk_4bf190(size_t, bool);
+// 0x7100501790
+template bool SiSDK3::SiArray<SiSDK3::SiPool<SiSDK3::SiGfxFreeTypeGlyph, 16>::DataArray*, 16>::Unk_4bf190(size_t, bool);
+// 0x7100532840
+template bool SiSDK3::SiArray<SiSDK3::SiPool<SiSDK3::SiGfxQuadTree<SiSDK3::SiGfxFreeTypeFaceCache::CacheData>::QuadNode, 16>::DataArray*, 16>::Unk_4bf190(size_t, bool);
+// 0x7100538b50
+template bool SiSDK3::SiArray<unsigned long long, 16>::Unk_4bf190(size_t, bool);
+// 0x71005510e0
+template bool SiSDK3::SiArray<SiSDK3::ISiGfxResource*, 16>::Unk_4bf190(size_t, bool);
+// 0x710056ebc0
+template bool SiSDK3::SiArray<SiSDK3::ISiGfxShaderEffectPackage::ShaderEffectData*, 16>::Unk_4bf190(size_t, bool);
+// 0x710056f580
+template bool SiSDK3::SiArray<SiSDK3::SiGfxShaderEffect*, 16>::Unk_4bf190(size_t, bool);
+// 0x7100573990
+template bool SiSDK3::SiArray<SiSDK3::ISiGfxShaderEffectVariationList::ShaderVariationItem*, 16>::Unk_4bf190(size_t, bool);
+// 0x7100587040
+template bool SiSDK3::SiArray<SiSDK3::SiIOVFSEntry*, 16>::Unk_4bf190(size_t, bool);
