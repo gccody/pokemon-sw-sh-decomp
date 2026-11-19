@@ -260,12 +260,12 @@ struct Unk_3d7690 {
 PKMN_OFFSET_ASSERT(Unk_3d7690, field_20, 0x20);
 PKMN_OFFSET_ASSERT(Unk_3d7690, field_48, 0x48);
 
-void Unk_304740(u32, u64);
+void Unk_304740(int, void*);
 
 // 0x71003d7690
 void Unk_3d7690_call(const Unk_3d7690* self) {
     if (self->field_48 != 0) {
-        Unk_304740(Unk_2381488, self->field_20);
+        Unk_304740(Unk_2381488, reinterpret_cast<void*>(self->field_20));
     }
 }
 

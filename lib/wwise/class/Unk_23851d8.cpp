@@ -10,7 +10,7 @@ struct Unk_3df580 {
 };
 PKMN_OFFSET_ASSERT(Unk_3df580, field_88, 0x88);
 
-void Unk_304740(u32, u64);
+void Unk_304740(int, void*);
 
 class Unk_23851d8 {
 public:
@@ -21,7 +21,7 @@ public:
 void Unk_23851d8::vf3() {
     Unk_3df580* self = reinterpret_cast<Unk_3df580*>(this);
     if (self->field_88 != 0) {
-        Unk_304740(Unk_2381488, self->field_88);
+        Unk_304740(Unk_2381488, reinterpret_cast<void*>(self->field_88));
         self->field_88 = 0;
     }
 }

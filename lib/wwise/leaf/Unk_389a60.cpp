@@ -323,12 +323,12 @@ struct Unk_390440 {
 };
 PKMN_OFFSET_ASSERT(Unk_390440, field_14, 0x14);
 PKMN_OFFSET_ASSERT(Unk_390440, field_18, 0x18);
-void Unk_3047c0(u32, u64);
+void Unk_3047c0(int, void*);
 
 // 0x7100390440
 void Unk_390440_set(Unk_390440* self) {
     if (self->field_18 != 0) {
-        Unk_3047c0(Unk_2381488, self->field_18);
+        Unk_3047c0(Unk_2381488, reinterpret_cast<void*>(self->field_18));
     }
     self->field_14 = 0;
     self->field_18 = 0;
@@ -343,11 +343,11 @@ struct Unk_390500 {
 PKMN_OFFSET_ASSERT(Unk_390500, field_0, 0x0);
 PKMN_OFFSET_ASSERT(Unk_390500, field_10, 0x10);
 
-void Unk_304740(u32, u64);
+void Unk_304740(int, void*);
 
 // 0x7100390500
 void Unk_390500_call(Unk_390500* self) {
-    Unk_304740(Unk_2381488, self->field_0);
+    Unk_304740(Unk_2381488, reinterpret_cast<void*>(self->field_0));
     self->field_0 = 0;
     self->field_10 = 0;
 }
@@ -361,11 +361,11 @@ struct Unk_390540 {
 PKMN_OFFSET_ASSERT(Unk_390540, field_0, 0x0);
 PKMN_OFFSET_ASSERT(Unk_390540, field_c, 0xc);
 
-u64 Unk_3045e0(u32, u32);
+void* Unk_3045e0(int, size_t);
 
 // 0x7100390540
 u32 Unk_390540_call(Unk_390540* self) {
-    u64 r0 = Unk_3045e0(Unk_237e820, 0x140);
+    u64 r0 = reinterpret_cast<u64>(Unk_3045e0(Unk_237e820, 0x140));
     self->field_0 = r0;
     if (r0 == 0) {
         return 0x34;
