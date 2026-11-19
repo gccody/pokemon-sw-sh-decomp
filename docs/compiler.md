@@ -2804,7 +2804,7 @@ placeholder names (`Unk_<addr>`); what's known of them is in the comments.
   from +0x48 (upstream +0x18) and `sessionid` from +0x78, and
   `set.proxy_ssl = set.ssl` copies 0xe0 bytes, not 0xb0. `Curl_setopt` stores
   options of Nintendo's into the new fields (a bool at +0x13, 8-byte values at
-  +0x18, +0x28, +0x30 (a `CURLOPTTYPE_FUNCTIONPOINT`) and +0x38, a bool at
+  +0x18, +0x28 and +0x30 (both `CURLOPTTYPE_FUNCTIONPOINT`s) and +0x38, a bool at
   +0x40). `sizeof(struct Curl_easy)` is `0x5140`.
 - **TLS: `nn::ssl`.** `struct ssl_connect_data` is 0x120 bytes (the backend
   indexes `conn->ssl[]` by 0x120), so `struct connectdata` is 0x450 bytes
@@ -2814,8 +2814,8 @@ placeholder names (`Unk_<addr>`); what's known of them is in the comments.
   `Curl_ssl_backend` returns 30, which isn't one of curl.h's values. The
   backend's functions are Sword `0x71017775a0`-`0x7101778060`. Init, cleanup,
   version (`"nn::ssl"`), random (zeros), data_pending and two that return
-  FALSE are in `vtls/nnssl.c`. Connect (`0x7101777650`), close, recv and send
-  aren't reconstructed yet.
+  FALSE are in `vtls/nnssl.c`, and so are connect, close, recv and send
+  (below).
 - **Sockets: the SDK's, BSD-style.** `struct sockaddr` starts with a length
   byte (`Curl_he2ai` stores `sin_family` with `strb` at +1), and `SOL_SOCKET`
   (0xffff), `SO_ERROR` (0x1007), `SO_NOSIGPIPE` (0x800) and `SO_KEEPALIVE` (8)
@@ -2842,6 +2842,73 @@ placeholder names (`Unk_<addr>`); what's known of them is in the comments.
   YEBIS's zlib in `main` (`inflateInit_` `0x71005918f0`, `inflateEnd`
   `0x7100593530`).
 
+- **Nintendo's options and one more info.** `Curl_setopt`
+  (`0x710176ac70`) dispatches on nine values upstream doesn't have (its jump
+  tables and compare chains, read case by case): 500, 501, 506, 507 and 900
+  (longs, stored as bools), 10502 and 10505 (pointers), 20503 and 20504
+  (function pointers), each into one of the fields above (`set.field_58`
+  to `field_5a`, `ssl.primary.field_13`, `field_18`, `field_28` to
+  `field_40`). 500 is `CURLOPT_PROXYAUTOCONFIG`: `create_conn`'s warning
+  names it. The others are `CURLOPT_Unk_<value>` in `curl.h`.
+  `Curl_getinfo`'s `getinfo_long` reaches `CURLINFO_LONG + 50`, which returns
+  `ssl.primary.field_20` (`CURLINFO_Unk_LONG_50`).
+- **What the backend supports.** `CURLOPT_CAPATH`, `CURLOPT_PROXY_CAPATH`,
+  `CURLOPT_CERTINFO` and `CURLOPT_SSL_CTX_FUNCTION`/`_DATA` are stored, where
+  upstream returns `CURLE_NOT_BUILT_IN` without a backend for them, so
+  `vtls/nnssl.h` defines `have_curlssl_ca_path`, `have_curlssl_certinfo` and
+  `have_curlssl_ssl_ctx`. Both pinned public key options return
+  `CURLE_NOT_BUILT_IN`.
+- **Host names from `nn::nsd`.** `CURLOPT_URL`, unless option 900 is set,
+  splits the URL with `parseurlandfillconn()`'s `sscanf` formats, replaces
+  the host with what `nn::nsd::ResolveEx` returns (`0x7101778430`,
+  `lib/curl/nintendo/Unk_1778430.cpp`) and stores the URL rebuilt.
+- **The system's proxy.** `create_conn` (`0x71017703c0`), while
+  `CURLOPT_PROXYAUTOCONFIG` is set (`Curl_open` sets it), takes the proxy,
+  its port and its user name and password from
+  `nn::nifm::GetCurrentProxySetting` (`0x71017785c0`), and drops
+  `CURLOPT_PROXY` with a warning to stderr ("`CURLOPT_PROXYAUTOCONFIG is 1
+  (default), so options set via CURLOPT_PROXY* are ignored.`").
+- **`showit()` writes nothing.** In `Curl_debug` (and its copies inlined
+  into `Curl_infof` and `Curl_failf`) the text goes into a `malloc`'d,
+  NUL-terminated copy that's freed again, with nothing in between: a
+  release build's print.
+- **Fixes from later curl.** `Curl_pgrsUpdate` computes the average speeds
+  in milliseconds below `CURL_OFF_T_MAX/1000` (`0x20c49ba5e353f7`), as curl
+  7.58.0 does, and `Curl_http` copies `http->writebytecount` to
+  `data->req.writebytecount` when the body isn't sent off yet, as 7.61.1
+  does. Neither is in 7.57.0 (or 7.61.0). Both blocks are upstream's (curl
+  license).
+- **Two smaller ones.** `cookie_output`'s "Fatal libcurl error" path calls
+  `main`'s `fclose` import, the other path Nintendo's replacement. And
+  `Curl_wait_ms` is inlined into `Curl_poll` and `Curl_socket_check`, and
+  kept for its other callers: clang 7 gives it a cost of 270 against a
+  threshold of 250, so it's declared `inline` (the inline-hint threshold,
+  325). How Nintendo's source does that isn't known.
+- **The resolver threads.** `curl_threads.h` maps curl's mutexes to
+  `nn::os` (`nnosInitializeMutex(m, false, 1)`, ...). `Curl_thread_create`
+  (`0x7101779140`) starts an `nn::os` thread per lookup ("`LibcurlResolver`",
+  the creating thread's priority and core mask, a 0x1000-byte stack), at
+  most 50, and a manager thread that `global_init()` starts (`0x7101778ce0`)
+  waits for the finished ones and frees them (two curl lists, an event and
+  a mutex in the 0x90-byte `0x71027fc4a8`). `Curl_thread_destroy` does
+  nothing and `Curl_thread_join` only checks the handle. These are in
+  `lib/curl/nintendo/Unk_1778b10.c`, `0x7101778b10`-`0x7101779270`. Each
+  lookup passes three options of the SDK's resolver to
+  `nnsocketGetHostByNameWithOptions` (bools 0x7531 and 0x7533, the opposite
+  of options 900 and 506, and 0x7532, the request the resolver has as
+  0x2711), which `struct thread_sync_data` holds, and
+  `Curl_resolver_cancel` cancels the request in the resolver (0x4e21) first.
+- **The `nn::ssl` backend's connections.** Its connect (`0x7101777650`) sets
+  up a context (its own, or option 10502's), `nnsslConnectionCreate`, the
+  socket, the host name, the verify options (`verifypeer`, `verifyhost`,
+  option 501), the session cache and option 20503's callback, then runs
+  `nnsslConnectionDoHandshakeWithCertBuffer` non-blocking, calls option
+  20504's callback with the result and maps the verify errors to
+  `CURLE_PEER_FAILED_VERIFICATION`, `CURLE_SSL_CERTPROBLEM` or
+  `CURLE_SSL_CACERT`. It returns CURLcodes of Nintendo's too (0x5d, 0x5e,
+  0x5f, 0x61). Close, recv and send (`0x7101777df0`, `0x7101777fa0`,
+  `0x7101778060`) are small. All are in `vtls/nnssl.c`.
+
 The matches as the changes went in, `check.py` over the libcurl area (395
 functions, both games; each step includes the names `tools/sweep_attribute.py`
 could pin with it):
@@ -2856,30 +2923,29 @@ could pin with it):
 | SDK sockets, `ZLIB_VERSION` | 307 |
 | `USE_SSL`, `vtls.c` | 347 |
 | The `nn::ssl` backend's small functions, progress.c's stdio | 356 |
+| `showit()`, `cookie_output`'s `fclose` | 360 |
+| Nintendo's options, `have_curlssl_*`, `nn::nsd`, `nn::nifm` | 370 |
+| `CURLINFO_LONG + 50`, the 7.58.0 and 7.61.1 fixes, `Curl_wait_ms` | 375 |
+| The resolver threads | 390 |
+| The backend's recv and send | 392 |
 
-The 356 are 110,068 bytes (22,444 before).
+The 392 are 159,844 bytes (110,172 with 356, 22,444 at first). The other
+three are `M` (2,540 bytes, below).
 
 #### What doesn't match
 
-- **The resolver thread.** Nintendo's `asyn-thread.c` runs the lookup in an
-  `nn::os` thread (`nnosCreateThread`, `"LibcurlResolver"`,
-  `0x7101778b10`-`0x7101779250`, `Curl_thread_join` at `0x7101779250`), locks
-  `nn::os` mutexes (`nnosLockMutex`) and passes three resolver options of its
-  own (`0x71017556a0`). `Curl_resolver_*`, `destroy_async_data` and the
-  thread's functions aren't reconstructed.
-- **`Curl_setopt` and `create_conn`.** Nintendo's options (the new fields
-  above, `nn::nsd::ResolveEx` through `0x7101778430`) and its proxy settings
-  from `nn::nifm` (`0x71017785c0`, called from `create_conn`).
-- **The `nn::ssl` backend's connect, close, recv and send.**
-- **`Curl_infof`, `Curl_failf`, `Curl_debug`, `Curl_poll`,
-  `Curl_socket_check`, `Curl_pgrsUpdate`, `Curl_http`, `Curl_getinfo`,
-  `Curl_flush_cookies`**: close, with smaller differences not explained yet
-  (`Curl_flush_cookies` calls an SDK import where curl calls `fclose`).
+Three of Nintendo's functions, reconstructed, with the same calls and tests
+as the originals but laid out or allocated differently. They're in files
+that aren't upstream's, so each has a `NON_MATCHING` comment:
 
-These files are upstream's, changed only where marked, so the
-`// NON_MATCHING: <reason>` comments that `M` functions get elsewhere can't go
-in them: this section is that comment for every `M` function under
-`lib/curl`.
+- **The backend's connect** (`Unk_1777650`, 1,940 bytes): the would-block
+  handshake jumps straight to the `CURLE_OK` return, where the original goes
+  through the error dispatch, and the frame is 0xa0 bytes (0x90).
+- **The backend's close** (`Unk_1777df0`, 220 bytes): the original computes
+  `&conn->ssl[sockindex]` again for `field_118` after storing `state`.
+- **The thread creation** (`Unk_1778b10`, 380 bytes): the original tests the
+  result before the handle in the cleanup, and copies the allocation into
+  the handle when it's NULL.
 
 #### Names and `check.py`
 
@@ -2931,6 +2997,14 @@ and their callers: `Curl_ssl_set_engine` and `Curl_ssl_set_engine_default`
 `Curl_ssl_data_pending` (`Curl_conn_data_pending`). The 13 `vtls.c`
 functions that aren't in the binary are in `data/unidentified_functions.csv`.
 Nintendo's functions are `Unk_<Sword address>`.
+
+With Nintendo's options, `Curl_setopt`'s calls name six functions that have
+the same code as others: `curlx_sltoui` and `curlx_sltous` (both `ret`, in
+`warnless.c`'s order) and the four `Curl_set_dns_*` stubs (`mov w0, #4`),
+by the option each is called for. `gethostbyname_thread` is the function
+`Curl_resolver_getaddrinfo` passes to `Curl_thread_create`. They came out of
+`data/unidentified_functions.csv`. `Curl_thread_create` and
+`Curl_thread_destroy` are named by `asyn-thread.c`'s calls.
 
 `check.py --update` (both games), with everything before. The 100 new
 matches are libcurl's (Lua, PhysX and the rest give 8,804, as before), and the
