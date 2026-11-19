@@ -456,3 +456,10 @@ def test_two_paths_and_globals_of_the_tu(monkeypatch):
     assert structs == 'extern u32 Unk_2345678 __attribute__((visibility("hidden")));'
     assert func == "u32 Unk_123450_get() {\n    return Unk_2345678;\n}\n"
 
+
+def test_if_then_join():
+    """cbz w1, L ; str w1, [x0] ; L: str wzr, [x0, #4] ; ret: the branch skips into
+    code the fallthrough runs too: `if (value) { ... }` then the joined code."""
+    _, func = leafgen.generate(ADDR, code(0x34000041, str_w(1, 0, 0), str_w(31, 0, 4), RET))
+    assert func == ("void Unk_123450_set(Unk_123450* self, u32 value) {\n    if (value != 0) {\n"
+                    "        self->field_0 = value;\n    }\n    self->field_4 = 0;\n}\n")
