@@ -2026,7 +2026,9 @@ done
 **Result: the code that sends and receives the messages (gflnet3's channels
 and sessions, the game's `prog/network`) was built like gflib3, with the
 protobuf runtime's headers and the generated ones on its include path.**
-`src/gflnet3` and `src/network` share one `pkmn_library_settings` entry
+`src/gflnet3`, `src/network` and the directories with the other subsystems'
+channels (`src/battle/battle_logic`, `src/contents/btl_spot`,
+`src/contents/comp_organize`) share one `pkmn_library_settings` entry
 (`CMakeLists.txt`, after the generated code's): gflib3's defines and libc++
 headers, protobuf's `HAVE_PTHREAD` and `GOOGLE_PROTOBUF_NO_RTTI` (the headers
 read them), and `INCLUDES lib/protobuf` plus every directory with `.proto`
@@ -2048,7 +2050,7 @@ flag differs.
 - **No `NDEBUG` yet.** gflib3 keeps its asserts, and none of these
   functions inlines a protobuf `DCHECK`, so nothing says the code was built
   with `NDEBUG`. The generated code's own directories are inside
-  `src/gflnet3` and `src/network`, so they get both entries; theirs adds
+  these directories, so they get both entries; theirs adds
   `NDEBUG` and the same include directories, and every generated function
   that matched still does.
 
