@@ -2114,6 +2114,52 @@ What blocks the others:
 - `Unk_95c520` (16,612 bytes, the conditions `Unk_23c4ef0::vf2` checks): 43
   lookups in the command's parameter map (`cmd+0x18`, `find(hash)->second`)
   feeding switches on the owner's state; regular, but long.
+### gflnet3's p2p channels, by hand (2026-11-19)
+
+Every protobuf data holder (a message with one `oneof`) has a channel on
+gflnet3's `Unk_23a3578` (`src/gflnet3/src/p2p/Unk_23a3578.h`, vtable
+`0x71023a3588`, abstract): a gflib3 reference-counted object with two
+callables (`+0x60` sends bytes to one peer, `+0xe0` to every peer), an id
+(`vf7`) and the bytes it receives (slot 8). Each holder's class adds its
+listener (`+0x168`) and, as members, a receive function (`vf8`: parse with
+the heap current, then call the listener's slot for the oneof's case), one
+pack per message kind (a new holder from the channel's heap, its
+`mutable_<field>()->CopyFrom`) and one send per kind. The generic send
+(serialize, then `+0xe0`) is a member template of the base. The derived
+classes have no destructor or type of their own: their vtables have the
+base's D2 (`0x71006b7de0`) and `vf_type` (`0x71006b7f20`).
+`src/gflnet3/src/p2p/Unk_6b8ad0.h` has the message (`Unk_6b8ad0_Message<T>`:
+the heap and a `unique_ptr` with gflib3's deleter; `operator->` returns an
+access that holds a heap scope, `0x710065da00`/`0x710065daf0`) and the
+callable.
+
+17 channels are found by their vtables (slot 7 is `0x71006b8010`). 16 are
+written, with their receive functions and packs: gflnet3's block, ping and
+sync data channels, the nine of `net_contents`, battle_logic's five
+(`BtlDataHolder`, `BtlCmdDataHolder`, gflnet3's `SequenceDataHolder`, the
+two watch holders), btl_spot's and comp_organize's. Pokecamp's
+(`0x710241a3a8`) is left to `src/contents/pokecamp`. The block session
+(`Unk_23a33b8`) and the ping listener (`Unk_23a3638`) are written as far as
+their peer bookkeeping.
+
+Facts that decided matches:
+
+- **Data size copies.** The sessions' vectors hold entries with initialised
+  members (not PODs), so assigning one copies their data size (`0x1e`,
+  `0xe` bytes) and not the tail padding. A `std::pair` gives that size too,
+  but more code.
+- **`clear_message()` and `Clear()`.** A data holder's two functions have the
+  same code, and their names were placed by link order; the inlined
+  `mutable_<field>()` calls `clear_message()`, which put the names of four
+  holders' pairs right.
+- **Not matching (`M`).** The receive functions of holders with three or
+  more kinds (8 functions, 5.3 KB) place the paths for the kinds (one
+  `default_instance()` call each) in another order. No order of the cases,
+  `if` chain, `default`, or local spelled out moves them.
+
+The sends per kind (`g15`, `g16`, `g23` shapes), the send to one peer and the
+serializer (member templates of the base, named here) and the channels' D0s
+are families of ten or more and aren't written.
 
 ## What's left of the small functions
 
