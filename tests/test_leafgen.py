@@ -442,3 +442,17 @@ def test_more_guards_are_early_returns():
     # nor a callee named like a struct of the file
     entries = [(1, "struct Unk_123564 {\n    u64 field_0;\n};\n", ""), (2, "void Unk_123564(u64);\n", "")]
     assert [e[0] for e in leafgen.consistent_declarations(entries)] == [1]
+
+
+def test_two_paths_and_globals_of_the_tu(monkeypatch):
+    """cbz w1, L ; str w1, [x0] ; ret ; L: str wzr, [x0, #4] ; ret: two paths, each
+    with its own return. adrp x8, G ; ldr w0, [x8, #G] ; ret: a global the TU
+    defines (no GOT), declared hidden."""
+    _, func = leafgen.generate(ADDR, code(0x34000061, str_w(1, 0, 0), RET, str_w(31, 0, 4), RET))
+    assert func == ("void Unk_123450_set(Unk_123450* self, u32 value) {\n    if (value != 0) {\n"
+                    "        self->field_0 = value;\n        return;\n    }\n    self->field_4 = 0;\n}\n")
+    monkeypatch.setattr(leafgen, "DATA_AT", lambda a: "")
+    structs, func = leafgen.generate(ADDR, code(adrp(8, ADDR, 0x7102345678), ldr_w(0, 8, 0x678), RET))
+    assert structs == 'extern u32 Unk_2345678 __attribute__((visibility("hidden")));'
+    assert func == "u32 Unk_123450_get() {\n    return Unk_2345678;\n}\n"
+
