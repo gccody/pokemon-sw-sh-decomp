@@ -21,6 +21,7 @@ class SiGfxShaderGraphNodeType {
 public:
     const u8* vf3();
     u32 vf4();
+    u32 vf2();
 };
 }  // namespace SiSDK3
 
@@ -34,4 +35,9 @@ const u8* SiSDK3::SiGfxShaderGraphNodeType::vf3() {
 u32 SiSDK3::SiGfxShaderGraphNodeType::vf4() {
     const Unk_4dc450* self = reinterpret_cast<const Unk_4dc450*>(this);
     return self->field_78;
+}
+
+// 0x71004dc480
+u32 SiSDK3::SiGfxShaderGraphNodeType::vf2() {
+    return 0xffffffff;
 }

@@ -894,6 +894,37 @@ bool Unk_c95020_check(const Unk_c95020* self) {
     return self->field_68->field_170 != 0;
 }
 
+struct Unk_c95040_68 {
+    u8 _0[0x170];
+    u8 field_170;
+};
+PKMN_OFFSET_ASSERT(Unk_c95040_68, field_170, 0x170);
+struct Unk_c95040 {
+    u8 _0[0x68];
+    Unk_c95040_68* field_68;
+    u8 _70[0x240];
+    u8 field_2b0;
+};
+PKMN_OFFSET_ASSERT(Unk_c95040, field_68, 0x68);
+PKMN_OFFSET_ASSERT(Unk_c95040, field_2b0, 0x2b0);
+void Unk_c950c0(void*);
+
+// 0x7100c95040
+u32 Unk_c95040_get(Unk_c95040* self) {
+    if (self->field_68 != nullptr) {
+        if (self->field_68->field_170 != 0) {
+            if (self->field_2b0 != 0) {
+                return 1;
+            }
+            Unk_c950c0(self);
+            self->field_2b0 = 1;
+            return 1;
+        }
+        return 0;
+    }
+    return 0;
+}
+
 struct Unk_c95340_0 {
     u8 _0[0x2b1];
     u8 field_2b1;

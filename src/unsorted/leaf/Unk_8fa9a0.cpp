@@ -3,6 +3,29 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
+void Unk_8faa60(void*, u64, u32, u64);
+
+// 0x71008fa9a0
+void Unk_8fa9a0_call(void* self, u64 value, u32 arg2, u64 arg3) {
+    if (arg2 != 0) {
+        if (arg2 != 1) {
+            if (arg2 == 2) {
+                Unk_8faa60(self, value, 0, arg3);
+                Unk_8faa60(self, value, 2, arg3);
+                Unk_8faa60(self, value, 1, arg3);
+                Unk_8faa60(self, value, 3, arg3);
+                return;
+            }
+            return;
+        }
+        Unk_8faa60(self, value, arg2, arg3);
+        Unk_8faa60(self, value, 3, arg3);
+        return;
+    }
+    Unk_8faa60(self, value, arg2, arg3);
+    Unk_8faa60(self, value, 2, arg3);
+}
+
 struct Unk_8fac20_6f8 {
     u8 _0[0x200];
     u8 field_200;

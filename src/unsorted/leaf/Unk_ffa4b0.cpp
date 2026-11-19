@@ -324,6 +324,23 @@ u8 Unk_ffc570_getFielda0(const Unk_ffc570* self) {
     return self->field_a0;
 }
 
+struct Unk_ffc780 {
+    u8 _0[0x88];
+    u64 field_88;
+};
+PKMN_OFFSET_ASSERT(Unk_ffc780, field_88, 0x88);
+
+void Unk_ffcc10(void*);
+void Unk_ffc7b0(u64);
+
+// 0x7100ffc780
+void Unk_ffc780_call(Unk_ffc780* self) {
+    if (self->field_88 != 0) {
+        Unk_ffc7b0(self->field_88);
+    }
+    Unk_ffcc10(self);
+}
+
 struct Unk_ffd310 {
     u8 _0[0x108];
     u8 field_108;

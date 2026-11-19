@@ -452,6 +452,40 @@ u32 Unk_666a40_update(Unk_666a40* self) {
     return 0;
 }
 
+namespace nn {
+namespace audio {
+struct AudioOut;
+}
+}  // namespace nn
+struct Unk_6671e0 {
+    u8 _0[0x10];
+    u8 field_10;
+    u8 field_11;
+    u8 _12[0xbe];
+    u8 field_d0;
+};
+PKMN_OFFSET_ASSERT(Unk_6671e0, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_6671e0, field_11, 0x11);
+PKMN_OFFSET_ASSERT(Unk_6671e0, field_d0, 0xd0);
+namespace nn {
+namespace audio {
+u64 StopAudioOut(AudioOut*);
+}
+}  // namespace nn
+
+// 0x71006671e0
+u32 Unk_6671e0_call(Unk_6671e0* self) {
+    if (self->field_11 != 0) {
+        if (self->field_10 != 0) {
+            nn::audio::StopAudioOut(reinterpret_cast<nn::audio::AudioOut*>(&self->field_d0));
+            self->field_10 = 0;
+            return 0;
+        }
+        return 0;
+    }
+    return 0;
+}
+
 struct Unk_667600 {
     u8 _0[0x8];
     u64 field_8;
