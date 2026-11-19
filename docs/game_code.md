@@ -2061,6 +2061,60 @@ unsigned int)`. `vector<Unk_23d4470_Callable>::__push_back_slow_path`
 instances (0x7101119870 and others, ~600 bytes each) need that callable's
 move and copy constructors (manager at +0x10, copier at +0x18).
 
+### Battle sequence functions (`src/battle/battle_scene`, 2026-11-19)
+
+The battle sequence tables (`src/unsorted/Unk_23c4ef0.h`) map 385 hashes to
+248 functions `Unk_<addr>(void* seq, Unk_23c4ef0_Owner* owner, const u64*
+cmd)` (167 KB, in the tables' TU, `0x71009be950`-`0x7100a6c510`). 81 of them
+match (20.6 KB, `src/battle/battle_scene/Unk_a38ab0.cpp`). What they share:
+
+- The owner is the battle scene's view system, a class on gflib3's
+  `Unk_239a4c0` with 340 virtual slots (vtables `0x71023c0970` and
+  `0x71023c5158`; `Unk_23c4ef0_Owner.h`). Its non-virtual helpers (0x7100952670
+  ... in the battle app's code) are declared as its members: `Unk_952670` is
+  a target's position (id 1 with an index under `Unk_9526f0`'s count means
+  "all"), `Unk_960620`/`Unk_961f10` the same for other ids (10 = all).
+- Arguments come from the sequence's readers (cursor at `+0x178`,
+  `0x710140b690` ...; `Unk_23c4ef0_Seq.h`), the command's frames from
+  `cmd[1]`. A vector is a struct holding a `float32x4_t`: its copies go
+  through two general registers, high half first, because of
+  `-mno-implicit-float`.
+- Names hashed with 64-bit FNV-1a (`Unk_23c4ef0_HashStr`): `constexpr`, so
+  one made from a literal is a constant, and a name given to a function is
+  a temporary in the call (passed by reference, made after the object
+  pointer is read).
+- Positions' objects are references at `+0x548`/`+0x580`; groups of them are
+  in three `unordered_map<s32, Ref>` at `+0x640`/`+0x660`/`+0x6a0`, looked up
+  with `find(cmd->field_10)->second` (no end check: clang drops it because
+  the end is dereferenced) and iterated as a pointer/count range.
+- New objects use gflib3's idiom (`Unk_23c4ef0_New`: the allocator current
+  while constructing, its memory recorded at `+0x8`...`+0x20`) and are
+  added to the lists at `+0x530`/`+0x538`.
+- `Unk_239a418_Ref`'s copy constructor tests the other reference's pointer:
+  these functions use a copied reference without a null check, and only
+  then does the null path keep the loaded pointer (as the original does)
+  instead of folding it to zero or a trap.
+- Locals are laid out in declaration order (the first at the highest
+  address), and where the original loads a value before the argument it
+  passes with it, the value was put in a local first (or the setter is an
+  inline member function).
+
+What blocks the others:
+
+- 79 build type-erased callables whose copy, move and destroy functions
+  leafgen matched as free functions (`Unk_a6a330_call` ...). A callable
+  template would emit them again under its own names.
+- Callees leafgen matched with fewer parameters than their callers pass
+  (`Unk_960610_call`, `Unk_965ae0_call`, `Unk_794490_call`), or with `u64`
+  for a pointer (`Unk_68d9b0`): calls with those names don't compile the
+  same.
+- A few differ in one register or one stack slot: `0x7100a58b70`,
+  `0x7100a59270`, `0x7100a599d0`, `0x7100a5f360`, `0x7100a5f4a0`,
+  `0x7100a46d60`, `0x7100a51f00`.
+- `Unk_95c520` (16,612 bytes, the conditions `Unk_23c4ef0::vf2` checks): 43
+  lookups in the command's parameter map (`cmd+0x18`, `find(hash)->second`)
+  feeding switches on the owner's state; regular, but long.
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
