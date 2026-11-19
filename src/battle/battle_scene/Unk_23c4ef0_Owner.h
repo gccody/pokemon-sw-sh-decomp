@@ -16,6 +16,7 @@
 struct Unk_23c4ef0_Light;
 struct Unk_23c4ef0_Name;
 struct Unk_23c4ef0_Scene;
+struct Unk_23c4ef0_List;
 
 // A vector of three floats in a NEON register (the reader sets its lanes one
 // by one, the fourth to 0). Copies go through two general registers: the game
@@ -24,6 +25,16 @@ struct Unk_23c4ef0_Vec {
     float32x4_t v;
 };
 static_assert(sizeof(Unk_23c4ef0_Vec) == 0x10, "Unk_23c4ef0_Vec");
+
+// What Unk_23c4ef0_Poke::vf68 returns.
+struct Unk_23c4ef0_Info {
+    s32 field_0;
+    u16 field_4;
+    u8 _6[0x14 - 0x6];
+    s32 field_14;
+    u8 _18[0x20 - 0x18];
+};
+static_assert(sizeof(Unk_23c4ef0_Info) == 0x20, "Unk_23c4ef0_Info");
 
 // A battle position's object: a reference held at +0x548 for each one.
 class Unk_23c4ef0_Poke : public Unk_239a418 {
@@ -87,6 +98,10 @@ public:
     virtual void vf62();
     virtual void vf63();
     virtual void vf64();
+    virtual void vf65();
+    virtual void vf66();
+    virtual void vf67();
+    virtual Unk_23c4ef0_Info vf68();
 
     u8 _60[0x3d0 - 0x60];
     Unk_23c4ef0_Vec field_3d0;
@@ -519,6 +534,13 @@ public:
     void Unk_9650e0(const Unk_23c4ef0_Name* name);
     void Unk_965220(bool arg1, u32 pos);
     void Unk_965790(bool arg1, u32 arg2);
+
+    // The object at a position, none for 0xff.
+    Unk_239a418_Ref<Unk_23c4ef0_Poke> GetPoke(u32 pos) const {
+        if (pos == 0xff)
+            return Unk_239a418_Ref<Unk_23c4ef0_Poke>();
+        return field_548[pos];
+    }
     void Unk_95bc30(bool arg1);
     void Unk_961750(const Unk_239a418_Ref<Unk_23c4ef0_Poke>& poke,
                     s32 frames,
@@ -540,7 +562,10 @@ public:
     Unk_23c4ef0_Light* field_4c8;
     u8 _4d0[0x508 - 0x4d0];
     void* field_508;
-    u8 _510[0x548 - 0x510];
+    u8 _510[0x530 - 0x510];
+    Unk_239a418_Ref<Unk_23c4ef0_List> field_530;
+    Unk_239a418_Ref<Unk_23c4ef0_List> field_538;
+    u8 _540[0x548 - 0x540];
     // Each position's object, and a second one.
     Unk_239a418_Ref<Unk_23c4ef0_Poke> field_548[7];
     Unk_239a418_Ref<Unk_23c4ef0_Poke> field_580[7];
@@ -563,6 +588,7 @@ PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_458, 0x458);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_4a8, 0x4a8);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_4c8, 0x4c8);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_508, 0x508);
+PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_530, 0x530);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_548, 0x548);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_580, 0x580);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_5b8, 0x5b8);
