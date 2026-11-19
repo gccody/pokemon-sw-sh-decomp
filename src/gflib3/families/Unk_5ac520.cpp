@@ -214,257 +214,257 @@ template void Unk_2771620_Vector<Unk_13facc0*>::__push_back_slow_path<Unk_13facc
 
 // 0x71005e7430
 struct Unk_5e7430 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_5e7430>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_5e7430>>(Unk_239a418_Ref<Unk_5e7430>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_5e7430>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_5e7430>>(Unk_239a418_Ref2<Unk_5e7430>&&);
 
 // 0x71005e83e0
 struct Unk_5e83e0 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_5e83e0>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_5e83e0>>(Unk_239a418_Ref<Unk_5e83e0>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_5e83e0>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_5e83e0>>(Unk_239a418_Ref2<Unk_5e83e0>&&);
 
 // 0x71005ef250
 struct Unk_5ef250 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_5ef250>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_5ef250>>(Unk_239a418_Ref<Unk_5ef250>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_5ef250>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_5ef250>>(Unk_239a418_Ref2<Unk_5ef250>&&);
 
 // 0x7100604530
 struct Unk_604530 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_604530>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_604530>>(Unk_239a418_Ref<Unk_604530>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_604530>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_604530>>(Unk_239a418_Ref2<Unk_604530>&&);
 
 // 0x7100607340
 struct Unk_607340 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_607340>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_607340>>(Unk_239a418_Ref<Unk_607340>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_607340>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_607340>>(Unk_239a418_Ref2<Unk_607340>&&);
 
 // 0x710060ac80
 struct Unk_60ac80 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_60ac80>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_60ac80>>(Unk_239a418_Ref<Unk_60ac80>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_60ac80>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_60ac80>>(Unk_239a418_Ref2<Unk_60ac80>&&);
 
 // 0x710060c440
 struct Unk_60c440 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_60c440>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_60c440>>(Unk_239a418_Ref<Unk_60c440>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_60c440>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_60c440>>(Unk_239a418_Ref2<Unk_60c440>&&);
 
 // 0x710061c150
 struct Unk_61c150 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_61c150>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_61c150>>(Unk_239a418_Ref<Unk_61c150>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_61c150>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_61c150>>(Unk_239a418_Ref2<Unk_61c150>&&);
 
 // 0x7100620ef0
 struct Unk_620ef0 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_620ef0>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_620ef0>>(Unk_239a418_Ref<Unk_620ef0>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_620ef0>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_620ef0>>(Unk_239a418_Ref2<Unk_620ef0>&&);
 
 // 0x71006216e0
 struct Unk_6216e0 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_6216e0>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_6216e0>>(Unk_239a418_Ref<Unk_6216e0>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_6216e0>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_6216e0>>(Unk_239a418_Ref2<Unk_6216e0>&&);
 
 // 0x710064b820
 struct Unk_64b820 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_64b820>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_64b820>>(Unk_239a418_Ref<Unk_64b820>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_64b820>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_64b820>>(Unk_239a418_Ref2<Unk_64b820>&&);
 
 // 0x710064bb40
 struct Unk_64bb40 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_64bb40>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_64bb40>>(Unk_239a418_Ref<Unk_64bb40>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_64bb40>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_64bb40>>(Unk_239a418_Ref2<Unk_64bb40>&&);
 
 // 0x710066abf0
 struct Unk_66abf0 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_66abf0>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_66abf0>>(Unk_239a418_Ref<Unk_66abf0>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_66abf0>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_66abf0>>(Unk_239a418_Ref2<Unk_66abf0>&&);
 
 // 0x7100681b90
 struct Unk_681b90 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_681b90>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_681b90>>(Unk_239a418_Ref<Unk_681b90>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_681b90>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_681b90>>(Unk_239a418_Ref2<Unk_681b90>&&);
 
 // 0x7100687ab0
 struct Unk_687ab0 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_687ab0>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_687ab0>>(Unk_239a418_Ref<Unk_687ab0>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_687ab0>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_687ab0>>(Unk_239a418_Ref2<Unk_687ab0>&&);
 
 // 0x71006cea70
 struct Unk_6cea70 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_6cea70>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_6cea70>>(Unk_239a418_Ref<Unk_6cea70>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_6cea70>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_6cea70>>(Unk_239a418_Ref2<Unk_6cea70>&&);
 
 // 0x7100790490
 struct Unk_790490 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_790490>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_790490>>(Unk_239a418_Ref<Unk_790490>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_790490>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_790490>>(Unk_239a418_Ref2<Unk_790490>&&);
 
 // 0x710089b480
 struct Unk_89b480 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_89b480>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_89b480>>(Unk_239a418_Ref<Unk_89b480>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_89b480>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_89b480>>(Unk_239a418_Ref2<Unk_89b480>&&);
 
 // 0x7100c6e8b0
 struct Unk_c6e8b0 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_c6e8b0>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_c6e8b0>>(Unk_239a418_Ref<Unk_c6e8b0>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_c6e8b0>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_c6e8b0>>(Unk_239a418_Ref2<Unk_c6e8b0>&&);
 
 // 0x7100cca0a0
 struct Unk_cca0a0 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_cca0a0>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_cca0a0>>(Unk_239a418_Ref<Unk_cca0a0>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_cca0a0>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_cca0a0>>(Unk_239a418_Ref2<Unk_cca0a0>&&);
 
 // 0x7100e55be0
 struct Unk_e55be0 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_e55be0>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_e55be0>>(Unk_239a418_Ref<Unk_e55be0>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_e55be0>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_e55be0>>(Unk_239a418_Ref2<Unk_e55be0>&&);
 
 // 0x7100e56230
 struct Unk_e56230 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_e56230>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_e56230>>(Unk_239a418_Ref<Unk_e56230>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_e56230>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_e56230>>(Unk_239a418_Ref2<Unk_e56230>&&);
 
 // 0x7100e81410
 struct Unk_e81410 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_e81410>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_e81410>>(Unk_239a418_Ref<Unk_e81410>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_e81410>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_e81410>>(Unk_239a418_Ref2<Unk_e81410>&&);
 
 // 0x710115eba0
 struct Unk_115eba0 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_115eba0>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_115eba0>>(Unk_239a418_Ref<Unk_115eba0>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_115eba0>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_115eba0>>(Unk_239a418_Ref2<Unk_115eba0>&&);
 
 // 0x71011e0db0
 struct Unk_11e0db0 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_11e0db0>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_11e0db0>>(Unk_239a418_Ref<Unk_11e0db0>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_11e0db0>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_11e0db0>>(Unk_239a418_Ref2<Unk_11e0db0>&&);
 
 // 0x710122ac20
 struct Unk_122ac20 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_122ac20>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_122ac20>>(Unk_239a418_Ref<Unk_122ac20>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_122ac20>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_122ac20>>(Unk_239a418_Ref2<Unk_122ac20>&&);
 
 // 0x710139a6e0
 struct Unk_139a6e0 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_139a6e0>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_139a6e0>>(Unk_239a418_Ref<Unk_139a6e0>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_139a6e0>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_139a6e0>>(Unk_239a418_Ref2<Unk_139a6e0>&&);
 
 // 0x71013cb390
 struct Unk_13cb390 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_13cb390>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_13cb390>>(Unk_239a418_Ref<Unk_13cb390>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_13cb390>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_13cb390>>(Unk_239a418_Ref2<Unk_13cb390>&&);
 
 // 0x71013fdd10
 struct Unk_13fdd10 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_13fdd10>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_13fdd10>>(Unk_239a418_Ref<Unk_13fdd10>&&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_13fdd10>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_13fdd10>>(Unk_239a418_Ref2<Unk_13fdd10>&&);
 
 // reserve of vectors of references.
 
 // 0x71005e7880
 struct Unk_5e7880 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_5e7880>>::reserve(size_t);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_5e7880>>::reserve(size_t);
 
 // 0x710061b490
 struct Unk_61b490 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_61b490>>::reserve(size_t);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_61b490>>::reserve(size_t);
 
 // 0x71006cdc70
 struct Unk_6cdc70 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_6cdc70>>::reserve(size_t);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_6cdc70>>::reserve(size_t);
 
 // 0x7100c64f10
 struct Unk_c64f10 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_c64f10>>::reserve(size_t);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_c64f10>>::reserve(size_t);
 
 // 0x7100c66b10
 struct Unk_c66b10 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_c66b10>>::reserve(size_t);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_c66b10>>::reserve(size_t);
 
 // 0x7100e4b0e0
 struct Unk_e4b0e0 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_e4b0e0>>::reserve(size_t);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_e4b0e0>>::reserve(size_t);
 
 // 0x7100e4b290
 struct Unk_e4b290 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_e4b290>>::reserve(size_t);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_e4b290>>::reserve(size_t);
 
 // 0x7100e4b440
 struct Unk_e4b440 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_e4b440>>::reserve(size_t);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_e4b440>>::reserve(size_t);
 
 // 0x7100e4b5f0
 struct Unk_e4b5f0 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_e4b5f0>>::reserve(size_t);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_e4b5f0>>::reserve(size_t);
 
 // 0x710115a520
 struct Unk_115a520 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_115a520>>::reserve(size_t);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_115a520>>::reserve(size_t);
 
 // 0x71011dbd90
 struct Unk_11dbd90 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_11dbd90>>::reserve(size_t);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_11dbd90>>::reserve(size_t);
 
 // 0x7101398280
 struct Unk_1398280 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_1398280>>::reserve(size_t);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_1398280>>::reserve(size_t);
 
 // 0x71013f7760
 struct Unk_13f7760 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_13f7760>>::reserve(size_t);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_13f7760>>::reserve(size_t);
 
 // 0x71013fcb80
 struct Unk_13fcb80 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_13fcb80>>::reserve(size_t);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_13fcb80>>::reserve(size_t);
 
 // 0x710143d940
 struct Unk_143d940 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_143d940>>::reserve(size_t);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_143d940>>::reserve(size_t);
 
 // References, pushed by const reference.
 
 // 0x7100641110
 struct Unk_641110 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_641110>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_641110> const&>(Unk_239a418_Ref<Unk_641110> const&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_641110>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_641110> const&>(Unk_239a418_Ref2<Unk_641110> const&);
 
 // 0x71006893f0
 struct Unk_6893f0 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_6893f0>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_6893f0> const&>(Unk_239a418_Ref<Unk_6893f0> const&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_6893f0>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_6893f0> const&>(Unk_239a418_Ref2<Unk_6893f0> const&);
 
 // 0x71006d3630
 struct Unk_6d3630 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_6d3630>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_6d3630> const&>(Unk_239a418_Ref<Unk_6d3630> const&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_6d3630>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_6d3630> const&>(Unk_239a418_Ref2<Unk_6d3630> const&);
 
 // 0x7100e55df0
 struct Unk_e55df0 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_e55df0>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_e55df0> const&>(Unk_239a418_Ref<Unk_e55df0> const&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_e55df0>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_e55df0> const&>(Unk_239a418_Ref2<Unk_e55df0> const&);
 
 // 0x7100e56010
 struct Unk_e56010 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_e56010>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_e56010> const&>(Unk_239a418_Ref<Unk_e56010> const&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_e56010>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_e56010> const&>(Unk_239a418_Ref2<Unk_e56010> const&);
 
 // 0x7100f6af10
 struct Unk_f6af10 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_f6af10>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_f6af10> const&>(Unk_239a418_Ref<Unk_f6af10> const&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_f6af10>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_f6af10> const&>(Unk_239a418_Ref2<Unk_f6af10> const&);
 
 // 0x71013b1dc0
 struct Unk_13b1dc0 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_13b1dc0>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_13b1dc0> const&>(Unk_239a418_Ref<Unk_13b1dc0> const&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_13b1dc0>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_13b1dc0> const&>(Unk_239a418_Ref2<Unk_13b1dc0> const&);
 
 // 0x71013cffe0
 struct Unk_13cffe0 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_13cffe0>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_13cffe0> const&>(Unk_239a418_Ref<Unk_13cffe0> const&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_13cffe0>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_13cffe0> const&>(Unk_239a418_Ref2<Unk_13cffe0> const&);
 
 // 0x710143dd90
 struct Unk_143dd90 : Unk_239a418 {};
-template void Unk_2771620_Vector<Unk_239a418_Ref<Unk_143dd90>>::__push_back_slow_path<
-    Unk_239a418_Ref<Unk_143dd90> const&>(Unk_239a418_Ref<Unk_143dd90> const&);
+template void Unk_2771620_Vector<Unk_239a418_Ref2<Unk_143dd90>>::__push_back_slow_path<
+    Unk_239a418_Ref2<Unk_143dd90> const&>(Unk_239a418_Ref2<Unk_143dd90> const&);
 
 // Four-byte elements.
 

@@ -49,10 +49,10 @@ def test_names():
     assert F.vector_name("ptr", "Unk_5ac520") == (
         "_ZNSt3__16vectorIP10Unk_5ac52021Unk_2771620_AllocatorIS2_EE21__push_back_slow_pathIRKS2_EEvOT_")
     assert F.vector_name("refm", "Unk_5e7430") == (
-        "_ZNSt3__16vectorI15Unk_239a418_RefI10Unk_5e7430E21Unk_2771620_AllocatorIS3_EE"
+        "_ZNSt3__16vectorI16Unk_239a418_Ref2I10Unk_5e7430E21Unk_2771620_AllocatorIS3_EE"
         "21__push_back_slow_pathIS3_EEvOT_")
     assert F.vector_name("reserve", "Unk_115a520") == (
-        "_ZNSt3__16vectorI15Unk_239a418_RefI11Unk_115a520E21Unk_2771620_AllocatorIS3_EE7reserveEm")
+        "_ZNSt3__16vectorI16Unk_239a418_Ref2I11Unk_115a520E21Unk_2771620_AllocatorIS3_EE7reserveEm")
     assert F.vector_name("refc", "Unk_641110").endswith("21__push_back_slow_pathIRKS3_EEvOT_")
     assert F.vector_name("s16c", "Unk_5a9500") == (
         "_ZNSt3__16vectorI10Unk_5a950021Unk_2771620_AllocatorIS1_EE21__push_back_slow_pathIRKS1_EEvOT_")
@@ -69,7 +69,7 @@ def test_vector_instance():
         "struct Unk_1;\ntemplate void Unk_2771620_Vector<Unk_1*>::__push_back_slow_path<Unk_1* const&>"
         "(Unk_1* const&);")
     assert F.vector_instance("refm", "Unk_1").endswith(
-        "__push_back_slow_path<Unk_239a418_Ref<Unk_1>>(Unk_239a418_Ref<Unk_1>&&);")
+        "__push_back_slow_path<Unk_239a418_Ref2<Unk_1>>(Unk_239a418_Ref2<Unk_1>&&);")
     assert F.vector_instance("reserve", "Unk_1").endswith("::reserve(size_t);")
 
 

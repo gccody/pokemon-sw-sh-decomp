@@ -46,6 +46,32 @@ public:
     T* m_ptr;
 };
 
+// Another reference with the same calls, whose copy tests its own (stored)
+// pointer. The vectors of references (src/gflib3/families) hold these: their
+// growth loads each old element once, stores it and tests what it stored,
+// where Unk_239a418_Ref's copy loads the other's pointer again after the
+// store (the new buffer may alias the old one). Whether the two are one
+// class template in the original isn't known; one copy can't compile to
+// both.
+template <class T>
+class Unk_239a418_Ref2 {
+public:
+    Unk_239a418_Ref2(const Unk_239a418_Ref2& other);
+    // Takes over the other's reference. Not noexcept: a vector that grows
+    // copies its references (adding one each, then dropping the old ones).
+    Unk_239a418_Ref2(Unk_239a418_Ref2&& other) : m_ptr(other.Release()) {}
+    ~Unk_239a418_Ref2();
+
+    // Gives up the reference without dropping it.
+    T* Release() {
+        T* p = m_ptr;
+        m_ptr = nullptr;
+        return p;
+    }
+
+    T* m_ptr;
+};
+
 // What frees an object: slot 3 takes the allocation the object kept. Slot 2
 // allocates (the size and the alignment), and slot 23 is what the container
 // allocators call when it returns nothing.
@@ -193,6 +219,20 @@ Unk_239a418_Ref<T>::Unk_239a418_Ref(const Unk_239a418_Ref& other) : m_ptr(other.
 
 template <class T>
 Unk_239a418_Ref<T>::~Unk_239a418_Ref() {
+    if (m_ptr) {
+        static_cast<Unk_239a458*>(m_ptr)->vf5();
+        m_ptr = nullptr;
+    }
+}
+
+template <class T>
+Unk_239a418_Ref2<T>::Unk_239a418_Ref2(const Unk_239a418_Ref2& other) : m_ptr(other.m_ptr) {
+    if (m_ptr)
+        static_cast<Unk_239a458*>(m_ptr)->vf4();
+}
+
+template <class T>
+Unk_239a418_Ref2<T>::~Unk_239a418_Ref2() {
     if (m_ptr) {
         static_cast<Unk_239a458*>(m_ptr)->vf5();
         m_ptr = nullptr;
