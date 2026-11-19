@@ -4,6 +4,7 @@
     python tools/leafgen.py scan --max 32               # what it can lift, by kind (Game Freak code)
     python tools/leafgen.py write --max 32              # into src/unsorted/leaf
     python tools/leafgen.py names --out map.csv         # after a build: the mangled names, for funcs.py
+    python tools/leafgen.py widen --names map.csv       # what's written, with the parameters the code says
 
 A *leaf* here is a function with no branch other than its final `ret` (or a
 final tail call `b T`, see below) but one `cbz`/`cbnz` that skips the rest
@@ -13,7 +14,10 @@ through x0..x7, constants, masks, shifts, compares and selects. That covers
 getters and setters of nested fields, flag tests and updates, bitfields,
 range checks and constant returns. A function that ends in `b T` instead
 becomes `Unk_<T>(args...);`, with the argument registers it wrote (up to
-the last one; the ones before it that it didn't touch are passed on) and T
+the last one; the ones before it that it didn't touch are passed on), and
+as many more as T takes (call_params: the registers T's code reads and its
+callers write, tools/nx/argregs.py, or what T's placeholder name spells),
+passed on untouched; T is
 declared `void Unk_<T>(...)`, `void*` for pointers. `lift()` turns one into C++: a placeholder
 struct per pointer it dereferences (`Unk_<addr>` for the first argument,
 `Unk_<addr>_<offset>` for a pointer loaded from it, ...), with a field per
@@ -312,6 +316,31 @@ TAIL_TYPES: dict[int, list[str]] = {}
 # by main from the sources (known_prototypes).
 KNOWN: dict[int, tuple[str, str, list[str]]] = {}
 
+# Parameter types the code says a function takes (tools/nx/argregs.py): the
+# argument registers it reads, itself or through what it calls, and the ones
+# its callers write for it. Absolute address -> types, for a leaf function
+# (its callers may pass more than it reads: the rest are unused parameters)
+# and for a placeholder callee. Set by `widen` and `write` (infer_signatures).
+SIGNATURES: dict[int, list[str]] = {}
+
+
+def call_params(t: int) -> list[str]:
+    """The parameter types a call to t passes, where something says what they
+    are: t's own prototype (KNOWN), what the code says (SIGNATURES), the
+    longest of its callers here (TAIL_TYPES) or its placeholder name in
+    functions.csv (NAMED, `_Z10Unk_e809d0PvS_`). A caller passes the argument
+    registers it doesn't write on as it got them, so a function that ends in
+    `b t` takes them too."""
+    if t in KNOWN:
+        return list(KNOWN[t][2])
+    if t in SIGNATURES:
+        return list(SIGNATURES[t])
+    if t in TAIL_TYPES:
+        return list(TAIL_TYPES[t])
+    if t in NAMED:
+        return placeholder_params(NAMED[t], t) or []
+    return []
+
 
 COND_INV = {"eq": "ne", "ne": "eq", "hi": "ls", "ls": "hi", "hs": "lo", "lo": "hs", "gt": "le", "le": "gt",
             "ge": "lt", "lt": "ge"}
@@ -422,7 +451,57 @@ CALL_CODES = {"void*": "Pv", "bool": "b", "u8": "h", "s8": "a", "u16": "t", "s16
 def callee_name(target: int, types: list[str]) -> tuple[str, str]:
     """(placeholder name, mangled name) of a tail call's target: `void Unk_<T>(types...)`."""
     name = f"Unk_{target - BASE:x}"
-    return name, f"_Z{len(name)}{name}" + ("".join(CALL_CODES[t] for t in types) or "v")
+    return name, f"_Z{len(name)}{name}" + encode_params(types)
+
+
+_BUILTIN_CODES = {**CALL_CODES, "f32": "f", "f64": "d", "void": "v", "char": "c"}
+_TYPE_NAME = re.compile(r"^[A-Za-z_]\w*$")
+
+
+def _seq_id(i: int) -> str:
+    """The i-th substitution's reference: S_, S0_, S1_, ..., S9_, SA_, ... (base 36)."""
+    if i == 0:
+        return "S_"
+    i -= 1
+    digits = ""
+    while True:
+        digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"[i % 36] + digits
+        i //= 36
+        if not i:
+            return f"S{digits}_"
+
+
+def _encode_type(t: str, subs: list[str]) -> str | None:
+    t = t.strip()
+    if t in subs:
+        return _seq_id(subs.index(t))
+    if t != "void*" and t in CALL_CODES or t in _BUILTIN_CODES and not t.endswith("*"):
+        return _BUILTIN_CODES[t]   # a builtin type: never a substitution candidate
+    if t.endswith("*"):
+        inner = _encode_type(t[:-1], subs)
+        code = None if inner is None else "P" + inner
+    elif t.startswith("const "):
+        inner = _encode_type(t[6:], subs)
+        code = None if inner is None else "K" + inner
+    elif _TYPE_NAME.match(t):
+        code = f"{len(t)}{t}"
+    else:
+        return None
+    if code is not None:
+        subs.append(t)
+    return code
+
+
+def encode_params(types: list[str]) -> str | None:
+    """The Itanium encoding of a parameter list of leafgen's types (builtins,
+    struct names, pointers and const), with its substitutions: `(void*,
+    void*)` is `PvS_`, `(Unk_1*, const Unk_1*)` `P5Unk_1PKS_`. None for a
+    type it doesn't spell."""
+    subs: list[str] = []
+    codes = [_encode_type(t, subs) for t in types]
+    if any(c is None for c in codes):
+        return None
+    return "".join(codes) or "v"
 
 
 GUARDS = ("cbz", "cbnz", "tbz", "tbnz", *(f"b.{c}" for c in ("eq", "ne", "hi", "hs", "lo", "ls", "gt", "ge",
@@ -444,6 +523,9 @@ def placeholder_params(name: str, target: int) -> list[str] | None:
         return []
     while codes:
         if codes.startswith("Pv"):
+            out.append("void*")
+            codes = codes[2:]
+        elif codes.startswith("S_") and "void*" in out:  # void*, again: its only substitution
             out.append("void*")
             codes = codes[2:]
         elif codes[0] in CODE_TYPES and codes[0] != "P":
@@ -637,7 +719,8 @@ def lift(code: bytes, addr: int | None = None, path: list | None = None, split: 
                     raise LiftError("blr")
             else:
                 target = _imm(ops[0])
-            out.calls.append(Call(target, call_args(mn == "blr"), out.stores_done))
+            out.calls.append(Call(target, call_args(mn == "blr", 0 if mn == "blr" else len(call_params(target))),
+                                  out.stores_done))
             out.stores_done += 1
             inner += 1
             for i in list(range(19)):
@@ -887,6 +970,7 @@ def lift(code: bytes, addr: int | None = None, path: list | None = None, split: 
             if any(("f", i) in since for i in range(8)):
                 raise LiftError("floating-point call argument")
             n = max((i + 1 for i in range(8) if ("x", i) in since), default=0)
+            n = max(n, len(call_params(tail)))
             if any(("x", i) not in regs for i in range(n)):
                 raise LiftError("call argument the previous call left")
             out.calls.append(Call(tail, tuple(regs[("x", i)] for i in range(n)), out.stores_done))
@@ -898,7 +982,7 @@ def lift(code: bytes, addr: int | None = None, path: list | None = None, split: 
         if any(("f", i) in written for i in range(8)):
             raise LiftError("floating-point tail-call argument")
         n = max((i + 1 for i in range(8) if ("x", i) in written), default=0)
-        n = max(n, len(TAIL_TYPES.get(tail, ())))  # the registers it passes on, as other callers set them
+        n = max(n, len(call_params(tail)))  # the registers it passes on, as the callee takes them
         out.tail, out.args = tail, [regs[("x", i)] for i in range(n)]
         out.narrow = {i for i in narrow if i < n}
         return out
@@ -1008,6 +1092,7 @@ class Emitter:
 
     def __init__(self, addr: int, lifted: Lifted):
         self.short = f"{addr & 0xFFFFFFFFF:x}" if addr < BASE else f"{addr - BASE:x}"
+        self.addr = addr
         self.lifted = lifted
         self.structs: dict[object, StructDef] = {}
         self.arg_types: dict[int, str] = {}   # x0..x7
@@ -1092,7 +1177,9 @@ class Emitter:
             self.hidden.add(load_base.addr)
         if isinstance(load_base, GlobalPtr):   # the global itself (offset 0): `extern <t> Unk_<addr>;`
             old = self.globals.get(load_base.addr, t)
-            if old != t and {old, t} != {"u8", "bool"}:
+            if old.endswith("*") and t in ("u64", "s64"):
+                return f"Unk_{load_base.addr:x}"   # as a field: read as a pointer elsewhere, it holds one
+            if old != t and {old, t} != {"u8", "bool"} and not (t.endswith("*") and old in ("u64", "s64")):
                 raise LiftError(f"global is {old} and {t}")
             self.globals[load_base.addr] = "bool" if "bool" in (old, t) else t
             return f"Unk_{load_base.addr:x}"
@@ -1495,10 +1582,10 @@ class Emitter:
                 decl = f"namespace {ns} {{ {decl} }}"
             self.protos.add(decl)
             callee = "::".join([*spaces, fname])
-        elif c.target in NAMED:
-            # Named already, as another caller's placeholder: call it with the
-            # parameters its name spells.
-            ptypes = placeholder_params(NAMED[c.target], c.target)
+        elif c.target in NAMED or c.target in SIGNATURES:
+            # Named already, as another caller's placeholder, or what the code
+            # says it takes: call it with those parameters.
+            ptypes = SIGNATURES.get(c.target) or placeholder_params(NAMED[c.target], c.target)
             if ptypes is None or len(ptypes) != len(c.args):
                 raise LiftError("callee: named")
             args = []
@@ -1509,6 +1596,8 @@ class Emitter:
                     args.append(self.arg_name(e.index))
                 elif pt == "void*" and (self.is_pointer(e) or self.type_of(e) == "ptr"):
                     args.append(self.expr(e))
+                elif pt == "void*" and (q := self.as_pointer(e)) is not None:
+                    args.append(q)
                 elif pt != "void*" and not self.is_pointer(e) and self.type_of(e) in CALL_CODES:
                     args.append(self.expr(e, pt))
                 else:
@@ -1551,6 +1640,13 @@ class Emitter:
         self.call_types[j] = rt
         self.locals[CallRet(j)] = f"r{j}"
         return f"    {rt} r{j} = {call};"
+
+    def as_pointer(self, e: object) -> str | None:
+        """e passed to a callee's void* parameter, where it's a u64 the
+        function loaded: then the field (or the global) holds a pointer."""
+        if isinstance(e, Load) and e.type in ("u64", "s64") and not self.is_pointer(e) and e not in self.locals:
+            return self.field_expr(e.base, e.offset, "void*")
+        return None
 
     def render_virtual(self, j: int, c: Call, width: int | None) -> str:
         """`obj->vf<N>(args...)`: obj's struct becomes polymorphic, with virtual
@@ -1745,6 +1841,7 @@ class Emitter:
             if t.endswith("*") and Arg(i) not in stored and Arg(i) not in self.passed:
                 t = "const " + t
             params.append(f"{t} {self.arg_name(i)}")
+        self.pad_params(params)
         # Floating-point arguments take s0.. in order whatever the integer ones do.
         for i in range(max(self.fp_types, default=-1) + 1):
             t = self.fp_types.get(i)
@@ -1806,6 +1903,7 @@ class Emitter:
                     and Arg(i) not in {b for b, _, _, _ in lf.stores} and Arg(i) not in lf.args:
                 t = "const " + t
             params.append(f"{t} {self.arg_name(i)}")
+        self.pad_params(params)
         self.callee = (lf.tail, tuple(ptypes))
         proto = f"{ret} {callee}({', '.join(ptypes)});\n"
         func = f"void Unk_{self.short}_call({', '.join(params)}) {{\n" + "".join(x + "\n" for x in body) + "}\n"
@@ -1833,19 +1931,22 @@ class Emitter:
                 rhs = "nullptr"
             body.append(f"    {lhs} = {rhs};")
         args, types = [], []
+        padded = call_params(lf.tail)
         for e in lf.args:
+            pos = len(args)
+            want = padded[pos] if pos < len(padded) else None
             if isinstance(e, Arg) and not e.fp:
-                pos = len(args)
                 t = self.arg_types.get(e.index)
                 if t is None:
-                    padded = TAIL_TYPES.get(lf.tail, ())
-                    t = padded[pos] if pos < len(padded) else "u32" if pos in lf.narrow else \
-                        "void*" if e.index == 0 else "u64"
+                    t = want or ("u32" if pos in lf.narrow else "void*" if e.index == 0 else "u64")
                     self.arg_types[e.index] = t
                 if pos in lf.narrow and (t.endswith("*") or WIDTH.get(t, 8) > 4):
                     raise LiftError("tail-call argument narrowed from 64 bits")
                 args.append(self.arg_name(e.index))
                 types.append("void*" if t.endswith("*") else t)
+            elif want == "void*" and (q := self.as_pointer(e)) is not None:
+                args.append(q)
+                types.append("void*")
             elif self.is_pointer(e) or self.type_of(e) == "ptr":
                 args.append(self.expr(e))
                 types.append("void*")
@@ -1855,6 +1956,8 @@ class Emitter:
                     raise LiftError(f"tail-call argument of type {t}")
                 args.append(self.expr(e, t))
                 types.append(t)
+        if lf.tail in SIGNATURES and types != SIGNATURES[lf.tail]:
+            raise LiftError(f"callee: other parameters than the code says ({', '.join(types)})")
         callee, _ = callee_name(lf.tail, types)
         body.append(f"    {callee}({', '.join(args)});")
         body = decls + self.guarded(body, "void")
@@ -1869,11 +1972,19 @@ class Emitter:
                     and Arg(i) not in lf.args:
                 t = "const " + t
             params.append(f"{t} {self.arg_name(i)}")
+        self.pad_params(params)
         self.callee = (lf.tail, tuple(types))
         proto = f"void {callee}({', '.join(types)});\n"
         func = f"void Unk_{self.short}_call({', '.join(params)}) {{\n" + "".join(x + "\n" for x in body) + "}\n"
         structs = self.render_structs()
         return (structs + "\n" if structs else "") + proto, func
+
+    def pad_params(self, params: list[str]) -> None:
+        """Unused parameters after the ones the function reads, up to the
+        number its callers pass (SIGNATURES), typed as they pass them."""
+        want = SIGNATURES.get(self.addr, ())
+        for i in range(len(params), len(want)):
+            params.append(f"{want[i]} /*unused*/")
 
     def guard_cond(self, v: object, nonzero: bool, runs: bool) -> str:
         """The condition under which the rest of the function runs (runs) or
@@ -2305,6 +2416,8 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--reach", type=lambda x: x.split(","), default=["call"],
                        help=f"comma-separated ways the function is reached, of {','.join(REACH)} "
                             "(funcs.py patterns; default call). Vtable slots are always left to vtables.py")
+        p.add_argument("--no-signatures", action="store_true",
+                       help="don't widen parameter lists to what the code says (infer_signatures)")
         if name == "write":
             p.add_argument("--out", type=Path, default=ROOT / "src" / "unsorted" / "leaf")
             p.add_argument("--only", type=Path, help="file of addresses (one per line) to write; default all")
@@ -2318,6 +2431,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--dir", type=Path, required=True)
     p.add_argument("--build", type=Path, default=ROOT / "build" / "sword")
+    p = sub.add_parser("widen", help="the written leaf functions and their placeholder callees, with the "
+                                     "parameters the code says they take (cmd_widen)")
+    p.add_argument("--dir", type=Path, action="append", help="leaf source directory (default: all of them)")
+    p.add_argument("--names", type=Path, required=True, help="Name,Sword,Shield of the renamed functions")
+    p.add_argument("--report", type=Path, help="CSV of every function narrower than its code says")
+    p.add_argument("--only", type=Path, help="file of the leaf addresses that may change; default all")
     p = sub.add_parser("names", help="mangled names of the leaf functions in a build, as Name,Sword,Shield")
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--dir", type=Path, default=ROOT / "src" / "unsorted" / "leaf", help="the sources' directory")
@@ -2329,6 +2448,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_members(args)
     if args.cmd == "member-names":
         return cmd_member_names(args)
+    if args.cmd == "widen":
+        return cmd_widen(args)
 
     KNOWN.update(known_prototypes(ROOT / "src" / "unsorted" / "leaf"))
     cands = candidates(args)
@@ -2346,6 +2467,14 @@ def main(argv: list[str] | None = None) -> int:
                 lifted[addr] = generate(addr, code)
             except LiftError:
                 del lifted[addr]
+    if not args.no_signatures:
+        SIGNATURES.update(candidate_signatures(lifted))
+        for addr, code in cands:  # again, with the parameters the code says they (and their callees) take
+            if addr in lifted:
+                try:
+                    lifted[addr] = generate(addr, code)
+                except LiftError:
+                    del lifted[addr]
     lifted = callable_tails(lifted, why)
     CALL_PARAMS.update(unify_calls(lifted))
     if CALL_PARAMS:  # again, with the callees' parameters as most of their callers pass them
@@ -2458,19 +2587,11 @@ _STRUCT_PTR = re.compile(r"^(const )?(Unk_[0-9a-f_]+)\*$")
 
 def mangle(name: str, ptypes: list[str]) -> str | None:
     """The mangled name of `name(ptypes)`, for leafgen's own parameter types
-    (None for what it doesn't spell: a struct twice needs a substitution)."""
-    codes = []
-    seen = set()
-    for t in ptypes:
-        if t in CALL_CODES or t in ("f32", "f64"):
-            codes.append(CALL_CODES.get(t) or {"f32": "f", "f64": "d"}[t])
-            continue
-        m = _STRUCT_PTR.match(t)
-        if m is None or m.group(2) in seen:
-            return None
-        seen.add(m.group(2))
-        codes.append(("PK" if m.group(1) else "P") + f"{len(m.group(2))}{m.group(2)}")
-    return f"_Z{len(name)}{name}" + ("".join(codes) or "v")
+    (None for what it doesn't spell)."""
+    if any(t not in CALL_CODES and t not in ("f32", "f64") and _STRUCT_PTR.match(t) is None for t in ptypes):
+        return None
+    codes = encode_params(ptypes)
+    return None if codes is None else f"_Z{len(name)}{name}" + codes
 
 
 def param_types(params: str) -> list[str]:
@@ -2503,6 +2624,354 @@ def known_prototypes(leaf_dir: Path) -> dict[int, tuple[str, str, list[str]]]:
 
 NAME = re.compile(r"Unk_([0-9a-f]+)_(?:set|get|check|update|call)")
 CALLEE = re.compile(r"_Z\d+Unk_([0-9a-f]+)\w+")  # a tail call's target, undefined in the objects
+
+
+# --------------------------------------------------------------------------- signatures from the code
+def _evidence_type(i: int, own, sites: list) -> str:
+    """The type of argument register x<i>, from how the function reads it (own,
+    argregs.Params) and how its callers write it (sites, argregs.call_sites)."""
+    kind = own.kind(i) if own is not None else None
+    looks = {regs[i] for _, _, regs in sites if i in regs}
+    if kind == "ptr" or (kind is None and "ptr" in looks):
+        return "void*"
+    if kind == "w" or (kind is None and looks == {"w"}):
+        return "u32"
+    if kind is None and not looks and i == 0:
+        return "void*"
+    return "u64"
+
+
+def inferred_types(base: list[str], own, sites: list, placeholder: bool) -> list[str]:
+    """base (the parameters declared now), widened to what the code says: as
+    many as the function reads, itself or by passing them on (own), or its
+    callers write for it (sites), the new ones typed by how they're read or
+    written (_evidence_type). A placeholder callee's u64 that it dereferences
+    is a pointer (void*): no source spells it yet."""
+    n = max(len(base), own.count if own is not None else 0, max((c[1] for c in sites), default=0))
+    out = list(base)
+    if placeholder and own is not None:
+        out = ["void*" if t in ("u64", "s64") and own.kind(i) == "ptr" else t for i, t in enumerate(out)]
+    return out + [_evidence_type(i, own, sites) for i in range(len(base), n)]
+
+
+def _import_params() -> dict:
+    """argregs.Params of the SDK imports (IMPORTS) whose names spell their
+    parameters: what a function passes on to one is read."""
+    from nx.argregs import Params
+
+    out = {}
+    for stub, name in IMPORTS.items():
+        dm = demangle_simple(name)
+        ptypes = LIBC.get(name) if dm is None else dm[2]
+        if ptypes is None:
+            continue
+        out[stub] = Params({i: {"ptr" if t.endswith("*") else "w" if WIDTH.get(t, 8) <= 4 else "x"}
+                            for i, t in enumerate(ptypes)})
+    return out
+
+
+def infer_signatures(funcs: dict[int, tuple[list[str], bool]]) -> dict[int, list[list[str]]]:
+    """The functions (absolute address -> (parameter types now, whether it's a
+    placeholder callee)) whose code says they take more (inferred_types):
+    address -> the types they take, the best guess first; for a placeholder,
+    the next keeps the integers it was declared with (one whose callers pass
+    a global or a computed value there can't take a pointer). Needs the
+    executable."""
+    from common import load_module
+    from nx import argregs as A
+
+    mod = load_module("sword")
+    img, sizes = mod["image"], dict(mod["functions"])
+    res = A.Resolver(img, mod["functions"], BASE, known=_import_params())
+    callers_of: dict[int, set[int]] = {}
+    for t, cs in A.callers(img, mod["functions"], set(funcs), mod["text_end"], BASE).items():
+        for c in cs:
+            callers_of.setdefault(c, set()).add(t)
+    sites: dict[int, list] = {}
+    for c, ts in callers_of.items():
+        size = sizes[c - BASE]
+        for t, lst in A.call_sites(A.decode(img, c - BASE, size, BASE), c, c + size, ts).items():
+            sites.setdefault(t, []).extend(lst)
+    out = {}
+    for a, (base, placeholder) in funcs.items():
+        own, here = res.params(a), sites.get(a, [])
+        choices = []
+        for types in (inferred_types(base, own, here, placeholder), inferred_types(base, own, here, False)):
+            if types != base and types not in choices:
+                choices.append(types)
+        if choices:
+            out[a] = choices
+    return out
+
+
+_PROTOS = re.compile(r"^[\w*]+ (Unk_([0-9a-f]+)\w*)\((.*)\);$", re.M)
+
+
+def candidate_signatures(lifted: dict[int, tuple[str, str]]) -> dict[int, list[str]]:
+    """SIGNATURES for a `write` run: the lifted functions, and the placeholder
+    callees they declare that have no name yet (a named one keeps the
+    parameters its name spells, NAMED), as many parameters as the code says.
+    A placeholder takes the integers its callers declare it with (the choice
+    that doesn't make them pointers): a caller that passes a computed value
+    there couldn't pass a pointer."""
+    funcs: dict[int, tuple[list[str], bool]] = {}
+    decls: dict[int, set[tuple]] = {}
+    for a, (structs, func) in lifted.items():
+        m = _DEF.match(func.split("\n", 1)[0])
+        if m:
+            funcs[a] = (param_types(m.group(3)), False)
+        for d in _PROTOS.finditer(structs):
+            if d.group(1) == f"Unk_{d.group(2)}":
+                decls.setdefault(int(d.group(2), 16) + BASE, set()).add(tuple(param_types(d.group(3))))
+    for t, lists in decls.items():
+        longest = max(lists, key=len)
+        if t in NAMED or t in KNOWN or t in lifted or any(x != longest[:len(x)] for x in lists):
+            continue
+        funcs[t] = (list(longest), True)
+    out = {}
+    for a, choices in infer_signatures(funcs).items():
+        base, placeholder = funcs[a]
+        pick = next((c for c in choices if c[:len(base)] == base), None) if placeholder else choices[0]
+        if pick is not None:
+            out[a] = pick
+    return out
+
+
+def leaf_dirs() -> list[Path]:
+    """Where leafgen's sources are: src/unsorted/leaf and lib/<library>/leaf."""
+    return [ROOT / "src" / "unsorted" / "leaf", *sorted((ROOT / "lib").glob("*/leaf"))]
+
+
+def external_references(names: dict[str, int], skip: set[Path]) -> tuple[dict[int, str], dict[Path, set[int]]]:
+    """Where the sources other than leafgen's (src/ and lib/, without the
+    files in `skip`) refer to the functions named (identifier -> address):
+    (function -> a file that calls it, file -> the functions it only declares
+    or takes the address of). A declaration can be written again, a call
+    can't: the caller would pass other arguments."""
+    if not names:
+        return {}, {}
+    ident = re.compile(r"(&\s*)?\b(" + "|".join(sorted(map(re.escape, names), key=len, reverse=True)) + r")\b(\s*\()?")
+    called: dict[int, str] = {}
+    declared: dict[Path, set[int]] = {}
+    for top in (ROOT / "src", ROOT / "lib"):
+        for p in sorted(top.rglob("*")):
+            if p.suffix not in (".c", ".cpp", ".h") or p in skip or not p.is_file():
+                continue
+            for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
+                for m in ident.finditer(line):
+                    if not m.group(1) and not m.group(3):
+                        continue  # another name of the same spelling (a struct)
+                    a = names[m.group(2)]
+                    if m.group(1) or _decl_line(line, m.group(2)) is not None:
+                        declared.setdefault(p, set()).add(a)
+                    else:
+                        called.setdefault(a, p.relative_to(ROOT).as_posix())
+    return called, declared
+
+
+def _decl_line(line: str, name: str) -> re.Match | None:
+    return re.fullmatch(rf"(\s*(?:[\w:]+[\s*&]+)+){re.escape(name)}\((.*)\);\s*", line)
+
+
+def cmd_widen(args) -> int:
+    """Give the leaf functions already written (and matched) the parameters the
+    code says they take (infer_signatures), and their placeholder callees too.
+
+    A leaf that ends in `b T` passes on the argument registers it doesn't
+    write, so it takes as many as T reads, or as T's callers write; one whose
+    callers write more than it reads takes those as unused parameters. Every
+    leaf that calls a widened function is written again (a widened leaf is
+    called by its new prototype, KNOWN). When one of them can't be (it
+    doesn't lift or compile, or calls the callee with fewer arguments after a
+    call), nothing it depends on changes. Another source that calls one of
+    them keeps it as it is too; one that only declares it (or takes its
+    address) gets the new declaration. Writes the new names to `--names`
+    (Name,Sword,Shield, for `funcs.py name --from-file --force`)."""
+    from common import clang_format, load_module, read_functions_csv
+
+    candidates(argparse.Namespace(area=None, max=-1, reach=None))  # the executable's tables (GOT, NAMED, ...)
+    dirs = args.dir or leaf_dirs()
+    entries: dict[int, tuple[Path, str, str]] = {}
+    for d in dirs:
+        for p in sorted(d.glob("Unk_*.cpp")):
+            for a, structs, func in parse_file(p.read_text(encoding="utf-8")):
+                entries[a] = (p, structs, func)
+        KNOWN.update(known_prototypes(d))
+    in_file: dict[Path, list[int]] = {}
+    for a, e in entries.items():
+        in_file.setdefault(e[0], []).append(a)
+    rows = {f.sword + BASE: f for f in read_functions_csv() if f.sword is not None}
+    funcs: dict[int, tuple[list[str], bool]] = {}   # address -> (parameter types, a placeholder callee)
+    idents: dict[str, int] = {}
+    calls_of: dict[int, set[int]] = {}   # callee -> the leaves that declare it
+    decls: dict[int, set[tuple]] = {}
+    for a, (_, structs, func) in entries.items():
+        for d in _PROTOS.finditer(structs):
+            t = int(d.group(2), 16) + BASE
+            calls_of.setdefault(t, set()).add(a)
+            if d.group(1) == f"Unk_{d.group(2)}":
+                decls.setdefault(t, set()).add(tuple(param_types(d.group(3))))
+        m = _DEF.match(func.split("\n", 1)[0])
+        r = rows.get(a)
+        if m is None or r is None or r.status != "O" or mangle(m.group(2), param_types(m.group(3))) != r.name:
+            continue  # not a leaf this tool can name again
+        funcs[a] = (param_types(m.group(3)), False)
+        idents[m.group(2)] = a
+    for t, lists in decls.items():
+        r = rows.get(t)
+        if t in funcs or t in entries or r is None or r.status != "U" or r.shield is None:
+            continue
+        longest = max(lists, key=len)
+        if any(lst != longest[:len(lst)] for lst in lists):
+            continue  # its callers disagree already
+        named = placeholder_params(r.name, t) if r.name else list(longest)
+        if named is None or (r.name and r.name != callee_name(t, named)[1]):
+            continue  # a real name, or one this tool doesn't spell
+        funcs[t] = (named, True)
+        idents[f"Unk_{t - BASE:x}"] = t
+    choices = infer_signatures(funcs)
+    sigs = {a: c[0] for a, c in choices.items()}
+    second: set[int] = set()   # placeholders that take their second choice
+    narrow = sorted(a for a in sigs if not funcs[a][1])
+    called, declared = external_references(idents, set(in_file))
+    reasons: dict[int, str] = {a: f"called from {p}" for a, p in called.items()}   # why a function stays
+    only = {int(x, 16) for x in args.only.read_text().split()} if args.only else None
+    # with --only, the other leaves stay as they are (and so do the callees they declare)
+    frozen = set(called) | (set() if only is None else {a for a, (_, ph) in funcs.items() if not ph and a not in only})
+    known0 = dict(KNOWN)
+    clang = ROOT / "toolchain" / "clang" / "bin" / ("clang++.exe" if sys.platform == "win32" else "clang++")
+    img = load_module("sword")["image"]
+    while True:
+        SIGNATURES.clear()
+        SIGNATURES.update({a: choices[a][a in second] for a in sigs if a not in frozen})
+        KNOWN.clear()
+        KNOWN.update(known0)
+        names0 = {t: NAMED.get(t) for t in sigs}
+        for t, types in SIGNATURES.items():
+            if funcs[t][1]:
+                NAMED[t] = callee_name(t, types)[1]
+        pending = {a for a in SIGNATURES if not funcs[a][1]}
+        for t in SIGNATURES:
+            pending |= calls_of.get(t, set())
+        pending = {a for a in pending if a in funcs and a not in frozen}
+        changed: dict[int, tuple[str, str]] = {}
+        failed: dict[int, str] = {}
+        while pending:
+            a = pending.pop()
+            failed.pop(a, None)
+            changed.pop(a, None)
+            try:
+                new = generate(a, img[a - BASE:a - BASE + rows[a].size("sword")])
+            except LiftError as e:
+                failed[a] = str(e)
+                continue
+            m = _DEF.match(new[1].split("\n", 1)[0])
+            if m is None or mangle(m.group(2), param_types(m.group(3))) is None:
+                failed[a] = "a name mangle() doesn't spell"
+                continue
+            if new != entries[a][1:]:
+                changed[a] = new
+            proto = (m.group(1), m.group(2), param_types(m.group(3)))
+            if KNOWN.get(a) != proto:  # its callers call it by the new prototype: they go again
+                KNOWN[a] = proto
+                pending |= {c for c in calls_of.get(a, set()) if c in funcs and c not in frozen}
+        for a, why in keep_compiling_why(changed, clang).items():
+            failed[a] = why
+            changed.pop(a)
+        # the functions of one file declare their callees and globals alike
+        files: dict[Path, list[int]] = {}
+        for a in changed:
+            files.setdefault(entries[a][0], []).append(a)
+        for p, addrs in files.items():
+            # the ones that stay agree with each other: the new ones that disagree with them are out
+            kept = [(a, *entries[a][1:]) for a in sorted(in_file[p]) if a not in changed]
+            ok = {e[0] for e in consistent_declarations(kept + [(a, *changed[a]) for a in sorted(addrs)], quiet=True)}
+            for a in addrs:
+                if a not in ok:
+                    failed[a] = "declares a callee or a global another function of its file declares otherwise"
+                    changed.pop(a)
+        # every leaf that declares a function that changes has to be written again
+        stale = {t for t in SIGNATURES if any(c not in changed for c in calls_of.get(t, set()))}
+        stale |= {t for t in changed if KNOWN.get(t) != known0.get(t)
+                  and any(c not in changed for c in calls_of.get(t, set()))}
+        bad = set(failed) | {c for t in stale for c in calls_of.get(t, set()) if c not in changed}
+        if not bad:
+            break
+        # Nothing a leaf that can't be written again depends on changes: its callees
+        # (and theirs), and itself.
+        grow = set(bad)
+        stack = list(bad)
+        for a in bad:
+            reasons.setdefault(a, failed.get(a, "declares a callee it can't call the new way"))
+        while stack:
+            a = stack.pop()
+            for t, cs in calls_of.items():
+                if a in cs and t not in grow:
+                    grow.add(t)
+                    stack.append(t)
+                    reasons.setdefault(t, f"a caller can't be written again (0x{a:x})")
+        for t, n in names0.items():
+            if n is None:
+                NAMED.pop(t, None)
+            else:
+                NAMED[t] = n
+        print(f"  {len(failed)} leaves don't lift or compile again ({Counter(failed.values()).most_common(3)}); "
+              f"freezing {len(grow - frozen)} functions", file=sys.stderr)
+        # a placeholder with another choice tries that first
+        retry = {t for t in grow if t in SIGNATURES and funcs[t][1] and t not in second and len(choices[t]) > 1}
+        if retry:
+            second |= retry
+            continue
+        if not grow - frozen:
+            raise SystemExit("widen: the leaves that can't be written again declare functions that change")
+        frozen |= grow
+    widened = {a for a in SIGNATURES if funcs[a][1]}
+    renamed: dict[int, tuple[str, list[str]]] = {}   # address -> (new name, parameter types)
+    for a, (_, fn) in changed.items():
+        m = _DEF.match(fn.split("\n", 1)[0])
+        name = mangle(m.group(2), param_types(m.group(3)))
+        if name != rows[a].name:
+            renamed[a] = (name, param_types(m.group(3)))
+    renamed.update({t: (callee_name(t, SIGNATURES[t])[1], SIGNATURES[t]) for t in widened})
+    if args.report:
+        with open(args.report, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write("Address,Name,Declared,Inferred,Outcome\n")
+            for a in sorted(sigs):
+                sigs[a] = SIGNATURES.get(a, sigs[a])
+                done = f"renamed {renamed[a][0]}" if a in renamed else "written again" if a in changed else \
+                    "left: --only" if only is not None and a not in only and not funcs[a][1] else \
+                    f"left: {reasons.get(a, 'unknown').replace(',', ';')}"
+                fh.write(f"0x{a:x},{rows[a].name},{' '.join(funcs[a][0]) or '-'},{' '.join(sigs[a])},{done}\n")
+    print(f"{len(narrow)} leaf functions and {len(sigs) - len(narrow)} placeholder callees are narrower than "
+          f"their code says; {len(changed)} leaves written again, {len(widened)} callees widened", file=sys.stderr)
+    by_file: dict[Path, list[int]] = {}
+    for a in changed:
+        by_file.setdefault(entries[a][0], []).append(a)
+    for p in sorted(by_file):
+        old = parse_file(p.read_text(encoding="utf-8"))
+        new = [(a, *changed[a]) if a in changed else (a, s, f) for a, s, f in old]
+        p.write_text(render_file(new), encoding="utf-8", newline="\n")
+    clang_format(list(by_file))
+    # the other sources' declarations of what was renamed
+    back = {a: name for name, a in idents.items()}
+    for p, addrs in sorted(declared.items()):
+        todo = {back[a]: renamed[a][1] for a in addrs if a in renamed}
+        if not todo:
+            continue
+        lines = p.read_text(encoding="utf-8").split("\n")
+        for i, line in enumerate(lines):
+            for name, ptypes in todo.items():
+                m = _decl_line(line, name)
+                if m is not None:
+                    lines[i] = f"{m.group(1)}{name}({', '.join(ptypes)});"
+        p.write_text("\n".join(lines), encoding="utf-8", newline="\n")
+        print(f"  {p.relative_to(ROOT).as_posix()}: {len(todo)} declarations written again", file=sys.stderr)
+    with open(args.names, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write("Name,Sword,Shield\n")
+        for a, (name, _) in sorted(renamed.items()):
+            fh.write(f"{name},{rows[a].sword_str},{rows[a].shield_str}\n")
+    print(f"{len(renamed)} names to {args.names}", file=sys.stderr)
+    return 0
 
 
 # --------------------------------------------------------------------------- library classes' members
@@ -2879,12 +3348,17 @@ def compiles(addr: int, structs: str, func: str, clang: Path) -> str | None:
     return next((line for line in r.stderr.splitlines() if "error" in line), r.stderr.strip()[:200])
 
 
-def keep_compiling(lifted: dict[int, tuple[str, str]], clang: Path) -> dict[int, tuple[str, str]]:
+def keep_compiling_why(lifted: dict[int, tuple[str, str]], clang: Path) -> dict[int, str]:
+    """The lifted functions that don't compile cleanly: address -> the first diagnostic."""
     from concurrent.futures import ThreadPoolExecutor
 
     with ThreadPoolExecutor() as pool:
         results = dict(zip(lifted, pool.map(lambda a: compiles(a, *lifted[a], clang), lifted)))
-    dropped = {a: why for a, why in results.items() if why is not None}
+    return {a: why for a, why in results.items() if why is not None}
+
+
+def keep_compiling(lifted: dict[int, tuple[str, str]], clang: Path) -> dict[int, tuple[str, str]]:
+    dropped = keep_compiling_why(lifted, clang)
     for a, why in sorted(dropped.items())[:10]:
         print(f"  dropped 0x{a:x}: {why.split('error: ', 1)[-1]}", file=sys.stderr)
     print(f"{len(dropped)} don't compile cleanly, dropped", file=sys.stderr)
@@ -2933,7 +3407,7 @@ DECL = re.compile(r"^([\w*]+) (Unk_[0-9a-f]+)\((.*)\);$", re.M)
 
 
 def consistent_declarations(entries: list[tuple[int, str, str]],
-                            overloads: bool = True) -> list[tuple[int, str, str]]:
+                            overloads: bool = True, quiet: bool = False) -> list[tuple[int, str, str]]:
     """The entries whose callee declarations agree with the ones before them:
     two functions of one file that declare a callee with the same parameters
     and different return types (one reads its result, as u32 or u64, the
@@ -2953,15 +3427,17 @@ def consistent_declarations(entries: list[tuple[int, str, str]],
         defined = set(STRUCT_DEF.findall(e[1]))
         ext = {m.group(2): m.group(1) for m in EXTERN.finditer(e[1])}
         if any(externs.get(k, t) != t for k, t in ext.items()):
-            print(f"  dropped 0x{e[0]:x}: declares a global another function of its file declares otherwise",
-                  file=sys.stderr)
+            if not quiet:
+                print(f"  dropped 0x{e[0]:x}: declares a global another function of its file declares otherwise",
+                      file=sys.stderr)
             continue
         # without overloads, a second parameter list for a callee is a clash too (a call may be ambiguous)
         clash = not overloads and any(n in funcs and (n, ps) not in seen for n, ps in decls)
         if any(seen.get(k, r) != r for k, r in decls.items()) or called & (structs | names) or names & funcs \
                 or defined & defs or clash:
-            print(f"  dropped 0x{e[0]:x}: declares a callee another function of its file declares otherwise",
-                  file=sys.stderr)
+            if not quiet:
+                print(f"  dropped 0x{e[0]:x}: declares a callee another function of its file declares otherwise",
+                      file=sys.stderr)
             continue
         seen.update(decls)
         structs |= names

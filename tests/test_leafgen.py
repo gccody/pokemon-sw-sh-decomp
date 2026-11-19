@@ -171,9 +171,11 @@ def test_tail_call_to_a_known_function(monkeypatch):
     assert "    Unk_123554* field_8;\n" in structs
     assert structs.endswith("u8 Unk_123554_get(const Unk_123554*);\n")
     assert func == "void Unk_123450_call(const Unk_123450* self) {\n    Unk_123554_get(self->field_8);\n}\n"
+    # one that takes more than the caller writes: the caller passes its own x1 on
     monkeypatch.setitem(leafgen.KNOWN, ADDR + 0x104, ("void", "Unk_123554_set", ["Unk_123554*", "bool"]))
-    with pytest.raises(leafgen.LiftError, match="other parameters"):
-        leafgen.generate(ADDR, code(ldr_x(0, 0, 8), 0x14000000 | 0x100 >> 2))
+    structs, func = leafgen.generate(ADDR, code(ldr_x(0, 0, 8), 0x14000000 | 0x100 >> 2))
+    assert structs.endswith("void Unk_123554_set(Unk_123554*, bool);\n")
+    assert func == "void Unk_123450_call(const Unk_123450* self, bool value) {\n    Unk_123554_set(self->field_8, value);\n}\n"
 
 
 def test_callers_that_pass_fewer_arguments_on():
@@ -199,7 +201,12 @@ def test_mangle_and_param_types():
     assert leafgen.mangle("Unk_1_set", ["Unk_1*", "bool"]) == "_Z9Unk_1_setP5Unk_1b"
     assert leafgen.mangle("Unk_1_get", ["const Unk_1*"]) == "_Z9Unk_1_getPK5Unk_1"
     assert leafgen.mangle("Unk_1_get", []) == "_Z9Unk_1_getv"
-    assert leafgen.mangle("Unk_1_set", ["Unk_1*", "const Unk_1*"]) is None  # needs a substitution
+    # substitutions: a type spelled before is referred to (S_ the first, S0_ the next, ...)
+    assert leafgen.mangle("Unk_1_set", ["Unk_1*", "const Unk_1*"]) == "_Z9Unk_1_setP5Unk_1PKS_"
+    assert leafgen.encode_params(["const Unk_1*", "void*", "void*", "Unk_1*"]) == "PK5Unk_1PvS2_PS_"
+    assert leafgen.callee_name(ADDR + 0x104, ["void*", "void*"])[1] == "_Z10Unk_123554PvS_"
+    assert leafgen.placeholder_params("_Z10Unk_123554PvS_", ADDR + 0x104) == ["void*", "void*"]
+    assert leafgen.mangle("Unk_1_set", ["nn::Foo*"]) is None
 
 
 def test_tail_call_argument_moved_as_32_bits():
@@ -567,3 +574,55 @@ def test_template_class_members():
     assert leafgen.template_class("N2nn3nex1XILi0EEE", "nn::nex::X<0>") is None  # not a type argument
     text = leafgen.render_class_file(cls, [(ADDR, "", "    u32 vf3();", "u32 a() {}\n")], before, "N2nn3nex1XE")
     assert "template <> class PseudoGlobalVariable<nn::nex::DDLDecl> {" in text and "// RTTI: N2nn3nex1XE" in text
+
+
+def test_tail_call_takes_what_the_callee_does(monkeypatch):
+    """ldr x0, [x0, #8] ; b T, where the code says T takes (void*, void*)
+    (SIGNATURES, or T's placeholder name in functions.csv): the leaf passes
+    its x1 on, and the field it loads holds a pointer."""
+    want = ("void Unk_123450_call(const Unk_123450* self, void* value) {\n"
+            "    Unk_123554(self->field_8, value);\n}\n")
+    words = code(ldr_x(0, 0, 8), 0x14000000 | 0x100 >> 2)
+    monkeypatch.setitem(leafgen.SIGNATURES, ADDR + 0x104, ["void*", "void*"])
+    structs, func = leafgen.generate(ADDR, words)
+    assert "    void* field_8;\n" in structs and structs.endswith("void Unk_123554(void*, void*);\n")
+    assert func == want
+    monkeypatch.delitem(leafgen.SIGNATURES, ADDR + 0x104)
+    monkeypatch.setitem(leafgen.NAMED, ADDR + 0x104, "_Z10Unk_123554PvS_")
+    assert leafgen.generate(ADDR, words)[1] == want
+
+
+def test_unused_parameters_the_callers_pass(monkeypatch):
+    """ldr w0, [x0, #8] ; ret, whose callers also write w1: an unused u32."""
+    monkeypatch.setitem(leafgen.SIGNATURES, ADDR, ["void*", "u32"])
+    _, func = leafgen.generate(ADDR, code(ldr_w(0, 0, 8), RET))
+    assert func == "u32 Unk_123450_get(const Unk_123450* self, u32 /*unused*/) {\n    return self->field_8;\n}\n"
+
+
+def test_inferred_types():
+    """What argregs says, as leafgen's parameter types."""
+    from nx.argregs import Params
+
+    own = Params({0: {"ptr"}, 2: {"w"}})
+    sites = [(0, 4, {3: "x"}), (8, 2, {1: "ptr"})]
+    # placeholder: its u64 x0 is dereferenced (void*); x1 an address its callers pass, x2 32 bits, x3 64
+    assert leafgen.inferred_types(["u64"], own, sites, True) == ["void*", "void*", "u32", "u64"]
+    # a leaf keeps the types it has
+    assert leafgen.inferred_types(["u64"], own, sites, False) == ["u64", "void*", "u32", "u64"]
+    assert leafgen.inferred_types([], None, [], False) == []
+    assert leafgen.inferred_types([], None, [(0, 1, {})], True) == ["void*"]
+
+
+def test_external_references(tmp_path, monkeypatch):
+    """Another source that only declares a leaf (or takes its address) can be
+    given the new declaration; one that calls it can't."""
+    (tmp_path / "src").mkdir()
+    (tmp_path / "lib").mkdir()
+    (tmp_path / "src" / "a.cpp").write_text(
+        "void Unk_1_call(void*, u64);\nauto p = &Unk_1_call;\nstruct Unk_2 { int x; };\n")
+    (tmp_path / "src" / "b.cpp").write_text("void Unk_2(u64);\nvoid f() { Unk_2(1); }\n")
+    monkeypatch.setattr(leafgen, "ROOT", tmp_path)
+    called, declared = leafgen.external_references({"Unk_1_call": 1, "Unk_2": 2}, set())
+    assert called == {2: "src/b.cpp"}
+    assert declared == {tmp_path / "src" / "a.cpp": {1}, tmp_path / "src" / "b.cpp": {2}}
+    assert leafgen._decl_line("const u8* Unk_1_call(void*, u64);", "Unk_1_call").group(1) == "const u8* "
