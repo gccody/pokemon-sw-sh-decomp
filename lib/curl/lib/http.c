@@ -2751,6 +2751,12 @@ CURLcode Curl_http(struct connectdata *conn, bool *done)
       data->req.exp100 = EXP100_SEND_DATA; /* already sent */
       Curl_expire_done(data, EXPIRE_100_TIMEOUT);
     }
+#if 1 /* Pokemon SwSh decomp */
+    /* curl 7.61.1's, which Nintendo's SDK build has (Curl_http, Sword
+       0x710175d9d0). */
+    else
+      data->req.writebytecount = http->writebytecount;
+#endif
   }
 
   if((conn->httpversion == 20) && data->req.upload_chunky)
