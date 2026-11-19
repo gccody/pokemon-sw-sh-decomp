@@ -65,6 +65,23 @@ the original TU's other calls decide that), so they aren't instantiated yet.
 `SiDirectLinkedList<T*>` (`SiCore_LinkedList.h`) is intrusive: each element
 type has its own links, at its own offsets.
 
+## Reference counts
+
+Every SiSDK3 class (and PPFX's `SiYebisAllocator`) has its own copy of vtable
+slots 2 and 3: an atomic increment of a count, and a decrement that, at zero,
+calls the virtual destructor and frees the object through the allocator it
+holds (unless the allocator is the object itself). The free's `__FILE__` is
+the class's own header and its line is one per class, so the members come
+from a macro expanded in each class's header: `UNK_REFCOUNT_DEFINE`
+(`Include/SiCore/Unk_RefCount.h`, placeholder names, members `vf2`/`vf3`)
+reproduces it. Each class gets its header at the path its `__FILE__` names
+(`Libsrc/SiCore/Source/SiCore_Kernel_Impl.h`, `YEBIS_draft/src/GPU/...`), with
+its layout as far as these functions read it, and a TU next to it that
+includes it. A class with a second base keeps its count further on; ten of
+those aren't written yet, because leafgen already gave `vf3` to a slot of
+their secondary vtable. The GPU resources' slot 3 (`SiGfxNXBuffer`, ...) is
+another macro, with deferred deletion, not written yet.
+
 ### Instances of identical code
 
 Template instances whose code doesn't depend on the type (every 8-byte
