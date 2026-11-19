@@ -2951,9 +2951,11 @@ def cmd_write(m: Model, args) -> None:
     ctor_classes = defined_classes(CTOR_DIR) if CTOR_DIR.exists() else set()
     skipped = HANDWRITTEN | {v.addr for v in m.vtables if class_name(v) in ctor_classes}
 
-    # The type getters tools/typegen.py writes (src/unsorted/types) are its.
+    # The type getters tools/typegen.py writes (src/unsorted/types) are its, and
+    # the copies tools/clonegen.py writes (src/unsorted/clone).
+    import clonegen
     import typegen
-    typed = typegen.written_addresses()
+    typed = typegen.written_addresses() | typegen.written_addresses(clonegen.OUT_DIR)
 
     def kept(f: int) -> bool:
         return written(f) and f not in handwritten and f not in typed \
