@@ -24,6 +24,62 @@ const u8* Unk_3f83b0_get() {
     return Unk_24df358;
 }
 
+struct Unk_3fcd40 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    u64 field_8;
+    u8 _10[0x40];
+    u64 field_50;
+    u8 _58[0x63];
+    u8 field_bb;
+};
+PKMN_OFFSET_ASSERT(Unk_3fcd40, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_3fcd40, field_50, 0x50);
+PKMN_OFFSET_ASSERT(Unk_3fcd40, field_bb, 0xbb);
+void Unk_3fcb30(void*);
+void Unk_3ffea0(u64, void*);
+
+// 0x71003fcd40
+void Unk_3fcd40_call(Unk_3fcd40* self, u32 value) {
+    if (value == 2) {
+        self->field_bb = 1;
+        self->vf23();
+        Unk_3fcb30(self);
+        if (self->field_8 != 0) {
+            Unk_3ffea0(self->field_50, self);
+            return;
+        }
+        return;
+    }
+    Unk_3fcb30(self);
+    if (self->field_8 != 0) {
+        Unk_3ffea0(self->field_50, self);
+        return;
+    }
+}
+
 struct Unk_3ffdb0 {
     u8 _0[0x210];
     u8 field_210;

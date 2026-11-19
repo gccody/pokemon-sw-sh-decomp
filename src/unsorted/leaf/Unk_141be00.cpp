@@ -37,6 +37,22 @@ u32 Unk_141be30_call(Unk_141be30* self) {
     return ~r0 & 1;
 }
 
+struct Unk_141be60 {
+    u8 _0[0x600];
+    u8 field_600;
+};
+PKMN_OFFSET_ASSERT(Unk_141be60, field_600, 0x600);
+void Unk_eb6230(void*, u32);
+
+// 0x710141be60
+void Unk_141be60_update(Unk_141be60* self) {
+    if (self->field_600 != 0) {
+        return;
+    }
+    self->field_600 = 1;
+    Unk_eb6230(self, 3);
+}
+
 // 0x710141c3d0
 void Unk_141c3d0_update() {}
 

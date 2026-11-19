@@ -115,6 +115,39 @@ void Unk_1307dd0_call(void* self, u64 value, bool arg2) {
     Unk_1307de0(self, value, 0xa, arg2);
 }
 
+struct Unk_13083a0_78 {
+    u8 _0[0x170];
+    u8 field_170;
+};
+PKMN_OFFSET_ASSERT(Unk_13083a0_78, field_170, 0x170);
+struct Unk_13083a0_188 {
+    u8 _0[0x170];
+    u8 field_170;
+};
+PKMN_OFFSET_ASSERT(Unk_13083a0_188, field_170, 0x170);
+struct Unk_13083a0 {
+    u8 _0[0x78];
+    Unk_13083a0_78* field_78;
+    u8 _80[0x108];
+    Unk_13083a0_188* field_188;
+};
+PKMN_OFFSET_ASSERT(Unk_13083a0, field_78, 0x78);
+PKMN_OFFSET_ASSERT(Unk_13083a0, field_188, 0x188);
+
+// 0x71013083a0
+bool Unk_13083a0_check(const Unk_13083a0* self) {
+    if (self->field_78 != nullptr) {
+        if (self->field_78->field_170 != 0) {
+            if (self->field_188 != nullptr) {
+                return self->field_188->field_170 != 0;
+            }
+            return 0;
+        }
+        return 0;
+    }
+    return 0;
+}
+
 struct Unk_13091c0 {
     u8 _0[0x20];
     u8 field_20;

@@ -284,6 +284,23 @@ u8* Unk_7fe370_getField2e8Ptr(Unk_7fe370* self) {
     return &self->field_2e8;
 }
 
+struct Unk_7fe390 {
+    u8 _0[0x310];
+    u16 field_310;
+    u8 field_312;
+};
+PKMN_OFFSET_ASSERT(Unk_7fe390, field_310, 0x310);
+PKMN_OFFSET_ASSERT(Unk_7fe390, field_312, 0x312);
+
+// 0x71007fe390
+void Unk_7fe390_update(Unk_7fe390* self, u16 value) {
+    if (self->field_310 != 0) {
+        return;
+    }
+    self->field_310 = value;
+    self->field_312 = 1;
+}
+
 struct Unk_7fe830 {
     u64 field_0;
     u32 field_8;

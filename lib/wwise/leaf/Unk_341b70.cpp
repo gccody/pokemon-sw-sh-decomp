@@ -80,6 +80,21 @@ void Unk_341d00_set(Unk_341d00* self) {
 void Unk_343eb0_update() {
 }
 
+struct Unk_349940 {
+    u8 _0[0xd0];
+    u8 field_d0;
+};
+PKMN_OFFSET_ASSERT(Unk_349940, field_d0, 0xd0);
+void Unk_348df0();
+
+// 0x7100349940
+void Unk_349940_update(const Unk_349940* self) {
+    if (self->field_d0 != 0) {
+        return;
+    }
+    Unk_348df0();
+}
+
 // 0x7100349be0
 void Unk_349be0_update() {
 }

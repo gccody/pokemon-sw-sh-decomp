@@ -375,6 +375,47 @@ u32 Unk_7f0b80_get(const Unk_7f0b80* self) {
     return (self->field_365 != 0) & (self->field_365 >= 1 && self->field_365 <= 0x1e);
 }
 
+struct Unk_7f0dc0 {
+    u8 _0[0x2b4];
+    s8 field_2b4;
+    s8 field_2b5;
+    s8 field_2b6;
+    s8 field_2b7;
+    s8 field_2b8;
+    s8 field_2b9;
+    s8 field_2ba;
+};
+PKMN_OFFSET_ASSERT(Unk_7f0dc0, field_2b4, 0x2b4);
+PKMN_OFFSET_ASSERT(Unk_7f0dc0, field_2b5, 0x2b5);
+PKMN_OFFSET_ASSERT(Unk_7f0dc0, field_2b6, 0x2b6);
+PKMN_OFFSET_ASSERT(Unk_7f0dc0, field_2b7, 0x2b7);
+PKMN_OFFSET_ASSERT(Unk_7f0dc0, field_2b8, 0x2b8);
+PKMN_OFFSET_ASSERT(Unk_7f0dc0, field_2b9, 0x2b9);
+PKMN_OFFSET_ASSERT(Unk_7f0dc0, field_2ba, 0x2ba);
+
+// 0x71007f0dc0
+bool Unk_7f0dc0_get(const Unk_7f0dc0* self) {
+    if (self->field_2b4 < 6) {
+        return 1;
+    }
+    if (self->field_2b5 < 6) {
+        return 1;
+    }
+    if (self->field_2b6 < 6) {
+        return 1;
+    }
+    if (self->field_2b7 < 6) {
+        return 1;
+    }
+    if (self->field_2b8 < 6) {
+        return 1;
+    }
+    if (self->field_2b9 < 6) {
+        return 1;
+    }
+    return self->field_2ba < 6;
+}
+
 struct Unk_7f11b0 {
     u8 _0[0x2b4];
     u32 field_2b4;
@@ -862,6 +903,28 @@ PKMN_OFFSET_ASSERT(Unk_7f3770, field_24, 0x24);
 // 0x71007f3770
 u8 Unk_7f3770_getField24(const Unk_7f3770* self) {
     return self->field_24;
+}
+
+struct Unk_7f3780 {
+    u8 _0[0x24];
+    u8 field_24;
+    u8 _25[0x1a];
+    u8 field_3f;
+    u8 field_40;
+};
+PKMN_OFFSET_ASSERT(Unk_7f3780, field_24, 0x24);
+PKMN_OFFSET_ASSERT(Unk_7f3780, field_3f, 0x3f);
+PKMN_OFFSET_ASSERT(Unk_7f3780, field_40, 0x40);
+
+// 0x71007f3780
+bool Unk_7f3780_get(const Unk_7f3780* self) {
+    if (self->field_24 != 0) {
+        if (self->field_3f != 0) {
+            return 0;
+        }
+        return self->field_40 == 0;
+    }
+    return 0;
 }
 
 struct Unk_7f37b0 {

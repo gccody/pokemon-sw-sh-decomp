@@ -75,9 +75,59 @@ void Unk_17d60b0_set(Unk_17d60b0* self) {
     self->field_0 = 0;
 }
 
+extern u64 Unk_27fdb20;
+struct Unk_17d6bd0_0_a0 {
+    u8 _0[0x752];
+    u8 field_752;
+};
+PKMN_OFFSET_ASSERT(Unk_17d6bd0_0_a0, field_752, 0x752);
+struct Unk_17d6bd0_0 {
+    u8 _0[0xa0];
+    Unk_17d6bd0_0_a0* field_a0;
+};
+PKMN_OFFSET_ASSERT(Unk_17d6bd0_0, field_a0, 0xa0);
+struct Unk_17d6bd0 {
+    Unk_17d6bd0_0* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_17d6bd0, field_0, 0x0);
+void Unk_17d8150(u64, void*);
+
+// 0x71017d6bd0
+void Unk_17d6bd0_update(const Unk_17d6bd0* self) {
+    if (self->field_0->field_a0->field_752 != 0) {
+        return;
+    }
+    Unk_17d8150(Unk_27fdb20, self->field_0);
+}
+
 // 0x71017d6d30
 u32 Unk_17d6d30_get() {
     return 1;
+}
+
+extern u64 Unk_27fdb28;
+struct Unk_17d9ec0_0_a0 {
+    u8 _0[0x752];
+    u8 field_752;
+};
+PKMN_OFFSET_ASSERT(Unk_17d9ec0_0_a0, field_752, 0x752);
+struct Unk_17d9ec0_0 {
+    u8 _0[0xa0];
+    Unk_17d9ec0_0_a0* field_a0;
+};
+PKMN_OFFSET_ASSERT(Unk_17d9ec0_0, field_a0, 0xa0);
+struct Unk_17d9ec0 {
+    Unk_17d9ec0_0* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_17d9ec0, field_0, 0x0);
+void Unk_17dca00(u64, void*);
+
+// 0x71017d9ec0
+void Unk_17d9ec0_update(const Unk_17d9ec0* self) {
+    if (self->field_0->field_a0->field_752 != 0) {
+        return;
+    }
+    Unk_17dca00(Unk_27fdb28, self->field_0);
 }
 
 struct Unk_17de500_arg1 {
@@ -281,6 +331,42 @@ void Unk_17e8b00_call(Unk_17e8b00* self, u64 value, u64 arg2) {
     self->field_0 = r0;
     u32 r1 = Unk_178f1e0(value, 4, 3, arg2);
     self->field_4 = r1;
+}
+
+struct Unk_17e8c90_arg2 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3(u64);
+};
+struct Unk_17e8c90 {
+    u8 _0[0x50];
+    u8 field_50;
+    u8 _51[0x7];
+    u8 field_58;
+    u8 _59[0x11f];
+    u64 field_178;
+};
+PKMN_OFFSET_ASSERT(Unk_17e8c90, field_50, 0x50);
+PKMN_OFFSET_ASSERT(Unk_17e8c90, field_58, 0x58);
+PKMN_OFFSET_ASSERT(Unk_17e8c90, field_178, 0x178);
+void Unk_1787bb0();
+void Unk_1789ca0(void*, u64);
+
+// 0x71017e8c90
+void Unk_17e8c90_call(Unk_17e8c90* self, u64 value, Unk_17e8c90_arg2* arg2) {
+    if (self->field_50 != 0) {
+        Unk_1787bb0();
+        Unk_1789ca0(&self->field_58, value);
+        if (self->field_178 != 0) {
+            arg2->vf3(self->field_178);
+            self->field_178 = 0;
+            self->field_50 = 0;
+            return;
+        }
+        self->field_50 = 0;
+        return;
+    }
 }
 
 struct Unk_17e8d00 {

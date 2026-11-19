@@ -99,3 +99,24 @@ void Unk_d0e600_set(Unk_d0e600* self, const Unk_d0e600_arg1* value) {
     self->field_440 = v3;
     self->field_460 = 0;
 }
+
+struct Unk_d0e750 {
+    u8 _0[0x4a0];
+    u8 field_4a0;
+    u8 _4a1[0x3b];
+    u32 field_4dc;
+};
+PKMN_OFFSET_ASSERT(Unk_d0e750, field_4a0, 0x4a0);
+PKMN_OFFSET_ASSERT(Unk_d0e750, field_4dc, 0x4dc);
+
+// 0x7100d0e750
+void Unk_d0e750_set(Unk_d0e750* self, bool value) {
+    if (self->field_4a0 != 0) {
+        if (value != 0) {
+            self->field_4dc = 1;
+            return;
+        }
+        self->field_4a0 = 0;
+        return;
+    }
+}

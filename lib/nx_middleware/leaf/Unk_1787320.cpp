@@ -1665,6 +1665,40 @@ void Unk_179a780_set(Unk_179a780* self) {
     self->field_198 = 0;
 }
 
+struct Unk_179a820_c8 {
+    u8 _0[0x30];
+    u32 field_30;
+};
+PKMN_OFFSET_ASSERT(Unk_179a820_c8, field_30, 0x30);
+struct Unk_179a820_d0 {
+    u8 _0[0x30];
+    u32 field_30;
+};
+PKMN_OFFSET_ASSERT(Unk_179a820_d0, field_30, 0x30);
+struct Unk_179a820 {
+    u8 _0[0xc8];
+    Unk_179a820_c8* field_c8;
+    Unk_179a820_d0* field_d0;
+};
+PKMN_OFFSET_ASSERT(Unk_179a820, field_c8, 0xc8);
+PKMN_OFFSET_ASSERT(Unk_179a820, field_d0, 0xd0);
+
+// 0x710179a820
+void Unk_179a820_set(const Unk_179a820* self, u32 value) {
+    if (self->field_c8 != nullptr) {
+        self->field_c8->field_30 = value;
+        if (self->field_d0 != nullptr) {
+            self->field_d0->field_30 = value;
+            return;
+        }
+        return;
+    }
+    if (self->field_d0 != nullptr) {
+        self->field_d0->field_30 = value;
+        return;
+    }
+}
+
 struct Unk_179a840 {
     u8 _0[0xd8];
     u64 field_d8;
@@ -1982,6 +2016,33 @@ void Unk_17b3640(void*, u64, u64, u64, u64, u64, u64, u32);
 // 0x71017b9040
 void Unk_17b9040_call(void* self, u64 value, u64 arg2, u64 arg3, u64 arg4, u64 arg5, u64 arg6, u32 arg7) {
     Unk_17b3640(self, value, arg2, arg3, arg4, arg5, arg6, arg7);
+}
+
+struct Unk_17b9920_28_20 {
+    u8 _0[0x110];
+    u8 field_110;
+};
+PKMN_OFFSET_ASSERT(Unk_17b9920_28_20, field_110, 0x110);
+struct Unk_17b9920_28 {
+    u8 _0[0x20];
+    Unk_17b9920_28_20* field_20;
+};
+PKMN_OFFSET_ASSERT(Unk_17b9920_28, field_20, 0x20);
+struct Unk_17b9920 {
+    u8 _0[0x28];
+    Unk_17b9920_28* field_28;
+};
+PKMN_OFFSET_ASSERT(Unk_17b9920, field_28, 0x28);
+
+// 0x71017b9920
+bool Unk_17b9920_check(const Unk_17b9920* self) {
+    if (self->field_28 != nullptr) {
+        if (self->field_28->field_20 != nullptr) {
+            return self->field_28->field_20->field_110 == 1;
+        }
+        return 0;
+    }
+    return 0;
 }
 
 // 0x71017c02d0

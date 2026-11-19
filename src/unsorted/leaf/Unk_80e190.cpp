@@ -113,3 +113,33 @@ void Unk_80e820_call(const Unk_80e820* self,
                      u32 arg5) {
     Unk_816320(self->field_18, 0xb9, 0x55, 0xffff0000, arg4, arg5);
 }
+
+struct Unk_810a70 {
+    u8 _0[0x18];
+    u64 field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_810a70, field_18, 0x18);
+void Unk_8150c0(u64, u32, u32);
+
+// 0x7100810a70
+void Unk_810a70_update(const Unk_810a70* self, u8 value) {
+    if (value == 0x1f) {
+        return;
+    }
+    Unk_8150c0(self->field_18, 0xb6, value);
+}
+
+struct Unk_810ae0 {
+    u8 _0[0x18];
+    u64 field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_810ae0, field_18, 0x18);
+void Unk_8150c0(u64, u32, u32);
+
+// 0x7100810ae0
+void Unk_810ae0_update(const Unk_810ae0* self, u8 value) {
+    if (value == 0x1f) {
+        return;
+    }
+    Unk_8150c0(self->field_18, 0xb7, value);
+}

@@ -142,6 +142,31 @@ void Unk_38d310_set(Unk_38d310* self) {
     self->field_26a = (self->field_26a & 0xffffff9f) | 0x18;
 }
 
+struct Unk_38e5c0_8 {
+    u8 _0[0x10];
+    u32 field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_38e5c0_8, field_10, 0x10);
+struct Unk_38e5c0 {
+    u8 _0[0x8];
+    Unk_38e5c0_8* field_8;
+    u8 _10[0x88];
+    u8 field_98;
+};
+PKMN_OFFSET_ASSERT(Unk_38e5c0, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_38e5c0, field_98, 0x98);
+
+// 0x710038e5c0
+u32 Unk_38e5c0_get(const Unk_38e5c0* self) {
+    if (self->field_98 != 0) {
+        if (self->field_8 != nullptr) {
+            return self->field_8->field_10;
+        }
+        return 0;
+    }
+    return 0;
+}
+
 extern u32 Unk_2381488;
 struct Unk_390500 {
     u64 field_0;

@@ -30,6 +30,73 @@ void Unk_1074c90_set(Unk_1074c90* self) {
     self->field_10 = 0;
 }
 
+struct Unk_1074f20_arg1 {
+    u32 field_0;
+    u16 field_4;
+    u8 _6[0x2];
+    u32 field_8;
+    u8 field_c;
+    u8 field_d;
+    u8 _e[0x2];
+    u32 field_10;
+    u32 field_14;
+    u8 field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_1074f20_arg1, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_1074f20_arg1, field_4, 0x4);
+PKMN_OFFSET_ASSERT(Unk_1074f20_arg1, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_1074f20_arg1, field_c, 0xc);
+PKMN_OFFSET_ASSERT(Unk_1074f20_arg1, field_d, 0xd);
+PKMN_OFFSET_ASSERT(Unk_1074f20_arg1, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_1074f20_arg1, field_14, 0x14);
+PKMN_OFFSET_ASSERT(Unk_1074f20_arg1, field_18, 0x18);
+struct Unk_1074f20 {
+    u32 field_0;
+    u16 field_4;
+    u8 _6[0x2];
+    u32 field_8;
+    u8 field_c;
+    u8 field_d;
+    u8 _e[0x2];
+    u32 field_10;
+    u32 field_14;
+    u8 field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_1074f20, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_1074f20, field_4, 0x4);
+PKMN_OFFSET_ASSERT(Unk_1074f20, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_1074f20, field_c, 0xc);
+PKMN_OFFSET_ASSERT(Unk_1074f20, field_d, 0xd);
+PKMN_OFFSET_ASSERT(Unk_1074f20, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_1074f20, field_14, 0x14);
+PKMN_OFFSET_ASSERT(Unk_1074f20, field_18, 0x18);
+
+// 0x7101074f20
+bool Unk_1074f20_check(const Unk_1074f20* self, const Unk_1074f20_arg1* value) {
+    if (self->field_0 == value->field_0) {
+        if (self->field_4 == value->field_4) {
+            if (self->field_8 == value->field_8) {
+                if (self->field_c == value->field_c) {
+                    if (self->field_d == value->field_d) {
+                        if (self->field_10 == value->field_10) {
+                            if (self->field_14 == value->field_14) {
+                                return self->field_18 == value->field_18;
+                            }
+                            return 0;
+                        }
+                        return 0;
+                    }
+                    return 0;
+                }
+                return 0;
+            }
+            return 0;
+        }
+        return 0;
+    }
+    return 0;
+}
+
 struct Unk_1074fe0 {
     u32 field_0;
 };

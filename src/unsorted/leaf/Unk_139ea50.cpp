@@ -61,3 +61,38 @@ PKMN_OFFSET_ASSERT(Unk_13a1200, field_8, 0x8);
 u32 Unk_13a1200_getField8(const Unk_13a1200* self) {
     return self->field_8;
 }
+
+struct Unk_13a2320_60_8 {
+    u8 _0[0x170];
+    u8 field_170;
+};
+PKMN_OFFSET_ASSERT(Unk_13a2320_60_8, field_170, 0x170);
+struct Unk_13a2320_60 {
+    u8 _0[0x8];
+    Unk_13a2320_60_8* field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_13a2320_60, field_8, 0x8);
+struct Unk_13a2320 {
+    u8 _0[0x60];
+    Unk_13a2320_60* field_60;
+    u8 _68[0x60];
+    u64 field_c8;
+};
+PKMN_OFFSET_ASSERT(Unk_13a2320, field_60, 0x60);
+PKMN_OFFSET_ASSERT(Unk_13a2320, field_c8, 0xc8);
+void Unk_13a2370();
+
+// 0x71013a2320
+u32 Unk_13a2320_get(const Unk_13a2320* self) {
+    if (self->field_c8 != 0) {
+        return 1;
+    }
+    if (self->field_60->field_8 != nullptr) {
+        if (self->field_60->field_8->field_170 != 0) {
+            Unk_13a2370();
+            return 1;
+        }
+        return 0;
+    }
+    return 0;
+}

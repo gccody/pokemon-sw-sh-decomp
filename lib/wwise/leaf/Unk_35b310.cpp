@@ -81,6 +81,27 @@ u32 Unk_35c6f0_update(Unk_35c6f0* self, u64 value) {
     return 1;
 }
 
+struct Unk_35d290 {
+    u8 _0[0x20];
+    u32 field_20;
+    u8 _24[0x24];
+    u32 field_48;
+};
+PKMN_OFFSET_ASSERT(Unk_35d290, field_20, 0x20);
+PKMN_OFFSET_ASSERT(Unk_35d290, field_48, 0x48);
+void Unk_35c9f0(void*, u32, u32);
+
+// 0x710035d290
+void Unk_35d290_call(Unk_35d290* self) {
+    if (self->field_48 == 2) {
+        if (self->field_20 != 0) {
+            Unk_35c9f0(self, 0, 4);
+            return;
+        }
+        return;
+    }
+}
+
 struct Unk_35f2c0 {
     u32 field_0;
     u16 field_4;

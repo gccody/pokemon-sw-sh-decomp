@@ -88,6 +88,20 @@ u32 Unk_13c67e0_call(void* /*unused*/, const Unk_13c67e0_arg1* value) {
     return 1;
 }
 
+struct Unk_13cdb30 {
+    u8 _0[0x120];
+    u32 field_120;
+};
+PKMN_OFFSET_ASSERT(Unk_13cdb30, field_120, 0x120);
+
+// 0x71013cdb30
+void Unk_13cdb30_update(Unk_13cdb30* self) {
+    if (self->field_120 != 0) {
+        return;
+    }
+    self->field_120 = 3;
+}
+
 // 0x71013cee80
 void Unk_13cee80_update() {}
 

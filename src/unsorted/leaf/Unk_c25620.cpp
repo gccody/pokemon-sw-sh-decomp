@@ -5,6 +5,34 @@
 
 #include "gflib3/Unk_239a418.h"
 
+struct Unk_c25620_0_280 {
+    u32 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_c25620_0_280, field_0, 0x0);
+struct Unk_c25620_0 {
+    u8 _0[0x280];
+    Unk_c25620_0_280* field_280;
+};
+PKMN_OFFSET_ASSERT(Unk_c25620_0, field_280, 0x280);
+struct Unk_c25620 {
+    Unk_c25620_0* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_c25620, field_0, 0x0);
+void Unk_c25650();
+void Unk_c257b0();
+
+// 0x7100c25620
+void Unk_c25620_call(const Unk_c25620* self) {
+    if (self->field_0->field_280->field_0 != 2) {
+        if (self->field_0->field_280->field_0 == 1) {
+            Unk_c25650();
+            return;
+        }
+        return;
+    }
+    Unk_c257b0();
+}
+
 struct Unk_c25e80 {
     u8 _0[0x8];
     Unk_239a418* field_8;

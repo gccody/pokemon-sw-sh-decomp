@@ -3,6 +3,44 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
+struct Unk_fa9340 {
+    u8 _0[0x38];
+    u32 field_38;
+    u8 _3c[0x254];
+    u8 field_290;
+};
+PKMN_OFFSET_ASSERT(Unk_fa9340, field_38, 0x38);
+PKMN_OFFSET_ASSERT(Unk_fa9340, field_290, 0x290);
+void Unk_fa9190(void*, u32, u32, u32, u32, u64, u64, u64);
+
+// 0x7100fa9340
+void Unk_fa9340_update(Unk_fa9340* self, u32 value, u64 arg2, u64 arg3, u64 arg4) {
+    if (self->field_290 != 0) {
+        return;
+    }
+    self->field_38 = 0;
+    Unk_fa9190(self, 1, 1, 0, value, arg2, arg3, arg4);
+}
+
+struct Unk_fa9870 {
+    u8 _0[0x38];
+    u64 field_38;
+    u8 _40[0x250];
+    u8 field_290;
+};
+PKMN_OFFSET_ASSERT(Unk_fa9870, field_38, 0x38);
+PKMN_OFFSET_ASSERT(Unk_fa9870, field_290, 0x290);
+void Unk_fa9190(void*, u32, u32, u32, u32, u64, u64, u64);
+
+// 0x7100fa9870
+void Unk_fa9870_update(Unk_fa9870* self, u32 value, u64 arg2, u64 arg3, u64 arg4) {
+    if (self->field_290 != 0) {
+        return;
+    }
+    self->field_38 = 0xffffffff00000002;
+    Unk_fa9190(self, 0, 0, 1, value, arg2, arg3, arg4);
+}
+
 struct Unk_fa98f0 {
     u8 _0[0x28];
     u64 field_28;

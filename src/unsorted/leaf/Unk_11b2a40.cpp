@@ -20,6 +20,29 @@ bool Unk_11b2a40_check(const Unk_11b2a40* self) {
     return self->field_80 != 0;
 }
 
+struct Unk_11b2f90 {
+    u8 _0[0xe8];
+    u8 field_e8;
+    u8 _e9[0x3];
+    u32 field_ec;
+    u8 _f0[0x64];
+    s32 field_154;
+};
+PKMN_OFFSET_ASSERT(Unk_11b2f90, field_e8, 0xe8);
+PKMN_OFFSET_ASSERT(Unk_11b2f90, field_ec, 0xec);
+PKMN_OFFSET_ASSERT(Unk_11b2f90, field_154, 0x154);
+
+// 0x71011b2f90
+bool Unk_11b2f90_get(const Unk_11b2f90* self) {
+    if (self->field_e8 != 0) {
+        if (self->field_ec == 0x14) {
+            return 1;
+        }
+        return self->field_154 > 59;
+    }
+    return self->field_154 > 59;
+}
+
 // 0x71011b3bb0
 void Unk_11b3bb0_update() {}
 

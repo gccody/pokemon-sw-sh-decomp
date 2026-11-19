@@ -139,6 +139,30 @@ void Unk_f4bc10_set(const Unk_f4bc10* self, Unk_f4bc10* value) {
     *value = *self;
 }
 
+struct Unk_f4c140 {
+    u8 _0[0x5cc];
+    u32 field_5cc;
+    u8 field_5d0;
+};
+PKMN_OFFSET_ASSERT(Unk_f4c140, field_5cc, 0x5cc);
+PKMN_OFFSET_ASSERT(Unk_f4c140, field_5d0, 0x5d0);
+
+// 0x7100f4c140
+void Unk_f4c140_set(Unk_f4c140* self, u32 value) {
+    if (value != 0) {
+        if (value == 1) {
+            self->field_5cc = 5;
+            self->field_5d0 = 0;
+            return;
+        }
+        self->field_5cc = 6;
+        self->field_5d0 = 0;
+        return;
+    }
+    self->field_5cc = 4;
+    self->field_5d0 = 0;
+}
+
 u32 Unk_eb6530();
 
 // 0x7100f4c7f0

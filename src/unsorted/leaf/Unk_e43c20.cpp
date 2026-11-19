@@ -148,6 +148,21 @@ void Unk_e4c3b0_call() {
     Unk_e4c3c0();
 }
 
+struct Unk_e4c660 {
+    u8 _0[0x45];
+    u8 field_45;
+};
+PKMN_OFFSET_ASSERT(Unk_e4c660, field_45, 0x45);
+void Unk_e4c670();
+
+// 0x7100e4c660
+void Unk_e4c660_update(const Unk_e4c660* self) {
+    if (self->field_45 != 0) {
+        return;
+    }
+    Unk_e4c670();
+}
+
 // 0x7100e4cc50
 void Unk_e4cc50() {}
 
