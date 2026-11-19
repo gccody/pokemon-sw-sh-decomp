@@ -17,4 +17,26 @@ struct hostent {
   char **h_addr_list;
 };
 
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+/* An option of the SDK's resolver, 0x18 bytes: Nintendo's resolver thread
+   passes three to nnsocketGetHostByNameWithOptions (asyn-thread.c). Each is
+   a key, a type (0x64 for a bool, 0x65 for an int, as used), the value's
+   size and the value. */
+struct Unk_ResolverOption {
+  uint32_t key;
+  uint32_t type;
+  size_t size;
+  union {
+    bool b;
+    int i;
+  } value;
+};
+
+int nnsocketResolverGetOption(struct Unk_ResolverOption *option,
+                              uint32_t key);
+int nnsocketResolverSetOption(const struct Unk_ResolverOption *option);
+
 #endif /* PKMN_NNSOCKET_NETDB_H */

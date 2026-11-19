@@ -136,6 +136,7 @@ int Curl_resolver_duphandle(void **to, void *from)
 
 static void destroy_async_data(struct Curl_async *);
 
+#if 0 /* Pokemon SwSh decomp: Nintendo's is after struct thread_data */
 /*
  * Cancel all possibly still on-going resolves for this connection.
  */
@@ -143,6 +144,7 @@ void Curl_resolver_cancel(struct connectdata *conn)
 {
   destroy_async_data(&conn->async);
 }
+#endif
 
 /* This function is used to init a threaded resolve */
 static bool init_resolve_thread(struct connectdata *conn,
@@ -163,6 +165,11 @@ struct thread_sync_data {
 #ifdef HAVE_GETADDRINFO
   struct addrinfo hints;
 #endif
+#if 1 /* Pokemon SwSh decomp */
+  /* Nintendo's: the SDK resolver's options for the lookup
+     (init_thread_sync_data, gethostbyname_thread) */
+  struct Unk_ResolverOption options[3];
+#endif
   struct thread_data *td; /* for thread-self cleanup */
 };
 
@@ -172,6 +179,31 @@ struct thread_data {
   time_t interval_end;
   struct thread_sync_data tsd;
 };
+
+#if 1 /* Pokemon SwSh decomp */
+/*
+ * Cancel all possibly still on-going resolves for this connection.
+ *
+ * Nintendo's SDK build first cancels the lookup in the SDK's resolver:
+ * option 0x4e21 with the value of option 0x2711 that init_thread_sync_data
+ * passed to the lookup (Curl_resolver_cancel, Sword 0x7101755050), retrying
+ * every 10 ms while the resolver returns EAGAIN.
+ */
+void Curl_resolver_cancel(struct connectdata *conn)
+{
+  struct thread_data *td = (struct thread_data *)conn->async.os_specific;
+  if(td && td->tsd.options[1].value.i) {
+    struct Unk_ResolverOption cancel;
+    cancel.key = 0x4e21;
+    cancel.type = 0x65;
+    cancel.size = sizeof(int);
+    cancel.value.i = td->tsd.options[1].value.i;
+    while(nnsocketResolverSetOption(&cancel) == -1 && SOCKERRNO == EAGAIN)
+      nnosSleepThread(10000000); /* 10 ms */
+  }
+  destroy_async_data(&conn->async);
+}
+#endif
 
 static struct thread_sync_data *conn_thread_sync_data(struct connectdata *conn)
 {
@@ -202,7 +234,8 @@ static
 int init_thread_sync_data(struct thread_data * td,
                            const char *hostname,
                            int port,
-                           const struct addrinfo *hints)
+                           const struct addrinfo *hints,
+                           struct connectdata *conn) /* Pokemon SwSh decomp */
 {
   struct thread_sync_data *tsd = &td->tsd;
 
@@ -224,6 +257,31 @@ int init_thread_sync_data(struct thread_data * td,
   Curl_mutex_init(tsd->mtx);
 
   tsd->sock_error = CURL_ASYNC_SUCCESS;
+
+#if 1 /* Pokemon SwSh decomp */
+  /* Nintendo's SDK build passes three options of the SDK's resolver to the
+     lookup (Curl_resolver_getaddrinfo, Sword 0x7101755420, inlines this):
+     bools 0x7531 and 0x7533, which are the opposite of options 900 and 506
+     (set.field_59 and set.field_5a), and 0x7532, the value the resolver
+     has for 0x2711 (which Curl_resolver_cancel cancels). */
+  tsd->options[0].key = 0x7531;
+  tsd->options[0].type = 0x64;
+  tsd->options[0].size = sizeof(bool);
+  tsd->options[0].value.b = FALSE;
+  if(conn->data)
+    tsd->options[0].value.b = !conn->data->set.field_59;
+  tsd->options[1].key = 0x2711;
+  tsd->options[1].type = 0x65;
+  tsd->options[1].size = sizeof(int);
+  nnsocketResolverGetOption(&tsd->options[1], 0x2711);
+  tsd->options[1].key = 0x7532;
+  tsd->options[2].key = 0x7533;
+  tsd->options[2].type = 0x64;
+  tsd->options[2].size = sizeof(bool);
+  tsd->options[2].value.b = TRUE;
+  if(conn->data)
+    tsd->options[2].value.b = !conn->data->set.field_5a;
+#endif
 
   /* Copying hostname string because original can be destroyed by parent
    * thread during gethostbyname execution.
@@ -307,10 +365,15 @@ static unsigned int CURL_STDCALL gethostbyname_thread(void *arg)
 {
   struct thread_sync_data *tsd = (struct thread_sync_data *)arg;
   struct thread_data *td = tsd->td;
-
-  /* Pokemon SwSh decomp: Nintendo's thread passes its three resolver
-     options (Sword 0x71017556a0), which aren't reconstructed. */
-  tsd->res = Curl_ipv4_resolve_r(tsd->hostname, tsd->port, NULL, 0);
+#if 1 /* Pokemon SwSh decomp */
+  /* Nintendo's thread passes a copy of the resolver options (Sword
+     0x71017556a0). */
+  struct Unk_ResolverOption options[3];
+  memcpy(options, tsd->options, sizeof(options));
+  tsd->res = Curl_ipv4_resolve_r(tsd->hostname, tsd->port, options, 3);
+#else
+  tsd->res = Curl_ipv4_resolve_r(tsd->hostname, tsd->port);
+#endif
 
   if(!tsd->res) {
     tsd->sock_error = SOCKERRNO;
@@ -394,7 +457,7 @@ static bool init_resolve_thread(struct connectdata *conn,
   conn->async.dns = NULL;
   td->thread_hnd = curl_thread_t_null;
 
-  if(!init_thread_sync_data(td, hostname, port, hints))
+  if(!init_thread_sync_data(td, hostname, port, hints, conn))
     goto err_exit;
 
   free(conn->async.hostname);
