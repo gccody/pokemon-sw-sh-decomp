@@ -5,7 +5,6 @@
 #include <types.h>
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_f0ce40(void* self);
 void Unk_14e1f30(void* self);
 
 // Tail-called by lifted functions. Placeholders, like the forwarders' callees.
@@ -194,11 +193,6 @@ public:
     virtual void vf29();
 };
 
-// 0x71014e5a50
-void Unk_2444b38::vf6() {
-    Unk_f0ce40(this);
-}
-
 // 0x71014e5a60
 void Unk_2444b38::vf12() {}
 
@@ -328,33 +322,6 @@ void Unk_24449a0::vf18() {}
 // 0x71014e5040
 u32 Unk_24449a0::vf22() {
     return 1;
-}
-
-class Unk_2444c38 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-};
-
-// 0x71014e5c60
-void Unk_2444c38::vf5() {
-    Unk_f0ce40(this);
-}
-
-class Unk_2444c78 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x71014e5c70
-void Unk_2444c78::vf0() {
-    Unk_f0ce40(this);
 }
 
 struct Unk_2444ca0_408 {

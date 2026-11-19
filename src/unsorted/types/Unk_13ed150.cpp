@@ -6,23 +6,31 @@
 
 #include "gflib3/Unk_239a418.h"
 
-// The type 0x71027effc0: its getter is out of line.
-struct Unk_27effc0 {
+// The type 0x71027efd90: its getter is out of line.
+struct Unk_23dd820 {
     static const Unk_239a418_Type* Unk_GetType();
 };
 
-// The type 0x71027dbb20.
-struct Unk_23e8d60 {
+// The type 0x71027efd80.
+struct Unk_23e4758 {
     static const Unk_239a418_Type* Unk_GetType() {
-        static Unk_239a418_Type type(Unk_27effc0::Unk_GetType());
+        static Unk_239a418_Type type(Unk_23dd820::Unk_GetType());
         return &type;
     }
 };
 
-// The type 0x71027dce28.
-struct Unk_23ec308 {
+// The type 0x71027f0000.
+struct Unk_23ea168 {
     static const Unk_239a418_Type* Unk_GetType() {
-        static Unk_239a418_Type type(Unk_23e8d60::Unk_GetType());
+        static Unk_239a418_Type type(Unk_23e4758::Unk_GetType());
+        return &type;
+    }
+};
+
+// The type 0x71027f0328.
+struct Unk_23ec020 {
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23e4758::Unk_GetType());
         return &type;
     }
 };
@@ -39,5 +47,8 @@ bool Unk_61a530(Unk_239a498* object) {
     return false;
 }
 
-// 0x7100d5c8e0
-template bool Unk_61a530<Unk_23ec308>(Unk_239a498* object);
+// 0x71013ed150
+template bool Unk_61a530<Unk_23ec020>(Unk_239a498* object);
+
+// 0x71013ed240
+template bool Unk_61a530<Unk_23ea168>(Unk_239a498* object);

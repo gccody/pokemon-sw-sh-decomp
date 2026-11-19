@@ -6,9 +6,30 @@
 
 #include "gflib3/Unk_239a418.h"
 
+// The type 0x71027d6230: its getter is out of line.
+struct Unk_23dcdd0 {
+    static const Unk_239a418_Type* Unk_GetType();
+};
+
 // The type 0x71027efe80: its getter is out of line.
 struct Unk_2434918 {
     static const Unk_239a418_Type* Unk_GetType();
+};
+
+// The type 0x71027efd90.
+struct Unk_23dd820 {
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23dcdd0::Unk_GetType());
+        return &type;
+    }
+};
+
+// The type 0x71027efd80.
+struct Unk_23e4758 {
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23dd820::Unk_GetType());
+        return &type;
+    }
 };
 
 // The type 0x71027f0020.
@@ -80,6 +101,9 @@ template bool Unk_61a530<Unk_2435b08>(Unk_239a498* object);
 
 // 0x71013ccd50
 template bool Unk_61a530<Unk_24356d0>(Unk_239a498* object);
+
+// 0x71013cce40
+template bool Unk_61a530<Unk_23e4758>(Unk_239a498* object);
 
 // 0x71013ccf30
 template bool Unk_61a530<Unk_2435be0>(Unk_239a498* object);

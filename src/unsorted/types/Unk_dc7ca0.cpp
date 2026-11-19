@@ -6,6 +6,16 @@
 
 #include "gflib3/Unk_239a418.h"
 
+// The type 0x71027d6230: its getter is out of line.
+struct Unk_23dcdd0 {
+    static const Unk_239a418_Type* Unk_GetType();
+};
+
+// The type 0x71027d6220: its getter is out of line.
+struct Unk_23ddd68 {
+    static const Unk_239a418_Type* Unk_GetType();
+};
+
 // The type 0x71027d9318: its getter is out of line.
 struct Unk_23f4e40 {
     static const Unk_239a418_Type* Unk_GetType();
@@ -19,6 +29,38 @@ struct Unk_27de920 {
 // The type 0x71027effd0: its getter is out of line.
 struct Unk_27effd0 {
     static const Unk_239a418_Type* Unk_GetType();
+};
+
+// The type 0x71027dbdc8.
+struct Unk_23de600 {
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23dcdd0::Unk_GetType());
+        return &type;
+    }
+};
+
+// The type 0x71027efd50.
+struct Unk_23e3950 {
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23ddd68::Unk_GetType());
+        return &type;
+    }
+};
+
+// The type 0x71027dbdb8.
+struct Unk_23e55c0 {
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23de600::Unk_GetType());
+        return &type;
+    }
+};
+
+// The type 0x71027f03b8.
+struct Unk_23e86b0 {
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23e3950::Unk_GetType());
+        return &type;
+    }
 };
 
 // vtable 0x71023eff20: vf_type and its thunks 0x7100dcd850 (+0x48), 0x7100dcd8c0 (+0x50).
@@ -108,6 +150,12 @@ bool Unk_61a530(Unk_239a498* object) {
             return true;
     return false;
 }
+
+// 0x7100dc7ca0
+template bool Unk_61a530<Unk_23e55c0>(Unk_239a498* object);
+
+// 0x7100dca8a0
+template bool Unk_61a530<Unk_23e86b0>(Unk_239a498* object);
 
 // 0x7100dd4e40
 template bool Unk_61a530<Unk_23f05a8>(Unk_239a498* object);
