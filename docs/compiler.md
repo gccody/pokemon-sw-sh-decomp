@@ -3109,8 +3109,9 @@ zlib one about 3.
 
 **Result: NEX was built with the game's clang 7.0.x at `-O3` and its codegen
 flags, except that it was built with strict aliasing (no
-`-fno-strict-aliasing`), against libc++ 7.0.1's containers.** `lib/nex` has a
-`pkmn_library_settings` entry for that: `OPTIONS -fstrict-aliasing`, libc++'s
+`-fno-strict-aliasing`) and with `-fno-builtin`, against libc++ 7.0.1's
+containers.** `lib/nex` has a
+`pkmn_library_settings` entry for that: `OPTIONS -fstrict-aliasing -fno-builtin`, libc++'s
 headers (`SYSTEM_INCLUDES include/libcxx`) with the defines they need on musl,
 and `INCLUDES lib/nex/include` for the reconstructed headers. NEX's source
 isn't public: everything in `lib/nex` is written from the executable
@@ -3170,6 +3171,32 @@ shared error and return blocks (`tools/nexddl.py`, `NOT_MATCHING`).
 type, as if an access to them could alias anything; anonymous unions around
 them reproduce that (an access through a union member may alias any type).
 The true declaration isn't known.
+
+### `-fno-builtin`
+
+Like Pia (section "Pia 5.18.0", which has the counts per area), NEX calls
+`memcpy`, `memset` and `memmove` with small constant sizes that clang
+expands inline when they're builtins: 111 of its 289 calls pass a constant
+size of 64 bytes or less (Game Freak's code: 5 of 2,430). `InetAddress`'s
+reset (`0x7101618170`, inlined into its constructor at `0x7101618120`)
+clears its `sockaddr_in` with a call:
+
+```
+mov      x19, x0
+add      x0, x0, #8
+mov      w2, #0x10
+mov      w1, wzr
+bl       memset
+```
+
+The same source, `memset(m_sockaddr, 0, sizeof(m_sockaddr))`, compiles to
+`str xzr, [x0, #0x10]` and an `stp` with the global flags, and to the call
+with `-fno-builtin`. With the flag every function of `lib/nex` that matched
+still matches (the DDL streams, the protocol calls, the destructors), and the
+reads that don't (see above) differ the same way, so the flag joins
+`-fstrict-aliasing` in `lib/nex`'s entry. (`llvm.memcpy` itself, which clang
+uses to copy structures, is still expanded: `-fno-builtin` only stops clang
+from treating calls to the library functions as builtins.)
 
 ### RTTI
 
