@@ -132,7 +132,7 @@ def test_pointer_store_and_null_test():
 
 
 @pytest.mark.parametrize("words, why", [
-    ((BL_0, RET), "bl"),
+    ((BL_0, RET), "bl without a frame"),
     ((ldr_w(0, 0, 4),), "ret"),                                  # no ret at the end
     ((0x34000040, RET), "cbz"),                                  # cbz w0, +8: a branch
     ((ldr_w(8, 9, 0), RET), "before"),                           # x9 isn't an argument
@@ -229,7 +229,7 @@ def test_pairs():
     stp = 0xA9000000 | (0x20 // 8) << 15 | 8 << 10 | 0 << 5 | 9
     _, func = leafgen.generate(ADDR, code(ldp, stp, RET))
     assert "    self->field_20 = self->field_18;\n    self->field_28 = self->field_10;\n" in func
-    with pytest.raises(leafgen.LiftError, match="address"):  # stp x29, x30, [sp, #-0x10]!: a frame
+    with pytest.raises(leafgen.LiftError, match="frame"):  # stp x29, x30, [sp, #-0x10]!: a frame, no call
         leafgen.generate(ADDR, code(0xA9BF7BFD, RET))
 
 
@@ -389,3 +389,21 @@ def test_reference_added_through_the_interface():
         leafgen.generate(ADDR, code(*words[:6], ldr_x(1, 8, 0x20), br_x1, RET))
     text = leafgen.render_file([(ADDR, structs, func)])
     assert leafgen.parse_file(text) == [(ADDR, structs, func)]  # the #include isn't part of a block
+
+
+def test_calls_in_a_frame():
+    """str x19, [sp, #-0x20]! ; stp x29, x30, [sp, #0x10] ; add x29, sp, #0x10 ;
+    mov x19, x0 ; ldr x0, [x0, #8] ; bl A ; str w0, [x19, #0x10] ; ldp x29, x30,
+    [sp, #0x10] ; ldr x19, [sp], #0x20 ; b B: the frame is skipped, x19 keeps
+    self across the call, w0 is A's result and B, after the epilogue, the last
+    statement."""
+    words = (0xF81E0FF3, 0xA9017BFD, 0x910043FD, 0xAA0003F3, ldr_x(0, 0, 8), 0x94000040, str_w(0, 19, 0x10),
+             0xA9417BFD, 0xF84207F3, 0x14000040)
+    structs, func = leafgen.generate(ADDR, code(*words))
+    assert "u32 Unk_123564(u64);\nvoid Unk_123574();" in structs
+    assert func == ("void Unk_123450_call(Unk_123450* self) {\n    u32 r0 = Unk_123564(self->field_8);\n"
+                    "    self->field_10 = r0;\n    Unk_123574();\n}\n")
+    # a callee declared otherwise by an earlier function of the file drops the later one
+    entries = [(1, "u64 Unk_123564(u64);\n", ""), (2, structs, func)]
+    assert [e[0] for e in leafgen.consistent_declarations(entries)] == [1]
+    assert leafgen.placeholder_params("_Z11Unk_164d2f0Pvj", 0x710164D2F0) == ["void*", "u32"]
