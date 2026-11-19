@@ -2378,6 +2378,42 @@ Matching details learned on the box's states:
   distinct and the others the default's code; every spelling tried gives a
   range check from the lowest case instead.
 
+### The block store's templates (`src/unsorted/families`, 2026-11-19)
+
+The largest shape groups of `game/unk_133d350` (46 × 580, 46 × 520, 45 × 540
+and 56 × 320 bytes, next to the flag and work tables) are member templates of
+one class, instantiated once per block type, whose code doesn't depend on the
+type: `Unk_13471e0_Store` (`src/unsorted/families/Unk_13471e0.h`) keeps blocks
+keyed by a u32 in a sorted vector of 32-byte entries (memory from
+Unk_2771620's allocator), behind a recursive mutex at +0x78. Each block's
+bytes are XORed word by word with an xorshift32 generator seeded by the key
+and advanced once per bit set in it (`Unk_2431980`), through a stream over
+the bytes (`Unk_24319a8`), its scrambled view (`Unk_2431940`) and a reader
+(`Unk_2431910`) or writer (`Unk_24319f0`). Those classes are header-only in
+the original (their destructors are never called, their vtables come with
+every user), so they're written there, and `vtables.py write` leaves the
+classes of `src/unsorted/families` (and their vtables' functions) alone.
+
+How the generator's constructor inlines pinned the layout: each inline level
+between it and its user alternately peels a devirtualized step out of the
+popcount loop (loop rotation) and inlines it, so the original's two inlined
+steps and one direct call put it three levels down (a key-taking constructor
+of the scrambled view, the writer's constructor and the store's
+`Unk_Writer`). The generator's index and the view's start offset are members
+of base classes (`*_Base`): the implicit copy constructor then copies them
+apart from the rest, as the original does, and the view's D2 is its base's
+(an alias), which `Unk_2433478` shares.
+
+Matched: the 46 + 45 instances of the write (`Unk_13456e0`), overwrite
+(`Unk_1347350`) and read (`Unk_1346030`) templates, the generator, the
+streams' small members and libc++'s `std::sort` instances on the entries.
+Not matching: the 46 instances of the add (`Unk_13475a0`): the original takes
+the mutex's address again for the sort's lock, and every spelling tried here
+shares it with the outer lock; the scrambled view's read and write
+(register allocation). The other instances of the same groups are other
+overloads (the block passed by reference: 6 adds, 4 overwrites) or another
+store's (10 writes calling other callees), not written yet.
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
