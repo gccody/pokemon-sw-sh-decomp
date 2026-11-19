@@ -14,7 +14,7 @@
 #include "gflib3/Unk_239a4c0.h"
 
 struct Unk_23c4ef0_Light;
-struct Unk_23c4ef0_Name;
+class Unk_5cfaf0_Name;
 struct Unk_23c4ef0_Scene;
 struct Unk_23c4ef0_List;
 
@@ -542,7 +542,7 @@ public:
     Unk_239a418_Ref<Unk_23c4ef0_Poke> Unk_961020(u32 pos);
     Unk_239a418_Ref<Unk_23c4ef0_Poke> Unk_961f10(u32 id, s32 index);
     void Unk_9626a0(const u64* arg1);
-    void Unk_9650e0(const Unk_23c4ef0_Name* name);
+    void Unk_9650e0(const Unk_5cfaf0_Name* name);
     void Unk_965220(bool arg1, u32 pos);
     void Unk_965790(bool arg1, u32 arg2);
 

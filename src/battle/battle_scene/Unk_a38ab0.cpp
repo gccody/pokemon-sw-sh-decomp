@@ -19,7 +19,7 @@ void Unk_980950(Unk_23c4ef0_Poke*, s32);
 u8 Unk_981b70(Unk_23c4ef0_Poke*);
 void Unk_988980(Unk_23c4ef0_Poke*, s32);
 void Unk_97ffc0(Unk_23c4ef0_Poke*, void*);
-void Unk_984ba0(Unk_23c4ef0_Poke*, const Unk_23c4ef0_Name&, const Unk_23c4ef0_Name&, s32);
+void Unk_984ba0(Unk_23c4ef0_Poke*, const Unk_5cfaf0_Name&, const Unk_5cfaf0_Name&, s32);
 void Unk_975390(Unk_23c4ef0_Poke*, void*, Unk_239a418_Ref<Unk_23c4ef0_Poke>, s32, bool, bool);
 void Unk_975730(Unk_23c4ef0_Poke*);
 void Unk_975590(Unk_23c4ef0_Poke*,
@@ -28,19 +28,19 @@ void Unk_975590(Unk_23c4ef0_Poke*,
                 const char*,
                 bool,
                 bool);
-void Unk_9b0a90(Unk_23c4ef0_Poke*, const Unk_23c4ef0_Name&, const Unk_23c4ef0_Name&);
-void Unk_9b0a80(Unk_23c4ef0_Poke*, const Unk_23c4ef0_Name&);
-void Unk_988e80(Unk_23c4ef0_Poke*, const Unk_23c4ef0_Name&);
-void Unk_9b0aa0(Unk_23c4ef0_Poke*, const Unk_23c4ef0_Name&, f32, s32);
-void Unk_98d1c0(Unk_23c4ef0_Poke*, const Unk_23c4ef0_Name&, bool);
+void Unk_9b0a90(Unk_23c4ef0_Poke*, const Unk_5cfaf0_Name&, const Unk_5cfaf0_Name&);
+void Unk_9b0a80(Unk_23c4ef0_Poke*, const Unk_5cfaf0_Name&);
+void Unk_988e80(Unk_23c4ef0_Poke*, const Unk_5cfaf0_Name&);
+void Unk_9b0aa0(Unk_23c4ef0_Poke*, const Unk_5cfaf0_Name&, f32, s32);
+void Unk_98d1c0(Unk_23c4ef0_Poke*, const Unk_5cfaf0_Name&, bool);
 void Unk_9889b0(Unk_23c4ef0_Poke*, void*, void*);
 void Unk_980f80(Unk_23c4ef0_Poke*);
 void Unk_97ef60(Unk_23c4ef0_Poke*, bool);
 void Unk_97efb0(Unk_23c4ef0_Poke*, bool);
 u32 Unk_982a10(Unk_23c4ef0_Poke*);
-void Unk_97f190(Unk_23c4ef0_Poke*, const Unk_23c4ef0_Name&, bool);
-void Unk_97f390(Unk_23c4ef0_Poke*, const Unk_23c4ef0_Name&, bool);
-void Unk_97f590(Unk_23c4ef0_Poke*, const Unk_23c4ef0_Name&, s32);
+void Unk_97f190(Unk_23c4ef0_Poke*, const Unk_5cfaf0_Name&, bool);
+void Unk_97f390(Unk_23c4ef0_Poke*, const Unk_5cfaf0_Name&, bool);
+void Unk_97f590(Unk_23c4ef0_Poke*, const Unk_5cfaf0_Name&, s32);
 void* Unk_c1f550(void*, const Unk_23f4660_Name*);
 Unk_23f4660_Name Unk_9fccc0(const char*);
 void Unk_9889a0(Unk_23c4ef0_Poke*, f32, s32);
@@ -304,7 +304,7 @@ void Unk_a53640(void* seq, Unk_23c4ef0_Owner* owner, const u64*) {
 void Unk_a536b0(void* seq, Unk_23c4ef0_Owner* owner, const u64*) {
     char str[0x40];
     Unk_140bcf0(seq, str, sizeof(str), 1);
-    Unk_23c4ef0_Name name(str);
+    Unk_5cfaf0_Name name(str);
     owner->Unk_9650e0(&name);
 }
 
@@ -681,7 +681,7 @@ void Unk_a3fda0(void* seq, Unk_23c4ef0_Owner* owner, const u64*) {
         if (pos == 0xff)
             continue;
         Unk_239a418_Ref<Unk_23c4ef0_Poke> poke = owner->field_548[pos];
-        Unk_97f190(poke.m_ptr, Unk_5cfad0(Unk_23c4ef0_HashStr(str)), arg);
+        Unk_97f190(poke.m_ptr, Unk_5cfad0_Literal(str).Unk_5cfad0(), arg);
     }
 }
 
@@ -701,7 +701,7 @@ void Unk_a3ff20(void* seq, Unk_23c4ef0_Owner* owner, const u64*) {
         if (pos == 0xff)
             continue;
         Unk_239a418_Ref<Unk_23c4ef0_Poke> poke = owner->field_548[pos];
-        Unk_97f390(poke.m_ptr, Unk_5cfad0(Unk_23c4ef0_HashStr(str)), arg);
+        Unk_97f390(poke.m_ptr, Unk_5cfad0_Literal(str).Unk_5cfad0(), arg);
     }
 }
 
@@ -721,7 +721,7 @@ void Unk_a400a0(void* seq, Unk_23c4ef0_Owner* owner, const u64*) {
         if (pos == 0xff)
             continue;
         Unk_239a418_Ref<Unk_23c4ef0_Poke> poke = owner->field_548[pos];
-        Unk_97f590(poke.m_ptr, Unk_5cfad0(Unk_23c4ef0_HashStr(str)), arg);
+        Unk_97f590(poke.m_ptr, Unk_5cfad0_Literal(str).Unk_5cfad0(), arg);
     }
 }
 
@@ -740,10 +740,11 @@ void Unk_a40680(void* seq, Unk_23c4ef0_Owner* owner, const u64*) {
         u32 state = Unk_982a10(poke.m_ptr);
         if (state == 0)
             continue;
-        Unk_97f590(poke.m_ptr, Unk_5cfad0(Unk_23c4ef0_HashStr("app_state")), 2);
+        Unk_97f590(poke.m_ptr, Unk_5cfad0_Literal("app_state").Unk_5cfad0(), 2);
         Unk_97f190(poke.m_ptr,
-                   Unk_5cfad0(state == 2 ? Unk_23c4ef0_HashStr("to_kw32_happyB01")
-                                         : Unk_23c4ef0_HashStr("to_kw32_happyA01")),
+                   (state == 2 ? Unk_5cfad0_Literal("to_kw32_happyB01")
+                               : Unk_5cfad0_Literal("to_kw32_happyA01"))
+                       .Unk_5cfad0(),
                    false);
     }
 }
@@ -1101,7 +1102,7 @@ void Unk_a5d200(void* seq, Unk_23c4ef0_Owner* owner, const u64*) {
         Unk_239a418_Ref<Unk_23c4ef0_Poke> poke = owner->Unk_961f10(id, i);
         if (!poke.m_ptr)
             continue;
-        Unk_97f590(poke.m_ptr, Unk_5cfad0(Unk_23c4ef0_HashStr(str)), arg);
+        Unk_97f590(poke.m_ptr, Unk_5cfad0_Literal(str).Unk_5cfad0(), arg);
     }
 }
 
@@ -1120,7 +1121,7 @@ void Unk_a5d370(void* seq, Unk_23c4ef0_Owner* owner, const u64*) {
         Unk_239a418_Ref<Unk_23c4ef0_Poke> poke = owner->Unk_961f10(id, i);
         if (!poke.m_ptr)
             continue;
-        Unk_97f390(poke.m_ptr, Unk_5cfad0(Unk_23c4ef0_HashStr(str)), arg);
+        Unk_97f390(poke.m_ptr, Unk_5cfad0_Literal(str).Unk_5cfad0(), arg);
     }
 }
 
@@ -1137,7 +1138,7 @@ void Unk_a5d0a0(void* seq, Unk_23c4ef0_Owner* owner, const u64*) {
         Unk_239a418_Ref<Unk_23c4ef0_Poke> poke = owner->Unk_961f10(id, i);
         if (!poke.m_ptr)
             continue;
-        Unk_97f190(poke.m_ptr, Unk_5cfad0(Unk_23c4ef0_HashStr(str)), false);
+        Unk_97f190(poke.m_ptr, Unk_5cfad0_Literal(str).Unk_5cfad0(), false);
     }
 }
 
@@ -1193,7 +1194,7 @@ void Unk_a62240(void* seq, Unk_23c4ef0_Owner* owner, const u64*) {
         Unk_239a418_Ref<Unk_23c4ef0_Poke> poke = owner->Unk_961020(pos);
         if (!poke.m_ptr)
             continue;
-        Unk_98d1c0(poke.m_ptr, Unk_5cfad0(Unk_23c4ef0_HashStr(str)), arg);
+        Unk_98d1c0(poke.m_ptr, Unk_5cfad0_Literal(str).Unk_5cfad0(), arg);
     }
 }
 
@@ -1204,7 +1205,7 @@ void Unk_a4dc00(void* seq, Unk_23c4ef0_Owner* owner, const u64* cmd) {
     Unk_239a418_Ref<Unk_23c4ef0_Group> group =
         owner->field_640->field_8.find(Unk_23c4ef0_GetCmd(cmd)->field_10)->second;
     for (Unk_23c4ef0_Poke* poke : group.m_ptr->field_a0)
-        Unk_988e80(poke, Unk_5cfad0(Unk_23c4ef0_HashStr(str)));
+        Unk_988e80(poke, Unk_5cfad0_Literal(str).Unk_5cfad0());
 }
 
 // 0x7100a4fa30
@@ -1218,7 +1219,7 @@ void Unk_a4fa30(void* seq, Unk_23c4ef0_Owner* owner, const u64* cmd) {
     Unk_239a418_Ref<Unk_23c4ef0_Group> group =
         owner->field_6a0->field_8.find(Unk_23c4ef0_GetCmd(cmd)->field_10)->second;
     for (Unk_23c4ef0_Poke* poke : group.m_ptr->field_a0)
-        Unk_9b0aa0(poke, Unk_23c4ef0_ResName(str).Unk_5cfaf0(), arg1, arg2);
+        Unk_9b0aa0(poke, Unk_d0c0_String(str).Unk_5cfaf0(), arg1, arg2);
 }
 
 // 0x7100a4ff00
@@ -1303,7 +1304,7 @@ void Unk_a4f700(void* seq, Unk_23c4ef0_Owner* owner, const u64* cmd) {
     Unk_239a418_Ref<Unk_23c4ef0_Group> group =
         owner->field_6a0->field_8.find(Unk_23c4ef0_GetCmd(cmd)->field_10)->second;
     for (Unk_23c4ef0_Poke* poke : group.m_ptr->field_a0)
-        Unk_9b0a80(poke, Unk_23c4ef0_ResName(str).Unk_5cfaf0());
+        Unk_9b0a80(poke, Unk_d0c0_String(str).Unk_5cfaf0());
 }
 
 // 0x7100a4f860
@@ -1315,8 +1316,7 @@ void Unk_a4f860(void* seq, Unk_23c4ef0_Owner* owner, const u64* cmd) {
     Unk_239a418_Ref<Unk_23c4ef0_Group> group =
         owner->field_6a0->field_8.find(Unk_23c4ef0_GetCmd(cmd)->field_10)->second;
     for (Unk_23c4ef0_Poke* poke : group.m_ptr->field_a0)
-        Unk_9b0a90(poke, Unk_23c4ef0_ResName(str1).Unk_5cfaf0(),
-                   Unk_23c4ef0_ResName(str2).Unk_5cfaf0());
+        Unk_9b0a90(poke, Unk_d0c0_String(str1).Unk_5cfaf0(), Unk_d0c0_String(str2).Unk_5cfaf0());
 }
 
 // 0x7100a62e50
@@ -1421,6 +1421,6 @@ void Unk_a51c40(void* seq, Unk_23c4ef0_Owner* owner, const u64*) {
         if (pos == 0xff)
             continue;
         Unk_239a418_Ref<Unk_23c4ef0_Poke> poke = owner->field_548[pos];
-        Unk_984ba0(poke.m_ptr, Unk_23c4ef0_Name(str1), Unk_23c4ef0_Name(str2), arg);
+        Unk_984ba0(poke.m_ptr, Unk_5cfaf0_Name(str1), Unk_5cfaf0_Name(str2), arg);
     }
 }

@@ -2079,7 +2079,9 @@ match (23.0 KB, `src/battle/battle_scene/Unk_a38ab0.cpp`). What they share:
   `cmd[1]`. A vector is a struct holding a `float32x4_t`: its copies go
   through two general registers, high half first, because of
   `-mno-implicit-float`.
-- Names hashed with 64-bit FNV-1a (`Unk_23c4ef0_HashStr`): `constexpr`, so
+- Names hashed with 64-bit FNV-1a (`Unk_5cfad0_Literal` and
+  `Unk_5cfaf0_Name`, gflib3's, in `unsorted/Unk_d0c0.h` with the string
+  `Unk_d0c0_String` the contents' apps use too): `constexpr`, so
   one made from a literal is a constant, and a name given to a function is
   a temporary in the call (passed by reference, made after the object
   pointer is read).
