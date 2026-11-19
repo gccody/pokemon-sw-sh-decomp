@@ -1369,7 +1369,15 @@ static int cookie_output(struct CookieInfo *c, const char *dumphere)
     if(format_ptr == NULL) {
       fprintf(out, "#\n# Fatal libcurl error\n");
       if(!use_stdout)
+#if 1 /* Pokemon SwSh decomp */
+        /* Nintendo's SDK build calls the SDK's own fclose here (an import
+           of main), not its replacement (curl_nnstdio.h) that the fclose
+           below calls (cookie_output is inlined into Curl_flush_cookies,
+           Sword 0x7101753040). */
+        (fclose)(out);
+#else
         fclose(out);
+#endif
       return 1;
     }
     fprintf(out, "%s\n", format_ptr);
