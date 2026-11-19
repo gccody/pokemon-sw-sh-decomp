@@ -49,8 +49,16 @@ def test_shapes():
 
 
 def test_render():
-    src = C.render([("Unk_5000", 0x5010, 0x100, 0x200, 0x18)])
+    src = C.render([("Unk_5000", 0x5010, 0x100, 0x200, 0x18, [(8, 8), (0x10, 8)])])
     assert 'class __attribute__((visibility("hidden"))) Unk_5000 {' in src
     assert "    u64 field_8;\n    u64 field_10;\n};" in src
     assert "// 0x7100000100\nUnk_5000* Unk_5000::vf2() {\n    return new Unk_5000(*this);\n}" in src
     assert "// 0x7100000200\nvoid Unk_5000::vf3(Unk_5000* p) {\n    new (p) Unk_5000(*this);\n}" in src
+
+
+def test_fields():
+    p = [*adrp_add(8, 0x200, VT), 0xF9000028, 0xF9400C08, 0xF9000C28, 0xF9400808, 0xF9000828, 0xD65F03C0]
+    img = image({0x200: p})
+    assert C.copied_fields(img, 0x200, len(p) * 4) == [(0x10, 8), (0x18, 8)]
+    assert C.field_lines([(0x10, 8), (0x18, 8)]) == ["    alignas(16) u64 field_10;", "    u64 field_18;"]
+    assert C.field_lines([(8, 4)]) == ["    u32 field_8;"]
