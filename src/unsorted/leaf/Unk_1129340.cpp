@@ -531,6 +531,22 @@ void Unk_113a1b0_clearField508(Unk_113a1b0* self) {
     self->field_508 = 0;
 }
 
+struct Unk_1108730;
+struct Unk_113a3b0 {
+    u8 _0[0x710];
+    Unk_1108730* field_710;
+};
+PKMN_OFFSET_ASSERT(Unk_113a3b0, field_710, 0x710);
+
+u64 Unk_1108730_getField58(const Unk_1108730*);
+void Unk_7656d0();
+
+// 0x710113a3b0
+void Unk_113a3b0_call(const Unk_113a3b0* self) {
+    Unk_1108730_getField58(self->field_710);
+    Unk_7656d0();
+}
+
 struct Unk_113a530 {
     u8 _0[0x838];
     u64 field_838;

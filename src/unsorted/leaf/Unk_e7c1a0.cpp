@@ -206,6 +206,22 @@ bool Unk_e83370_check(const Unk_e83370* self) {
     return self->field_3c0->field_60 != 0;
 }
 
+struct Unk_14ac420;
+struct Unk_e83390 {
+    u8 _0[0x1b0];
+    Unk_14ac420* field_1b0;
+};
+PKMN_OFFSET_ASSERT(Unk_e83390, field_1b0, 0x1b0);
+
+u8 Unk_14ac420_getField2fc(const Unk_14ac420*);
+
+// 0x7100e83390
+void Unk_e83390_call(const Unk_e83390* self) {
+    if (self->field_1b0 != nullptr) {
+        Unk_14ac420_getField2fc(self->field_1b0);
+    }
+}
+
 struct Unk_e83430 {
     u8 _0[0x1b0];
     u64 field_1b0;

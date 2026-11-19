@@ -44,6 +44,46 @@ void Unk_d1b6a0_clearField9e(Unk_d1b6a0* self) {
     self->field_9e = 0;
 }
 
+struct Unk_d1b6b0 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    u8 _8[0x58];
+    u32 field_60;
+    u8 _64[0x6];
+    u8 field_6a;
+};
+PKMN_OFFSET_ASSERT(Unk_d1b6b0, field_60, 0x60);
+PKMN_OFFSET_ASSERT(Unk_d1b6b0, field_6a, 0x6a);
+
+u32 Unk_d1ba70();
+
+// 0x7100d1b6b0
+void Unk_d1b6b0_call(Unk_d1b6b0* self) {
+    u32 r0 = Unk_d1ba70();
+    if ((r0 & 1) != 0) {
+        self->vf18();
+        self->field_60 = 2;
+        self->field_6a = 0;
+    }
+}
+
 struct Unk_d1ba50 {
     u8 _0[0x9c];
     u8 field_9c;

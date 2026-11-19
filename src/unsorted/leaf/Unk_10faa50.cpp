@@ -3,6 +3,26 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
+struct Unk_10faa50 {
+    u8 _0[0x50];
+    u32 field_50;
+};
+PKMN_OFFSET_ASSERT(Unk_10faa50, field_50, 0x50);
+
+u32 Unk_6a0d40();
+void Unk_10faaa0(void*);
+
+// 0x71010faa50
+void Unk_10faa50_call(Unk_10faa50* self) {
+    if (self->field_50 == 2) {
+        u32 r0 = Unk_6a0d40();
+        if ((r0 & 0xff) != 2)
+            return;
+        Unk_10faaa0(self);
+        self->field_50 = 0;
+    }
+}
+
 struct Unk_10fad30 {
     u8 _0[0x50];
     u32 field_50;

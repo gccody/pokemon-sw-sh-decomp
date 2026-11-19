@@ -16,6 +16,31 @@ void Unk_fa98f0_call(const Unk_fa98f0* self) {
     Unk_eb8e80(self->field_28);
 }
 
+struct Unk_fa9900 {
+    u8 _0[0x28];
+    u64 field_28;
+    u8 _30[0x58];
+    u8 field_88;
+    u8 _89[0x3];
+    u32 field_8c;
+};
+PKMN_OFFSET_ASSERT(Unk_fa9900, field_28, 0x28);
+PKMN_OFFSET_ASSERT(Unk_fa9900, field_88, 0x88);
+PKMN_OFFSET_ASSERT(Unk_fa9900, field_8c, 0x8c);
+
+void Unk_eb8a80(u64, u32);
+
+// 0x7100fa9900
+void Unk_fa9900_call(Unk_fa9900* self) {
+    if (self->field_88 != 0) {
+        if (self->field_8c != 1)
+            return;
+        Unk_eb8a80(self->field_28, 1);
+        self->field_8c = 2;
+        self->field_88 = 1;
+    }
+}
+
 struct Unk_faacd0_0 {
     u8 _0[0x7c];
     u32 field_7c;

@@ -158,6 +158,28 @@ void Unk_786cd0_call(u32 self) {
     Unk_785fb0(Unk_27cecf0, self);
 }
 
+struct Unk_786d60_0 {
+    u8 _0[0x10];
+    u8 field_10;
+    u8 _11[0xb];
+    u8 field_1c;
+};
+PKMN_OFFSET_ASSERT(Unk_786d60_0, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_786d60_0, field_1c, 0x1c);
+
+struct Unk_786d60 {
+    Unk_786d60_0* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_786d60, field_0, 0x0);
+
+// 0x7100786d60
+bool Unk_786d60_check(const Unk_786d60* self) {
+    if (self->field_0->field_1c != 4) {
+        return false;
+    }
+    return (self->field_0->field_10 & 0x20) == 0;
+}
+
 struct Unk_786fb0_0 {
     u8 _0[0x10];
     u8 field_10;

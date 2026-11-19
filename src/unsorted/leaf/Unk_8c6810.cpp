@@ -25,6 +25,20 @@ u32 Unk_8c6820_getField5c(const Unk_8c6820* self) {
     return self->field_5c;
 }
 
+struct Unk_8c2630;
+struct Unk_8c82b0 {
+    u8 _0[0xb8];
+    Unk_8c2630* field_b8;
+};
+PKMN_OFFSET_ASSERT(Unk_8c82b0, field_b8, 0xb8);
+
+u8 Unk_8c2630_getField288(const Unk_8c2630*);
+
+// 0x71008c82b0
+void Unk_8c82b0_call(const Unk_8c82b0* self) {
+    Unk_8c2630_getField288(self->field_b8);
+}
+
 struct Unk_8c82c0 {
     u8 _0[0x1a1];
     u8 field_1a1;

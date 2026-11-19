@@ -118,3 +118,16 @@ PKMN_OFFSET_ASSERT(Unk_800bf0, field_38, 0x38);
 u8 Unk_800bf0_getField38(const Unk_800bf0* self) {
     return self->field_38;
 }
+
+struct Unk_800c60 {
+    u8 _0[0x3c];
+    u32 field_3c;
+};
+PKMN_OFFSET_ASSERT(Unk_800c60, field_3c, 0x3c);
+
+// 0x7100800c60
+void Unk_800c60_set(Unk_800c60* self) {
+    if (self->field_3c <= 0x270e) {
+        self->field_3c = self->field_3c + 1;
+    }
+}

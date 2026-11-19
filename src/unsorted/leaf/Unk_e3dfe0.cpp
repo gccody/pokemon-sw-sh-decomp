@@ -34,6 +34,21 @@ bool Unk_e3e3b0_check(const Unk_e3e3b0* self) {
     return self->field_1a0 != 0xfffffffe;
 }
 
+struct Unk_14a92b0;
+struct Unk_e3e3c0 {
+    u8 _0[0x68];
+    Unk_14a92b0* field_68;
+};
+PKMN_OFFSET_ASSERT(Unk_e3e3c0, field_68, 0x68);
+
+u32 Unk_14a92b0_getField78(const Unk_14a92b0*);
+
+// 0x7100e3e3c0
+bool Unk_e3e3c0_call(const Unk_e3e3c0* self) {
+    u32 r0 = Unk_14a92b0_getField78(self->field_68);
+    return r0 == 6;
+}
+
 struct Unk_e3efd0_60 {
     u8 _0[0x140];
     u32 field_140;

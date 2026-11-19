@@ -2386,6 +2386,38 @@ void Unk_cdc7d0_set(const Unk_cdc7d0* self, Unk_cdc7d0* value) {
     *value = *self;
 }
 
+struct Unk_cdcab0_arg2_0 {
+    u8 _0[0x390];
+    u64 field_390;
+    u8 _398[0x10];
+    u8 field_3a8;
+};
+PKMN_OFFSET_ASSERT(Unk_cdcab0_arg2_0, field_390, 0x390);
+PKMN_OFFSET_ASSERT(Unk_cdcab0_arg2_0, field_3a8, 0x3a8);
+
+struct Unk_cdcab0_arg2 {
+    Unk_cdcab0_arg2_0* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_cdcab0_arg2, field_0, 0x0);
+
+struct Unk_cdcab0_0 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_cdcab0_0, field_0, 0x0);
+
+struct Unk_cdcab0 {
+    Unk_cdcab0_0* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_cdcab0, field_0, 0x0);
+
+// 0x7100cdcab0
+bool Unk_cdcab0_check(const Unk_cdcab0* self, u32 /*unused*/, const Unk_cdcab0_arg2* arg2) {
+    if (arg2->field_0->field_390 != self->field_0->field_0) {
+        return false;
+    }
+    return arg2->field_0->field_3a8 != 0;
+}
+
 // 0x7100cdcae0
 void Unk_cdcae0_update() {}
 

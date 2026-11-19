@@ -185,6 +185,27 @@ void Unk_cb33d0_set(Unk_cb33d0* self) {
     self->field_88 = 0;
 }
 
+struct Unk_cb3440_arg1 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_cb3440_arg1, field_0, 0x0);
+
+struct Unk_cb3440 {
+    u8 _0[0x80];
+    u64 field_80;
+    u32 field_88;
+};
+PKMN_OFFSET_ASSERT(Unk_cb3440, field_80, 0x80);
+PKMN_OFFSET_ASSERT(Unk_cb3440, field_88, 0x88);
+
+// 0x7100cb3440
+u32 Unk_cb3440_get(const Unk_cb3440* self, const Unk_cb3440_arg1* value) {
+    if (self->field_80 != value->field_0) {
+        return 0;
+    }
+    return self->field_88;
+}
+
 struct Unk_cb3460 {
     u8 _0[0x98];
     u32 field_98;

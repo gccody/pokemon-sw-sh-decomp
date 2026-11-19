@@ -165,6 +165,24 @@ void Unk_122a8e0_update() {}
 // 0x710122a8f0
 void Unk_122a8f0_update() {}
 
+struct Unk_115bc00;
+struct Unk_122a900_arg1 {
+    Unk_115bc00* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_122a900_arg1, field_0, 0x0);
+
+u32 Unk_115bc00_getField3bc(const Unk_115bc00*);
+void Unk_115bc10(void*, u32);
+
+// 0x710122a900
+void Unk_122a900_call(void* /*unused*/, const Unk_122a900_arg1* value) {
+    Unk_115bc00* v0 = value->field_0;
+    u32 r0 = Unk_115bc00_getField3bc(value->field_0);
+    if (r0 == 2) {
+        Unk_115bc10(v0, 0);
+    }
+}
+
 // 0x710122a940
 void Unk_122a940_update() {}
 
@@ -173,6 +191,34 @@ void Unk_122a950_update() {}
 
 // 0x710122a960
 void Unk_122a960_update() {}
+
+struct Unk_1136910;
+struct Unk_122a970_arg1 {
+    Unk_1136910* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_122a970_arg1, field_0, 0x0);
+
+struct Unk_122a970_0 {
+    u32 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_122a970_0, field_0, 0x0);
+
+struct Unk_122a970 {
+    Unk_122a970_0* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_122a970, field_0, 0x0);
+
+u32 Unk_1136910_getField368(const Unk_1136910*);
+void Unk_113c3f0(void*);
+
+// 0x710122a970
+void Unk_122a970_call(const Unk_122a970* self, const Unk_122a970_arg1* value) {
+    Unk_1136910* v0 = value->field_0;
+    u32 r0 = Unk_1136910_getField368(value->field_0);
+    if (r0 == self->field_0->field_0) {
+        Unk_113c3f0(v0);
+    }
+}
 
 // 0x710122a9c0
 void Unk_122a9c0_update() {}
@@ -487,6 +533,33 @@ void Unk_122b650_update() {}
 
 // 0x710122b660
 void Unk_122b660_update() {}
+
+struct Unk_115ba20;
+struct Unk_122b670_arg1 {
+    Unk_115ba20* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_122b670_arg1, field_0, 0x0);
+
+struct Unk_122b670_0 {
+    Unk_115ba20* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_122b670_0, field_0, 0x0);
+
+struct Unk_122b670 {
+    Unk_122b670_0* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_122b670, field_0, 0x0);
+
+u8 Unk_115ba20_getField3b0(const Unk_115ba20*);
+
+// 0x710122b670
+void Unk_122b670_call(const Unk_122b670* self, const Unk_122b670_arg1* value) {
+    Unk_115ba20* v0 = value->field_0;
+    u8 r0 = Unk_115ba20_getField3b0(value->field_0);
+    if ((r0 & 1) != 0) {
+        self->field_0->field_0 = v0;
+    }
+}
 
 // 0x710122b6b0
 void Unk_122b6b0_update() {}

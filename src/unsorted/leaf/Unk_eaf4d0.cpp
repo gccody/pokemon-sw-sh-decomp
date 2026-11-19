@@ -55,6 +55,30 @@ void Unk_eb50f0_set(const Unk_eb50f0* self, bool value) {
     self->field_60->field_48 = value;
 }
 
+struct Unk_eb5750_60 {
+    u8 _0[0x1a];
+    u8 field_1a;
+};
+PKMN_OFFSET_ASSERT(Unk_eb5750_60, field_1a, 0x1a);
+
+struct Unk_eb5750 {
+    u8 _0[0x60];
+    Unk_eb5750_60* field_60;
+};
+PKMN_OFFSET_ASSERT(Unk_eb5750, field_60, 0x60);
+
+u32 Unk_eb5cd0(void*);
+void Unk_eb5330(void*, u32);
+
+// 0x7100eb5750
+void Unk_eb5750_call(Unk_eb5750* self) {
+    u32 r0 = Unk_eb5cd0(self->field_60);
+    if ((r0 & 1) != 0) {
+        Unk_eb5330(self, 0);
+        self->field_60->field_1a = 1;
+    }
+}
+
 struct Unk_eb5c60 {
     u8 _0[0x40];
     s32 field_40;

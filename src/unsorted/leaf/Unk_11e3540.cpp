@@ -219,6 +219,26 @@ void Unk_11e4c40_setField114(Unk_11e4c40* self, f32 value) {
     self->field_114 = value;
 }
 
+struct Unk_11e7550 {
+    u8 _0[0xa0];
+    u32 field_a0;
+    u8 _a4[0x14];
+    u32 field_b8;
+};
+PKMN_OFFSET_ASSERT(Unk_11e7550, field_a0, 0xa0);
+PKMN_OFFSET_ASSERT(Unk_11e7550, field_b8, 0xb8);
+
+void Unk_11e6940(void*, u32);
+
+// 0x71011e7550
+void Unk_11e7550_call(Unk_11e7550* self, u32 value) {
+    self->field_b8 = value;
+    if (value == 1) {
+        Unk_11e6940(self, 0);
+        self->field_a0 = 0;
+    }
+}
+
 // 0x71011ea0e0
 void Unk_11ea0e0_update() {}
 

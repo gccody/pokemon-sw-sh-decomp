@@ -523,3 +523,19 @@ PKMN_OFFSET_ASSERT(Unk_15bf120, field_8, 0x8);
 u32 Unk_15bf120_get(const Unk_15bf120* self) {
     return self->field_8;
 }
+
+struct Unk_15bf1b0 {
+    u8 field_0;
+    u8 _1[0x7];
+    u32 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_15bf1b0, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_15bf1b0, field_8, 0x8);
+
+// 0x71015bf1b0
+bool Unk_15bf1b0_check(const Unk_15bf1b0* self) {
+    if (self->field_8 != 3) {
+        return false;
+    }
+    return self->field_0 != 0;
+}

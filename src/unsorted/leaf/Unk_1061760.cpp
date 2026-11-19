@@ -14,6 +14,16 @@ void Unk_1061760_call() {
 }
 
 extern u64 Unk_24ba170;
+void Unk_6aed80(u64);
+
+// 0x7101061780
+void Unk_1061780_call() {
+    if (Unk_24ba170 != 0) {
+        Unk_6aed80(Unk_24ba170);
+    }
+}
+
+extern u64 Unk_24ba170;
 void Unk_6ae810(u64);
 
 // 0x71010617c0

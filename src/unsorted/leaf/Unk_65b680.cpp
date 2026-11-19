@@ -650,6 +650,54 @@ void Unk_674c30_call(u32 self, u64 value, u32 arg2, u64 /*unused*/, u64 arg4) {
     }
 }
 
+struct Unk_675040_a0 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+};
+
+struct Unk_675040_80 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual u32 vf11(u64);
+};
+
+struct Unk_675040 {
+    u8 _0[0x20];
+    u64 field_20;
+    u8 _28[0x58];
+    Unk_675040_80* field_80;
+    u8 _88[0x18];
+    Unk_675040_a0* field_a0;
+};
+PKMN_OFFSET_ASSERT(Unk_675040, field_20, 0x20);
+PKMN_OFFSET_ASSERT(Unk_675040, field_80, 0x80);
+PKMN_OFFSET_ASSERT(Unk_675040, field_a0, 0xa0);
+
+void Unk_6750b0(u64, u64);
+
+// 0x7100675040
+u32 Unk_675040_call(const Unk_675040* self, u64 value) {
+    self->field_a0->vf4();
+    u32 r1 = self->field_80->vf11(value);
+    if (r1 != 1) {
+        return 0;
+    }
+    Unk_6750b0(self->field_20, value);
+    return 1;
+}
+
 struct Unk_675720 {
     u8 _0[0x20];
     u64 field_20;
