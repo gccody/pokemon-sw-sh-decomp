@@ -1212,6 +1212,107 @@ def test_derived_from_an_out_of_line_base_with_one_interface():
     assert z.addr not in specs
 
 
+def test_derived_holding_a_template_member():
+    """A class Z on the same base whose D2 stores its two vptrs (its vtable
+    through GOT slot 0x1f00) and then only tail-calls the base's D2: it holds
+    a member of a class template with an empty destructor (MEMBER), whose
+    body clang hadn't seen when it emitted Z's out-of-line D2. Its D0 and its
+    thunks are copies of it, its destructor is its key function."""
+    img = bytearray(0x2000)
+    sub = 0xD1012000                                                   # sub x0, x0, #0x48
+    code = {0x100: [0xAA0003E8, RET], 0x110: [b(0x110, 0x100)], 0x120: [0xAA0003E9, RET],    # E
+            0x130: [0xAA0003EA, RET], 0x140: [0xAA0003EB, RET], 0x150: [0x90000000, 0x91000000, RET],
+            0x160: [sub, b(0x164, 0x100)], 0x170: [sub, b(0x174, 0x100)],
+            0x180: [0xAA0003EC, RET], 0x190: [0xAA0003ED, RET], 0x380: [0x90000000, 0x91004000, RET]}
+    # adrp x8 ; ldr x8, [x8, #0xf00] ; add x9, x8, #0x10 ; add x8, x8, #0x50 ; str x9, [x0] ; str x8, [x0, #0x48]
+    stores = [0xB0000008, 0xF9478108, 0x91004109, 0x91014108, 0xF9000009, 0xF9002408]
+    # adrp x9 ; ldr x9 ; add x10, x9 ; mov x8, x0 ; add x9, x9 ; str x10, [x8, #-0x48]! ; str x9, [x0] ; mov x0, x8
+    thunk = [0xB0000009, 0xF9478129, 0x9100412A, 0xAA0003E8, 0x91014129, 0xF81B8D0A, 0xF9000009, 0xAA0803E0]
+    for at, w in ((0x300, stores), (0x350, stores), (0x400, thunk), (0x450, thunk)):
+        code[at] = w + [b(at + 4 * len(w), 0x100)]
+    for a, w in code.items():
+        struct.pack_into(f"<{len(w)}I", img, a, *w)
+    slots = {}
+
+    def vt(start, ott, fns):
+        struct.pack_into("<q", img, start, ott)
+        for i, f in enumerate(fns):
+            slots[start + 16 + 8 * i] = f
+        return start + 16 + 8 * len(fns)
+
+    end = vt(0x1000, 0, [0x100, 0x110, 0x120, 0x130, 0x140, 0x150])   # E
+    end = vt(end, -0x48, [0x160, 0x170, 0x180, 0x190])                # E at +0x48
+    z_start = end
+    end = vt(end, 0, [0x300, 0x350, 0x120, 0x130, 0x140, 0x380])      # Z
+    vt(end, -0x48, [0x400, 0x450, 0x180, 0x190])
+    sizes = {a: 4 * len(w) for a, w in code.items()}
+    vts, tables = V.find_vtables(bytes(img), slots, set(code), DATA, len(img))
+    z = next(v for v in vts if v.start == z_start)
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), vts, tables, sizes, {}, {}, lambda a: "game", DELETE,
+                {0x1f00: z.start})
+    assert m.pattern(0x300) == V._STORED_ONLY[2]
+    assert V.tail_members(m, 0x300, 0x100, z.start, 0x180, 2) == {0x180: V.MEMBER}
+    assert V.tail_members(m, 0x300, 0x100, z.start, 0x180) is None         # three vptrs aren't these
+    assert V.tail_members(m, 0x300, 0x110, z.start, 0x180, 2) is None      # another base's D2
+    assert V.tail_members(m, 0x300, 0x100, z.start + 8, 0x180, 2) is None  # another class's vtable
+    e = V.ExternalBase(vts[0].addr, "Unk_E", "unsorted/Unk_E.h", ((2, "void", "vf2"), (3, "void", "vf3"),
+                       (4, "void", "vf4"), (5, "u8*", "vf5")), None, "", ((0x48, (0, 1), None),), size=0x180)
+    specs = {}
+    V.derive_external(m, e, specs, {}, V.owners(vts), lambda f: 0, lambda f: True, lambda t: True)
+    spec = specs[z.addr]
+    assert spec.order == [5] and spec.explicit_dtor and spec.fields == {0x180: V.MEMBER} and not spec.scalar_tail
+    decl, names, defs = V.render_class(m, spec)
+    assert f"    {V.MEMBER} field_180;\n}};\n" in decl
+    assert f"{spec.name}::~{spec.name}() {{}}" in defs
+    cls = f"{len(spec.name)}{spec.name}"
+    assert sorted(names) == [(0x300, f"_ZN{cls}D2Ev"), (0x350, f"_ZN{cls}D0Ev"), (0x400, f"_ZThn72_N{cls}D1Ev"),
+                             (0x450, f"_ZThn72_N{cls}D0Ev")]
+    text, _ = V.render_file(m, [(spec, spec.members)])
+    assert f'#include "{V.MEMBER_HEADER}"' in text
+    # A D0 that isn't a copy of the D2 isn't this shape.
+    struct.pack_into("<I", img, 0x350 + 4 * len(stores), b(0x350 + 4 * len(stores), 0x110))
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), vts, tables, sizes, {}, {}, lambda a: "game", DELETE,
+                {0x1f00: z.start})
+    specs = {}
+    V.derive_external(m, e, specs, {}, V.owners(vts), lambda f: 0, lambda f: True, lambda t: True)
+    assert z.addr not in specs
+
+
+def test_ref_members_on_a_base_with_references():
+    """A D2 on an inline base whose own D2 (0x600) releases a reference
+    (+0x78) before the object's part (+0x58): it releases its own (+0x80),
+    then stores the base's vptrs and runs the base's D2, inlined. Its
+    members are its own: after the base's size, and the base's follow."""
+    pro = [0xF81E0FF3, 0xA9017BFD, 0x910043FD, 0xB0000008]     # str x19, [sp, #-0x20]! ; stp x29, x30 ; add x29 ; adrp
+    vptrs = [0x91004109, 0x9101E10A, 0x9102E108, 0xAA0003F3, 0xF9000009, 0xA904A00A]  # add x9/x10/x8 ; mov ; str ; stp
+
+    def got(off: int) -> int:                                   # ldr x8, [x8, #off]
+        return 0xF9400108 | (off // 8) << 10
+
+    def release(off: int, base: int) -> list[int]:
+        return [0xF9400000 | (off // 8) << 10 | base << 5, 0xB40000A0, 0xF8448C08, 0xF9400D08, 0xD63F0100,
+                0xF900027F | (off // 8) << 10]
+
+    def part(slot: int, off: int) -> list[int]:                 # a base's vptrs, then its first reference
+        return [0xB0000008, got(slot), 0xF9400260 | (off // 8) << 10, 0x91004109, 0x9101E10A, 0x9102E108,
+                0xF9000269, 0xA904A26A] + release(off, 19)[1:]
+
+    epi = [0xA9417BFD, 0xF84207F3, RET]                         # ldp x29, x30 ; ldr x19, [sp], #0x20 ; ret
+    base = pro + [got(0x18)] + vptrs + release(0x78, 0) + part(0x20, 0x58) + epi
+    derived = pro + [got(0x10)] + vptrs + release(0x80, 0) + part(0x18, 0x78) + part(0x20, 0x58) + epi
+    img = bytearray(0x1100)
+    struct.pack_into(f"<{len(derived)}I", img, 0x200, *derived)
+    struct.pack_into(f"<{len(base)}I", img, 0x600, *base)
+    sizes = {0x200: 4 * len(derived), 0x600: 4 * len(base)}
+    m = V.Model("sword", bytes(img), sorted(sizes.items()), [], [], sizes, {}, {}, lambda a: "game", DELETE,
+                {0x1010: 0x3000, 0x1018: 0x3100, 0x1020: 0x3200})
+    assert m.pattern(0x200) == V.ref_dtor_pattern(m.pattern(0x600), 1)
+    assert V.ref_members(m, 0x200, 0x600, 0x3000, size=0x80) == (0x80,)
+    assert V.ref_members(m, 0x200, 0x600, 0x3000, size=0x88) is None     # +0x80 is the base's
+    assert V.ref_members(m, 0x200, 0x600, 0x3008, size=0x80) is None     # another class's vtable
+    assert V.ref_members(m, 0x600, 0x200, 0x3100, size=0x60) is None     # the base isn't on the derived class
+
+
 def test_stored_vtable_owners():
     """A D2 (0x100) in slot 0 of A's and B's vtables stores B's vtable (its
     GOT slot 0x1800): it's B's, though the owner heuristic gives it to A,

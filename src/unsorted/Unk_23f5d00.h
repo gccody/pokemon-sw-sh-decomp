@@ -14,9 +14,9 @@
 // of line with nothing to do: clang can't alias this D2 from another TU, and
 // with an empty body and no member to destroy it skips the vptr stores
 // (CanSkipVTablePointerInitialization), so their D2s, D0s and thunks only
-// tail-call this one. The other 19 store their two vptrs first. Written as
-// `X::~X() {}` they come out as those 2 do, so their destructors have a body,
-// or a member with a destructor, that compiles to nothing.
+// tail-call this one. The other 19 store their two vptrs first, and their
+// D0s and thunks are copies of their D2s: they hold a member of a class
+// template with an empty destructor (Unk_23f5d00_Member, below).
 #include <types.h>
 
 #include "gflib3/Unk_239a4c0.h"
@@ -52,6 +52,23 @@ static_assert(__builtin_offsetof(Unk_236d3d8, field_90) == 0x90, "Unk_236d3d8::f
 // The class Unk_23f5d00's member is constructed as (vtable 0x710236d618, with
 // Unk_236d3d8's slots): its destructor is Unk_236d3d8's.
 class Unk_236d618 : public Unk_236d3d8 {};
+
+// What the 19 classes on Unk_23f5d00 whose D2s store their vptrs and then
+// only tail-call its D2 hold. clang skips the vptr stores of a destructor
+// with an empty body when every member's destructor has an empty body too
+// (CanSkipVTablePointerInitialization in CGClass.cpp), and a destructor whose
+// body it hasn't seen isn't empty (FunctionDecl::hasTrivialBody). A class
+// template's members are instantiated at the end of the TU, while an
+// out-of-line destructor is emitted where it's defined: so a member of a
+// class template with a user-provided empty destructor makes the D2 store the
+// vptrs, and is then inlined into nothing. A member of a plain class with
+// such a destructor doesn't (checked with clang 7.0.1 and the game's flags).
+// What the template and its member are isn't known.
+template <typename T>
+class Unk_23f5d00_Member {
+public:
+    ~Unk_23f5d00_Member() {}
+};
 
 class Unk_23f5d00 : public Unk_239a4c0 {
 public:

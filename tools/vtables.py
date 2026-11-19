@@ -754,7 +754,7 @@ def element_member(m: Model, f: int, slot: int) -> Member | None:
 
 def _width(t) -> int:
     from leafgen import WIDTH
-    return 8 if t == REF or not isinstance(t, str) else 0x80 if t == CALLABLE else WIDTH[t]
+    return 8 if t == REF or not isinstance(t, str) else 0x80 if t == CALLABLE else 1 if t == MEMBER else WIDTH[t]
 
 
 def _merge(fields: dict, new) -> dict | None:
@@ -1201,20 +1201,33 @@ def ref_dtor_pattern(base: str, n: int, iface: bool = False) -> str | None:
     return head + first + (" ; ldr x0, [x19, #N]" + _RELEASE) * (n - 1) + _OBJECT_PART + tail
 
 
-def ref_members(m: Model, f: int, d2: int, vtable: int, iface: bool = False) -> tuple[int, ...] | None:
-    """The offsets of the reference members a D2 f releases, when that's all
-    it does before the object's D2 (d2, inlined): see ref_dtor_pattern."""
+def _ref_loads(m: Model, f: int) -> list[int]:
+    """The offsets of the `ldr x0, [x0|x19, #off]` in f: the references it releases."""
     from nx.refs import decode
-    offs = [((w >> 10) & 0xFFF) * 8 for _, w, _, _ in decode(m.img, f, m.sizes.get(f, 4))
-            if w & 0xFFC0001F == 0xF9400000 and (w >> 5) & 31 in (0, 19)]  # ldr x0, [x0|x19, #off]
-    if len(offs) < 2 or offs[-1] != 0x58 or any(a <= b for a, b in zip(offs, offs[1:])) or offs[-2] < 0x60:
+    return [((w >> 10) & 0xFFF) * 8 for _, w, _, _ in decode(m.img, f, m.sizes.get(f, 4))
+            if w & 0xFFC0001F == 0xF9400000 and (w >> 5) & 31 in (0, 19)]
+
+
+def ref_members(m: Model, f: int, d2: int, vtable: int, iface: bool = False,
+                size: int = 0x60) -> tuple[int, ...] | None:
+    """The offsets of the reference members a D2 f releases, when that's all
+    it does before its base's D2 (d2, inlined): see ref_dtor_pattern. The
+    base is the object, or a class on it whose D2 releases references of its
+    own (then those follow, and f stores the base's vptrs after its own:
+    the base's statics follow f's vtable). f's members come after the base's
+    `size` bytes (the object's 0x60; after the interface with `iface`)."""
+    offs, base = _ref_loads(m, f), _ref_loads(m, d2)
+    k = len(offs) - len(base)
+    if not base or k < 1 or offs[k:] != base or any(a <= b for a, b in zip(offs, offs[1:])) \
+            or offs[k - 1] < size + (8 if iface else 0):
         return None
-    if m.pattern(f) != ref_dtor_pattern(m.pattern(d2) or "", len(offs) - 1, iface):
+    if m.pattern(f) != ref_dtor_pattern(m.pattern(d2) or "", k, iface):
         return None
     calls, statics = _calls_and_statics(m, f)
-    if calls or statics[:1] != [vtable] or len(statics) != 2 or statics[1] not in _calls_and_statics(m, d2)[1][:1]:
+    base_calls, base_statics = _calls_and_statics(m, d2)
+    if calls or base_calls or statics[:1] != [vtable] or statics[1:] != base_statics:
         return None
-    return tuple(reversed(offs[:-1]))
+    return tuple(reversed(offs[:k]))
 
 
 # A D2's start that stores the vptrs of a class with the object's two secondary bases (+0x48, +0x50),
@@ -1297,6 +1310,14 @@ _VPTRS_CALL = (re.escape(_VPTRS.replace(" ; str x9, [x0] ; stp x10, x8, [x0, #N]
 _TAIL_MEMBERS = re.compile(rf"(?:{re.escape(_VPTRS)}|{_VPTRS_CALL})(?:{_REF_RE}|{_CALL_RE})*{re.escape(_TAIL_D2)}")
 # The same with one secondary base (+0x48: Unk_239a4c0's): two vptrs, and references only.
 _TAIL_MEMBERS2 = re.compile(rf"{re.escape(_VPTRS2)}(?:{_REF_RE})*{re.escape(_TAIL_D2)}")
+# A member of a class template whose destructor is user-provided and empty (unsorted/Unk_23f5d00.h):
+# a D2 that holds one and nothing else to destroy stores its vptrs, then only tail-calls its base's
+# (no frame), by vptrs.
+MEMBER = "Unk_23f5d00_Member<void>"
+MEMBER_HEADER = "unsorted/Unk_23f5d00.h"
+_FRAME = "str x19, [sp, #N]! ; stp x29, x30, [sp, #N] ; add x29, sp, #N ; "
+_STORED_ONLY = {n: v.removeprefix(_FRAME).replace(" ; mov x19, x0", "") + " ; b T"
+                for n, v in ((2, _VPTRS2), (3, _VPTRS))}
 
 
 def tail_members(m: Model, f: int, d2: int, vtable: int, size: int, vptrs: int = 3) -> dict[int, str] | None:
@@ -1310,11 +1331,21 @@ def tail_members(m: Model, f: int, d2: int, vtable: int, size: int, vptrs: int =
     A D2 that is only `b <d2>` has none (empty): the class's destructor is
     out of line (clang can't alias the base's D2 from another TU), its body
     is empty and no member has a destructor, so clang skips the vptr stores
-    (CanSkipVTablePointerInitialization in clang's CGClass.cpp)."""
+    (CanSkipVTablePointerInitialization in clang's CGClass.cpp).
+
+    A D2 that stores the vptrs and then only tail-calls d2 has a member
+    whose destructor's body clang hadn't seen when it emitted the D2: one of
+    a class template (MEMBER, at `size`), whose functions are instantiated
+    at the end of the TU, while an out-of-line D2 is emitted where it's
+    defined. Without a body, the member's destructor isn't trivial
+    (FunctionDecl::hasTrivialBody), so the vptrs are stored; once it's
+    instantiated, empty, it's inlined into nothing."""
     from nx.refs import decode
     pattern = m.pattern(f) or ""
     if pattern == "b T":
         return {} if branch_target(m, f) == d2 else None
+    if pattern == _STORED_ONLY.get(vptrs):
+        return {size: MEMBER} if _calls_and_statics(m, f) == ([d2], [vtable]) else None
     regex = {2: _TAIL_MEMBERS2, 3: _TAIL_MEMBERS}.get(vptrs)
     if regex is None or not regex.fullmatch(pattern):
         return None
@@ -1457,7 +1488,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             if empty:
                 refs = ref_members_empty(m, s0, v.start, e.size, 1 + len(e.secondaries))
             elif e.inline_dtor:
-                refs = ref_members(m, s0, d2, v.start)
+                refs = ref_members(m, s0, d2, v.start, size=e.size)
                 if refs is None and m.pattern(s0) == m.pattern(d2)                         and _calls_and_statics(m, s0) == _calls_and_statics(m, d2):
                     # A D2 of its own that is the base's, inlined: an out-of-line
                     # destructor with an empty body and nothing to destroy (clang
@@ -1467,7 +1498,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             else:
                 refs = tail_members(m, s0, d2, v.start, e.size, 1 + len(e.secondaries))
             if refs is None and e.inline_dtor and not empty \
-                    and (refs := ref_members(m, s0, d2, v.start, iface=True)):
+                    and (refs := ref_members(m, s0, d2, v.start, iface=True, size=e.size)):
                 four = True
             if refs is None or own.get(s0) != (v.addr, 0) or not pickable(s0):
                 continue
@@ -1487,8 +1518,16 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         # its destructor is out of line, so it's its key function. Its D0 and
         # its thunks tail-call the base's D2 as well (its D2 inlined).
         bare = refs == {} and not inline_bare
+        # One that stores its vptrs first holds a member of a class template
+        # (MEMBER): its destructor is out of line too (an implicit one would
+        # be emitted after the member's destructor is instantiated, and not
+        # store them). Its D0 and its thunks are copies of it.
+        held = isinstance(refs, dict) and MEMBER in refs.values()
         if bare:
             if m.pattern(s1) != "b T" or branch_target(m, s1) != d2:
+                continue
+        elif held:
+            if m.pattern(s1) != m.pattern(s0) or _calls_and_statics(m, s1) != _calls_and_statics(m, s0):
                 continue
         elif e.inline_dtor or refs:   # the D0 is the D2, inlined (the operator delete is empty)
             if m.pattern(s1) != m.pattern(s0) and not called:
@@ -1523,6 +1562,8 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
                     same = m.pattern(f) == "sub x0, x0, #N ; b T" and branch_target(m, f) == s0
                 elif bare:              # its D2 inlined: the base's tail-called
                     same = m.pattern(f) == "sub x0, x0, #N ; b T" and branch_target(m, f) == d2
+                elif held:              # its D2 inlined: its vptrs, the base's tail-called
+                    same = m.pattern(f) == m.pattern(w.slots[dslots[0]])                         and _calls_and_statics(m, f) == _calls_and_statics(m, s0)
                 elif refs:              # thunks with its D2 inlined, the D1's and D0's alike
                     # (before a tail call, one may keep its own `this` too, in another register: see
                     # Unk_239a418_Base's fields)
@@ -1703,7 +1744,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
         if missing and (refs or not any(x.kind == "ext_type" and x.value is not None for x in extra)):
             continue                # it can't be a parent either
         inline_type = any(x.kind == "ext_type" and x.value is None for x in extra)
-        if bare or inline_bare:
+        if bare or inline_bare or held:
             # Its D2 is its own only because its destructor is out of line
             # (implicit, clang would use its base's): its key function,
             # declared first.
@@ -1731,7 +1772,7 @@ def derive_external(m: Model, e: ExternalBase, specs: dict[int, ClassSpec], pick
             order = [e.type_slot, *(i for i in declared if i != e.type_slot)]
         else:
             order = derived_order(v, pv, mine, seg)
-            if order is None and empty and refs:
+            if order is None and e.inline_dtor and refs:
                 # Nothing it defines in its D0's file can be its key function
                 # (the original's vtable was emitted where the class is
                 # created): its destructor is, out of line. Its D2 is the
@@ -2154,7 +2195,8 @@ def render_file(m: Model, entries: list[tuple[ClassSpec, list[Member]]],
              "// them, and give the functions real signatures, once the classes are known.",
              "#include <types.h>", ""]
     headers = sorted({spec.ext.header for spec, _ in entries if spec.ext is not None}
-                     | ({CALLABLE_HEADER} if any(CALLABLE in spec.fields.values() for spec, _ in entries) else set()))
+                     | ({CALLABLE_HEADER} if any(CALLABLE in spec.fields.values() for spec, _ in entries) else set())
+                     | ({MEMBER_HEADER} if any(MEMBER in spec.fields.values() for spec, _ in entries) else set()))
     if headers:
         parts[-1:] = [*(f'#include "{h}"' for h in headers), ""]
     if source:  # the base's own definitions: one TU with the classes derived from it
