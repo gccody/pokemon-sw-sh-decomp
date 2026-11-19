@@ -4,6 +4,7 @@
 // Unk_1346030. The types aren't known: each gets a placeholder, named after its
 // Unk_13456e0 (or, for a type only Unk_1346030 is seen with, after that). A
 // Unk_1346030 shares its Unk_13456e0's type when their callers pass the same key.
+// The types passed by reference (Unk_<addr>_R) are named after their Unk_13456e0.
 #include "unsorted/families/Unk_13471e0.h"
 
 struct Unk_13456e0_T;
@@ -75,6 +76,12 @@ struct Unk_1394170_T;
 struct Unk_13942b0_T;
 struct Unk_13943f0_T;
 struct Unk_139d560_T;
+struct Unk_134eef0_R;
+struct Unk_1358010_R;
+struct Unk_1373320_R;
+struct Unk_1373460_R;
+struct Unk_13735a0_R;
+struct Unk_1378ed0_R;
 
 // 0x71013456e0 (and 0x7101347350, 0x71013475a0)
 template bool Unk_13471e0_Store::Unk_13456e0<Unk_13456e0_T>(const u32&,
@@ -436,3 +443,29 @@ template bool Unk_13471e0_Store::Unk_13456e0<Unk_139d560_T>(const u32&,
 template Unk_1346860_Result Unk_13471e0_Store::Unk_1346030<Unk_139d560_T>(const u32&,
                                                                           Unk_139d560_T* const&,
                                                                           const u64&);
+
+// The by-reference overload: the block is the bytes of an object.
+// 0x710134eef0 (and 0x7101351c70, 0x7101351ec0)
+template bool Unk_13471e0_Store::Unk_13456e0<Unk_134eef0_R>(const u32&,
+                                                            const Unk_134eef0_R&,
+                                                            const u64&);
+// 0x7101358010 (and 0x7101358a00, 0x7101358c50)
+template bool Unk_13471e0_Store::Unk_13456e0<Unk_1358010_R>(const u32&,
+                                                            const Unk_1358010_R&,
+                                                            const u64&);
+// 0x7101373320 (and 0x7101374b10, 0x7101374d60)
+template bool Unk_13471e0_Store::Unk_13456e0<Unk_1373320_R>(const u32&,
+                                                            const Unk_1373320_R&,
+                                                            const u64&);
+// 0x7101373460 (and 0x7101374f70, 0x71013751c0)
+template bool Unk_13471e0_Store::Unk_13456e0<Unk_1373460_R>(const u32&,
+                                                            const Unk_1373460_R&,
+                                                            const u64&);
+// 0x71013735a0 (and 0x71013753d0, 0x7101375620)
+template bool Unk_13471e0_Store::Unk_13456e0<Unk_13735a0_R>(const u32&,
+                                                            const Unk_13735a0_R&,
+                                                            const u64&);
+// 0x7101378ed0 (and 0x710137a850, 0x710137aaa0)
+template bool Unk_13471e0_Store::Unk_13456e0<Unk_1378ed0_R>(const u32&,
+                                                            const Unk_1378ed0_R&,
+                                                            const u64&);
