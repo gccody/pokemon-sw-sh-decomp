@@ -1729,6 +1729,29 @@ class's functions (its name moved with it, and the old function is a
 placeholder again), and one, `SiSDK3::SiGfxShaderGraphNodeType::vf2`, is no
 longer written (check.py: 44,351 matching, 42 not matching).
 
+### Batch 41: game classes' members through the whole lifter
+
+`vtables.py`'s own lifter (`lift_member`) merges what a member reads into
+its class's fields, so it takes only straight-line code up to 64 bytes
+that touches `this`'s fields. When it refuses one, `cast_member` now tries
+leafgen's whole lifter (calls, guards, decision trees, up to 256 bytes),
+with `this` cast to the placeholder struct leafgen reads it through; the
+struct and its callees' declarations go before the file's classes
+(`Lifted.structs`). Its return and parameter types must be scalars (an
+override's must match the base's), and it must compile alone. In a file, a
+cast member whose declarations clash with another's (or with the file's
+forwarder and tail-call declarations; a second parameter list for a callee
+counts, as a call could be ambiguous) keeps only its declaration.
+
+Of 9,000-odd slot functions of classes `vtables.py` writes, 258 lift that
+way; 119 match after the keep run (check.py: 44,470 matching, 42 not
+matching).
+
+`leafgen.py members` can also take game areas (classes nobody defines under
+`src/`), but `vtables.py` writes every named slot function, so the two
+would compete for the same classes: game code's classes are left to
+`vtables.py`.
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1754,7 +1777,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after Batch 40: check.py reports 44,351 matching and 42 not
+State after Batch 41: check.py reports 44,470 matching and 42 not
 matching, in both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the

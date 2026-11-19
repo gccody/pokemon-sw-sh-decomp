@@ -13,6 +13,26 @@ void Unk_5f5660(void*);
 void Unk_5f5770(void*);
 void Unk_5f5780(void*);
 
+// Lifted through their own placeholder structs (cast_member).
+struct Unk_5ed4a0_8 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3(u64, u64, u64);
+};
+
+struct Unk_5ed4a0 {
+    virtual void vf0();
+    Unk_5ed4a0_8* field_8;
+    u64 field_10;
+    u64 field_18;
+    u64 field_20;
+};
+PKMN_OFFSET_ASSERT(Unk_5ed4a0, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_5ed4a0, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_5ed4a0, field_18, 0x18);
+PKMN_OFFSET_ASSERT(Unk_5ed4a0, field_20, 0x20);
+
 class Unk_239a840_Obj {
 public:
     virtual void vf0();
@@ -117,6 +137,26 @@ public:
 
 // 0x71005ece00
 void Unk_239aa40::vf5() {}
+
+class Unk_239ab90 {
+public:
+    virtual ~Unk_239ab90();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+};
+
+// 0x71005ed4a0
+void Unk_239ab90::vf3() {
+    Unk_5ed4a0* self = reinterpret_cast<Unk_5ed4a0*>(this);
+    Unk_5ed4a0_8* v0 = self->field_8;
+    u64 v1 = self->field_10;
+    u64 v2 = self->field_18;
+    u64 v3 = self->field_20;
+    self->vf0();
+    v0->vf3(v1, v2, v3);
+}
 
 class Unk_239abd0 {
 public:

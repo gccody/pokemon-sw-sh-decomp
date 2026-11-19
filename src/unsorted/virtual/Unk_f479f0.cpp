@@ -10,6 +10,29 @@ void Unk_f48700(void* self);
 // Tail-called by lifted functions. Placeholders, like the forwarders' callees.
 void Unk_6d7ac0(u64, u64, u32);
 
+// Lifted through their own placeholder structs (cast_member).
+struct Unk_f479f0 {
+    u8 _0[0xd4];
+    u32 field_d4;
+    u8 field_d8;
+    u8 _d9[0x7];
+    u32 field_e0;
+};
+PKMN_OFFSET_ASSERT(Unk_f479f0, field_d4, 0xd4);
+PKMN_OFFSET_ASSERT(Unk_f479f0, field_d8, 0xd8);
+PKMN_OFFSET_ASSERT(Unk_f479f0, field_e0, 0xe0);
+
+struct Unk_f47a20 {
+    u8 _0[0x5c];
+    u32 field_5c;
+    u8 field_60;
+    u8 _61[0x7];
+    u32 field_68;
+};
+PKMN_OFFSET_ASSERT(Unk_f47a20, field_5c, 0x5c);
+PKMN_OFFSET_ASSERT(Unk_f47a20, field_60, 0x60);
+PKMN_OFFSET_ASSERT(Unk_f47a20, field_68, 0x68);
+
 struct Unk_23fda38_e8 {
     u8 _0[0x2a0];
     u64 field_2a0;
@@ -48,6 +71,18 @@ void Unk_23fda38::vf6() {
     Unk_f48700(this);
 }
 
+// 0x7100f479f0
+void Unk_23fda38::vf11() {
+    Unk_f479f0* self = reinterpret_cast<Unk_f479f0*>(this);
+    if (self->field_e0 == 8) {
+        self->field_e0 = 9;
+        self->field_d8 = 0;
+        return;
+    }
+    self->field_d4 = 0x14;
+    self->field_d8 = 0;
+}
+
 // 0x7100f47ab0
 void Unk_23fda38::vf13() {}
 
@@ -61,6 +96,32 @@ void Unk_23fda38::vf15(u64 /*unused*/, u64 arg2) {
     if (field_e8 != nullptr) {
         Unk_6d7ac0(field_e8->field_2a0, arg2, 1);
     }
+}
+
+class Unk_23fdb40 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+};
+
+// 0x7100f47a20
+void Unk_23fdb40::vf4() {
+    Unk_f47a20* self = reinterpret_cast<Unk_f47a20*>(this);
+    if (self->field_68 == 8) {
+        self->field_68 = 9;
+        self->field_60 = 0;
+        return;
+    }
+    self->field_5c = 0x14;
+    self->field_60 = 0;
 }
 
 class Unk_23fdba0 {

@@ -7,6 +7,37 @@
 // Tail-called by lifted functions. Placeholders, like the forwarders' callees.
 void Unk_6b9d40(u64);
 
+// Lifted through their own placeholder structs (cast_member).
+struct Unk_897d20_148 {
+    u8 _0[0x2a0];
+    u64 field_2a0;
+};
+PKMN_OFFSET_ASSERT(Unk_897d20_148, field_2a0, 0x2a0);
+
+struct Unk_897d20 {
+    u8 _0[0x148];
+    Unk_897d20_148* field_148;
+};
+PKMN_OFFSET_ASSERT(Unk_897d20, field_148, 0x148);
+
+void Unk_6ae9d0(u64);
+void Unk_6d7ac0(u64, u64, u32);
+
+struct Unk_897d70_d8 {
+    u8 _0[0x2a0];
+    u64 field_2a0;
+};
+PKMN_OFFSET_ASSERT(Unk_897d70_d8, field_2a0, 0x2a0);
+
+struct Unk_897d70 {
+    u8 _0[0xd8];
+    Unk_897d70_d8* field_d8;
+};
+PKMN_OFFSET_ASSERT(Unk_897d70, field_d8, 0xd8);
+
+void Unk_6ae9d0(u64);
+void Unk_6d7ac0(u64, u64, u32);
+
 class Unk_23b7ea8 {
 public:
     virtual ~Unk_23b7ea8();
@@ -40,7 +71,7 @@ public:
     virtual void vf13();
     virtual void vf14();
     virtual void vf15();
-    virtual void vf16();
+    virtual void vf16(u32 /*unused*/, u64 arg2);
     virtual void vf17();
     virtual void vf18();
     virtual void vf19();
@@ -61,6 +92,15 @@ PKMN_OFFSET_ASSERT(Unk_23b7ee8, field_3c0, 0x3c0);
 void Unk_23b7ee8::vf9() {
     if (field_3c0 != 0) {
         Unk_6b9d40(field_3c0);
+    }
+}
+
+// 0x7100897d20
+void Unk_23b7ee8::vf16(u32 /*unused*/, u64 arg2) {
+    const Unk_897d20* self = reinterpret_cast<const Unk_897d20*>(this);
+    if (self->field_148 != nullptr) {
+        Unk_6ae9d0(arg2);
+        Unk_6d7ac0(self->field_148->field_2a0, arg2, 1);
     }
 }
 
@@ -100,6 +140,25 @@ void Unk_23b8028::vf1() {
         Unk_6b9d40(field_360);
     }
 }
+
+class Unk_23b80c8 {
+public:
+    virtual void vf0(u32 /*unused*/, u64 arg2);
+    virtual void vf1();
+    virtual void vf2();
+};
+
+// 0x7100897d70
+void Unk_23b80c8::vf0(u32 /*unused*/, u64 arg2) {
+    const Unk_897d70* self = reinterpret_cast<const Unk_897d70*>(this);
+    if (self->field_d8 != nullptr) {
+        Unk_6ae9d0(arg2);
+        Unk_6d7ac0(self->field_d8->field_2a0, arg2, 1);
+    }
+}
+
+// 0x7100898d60
+void Unk_23b80c8::vf1() {}
 
 class Unk_23b8078 {
 public:
@@ -142,16 +201,6 @@ void Unk_23b8078::vf6() {}
 
 // 0x7100898d50
 void Unk_23b8078::vf7() {}
-
-class Unk_23b80c8 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-};
-
-// 0x7100898d60
-void Unk_23b80c8::vf1() {}
 
 class Unk_23b80f0 {
 public:

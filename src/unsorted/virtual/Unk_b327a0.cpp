@@ -3,6 +3,7 @@
 // Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
+#include "gflib3/Unk_239a418.h"
 #include "unsorted/Unk_23f5d00.h"
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
@@ -13,6 +14,56 @@ void Unk_b46170(void* self);
 // Tail-called by lifted functions. Placeholders, like the forwarders' callees.
 void Unk_7c2db0(void*, u32);
 void Unk_b3b9f0(void*, u32, u64);
+
+// Lifted through their own placeholder structs (cast_member).
+struct Unk_b40d50 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+    virtual void vf25();
+    virtual void vf26();
+    virtual void vf27();
+    virtual void vf28();
+    virtual void vf29();
+    virtual void vf30();
+    virtual void vf31();
+    virtual void vf32();
+    u8 _8[0x118];
+    u64 field_120;
+    u8 field_128;
+};
+PKMN_OFFSET_ASSERT(Unk_b40d50, field_120, 0x120);
+PKMN_OFFSET_ASSERT(Unk_b40d50, field_128, 0x128);
+
+void Unk_598de0(u64, u64, u64, u8);
+
+struct Unk_b48c00 {
+    u8 _0[0x8];
+    Unk_239a418* field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_b48c00, field_8, 0x8);
 
 class Unk_23cefc0 {
 public:
@@ -191,7 +242,7 @@ public:
     virtual void vf28();
     virtual void vf29();
     virtual void vf30();
-    virtual void vf31();
+    virtual void vf31(u64 value, u64 arg2);
     virtual void vf32();
     virtual void vf33();
     virtual void vf34();
@@ -237,6 +288,16 @@ bool Unk_23cf3c0::vf11() {
 // 0x7100b42050
 bool Unk_23cf3c0::vf14() {
     return field_94 == 0;
+}
+
+// 0x7100b40d50
+void Unk_23cf3c0::vf31(u64 value, u64 arg2) {
+    Unk_b40d50* self = reinterpret_cast<Unk_b40d50*>(this);
+    self->vf32();
+    if (self->field_120 != 0) {
+        Unk_598de0(self->field_120, value, arg2, 1);
+        self->field_128 = 0;
+    }
 }
 
 // 0x7100b45b20
@@ -549,6 +610,25 @@ void Unk_23cfb40::vf4() {}
 // 0x7100b48a90
 void Unk_23cfb40::vf5() {
     ::operator delete(this);
+}
+
+class Unk_23cfb88 {
+public:
+    virtual ~Unk_23cfb88();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+};
+
+// 0x7100b48c00
+void Unk_23cfb88::vf4() {
+    Unk_b48c00* self = reinterpret_cast<Unk_b48c00*>(this);
+    if (self->field_8 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_8)->vf5();
+        self->field_8 = nullptr;
+    }
 }
 
 class Unk_23cfbd0 : public Unk_23cfb40 {
