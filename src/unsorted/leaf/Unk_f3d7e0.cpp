@@ -60,6 +60,24 @@ void Unk_f3dab0_call(const Unk_f3dab0* self) {
     Unk_eb7790(self->field_78);
 }
 
+struct Unk_f3dac0 {
+    u8 _0[0x78];
+    u64 field_78;
+    u8 field_80;
+};
+PKMN_OFFSET_ASSERT(Unk_f3dac0, field_78, 0x78);
+PKMN_OFFSET_ASSERT(Unk_f3dac0, field_80, 0x80);
+
+void Unk_eb77f0(u64);
+
+// 0x7100f3dac0
+void Unk_f3dac0_call(Unk_f3dac0* self) {
+    if (self->field_80 != 0) {
+        Unk_eb77f0(self->field_78);
+        self->field_80 = 0;
+    }
+}
+
 struct Unk_f3daf0 {
     u8 _0[0x78];
     u64 field_78;

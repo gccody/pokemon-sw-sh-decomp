@@ -1540,6 +1540,25 @@ void Unk_179a0f0_set(Unk_179a0f0* self) {
     self->field_8 = 0;
 }
 
+struct Unk_179a100 {
+    u16 field_0;
+    u8 _2[0x6];
+    u64 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_179a100, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_179a100, field_8, 0x8);
+
+void Unk_179cd30(u64);
+
+// 0x710179a100
+void Unk_179a100_call(Unk_179a100* self) {
+    if (self->field_8 != 0) {
+        Unk_179cd30(self->field_8);
+        self->field_8 = 0;
+        self->field_0 = 0;
+    }
+}
+
 struct Unk_179a310_arg1 {
     u8 _0[0x40];
     u8 field_40;

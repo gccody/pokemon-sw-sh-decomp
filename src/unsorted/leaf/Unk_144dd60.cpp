@@ -179,6 +179,20 @@ void Unk_144ed50_set(const Unk_144ed50* self, Unk_144ed50_arg1* value) {
     value->field_0 = self->field_0;
 }
 
+struct Unk_1452180 {
+    u8 _0[0x8];
+    Unk_239a418* field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_1452180, field_8, 0x8);
+
+// 0x7101452180
+void Unk_1452180_call(Unk_1452180* self) {
+    if (self->field_8 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_8)->vf5();
+        self->field_8 = nullptr;
+    }
+}
+
 struct Unk_14521c0_arg1 {
     u64 field_0;
     Unk_239a418* field_8;

@@ -3,6 +3,8 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
+#include "gflib3/Unk_239a418.h"
+
 struct Unk_ed29e0_148 {
     u8 _0[0x148];
     u64 field_148;
@@ -187,6 +189,43 @@ void Unk_ed33d0_call(const Unk_ed33d0* self) {
     Unk_ed33e0(self->field_148);
 }
 
+struct Unk_ed34f0_148_130 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14(u32, u32);
+};
+
+struct Unk_ed34f0_148 {
+    u8 _0[0x130];
+    Unk_ed34f0_148_130* field_130;
+};
+PKMN_OFFSET_ASSERT(Unk_ed34f0_148, field_130, 0x130);
+
+struct Unk_ed34f0 {
+    u8 _0[0x148];
+    Unk_ed34f0_148* field_148;
+};
+PKMN_OFFSET_ASSERT(Unk_ed34f0, field_148, 0x148);
+
+// 0x7100ed34f0
+void Unk_ed34f0_call(const Unk_ed34f0* self, bool value) {
+    if (self->field_148->field_130 != nullptr) {
+        self->field_148->field_130->vf14(value, 0);
+    }
+}
+
 struct Unk_ed3520_148_130 {
     u8 _0[0x78];
     u32 field_78;
@@ -277,6 +316,35 @@ void Unk_ed3930_call(const Unk_ed3930* self) {
     Unk_68c510(self->field_148->field_108);
 }
 
+struct Unk_ed3940_150 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14(u32, u32);
+};
+
+struct Unk_ed3940 {
+    u8 _0[0x150];
+    Unk_ed3940_150* field_150;
+};
+PKMN_OFFSET_ASSERT(Unk_ed3940, field_150, 0x150);
+
+// 0x7100ed3940
+void Unk_ed3940_call(const Unk_ed3940* self, bool value) {
+    self->field_150->vf14(value, 0);
+}
+
 struct Unk_ed3ae0 {
     u8 _0[0x148];
     u64 field_148;
@@ -322,6 +390,38 @@ PKMN_OFFSET_ASSERT(Unk_ed3e50, field_148, 0x148);
 // 0x7100ed3e50
 u8 Unk_ed3e50_get(const Unk_ed3e50* self) {
     return self->field_148->field_294;
+}
+
+struct Unk_ed3eb0_148_128 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+};
+
+struct Unk_ed3eb0_148 {
+    u8 _0[0x128];
+    Unk_ed3eb0_148_128* field_128;
+};
+PKMN_OFFSET_ASSERT(Unk_ed3eb0_148, field_128, 0x128);
+
+struct Unk_ed3eb0 {
+    u8 _0[0x148];
+    Unk_ed3eb0_148* field_148;
+};
+PKMN_OFFSET_ASSERT(Unk_ed3eb0, field_148, 0x148);
+
+// 0x7100ed3eb0
+void Unk_ed3eb0_call(const Unk_ed3eb0* self) {
+    self->field_148->field_128->vf11();
 }
 
 // 0x7100ed9430
@@ -567,6 +667,19 @@ void Unk_edd2d0(u64);
 // 0x7100ede240
 void Unk_ede240_call(const Unk_ede240* self) {
     Unk_edd2d0(self->field_78);
+}
+
+struct Unk_ee38e0 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_ee38e0, field_0, 0x0);
+
+// 0x7100ee38e0
+void Unk_ee38e0_call(Unk_ee38e0* self) {
+    if (self->field_0 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_0)->vf5();
+        self->field_0 = nullptr;
+    }
 }
 
 // 0x7100ee3d80

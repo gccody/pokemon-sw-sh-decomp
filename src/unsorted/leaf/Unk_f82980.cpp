@@ -342,6 +342,20 @@ void Unk_f85aa0_set(const Unk_f85aa0* self, Unk_f85aa0_arg1* value) {
     value->field_0 = self->field_0;
 }
 
+struct Unk_f85b20 {
+    u8 _0[0x8];
+    Unk_239a418* field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_f85b20, field_8, 0x8);
+
+// 0x7100f85b20
+void Unk_f85b20_call(Unk_f85b20* self) {
+    if (self->field_8 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_8)->vf5();
+        self->field_8 = nullptr;
+    }
+}
+
 struct Unk_f85b60_arg1 {
     u64 field_0;
     Unk_239a418* field_8;
@@ -387,6 +401,20 @@ void Unk_f85b90_call(const Unk_f85b90* self, Unk_f85b90_arg1* value) {
     value->field_8 = v0;
     if (v0 != nullptr) {
         static_cast<Unk_239a458*>(v0)->vf4();
+    }
+}
+
+struct Unk_f85c00 {
+    u8 _0[0x8];
+    Unk_239a418* field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_f85c00, field_8, 0x8);
+
+// 0x7100f85c00
+void Unk_f85c00_call(Unk_f85c00* self) {
+    if (self->field_8 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_8)->vf5();
+        self->field_8 = nullptr;
     }
 }
 
@@ -541,6 +569,20 @@ void Unk_f85dc0_set(const Unk_f85dc0* self, Unk_f85dc0* value) {
     *value = *self;
 }
 
+struct Unk_f85ef0 {
+    u8 _0[0x8];
+    Unk_239a418* field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_f85ef0, field_8, 0x8);
+
+// 0x7100f85ef0
+void Unk_f85ef0_call(Unk_f85ef0* self) {
+    if (self->field_8 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_8)->vf5();
+        self->field_8 = nullptr;
+    }
+}
+
 struct Unk_f85f30_arg1 {
     u64 field_0;
     Unk_239a418* field_8;
@@ -586,6 +628,20 @@ void Unk_f85f60_call(const Unk_f85f60* self, Unk_f85f60_arg1* value) {
     value->field_8 = v0;
     if (v0 != nullptr) {
         static_cast<Unk_239a458*>(v0)->vf4();
+    }
+}
+
+struct Unk_f85fc0 {
+    u8 _0[0x8];
+    Unk_239a418* field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_f85fc0, field_8, 0x8);
+
+// 0x7100f85fc0
+void Unk_f85fc0_call(Unk_f85fc0* self) {
+    if (self->field_8 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_8)->vf5();
+        self->field_8 = nullptr;
     }
 }
 

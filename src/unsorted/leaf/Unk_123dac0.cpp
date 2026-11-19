@@ -8,6 +8,19 @@
 // 0x710123dac0
 void Unk_123dac0_update() {}
 
+struct Unk_123dca0 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_123dca0, field_0, 0x0);
+
+// 0x710123dca0
+void Unk_123dca0_call(Unk_123dca0* self) {
+    if (self->field_0 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_0)->vf5();
+        self->field_0 = nullptr;
+    }
+}
+
 struct Unk_123dce0_arg1 {
     Unk_239a418* field_0;
 };

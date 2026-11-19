@@ -36,6 +36,43 @@ void Unk_1263060_setField20(Unk_1263060* self, u64 value) {
     self->field_20 = value;
 }
 
+struct Unk_12632e0_20_5d0 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14(u32);
+};
+
+struct Unk_12632e0_20 {
+    u8 _0[0x5d0];
+    Unk_12632e0_20_5d0* field_5d0;
+};
+PKMN_OFFSET_ASSERT(Unk_12632e0_20, field_5d0, 0x5d0);
+
+struct Unk_12632e0 {
+    u8 _0[0x20];
+    Unk_12632e0_20* field_20;
+};
+PKMN_OFFSET_ASSERT(Unk_12632e0, field_20, 0x20);
+
+// 0x71012632e0
+void Unk_12632e0_call(const Unk_12632e0* self) {
+    if (self->field_20 != nullptr) {
+        self->field_20->field_5d0->vf14(0);
+    }
+}
+
 struct Unk_12635f0 {
     u8 _0[0x88];
     u32 field_88;

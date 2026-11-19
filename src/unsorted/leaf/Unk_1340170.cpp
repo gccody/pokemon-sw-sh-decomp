@@ -95,6 +95,23 @@ void Unk_1341e30_set(const Unk_1341e30* self) {
     self->field_628->field_58 = self->field_628->field_58 | 1;
 }
 
+struct Unk_13439a0 {
+    u8 _0[0x5cb];
+    u8 field_5cb;
+};
+PKMN_OFFSET_ASSERT(Unk_13439a0, field_5cb, 0x5cb);
+
+u32 Unk_eb6530();
+
+// 0x71013439a0
+u32 Unk_13439a0_call(const Unk_13439a0* self) {
+    if (self->field_5cb == 0) {
+        return 0;
+    }
+    u32 r0 = Unk_eb6530();
+    return ~r0 & 1;
+}
+
 // 0x7101344110
 void Unk_1344110_update() {}
 

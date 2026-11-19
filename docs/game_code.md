@@ -1410,6 +1410,26 @@ not matching). Most of the others pass a pointer where the callee's other
 callers pass an integer (or the other way round), so their callee's mangled
 name differs, or reload a field the original kept in a register.
 
+### Batch 26: guards in a frame, virtual calls
+
+- **Guards in a frame.** A `cbz`/`cbnz` may now skip to the epilogue (the
+  other path restores the frame before its `ret`), and a function with a
+  guard may call. The guard is an event of its own in the statement order
+  (`guard_seq`), so a load after it is read inside the `if`, and one before
+  it, used after a store or call, is held in a local before the `if`.
+- **Virtual calls.** `ldr x8, [obj] ; ldr x8, [x8, #slot] ; blr x8` with
+  x0 = obj (or `br` as a tail call, the function's last statement) calls
+  `obj->vf<slot / 8>(args...)`. obj's placeholder struct becomes
+  polymorphic: a virtual function per slot up to the last one called, none
+  defined (so no vtable is emitted), its fields after the vptr. The
+  branch register isn't an argument.
+- **References through the interface, not as tail calls**: `blr` through
+  the `+0x48` interface (Batch 24) inside a frame, e.g. `Unk_239a418_Ref`'s
+  destructor (`if (p) { p->vf5(); p = nullptr; }`).
+
+The trial wrote 1,012 functions; 533 match (check.py: 39,361 matching, 107
+not matching).
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1435,7 +1455,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after Batch 25: check.py reports 38,828 matching and 107 not
+State after Batch 26: check.py reports 39,361 matching and 107 not
 matching, in both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the

@@ -277,6 +277,24 @@ void Unk_17e8d00_set(Unk_17e8d00* self) {
     self->field_28 = 0;
 }
 
+struct Unk_17e8e80 {
+    u64 field_0;
+    u8 _8[0x8];
+    u64 field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_17e8e80, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_17e8e80, field_10, 0x10);
+
+void Unk_17c9f80(u64, u64, u32);
+
+// 0x71017e8e80
+void Unk_17e8e80_call(Unk_17e8e80* self) {
+    if (self->field_0 != 0) {
+        Unk_17c9f80(self->field_10, self->field_0, 0);
+        self->field_0 = 0;
+    }
+}
+
 // 0x71017e8ed0
 void Unk_17e8ed0_update() {
 }

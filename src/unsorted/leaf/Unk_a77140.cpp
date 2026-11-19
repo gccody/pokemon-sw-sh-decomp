@@ -79,6 +79,41 @@ u32 Unk_a775e0_getField88(const Unk_a775e0* self) {
     return self->field_88;
 }
 
+struct Unk_a775f0_80_198 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14(u32, u32);
+};
+
+struct Unk_a775f0_80 {
+    u8 _0[0x198];
+    Unk_a775f0_80_198* field_198;
+};
+PKMN_OFFSET_ASSERT(Unk_a775f0_80, field_198, 0x198);
+
+struct Unk_a775f0 {
+    u8 _0[0x80];
+    Unk_a775f0_80* field_80;
+};
+PKMN_OFFSET_ASSERT(Unk_a775f0, field_80, 0x80);
+
+// 0x7100a775f0
+void Unk_a775f0_call(const Unk_a775f0* self, bool value) {
+    self->field_80->field_198->vf14(value, 0);
+}
+
 struct Unk_a77780_70 {
     u8 _0[0x170];
     u64 field_170;

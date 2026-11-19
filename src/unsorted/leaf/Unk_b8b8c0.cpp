@@ -102,6 +102,26 @@ void Unk_b8bf40_set(const Unk_b8bf40* self, Unk_b8bf40_arg1* value) {
     value->field_0 = self->field_0;
 }
 
+struct Unk_b918e0 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+};
+
+// 0x7100b918e0
+void Unk_b918e0_call(Unk_b918e0* self) {
+    self->vf11();
+}
+
 struct Unk_b918f0 {
     u8 _0[0x1d8];
     u8 field_1d8;

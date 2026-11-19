@@ -1289,6 +1289,25 @@ u32 Unk_14a92c0_getFieldb0(const Unk_14a92c0* self) {
     return self->field_b0;
 }
 
+struct Unk_14a9460 {
+    u8 _0[0xa0];
+    u64 field_a0;
+    u8 _a8[0x38];
+    u32 field_e0;
+};
+PKMN_OFFSET_ASSERT(Unk_14a9460, field_a0, 0xa0);
+PKMN_OFFSET_ASSERT(Unk_14a9460, field_e0, 0xe0);
+
+void Unk_67e9d0(u64);
+
+// 0x71014a9460
+void Unk_14a9460_call(Unk_14a9460* self, u32 value) {
+    if (self->field_a0 != 0) {
+        Unk_67e9d0(self->field_a0);
+        self->field_e0 = value == 0 ? 0 : 4;
+    }
+}
+
 struct Unk_14a9570 {
     u8 _0[0xc0];
     u64 field_c0;

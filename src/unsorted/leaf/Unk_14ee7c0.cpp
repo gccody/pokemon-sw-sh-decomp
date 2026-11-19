@@ -175,6 +175,37 @@ void Unk_14f2300_set(const Unk_14f2300* self, Unk_14f2300_arg1* value) {
     value->field_0 = self->field_0;
 }
 
+struct Unk_14f2310_0_b0 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+};
+
+struct Unk_14f2310_0 {
+    u8 _0[0xb0];
+    Unk_14f2310_0_b0* field_b0;
+};
+PKMN_OFFSET_ASSERT(Unk_14f2310_0, field_b0, 0xb0);
+
+struct Unk_14f2310 {
+    Unk_14f2310_0* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_14f2310, field_0, 0x0);
+
+// 0x71014f2310
+void Unk_14f2310_call(const Unk_14f2310* self) {
+    if (self->field_0->field_b0 != nullptr) {
+        self->field_0->field_b0->vf9();
+    }
+}
+
 // 0x71014f2330
 void Unk_14f2330_update() {}
 

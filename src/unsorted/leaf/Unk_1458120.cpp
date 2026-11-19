@@ -354,6 +354,19 @@ void Unk_1460680_call(const Unk_1460680* self) {
     Unk_14cc6e0_call(self->field_0);
 }
 
+struct Unk_1460690 {
+    Unk_239a418* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_1460690, field_0, 0x0);
+
+// 0x7101460690
+void Unk_1460690_call(Unk_1460690* self) {
+    if (self->field_0 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_0)->vf5();
+        self->field_0 = nullptr;
+    }
+}
+
 struct Unk_14606d0_arg1 {
     Unk_239a418* field_0;
 };

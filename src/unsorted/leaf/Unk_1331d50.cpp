@@ -49,6 +49,20 @@ u8* Unk_1331eb0_getField260Ptr(Unk_1331eb0* self) {
     return &self->field_260;
 }
 
+struct Unk_1334320 {
+    u8 _0[0x8];
+    Unk_239a418* field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_1334320, field_8, 0x8);
+
+// 0x7101334320
+void Unk_1334320_call(Unk_1334320* self) {
+    if (self->field_8 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_8)->vf5();
+        self->field_8 = nullptr;
+    }
+}
+
 struct Unk_1334360_arg1 {
     u64 field_0;
     Unk_239a418* field_8;
@@ -94,6 +108,20 @@ void Unk_1334390_call(const Unk_1334390* self, Unk_1334390_arg1* value) {
     value->field_8 = v0;
     if (v0 != nullptr) {
         static_cast<Unk_239a458*>(v0)->vf4();
+    }
+}
+
+struct Unk_1334460 {
+    u8 _0[0x8];
+    Unk_239a418* field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_1334460, field_8, 0x8);
+
+// 0x7101334460
+void Unk_1334460_call(Unk_1334460* self) {
+    if (self->field_8 != nullptr) {
+        static_cast<Unk_239a458*>(self->field_8)->vf5();
+        self->field_8 = nullptr;
     }
 }
 
