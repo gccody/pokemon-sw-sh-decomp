@@ -9,6 +9,13 @@
  * names and the header's aren't known.
  */
 #include <stdbool.h>
+#include <stddef.h>
+
+#ifdef __cplusplus
+#define UNK_STATIC_ASSERT static_assert
+#else
+#define UNK_STATIC_ASSERT _Static_assert
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,6 +36,9 @@ struct Unk_17785c0_Setting {
   char field_71[32];
   char field_91[32];
 };
+UNK_STATIC_ASSERT(sizeof(struct Unk_17785c0_Setting) == 0xb4, "Setting");
+UNK_STATIC_ASSERT(offsetof(struct Unk_17785c0_Setting, field_70) == 0x70,
+               "field_70");
 
 /* Sword 0x7101778430: copies the host name that nn::nsd::ResolveEx returns
    for `host` into *out (255 characters at most, when out and *out aren't
