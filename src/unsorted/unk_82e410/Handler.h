@@ -364,3 +364,59 @@ struct Unk_832970_Arg {
 PKMN_OFFSET_ASSERT(Unk_832970_Arg, field_18, 0x18);
 PKMN_OFFSET_ASSERT(Unk_832970_Arg, field_20, 0x20);
 void Unk_832970(Unk_23ad178* self, Unk_23acc98_Result& result, const Unk_832970_Arg& arg);
+
+// --- Unk_23ad0d8 (Unk_7e0080::field_8a0), 0x7100831b40
+struct Unk_831c60_Object {
+    u8 _0[0xe];
+    u8 field_e;
+};
+struct Unk_831b40_Arg {
+    void* field_0;
+    Unk_831c60_Object* field_8;
+    void* field_10;
+    Unk_813130* field_18;
+    u8 field_20;
+};
+PKMN_OFFSET_ASSERT(Unk_831b40_Arg, field_20, 0x20);
+void Unk_831b40(Unk_23ad0d8* self, Unk_23acc98_Result& result, const Unk_831b40_Arg& arg);
+void Unk_831c60(Unk_23ad0d8* self,
+                Unk_831c60_Object* object,
+                const Unk_831b40_Arg& arg,
+                Unk_813130* list);
+void Unk_831d80(Unk_23ad0d8* self, Unk_813130* list);
+
+// --- Unk_23ad0f8 (Unk_7e0080::field_860), 0x7100832400
+void Unk_832400(Unk_23ad0f8* self, void* object, void* target, const u32* value, u32 arg4);
+
+// --- Unk_23ad1d8 (Unk_7e0080::field_1880), 0x7100833200
+struct Unk_833200_Arg {
+    void* field_0;
+    u32 field_8;
+    u8 field_c;
+};
+void Unk_833200(Unk_23ad1d8* self, Unk_23acc98_Result& result, const Unk_833200_Arg& arg);
+
+// --- Unk_23ad1f8 (Unk_7e0080::field_840), 0x7100833310
+struct Unk_833310_Arg {
+    void* field_0;
+    void* field_8;
+    Unk_813130* field_10;
+};
+void Unk_833310(Unk_23ad1f8* self, Unk_23acc98_Result& result, const Unk_833310_Arg& arg);
+
+// --- Unk_23ad258 (Unk_7e0080::field_cc0), 0x71008341a0
+struct Unk_8341a0_Arg {
+    u8 field_0;
+};
+struct Unk_8341a0_Result {
+    u8 field_0;
+};
+void Unk_8341a0(Unk_23ad258* self, Unk_8341a0_Result& result, const Unk_8341a0_Arg& arg);
+
+// An iterator over the battlers (vtable at 0x0): 0x7100804200 starts it,
+// 0x7100804480 gives the next.
+struct Unk_804200_Iterator {
+    u8 data[0x20];
+};
+void Unk_804200(Unk_804200_Iterator* self, void* arg1, void* arg2);
+bool Unk_804480(Unk_804200_Iterator* self, void** object);
