@@ -51,5 +51,15 @@ bool Unk_1777f50(const struct connectdata *conn,
 #define curlssl_cert_status_request() Unk_1777f30()
 #define curlssl_false_start() Unk_1777f40()
 
+/* Curl_setopt (Sword 0x710176ac70) stores CURLOPT_CAPATH and
+   CURLOPT_PROXY_CAPATH, CURLOPT_CERTINFO, and CURLOPT_SSL_CTX_FUNCTION and
+   CURLOPT_SSL_CTX_DATA, where a backend without these returns
+   CURLE_NOT_BUILT_IN. CURLOPT_PINNEDPUBLICKEY and
+   CURLOPT_PROXY_PINNEDPUBLICKEY return CURLE_NOT_BUILT_IN, so there's no
+   have_curlssl_pinnedpubkey. */
+#define have_curlssl_ca_path 1
+#define have_curlssl_certinfo 1
+#define have_curlssl_ssl_ctx 1
+
 #endif /* USE_NINTENDO_SSL */
 #endif /* HEADER_CURL_NNSSL_H */
