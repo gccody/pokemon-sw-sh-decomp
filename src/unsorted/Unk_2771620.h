@@ -5,6 +5,7 @@
 // known.
 #include <cstdlib>
 #include <memory>
+#include <unordered_map>
 #include <utility>
 
 #include <nn/os.h>
@@ -95,3 +96,11 @@ std::unique_ptr<T, Unk_23f4660_Deleter> Unk_2771620_MakeUnique(Unk_239a418_Alloc
     return std::unique_ptr<T, Unk_23f4660_Deleter>(
         object, Unk_23f4660_Deleter{allocator, sizeof(T), alignof(T)});
 }
+
+// An unordered_map whose memory comes from the allocator.
+template <class K, class T>
+using Unk_2771620_Map = std::unordered_map<K,
+                                           T,
+                                           std::hash<K>,
+                                           std::equal_to<K>,
+                                           Unk_2771620_Allocator<std::pair<const K, T>>>;
