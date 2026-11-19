@@ -83,12 +83,12 @@ struct Unk_341f80 {
 };
 PKMN_OFFSET_ASSERT(Unk_341f80, field_0, 0x0);
 PKMN_OFFSET_ASSERT(Unk_341f80, field_8, 0x8);
-void Unk_3047c0(u32, u64);
+void Unk_3047c0(int, void*);
 
 // 0x7100341f80
 void Unk_341f80_set(Unk_341f80* self) {
     if (self->field_8 != 0) {
-        Unk_3047c0(Unk_237e820, self->field_0);
+        Unk_3047c0(Unk_237e820, reinterpret_cast<void*>(self->field_0));
     }
     self->field_0 = 0;
     self->field_8 = 0;

@@ -241,12 +241,12 @@ PKMN_OFFSET_ASSERT(Unk_36a5e0, field_0, 0x0);
 PKMN_OFFSET_ASSERT(Unk_36a5e0, field_8, 0x8);
 PKMN_OFFSET_ASSERT(Unk_36a5e0, field_10, 0x10);
 PKMN_OFFSET_ASSERT(Unk_36a5e0, field_18, 0x18);
-void Unk_304740(u32, u64);
+void Unk_304740(int, void*);
 
 // 0x710036a5e0
 void Unk_36a5e0_set(Unk_36a5e0* self) {
     if (self->field_0 != 0) {
-        Unk_304740(Unk_2381488, self->field_0);
+        Unk_304740(Unk_2381488, reinterpret_cast<void*>(self->field_0));
     }
     self->field_0 = 0;
     self->field_8 = 0;
