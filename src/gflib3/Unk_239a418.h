@@ -56,6 +56,8 @@ public:
 template <class T>
 class Unk_239a418_Ref2 {
 public:
+    // Holds `ptr`, adding a reference.
+    explicit Unk_239a418_Ref2(T* ptr);
     Unk_239a418_Ref2(const Unk_239a418_Ref2& other);
     // Takes over the other's reference. Not noexcept: a vector that grows
     // copies its references (adding one each, then dropping the old ones).
@@ -223,6 +225,12 @@ Unk_239a418_Ref<T>::~Unk_239a418_Ref() {
         static_cast<Unk_239a458*>(m_ptr)->vf5();
         m_ptr = nullptr;
     }
+}
+
+template <class T>
+Unk_239a418_Ref2<T>::Unk_239a418_Ref2(T* ptr) : m_ptr(ptr) {
+    if (m_ptr)
+        static_cast<Unk_239a458*>(m_ptr)->vf4();
 }
 
 template <class T>

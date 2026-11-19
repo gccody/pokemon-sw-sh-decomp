@@ -1528,7 +1528,7 @@ public:
     u64 field_0;
     Unk_239a418_Allocator* field_8;
     u8 _10[0x68];
-    std::vector<Unk_239a418_Ref<Unk_790490>, Unk_2771620_Allocator<Unk_239a418_Ref<Unk_790490>>> field_78;
+    std::vector<Unk_239a418_Ref2<Unk_790490>, Unk_2771620_Allocator<Unk_239a418_Ref2<Unk_790490>>> field_78;
     u64 field_a8;
     u8 _b0[0x10];
     bool field_c0;
@@ -1546,7 +1546,7 @@ Unk_239a418_Ref<T> Unk_790260_Owner::Create(const Unk_Ref& parent, u64 a2) {
     // object's interface again for the vector's reference, as the original does.
     result.m_ptr->Unk_e7fe20(parent);
     field_78.push_back(
-        Unk_239a418_Ref<Unk_790490>(static_cast<Unk_790490*>(static_cast<Unk_239a418*>(result.m_ptr))));
+        Unk_239a418_Ref2<Unk_790490>(static_cast<Unk_790490*>(static_cast<Unk_239a418*>(result.m_ptr))));
     field_c0 = false;
     return result;
 }
