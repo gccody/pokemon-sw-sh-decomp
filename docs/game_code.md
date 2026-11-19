@@ -1949,6 +1949,74 @@ times 8, which suggests the original compared the end pointer before
 instcombine could reduce it. They're `M`, with `NON_MATCHING` notes.
 check.py: 46,721 matching and 88 not matching (was 46,404 and 42), in both
 games; 26.44% of the code by bytes.
+### Families on gflib3's allocator (`tools/familygen.py`, 2026-11-19)
+
+Three more families of the shape groups are template instances or a class
+shape repeated, on gflib3's container allocator (`Unk_2771620_Allocator`) and
+its object. `tools/familygen.py` finds their instances and writes them in
+`src/gflib3/families` (its docstring has the details); 498 functions, about
+150 KB, match in both games:
+
+| Family | File | Functions | Bytes |
+|---|---|---:|---:|
+| libc++'s `vector` growing on the allocator: `__push_back_slow_path` of pointers (39), of references moved in (29) or by const reference (9), of 4- and 16-byte elements (19), `reserve` of references (15) | `Unk_5ac520.cpp` | 111 | 51,900 |
+| `Unk_New::Create<T>` of classes on `Unk_23f43c8` | `Unk_8d4190.cpp` | 273 | 86,716 |
+| singletons' `vf3` and its +0x48 copy | `Unk_7c20.cpp` | 114 | 11,400 |
+
+- **Vectors.** Each instance has an element type of its own (two of one type
+  would have been merged), a placeholder named after its address. A vector
+  of references copies its old elements when it grows: `Unk_239a418_Ref` has
+  a move constructor now, not `noexcept` (libc++ then copies), which takes
+  the pointer the way `Release()` does: the source is cleared before the
+  destination is stored. 15 push_backs of 8- to 16-byte elements that aren't
+  a u32, a reference or two u64 (alignment 16, a reference and an int, ...)
+  don't match and aren't written; nor are the 0x80-byte callables'
+  (`0x7101382340`, 24 instances: `__emplace_back_slow_path` of a lambda).
+- **Factories** (`src/gflib3/Unk_New.h`): allocate `sizeof(T)` with the
+  allocator current, construct, record the allocation in `field_8`-`field_20`.
+  The first argument isn't used: `Create` is a member of a placeholder
+  struct. `T` derives from `Unk_23f43c8` and inherits its constructor
+  (`0x7100e7c430`, two references by value, now declared in its header and
+  named; not decompiled); `T`'s members are read from the stores after it
+  (zeros and constants, each run cut at natural alignment), its extra
+  virtual functions from where its secondary vptrs point. When the members
+  are stored before `T`'s vptr (the instruction after the constructor call
+  isn't the vtable's `adrp`), they belong to a class between `T` and the
+  base: `<T>_Parent`. Not written: 48 factories of another shape (an
+  out-of-line constructor two classes down, copies of references), 13 that
+  store registers the tool doesn't follow, 6 with vtables it doesn't read,
+  and 19 that don't match (more virtual functions with members it doesn't
+  order like the original). The same factory, inlined, makes 238 classes
+  derived directly from the object (`Unk_239a418::Unk_239a418` first, 96 KB)
+  and 178 on `Unk_23f4660` (the "creators" below, 94 KB): their members are
+  references and handles the tool doesn't read.
+- **Singletons.** 57 classes whose `vf3` destroys the instance their own
+  global holds, the way `Unk_239a418::vf3` destroys an object
+  (`Unk_7c20_Reset`); `this` isn't used, so the +0x48 thunk is a copy. One
+  function is in two vtables (a class and one derived from it).
+
+Looked at and left:
+
+- the creators (`0x7100790260`, 178 instances, 132 shape groups): a
+  manager's method that creates a class on `Unk_23f4660` (the factory
+  inlined, its size 0x5f0 and alignment 16), sets its parent
+  (`0x7100e7fe20`), pushes a reference to it into a vector at `+0x78` and
+  returns it. Their derived members vary like the factories' do. The
+  wrappers around them (`0x7100790140`, 188) also need `Unk_e809c0_call`'s
+  real signature (two arguments), which is leafgen's one-argument
+  placeholder now;
+- `0x7100005e20` (54) and `0x7100010530` (55): per-TU copies of one path
+  builder: a name that doesn't start with `"data:/"` (the global at
+  `0x710239a578`) gets it prepended (`alloca`, `strcat`) before the name is
+  looked up (`0x710000d0c0`) and parsed (`0x71000105b0`); 23 KB, needs the
+  string class and the parser's state;
+- `0x710059bee0` (29) and `0x7100607550` (27): a finder under a spinlock
+  (the owner thread at `+0xf0`, a light event at `+0xe4`) that walks two
+  vectors with a kind test (`Unk_61a530<T>`, 0x710096ccf0 for one T) and returns the
+  object; `0x7100795bc0` (118): a find by key with the kind test inlined;
+- the destructors' thunks of classes on the object (`0x71005b2eb0`,
+  `0x71005b2f30`, 174 each): vtables.py's inline-destructor shape, which
+  needs a key function for each class.
 
 ## What's left of the small functions
 
@@ -1978,6 +2046,12 @@ Larger shapes have their own blockers:
 State after the type getters and the map instances (2026-11-19, later):
 check.py reports 47,184 matching and 42 not matching; 26.52% of the code by
 bytes. Before them, after the generated tables and FreeType: check.py
+State after the allocator families (2026-11-19, later): check.py reports
+45,783 matching and 49 not matching; 26.16% of the code by bytes (gflib3
+4.4%, startup 10.9%). `tools/familygen.py` writes `src/gflib3/families`
+(generated too).
+
+State after the generated tables and FreeType (2026-11-19): check.py
 reports 44,938 matching and 42 not matching, in both games; 25.16% of the
 code by bytes. Every batch above came from `tools/leafgen.py`,
 `tools/vtables.py` (`write`, `ctors`), `tools/typegen.py` and `tools/clonegen.py`.

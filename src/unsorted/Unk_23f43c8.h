@@ -31,6 +31,9 @@ public:
         return &type;
     }
 
+    // 0x7100e7c430: takes the first two references; the third is looked up by
+    // a name (0x710000d0c0, not decompiled yet).
+    Unk_23f43c8(Unk_239a418_Ref<Unk_239a418> field_60, Unk_239a418_Ref<Unk_239a418> field_68);
     ~Unk_23f43c8() override;
     // Overrides the interfaces' type getter, so it also gets slot 6 of the
     // primary vtable.
