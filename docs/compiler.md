@@ -2904,13 +2904,97 @@ zlib one about 3.
 - **NEX, Pia and the nn SDK code itself.** They aren't public. The SDK's
   libraries share one build system, so clang 7.0 `-O3` with the game's flags
   is the working assumption for all of them, but only libcurl and zlib were
-  measured.
+  measured. NEX turned out to differ in one flag, strict aliasing (see "NEX
+  4.6.8").
 - **LZ4 (`nlib_LZ4-19_0226`).** No LZ4 code was found in `main` (see above).
 - **The rest of libcurl.** The configuration is reconstructed (see
   "libcurl 7.55.1"). What's left needs Nintendo's changes to curl's own
   files (`urldata.h`, `curl_memory.h`, the `nn::ssl` backend, the socket,
   time and resolver glue), which aren't public.
 - **`-g`.** Neither corpus distinguishes it.
+
+## NEX 4.6.8
+
+**Result: NEX was built with the game's clang 7.0.x at `-O3` and its codegen
+flags, except that it was built with strict aliasing (no
+`-fno-strict-aliasing`), against libc++ 7.0.1's containers.** `lib/nex` has a
+`pkmn_library_settings` entry for that: `OPTIONS -fstrict-aliasing`, libc++'s
+headers (`SYSTEM_INCLUDES include/libcxx`) with the defines they need on musl,
+and `INCLUDES lib/nex/include` for the reconstructed headers. NEX's source
+isn't public: everything in `lib/nex` is written from the executable
+(`lib/nex/README.md`, `tools/nexddl.py`).
+
+### Where it is
+
+NEX is the first library after Lua in the `middleware` area (Sword
+`0x7101570900`-, its `NEX_DS-4_6_8` tag and `SDK MW+Nintendo+NEX-4_6_8`); Pia
+follows it from about `0x7101650000` (the RTTI names change from `nn::nex` to
+`nn::pia`). NEX keeps its RTTI: 413 of the area's vtables with typeinfo name
+`nn::nex` classes, among them the DDL data classes (`_DDL_DataStoreKeyValue`
+and `DataStoreKeyValue`, ...), `ByteStream`, `Message`, `Buffer`, `String`,
+`ClientProtocol`, `ProtocolCallContext`, `InstanceTable` and the protocols'
+clients. A reported error names `..\..\..\..\.\OnlineCore/src/Core/InstanceTable.h`.
+
+### libc++
+
+NEX's containers are libc++'s with NEX's allocator: the RTTI of
+`nn::nex::qList<nn::nex::URLProbe>` names its base
+`std::__1::list<nn::nex::URLProbe, nn::nex::MemAllocator<nn::nex::URLProbe>>`
+(`NSt3__14listIN2nn3nex8URLProbeENS2_12MemAllocatorIS3_EEEE`), and
+`SharedPtr<qVector<SocketDriver::PollInfo>>` names `qVector`. The protocol
+calls and the stream functions loop over `std::vector` and `std::list` the
+way libc++ 7.0.1's do (begin and end pointers, `std::list`'s sentinel and
+size). `include/libcxx` gains libc++ 7.0.1's `<list>`, unchanged (from
+`libcxx-7.0.1.src.tar.xz`, like the headers already there).
+
+### Strict aliasing
+
+The DDL stream-in functions inline `ByteStream`'s reads. Each read checks the
+buffer's size against the stream's position, copies the value into the
+structure and moves the position. What the compiler keeps in registers across
+the store of the value depends on the value's type:
+
+- after a `u64` store (`str x14, [x1, #0x10]`), the position and the buffer's
+  size are loaded again (`ldr x14, [x8]`, `ldr x15, [x13, #0x18]`);
+- after a `u32` or `u16` store (`str w17, [x1, #0x20]`), they aren't: the
+  next read computes the position from the register it had (`add x16, x15,
+  #0xc`) and compares with the size it loaded before (`0x71015911b0`).
+
+Both are `size_t`, so a `u64` store may alias them and a `u32` store may not:
+that is type-based alias analysis, which `-fno-strict-aliasing` turns off.
+With the same source (`lib/nex/ddl/Streams.cpp` and its headers):
+
+| Flags | Stream functions matching | Of them reads |
+|---|---:|---:|
+| the global ones (`-fno-strict-aliasing`) | 41 of 63 | 2 of 24 |
+| **with `-fstrict-aliasing`** | **49 of 63** | **10 of 24** |
+
+Every write function matches either way (39 of 39), and so do the 96
+protocol calls of `lib/nex/ddl/Calls.cpp` and the DDL destructors, so strict
+aliasing changes nothing but the reads. The reads that still don't match differ in where the backend puts the
+shared error and return blocks (`tools/nexddl.py`, `NOT_MATCHING`).
+
+`Buffer`'s data pointer and offset are loaded again after every store, of any
+type, as if an access to them could alias anything; anonymous unions around
+them reproduce that (an access through a union member may alias any type).
+The true declaration isn't known.
+
+### RTTI
+
+NEX was built with RTTI (its vtables have typeinfo), but `lib/nex` is built
+with the global `-fno-rtti`: none of the functions here uses RTTI (no
+`dynamic_cast` or `typeid`), and `check.py` compares functions, not vtables.
+The vtables of the inline classes the executable keeps (`String`'s, at
+`0x71023a2630`) are gflnet3's copies, which have no typeinfo.
+
+### What's left open
+
+- **The rest of NEX.** Only the regular, generated code is written so far
+  (the DDL stream functions, the protocol clients' calls, a few destructors).
+- **The reads that don't match** (see above), and the stream functions and
+  calls the generator doesn't recognize (other container shapes, reads into
+  a structure through a call, the calls that write their header inline).
+- **`Buffer`'s declaration** (the unions above).
 
 ## gflib3
 

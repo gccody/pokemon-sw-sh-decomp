@@ -222,6 +222,19 @@ pkmn_library_settings(lib/curl
   DEFINES HAVE_CONFIG_H BUILDING_LIBCURL CURL_STATICLIB
   INCLUDES lib/curl/include lib/curl/lib lib/curl/zlib lib/curl/nnsocket)
 
+# NEX 4.6.8 (Nintendo's online library, NintendoSDK middleware): the game's
+# clang 7.0.x and flags, except that NEX was built with strict aliasing (its
+# inlined ByteStream reads keep a size_t across a u32 store but not across a
+# u64 one: type-based alias analysis). Its containers are libc++'s (RTTI
+# std::__1::list<nn::nex::URLProbe, nn::nex::MemAllocator<...>>), so libc++
+# 7.0.1's headers come first; lib/nex/include holds the reconstructed headers.
+pkmn_library_settings(lib/nex
+  EVIDENCE "docs/compiler.md, section NEX 4.6.8"
+  DEFINES _GNU_SOURCE _LIBCPP_HAS_MUSL_LIBC _LIBCPP_HAS_THREAD_API_PTHREAD
+  OPTIONS -fstrict-aliasing
+  INCLUDES lib/nex/include
+  SYSTEM_INCLUDES include/libcxx)
+
 # FreeType 2.8.1, which YEBIS's SiGfx links: the game's clang 7.0.x and global
 # flags, FreeType's default ftoption.h, and FT2_BUILD_LIBRARY, which its own
 # build defines for the library's TUs. lib/freetype/nx holds the module list
