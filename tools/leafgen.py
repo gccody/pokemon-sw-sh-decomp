@@ -166,6 +166,7 @@ class DataAddr:
 @dataclass(frozen=True)
 class GlobalPtr:
     addr: int             # a global's address (relative), loaded from its GOT slot
+    hidden: bool = False  # or one the TU defines (adrp + its offset, no GOT): declared hidden
 
 
 # GOT slot -> what it holds (relative addresses), for `adrp ; ldr [slot]`: set
@@ -303,6 +304,8 @@ class Lifted:
     guard_seq: int = 0        # store instructions before the guard
     more_guards: list = field(default_factory=list)  # later guards to the same exit: (value, nonzero, seq)
     guard_kind: str = ""      # the first guard's mnemonic
+    split: tuple | None = None  # two_paths: the branch the path didn't take, as a guard (value, nonzero)
+    split_seq: int = 0        # the events before it
     vcall: tuple | None = None  # a final virtual tail call through REF_IFACE: (object, slot)
     calls: list = field(default_factory=list)  # Call, in order: a function with a frame
     ret_width: dict = field(default_factory=dict)  # call index -> widest read of its result (4: w0, 8: x0)
@@ -393,15 +396,18 @@ def guard_shape(insns: list[tuple[str, list[str]]], addr: int | None) -> tuple[i
     return tuple(ks), path, zero
 
 
-def lift(code: bytes, addr: int | None = None) -> Lifted:
+def lift(code: bytes, addr: int | None = None, path: list | None = None, split: int | None = None) -> Lifted:
     """Symbolically execute a straight-line leaf function (see the module docstring).
 
     With `addr`, the function may end in a tail call (`b T`) instead of `ret`:
     then `args` are the argument registers at the branch, up to the last
     one it wrote (the ones after it pass through, whatever T takes). It may
     also skip all that with one `cbz`/`cbnz` (guard_shape)."""
-    insns = disassemble(code, addr or 0) if len(code) >= 4 and len(code) % 4 == 0 else []
-    shape = guard_shape(insns, addr) if insns and insns[-1][0] == "ret" else None
+    if path is not None:
+        insns, shape = list(path), None  # one path of a function with two (two_paths)
+    else:
+        insns = disassemble(code, addr or 0) if len(code) >= 4 and len(code) % 4 == 0 else []
+        shape = guard_shape(insns, addr) if insns and insns[-1][0] == "ret" else None
     k, zero = None, None
     if shape is not None:
         k, insns, zero = shape
@@ -512,6 +518,10 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
             since.clear()
             flags = None
             continue
+        if idx == split:
+            out.split = guard_value(mn, ops)  # this path runs on if split's value is nonzero (or zero)
+            out.split_seq = out.stores_done
+            continue
         if k is not None and idx in k[1:]:
             out.more_guards.append((*guard_value(mn, ops), out.stores_done))
             out.stores_done += 1
@@ -562,10 +572,14 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
             if isinstance(b, Page):
                 # A GOT slot: the address of a global another TU defines.
                 slot = b.addr + off - BASE
-                if mn != "ldr" or kind != "x" or slot not in GOT:
+                if mn == "ldr" and kind == "x" and slot in GOT:
+                    put(dst, GlobalPtr(GOT[slot]))
+                    continue
+                if data_at(b.addr + off) != "" or kind not in ("w", "x") and mn not in LOADS:
                     raise LiftError("adrp of data, not a GOT slot")
-                put(dst, GlobalPtr(GOT[slot]))
-                continue
+                # A global of this TU, read where it is (no GOT): the load below.
+                b = GlobalPtr(b.addr + off - BASE, hidden=True)
+                off = 0
             if isinstance(b, GlobalPtr) and off != 0:
                 raise LiftError("global at an offset")
             if mn in LOADS:
@@ -594,6 +608,8 @@ def lift(code: bytes, addr: int | None = None) -> Lifted:
             else:
                 t = int_type(8 if kind == "x" else 4)
             b = get(f"x{base}")
+            if isinstance(b, Page) and data_at(b.addr + off) == "":
+                b, off = GlobalPtr(b.addr + off - BASE, hidden=True), 0  # a global of this TU
             if isinstance(b, Page) or (isinstance(b, GlobalPtr) and off != 0):
                 raise LiftError("store to data at an offset")
             out.stores.append((b, off, t, get(src)))
@@ -852,6 +868,7 @@ class Emitter:
         self.forward: set[str] = set()        # structs a known callee's parameters name
         self.locals: dict[object, str] = {}   # pointers held in a local (choose_locals)
         self.tables: set[int] = set()         # data a returned `adrp ; add` points at (absolute)
+        self.hidden: set[int] = set()         # globals of this TU (relative)
         self.protos: set[str] = set()         # the callees' declarations (render_call)
         self.passed: set[Arg] = set()         # arguments passed on to a call
         self.call_types: dict[int, str] = {}  # call index -> the type of the result it returns
@@ -902,6 +919,8 @@ class Emitter:
             self.structs[base].fields[off] = t
 
     def field_expr(self, load_base: object, offset: int, t: str) -> str:
+        if isinstance(load_base, GlobalPtr) and load_base.hidden:
+            self.hidden.add(load_base.addr)
         if isinstance(load_base, GlobalPtr):   # the global itself (offset 0): `extern <t> Unk_<addr>;`
             old = self.globals.get(load_base.addr, t)
             if old != t and {old, t} != {"u8", "bool"}:
@@ -1593,7 +1612,9 @@ class Emitter:
 
     def render_structs(self) -> str:
         out = [f"struct {n};" for n in sorted(self.forward)]  # a known callee's, defined with it
-        out += [f"extern {t} Unk_{a:x};" for a, t in sorted(self.globals.items())]  # another TU defines them
+        # another TU defines them, or this one (hidden: reached with adrp, not the GOT)
+        out += [f"extern {t} Unk_{a:x}" + (' __attribute__((visibility("hidden")));' if a in self.hidden else ";")
+                for a, t in sorted(self.globals.items())]
         # Defined in this TU (adrp ; add, not the GOT), with contents not written here.
         out += [f'extern const u8 Unk_{a - BASE:x}[] __attribute__((visibility("hidden")));'
                 for a in sorted(self.tables)]
@@ -1654,6 +1675,92 @@ def _const(v: int, t: str) -> str:
 def generate(addr: int, code: bytes) -> tuple[str, str]:
     """(structs, function) of the leaf at `addr` (absolute), or LiftError."""
     try:
+        return generate_one(addr, code)
+    except LiftError:
+        two = two_paths(addr, code)
+        if two is None:
+            raise
+        return two
+
+
+def _body(func: str) -> tuple[str, list[str]]:
+    lines = func.rstrip("\n").split("\n")
+    return lines[0], lines[1:-1]
+
+
+_LOCAL = re.compile(r"^ +\S+\*? [vp]\d+ = ")
+
+
+def two_paths(addr: int, code: bytes) -> tuple[str, str] | None:
+    """A function with one forward branch whose two paths each end in their own
+    return (no join): `if (<the fallthrough's condition>) { ...; return; }`, then
+    the branch target's path. Each path is lifted on its own (the code before
+    the branch with each), the statements before the branch must come out the
+    same in both, and so must the signature. None if it isn't that shape."""
+    try:
+        insns = disassemble(code, addr) if len(code) >= 4 and len(code) % 4 == 0 else []
+        ks = [i for i, (mn, _) in enumerate(insns) if mn in GUARDS]
+        if len(ks) != 1:
+            return None
+        k = ks[0]
+        to = (_imm(insns[k][1][-1]) - addr) // 4
+        ends = ("ret", "b", "br")
+        if not k + 1 < to < len(insns) or insns[to - 1][0] not in ends or insns[-1][0] not in ends:
+            return None
+        if any(m in GUARDS or m.startswith("b.") for m, _ in insns[to:]):
+            return None
+        fall = lift(b"", addr, path=insns[:to], split=k)
+        taken = lift(b"", addr, path=insns[:k] + insns[to:])
+        emitters = []
+        for _rnd in range(3):  # the first two learn the fields and arguments, the last renders them all
+            shared = emitters[0] if emitters else None
+            emitters = []
+            for lf in (taken, fall):
+                e = Emitter(addr, lf)
+                if shared is not None:
+                    e.structs, e.arg_types, e.fp_types = shared.structs, shared.arg_types, shared.fp_types
+                    e.globals, e.tables, e.hidden = shared.globals, shared.tables, shared.hidden
+                elif emitters:
+                    e.structs, e.arg_types, e.fp_types = emitters[0].structs, emitters[0].arg_types, \
+                        emitters[0].fp_types
+                    e.globals, e.tables, e.hidden = emitters[0].globals, emitters[0].tables, emitters[0].hidden
+                emitters.append(e)
+            cond = emitters[1].guard_cond(fall.split[0], fall.split[1], True)
+            out = [(Emitter.render_tail if lf.tail is not None else Emitter.render)(e)
+                   for e, lf in zip(emitters, (taken, fall))]
+        (s_t, f_t), (s_f, f_f) = out
+        sig_t, body_t = _body(f_t)
+        sig_f, body_f = _body(f_f)
+        params_t, params_f = sig_t.split("(", 1)[1], sig_f.split("(", 1)[1]
+        if params_t.replace("const ", "") != params_f.replace("const ", ""):
+            raise LiftError("two paths: other parameters")
+        # const only where neither path writes through it
+        params = params_t if params_t.count("const ") <= params_f.count("const ") else params_f
+        rt_t, rt_f = sig_t.split(" Unk_")[0], sig_f.split(" Unk_")[0]
+        if rt_t != rt_f:
+            # One path returns a constant: the function returns the other one's type.
+            if "void" in (rt_t, rt_f) or rt_t not in CALL_CODES or rt_f not in CALL_CODES:
+                raise LiftError("two paths: other return types")
+            rt_t = rt_f if isinstance(taken.ret, Const) else rt_t
+        sig_t = f"{rt_t} Unk_{sig_t.split(' Unk_', 1)[1].split('(', 1)[0]}({params}"
+        if any(_LOCAL.match(x) for x in body_t + body_f):
+            raise LiftError("two paths: locals")
+        n = sum(1 for q in fall.store_seq if q < fall.split_seq) + sum(1 for c in fall.calls if c.seq < fall.split_seq)
+        if body_t[:n] != body_f[:n] or len(body_t) <= n or len(body_f) <= n:
+            raise LiftError("two paths: other statements before the branch")
+        inner = ["    " + x for x in body_f[n:]]
+        if not body_f[-1].strip().startswith("return"):
+            inner.append("        return;")
+        body = body_t[:n] + [f"    if ({cond}) {{"] + inner + ["    }"] + body_t[n:]
+        structs = s_t.rstrip("\n").split("\n") if s_t else []
+        structs += [x for x in (s_f.rstrip("\n").split("\n") if s_f else []) if x not in structs and x]
+        return "\n".join(structs) + ("\n" if structs else ""), sig_t + "\n" + "\n".join(body) + "\n}\n"
+    except (LiftError, ValueError, KeyError, IndexError, StopIteration):
+        return None
+
+
+def generate_one(addr: int, code: bytes) -> tuple[str, str]:
+    try:
         lifted = lift(code, addr)
         first = Emitter(addr, lifted)
         render = Emitter.render_tail if lifted.tail is not None else Emitter.render
@@ -1662,6 +1769,7 @@ def generate(addr: int, code: bytes) -> tuple[str, str]:
         second.structs, second.arg_types, second.fp_types = first.structs, first.arg_types, first.fp_types
         second.globals = first.globals
         second.tables = first.tables
+        second.hidden = first.hidden
         second.call_types = first.call_types
         return render(second)
     except ValueError as e:  # an operand list of another shape (shifted or extended registers ...)
@@ -1729,7 +1837,7 @@ def candidates(args) -> list[tuple[int, bytes]]:
 
     def _data_at(a: int) -> str | None:
         r = a - BASE
-        if not (ro_lo <= r < ro_hi or nso.data.mem_off <= r < nso.data.end):
+        if not (ro_lo <= r < ro_hi or nso.data.mem_off <= r < nso.data.end + nso.bss_size):
             return None
         if any(lo <= r < hi for lo, hi in vt_ranges):
             return None
