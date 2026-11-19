@@ -1705,11 +1705,14 @@ def two_paths(addr: int, code: bytes) -> tuple[str, str] | None:
         k = ks[0]
         to = (_imm(insns[k][1][-1]) - addr) // 4
         ends = ("ret", "b", "br")
-        if not k + 1 < to < len(insns) or insns[to - 1][0] not in ends or insns[-1][0] not in ends:
+        if not k + 1 < to < len(insns) or insns[-1][0] not in ends:
             return None
         if any(m in GUARDS or m.startswith("b.") for m, _ in insns[to:]):
             return None
-        fall = lift(b"", addr, path=insns[:to], split=k)
+        # Or the branch skips into code the other path falls into (`if (c) { A } B`):
+        # the fallthrough runs A and B, the branch B alone.
+        join = insns[to - 1][0] not in ends
+        fall = lift(b"", addr, path=insns if join else insns[:to], split=k)
         taken = lift(b"", addr, path=insns[:k] + insns[to:])
         emitters = []
         for _rnd in range(3):  # the first two learn the fields and arguments, the last renders them all
@@ -1748,6 +1751,16 @@ def two_paths(addr: int, code: bytes) -> tuple[str, str] | None:
         n = sum(1 for q in fall.store_seq if q < fall.split_seq) + sum(1 for c in fall.calls if c.seq < fall.split_seq)
         if body_t[:n] != body_f[:n] or len(body_t) <= n or len(body_f) <= n:
             raise LiftError("two paths: other statements before the branch")
+        if join:
+            # B, the branch's path after the prefix, must end the fallthrough's too.
+            tail_b = body_t[n:]
+            if len(body_f) - n <= len(tail_b) or body_f[len(body_f) - len(tail_b):] != tail_b:
+                raise LiftError("two paths: the joined code differs")
+            inner = ["    " + x for x in body_f[n:len(body_f) - len(tail_b)]]
+            body = body_t[:n] + [f"    if ({cond}) {{"] + inner + ["    }"] + tail_b
+            structs = s_t.rstrip("\n").split("\n") if s_t else []
+            structs += [x for x in (s_f.rstrip("\n").split("\n") if s_f else []) if x not in structs and x]
+            return "\n".join(structs) + ("\n" if structs else ""), sig_t + "\n" + "\n".join(body) + "\n}\n"
         inner = ["    " + x for x in body_f[n:]]
         if not body_f[-1].strip().startswith("return"):
             inner.append("        return;")
