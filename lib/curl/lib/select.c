@@ -72,7 +72,17 @@ int Curl_ack_eintr = 0;
  *   -1 = system call error, invalid timeout value, or interrupted
  *    0 = specified timeout has elapsed
  */
+#if 1 /* Pokemon SwSh decomp */
+/* Nintendo's SDK build inlines this into Curl_socket_check and Curl_poll
+   (Sword 0x7101766800, 0x7101766b40) and keeps the external copy (Sword
+   0x7101766730, the same code as upstream's). Upstream's is too costly to
+   inline (clang 7's cost 270, threshold 250); declared inline (the
+   inline-hint threshold, 325), all three match. How Nintendo's source says
+   so isn't known. */
+inline int Curl_wait_ms(int timeout_ms)
+#else
 int Curl_wait_ms(int timeout_ms)
+#endif
 {
 #if !defined(MSDOS) && !defined(USE_WINSOCK)
 #ifndef HAVE_POLL_FINE
