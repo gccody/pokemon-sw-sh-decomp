@@ -10,6 +10,42 @@ void Unk_6c2ba0_call() {
     Unk_6c2bb0();
 }
 
+namespace nn {
+namespace os {
+struct MutexType;
+}
+}  // namespace nn
+struct Unk_6c3100_arg1 {
+    u64 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_6c3100_arg1, field_0, 0x0);
+
+struct Unk_6c3100 {
+    u8 _0[0xd0];
+    u64 field_d0;
+    u8 field_d8;
+};
+PKMN_OFFSET_ASSERT(Unk_6c3100, field_d0, 0xd0);
+PKMN_OFFSET_ASSERT(Unk_6c3100, field_d8, 0xd8);
+
+namespace nn {
+namespace os {
+u64 LockMutex(MutexType*);
+}
+}  // namespace nn
+namespace nn {
+namespace os {
+u64 UnlockMutex(MutexType*);
+}
+}  // namespace nn
+
+// 0x71006c3100
+void Unk_6c3100_call(Unk_6c3100* self, const Unk_6c3100_arg1* value) {
+    nn::os::LockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_d8));
+    self->field_d0 = value->field_0;
+    nn::os::UnlockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_d8));
+}
+
 struct Unk_2779124_Data {
     u32 field_0;
     u32 field_4;

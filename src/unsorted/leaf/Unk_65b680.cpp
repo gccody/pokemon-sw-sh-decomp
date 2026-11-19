@@ -329,6 +329,84 @@ void Unk_663620_call(const Unk_663620* self) {
     Unk_6676c0(self->field_120);
 }
 
+namespace nn {
+namespace os {
+struct MutexType;
+}
+}  // namespace nn
+struct Unk_666600 {
+    u8 _0[0x2f8];
+    u8 field_2f8;
+    u8 _2f9[0x27];
+    u64 field_320;
+    u8 _328[0x18];
+    u8 field_340;
+};
+PKMN_OFFSET_ASSERT(Unk_666600, field_2f8, 0x2f8);
+PKMN_OFFSET_ASSERT(Unk_666600, field_320, 0x320);
+PKMN_OFFSET_ASSERT(Unk_666600, field_340, 0x340);
+
+namespace nn {
+namespace os {
+u64 LockMutex(MutexType*);
+}
+}  // namespace nn
+namespace nn {
+namespace os {
+u64 UnlockMutex(MutexType*);
+}
+}  // namespace nn
+void Unk_663c20(u64);
+
+// 0x7100666600
+void Unk_666600_call(Unk_666600* self) {
+    nn::os::LockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_2f8));
+    self->field_340 = 1;
+    Unk_663c20(self->field_320);
+    nn::os::UnlockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_2f8));
+}
+
+namespace nn {
+namespace os {
+struct MutexType;
+}
+}  // namespace nn
+struct Unk_666640 {
+    u8 _0[0x2f8];
+    u8 field_2f8;
+    u8 _2f9[0x2f];
+    u64 field_328;
+    u64 field_330;
+    u64 field_338;
+    u8 field_340;
+};
+PKMN_OFFSET_ASSERT(Unk_666640, field_2f8, 0x2f8);
+PKMN_OFFSET_ASSERT(Unk_666640, field_328, 0x328);
+PKMN_OFFSET_ASSERT(Unk_666640, field_330, 0x330);
+PKMN_OFFSET_ASSERT(Unk_666640, field_338, 0x338);
+PKMN_OFFSET_ASSERT(Unk_666640, field_340, 0x340);
+
+namespace nn {
+namespace os {
+u64 LockMutex(MutexType*);
+}
+}  // namespace nn
+namespace nn {
+namespace os {
+u64 UnlockMutex(MutexType*);
+}
+}  // namespace nn
+
+// 0x7100666640
+void Unk_666640_call(Unk_666640* self) {
+    nn::os::LockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_2f8));
+    self->field_330 = 0xffffffffffffffff;
+    self->field_328 = 0xffffffffffffffff;
+    self->field_338 = 0;
+    self->field_340 = 0;
+    nn::os::UnlockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_2f8));
+}
+
 struct Unk_666680_arg1 {
     u64 field_0;
 };
@@ -396,6 +474,79 @@ u32 Unk_667600_call(Unk_667600* self, u64 value, u32 arg2, u32 arg3) {
     self->field_64 = arg3;
     Unk_668bc0(self->field_10, arg2, arg3);
     return 0;
+}
+
+namespace nn {
+namespace os {
+struct MutexType;
+}
+}  // namespace nn
+struct Unk_667c40 {
+    u8 _0[0x38];
+    u8 field_38;
+    u8 _39[0x37];
+    u64 field_70;
+    u8 _78[0x20];
+    u8 field_98;
+};
+PKMN_OFFSET_ASSERT(Unk_667c40, field_38, 0x38);
+PKMN_OFFSET_ASSERT(Unk_667c40, field_70, 0x70);
+PKMN_OFFSET_ASSERT(Unk_667c40, field_98, 0x98);
+
+namespace nn {
+namespace os {
+u64 LockMutex(MutexType*);
+}
+}  // namespace nn
+namespace nn {
+namespace os {
+u64 UnlockMutex(MutexType*);
+}
+}  // namespace nn
+void Unk_663c20(u64);
+
+// 0x7100667c40
+void Unk_667c40_call(Unk_667c40* self) {
+    nn::os::LockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_38));
+    self->field_98 = 1;
+    Unk_663c20(self->field_70);
+    nn::os::UnlockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_38));
+}
+
+namespace nn {
+namespace os {
+struct MutexType;
+}
+}  // namespace nn
+struct Unk_667c80 {
+    u8 _0[0x38];
+    u8 field_38;
+    u8 _39[0x53];
+    u8 field_8c;
+    u8 _8d[0xb];
+    u8 field_98;
+};
+PKMN_OFFSET_ASSERT(Unk_667c80, field_38, 0x38);
+PKMN_OFFSET_ASSERT(Unk_667c80, field_8c, 0x8c);
+PKMN_OFFSET_ASSERT(Unk_667c80, field_98, 0x98);
+
+namespace nn {
+namespace os {
+u64 LockMutex(MutexType*);
+}
+}  // namespace nn
+namespace nn {
+namespace os {
+u64 UnlockMutex(MutexType*);
+}
+}  // namespace nn
+
+// 0x7100667c80
+void Unk_667c80_call(Unk_667c80* self) {
+    nn::os::LockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_38));
+    self->field_8c = 1;
+    self->field_98 = 0;
+    nn::os::UnlockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_38));
 }
 
 // 0x7100667cc0

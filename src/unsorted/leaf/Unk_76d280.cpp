@@ -52,6 +52,42 @@ u16 Unk_76d650_getFieldc(const Unk_76d650* self) {
     return self->field_c;
 }
 
+struct Unk_76d6f0_arg1 {
+    u8 _0[0x8];
+    u32 field_8;
+    u16 field_c;
+    u8 field_e;
+    u8 _f[0x103];
+    u8 field_112;
+};
+PKMN_OFFSET_ASSERT(Unk_76d6f0_arg1, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_76d6f0_arg1, field_c, 0xc);
+PKMN_OFFSET_ASSERT(Unk_76d6f0_arg1, field_e, 0xe);
+PKMN_OFFSET_ASSERT(Unk_76d6f0_arg1, field_112, 0x112);
+
+struct Unk_76d6f0 {
+    u8 _0[0x8];
+    u32 field_8;
+    u16 field_c;
+    u8 field_e;
+    u8 _f[0x103];
+    u8 field_112;
+};
+PKMN_OFFSET_ASSERT(Unk_76d6f0, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_76d6f0, field_c, 0xc);
+PKMN_OFFSET_ASSERT(Unk_76d6f0, field_e, 0xe);
+PKMN_OFFSET_ASSERT(Unk_76d6f0, field_112, 0x112);
+
+extern "C" void* memcpy(void*, const void*, unsigned long);
+
+// 0x710076d6f0
+void Unk_76d6f0_call(const Unk_76d6f0* self, Unk_76d6f0_arg1* value) {
+    memcpy(&value->field_e, &self->field_e, 0x104);
+    value->field_8 = self->field_8;
+    value->field_c = self->field_c;
+    value->field_112 = self->field_112;
+}
+
 struct Unk_76d740 {
     u8 _0[0x112];
     u8 field_112;

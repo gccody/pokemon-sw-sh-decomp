@@ -1562,6 +1562,23 @@ fields around them. The trial wrote 1,207 functions; 763 match, and
 `--record-data` recorded the 751 static objects, each at the address its
 name gives (check.py: 41,027 matching, 42 not matching).
 
+### Batch 34: C library calls, namespaced pointer types, abort
+
+- **The C library.** A C name doesn't spell its parameters: `LIBC` lists
+  the ones game code calls (`memset`, `memcpy`, `strcmp`, ...), declared
+  with C linkage and the builtins' own types (`LIBC_DECL`), so the call
+  isn't a C++-mangled symbol.
+- **Pointers to a type of the import's namespace** (`LockMutex(MutexType*)`):
+  `demangle_simple` follows the mangling's substitutions (`S_`, `S0_`), the
+  type is forward-declared in its namespaces, and a field passed as one
+  becomes a pointer of that type.
+- **`abort()`**, an import that doesn't return, ends a path
+  (`Lifted.noreturn`): `if (...) { ...; return; } abort();`.
+
+Two trials, 29 matches: most functions that call these also do things
+the lifter doesn't (loops, stack locals). check.py: 41,056 matching, 42
+not matching.
+
 ## What's left of the small functions
 
 After these batches (check.py: 25,626 matching), most of game code's
@@ -1587,7 +1604,7 @@ Larger shapes have their own blockers:
 
 ## Handoff (2026-11-17, updated 2026-11-18)
 
-State after Batch 33: check.py reports 41,027 matching and 42 not
+State after Batch 34: check.py reports 41,056 matching and 42 not
 matching, in both games. Every batch above came from `tools/leafgen.py` and
 `tools/vtables.py` (`write`, `ctors`). Their sources in `src/unsorted/leaf`,
 `src/unsorted/virtual` and `src/unsorted/ctor` are generated: change the

@@ -611,6 +611,43 @@ u32 Unk_658df0_getField60(const Unk_658df0* self) {
     return self->field_60;
 }
 
+namespace nn {
+namespace os {
+struct MutexType;
+}
+}  // namespace nn
+struct Unk_659470_arg1 {
+    u32 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_659470_arg1, field_0, 0x0);
+
+struct Unk_659470 {
+    u8 _0[0xc0];
+    u8 field_c0;
+    u8 _c1[0x1f];
+    u32 field_e0;
+};
+PKMN_OFFSET_ASSERT(Unk_659470, field_c0, 0xc0);
+PKMN_OFFSET_ASSERT(Unk_659470, field_e0, 0xe0);
+
+namespace nn {
+namespace os {
+u64 LockMutex(MutexType*);
+}
+}  // namespace nn
+namespace nn {
+namespace os {
+u64 UnlockMutex(MutexType*);
+}
+}  // namespace nn
+
+// 0x7100659470
+void Unk_659470_call(Unk_659470* self, const Unk_659470_arg1* value) {
+    nn::os::LockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_c0));
+    self->field_e0 = value->field_0;
+    nn::os::UnlockMutex(reinterpret_cast<nn::os::MutexType*>(&self->field_c0));
+}
+
 struct Unk_65a0c0_arg1 {
     u32 field_0;
 };
