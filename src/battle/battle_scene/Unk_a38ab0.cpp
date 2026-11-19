@@ -19,6 +19,11 @@ void Unk_980950(Unk_23c4ef0_Poke*, s32);
 u8 Unk_981b70(Unk_23c4ef0_Poke*);
 void Unk_988980(Unk_23c4ef0_Poke*, s32);
 void Unk_97ffc0(Unk_23c4ef0_Poke*, void*);
+void Unk_988e80(Unk_23c4ef0_Poke*, const Unk_23c4ef0_Name&);
+void Unk_9b0aa0(Unk_23c4ef0_Poke*, const Unk_23c4ef0_Name&, f32, s32);
+void Unk_98d1c0(Unk_23c4ef0_Poke*, const Unk_23c4ef0_Name&, bool);
+void Unk_9889b0(Unk_23c4ef0_Poke*, void*, void*);
+void Unk_980f80(Unk_23c4ef0_Poke*);
 void Unk_97ef60(Unk_23c4ef0_Poke*, bool);
 void Unk_97efb0(Unk_23c4ef0_Poke*, bool);
 u32 Unk_982a10(Unk_23c4ef0_Poke*);
@@ -1123,4 +1128,101 @@ void Unk_a5d0a0(void* seq, Unk_23c4ef0_Owner* owner, const u64*) {
             continue;
         Unk_97f190(poke.m_ptr, Unk_5cfad0(Unk_23c4ef0_HashStr(str)), false);
     }
+}
+
+// 0x7100a5d530
+void Unk_a5d530(void* seq, Unk_23c4ef0_Owner* owner, const u64*) {
+    s32 id;
+    bool arg = false;
+    char str1[0x80];
+    char str2[0x80];
+    Unk_23c4ef0_ReadS32(seq, &id);
+    Unk_140bcf0(seq, str1, sizeof(str1), 1);
+    Unk_140bcf0(seq, str2, sizeof(str2), 1);
+    Unk_23c4ef0_ReadBool(seq, &arg);
+    Unk_23f4660_Name name = Unk_9fccc0(str1);
+    Unk_239a418_Ref<Unk_23c4ef0_Poke> poke = owner->Unk_961f10(id, 0);
+    if (arg) {
+        if (poke.m_ptr && poke.m_ptr->vf50())
+            Unk_980f80(poke.m_ptr);
+    } else {
+        void* p = Unk_c1f550(owner->field_508, &name);
+        if (poke.m_ptr && poke.m_ptr->vf50() && p)
+            Unk_97ffc0(poke.m_ptr, p);
+    }
+}
+
+// 0x7100a4d840
+void Unk_a4d840(void* seq, Unk_23c4ef0_Owner* owner, const u64* cmd) {
+    Unk_23f4660_Name name = {nullptr, 0xcbf29ce484222645, "", 0, nullptr, 0};
+    Unk_140bd70(reinterpret_cast<u64>(seq), &name, 1);
+    void* p = Unk_c1f550(owner->field_508, &name);
+    Unk_239a418_Ref<Unk_23c4ef0_Group> group =
+        owner->field_640->field_8.find(Unk_23c4ef0_GetCmd(cmd)->field_10)->second;
+    void* d8 = owner->field_d8;
+    for (Unk_23c4ef0_Poke* poke : group.m_ptr->field_a0)
+        Unk_9889b0(poke, d8, p);
+}
+
+// 0x7100a62240
+void Unk_a62240(void* seq, Unk_23c4ef0_Owner* owner, const u64*) {
+    s32 id;
+    char str[0x40];
+    bool arg;
+    Unk_23c4ef0_ReadS32(seq, &id);
+    Unk_140bcf0(seq, str, sizeof(str), 1);
+    Unk_23c4ef0_ReadBool(seq, &arg);
+    s32 n = 1;
+    if (id == 1)
+        n = owner->Unk_9526f0(true);
+    for (s32 i = 0; i < n; i++) {
+        u32 pos = owner->Unk_952670(id, i);
+        if (pos == 0xff)
+            continue;
+        Unk_239a418_Ref<Unk_23c4ef0_Poke> poke = owner->Unk_961020(pos);
+        if (!poke.m_ptr)
+            continue;
+        Unk_98d1c0(poke.m_ptr, Unk_5cfad0(Unk_23c4ef0_HashStr(str)), arg);
+    }
+}
+
+// 0x7100a4dc00
+void Unk_a4dc00(void* seq, Unk_23c4ef0_Owner* owner, const u64* cmd) {
+    char str[0x40];
+    Unk_140bcf0(seq, str, sizeof(str), 1);
+    Unk_239a418_Ref<Unk_23c4ef0_Group> group =
+        owner->field_640->field_8.find(Unk_23c4ef0_GetCmd(cmd)->field_10)->second;
+    for (Unk_23c4ef0_Poke* poke : group.m_ptr->field_a0)
+        Unk_988e80(poke, Unk_5cfad0(Unk_23c4ef0_HashStr(str)));
+}
+
+// 0x7100a4fa30
+void Unk_a4fa30(void* seq, Unk_23c4ef0_Owner* owner, const u64* cmd) {
+    char str[0x80];
+    f32 arg1;
+    s32 arg2;
+    Unk_140bcf0(seq, str, sizeof(str), 1);
+    Unk_23c4ef0_ReadF32(seq, &arg1);
+    Unk_23c4ef0_ReadS32(seq, &arg2);
+    Unk_239a418_Ref<Unk_23c4ef0_Group> group =
+        owner->field_6a0->field_8.find(Unk_23c4ef0_GetCmd(cmd)->field_10)->second;
+    for (Unk_23c4ef0_Poke* poke : group.m_ptr->field_a0)
+        Unk_9b0aa0(poke, Unk_23c4ef0_ResName(str).Unk_5cfaf0(), arg1, arg2);
+}
+
+// 0x7100a4ff00
+void Unk_a4ff00(void* seq, Unk_23c4ef0_Owner* owner, const u64* cmd) {
+    s32 frames = Unk_23c4ef0_Frames(cmd) / 2;
+    s32 arg1;
+    bool arg3;
+    Unk_23c4ef0_Vec arg2;
+    bool arg4;
+    Unk_23c4ef0_ReadS32(seq, &arg1);
+    Unk_23c4ef0_ReadVec(seq, &arg2);
+    Unk_23c4ef0_ReadBool(seq, &arg3);
+    Unk_23c4ef0_ReadBool(seq, &arg4);
+    Unk_239a418_Ref<Unk_23c4ef0_Group> group =
+        owner->field_6a0->field_8.find(Unk_23c4ef0_GetCmd(cmd)->field_10)->second;
+    for (Unk_23c4ef0_Poke* poke : group.m_ptr->field_a0)
+        owner->Unk_961750(Unk_239a418_Ref<Unk_23c4ef0_Poke>(poke), frames, arg1, &arg2, arg4, arg3);
 }

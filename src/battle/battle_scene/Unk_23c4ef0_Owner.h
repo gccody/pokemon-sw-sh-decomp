@@ -585,7 +585,9 @@ public:
     Unk_23c4ef0_Groups* field_640;
     u8 _648[0x660 - 0x648];
     Unk_23c4ef0_Groups* field_660;
-    u8 _668[0x1754 - 0x668];
+    u8 _668[0x6a0 - 0x668];
+    Unk_23c4ef0_Groups* field_6a0;
+    u8 _6a8[0x1754 - 0x6a8];
     u32 field_1754;
     u8 _1758[0x1760 - 0x1758];
     s32 field_1760;
@@ -606,6 +608,7 @@ PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_5b8, 0x5b8);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_5c8, 0x5c8);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_640, 0x640);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_660, 0x660);
+PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_6a0, 0x6a0);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_1754, 0x1754);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_1760, 0x1760);
 PKMN_OFFSET_ASSERT(Unk_23c4ef0_Owner, field_1f40, 0x1f40);
