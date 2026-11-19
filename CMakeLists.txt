@@ -112,6 +112,14 @@ pkmn_library_settings(src/unsorted
   DEFINES _GNU_SOURCE _LIBCPP_HAS_MUSL_LIBC _LIBCPP_HAS_THREAD_API_PTHREAD
   SYSTEM_INCLUDES include/libcxx)
 
+# Pokemon Camp's own code (prog/contents/pokecamp/source; its generated
+# protobuf messages under include/ have their own entries below), built like
+# the code in src/unsorted.
+pkmn_library_settings(src/contents/pokecamp/source
+  EVIDENCE "docs/compiler.md, section gflib3"
+  DEFINES _GNU_SOURCE _LIBCPP_HAS_MUSL_LIBC _LIBCPP_HAS_THREAD_API_PTHREAD
+  SYSTEM_INCLUDES include/libcxx)
+
 # PhysX 3.4.2, built by NVIDIA: full C++ exceptions (its FDEs have personality
 # and LSDA), strict aliasing, -fno-builtin (fabsf/sqrtf stay library calls),
 # gnu++14 (gnu++11/14/17 give identical code; strict c++17 breaks musl's
