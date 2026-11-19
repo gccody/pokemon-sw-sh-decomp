@@ -2547,7 +2547,7 @@ def template_class(mangled: str, demangled: str) -> tuple[list[str], list[str]] 
     for a in args:
         if a in _SCALARS:
             continue
-        if not re.fullmatch(r"(?:\w+::)*\w+", a):
+        if not re.fullmatch(r"(?:[A-Za-z_]\w*::)*[A-Za-z_]\w*", a):  # a class (not a value)
             return None
         *ns, name = a.split("::")
         d = f"class {name};"
