@@ -12,6 +12,16 @@ void Unk_d54e90(void* self);
 extern u32 Unk_27dcdd8;
 extern u32 Unk_27dcddc;
 
+// Lifted through their own placeholder structs (cast_member).
+struct Unk_d55bb0 {
+    u8 _0[0x6f0];
+    s32 field_6f0;
+    u8 _6f4[0xd];
+    u8 field_701;
+};
+PKMN_OFFSET_ASSERT(Unk_d55bb0, field_6f0, 0x6f0);
+PKMN_OFFSET_ASSERT(Unk_d55bb0, field_701, 0x701);
+
 class Unk_23ebb88 {
 public:
     virtual void vf0();
@@ -47,7 +57,7 @@ public:
     virtual void vf30();
     virtual void vf31();
     virtual void vf32();
-    virtual void vf33();
+    virtual bool vf33();
     virtual void vf34();
     virtual void vf35();
     virtual void vf36();
@@ -71,6 +81,15 @@ void Unk_23ebb88::vf6() {
 // 0x7100d54e80
 void Unk_23ebb88::vf8() {
     Unk_d54e90(this);
+}
+
+// 0x7100d55bb0
+bool Unk_23ebb88::vf33() {
+    const Unk_d55bb0* self = reinterpret_cast<const Unk_d55bb0*>(this);
+    if (self->field_701 != 0) {
+        return 1;
+    }
+    return self->field_6f0 > 0;
 }
 
 // 0x7100d55bd0

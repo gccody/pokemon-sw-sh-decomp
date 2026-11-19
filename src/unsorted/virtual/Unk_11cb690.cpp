@@ -13,6 +13,38 @@ void Unk_11deb20(void* self);
 void Unk_68d9b0(u64);
 void Unk_112e3e0(void*, u32);
 
+// Lifted through their own placeholder structs (cast_member).
+struct Unk_11d2640 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    u8 _8[0x79];
+    u8 field_81;
+    u8 field_82;
+};
+PKMN_OFFSET_ASSERT(Unk_11d2640, field_81, 0x81);
+PKMN_OFFSET_ASSERT(Unk_11d2640, field_82, 0x82);
+
 class Unk_24202e0 {
 public:
     virtual void vf0();
@@ -142,6 +174,19 @@ public:
     virtual void vf23();
     virtual void vf24();
 };
+
+// 0x71011d2640
+void Unk_2420ad0::vf15() {
+    Unk_11d2640* self = reinterpret_cast<Unk_11d2640*>(this);
+    if (self->field_81 != 0) {
+        self->vf19();
+        return;
+    }
+    if (self->field_82 != 0) {
+        self->vf22();
+        return;
+    }
+}
 
 // 0x71011d2840
 void Unk_2420ad0::vf19() {}

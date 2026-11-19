@@ -3,11 +3,46 @@
 // Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
+#include "gflib3/Unk_239a418.h"
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
 void Unk_96c4a0(void* self);
 void Unk_979390(void* self);
 void Unk_985c80(void* self);
+
+// Lifted through their own placeholder structs (cast_member).
+struct Unk_967170 {
+    u8 _0[0x3f0];
+    Unk_239a418* field_3f0;
+};
+PKMN_OFFSET_ASSERT(Unk_967170, field_3f0, 0x3f0);
+
+struct Unk_974760 {
+    u8 _0[0x460];
+    bool field_460;
+    bool field_461;
+};
+PKMN_OFFSET_ASSERT(Unk_974760, field_460, 0x460);
+PKMN_OFFSET_ASSERT(Unk_974760, field_461, 0x461);
+
+struct Unk_9787b0_8 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3(u64, u64, u64);
+};
+
+struct Unk_9787b0 {
+    virtual void vf0();
+    Unk_9787b0_8* field_8;
+    u64 field_10;
+    u64 field_18;
+    u64 field_20;
+};
+PKMN_OFFSET_ASSERT(Unk_9787b0, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_9787b0, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_9787b0, field_18, 0x18);
+PKMN_OFFSET_ASSERT(Unk_9787b0, field_20, 0x20);
 
 class Unk_23c0960 {
 public:
@@ -25,7 +60,7 @@ public:
     virtual void vf12();
     virtual void vf13();
     virtual void vf14();
-    virtual void vf15();
+    virtual u32 vf15();
     virtual void vf16();
     virtual void vf17();
     virtual void vf18();
@@ -42,14 +77,14 @@ public:
     virtual void vf29();
     virtual void vf30();
     virtual void vf31();
-    virtual void vf32();
+    virtual u32 vf32();
     virtual void vf33();
     virtual void vf34();
     virtual void vf35();
     virtual void vf36();
     virtual void vf37();
     virtual void vf38();
-    virtual void vf39();
+    virtual u32 vf39();
     virtual void vf40();
     virtual void vf41();
     virtual void vf42();
@@ -81,14 +116,14 @@ public:
     virtual void vf68();
     virtual void vf69();
     virtual void vf70();
-    virtual void vf71();
+    virtual void vf71(u64 value, u64 arg2, u64 arg3);
     virtual void vf72();
     virtual void vf73();
     virtual void vf74();
     virtual void vf75();
-    virtual void vf76();
+    virtual u32 vf76();
     virtual void vf77();
-    virtual void vf78();
+    virtual u32 vf78();
     virtual void vf79();
     virtual void vf80();
     virtual void vf81();
@@ -132,7 +167,7 @@ public:
     virtual void vf119();
     virtual void vf120();
     virtual void vf121();
-    virtual void vf122();
+    virtual u32 vf122();
     virtual void vf123();
     virtual void vf124();
     virtual void vf125();
@@ -148,21 +183,21 @@ public:
     virtual void vf135();
     virtual void vf136();
     virtual void vf137();
-    virtual void vf138();
+    virtual u32 vf138();
     virtual void vf139();
-    virtual void vf140();
+    virtual u32 vf140();
     virtual void vf141();
-    virtual void vf142();
+    virtual u32 vf142();
     virtual void vf143();
-    virtual void vf144();
+    virtual u32 vf144();
     virtual void vf145();
-    virtual void vf146();
+    virtual u32 vf146();
     virtual void vf147();
     virtual void vf148();
     virtual void vf149();
-    virtual void vf150();
+    virtual u32 vf150();
     virtual void vf151();
-    virtual void vf152();
+    virtual u32 vf152();
     virtual void vf153();
     virtual u32 vf154();
     virtual void vf155();
@@ -174,10 +209,10 @@ public:
     virtual void vf161();
     virtual void vf162();
     virtual void vf163();
-    virtual void vf164();
+    virtual u32 vf164();
     virtual void vf165();
     virtual void vf166();
-    virtual void vf167();
+    virtual u32 vf167();
     virtual void vf168();
     virtual void vf169();
     virtual void vf170();
@@ -187,7 +222,7 @@ public:
     virtual void vf174();
     virtual void vf175();
     virtual void vf176();
-    virtual void vf177();
+    virtual u32 vf177();
     virtual void vf178();
     virtual void vf179();
     virtual void vf180();
@@ -196,7 +231,7 @@ public:
     virtual void vf183();
     virtual void vf184();
     virtual void vf185();
-    virtual void vf186();
+    virtual u32 vf186();
     virtual void vf187();
     virtual void vf188();
     virtual void vf189();
@@ -376,6 +411,16 @@ void Unk_23c0960::vf11() {}
 
 // 0x7100967150
 void Unk_23c0960::vf12() {}
+
+// 0x7100967170
+void Unk_23c0960::vf325() {
+    Unk_967170* self = reinterpret_cast<Unk_967170*>(this);
+    Unk_239a418* v0 = self->field_3f0;
+    self->field_3f0 = nullptr;
+    if (v0 != nullptr) {
+        static_cast<Unk_239a458*>(v0)->vf5();
+    }
+}
 
 // 0x7100967190
 u32 Unk_23c0960::vf331() {
@@ -563,7 +608,7 @@ public:
     virtual void vf49();
     virtual void vf50();
     virtual void vf51();
-    virtual void vf52();
+    virtual void vf52(bool value, u32 arg2);
     virtual void vf53();
     virtual void vf54();
     virtual void vf55();
@@ -603,6 +648,20 @@ void Unk_23c1688::vf30() {}
 void Unk_23c1688::vf47() {
     field_460 = 0x101;
     field_464 = 0x101;
+}
+
+// 0x7100974760
+void Unk_23c1688::vf52(bool value, u32 arg2) {
+    Unk_974760* self = reinterpret_cast<Unk_974760*>(this);
+    if (arg2 != 0) {
+        self->field_461 = value;
+        if (arg2 != 1) {
+            self->field_460 = value;
+            return;
+        }
+        return;
+    }
+    self->field_460 = value;
 }
 
 // 0x7100978290
@@ -650,6 +709,26 @@ public:
 // 0x7100978480
 void Unk_23c1908::vf0() {
     Unk_96c4a0(this);
+}
+
+class Unk_23c1b18 {
+public:
+    virtual ~Unk_23c1b18();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+};
+
+// 0x71009787b0
+void Unk_23c1b18::vf3() {
+    Unk_9787b0* self = reinterpret_cast<Unk_9787b0*>(this);
+    Unk_9787b0_8* v0 = self->field_8;
+    u64 v1 = self->field_10;
+    u64 v2 = self->field_18;
+    u64 v3 = self->field_20;
+    self->vf0();
+    v0->vf3(v1, v2, v3);
 }
 
 class Unk_23c1930 {

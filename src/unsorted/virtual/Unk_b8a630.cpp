@@ -15,6 +15,16 @@ void Unk_b93690(void*, u32);
 void Unk_b9ac60(void*, u32, u64);
 void Unk_b9e7a0(void*, u32);
 
+// Lifted through their own placeholder structs (cast_member).
+struct Unk_b8ce60 {
+    u8 _0[0x94];
+    u32 field_94;
+    u8 _98[0x30c];
+    u32 field_3a4;
+};
+PKMN_OFFSET_ASSERT(Unk_b8ce60, field_94, 0x94);
+PKMN_OFFSET_ASSERT(Unk_b8ce60, field_3a4, 0x3a4);
+
 class Unk_23d1de8 {
 public:
     virtual ~Unk_23d1de8();
@@ -97,7 +107,7 @@ public:
     virtual void vf11();
     virtual void vf12();
     virtual void vf13();
-    virtual void vf14();
+    virtual bool vf14();
     virtual void vf15();
     virtual void vf16();
     virtual void vf17();
@@ -134,6 +144,15 @@ public:
 // 0x7100b94120
 void Unk_23d2138::vf6() {
     Unk_b3adb0(this);
+}
+
+// 0x7100b8ce60
+bool Unk_23d2138::vf14() {
+    const Unk_b8ce60* self = reinterpret_cast<const Unk_b8ce60*>(this);
+    if (self->field_3a4 != 0) {
+        return 0;
+    }
+    return self->field_94 == 0;
 }
 
 // 0x7100b94130

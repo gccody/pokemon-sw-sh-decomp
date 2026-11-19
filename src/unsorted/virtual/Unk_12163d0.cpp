@@ -5,6 +5,15 @@
 #include <types.h>
 #include "gflib3/Unk_239a418.h"
 
+// Lifted through their own placeholder structs (cast_member).
+struct Unk_12163d0 {
+    u8 _0[0x68];
+    u64 field_68;
+    Unk_239a418* field_70;
+};
+PKMN_OFFSET_ASSERT(Unk_12163d0, field_68, 0x68);
+PKMN_OFFSET_ASSERT(Unk_12163d0, field_70, 0x70);
+
 class Unk_2423ec8 : public Unk_239a418 {
 public:
     static const Unk_239a418_Type* Unk_GetType() {
@@ -12,9 +21,8 @@ public:
         return &type;
     }
 
-    ~Unk_2423ec8() override;
     const Unk_239a418_Type* vf_type() override { return Unk_GetType(); }
-    virtual void vf7();
+    virtual void vf7(u64 value);
     virtual void vf8();
     virtual void vf9();
     virtual void vf10();
@@ -32,8 +40,16 @@ public:
 PKMN_OFFSET_ASSERT(Unk_2423ec8, field_70, 0x70);
 PKMN_OFFSET_ASSERT(Unk_2423ec8, field_78, 0x78);
 
-// 0x7101216dc0: its key function
-Unk_2423ec8::~Unk_2423ec8() {}
+// 0x71012163d0
+void Unk_2423ec8::vf7(u64 value) {
+    Unk_12163d0* self = reinterpret_cast<Unk_12163d0*>(this);
+    self->field_68 = value;
+    Unk_239a418* v0 = self->field_70;
+    self->field_70 = nullptr;
+    if (v0 != nullptr) {
+        static_cast<Unk_239a458*>(v0)->vf5();
+    }
+}
 
 // 0x7101216540
 void Unk_2423ec8::vf10() {}

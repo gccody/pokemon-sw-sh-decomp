@@ -13,6 +13,26 @@ void Unk_5cc540(void* self);
 // Tail-called by lifted functions. Placeholders, like the forwarders' callees.
 void Unk_5ac270(u64);
 
+// Lifted through their own placeholder structs (cast_member).
+struct Unk_5b27c0_8 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3(u64, u64, u64);
+};
+
+struct Unk_5b27c0 {
+    virtual void vf0();
+    Unk_5b27c0_8* field_8;
+    u64 field_10;
+    u64 field_18;
+    u64 field_20;
+};
+PKMN_OFFSET_ASSERT(Unk_5b27c0, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_5b27c0, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_5b27c0, field_18, 0x18);
+PKMN_OFFSET_ASSERT(Unk_5b27c0, field_20, 0x20);
+
 class Unk_2398480 {
 public:
     virtual ~Unk_2398480();
@@ -175,6 +195,26 @@ public:
 
 // 0x71005abaf0
 void Unk_23987c8::vf5() {}
+
+class Unk_2398ab8 {
+public:
+    virtual ~Unk_2398ab8();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+};
+
+// 0x71005b27c0
+void Unk_2398ab8::vf3() {
+    Unk_5b27c0* self = reinterpret_cast<Unk_5b27c0*>(this);
+    Unk_5b27c0_8* v0 = self->field_8;
+    u64 v1 = self->field_10;
+    u64 v2 = self->field_18;
+    u64 v3 = self->field_20;
+    self->vf0();
+    v0->vf3(v1, v2, v3);
+}
 
 class Unk_2398af8 {
 public:

@@ -3,9 +3,17 @@
 // Placeholder classes, named after their vtables (Unk_<_ZTV address>): rename
 // them, and give the functions real signatures, once the classes are known.
 #include <types.h>
+#include "gflib3/Unk_239a418.h"
 #include "unsorted/Unk_23f43c8.h"
 
-class Unk_2404c08 : public Unk_23f43c8 {
+// Lifted through their own placeholder structs (cast_member).
+struct Unk_fdeff0 {
+    u8 _0[0x80];
+    Unk_239a418* field_80;
+};
+PKMN_OFFSET_ASSERT(Unk_fdeff0, field_80, 0x80);
+
+class Unk_2405048 : public Unk_23f43c8 {
 public:
     static const Unk_239a418_Type* Unk_GetType() {
         static Unk_239a418_Type type(Unk_23f43c8::Unk_GetType());
@@ -20,10 +28,20 @@ public:
     Unk_239a418_Ref<Unk_239a418> field_80;
     Unk_239a418_Ref<Unk_239a418> field_88;
 };
-PKMN_OFFSET_ASSERT(Unk_2404c08, field_80, 0x80);
-PKMN_OFFSET_ASSERT(Unk_2404c08, field_88, 0x88);
+PKMN_OFFSET_ASSERT(Unk_2405048, field_80, 0x80);
+PKMN_OFFSET_ASSERT(Unk_2405048, field_88, 0x88);
 
-// 0x7100fd9d30; its type 0x7100fda110
-const Unk_239a418_Type* Unk_2404c08::vf_type() {
+// 0x7100fdeff0
+void Unk_2405048::vf9() {
+    Unk_fdeff0* self = reinterpret_cast<Unk_fdeff0*>(this);
+    Unk_239a418* v0 = self->field_80;
+    self->field_80 = nullptr;
+    if (v0 != nullptr) {
+        static_cast<Unk_239a458*>(v0)->vf5();
+    }
+}
+
+// 0x7100fdf0f0; its type 0x7100fdf2e0
+const Unk_239a418_Type* Unk_2405048::vf_type() {
     return Unk_GetType();
 }

@@ -6,6 +6,23 @@
 #include "gflib3/Unk_239a4c0.h"
 #include "unsorted/Unk_23c44f8.h"
 
+// Lifted through their own placeholder structs (cast_member).
+struct Unk_14de620_260 {
+    u8 field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_14de620_260, field_0, 0x0);
+struct Unk_14de620 {
+    u8 _0[0x1ed];
+    u8 field_1ed;
+    u8 _1ee[0x6a];
+    u8 field_258;
+    u8 _259[0x7];
+    Unk_14de620_260* field_260;
+};
+PKMN_OFFSET_ASSERT(Unk_14de620, field_1ed, 0x1ed);
+PKMN_OFFSET_ASSERT(Unk_14de620, field_258, 0x258);
+PKMN_OFFSET_ASSERT(Unk_14de620, field_260, 0x260);
+
 class Unk_24432a8_Obj {
 public:
     virtual void vf0();
@@ -438,7 +455,7 @@ public:
     virtual void vf8();
     virtual void vf9();
     virtual void vf10();
-    virtual void vf11();
+    virtual u32 vf11();
     virtual void vf12();
     virtual void vf13();
     virtual void vf14();
@@ -450,6 +467,19 @@ public:
 
 // 0x71014de3f0
 u32 Unk_24442f0::vf7() {
+    return 1;
+}
+
+// 0x71014de620
+u32 Unk_24442f0::vf11() {
+    const Unk_14de620* self = reinterpret_cast<const Unk_14de620*>(this);
+    if (self->field_258 != 0) {
+        if (self->field_260 != nullptr) {
+            self->field_260->field_0 = self->field_1ed;
+            return 1;
+        }
+        return 1;
+    }
     return 1;
 }
 
