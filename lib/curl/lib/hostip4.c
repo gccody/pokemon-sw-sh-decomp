@@ -101,7 +101,7 @@ Curl_addrinfo *Curl_getaddrinfo(struct connectdata *conn,
 
   *waitp = 0; /* synchronous response only */
 
-  ai = Curl_ipv4_resolve_r(hostname, port);
+  ai = Curl_ipv4_resolve_r(hostname, port, NULL, 0); /* Pokemon SwSh decomp */
   if(!ai)
     infof(conn->data, "Curl_ipv4_resolve_r failed for %s\n", hostname);
 
@@ -120,7 +120,9 @@ Curl_addrinfo *Curl_getaddrinfo(struct connectdata *conn,
  *
  */
 Curl_addrinfo *Curl_ipv4_resolve_r(const char *hostname,
-                                   int port)
+                                   int port,
+                                   /* Pokemon SwSh decomp: Nintendo's */
+                                   const void *options, size_t optionsCount)
 {
 #if !defined(HAVE_GETADDRINFO_THREADSAFE) && defined(HAVE_GETHOSTBYNAME_R_3)
   int res;
@@ -291,7 +293,7 @@ Curl_addrinfo *Curl_ipv4_resolve_r(const char *hostname,
      * gethostbyname() is the preferred one.
      */
   else {
-    h = gethostbyname((void *)hostname);
+    h = gethostbyname((void *)hostname, options, optionsCount); /* Nintendo */
 #endif /* HAVE_GETADDRINFO_THREADSAFE || HAVE_GETHOSTBYNAME_R */
   }
 
