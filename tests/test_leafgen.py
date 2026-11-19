@@ -482,3 +482,18 @@ def test_decision_tree():
                     "    if (value != 0) {\n        if (arg2 != 0) {\n            self->field_0 = value;\n"
                     "            return;\n        }\n        self->field_4 = arg2;\n        return;\n    }\n"
                     "    self->field_8 = 0;\n}\n")
+
+
+def test_copied_head_then_a_reference():
+    """ldp x8, x9, [x0] ; stp x8, x9, [x1] ; ldr x0, [x0, #0x10] ; str x0, [x1, #0x10] ;
+    cbz x0, L ; <add a reference> ; L: ret: the first 16 bytes are a struct copy,
+    the pointer after them a reference."""
+    ldp = 0xA9400000 | 9 << 10 | 0 << 5 | 8
+    stp = 0xA9000000 | 9 << 10 | 1 << 5 | 8
+    ldr_pre = 0xF8400C00 | (0x48 << 12) | 0 << 5 | 8
+    words = (ldp, stp, ldr_x(0, 0, 0x10), str_x(0, 1, 0x10), cbz_x(0, 4), ldr_pre, ldr_x(1, 8, 0x10), 0xD61F0020,
+             RET)
+    structs, func = leafgen.generate(ADDR, code(*words))
+    assert "struct Unk_123450_head {\n    u64 field_0;\n    u64 field_8;\n};" in structs
+    assert func.startswith("void Unk_123450_call(const Unk_123450* self, Unk_123450_arg1* value) {\n"
+                           "    value->field_0 = self->field_0;\n    Unk_239a418* v0 = self->field_10;\n")
