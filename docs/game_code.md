@@ -2451,6 +2451,14 @@ allocator of `src/unsorted/Unk_2771620.h`:
   `operator[]` has 12 instances too, but they call `rehash` instances that
   `src/unsorted/Unk_597350.cpp` names with empty mapped types; the `int`-keyed
   `rehash` instances' `__rehash` callees don't match.
+- Swept over every area, the same templates have 36 more instances in gflib3
+  and gflnet3 that familygen doesn't write (and a third deque's
+  `__add_back_capacity`), written in the same files.
+
+`tools/shapes.py` does the grouping (`groups --area game`, `members <addr>`)
+and the sweep (`sweep <object>`: which groups an object's functions have the
+shape of). A sweep object is any TU that instantiates the candidates, compiled
+with the build's flags; a shape match still has to be named and checked.
 
 ## What's left of the small functions
 

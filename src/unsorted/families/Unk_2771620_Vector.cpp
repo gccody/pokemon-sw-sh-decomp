@@ -1,9 +1,10 @@
 // Scope: common
-// Members of vectors on Unk_2771620's allocator that game code instantiates out
-// of line, for elements that are trivially copyable: the code depends only on
-// the element's size and alignment. Each element type is a placeholder of that
-// size and alignment, named after the function (the vectors' users aren't
-// decompiled, so which of them share an element type isn't known).
+// Members of vectors on Unk_2771620's allocator that Game Freak's code (game,
+// gflib3, gflnet3) instantiates out of line, for elements that are trivially
+// copyable: the code depends only on the element's size and alignment. Each
+// element type is a placeholder of that size and alignment, named after the
+// function (the vectors' users aren't decompiled, so which of them share an
+// element type isn't known).
 #include <types.h>
 #include <vector>
 
@@ -12,6 +13,93 @@
 template <class T>
 using Unk_2771620_Vector = std::vector<T, Unk_2771620_Allocator<T>>;
 
+struct alignas(2) Unk_5a1660 {
+    u8 _0[0x2];
+};
+struct alignas(8) Unk_5a1ae0 {
+    u8 _0[0x8];
+};
+struct alignas(8) Unk_5a8c10 {
+    u8 _0[0x10];
+};
+struct alignas(4) Unk_5ab480 {
+    u8 _0[0xc];
+};
+struct alignas(16) Unk_5ab6d0 {
+    u8 _0[0x20];
+};
+struct alignas(16) Unk_5acb00 {
+    u8 _0[0xf0];
+};
+struct alignas(8) Unk_5bc5b0 {
+    u8 _0[0x8];
+};
+struct alignas(16) Unk_5c21f0 {
+    u8 _0[0x50];
+};
+struct alignas(8) Unk_5c3e00 {
+    u8 _0[0x8];
+};
+struct alignas(8) Unk_5c4d70 {
+    u8 _0[0x8];
+};
+struct alignas(4) Unk_5cf3d0 {
+    u8 _0[0xc];
+};
+struct alignas(2) Unk_5cf620 {
+    u8 _0[0x2];
+};
+struct alignas(8) Unk_5d4700 {
+    u8 _0[0x8];
+};
+struct alignas(8) Unk_5d4f50 {
+    u8 _0[0x8];
+};
+struct alignas(4) Unk_5e1f80 {
+    u8 _0[0x14];
+};
+struct alignas(8) Unk_5ff400 {
+    u8 _0[0x18];
+};
+struct alignas(16) Unk_612d50 {
+    u8 _0[0x130];
+};
+struct alignas(4) Unk_615370 {
+    u8 _0[0x4];
+};
+struct alignas(16) Unk_615690 {
+    u8 _0[0x10];
+};
+struct alignas(16) Unk_6157f0 {
+    u8 _0[0x10];
+};
+struct alignas(4) Unk_615ec0 {
+    u8 _0[0x4];
+};
+struct alignas(4) Unk_619d00 {
+    u8 _0[0x14];
+};
+struct alignas(8) Unk_629860 {
+    u8 _0[0x8];
+};
+struct alignas(4) Unk_631620 {
+    u8 _0[0x8];
+};
+struct alignas(16) Unk_652640 {
+    u8 _0[0x40];
+};
+struct alignas(16) Unk_653bf0 {
+    u8 _0[0x40];
+};
+struct alignas(16) Unk_656010 {
+    u8 _0[0x40];
+};
+struct alignas(8) Unk_696620 {
+    u8 _0[0x8];
+};
+struct alignas(8) Unk_6b87e0 {
+    u8 _0[0x20];
+};
 struct alignas(8) Unk_a704f0 {
     u8 _0[0x80];
 };
@@ -145,6 +233,73 @@ struct alignas(8) Unk_14f7ad0 {
     u8 _0[0x18];
 };
 
+// 0x71005a1660
+template void Unk_2771620_Vector<Unk_5a1660>::__append(size_t);
+// 0x71005a1ae0
+template void Unk_2771620_Vector<Unk_5a1ae0>::__append(size_t);
+// 0x71005a8c10
+template void Unk_2771620_Vector<Unk_5a8c10>::reserve(size_t);
+// 0x71005ab480
+template void Unk_2771620_Vector<Unk_5ab480>::__append(size_t);
+// 0x71005ab6d0
+template void Unk_2771620_Vector<Unk_5ab6d0>::__append(size_t);
+// 0x71005acb00
+template void Unk_2771620_Vector<Unk_5acb00>::reserve(size_t);
+// 0x71005bc5b0
+template void Unk_2771620_Vector<Unk_5bc5b0>::reserve(size_t);
+// 0x71005c21f0
+template void Unk_2771620_Vector<Unk_5c21f0>::reserve(size_t);
+// 0x71005c3e00
+template void Unk_2771620_Vector<Unk_5c3e00>::reserve(size_t);
+// 0x71005c4d70
+template void Unk_2771620_Vector<Unk_5c4d70>::__append(size_t);
+// 0x71005cf3d0
+template void Unk_2771620_Vector<Unk_5cf3d0>::__append(size_t);
+// 0x71005cf620
+template void Unk_2771620_Vector<Unk_5cf620>::__append(size_t);
+// 0x71005d4700
+template void Unk_2771620_Vector<Unk_5d4700>::reserve(size_t);
+// 0x71005d4f50
+template Unk_5d4f50* Unk_2771620_Vector<Unk_5d4f50>::__swap_out_circular_buffer(
+    std::__split_buffer<Unk_5d4f50, Unk_2771620_Allocator<Unk_5d4f50>&>&,
+    Unk_5d4f50*);
+// 0x71005e1f80
+template void Unk_2771620_Vector<Unk_5e1f80>::__push_back_slow_path<const Unk_5e1f80&>(
+    const Unk_5e1f80&);
+// 0x71005ff400
+template void Unk_2771620_Vector<Unk_5ff400>::__push_back_slow_path<const Unk_5ff400&>(
+    const Unk_5ff400&);
+// 0x7100612d50
+template void Unk_2771620_Vector<Unk_612d50>::reserve(size_t);
+// 0x7100615370
+template void Unk_2771620_Vector<Unk_615370>::reserve(size_t);
+// 0x7100615690
+template void Unk_2771620_Vector<Unk_615690>::reserve(size_t);
+// 0x71006157f0
+template void Unk_2771620_Vector<Unk_6157f0>::__push_back_slow_path<const Unk_6157f0&>(
+    const Unk_6157f0&);
+// 0x7100615ec0
+template void Unk_2771620_Vector<Unk_615ec0>::__append(size_t);
+// 0x7100619d00
+template void Unk_2771620_Vector<Unk_619d00>::__push_back_slow_path<const Unk_619d00&>(
+    const Unk_619d00&);
+// 0x7100629860
+template void Unk_2771620_Vector<Unk_629860>::reserve(size_t);
+// 0x7100631620
+template void Unk_2771620_Vector<Unk_631620>::__append(size_t);
+// 0x7100652640
+template void Unk_2771620_Vector<Unk_652640>::reserve(size_t);
+// 0x7100653bf0
+template void Unk_2771620_Vector<Unk_653bf0>::__push_back_slow_path<const Unk_653bf0&>(
+    const Unk_653bf0&);
+// 0x7100656010
+template void Unk_2771620_Vector<Unk_656010>::__push_back_slow_path<const Unk_656010&>(
+    const Unk_656010&);
+// 0x7100696620
+template void Unk_2771620_Vector<Unk_696620>::__append(size_t);
+// 0x71006b87e0
+template void Unk_2771620_Vector<Unk_6b87e0>::__push_back_slow_path<const Unk_6b87e0&>(
+    const Unk_6b87e0&);
 // 0x7100a704f0
 template void Unk_2771620_Vector<Unk_a704f0>::assign<Unk_a704f0*>(Unk_a704f0*, Unk_a704f0*);
 // 0x7100c260c0
