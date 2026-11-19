@@ -2372,13 +2372,106 @@ the tool gives the old figures too: 78 / 9,819, 3 `movi`, 5,183 FDEs and 5 /
 
   The second zlib-like string, `invalid distance code` at `0x7100516b50`
   (6,732 bytes), is another inflater in YEBIS. No zlib 1.2.5 function
-  matches it.
+  matches it: it's the old zlib that FreeType's gzip module bundles (see
+  "FreeType 2.8.1").
 - **After Lua** (NEX 4.6.8, Pia, NintendoWare, nn SDK static libraries): all
   `orr`-form constants (clang older than 9), frame pointers, GPR-only zeroing
   and no exception tables (1 `zPLR` FDE). Only 1 `-g` `ldr` pair against 868
   `ldp`, so these libraries probably weren't built with `-g`. NEX's source isn't
   public. Its libcurl 7.55.1 identifies the SDK's compiler, see "Nintendo SDK
   middleware".
+
+## FreeType 2.8.1
+
+**Result: YEBIS's SiGfx links FreeType 2.8.1, built with clang 7.0.x `-O3`
+and the game's global flags, FreeType's default `ftoption.h` and a module
+list of seven. 373 functions (184,584 bytes) match, in both games, in
+`lib/freetype`.**
+
+### Where it is
+
+SiGfx's font code names FreeType (`SiGfx_FreeType_Manager.cpp`,
+`SiGfx_FreeType_Face.h`, the RTTI of `SiSDK3::SiMap<FT_FaceRec_*, ...>`), and
+FreeType's own strings are in its two segments (`tools/segments.py`):
+`FREETYPE_PROPERTIES`, the module names, the `interpreter-version` property
+(2.7 and later), the `metrics-variations` service (2.8 and later), the tricky
+font names, and the zlib that `src/gzip` bundles. The code is
+`0x7100501c60`-`0x710050ae10` (`ftbase.c`, then `ftsystem.c`) and
+`0x710050c540`-`0x7100530d80` (`ftinit.c`, `smooth.c`, `pshinter.c`,
+`psnames.c`, `sfnt.c`, `ftgzip.c`, `ftbitmap.c`, `truetype.c`), at the same
+addresses in both games. SiGfx's own functions are before, between and
+after.
+
+### Version
+
+`tools/compiler_sweep.py` with clang 7.0.1 `-O3` over the range
+`0x7100501c60`-`0x71005339d0` (440 functions), each version's `src/base/ft*.c`
+and the unity sources of `truetype`, `sfnt`, `smooth`, `psnames`,
+`pshinter`, `psaux`, `type1`, `type42`, `gzip`, `cff`, `cid`, `autofit` and
+`raster`, with `FT2_BUILD_LIBRARY` and the default configuration:
+
+| Version | Exact hits | Hit bytes | Mapped |
+|---|---:|---:|---:|
+| 2.8 | 425 | 127,296 | 370 |
+| **2.8.1** | **472** | **192,940** | **417** |
+| 2.9 | 411 | 116,820 | 359 |
+| 2.9.1 | 410 | 116,288 | 358 |
+| 2.10.0 | 380 | 103,524 | 332 |
+| 2.10.1 | 373 | 99,280 | 325 |
+
+Of 2.8.1's TUs, only `ftbase.c` (the unity of `src/base`), `ftsystem.c`,
+`ftinit.c`, `ftbitmap.c` and the unity sources of `truetype`, `sfnt`,
+`smooth`, `pshinter`, `psnames` and `gzip` have hits beyond a few 4-byte
+functions any `ret` matches; `type1`, `type42` and `psaux` hit 2 to 4 such
+functions each, so they aren't linked. With only those 10 TUs the sweep maps
+353 names to 352 functions (184,508 bytes); 20 of the other 21 are functions
+whose code several do the same (`ft_alloc`/`ft_free`, `zcalloc`/`ft_gzip_alloc`, the
+`raccess_guess_*` that share a body ...), placed by what check.py says their
+callers call and by the order clang emits a TU's functions in, and the last
+is `FT_New_Memory_Face` (below).
+
+### Build configuration
+
+- **Modules.** `FT_Init_FreeType` (`0x710050c880`) has `FT_Add_Default_Modules`
+  inlined: 7 `FT_Add_Module` calls, whose classes' names and flags say
+  `truetype` (flags `0x501`), `psnames`, `pshinter`, `sfnt`, `smooth`,
+  `smooth-lcd` and `smooth-lcdv` (`0x2`, renderers). That's the default
+  `ftmodule.h`'s order without the other modules, in
+  `lib/freetype/nx/freetype/config/ftmodule.h`. With the default list,
+  `FT_Init_FreeType` doesn't match.
+- **Options.** The default `ftoption.h` (2.8.1's) is enough for every function
+  found.
+- **One change.** `FT_New_Memory_Face` (`0x7100504250`) zeroes its
+  `FT_Open_Args` before it tests `file_base`; upstream (2.8 to 2.10.1) leaves
+  it uninitialised. `FT_Open_Args args = { 0 };` gives the original's code
+  (`lib/freetype/README.md`).
+- **Not in the executable.** 122 functions of the 10 TUs aren't anywhere in
+  the FreeType block: every function there is named. They're in
+  `data/absent_functions.csv`. `FT_Bitmap_New` compiles to the same code as
+  `FT_Bitmap_Init`, and the one copy is named `FT_Bitmap_Init`.
+
+### Reproducing
+
+```sh
+cd toolchain/candidates && mkdir -p download/freetype src/freetype
+curl -LO --output-dir download/freetype https://download.savannah.gnu.org/releases/freetype/freetype-2.8.1.tar.gz
+tar xzf download/freetype/freetype-2.8.1.tar.gz -C src/freetype && cd ../..
+F=toolchain/candidates/src/freetype/freetype-2.8.1
+python tools/compiler_sweep.py --compiler toolchain/candidates/clang-7.0.1 --variant O3=-O3 --min-size 4 \
+    --src "$F/src/base/ft[a-z]*.c" --src "$F/src/truetype/truetype.c" --src "$F/src/sfnt/sfnt.c" \
+    --src "$F/src/smooth/smooth.c" --src "$F/src/psnames/psnames.c" --src "$F/src/pshinter/pshinter.c" \
+    --src "$F/src/psaux/psaux.c" --src "$F/src/type1/type1.c" --src "$F/src/type42/type42.c" \
+    --src "$F/src/gzip/ftgzip.c" --range 0x7100501c60-0x71005339d0 \
+    -- -isystem toolchain/candidates/sysroot/include -I$F/include -DFT2_BUILD_LIBRARY
+# the vendored TUs, with the module list (the names: --map-out)
+D=lib/freetype
+python tools/compiler_sweep.py --compiler toolchain/candidates/clang-7.0.1 --variant O3=-O3 --min-size 4 \
+    --src $D/src/base/ftbase.c --src $D/src/base/ftsystem.c --src $D/src/base/ftinit.c \
+    --src $D/src/base/ftbitmap.c --src $D/src/truetype/truetype.c --src $D/src/sfnt/sfnt.c \
+    --src $D/src/smooth/smooth.c --src $D/src/pshinter/pshinter.c --src $D/src/psnames/psnames.c \
+    --src $D/src/gzip/ftgzip.c --range 0x7100501c60-0x71005339d0 --map-out ft_map.csv \
+    -- -isystem toolchain/candidates/sysroot/include -I$D/nx -I$D/include -DFT2_BUILD_LIBRARY
+```
 
 ## Nintendo SDK middleware
 

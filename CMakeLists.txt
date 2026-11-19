@@ -41,6 +41,16 @@ file(GLOB_RECURSE PKMN_SOURCES CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/lib/*.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/lib/*.c")
 
+# FreeType's own build compiles each module as one TU: src/<module>/<module>.c
+# #includes the module's other .c files (and ftgzip.c its zlib). So of
+# lib/freetype, only the TUs that have functions in the executable are sources
+# (lib/freetype/README.md).
+list(FILTER PKMN_SOURCES EXCLUDE REGEX "/lib/freetype/")
+foreach(_ft IN ITEMS base/ftbase base/ftsystem base/ftinit base/ftbitmap truetype/truetype
+    sfnt/sfnt smooth/smooth pshinter/pshinter psnames/psnames gzip/ftgzip)
+  list(APPEND PKMN_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/lib/freetype/src/${_ft}.c")
+endforeach()
+
 # Settings every TU shares go on pkmn_common, not on pkmn: a library with its
 # own COMPILER_VERSION is a separate target that links pkmn_common too.
 add_library(pkmn_common INTERFACE)
@@ -211,6 +221,16 @@ pkmn_library_settings(lib/curl
   EVIDENCE "docs/compiler.md, section Nintendo SDK middleware (libcurl 7.55.1)"
   DEFINES HAVE_CONFIG_H BUILDING_LIBCURL CURL_STATICLIB
   INCLUDES lib/curl/include lib/curl/lib lib/curl/zlib lib/curl/nnsocket)
+
+# FreeType 2.8.1, which YEBIS's SiGfx links: the game's clang 7.0.x and global
+# flags, FreeType's default ftoption.h, and FT2_BUILD_LIBRARY, which its own
+# build defines for the library's TUs. lib/freetype/nx holds the module list
+# (freetype/config/ftmodule.h, read from the executable's FT_Init_FreeType),
+# searched before the upstream headers.
+pkmn_library_settings(lib/freetype
+  EVIDENCE "docs/compiler.md, section FreeType 2.8.1"
+  DEFINES FT2_BUILD_LIBRARY
+  INCLUDES lib/freetype/nx lib/freetype/include)
 
 # Protocol Buffers 3.0.0, the runtime gflnet3 vendors
 # (gflnet3/external/include/google/protobuf): the game's clang 7.0.x and
