@@ -688,6 +688,20 @@ u32 Unk_1733e80_get(const Unk_1733e80* self) {
     return self->field_8;
 }
 
+struct Unk_1734ab0 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2(u32);
+    virtual void vf3();
+    virtual void vf4();
+};
+
+// 0x7101734ab0
+void Unk_1734ab0_call(Unk_1734ab0* self) {
+    self->vf4();
+    self->vf2(1);
+}
+
 // 0x7101735d40
 void Unk_1735d40_update() {
 }
@@ -770,6 +784,41 @@ bool Unk_1736d40_check(const Unk_1736d40* self) {
         return false;
     }
     return (self->field_78 & 0xfffffffe) == 4;
+}
+
+struct Unk_1738980_68 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+};
+
+struct Unk_1738980 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual u64 vf12();
+    u8 _8[0x60];
+    Unk_1738980_68* field_68;
+};
+PKMN_OFFSET_ASSERT(Unk_1738980, field_68, 0x68);
+
+// 0x7101738980
+void Unk_1738980_call(Unk_1738980* self) {
+    u64 r0 = self->vf12();
+    if (r0 != 0) {
+        self->field_68->vf4();
+    }
 }
 
 struct Unk_17399e0 {

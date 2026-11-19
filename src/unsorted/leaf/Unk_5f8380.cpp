@@ -5,6 +5,44 @@
 
 #include "gflib3/Unk_239a418.h"
 
+struct Unk_5f8380_0_8 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3(u64, u64, u64);
+};
+
+struct Unk_5f8380_0 {
+    virtual void vf0();
+    Unk_5f8380_0_8* field_8;
+    u64 field_10;
+    u64 field_18;
+    u64 field_20;
+};
+PKMN_OFFSET_ASSERT(Unk_5f8380_0, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_5f8380_0, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_5f8380_0, field_18, 0x18);
+PKMN_OFFSET_ASSERT(Unk_5f8380_0, field_20, 0x20);
+
+struct Unk_5f8380 {
+    Unk_5f8380_0* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_5f8380, field_0, 0x0);
+
+// 0x71005f8380
+void Unk_5f8380_call(Unk_5f8380* self) {
+    Unk_5f8380_0* v0 = self->field_0;
+    self->field_0 = nullptr;
+    if (v0 != nullptr) {
+        Unk_5f8380_0_8* v1 = v0->field_8;
+        u64 v2 = v0->field_10;
+        u64 v3 = v0->field_18;
+        u64 v4 = v0->field_20;
+        v0->vf0();
+        v1->vf3(v2, v3, v4);
+    }
+}
+
 // 0x71005f8ac0
 void Unk_5f8ac0_update() {}
 

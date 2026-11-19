@@ -24,6 +24,21 @@ void Unk_309380_call(Unk_309380* self) {
     self->vf2(0);
 }
 
+struct Unk_3095b0 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6(u64);
+};
+
+// 0x71003095b0
+void Unk_3095b0_call(Unk_3095b0* self, u64 value) {
+    self->vf6(value);
+}
+
 struct Unk_3095c0 {
     virtual void vf0();
     virtual void vf1();

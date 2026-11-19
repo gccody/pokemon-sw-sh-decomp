@@ -114,6 +114,24 @@ u32 Unk_1108910_call(void* /*unused*/, u32 value) {
     return r0 - value;
 }
 
+struct Unk_1108940 {
+    u8 _0[0x54];
+    u8 field_54;
+    u8 _55[0x3];
+    u64 field_58;
+};
+PKMN_OFFSET_ASSERT(Unk_1108940, field_54, 0x54);
+PKMN_OFFSET_ASSERT(Unk_1108940, field_58, 0x58);
+void Unk_767730(u64);
+
+// 0x7101108940
+void Unk_1108940_update(const Unk_1108940* self) {
+    if (self->field_54 != 0) {
+        return;
+    }
+    Unk_767730(self->field_58);
+}
+
 struct Unk_1108a70 {
     u8 _0[0x58];
     u64 field_58;

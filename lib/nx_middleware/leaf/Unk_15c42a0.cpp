@@ -128,6 +128,26 @@ void Unk_15c85c0_set(Unk_15c85c0* self) {
     self->field_18 = self->field_18 - 1;
 }
 
+struct Unk_15c8db0_arg1_0 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+};
+
+struct Unk_15c8db0_arg1 {
+    Unk_15c8db0_arg1_0* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_15c8db0_arg1, field_0, 0x0);
+
+// 0x71015c8db0
+void Unk_15c8db0_call(void* /*unused*/, const Unk_15c8db0_arg1* value) {
+    Unk_15c8db0_arg1_0* v0 = value->field_0;
+    v0->vf2();
+    if (v0 != nullptr) {
+        v0->vf1();
+    }
+}
+
 struct Unk_15c9350 {
     u8 _0[0x70];
     u64 field_70;

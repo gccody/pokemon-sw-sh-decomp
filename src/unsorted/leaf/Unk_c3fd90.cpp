@@ -36,6 +36,34 @@ void Unk_c41280_setField720(Unk_c41280* self, u64 value) {
     self->field_720 = value;
 }
 
+struct Unk_c44510_50 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13(u64, u32, u64);
+};
+
+struct Unk_c44510 {
+    u8 _0[0x50];
+    Unk_c44510_50* field_50;
+};
+PKMN_OFFSET_ASSERT(Unk_c44510, field_50, 0x50);
+
+// 0x7100c44510
+void Unk_c44510_call(const Unk_c44510* self, u64 value, bool arg2, u64 arg3) {
+    self->field_50->vf13(value, arg2, arg3);
+}
+
 // 0x7100c471d0
 void Unk_c471d0_update() {}
 

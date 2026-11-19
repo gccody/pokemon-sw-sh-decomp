@@ -19,6 +19,76 @@ void Unk_b227a0_call(Unk_b227a0* self) {
     }
 }
 
+struct Unk_b227e0_head {
+    u64 field_0;
+    u64 field_8;
+    u64 field_10;
+    u64 field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_b227e0_head, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_b227e0_head, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_b227e0_head, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_b227e0_head, field_18, 0x18);
+
+struct Unk_b227e0_arg1 {
+    Unk_b227e0_head field_0;
+    Unk_239a418* field_20;
+};
+PKMN_OFFSET_ASSERT(Unk_b227e0_arg1, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_b227e0_arg1, field_20, 0x20);
+
+struct Unk_b227e0 {
+    Unk_b227e0_head field_0;
+    Unk_239a418* field_20;
+};
+PKMN_OFFSET_ASSERT(Unk_b227e0, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_b227e0, field_20, 0x20);
+
+// 0x7100b227e0
+void Unk_b227e0_call(const Unk_b227e0* self, Unk_b227e0_arg1* value) {
+    value->field_0 = self->field_0;
+    Unk_239a418* v0 = self->field_20;
+    value->field_20 = v0;
+    if (v0 != nullptr) {
+        static_cast<Unk_239a458*>(v0)->vf4();
+    }
+}
+
+struct Unk_b22810_head {
+    u64 field_0;
+    u64 field_8;
+    u64 field_10;
+    u64 field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_b22810_head, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_b22810_head, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_b22810_head, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_b22810_head, field_18, 0x18);
+
+struct Unk_b22810_arg1 {
+    Unk_b22810_head field_0;
+    Unk_239a418* field_20;
+};
+PKMN_OFFSET_ASSERT(Unk_b22810_arg1, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_b22810_arg1, field_20, 0x20);
+
+struct Unk_b22810 {
+    Unk_b22810_head field_0;
+    Unk_239a418* field_20;
+};
+PKMN_OFFSET_ASSERT(Unk_b22810, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_b22810, field_20, 0x20);
+
+// 0x7100b22810
+void Unk_b22810_call(const Unk_b22810* self, Unk_b22810_arg1* value) {
+    value->field_0 = self->field_0;
+    Unk_239a418* v0 = self->field_20;
+    value->field_20 = v0;
+    if (v0 != nullptr) {
+        static_cast<Unk_239a458*>(v0)->vf4();
+    }
+}
+
 struct Unk_b22870 {
     u8 _0[0x10];
     Unk_239a418* field_10;
@@ -378,6 +448,68 @@ void Unk_b22f10_call(Unk_b22f10* self) {
     if (self->field_10 != nullptr) {
         static_cast<Unk_239a458*>(self->field_10)->vf5();
         self->field_10 = nullptr;
+    }
+}
+
+struct Unk_b22f50_head {
+    u64 field_0;
+    u64 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_b22f50_head, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_b22f50_head, field_8, 0x8);
+
+struct Unk_b22f50_arg1 {
+    Unk_b22f50_head field_0;
+    Unk_239a418* field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_b22f50_arg1, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_b22f50_arg1, field_10, 0x10);
+
+struct Unk_b22f50 {
+    Unk_b22f50_head field_0;
+    Unk_239a418* field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_b22f50, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_b22f50, field_10, 0x10);
+
+// 0x7100b22f50
+void Unk_b22f50_call(const Unk_b22f50* self, Unk_b22f50_arg1* value) {
+    value->field_0 = self->field_0;
+    Unk_239a418* v0 = self->field_10;
+    value->field_10 = v0;
+    if (v0 != nullptr) {
+        static_cast<Unk_239a458*>(v0)->vf4();
+    }
+}
+
+struct Unk_b22f80_head {
+    u64 field_0;
+    u64 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_b22f80_head, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_b22f80_head, field_8, 0x8);
+
+struct Unk_b22f80_arg1 {
+    Unk_b22f80_head field_0;
+    Unk_239a418* field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_b22f80_arg1, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_b22f80_arg1, field_10, 0x10);
+
+struct Unk_b22f80 {
+    Unk_b22f80_head field_0;
+    Unk_239a418* field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_b22f80, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_b22f80, field_10, 0x10);
+
+// 0x7100b22f80
+void Unk_b22f80_call(const Unk_b22f80* self, Unk_b22f80_arg1* value) {
+    value->field_0 = self->field_0;
+    Unk_239a418* v0 = self->field_10;
+    value->field_10 = v0;
+    if (v0 != nullptr) {
+        static_cast<Unk_239a458*>(v0)->vf4();
     }
 }
 

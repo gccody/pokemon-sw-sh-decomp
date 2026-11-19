@@ -250,6 +250,34 @@ void Unk_c33080_set(const Unk_c33080* self, Unk_c33080_arg1* value) {
     value->field_0 = self->field_0;
 }
 
+struct Unk_c33590 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+};
+
+void Unk_c335c0();
+
+// 0x7100c33590
+void Unk_c33590_call(Unk_c33590* self) {
+    Unk_c335c0();
+    self->vf16();
+}
+
 struct Unk_c338a0 {
     u8 _0[0xe8];
     u8 field_e8;

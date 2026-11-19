@@ -163,6 +163,43 @@ void Unk_3cd090_set(const Unk_3cd090* self, bool value, Unk_3cd090_arg2* arg2) {
     arg2->field_8 = 0;
 }
 
+struct Unk_3d45c0_328_60 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9(u64);
+};
+
+struct Unk_3d45c0_328 {
+    u8 _0[0x60];
+    Unk_3d45c0_328_60* field_60;
+};
+PKMN_OFFSET_ASSERT(Unk_3d45c0_328, field_60, 0x60);
+
+struct Unk_3d45c0 {
+    u8 _0[0x328];
+    Unk_3d45c0_328* field_328;
+    u8 _330[0x1c];
+    u32 field_34c;
+};
+PKMN_OFFSET_ASSERT(Unk_3d45c0, field_328, 0x328);
+PKMN_OFFSET_ASSERT(Unk_3d45c0, field_34c, 0x34c);
+
+// 0x71003d45c0
+void Unk_3d45c0_call(Unk_3d45c0* self, u64 value) {
+    self->field_34c = self->field_34c - 1;
+    if (self->field_328 != nullptr) {
+        if (self->field_328->field_60 == nullptr) return;
+        self->field_328->field_60->vf9(value);
+    }
+}
+
 struct Unk_3d6150 {
     u8 _0[0x8];
     u64 field_8;

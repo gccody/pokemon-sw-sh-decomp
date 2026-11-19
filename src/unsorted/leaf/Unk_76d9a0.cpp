@@ -147,3 +147,35 @@ const u8* Unk_780600_update(Unk_780600* self) {
     self->field_0 = 0xc;
     return Unk_1f0c4ec;
 }
+
+struct Unk_780a80_0 {
+    virtual void vf0();
+};
+
+struct Unk_780a80_8 {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3(void*, u64, u64);
+};
+
+struct Unk_780a80 {
+    Unk_780a80_0* field_0;
+    Unk_780a80_8* field_8;
+    u64 field_10;
+    u64 field_18;
+};
+PKMN_OFFSET_ASSERT(Unk_780a80, field_0, 0x0);
+PKMN_OFFSET_ASSERT(Unk_780a80, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_780a80, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_780a80, field_18, 0x18);
+
+// 0x7100780a80
+void Unk_780a80_call(Unk_780a80* self) {
+    Unk_780a80_0* v0 = self->field_0;
+    self->field_0 = nullptr;
+    if (v0 != nullptr) {
+        v0->vf0();
+        self->field_8->vf3(v0, self->field_10, self->field_18);
+    }
+}
