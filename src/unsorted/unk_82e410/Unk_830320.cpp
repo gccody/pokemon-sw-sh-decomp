@@ -19,9 +19,11 @@ struct Unk_830320_Entry {
     void* field_0;
 };
 Unk_830320_Entry* Unk_82ce80(void* self, u32 index);
-u32 Unk_82d7e0(Unk_830320_Entry* self);
+struct Unk_82d7e0_Arg;
+u32 Unk_82d7e0(const Unk_82d7e0_Arg* self);
 bool Unk_8124b0(void* self, u8 id, u32 value, s32 arg3);
-void Unk_80b430(void* self, void* object, u32 value);
+struct Unk_804630_Flow;
+void Unk_80b430(Unk_804630_Flow* self, const Unk_7ee6b0* object, u32 value);
 void Unk_812520(void* self, u8 id, u32 value);
 void Unk_830e20(void* self, Unk_82aa30_Data* data, u8* arg2);
 
@@ -33,14 +35,15 @@ static u8 Unk_830320_Count(Unk_23acfd8* self) {
 void Unk_830320(Unk_23acfd8* self) {
     for (u32 i = 0; i < Unk_830320_Count(self); i++) {
         Unk_830320_Entry* entry = Unk_82ce80(Unk_23acc98_Field48(self), i);
-        u32 value = Unk_82d7e0(entry);
+        u32 value = Unk_82d7e0(reinterpret_cast<const Unk_82d7e0_Arg*>(entry));
         if (!value)
             continue;
         void* object = entry->field_0;
         u8 id = Unk_7ee6b0_getField7d(static_cast<const Unk_7ee6b0*>(object));
         void* target = Unk_23acc98_Field20(self);
         if (Unk_8124b0(target, id, value, Unk_7eef50(object, 0xc))) {
-            Unk_80b430(Unk_23acc98_Field38(self), object, value);
+            Unk_80b430(static_cast<Unk_804630_Flow*>(Unk_23acc98_Field38(self)),
+                       static_cast<const Unk_7ee6b0*>(object), value);
             Unk_812520(Unk_23acc98_Field20(self), id, value);
         }
     }

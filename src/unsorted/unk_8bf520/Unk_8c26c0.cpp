@@ -58,13 +58,13 @@ u32 Unk_8c22a0(void* self, u32 index);
 // 0x71007f8c20: xoroshiro128+, a number below `max`
 u64 Unk_7f8c20(void* self, u64 max);
 
-bool Unk_7ef4c0(void* object, u32 index);
-u64 Unk_7ef750(void* object, u32 index);
-u8 Unk_7ef760(void* object, u32 index);
-bool Unk_7f05a0(void* object, u32 index);
+bool Unk_7ef4c0(const Unk_7ee6b0* object, u32 index);
+u64 Unk_7ef750(const Unk_7ee6b0* object, u32 index);
+u8 Unk_7ef760(const Unk_7ee6b0* object, u32 index);
+bool Unk_7f05a0(const Unk_7ee6b0* object, u32 index);
 bool Unk_7f0500(void* object, u32 index);
 u16 Unk_7f0160(void* object, u32 index);
-s32 Unk_7f0bb0(void* object);
+s32 Unk_7f0bb0(const Unk_7ee6b0* object);
 u8 Unk_7f8960(const u64* value);
 u16 Unk_7f89e0(const u64* value);
 u32 Unk_7efef0(void* object, u32 index);
@@ -74,17 +74,20 @@ s64 Unk_7ff460(void* object, u32 value);
 void* Unk_7c58c0(void* self, u8 value);
 u16 Unk_8a85b0(void* self, void* object, u32 value);
 u8 Unk_7cb660(void* self, u32 value);
-void* Unk_7ed1b0(void* self, u32 index);
-u8 Unk_7cbf20(void* self, u8 value);
-void* Unk_7fc450(void* self, u32 index);
-bool Unk_7ef580(void* self);
+struct Unk_7ecc90_Con;
+void* Unk_7ed1b0(const Unk_7ecc90_Con* self, u32 index);
+struct Unk_7c2d80_Main;
+u8 Unk_7cbf20(const Unk_7c2d80_Main* self, u8 value);
+struct Unk_7fc430_Party;
+void* Unk_7fc450(Unk_7fc430_Party* self, u8 index);
+bool Unk_7ef580(Unk_7ee6b0* self);
 bool Unk_780ec0(u32 id);
 s32 Unk_8a8770(void* self, u8 id1, u8 id2, u32 id, u32 arg4);
 bool Unk_8c6230(void* self, u32 index);
 bool Unk_8c62f0(void* self, u32 index, u32 value);
 s32 Unk_7eef50(void* self, u32 index);
 u8 Unk_8a8550(void* self);
-u8 Unk_7f0ba0(void* object, u32 index);
+u8 Unk_7f0ba0(const Unk_7ee6b0* object, u32 index);
 u8 Unk_780d40(u32 id);
 struct Unk_7f09c0;
 struct Unk_7f24b0;
@@ -100,8 +103,9 @@ s32 Unk_7f7ae0_call(u32 self, u32 value);
 u32 Unk_8c1f60(void* self);
 u32 Unk_8c1fd0(void* self);
 u32 Unk_7f05d0(void* object);
-bool Unk_7ffe20(void* self, u32 value);
-u16 Unk_7f0130(void* object, u8 index);
+struct Unk_7ee6b0_Field;
+bool Unk_7ffe20(const Unk_7ee6b0_Field* self, u32 value);
+u16 Unk_7f0130(const Unk_7ee6b0* object, u8 index);
 u8 Unk_7efe60(void* object);
 u16 Unk_8a8620(void* self, void* object, u32 value);
 struct Unk_7cb3f0;
@@ -113,7 +117,7 @@ void* Unk_7fe1f0_getField28(const Unk_7fe1f0* self);
 u8 Unk_8c2040_getField88(const Unk_8c2040* self);
 u16 Unk_7f0a90_getField344(const Unk_7f0a90* self);
 bool Unk_8a8690(void* self, u32 index, u32 value);
-bool Unk_7f0ad0(void* object, u32 index);
+bool Unk_7f0ad0(const Unk_7ee6b0* object, u32 index);
 bool Unk_800130(void* self, u32 kind, u16 value);
 u8 Unk_764ca0(void* self);
 struct Unk_7eef40;
@@ -134,14 +138,15 @@ struct Unk_7f2650_Out {
     u8 _2[0xe];
 };
 PKMN_SIZE_ASSERT(Unk_7f2650_Out, 0x10);
-bool Unk_7f2650(void* object, u32 arg1, u32 arg2, Unk_7f2650_Out* out);
+struct Unk_7ee6b0_Action;
+bool Unk_7f2650(const Unk_7ee6b0* object, u8 arg1, u8 arg2, Unk_7ee6b0_Action* out);
 u32 Unk_8c2420(void* self, void* object1, void* object2, bool flag);
-s32 Unk_7fc4a0(void* self, void* object);
+s32 Unk_7fc4a0(const Unk_7fc430_Party* self, const Unk_7ee6b0* object);
 u32 Unk_7f75d0(u32 power, s32 value);
 u16 Unk_8a86e0(void* self, u8 id1, u8 id2, u32 id, u32 arg4, bool flag);
 bool Unk_800680(void* self, u8 id, u32 arg2, u32 arg3);
-u8 Unk_7fc630(void* self);
-u32 Unk_7f8070(u32 value, void* object);
+u8 Unk_7fc630(Unk_7fc430_Party* self);
+u32 Unk_7f8070(u32 value, const Unk_7ee6b0* object);
 bool Unk_786d90(u16 id);
 void* Unk_8c2070(void* self, u32 index);
 u8 Unk_7cb490(u8 id);
@@ -205,63 +210,63 @@ s64 Unk_8c30e0(void* self, const s64* args) {
 
 // 0x71008c3120
 s64 Unk_8c3120(void* self, const s64* args) {
-    s32 value = Unk_7f0bb0(Unk_8c20a0(self, args[0]));
+    s32 value = Unk_7f0bb0(static_cast<const Unk_7ee6b0*>(Unk_8c20a0(self, args[0])));
     return (value >> 12) < args[1];
 }
 
 // 0x71008c3160
 s64 Unk_8c3160(void* self, const s64* args) {
-    s32 value = Unk_7f0bb0(Unk_8c20a0(self, args[0]));
+    s32 value = Unk_7f0bb0(static_cast<const Unk_7ee6b0*>(Unk_8c20a0(self, args[0])));
     return (value >> 12) > args[1];
 }
 
 // 0x71008c31a0
 s64 Unk_8c31a0(void* self, const s64* args) {
-    s32 value = Unk_7f0bb0(Unk_8c20a0(self, args[0]));
+    s32 value = Unk_7f0bb0(static_cast<const Unk_7ee6b0*>(Unk_8c20a0(self, args[0])));
     return (value >> 12) + ((value & 0xfff) != 0) == args[1];
 }
 
 // 0x71008c31e0
 s64 Unk_8c31e0(void* self, const s64* args) {
-    s32 value = Unk_7f0bb0(Unk_8c20a0(self, args[0]));
+    s32 value = Unk_7f0bb0(static_cast<const Unk_7ee6b0*>(Unk_8c20a0(self, args[0])));
     return (value >> 12) + ((value & 0xfff) != 0) != args[1];
 }
 
 // 0x71008c3280
 s64 Unk_8c3280(void* self, const s64* args) {
-    return Unk_7ef4c0(Unk_8c20a0(self, args[0]), args[1]);
+    return Unk_7ef4c0(static_cast<const Unk_7ee6b0*>(Unk_8c20a0(self, args[0])), args[1]);
 }
 
 // 0x71008c32b0
 s64 Unk_8c32b0(void* self, const s64* args) {
-    return !Unk_7ef4c0(Unk_8c20a0(self, args[0]), args[1]);
+    return !Unk_7ef4c0(static_cast<const Unk_7ee6b0*>(Unk_8c20a0(self, args[0])), args[1]);
 }
 
 // 0x71008c3340
 s64 Unk_8c3340(void* self, const s64* args) {
-    return Unk_7f05a0(Unk_8c20a0(self, args[0]), args[1]);
+    return Unk_7f05a0(static_cast<const Unk_7ee6b0*>(Unk_8c20a0(self, args[0])), args[1]);
 }
 
 // 0x71008c3370
 s64 Unk_8c3370(void* self, const s64* args) {
-    return !Unk_7f05a0(Unk_8c20a0(self, args[0]), args[1]);
+    return !Unk_7f05a0(static_cast<const Unk_7ee6b0*>(Unk_8c20a0(self, args[0])), args[1]);
 }
 
 // 0x71008c3740
 s64 Unk_8c3740(void* self, const s64* args) {
     void* object = Unk_8c20a0(self, args[0]);
-    if (!Unk_7ef4c0(object, 0x14))
+    if (!Unk_7ef4c0(static_cast<const Unk_7ee6b0*>(object), 0x14))
         return 0;
-    u64 value = Unk_7ef750(object, 0x14);
+    u64 value = Unk_7ef750(static_cast<const Unk_7ee6b0*>(object), 0x14);
     return Unk_7f8960(&value);
 }
 
 // 0x71008c37a0
 s64 Unk_8c37a0(void* self, const s64* args) {
     void* object = Unk_8c20a0(self, args[0]);
-    if (!Unk_7ef4c0(object, 0x14))
+    if (!Unk_7ef4c0(static_cast<const Unk_7ee6b0*>(object), 0x14))
         return 0;
-    return Unk_7ef760(object, 0x14);
+    return Unk_7ef760(static_cast<const Unk_7ee6b0*>(object), 0x14);
 }
 
 // 0x71008c37f0
@@ -269,9 +274,9 @@ s64 Unk_8c37f0(void* self, const s64* args) {
     void* object = Unk_8c20a0(self, args[0]);
     if (!object)
         return 0;
-    if (!Unk_7ef4c0(object, 0x1c))
+    if (!Unk_7ef4c0(static_cast<const Unk_7ee6b0*>(object), 0x1c))
         return 0;
-    u64 value = Unk_7ef750(object, 0x1c);
+    u64 value = Unk_7ef750(static_cast<const Unk_7ee6b0*>(object), 0x1c);
     return Unk_7f89e0(&value);
 }
 
@@ -343,14 +348,19 @@ s64 Unk_8c3d40(void* self, const s64* args) {
 s64 Unk_8c3e30(void* self, const s64* args) {
     u32 index = Unk_8c20f0(self, args[0]);
     u8 id = Unk_7cb660(Unk_8c1f00_getField58(static_cast<const Unk_8c1f00*>(self)), index);
-    void* party = Unk_7ed1b0(Unk_8c1f20_call(static_cast<const Unk_8c1f20*>(self)), id);
-    u8 first = Unk_7cbf20(Unk_8c1f00_getField58(static_cast<const Unk_8c1f00*>(self)), id);
+    void* party = Unk_7ed1b0(
+        static_cast<const Unk_7ecc90_Con*>(Unk_8c1f20_call(static_cast<const Unk_8c1f20*>(self))),
+        id);
+    u8 first = Unk_7cbf20(static_cast<const Unk_7c2d80_Main*>(
+                              Unk_8c1f00_getField58(static_cast<const Unk_8c1f00*>(self))),
+                          id);
     u8 count = Unk_7fc2e0_getField30(static_cast<const Unk_7fc2e0*>(party));
     if (first >= count)
         return 0;
     u32 n = 0;
     for (u32 i = first; i != count; i++)
-        n += Unk_7ef580(Unk_7fc450(party, i));
+        n += Unk_7ef580(
+            static_cast<Unk_7ee6b0*>(Unk_7fc450(static_cast<Unk_7fc430_Party*>(party), i)));
     return n;
 }
 
@@ -429,12 +439,12 @@ s64 Unk_8c47f0(void* self, const s64* args) {
 
 // 0x71008c4820
 s64 Unk_8c4820(void* self, const s64* args) {
-    return Unk_7f05a0(Unk_8c20a0(self, args[0]), 0);
+    return Unk_7f05a0(static_cast<const Unk_7ee6b0*>(Unk_8c20a0(self, args[0])), 0);
 }
 
 // 0x71008c4850
 s64 Unk_8c4850(void* self, const s64* args) {
-    return Unk_7f0ba0(Unk_8c20a0(self, args[0]), 0);
+    return Unk_7f0ba0(static_cast<const Unk_7ee6b0*>(Unk_8c20a0(self, args[0])), 0);
 }
 
 // 0x71008c4880
@@ -471,7 +481,7 @@ s64 Unk_8c4920(void* self, const s64* /*args*/) {
 
 // 0x71008c4940
 s64 Unk_8c4940(void* self, const s64* args) {
-    return Unk_7f0ba0(Unk_8c20a0(self, args[0]), 3);
+    return Unk_7f0ba0(static_cast<const Unk_7ee6b0*>(Unk_8c20a0(self, args[0])), 3);
 }
 
 // 0x71008c4970
@@ -497,7 +507,7 @@ s64 Unk_8c4a20(void* self, const s64* /*args*/) {
     void* object = Unk_8c1f50_getField80(static_cast<const Unk_8c1f50*>(self));
     if (!object)
         return 0;
-    return Unk_7ef4c0(object, 0xb);
+    return Unk_7ef4c0(static_cast<const Unk_7ee6b0*>(object), 0xb);
 }
 
 // 0x71008c4a50
@@ -505,7 +515,7 @@ s64 Unk_8c4a50(void* self, const s64* /*args*/) {
     void* object = Unk_8c1f50_getField80(static_cast<const Unk_8c1f50*>(self));
     if (!object)
         return 0;
-    return Unk_7ef4c0(object, 0xb);
+    return Unk_7ef4c0(static_cast<const Unk_7ee6b0*>(object), 0xb);
 }
 
 // 0x71008c4b10
@@ -528,7 +538,7 @@ s64 Unk_8c4ba0(void* self, const s64* args) {
 
 // 0x71008c4bd0
 s64 Unk_8c4bd0(void* self, const s64* args) {
-    return Unk_7f05a0(Unk_8c20a0(self, args[0]), 0xd);
+    return Unk_7f05a0(static_cast<const Unk_7ee6b0*>(Unk_8c20a0(self, args[0])), 0xd);
 }
 
 // 0x71008c4c00
@@ -541,9 +551,10 @@ s64 Unk_8c4c00(void* self, const s64* args) {
 // 0x71008c4c40
 s64 Unk_8c4c40(void* self, const s64* args) {
     u32 value = args[0];
-    return Unk_7ffe20(Unk_7fe1f0_getField28(static_cast<const Unk_7fe1f0*>(
-                          Unk_8c1f30_getField60(static_cast<const Unk_8c1f30*>(self)))),
-                      value);
+    return Unk_7ffe20(
+        static_cast<const Unk_7ee6b0_Field*>(Unk_7fe1f0_getField28(static_cast<const Unk_7fe1f0*>(
+            Unk_8c1f30_getField60(static_cast<const Unk_8c1f30*>(self))))),
+        value);
 }
 
 // 0x71008c4ee0
@@ -551,7 +562,8 @@ s64 Unk_8c4ee0(void* self, const s64* /*args*/) {
     void* object = Unk_8c1f40_getField78(static_cast<const Unk_8c1f40*>(self));
     if (!object)
         return 0;
-    return Unk_7f0130(object, Unk_8c2040_getField88(static_cast<const Unk_8c2040*>(self)));
+    return Unk_7f0130(static_cast<const Unk_7ee6b0*>(object),
+                      Unk_8c2040_getField88(static_cast<const Unk_8c2040*>(self)));
 }
 
 // 0x71008c4fc0
@@ -629,7 +641,7 @@ s64 Unk_8c59c0(void* self, const s64* args) {
 
 // 0x71008c5a10
 s64 Unk_8c5a10(void* self, const s64* args) {
-    return Unk_7f0ad0(Unk_8c20a0(self, args[0]), 0);
+    return Unk_7f0ad0(static_cast<const Unk_7ee6b0*>(Unk_8c20a0(self, args[0])), 0);
 }
 
 // 0x71008c5a40
@@ -676,7 +688,8 @@ s64 Unk_8c5d90(void* self, const s64* args) {
     if (!object)
         return 0;
     Unk_7f2650_Out out;
-    bool found = Unk_7f2650(object, 1, 0, &out);
+    bool found = Unk_7f2650(static_cast<const Unk_7ee6b0*>(object), 1, 0,
+                            reinterpret_cast<Unk_7ee6b0_Action*>(&out));
     return found ? out.field_0 : 0;
 }
 
@@ -693,13 +706,16 @@ s64 Unk_8c5df0(void* self, const s64* /*args*/) {
 // 0x71008c5ea0
 s64 Unk_8c5ea0(void* self, const s64* args) {
     u8 slot = Unk_8c2270(self, args[0]);
-    return Unk_7fc630(Unk_7ed1b0(Unk_8c1f20_call(static_cast<const Unk_8c1f20*>(self)), slot));
+    return Unk_7fc630(static_cast<Unk_7fc430_Party*>(Unk_7ed1b0(
+        static_cast<const Unk_7ecc90_Con*>(Unk_8c1f20_call(static_cast<const Unk_8c1f20*>(self))),
+        slot)));
 }
 
 // 0x71008c5ee0
 s64 Unk_8c5ee0(void* self, const s64* /*args*/) {
     void* object = Unk_8c1f40_getField78(static_cast<const Unk_8c1f40*>(self));
-    return Unk_7f8070(Unk_8c2050_getField8c(static_cast<const Unk_8c2050*>(self)), object);
+    return Unk_7f8070(Unk_8c2050_getField8c(static_cast<const Unk_8c2050*>(self)),
+                      static_cast<const Unk_7ee6b0*>(object));
 }
 
 // 0x71008c5f20
@@ -852,14 +868,19 @@ s64 Unk_8c54a0(void* self, const s64* args) {
                           Unk_8c2050_getField8c(static_cast<const Unk_8c2050*>(self)), 1, flag);
     u8 side =
         Unk_7cb660(Unk_8c1f00_getField58(static_cast<const Unk_8c1f00*>(self)), Unk_8c1f60(self));
-    void* party = Unk_7ed1b0(Unk_8c1f20_call(static_cast<const Unk_8c1f20*>(self)), side);
-    s32 position = Unk_7fc4a0(party, object1);
+    void* party = Unk_7ed1b0(
+        static_cast<const Unk_7ecc90_Con*>(Unk_8c1f20_call(static_cast<const Unk_8c1f20*>(self))),
+        side);
+    s32 position = Unk_7fc4a0(static_cast<const Unk_7fc430_Party*>(party),
+                              static_cast<const Unk_7ee6b0*>(object1));
     if (!base || position < 0)
         return 0;
-    u8 count = Unk_7cbf20(Unk_8c1f00_getField58(static_cast<const Unk_8c1f00*>(self)), side);
+    u8 count = Unk_7cbf20(static_cast<const Unk_7c2d80_Main*>(
+                              Unk_8c1f00_getField58(static_cast<const Unk_8c1f00*>(self))),
+                          side);
     for (u32 i = 0; i < count; i++) {
-        void* member = Unk_7fc450(party, i);
-        if (!Unk_7ef580(member))
+        void* member = Unk_7fc450(static_cast<Unk_7fc430_Party*>(party), i);
+        if (!Unk_7ef580(static_cast<Unk_7ee6b0*>(member)))
             continue;
         u32 n = Unk_7efe00_getField33c(static_cast<const Unk_7efe00*>(member));
         if (!n)
@@ -894,7 +915,7 @@ u32 Unk_8c63e0(void* /*self*/, void* calc, void* object1, void* object2) {
     u32 best = 0;
     u8 n = Unk_7efe00_getField33c(static_cast<const Unk_7efe00*>(object1));
     for (u32 i = 0; i < n; i++) {
-        if (!Unk_7f0130(object1, i))
+        if (!Unk_7f0130(static_cast<const Unk_7ee6b0*>(object1), i))
             continue;
         u32 id = Unk_7efef0(object1, i);
         if (!Unk_780ec0(id))
