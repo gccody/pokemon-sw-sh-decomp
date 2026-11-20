@@ -247,6 +247,7 @@ bool Unk_7e6f90(Unk_7e37b0_Self* self) {
 }
 
 // 0x71007e7220
+// NON_MATCHING: block layout: the original falls through to return false after the third check
 bool Unk_7e7220(Unk_7e37b0_Self* self) {
     if (!Unk_7caa30(self->field_60))
         return false;

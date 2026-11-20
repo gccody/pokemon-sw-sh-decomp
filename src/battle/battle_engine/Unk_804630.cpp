@@ -554,6 +554,7 @@ void Unk_808f20(Unk_804630_Flow* self, const Unk_7ee6b0* poke, const Unk_7ee6b0*
 }
 
 // 0x7100808f90
+// NON_MATCHING: register allocation of the saved arguments
 bool Unk_808f90(Unk_804630_Flow* self, const Unk_7ee6b0* poke, u32 move, u8 arg3) {
     Unk_7e94d0(self->field_10);
     Unk_7e9610(self->field_10, 2, Unk_7ee6b0_getField7d(poke));
@@ -715,6 +716,7 @@ void Unk_8097c0(Unk_804630_Flow* self,
 }
 
 // 0x71008098b0
+// NON_MATCHING: register allocation of the saved arguments
 void Unk_8098b0(Unk_804630_Flow* self,
                 const Unk_7ee6b0* poke,
                 const Unk_813270* targets,
@@ -1285,6 +1287,7 @@ void Unk_80b430(Unk_804630_Flow* self, const Unk_7ee6b0* poke, u32 move) {
 }
 
 // 0x710080b4a0
+// NON_MATCHING: the operands of one orr are swapped
 void Unk_80b4a0(Unk_804630_Flow* self, const Unk_7ee6b0* poke, u16* item) {
     u16 value = *item;
     Unk_7e94d0(self->field_10);
@@ -2183,6 +2186,7 @@ u8 Unk_804820(u32 index, u8 offset) {
 }
 
 // 0x71008048c0
+// NON_MATCHING: the range checks stay branches in the original where this folds them into selects
 u8 Unk_8048c0(u8 value) {
     if (value < 6)
         return 0;
@@ -2198,6 +2202,7 @@ u8 Unk_8048c0(u8 value) {
 }
 
 // 0x7100804840
+// NON_MATCHING: the range checks stay branches in the original (Unk_8048c0 inlined)
 u8 Unk_804840(u8 value) {
     u8 base = Unk_1f124f0[Unk_8048c0(value)];
     if (value < base)
@@ -2206,6 +2211,7 @@ u8 Unk_804840(u8 value) {
 }
 
 // 0x7100804920
+// NON_MATCHING: the range checks stay branches in the original (Unk_8048c0 inlined)
 u8 Unk_804920(u8 value) {
     u32 offset = value - Unk_1f124f0[Unk_8048c0(value)];
     return offset < 6 ? offset : 0;

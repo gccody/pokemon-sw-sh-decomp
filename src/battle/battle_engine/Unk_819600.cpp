@@ -222,6 +222,7 @@ u8 Unk_819c80(const Unk_819600_Self* self, const void* arg) {
 }
 
 // 0x7100819cc0
+// NON_MATCHING: the comparison is done on 32 bits in the original
 bool Unk_819cc0(const Unk_819600_Self* self, const void* arg) {
     u64 result;
     Unk_836da0(Unk_828420_getField20(static_cast<const Unk_828420*>(self->field_20)), &result, arg);
@@ -292,6 +293,7 @@ static inline u8 Unk_819600_Target(const Unk_819600_Self* self, u8 index) {
 }
 
 // 0x710081acc0
+// NON_MATCHING: the original saves one register pair less
 bool Unk_81acc0(const Unk_819600_Self* self, u8 pokeId) {
     u32 count = Unk_7e9830(self->field_30, 5);
     for (u32 i = 0; i < count; i++) {
@@ -307,6 +309,7 @@ bool Unk_81aed0(const Unk_819600_Self* self, u8 pokeId) {
 }
 
 // 0x710081af00
+// NON_MATCHING: the original compares the ranges in another order
 bool Unk_81af00(u16 species, u16 item) {
     switch (species) {
         case 0x17e:

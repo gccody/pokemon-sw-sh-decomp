@@ -131,6 +131,8 @@ bool Unk_7ca080(const Unk_7c2d80_Main* self) {
 }
 
 // 0x71007ca0a0
+// NON_MATCHING: the original keeps both clients zero-extended (Unk_7fa500 returning a byte) where
+// this compares them with eor/tst
 u8 Unk_7ca0a0(const Unk_7c2d80_Main* self, u8 position, u8 other) {
     if (position == other)
         return 0;
@@ -266,6 +268,7 @@ u32 Unk_7cb9a0(const Unk_7c2d80_Main* self, u8 side, u32 arg2) {
 }
 
 // 0x71007cb9e0
+// NON_MATCHING: the original branches on field_3a7 where this uses cset
 bool Unk_7cb9e0(const Unk_7c2d80_Main* self) {
     if (self->field_88->field_ae8 == nullptr)
         return false;
