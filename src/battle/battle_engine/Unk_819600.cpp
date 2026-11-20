@@ -11,10 +11,10 @@ struct Unk_7fe1e0;
 struct Unk_7fe250;
 struct Unk_7fe350;
 struct Unk_7ecc90_Con;
-struct Unk_819600_Main;
+struct Unk_7c2d80_Main;
 
 struct Unk_819600_Self {
-    const Unk_819600_Main* field_0;
+    const Unk_7c2d80_Main* field_0;
     const Unk_7fe1d0* field_8;
     const void* field_10;
     const void* field_18;
@@ -77,7 +77,7 @@ u32 Unk_803790(void* self, u8 pokeId);
 u32 Unk_803760(void* self, u8 pokeId);
 u32 Unk_803560(void* self, u8 pokeId);
 u32 Unk_7ed660(Unk_7ecc90_Con* self, u8 pokeId);
-void Unk_7cb420(const Unk_819600_Main* self, Unk_7ecc90_Con* con, u8 pokeId);
+void Unk_7cb420(const Unk_7c2d80_Main* self, Unk_7ecc90_Con* con, u8 pokeId);
 u32 Unk_7ff460(void* self, u32 arg);
 bool Unk_7f05a0(const Unk_7ee6b0* self, u32 flag);
 u8 Unk_7cb490(u8 value);
