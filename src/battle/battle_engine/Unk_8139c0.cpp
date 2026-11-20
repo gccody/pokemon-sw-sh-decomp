@@ -34,10 +34,20 @@ void Unk_816bc0(const Unk_8139c0_Self* self, u8 pokeId) {
         Unk_7ef2e0_set(reinterpret_cast<Unk_7ef2e0*>(poke));
 }
 
+// 0x7100816c80
+void Unk_816c80(const Unk_8139c0_Self* self, u8 pokeId) {
+    Unk_7f13d0_clearField74(reinterpret_cast<Unk_7f13d0*>(Unk_8139c0_Poke(self, pokeId)));
+}
+
 // 0x7100816cb0
 void Unk_816cb0(const Unk_8139c0_Self* self, u8 pokeId, u8 slot, u8 count) {
     Unk_7ee6b0* poke = Unk_8139c0_Poke(self, pokeId);
     Unk_7f0250(poke, slot, count);
+}
+
+// 0x7100816d00
+void Unk_816d00(const Unk_8139c0_Self* self, u8 pokeId, u8 slot) {
+    Unk_7f0370(Unk_8139c0_Poke(self, pokeId), slot);
 }
 
 // 0x7100816d40
@@ -277,9 +287,9 @@ void Unk_817d40(const Unk_8139c0_Self* self, u32 arg1, u32 arg2) {
 }
 
 // 0x7100817d70
-void Unk_817d70(const Unk_8139c0_Self* self, u8 pokeId) {
-    void* party = Unk_7ed1a0(Unk_7fe1d0_getField8(self->field_10), pokeId);
-    Unk_7cc080(self->field_8, party, pokeId);
+void Unk_817d70(const Unk_8139c0_Self* self, u32 client) {
+    void* party = Unk_7ed1a0(Unk_7fe1d0_getField8(self->field_10), client);
+    Unk_7cc080(self->field_8, party, client);
 }
 
 static inline Unk_7f3610_Self* Unk_8139c0_Data(const Unk_8139c0_Self* self, u8 pokeId) {
