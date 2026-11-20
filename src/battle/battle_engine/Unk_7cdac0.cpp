@@ -28,6 +28,29 @@ PKMN_SIZE_ASSERT(Unk_7dcd30_Counts, 0x1c);
 // What the client reads its commands from (Unk_813b40 reads the next one).
 struct Unk_813b40_Reader;
 
+// A message being built: its id, then its arguments (Unk_8aabb0, Unk_8aabe0).
+struct Unk_7da180_Message {
+    u8 _0[0x10];
+};
+
+// What the client reports about itself (Unk_7dfae0).
+struct Unk_7dfae0_Entry {
+    u16 field_0;
+    u32 field_4;
+};
+struct Unk_7dfae0_Source {
+    u32 field_0;
+    Unk_7dfae0_Entry field_4[48];
+};
+struct Unk_7dfae0_Out {
+    Unk_7ee6b0* field_0;
+    u32 field_8;
+    u8 field_c;
+    bool field_d;
+    Unk_7dfae0_Entry field_10[48];
+};
+PKMN_OFFSET_ASSERT(Unk_7dfae0_Out, field_10, 0x10);
+
 // What a view's message command fills in.
 struct Unk_7dcde0_Data {
     u32 field_0;
@@ -105,11 +128,11 @@ struct Unk_7cdac0_View {
     virtual void vf52();
     virtual void vf53();
     virtual void vf54();
-    virtual void vf55();
+    virtual void vf55(Unk_7da180_Message* message);
     virtual void vf56();
     virtual void vf57();
     virtual void vf58(u32 arg1);
-    virtual void vf59();
+    virtual void vf59(u32 arg1);
     virtual void vf60();
     virtual bool vf61();
     virtual void vf62();
@@ -160,8 +183,8 @@ struct Unk_7cdac0_View {
     virtual void vf107();
     virtual void vf108();
     virtual void vf109();
-    virtual void vf110();
-    virtual void vf111();
+    virtual void vf110(u8 position, bool waiting);
+    virtual bool vf111();
     virtual void vf112();
     virtual void vf113();
     virtual void vf114(u8 position, u8 other);
@@ -258,16 +281,30 @@ struct Unk_7cdac0_View {
     virtual bool vf205();
 };
 
+// What the client keeps for each of the battle's clients.
+struct Unk_7dfae0_Client {
+    u8 _0[0x6];
+    u8 field_6;
+    u8 _7;
+};
+
 struct Unk_7cdac0_Self {
+    // Its state while it waits for the server (0x71007d0160, not decompiled yet).
+    bool Unk_7d0160();
+
     u8 _0[0x58];
     const Unk_7c2d80_Main* field_58;
     u8 _60[0x70 - 0x60];
     const Unk_7fe1d0* field_70;
-    u8 _78[0x1f0 - 0x78];
+    u8 _78[0xd0 - 0x78];
+    bool (Unk_7cdac0_Self::*field_d0)();
+    u8 _e0[0x1f0 - 0xe0];
     const Unk_7e88f0* field_1f0;
     u8 _1f8[0x210 - 0x1f8];
     Unk_813b40_Reader* field_210;
-    u8 _218[0x2a6 - 0x218];
+    u8 _218[0x260 - 0x218];
+    Unk_7dfae0_Client field_260[8];
+    u8 _2a0[0x2a6 - 0x2a0];
     u8 field_2a6;
     u8 field_2a7;
     u8 _2a8[0x340 - 0x2a8];
@@ -279,6 +316,8 @@ struct Unk_7cdac0_Self {
     u8 _410[0x4c0 - 0x410];
     u32 field_4c0[0x10];
     u8 field_500;
+    u8 _501[0x574 - 0x501];
+    Unk_7da180_Message field_574;
 };
 PKMN_OFFSET_ASSERT(Unk_7cdac0_Self, field_58, 0x58);
 PKMN_OFFSET_ASSERT(Unk_7cdac0_Self, field_70, 0x70);
@@ -286,7 +325,10 @@ PKMN_OFFSET_ASSERT(Unk_7cdac0_Self, field_1f0, 0x1f0);
 PKMN_OFFSET_ASSERT(Unk_7cdac0_Self, field_2a6, 0x2a6);
 PKMN_OFFSET_ASSERT(Unk_7cdac0_Self, field_358, 0x358);
 PKMN_OFFSET_ASSERT(Unk_7cdac0_Self, field_368, 0x368);
+PKMN_OFFSET_ASSERT(Unk_7cdac0_Self, field_d0, 0xd0);
+PKMN_OFFSET_ASSERT(Unk_7cdac0_Self, field_260, 0x260);
 PKMN_OFFSET_ASSERT(Unk_7cdac0_Self, field_500, 0x500);
+PKMN_OFFSET_ASSERT(Unk_7cdac0_Self, field_574, 0x574);
 
 // Its server (src/unsorted/leaf/Unk_7e88d0.cpp).
 const Unk_8139c0_Self* Unk_7e88f0_getField90(const Unk_7e88f0* self);
@@ -381,6 +423,17 @@ u8 Unk_7ee6b0_getField7d(const Unk_7ee6b0* self);
 void Unk_7f8bc0(u64* self, u32 arg1, u32 arg2);
 
 u8 Unk_7cb490(u8 pokeId);
+u32 Unk_7df730(Unk_7cdac0_Self* self, u32 arg1, u32 arg2, u8* out);
+Unk_7ee6b0* Unk_7ed5e0(Unk_7ecc90_Con* self, u8 position);
+// Declared as src/unsorted/leaf names them.
+void Unk_8aabb0(u64 self, u32 arg1, u32 id);
+void Unk_8aabe0(u64 self, u32 value);
+struct Unk_7cd1f0;
+const Unk_7dfae0_Source* Unk_7cd1f0_get(const Unk_7cd1f0* self);
+struct Unk_7cd430;
+bool Unk_7cd430_get(const Unk_7cd430* self);
+struct Unk_7f3710;
+u8 Unk_7f3710_getField3c(const Unk_7f3710* self);
 u8 Unk_7cb420(const Unk_7c2d80_Main* self, Unk_7ecc90_Con* con, u8 pokeId);
 u8 Unk_7cb4b0(const Unk_7c2d80_Main* self, Unk_7ecc90_Con* con, u8 pokeId);
 u8 Unk_7cb540(const Unk_7c2d80_Main* self, u8 position);
@@ -1182,4 +1235,102 @@ bool Unk_7ded00(Unk_7cdac0_Self* self, u32* seq, const u32* args) {
     }
     (*seq)++;
     return false;
+}
+
+static inline bool Unk_7cdac0_Waiting(const Unk_7cdac0_Self* self) {
+    return self->field_d0 == &Unk_7cdac0_Self::Unk_7d0160;
+}
+
+// 0x71007d92f0
+bool Unk_7d92f0(Unk_7cdac0_Self* self, u32* seq, const u32* args) {
+    if (Unk_7cdac0_Waiting(self))
+        return true;
+    switch (*seq) {
+        case 0:
+            Unk_7cdac0_GetView(self)->vf58(args[0]);
+            (*seq)++;
+            return false;
+        case 1:
+            if (Unk_7cdac0_GetView(self)->vf61())
+                return true;
+            break;
+    }
+    return false;
+}
+
+// 0x71007d9530
+bool Unk_7d9530(Unk_7cdac0_Self* self, u32* seq, const u32* args) {
+    if (Unk_7cdac0_Waiting(self))
+        return true;
+    switch (*seq) {
+        case 0:
+            Unk_7cdac0_GetView(self)->vf59(args[0]);
+            (*seq)++;
+            return false;
+        case 1:
+            if (Unk_7cdac0_GetView(self)->vf61())
+                return true;
+            break;
+    }
+    return false;
+}
+
+// 0x71007da180
+bool Unk_7da180(Unk_7cdac0_Self* self, u32* seq, const u32* args) {
+    switch (*seq) {
+        case 0: {
+            u8 withFirst;
+            u32 id = Unk_7df730(self, args[0], args[1], &withFirst);
+            Unk_7da180_Message* message = &self->field_574;
+            Unk_8aabb0(reinterpret_cast<u64>(message), 1, id);
+            if (withFirst)
+                Unk_8aabe0(reinterpret_cast<u64>(message), args[0]);
+            Unk_8aabe0(reinterpret_cast<u64>(message), args[1]);
+            Unk_7cdac0_GetView(self)->vf55(message);
+            (*seq)++;
+            break;
+        }
+        case 1:
+            if (Unk_7cdac0_GetView(self)->vf61())
+                return true;
+            break;
+    }
+    return false;
+}
+
+// 0x71007dd680
+bool Unk_7dd680(Unk_7cdac0_Self* self, u32* seq, const u32* args) {
+    switch (*seq) {
+        case 0: {
+            u8 pokeId = args[0];
+            u8 position = Unk_7cb420(self->field_58, Unk_7cdac0_Con(self), pokeId);
+            bool waiting = Unk_7cdac0_Waiting(self);
+            Unk_7cdac0_GetView(self)->vf110(position, waiting);
+            break;
+        }
+        case 1:
+            if (!Unk_7cdac0_GetView(self)->vf111())
+                return false;
+            break;
+        default:
+            return true;
+    }
+    (*seq)++;
+    return false;
+}
+
+// 0x71007dfae0
+void Unk_7dfae0(const Unk_7cdac0_Self* self, Unk_7dfae0_Out* out) {
+    const Unk_7dfae0_Source* source =
+        Unk_7cd1f0_get(reinterpret_cast<const Unk_7cd1f0*>(self->field_58));
+    for (s32 i = 0; i < 48; i++) {
+        u32 value = source->field_4[i].field_4;
+        out->field_10[i].field_0 = source->field_4[i].field_0;
+        out->field_10[i].field_4 = value;
+    }
+    out->field_0 = Unk_7ed5e0(Unk_7cdac0_Con(self), 4);
+    out->field_8 = Unk_7f3710_getField3c(reinterpret_cast<const Unk_7f3710*>(
+        Unk_7ee810_getField278(reinterpret_cast<const Unk_7ee810*>(out->field_0))));
+    out->field_c = self->field_260[self->field_2a6].field_6;
+    out->field_d = Unk_7cd430_get(reinterpret_cast<const Unk_7cd430*>(self->field_58));
 }
