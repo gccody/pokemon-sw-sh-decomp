@@ -80,7 +80,9 @@ struct Unk_7c2d80_Main {
     u8 field_183;
     u8 _184[0x1e8 - 0x184];
     Unk_7ca170_Client field_1e8[4];
-    u8 _3a8[0x5c0 - 0x3a8];
+    u8 _3a8[0x418 - 0x3a8];
+    Unk_7c2d80_Ref field_418[5];
+    u8 _440[0x5c0 - 0x440];
     u8 field_5c0[2];
     u8 _5c2[0x5c8 - 0x5c2];
     Unk_7c2d80_Ref field_5c8;
@@ -108,7 +110,11 @@ u32 Unk_7fa500(u32 rule, u32 position);
 u32 Unk_7fa580(u32 rule, u8 arg1, u32 arg2);
 u32 Unk_7fbd00(u32 rule, u8 arg1, u32 arg2, u32 arg3);
 
-u8 Unk_8048c0(u8 value);
+u32 Unk_8048c0(u8 value);
+s32 Unk_7ed4d0(Unk_7ecc90_Con* self, u8 client, u8 pokeId);
+u8 Unk_7c9b60(void* self, u8 client, u32 index);
+u8 Unk_7cb540(const Unk_7c2d80_Main* self, u8 position);
+bool Unk_7faf80(u32 rule, u8 arg1, u32 client);
 u8 Unk_804920(u8 value);
 u32 Unk_7fb890(u32 rule, u8 arg1, u32 arg2, u32 arg3);
 u32 Unk_7f9a10(u32 rule, u8 arg1, u32 arg2);
@@ -216,6 +222,35 @@ void Unk_7cb1e0(const Unk_7c2d80_Main* self, const Unk_7eef40* poke) {
         Unk_1379f30(dex, Unk_7eef40_getField70(poke));
 }
 
+// 0x71007cb420
+u8 Unk_7cb420(const Unk_7c2d80_Main* self, Unk_7ecc90_Con* con, u8 pokeId) {
+    u8 client = Unk_8048c0(pokeId);
+    s32 index = Unk_7ed4d0(con, client, pokeId);
+    if (index >= 0) {
+        u8 position = Unk_7c9b60(const_cast<Unk_7c2d80_Main*>(self), client, index);
+        if (position != 5)
+            return position;
+    }
+    return 5;
+}
+
+// 0x71007cb490
+u8 Unk_7cb490(u8 pokeId) {
+    return Unk_8048c0(pokeId);
+}
+
+// 0x71007cb4b0
+u8 Unk_7cb4b0(const Unk_7c2d80_Main* self, Unk_7ecc90_Con* con, u8 pokeId) {
+    u8 client = Unk_8048c0(pokeId);
+    s32 index = Unk_7ed4d0(con, client, pokeId);
+    if (index >= 0) {
+        u8 position = Unk_7c9b60(const_cast<Unk_7c2d80_Main*>(self), client, index);
+        if (position != 5)
+            return Unk_7cb540(self, position);
+    }
+    return 0xff;
+}
+
 // 0x71007cb890
 u8 Unk_7cb890(const Unk_7c2d80_Main* self, u8 position) {
     return Unk_7fb890(self->field_150, self->field_88->field_3a5, position, 0);
@@ -284,6 +319,13 @@ void Unk_7cbed0(const Unk_7c2d80_Main* self, u8 pokeId) {
 // 0x71007cbf20
 u8 Unk_7cbf20(const Unk_7c2d80_Main* self, u8 position) {
     return Unk_7f9a10(self->field_150, self->field_88->field_3a5, position);
+}
+
+// 0x71007cd0c0
+Unk_7c2d80_Ref Unk_7cd0c0(const Unk_7c2d80_Main* self, u8 client) {
+    if (Unk_7faf80(self->field_150, self->field_88->field_3a5, client))
+        return self->field_418[client];
+    return Unk_7c2d80_Ref();
 }
 
 // 0x71007cbf50
