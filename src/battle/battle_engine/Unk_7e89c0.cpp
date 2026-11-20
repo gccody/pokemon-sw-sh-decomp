@@ -85,8 +85,8 @@ void Unk_7e9510(Unk_7e8a20* self) {
 // 0x71007e9550
 void Unk_7e9550(Unk_7e8a20* self) {
     if (!Unk_7ea260_check(reinterpret_cast<const Unk_7ea260*>(self->field_30))) {
-        Unk_7ea110(reinterpret_cast<u64>(self->field_30));
-        Unk_7ea5d0(reinterpret_cast<u64>(self->field_50));
+        Unk_7ea110(self->field_30);
+        Unk_7ea5d0(self->field_50);
         self->field_70 = Unk_7ea800(self->field_50);
     }
 }

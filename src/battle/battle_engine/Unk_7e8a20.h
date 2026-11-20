@@ -20,13 +20,6 @@ void Unk_7e8f60_call(void* self, u64 event);
 void Unk_7e9050_call(void* self, u64 event);
 
 // Declared as src/unsorted/leaf/Unk_819600.cpp declares them (its callers
-// there match): the system as an integer. The overloads below take it.
-u32 Unk_7e9830(u64 self, u32 label);
-bool Unk_7e97b0(u64 self, u32 label, u32 value);
-
-inline u32 Unk_7e9830(Unk_7e8a20* self, u32 label) {
-    return Unk_7e9830(reinterpret_cast<u64>(self), label);
-}
-inline bool Unk_7e97b0(Unk_7e8a20* self, u32 label, u32 value) {
-    return Unk_7e97b0(reinterpret_cast<u64>(self), label, value);
-}
+// there match): the system as a void*.
+u32 Unk_7e9830(void* self, u32 label);
+bool Unk_7e97b0(void* self, u32 label, u32 value);
