@@ -1907,6 +1907,33 @@ The libraries' largest win was FreeType 2.8.1 in YEBIS (docs/compiler.md,
 "FreeType 2.8.1"): 373 functions, 184,584 bytes. Byte progress after these:
 25.16% (check.py: 44,938 matching, 42 not matching).
 
+### One block repeated, and code without branches (2026-11-20)
+
+Two rankings of the undecompiled functions find code that is written faster
+than it reads: the share of a function's 8-instruction windows that recur
+(immediates masked), and its conditional branches per KB. At the top of the
+first was YEBIS's `PPFX::TEXSHADERSET::CreateEffect` (36,868 bytes, 92%
+recurring, 26 branches: lib/yebis/README.md); the second lists about 260 KB of
+functions over 1.5 KB with under 7 branches per KB, most of them static
+initialisers (which need their TU's globals) and unrolled loops.
+
+- `src/unsorted/Unk_dcfdf0.cpp` (3,088 bytes, matches): 46 parameters of the
+  balloon minigame, each `field = root.Unk_11063e0("NAME").Unk_11067c0(field)`
+  on the data document's nodes (`unsorted/Unk_1106320.h`). 113 undecompiled
+  functions (144 KB) call those accessors; the others have loops over arrays
+  and string values (references to release).
+- `src/unsorted/Unk_138a350.cpp` (4,980 bytes, `M`): a history of 50 records
+  of 0x68 bytes, shifted up by `std::copy_backward` (the pointer loop is
+  small enough to unroll fully: 5 IR instructions a record, under the
+  threshold of 300; an indexed loop isn't). Same instructions but for one
+  store the scheduler lets float (the note in the file).
+- `src/battle/battle_engine/Unk_813d60.cpp` (4,960 bytes, `M`): the reader of
+  the battle commands' arguments, a switch over 46 argument formats (bytes,
+  big-endian 16-, 24- and 32-bit values, bit fields in them), written from a
+  bit-level walk of each case. 6 instructions differ, in which cases share
+  their tails. Its writer, `0x71008151d0` (4,432 bytes), packs the same
+  formats and isn't written.
+
 ### Type getters and kind tests (`tools/typegen.py`, 2026-11-19)
 
 The functions that group by shape (unmatched functions hashed with branch
