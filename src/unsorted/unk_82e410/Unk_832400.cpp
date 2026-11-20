@@ -9,7 +9,8 @@ s32 Unk_7eef50(void* self, u32 index);
 void Unk_80fcb0(void* self, void* object, s32 value, u32 arg3, u32 arg4, u8 id);
 void Unk_8120a0(void* self, u8 id, u32 arg2, u32 value);
 void Unk_812090(void* self, u8 id);
-void Unk_806c70(void* self, void* target, void* object);
+struct Unk_804630_Flow;
+void Unk_806c70(Unk_804630_Flow* self, const Unk_7ee6b0* target, const Unk_7ee6b0* object);
 
 // 0x7100832400
 void Unk_832400(Unk_23ad0f8* self, void* object, void* target, const u32* value, u32 arg4) {
@@ -18,5 +19,6 @@ void Unk_832400(Unk_23ad0f8* self, void* object, void* target, const u32* value,
                Unk_7ee6b0_getField7d(static_cast<const Unk_7ee6b0*>(target)));
     Unk_8120a0(Unk_23acc98_Field20(self), id, arg4, *value);
     Unk_812090(Unk_23acc98_Field20(self), id);
-    Unk_806c70(Unk_23acc98_Field38(self), target, object);
+    Unk_806c70(static_cast<Unk_804630_Flow*>(Unk_23acc98_Field38(self)),
+               static_cast<const Unk_7ee6b0*>(target), static_cast<const Unk_7ee6b0*>(object));
 }

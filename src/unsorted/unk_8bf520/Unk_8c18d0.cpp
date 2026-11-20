@@ -15,9 +15,11 @@ u32 Unk_7f2520_getField34c(const Unk_7f2520* self);
 void* Unk_7fe1d0_getField8(const Unk_7fe1d0* self);
 u32 Unk_7efef0(void* object, u32 index);
 u16 Unk_8a86e0(void* self, u8 id1, u8 id2, u32 id, u32 arg4, bool flag);
-u32 Unk_7cb420(void* self, void* arg, u8 id);
+struct Unk_7c2d80_Main;
+struct Unk_7ecc90_Con;
+u32 Unk_7cb420(const Unk_7c2d80_Main* self, Unk_7ecc90_Con* arg, u8 id);
 u8 Unk_7cb660(void* self, u32 value);
-void* Unk_7ed5e0(void* self, u32 slot);
+void* Unk_7ed5e0(Unk_7ecc90_Con* self, u8 slot);
 u32 Unk_8c20f0(void* self, u32 index);
 
 // What 0x71008c1eb0 copies in: the battlers and the move being looked at.
@@ -70,7 +72,8 @@ u32 Unk_8c1f60(void* self) {
     if (!object)
         return 5;
     void* arg = Unk_7fe1d0_getField8(context->field_60);
-    return Unk_7cb420(context->field_58, arg,
+    return Unk_7cb420(static_cast<const Unk_7c2d80_Main*>(context->field_58),
+                      static_cast<Unk_7ecc90_Con*>(arg),
                       Unk_7ee6b0_getField7d(static_cast<const Unk_7ee6b0*>(object)));
 }
 
@@ -81,14 +84,15 @@ u32 Unk_8c1fd0(void* self) {
     if (!object)
         return 5;
     void* arg = Unk_7fe1d0_getField8(context->field_60);
-    return Unk_7cb420(context->field_58, arg,
+    return Unk_7cb420(static_cast<const Unk_7c2d80_Main*>(context->field_58),
+                      static_cast<Unk_7ecc90_Con*>(arg),
                       Unk_7ee6b0_getField7d(static_cast<const Unk_7ee6b0*>(object)));
 }
 
 // 0x71008c2070
 void* Unk_8c2070(void* self, u32 slot) {
     Unk_8c18d0_Context* context = static_cast<Unk_8c18d0_Context*>(self);
-    return Unk_7ed5e0(Unk_7fe1d0_getField8(context->field_60), slot);
+    return Unk_7ed5e0(static_cast<Unk_7ecc90_Con*>(Unk_7fe1d0_getField8(context->field_60)), slot);
 }
 
 // 0x71008c20a0
@@ -97,7 +101,7 @@ void* Unk_8c20a0(void* self, u32 index) {
     if (index == 4)
         return context->field_70.field_28;
     u32 slot = Unk_8c20f0(self, index);
-    return Unk_7ed5e0(Unk_7fe1d0_getField8(context->field_60), slot);
+    return Unk_7ed5e0(static_cast<Unk_7ecc90_Con*>(Unk_7fe1d0_getField8(context->field_60)), slot);
 }
 
 // 0x71008c2270

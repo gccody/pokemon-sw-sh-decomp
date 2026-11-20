@@ -337,8 +337,8 @@ struct Unk_832870_Arg {
     void* field_10;
     u32 field_18;
     u32 field_1c;
-    u8 field_20;
-    u8 field_21;
+    bool field_20;  // 0x710080ac20's bool parameters
+    bool field_21;
 };
 PKMN_OFFSET_ASSERT(Unk_832870_Arg, field_18, 0x18);
 PKMN_OFFSET_ASSERT(Unk_832870_Arg, field_21, 0x21);
@@ -375,7 +375,7 @@ struct Unk_831b40_Arg {
     Unk_831c60_Object* field_8;
     void* field_10;
     Unk_813130* field_18;
-    u8 field_20;
+    bool field_20;  // 0x71008098b0's and 0x7100809b00's bool parameter
 };
 PKMN_OFFSET_ASSERT(Unk_831b40_Arg, field_20, 0x20);
 void Unk_831b40(Unk_23ad0d8* self, Unk_23acc98_Result& result, const Unk_831b40_Arg& arg);
