@@ -112,6 +112,7 @@ u8 Unk_8048c0(u8 value);
 u8 Unk_804920(u8 value);
 u32 Unk_7fb890(u32 rule, u8 arg1, u32 arg2, u32 arg3);
 u32 Unk_7f9a10(u32 rule, u8 arg1, u32 arg2);
+u32 Unk_7f9ac0(u32 rule, u8 arg1, u8 position);
 u32 Unk_1367100(void* self, u32 arg1, u32 arg2, u32 arg3);
 void Unk_1379f30(void* self, u32 species);
 void Unk_8ada60(void* self);
@@ -176,6 +177,20 @@ u32 Unk_7cacb0(const Unk_7c2d80_Main* self, u8 position) {
 // 0x71007caed0
 Unk_7caed0_Data Unk_7caed0(const Unk_7c2d80_Main* self) {
     return self->field_88->field_350;
+}
+
+// 0x71007cae30
+void Unk_7cae30(const Unk_7c2d80_Main* self, u8 position, u8* client, u8* index) {
+    *client = Unk_7f9ac0(self->field_150, self->field_88->field_3a5, position);
+    u8 count = 0;
+    if (position != 0 && *client != 5) {
+        do {
+            position--;
+            if (Unk_7f9ac0(self->field_150, self->field_88->field_3a5, position) == *client)
+                count++;
+        } while (position != 0);
+    }
+    *index = count;
 }
 
 // 0x71007cafa0
