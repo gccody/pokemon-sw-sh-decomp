@@ -13,7 +13,8 @@ struct Unk_7fc430_Party;
 struct Unk_7e37b0_Slot {
     Unk_8a7ab0_Handle* field_0;
     Unk_7fc430_Party* field_8;
-    u8 _10[0x18 - 0x10];
+    u32 field_10;
+    u8 _14[0x18 - 0x14];
 };
 PKMN_SIZE_ASSERT(Unk_7e37b0_Slot, 0x18);
 
@@ -67,6 +68,10 @@ void Unk_803a70(void* self, u32 index, u16 value);
 bool Unk_7cc410(const Unk_7c2d80_Main* self);
 bool Unk_7cc460(const Unk_7c2d80_Main* self);
 u16 Unk_7cbb70(const Unk_7c2d80_Main* self);
+u16 Unk_803a50(void* self, u32 index);
+bool Unk_84f460(void* self, u32 arg1);
+bool Unk_7caa30(const Unk_7c2d80_Main* self);
+u8 Unk_7fc2f0(const Unk_7fc430_Party* self);
 void Unk_8a7be0(Unk_8a7ab0_Handle* self);
 void Unk_7e75c0(Unk_7e37b0_Self* self, u32 id, u8 count);
 void Unk_7e69b0(Unk_7e37b0_Self* self);
@@ -87,6 +92,28 @@ struct Unk_8a7bd0;
 const u8* Unk_8a7bd0_get(const Unk_8a7bd0* self);
 struct Unk_8924c0;
 u8* Unk_8924c0_getField10Ptr(Unk_8924c0* self);
+struct Unk_7cc3d0;
+bool Unk_7cc3d0_check(const Unk_7cc3d0* self);
+struct Unk_7c56e0;
+bool Unk_7c56e0_check(const Unk_7c56e0* self, u32 value);
+struct Unk_7ca1c0;
+u32 Unk_7ca1c0_getField150(const Unk_7ca1c0* self);
+struct Unk_7c58b0;
+u32 Unk_7c58b0_get(const Unk_7c58b0* self);
+struct Unk_7e8920;
+void* Unk_7e8920_getField150(const Unk_7e8920* self);
+struct Unk_84f450;
+bool Unk_84f450_check(const Unk_84f450* self);
+
+// What a handle's object holds at +0x10.
+static inline u8* Unk_7e37b0_Data(Unk_8a7ab0_Handle* handle) {
+    const u8* object = Unk_8a7bd0_get(reinterpret_cast<const Unk_8a7bd0*>(handle));
+    return Unk_8924c0_getField10Ptr(reinterpret_cast<Unk_8924c0*>(const_cast<u8*>(object)));
+}
+
+static inline void* Unk_7e37b0_Values(const Unk_7e37b0_Self* self) {
+    return Unk_7fe2b0_getField168(reinterpret_cast<const Unk_7fe2b0*>(self->field_68));
+}
 
 // Stops what every handle plays.
 static inline void Unk_7e37b0_StopAll(Unk_7e37b0_Self* self) {
@@ -176,6 +203,70 @@ void Unk_7e5f40(Unk_7e37b0_Self* self, u32*, u8* next) {
     self->field_4ec = Unk_7cbc20_getField170(reinterpret_cast<const Unk_7cbc20*>(self->field_60));
     self->field_4e8 = Unk_7cb850_getField174(reinterpret_cast<const Unk_7cb850*>(self->field_60));
     *next = 0x25;
+}
+
+// 0x71007e6cd0
+void Unk_7e6cd0(Unk_7e37b0_Self* self) {
+    for (s32 i = 0; i < 5; i++) {
+        if (self->field_80[i].field_0 != nullptr) {
+            const u16* value =
+                reinterpret_cast<const u16*>(Unk_7e37b0_Data(self->field_80[i].field_0));
+            Unk_803a70(Unk_7e37b0_Values(self), i, *value);
+        }
+    }
+}
+
+// 0x71007e6e90
+bool Unk_7e6e90(Unk_7e37b0_Self* self) {
+    if (!Unk_7cc3d0_check(reinterpret_cast<const Unk_7cc3d0*>(self->field_60)))
+        return false;
+    for (s32 i = 0; i < 5; i++) {
+        if (self->field_80[i].field_0 != nullptr && Unk_803a50(Unk_7e37b0_Values(self), i) == 0)
+            return true;
+    }
+    return false;
+}
+
+// 0x71007e6f90
+bool Unk_7e6f90(Unk_7e37b0_Self* self) {
+    if (Unk_7c56e0_check(reinterpret_cast<const Unk_7c56e0*>(self->field_60), 0x4000) ||
+        Unk_7c56e0_check(reinterpret_cast<const Unk_7c56e0*>(self->field_60), 0x400) ||
+        Unk_7c56e0_check(reinterpret_cast<const Unk_7c56e0*>(self->field_60), 0x800) ||
+        Unk_7c56e0_check(reinterpret_cast<const Unk_7c56e0*>(self->field_60), 0x1000) ||
+        Unk_7c56e0_check(reinterpret_cast<const Unk_7c56e0*>(self->field_60), 0x40000) ||
+        Unk_7c56e0_check(reinterpret_cast<const Unk_7c56e0*>(self->field_60), 0x80000))
+        return false;
+    if (Unk_7ca1c0_getField150(reinterpret_cast<const Unk_7ca1c0*>(self->field_60)) == 2)
+        return false;
+    if (Unk_7c58b0_get(reinterpret_cast<const Unk_7c58b0*>(self->field_60)) != 0)
+        return false;
+    if (Unk_7ca1c0_getField150(reinterpret_cast<const Unk_7ca1c0*>(self->field_60)) != 0)
+        return false;
+    return Unk_84f460(Unk_7e8920_getField150(reinterpret_cast<const Unk_7e8920*>(self->field_608)),
+                      0);
+}
+
+// 0x71007e7220
+bool Unk_7e7220(Unk_7e37b0_Self* self) {
+    if (!Unk_7caa30(self->field_60))
+        return false;
+    if (!Unk_84f450_check(reinterpret_cast<const Unk_84f450*>(
+            Unk_7e8920_getField150(reinterpret_cast<const Unk_7e8920*>(self->field_608)))))
+        return false;
+    if (Unk_84f460(Unk_7e8920_getField150(reinterpret_cast<const Unk_7e8920*>(self->field_608)), 0))
+        return false;
+    Unk_7ecc90_Con* con = Unk_7fe1d0_getField8(self->field_68);
+    u8 client = Unk_7cb850_getField174(reinterpret_cast<const Unk_7cb850*>(self->field_60));
+    return Unk_7fc2f0(Unk_7ed1a0(con, client)) > 1;
+}
+
+// 0x71007e72b0
+void Unk_7e72b0(Unk_7e37b0_Self* self) {
+    for (s32 i = 0; i < 5; i++) {
+        if (self->field_80[i].field_0 != nullptr)
+            self->field_80[i].field_10 =
+                *reinterpret_cast<const u32*>(Unk_7e37b0_Data(self->field_80[i].field_0));
+    }
 }
 
 // 0x71007e6900
