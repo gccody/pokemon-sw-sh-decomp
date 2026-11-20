@@ -861,6 +861,7 @@ bool Unk_7dedc0(Unk_7cdac0_Self* self, u32*, const u32* args) {
 }
 
 // 0x71007dee10
+// NON_MATCHING: the two end commands are compared in the other order (0xc3 before 0xbd)
 bool Unk_7dee10(Unk_7cdac0_Self* self, u32*, const u32* args) {
     if (args[0] != self->field_2a6) {
         u8 command[0x40];
@@ -896,6 +897,7 @@ bool Unk_7d2d40(Unk_7cdac0_Self* self, u32* seq, const u32*) {
 }
 
 // 0x71007d9bf0
+// NON_MATCHING: register allocation: self and args swap x20/x21
 bool Unk_7d9bf0(Unk_7cdac0_Self* self, u32* seq, const u32* args) {
     switch (*seq) {
         case 0: {
@@ -1242,6 +1244,8 @@ static inline bool Unk_7cdac0_Waiting(const Unk_7cdac0_Self* self) {
 }
 
 // 0x71007d92f0
+// NON_MATCHING: the original reads the argument with a post-indexed load and shares the return-true
+// block
 bool Unk_7d92f0(Unk_7cdac0_Self* self, u32* seq, const u32* args) {
     if (Unk_7cdac0_Waiting(self))
         return true;
@@ -1259,6 +1263,8 @@ bool Unk_7d92f0(Unk_7cdac0_Self* self, u32* seq, const u32* args) {
 }
 
 // 0x71007d9530
+// NON_MATCHING: the original reads the argument with a post-indexed load and shares the return-true
+// block
 bool Unk_7d9530(Unk_7cdac0_Self* self, u32* seq, const u32* args) {
     if (Unk_7cdac0_Waiting(self))
         return true;

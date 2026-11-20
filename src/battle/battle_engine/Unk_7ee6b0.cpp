@@ -171,6 +171,7 @@ static inline void Unk_7ee6b0_SetMove(Unk_7ee6b0_Move* m, u32 move, u8 maxPP) {
 }
 
 // 0x71007f03e0
+// NON_MATCHING: the slot address is computed with two madds in the original
 void Unk_7f03e0(Unk_7ee6b0* self, u8 slot, u32 move, u8 maxPP, bool original) {
     if (original) {
         Unk_7ee6b0_SetMove(&self->field_2c8[slot].field_0, move, maxPP);
@@ -311,6 +312,7 @@ static inline s32 Unk_7ee6b0_GetStage(const Unk_7ee6b0* self, u32 stat) {
 }
 
 // 0x71007f0c00
+// NON_MATCHING: the stage is sign-extended with sxtb in the original
 bool Unk_7f0c00(const Unk_7ee6b0* self, u32 stat, s32 direction) {
     s8 stage = Unk_7ee6b0_GetStage(self, stat);
     if (direction > 0)
@@ -498,6 +500,7 @@ void Unk_7f1530(Unk_7ee6b0* self) {
 }
 
 // 0x71007f1490
+// NON_MATCHING: register allocation of the condition slot addresses
 void Unk_7f1490(Unk_7ee6b0* self, u32 condition, const u64* value) {
     if (Unk_7f7c40(condition))
         Unk_7f1530(self);
@@ -519,6 +522,7 @@ bool Unk_7f17c0(Unk_7ee6b0* self) {
 }
 
 // 0x71007f18b0
+// NON_MATCHING: the store uses a register offset in the original
 void Unk_7f18b0(Unk_7ee6b0* self, u8 pokeId) {
     if (pokeId == 0x1f)
         return;
@@ -575,6 +579,7 @@ u8 Unk_7ef360(const Unk_7ee6b0* self) {
 }
 
 // 0x71007ef380
+// NON_MATCHING: register allocation and loop setup differ
 void Unk_7ef380(Unk_7ee6b0* self, u8 pokeId) {
     u32 i;
     u8 count = self->field_60.field_1c5;
@@ -617,6 +622,7 @@ bool Unk_7ef5d0(Unk_7ee6b0* self, u32 arg) {
 }
 
 // 0x71007ef670
+// NON_MATCHING: the bitfield is extracted with ubfx and the selects come in the other order
 u16 Unk_7ef670(const Unk_7ee6b0* self) {
     u64 condition = self->field_60.field_30[0x1a];
     u32 kind = condition & 7;
@@ -628,6 +634,7 @@ u16 Unk_7ef670(const Unk_7ee6b0* self) {
 }
 
 // 0x71007ef710
+// NON_MATCHING: the bitfield extraction and the compares come in the other order
 u32 Unk_7ef710(const Unk_7ee6b0* self, u32 index) {
     u64 condition = self->field_60.field_30[index];
     u32 kind = condition & 7;
@@ -651,6 +658,7 @@ u8 Unk_7ef760(const Unk_7ee6b0* self, u32 index) {
 }
 
 // 0x71007ef770
+// NON_MATCHING: register allocation: the operands of the subtraction are swapped
 bool Unk_7ef770(const Unk_7ee6b0* self, u32 index) {
     u64 condition = self->field_60.field_30[index];
     if (Unk_7f8790_check(reinterpret_cast<const Unk_7f8790*>(&condition)))
@@ -674,6 +682,7 @@ void Unk_7f1cf0(Unk_7ee6b0* self) {
 }
 
 // 0x71007f22a0
+// NON_MATCHING: register allocation: the two type bytes swap registers
 bool Unk_7f22a0(Unk_7ee6b0* self, u16 types, u32 arg2) {
     u8 old1 = self->field_2ac;
     u8 old2 = self->field_2ad;
@@ -765,6 +774,7 @@ u32 Unk_7f2750(const Unk_7ee6b0* self, u8 index) {
 }
 
 // 0x71007f29e0
+// NON_MATCHING: the original branches to shared return blocks where this uses cset
 bool Unk_7f29e0(const Unk_7ee6b0* self, const Unk_7ee6b0* other) {
     if (self->field_60.field_27_5 || other->field_60.field_27_5)
         return false;
@@ -886,6 +896,7 @@ void Unk_7f2590(Unk_7ee6b0* self, const Unk_7ee6b0_Action* action) {
 }
 
 // 0x71007f2fe0
+// NON_MATCHING: the adjusted amount is masked into a new register in the original
 void Unk_7f2fe0(Unk_7ee6b0* self, u32 stat, u8 amount) {
     if (amount == 0)
         return;

@@ -14,6 +14,7 @@ void Unk_7fc210(Unk_7fc430_Party* self, Unk_7ee6b0* poke) {
 }
 
 // 0x71007fc230
+// NON_MATCHING: the inner loop computes the slot address before reloading the count
 void Unk_7fc230(Unk_7fc430_Party* self) {
     u32 i = 0;
     u32 index = 0;
@@ -39,6 +40,7 @@ u8 Unk_7fc2f0(const Unk_7fc430_Party* self) {
 }
 
 // 0x71007fc350
+// NON_MATCHING: register allocation: self and the count swap x19/x20
 u8 Unk_7fc350(const Unk_7fc430_Party* self, u8 start) {
     u8 count = 0;
     for (s32 i = start; i < self->field_30; i++)

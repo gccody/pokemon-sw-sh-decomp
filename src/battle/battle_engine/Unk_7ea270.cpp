@@ -52,6 +52,7 @@ void Unk_7ea2f0(Unk_7ea110_Stack* self) {
 }
 
 // 0x71007ea3b0
+// NON_MATCHING: the bounds check is scheduled after the address computation in the original
 Unk_7e9dc0_Var* Unk_7ea3b0(Unk_7ea110_Stack* self, u16 label) {
     u32 i;
     for (i = self->field_c08; i < 0x60; i++) {

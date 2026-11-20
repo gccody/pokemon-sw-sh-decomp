@@ -52,6 +52,7 @@ union Unk_7f7940_Condition {
 };
 
 // 0x71007f7940
+// NON_MATCHING: the original builds the value with bfi
 u64 Unk_7f7940(u32 pokeId, u32 turns) {
     Unk_7f7940_Condition condition;
     condition.field_0 = 0;
@@ -207,6 +208,7 @@ bool Unk_7f7dd0(u8 value) {
 }
 
 // 0x71007f7f30
+// NON_MATCHING: block layout of the default case
 u8 Unk_7f7f30(u8 count) {
     if (count == 5) {
         u8 value = Unk_7f8c20(Unk_27ced28, 100);
@@ -253,6 +255,7 @@ s32 Unk_7f8050(s32 value, s32 min, s32 max) {
 }
 
 // 0x71007f8070
+// NON_MATCHING: the original materialises the default argument before the tail call
 u8 Unk_7f8070(u32 move, const Unk_7ee6b0* poke) {
     if (move == 0xae) {
         if (poke != nullptr)
