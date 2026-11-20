@@ -113,3 +113,37 @@ destructor, deleting destructor and reset (slot 4) are written; its clear
 registers than the reconstruction, and its initialise and reserve (slots 2
 and 5) need the element types' constructors (the reserve constructs every new
 element in place).
+
+## PPFX's texture shader set and TinyEffect string
+
+`YEBIS_draft/src/GPU/GPUTextureUtil.cpp` has `PPFX::TEXSHADERSET::CreateEffect`
+(0x7100463fd0, 36,868 bytes: it was the largest undecompiled function) and the
+eight helpers before it. The class and the function are named by its log lines
+(`"TEXSHADERSET::CreateEffect(): IGPUEffect::CreateEffectFromFile() ..."`),
+which leave the namespace out as they do for `PPFX::IGPUEffect`. The function
+is the list of the effect's parameters and techniques: 265 handle lookups, 141
+calls of the helpers and 68 families of numbered techniques (`tech_MadT1_Sn`
+with `n` from 1 to 32), each a call of one inline helper (its locals sit above the function's own in
+the frame, which is where inlined allocas go, so it wasn't a macro). The body
+and the class's layout (`field_<offset>`, arrays from the address
+progressions) were generated from a symbolic trace of the original's calls
+and stores and then kept as source.
+
+The helpers' suffix tables and their "filled in" flags are static variables
+of YEBIS's src/GPU translation unit, which LLVM merged into one object
+(0x71024e45d0, used by functions from 0x7100462fe0 to 0x7100499b70: the TU is
+every src/GPU file) and whose flags it shrank to one bit. They can't be
+defined before the whole TU is here, so the file declares the block as it is
+in the executable (`Unk_24e45d0_Statics`) and tests bit 0 of each flag.
+
+`YEBIS_draft/src/GPU/TinyEffect/TFXString.{h,cpp}` is the string those use
+(`TFXString.cpp` is the `__FILE__` of its allocations and asserts; `Clear`
+and `Construct` their `__func__`). 20 of its functions match. What its code
+shows: the constructors are inline and call functions that return the string
+by reference (LLVM 7 doesn't tail-call a callee whose return value carries
+`dereferenceable` from a caller that returns nothing, and none of the
+by-value operators tail-calls them); the range checks read the length into a
+local first (the early-exit block is then laid out last). Not matching:
+`Unk_4525a0` (a number's digits: one `msub` is scheduled later than the
+original's). Not written: `Unk_451900`, `Unk_451f00`, `Unk_4520d0`,
+`Unk_452400`.
