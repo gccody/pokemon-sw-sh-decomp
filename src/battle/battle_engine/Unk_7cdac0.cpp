@@ -426,8 +426,8 @@ u8 Unk_7cb490(u8 pokeId);
 u32 Unk_7df730(Unk_7cdac0_Self* self, u32 arg1, u32 arg2, u8* out);
 Unk_7ee6b0* Unk_7ed5e0(Unk_7ecc90_Con* self, u8 position);
 // Declared as src/unsorted/leaf names them.
-void Unk_8aabb0(u64 self, u32 arg1, u32 id);
-void Unk_8aabe0(u64 self, u32 value);
+void Unk_8aabb0(void* self, u32 arg1, u32 id);
+void Unk_8aabe0(void* self, u32 value);
 struct Unk_7cd1f0;
 const Unk_7dfae0_Source* Unk_7cd1f0_get(const Unk_7cd1f0* self);
 struct Unk_7cd430;
@@ -438,9 +438,9 @@ u8 Unk_7cb420(const Unk_7c2d80_Main* self, Unk_7ecc90_Con* con, u8 pokeId);
 u8 Unk_7cb4b0(const Unk_7c2d80_Main* self, Unk_7ecc90_Con* con, u8 pokeId);
 u8 Unk_7cb540(const Unk_7c2d80_Main* self, u8 position);
 void Unk_7dfb80(Unk_7cdac0_Self* self, const Unk_7dcde0_Data* data);
-// Declared as src/unsorted/leaf/Unk_7ce130.cpp declares them (the step as an integer).
-bool Unk_7d8d00(void* self, u64 seq, u32 arg2);
-bool Unk_7d8960(void* self, u64 seq, u32 arg2);
+// Declared as src/unsorted/leaf/Unk_7ce130.cpp declares them (the step as a void*).
+bool Unk_7d8d00(void* self, void* seq, u32 arg2);
+bool Unk_7d8960(void* self, void* seq, u32 arg2);
 Unk_7cdac0_Ref Unk_7cd0c0(const Unk_7c2d80_Main* self, u8 client);
 void Unk_8ac140(Unk_239a418* self, u8 pokeId, u8 arg2);
 void Unk_8ac060(Unk_239a418* self, u8 pokeId);
@@ -454,7 +454,7 @@ void Unk_818340(const Unk_8139c0_Self* self, u8 pokeId, u32 arg2, u32 arg3);
 
 // Declared as src/unsorted/leaf names them.
 struct Unk_7cd240;
-void Unk_7cd240_call(Unk_7cd240* self, u64 value, u64 arg2);
+void Unk_7cd240_call(Unk_7cd240* self, void* value, void* arg2);
 struct Unk_817c60;
 void Unk_817c60_call(const Unk_817c60* self);
 
@@ -763,10 +763,10 @@ bool Unk_7dc290(Unk_7cdac0_Self* self, u32*, const u32* args) {
         other.field_0 = target;
         other.field_8 = value;
         Unk_7cd240_call(reinterpret_cast<Unk_7cd240*>(const_cast<Unk_7c2d80_Main*>(self->field_58)),
-                        reinterpret_cast<u64>(poke), reinterpret_cast<u64>(&other));
+                        poke, &other);
     } else {
         Unk_7cd240_call(reinterpret_cast<Unk_7cd240*>(const_cast<Unk_7c2d80_Main*>(self->field_58)),
-                        reinterpret_cast<u64>(poke), 0);
+                        poke, nullptr);
     }
     return true;
 }
@@ -885,14 +885,14 @@ bool Unk_7dee70(Unk_7cdac0_Self* self, u32*, const u32* args) {
 // 0x71007d29a0
 bool Unk_7d29a0(Unk_7cdac0_Self* self, u32* seq, const u32*) {
     if (Unk_7cdac0_GetView(self) != nullptr)
-        return Unk_7d8d00(self, reinterpret_cast<u64>(seq), 1);
+        return Unk_7d8d00(self, seq, 1);
     return true;
 }
 
 // 0x71007d2d40
 bool Unk_7d2d40(Unk_7cdac0_Self* self, u32* seq, const u32*) {
     if (Unk_7cdac0_GetView(self) != nullptr)
-        return Unk_7d8960(self, reinterpret_cast<u64>(seq), 1);
+        return Unk_7d8960(self, seq, 1);
     return true;
 }
 
@@ -1288,10 +1288,10 @@ bool Unk_7da180(Unk_7cdac0_Self* self, u32* seq, const u32* args) {
             u8 withFirst;
             u32 id = Unk_7df730(self, args[0], args[1], &withFirst);
             Unk_7da180_Message* message = &self->field_574;
-            Unk_8aabb0(reinterpret_cast<u64>(message), 1, id);
+            Unk_8aabb0(message, 1, id);
             if (withFirst)
-                Unk_8aabe0(reinterpret_cast<u64>(message), args[0]);
-            Unk_8aabe0(reinterpret_cast<u64>(message), args[1]);
+                Unk_8aabe0(message, args[0]);
+            Unk_8aabe0(message, args[1]);
             Unk_7cdac0_GetView(self)->vf55(message);
             (*seq)++;
             break;

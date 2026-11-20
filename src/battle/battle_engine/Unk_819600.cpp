@@ -116,7 +116,11 @@ void Unk_8641a0(void* self, u64* out, const Unk_819600_Byte* in);
 void Unk_82c6b0(void* self, Unk_819c80_Out* out, const void* in);
 void Unk_836da0(void* self, u64* out, const void* in);
 void Unk_8530d0(void* self, u64* out, const Unk_81a250_Arg* in);
-void Unk_8341a0(void* self, u64* out, const Unk_819600_Byte* in);
+// Declared as src/unsorted/unk_82e410/Handler.h declares it (it's matched there).
+struct Unk_23ad258;
+struct Unk_8341a0_Result;
+struct Unk_8341a0_Arg;
+void Unk_8341a0(Unk_23ad258* self, Unk_8341a0_Result& result, const Unk_8341a0_Arg& arg);
 void Unk_855f20(void* self, u64* out, const void* in);
 void Unk_864650(void* self, u64* out, const Unk_81ab90_Arg* in);
 void Unk_855080(void* self, u64* out, const void* in);
@@ -246,8 +250,10 @@ u8 Unk_81a350(const Unk_819600_Self* self, u8 arg) {
     u64 result;
     Unk_819600_Byte in;
     in.field_0 = arg;
-    Unk_8341a0(Unk_828a60_getFieldcc0(static_cast<const Unk_828a60*>(self->field_20)), &result,
-               &in);
+    Unk_8341a0(static_cast<Unk_23ad258*>(
+                   Unk_828a60_getFieldcc0(static_cast<const Unk_828a60*>(self->field_20))),
+               *reinterpret_cast<Unk_8341a0_Result*>(&result),
+               *reinterpret_cast<const Unk_8341a0_Arg*>(&in));
     return result;
 }
 

@@ -104,13 +104,9 @@ bool Unk_807150(Unk_804630_Flow* self,
     return result;
 }
 
-// 0x7100807250
-u32 Unk_807250(Unk_804630_Flow* self,
-               const Unk_7ee6b0* poke,
-               u32 arg2,
-               u32 arg3,
-               u32 arg4,
-               u32 arg5) {
+// 0x7100807250: its fourth and fifth parameters aren't read; 0x710082f210
+// passes them as a byte and a halfword.
+u32 Unk_807250(Unk_804630_Flow* self, const Unk_7ee6b0* poke, u32 arg2, u8, u16, u32 arg5) {
     Unk_7e94d0(self->field_10);
     Unk_7e9610(self->field_10, 2, Unk_7ee6b0_getField7d(poke));
     Unk_7e9610(self->field_10, 0x22, arg2);
@@ -1957,8 +1953,8 @@ bool Unk_8064e0(Unk_804630_Flow* self, const Unk_7ee6b0* attacker, const Unk_7ee
     return result;
 }
 
-// 0x7100806770
-bool Unk_806770(Unk_804630_Flow* self, const Unk_7ee6b0* poke, const Unk_7ee6b0*, u8 arg3) {
+// 0x7100806770: its third parameter isn't read; 0x7100833200 passes it 32 bits.
+bool Unk_806770(Unk_804630_Flow* self, const Unk_7ee6b0* poke, u32, u8 arg3) {
     Unk_7e94d0(self->field_10);
     Unk_7e9610(self->field_10, 4, Unk_7ee6b0_getField7d(poke));
     Unk_7e9610(self->field_10, 0x69, arg3);

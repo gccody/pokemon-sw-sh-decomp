@@ -121,9 +121,9 @@ void Unk_7eadb0(void* self,
                 u16 depth);
 
 // Declared as src/unsorted/leaf/Unk_7e89c0.cpp declares them (its callers
-// there match): pointers as integers.
-void Unk_7ea110(u64 self);
-void Unk_7ea5d0(u64 self);
+// there match): their objects as void*.
+void Unk_7ea110(void* self);
+void Unk_7ea5d0(void* self);
 
 // The leaf functions, with their own placeholder types.
 struct Unk_7ea260;
