@@ -14,6 +14,13 @@ public:
     explicit SiIONXMemoryMappedFile(ISiAllocator* pAllocator);
     virtual ~SiIONXMemoryMappedFile();
     UNK_REFCOUNT_DECLARE;
+    virtual u32 vf4();
+    virtual bool vf5(const char* path, u32 mode);  // opens a file
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual u8* vf10();  // the file's bytes
 
     Unk_4bf660 field_8;
     u64 field_18;

@@ -12,6 +12,7 @@
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_String.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_4bf660.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_RefCount.h>
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_Version.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/ShaderEffect/SiGfx_ShaderEffectKey.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/ShaderEffect/SiGfx_ShaderEffectVariationList_Impl.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/ShaderEffect/SiGfx_ShaderEffect_Impl.h>
@@ -252,16 +253,6 @@ struct Unk_567750_Desc {
     u32 field_20;
 };
 PKMN_SIZE_ASSERT(Unk_567750_Desc, 0x24);
-
-// The version in the file's header (placeholder name).
-struct Unk_567750_Version {
-    Unk_567750_Version() : field_0(0), field_4(0), field_8(0), field_c(0) {}
-
-    s32 field_0;
-    s32 field_4;
-    s32 field_8;
-    s32 field_c;
-};
 
 // The file's header (placeholder name).
 struct Unk_567750_Header {
