@@ -141,18 +141,18 @@ PKMN_SIZE_ASSERT(Unk_36fa70_Key0, 0x30);
         void RemoveAll(const Below& below);                                                       \
                                                                                                   \
         Value* Find(const Below& below, Value** closest, bool* hasMore) {                         \
-            if (below.IsAny()) {                                                                  \
-                if (hasMore != nullptr)                                                           \
-                    *hasMore = !this->field_18.IsEmpty();                                         \
-                if (this->field_10)                                                               \
-                    return &this->field_8;                                                        \
+            if (!below.IsAny()) {                                                                 \
+                if (closest != nullptr && this->field_10)                                         \
+                    *closest = &this->field_8;                                                    \
+                auto* child = this->field_18.Exists(below.field_0);                               \
+                if (child != nullptr)                                                             \
+                    return child->Find(below.field_8, closest, hasMore);                          \
                 return nullptr;                                                                   \
             }                                                                                     \
-            if (closest != nullptr && this->field_10)                                             \
-                *closest = &this->field_8;                                                        \
-            auto* child = this->field_18.Exists(below.field_0);                                   \
-            if (child != nullptr)                                                                 \
-                return child->Find(below.field_8, closest, hasMore);                              \
+            if (hasMore != nullptr)                                                               \
+                *hasMore = !this->field_18.IsEmpty();                                             \
+            if (this->field_10)                                                                   \
+                return &this->field_8;                                                            \
             return nullptr;                                                                       \
         }                                                                                         \
                                                                                                   \
@@ -727,9 +727,9 @@ bool Unk_2381780::vf0(const Unk_36fa70_Key0& other) {
 // at has nodes below it.
 // 0x710039f0a0 (and 0x710039f1a0 and 0x710039f480, the first and the fourth
 // level, the fourth with the last one inlined)
-// NON_MATCHING: 0x710039f290, the second level with the third inlined: the
-// original shares the last return with the block before it, here that
-// block has a return of its own (4 bytes more).
+// NON_MATCHING: 0x710039f290, the second level with the third inlined: one
+// branch goes to the other of two returns (the block layout shares the
+// return of the null check with another block's).
 Unk_3a1830_Value* Unk_39a100_Root::Find(const Unk_36fa70_Key0& below, Unk_3a1830_Value** closest,
                                         bool* hasMore) {
     if (below.IsAny()) {
@@ -745,4 +745,36 @@ Unk_3a1830_Value* Unk_39a100_Root::Find(const Unk_36fa70_Key0& below, Unk_3a1830
     if (child != nullptr)
         return child->Find(below.field_8, closest, hasMore);
     return nullptr;
+}
+
+// The same for the first tree: only its owner looks a key up, and has the
+// root's and the first level's lookup inlined.
+inline Unk_36fa70_Value* Unk_36b160_Root::Find(const Unk_36fa70_Key0& below,
+                                               Unk_36fa70_Value** closest, bool* hasMore) {
+    if (below.IsAny()) {
+        if (hasMore != nullptr)
+            *hasMore = !this->field_18.IsEmpty();
+        if (this->field_10)
+            return &this->field_8;
+        return nullptr;
+    }
+    if (closest != nullptr && this->field_10)
+        *closest = &this->field_8;
+    Unk_23817a8* child = this->field_18.Exists(below.field_0);
+    if (child != nullptr)
+        return child->Find(below.field_8, closest, hasMore);
+    return nullptr;
+}
+
+// What owns the first tree.
+struct Unk_36b350_T {
+    u8 pad_0[0x38];
+    Unk_36b160_Root field_38;
+};
+
+// 0x710036b350 (and 0x710036d980, the fourth level with the last inlined)
+// NON_MATCHING: 0x710036d790, like 0x710039f290.
+void* Unk_36b350(Unk_36b350_T* self, const Unk_36fa70_Key0& key) {
+    Unk_36fa70_Value* value = self->field_38.Find(key, nullptr, nullptr);
+    return value != nullptr ? value->field_0 : nullptr;
 }
