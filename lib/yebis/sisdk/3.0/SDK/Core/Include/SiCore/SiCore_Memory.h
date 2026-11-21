@@ -62,19 +62,6 @@ UNK_POD(float)
 UNK_POD(double)
 #undef UNK_POD
 
-// The array new (inline in every caller: placeholder name): allocates, then
-// constructs each element, except for pointers and the builtin types.
-template <class T>
-inline T* Unk_NewArray(ISiAllocator* allocator, size_t count, u32 alignment, const char* file, int line) {
-    T* p = static_cast<T*>(allocator->vf8(sizeof(T), count, alignment, file, line));
-    if (!Unk_PodTraits<T>::value && p != nullptr) {
-        for (s64 i = 0; i < static_cast<s64>(count); i++) {
-            new (Unk_Placement(), &p[i]) T;
-        }
-    }
-    return p;
-}
-
 // 0x710056de40 (SIGFX_SHADER_PREPROCESSOR): the array delete. Destroys each
 // element (asking the allocator for their count), frees, and clears the
 // pointer.
@@ -114,8 +101,22 @@ inline void* operator new(size_t size, SiSDK3::ISiAllocator* allocator, u32 alig
 #define UNK_NEW(allocator, alignment) new (allocator, alignment, __FILE__, __LINE__)
 
 #define SI_DELETE(allocator, p) ::SiSDK3::Unk_4c25a0(allocator, p, __FILE__, __LINE__)
-#define SI_NEW_ARRAY(allocator, T, count, align) \
-    ::SiSDK3::Unk_NewArray<T>(allocator, count, align, __FILE__, __LINE__)
+// The array new: allocates into p, then constructs each element of a class
+// that has a constructor. A statement, expanded in its caller, with the test
+// for a constructor decided at compile time, which is what the original's
+// code shows: for a class with a constructor the caller's own null test is
+// threaded through this one (one test right after the allocation, then the
+// loop's first test: an inline function would have merged those two before
+// it was inlined), and for a class without one no test is left (an empty
+// loop's would be threaded the same way).
+#define SI_NEW_ARRAY(p, allocator, T, count, align)                                              \
+    p = static_cast<T*>((allocator)->vf8(sizeof(T), count, align, __FILE__, __LINE__));          \
+    if (!__has_trivial_constructor(T) && p != nullptr) {                                         \
+        T* unk_q = p;                                                                            \
+        for (s64 unk_i = 0; unk_i < static_cast<s64>(count); unk_i++, unk_q++) {                 \
+            new (Unk_Placement(), unk_q) T;                                                      \
+        }                                                                                        \
+    }
 #define SI_DELETE_ARRAY(allocator, p) ::SiSDK3::Unk_56de40(allocator, p, __FILE__, __LINE__)
 #define SI_FREE(allocator, p) (allocator)->vf9(p, __FILE__, __LINE__)
 

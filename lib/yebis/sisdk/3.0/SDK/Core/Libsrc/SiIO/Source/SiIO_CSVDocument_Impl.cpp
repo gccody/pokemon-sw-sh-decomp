@@ -180,3 +180,9 @@ bool SiIOCSVDocument::vf20(s32 column, s32 row, f64 value) {
 }
 
 }  // namespace SiSDK3
+
+// The array functions this translation unit instantiates out of line.
+// 0x7100580100 = _ZN6SiSDK37SiArrayIcLi16EE10Unk_4bf190Emb
+template bool SiSDK3::SiArray<char, 16>::Unk_4bf190(size_t, bool);
+// 0x7100580290 = _ZN6SiSDK37SiArrayINS0_INS_8SiStringIcEELi16EEELi16EE10Unk_4bf190Emb
+template bool SiSDK3::SiArray<SiSDK3::SiArray<SiSDK3::SiString<char>, 16>, 16>::Unk_4bf190(size_t, bool);

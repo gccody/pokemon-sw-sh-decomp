@@ -135,7 +135,7 @@ bool SiArray<T, ALIGN>::Unk_4bf190(size_t count, bool keep) {
     }
     size_t itemCount = m_itemCount;
 #line 1489
-    T* pData = SI_NEW_ARRAY(m_pAllocator, T, count, ALIGN);
+    T* pData; SI_NEW_ARRAY(pData, m_pAllocator, T, count, ALIGN)
     size_t n = itemCount > count ? count : itemCount;
     if (pData == nullptr) {
         return false;
