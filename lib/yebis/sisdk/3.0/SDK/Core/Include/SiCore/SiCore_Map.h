@@ -21,6 +21,7 @@ public:
         Unk_Node* m_pParent;
         Unk_Node* m_pLeft;
         Unk_Node* m_pRight;
+        bool field_30;  // the node's colour in the tree (set: red)
     };
 
     // with an allocator, or the kernel's for a null one (inline in every
@@ -30,6 +31,61 @@ public:
             m_pAllocator = Unk_4bc640();
         }
     }
+    // a position in the map: its copy constructor is its own (0x71004c0e60
+    // returns one in memory)
+    struct Unk_Iterator {
+        Unk_Iterator(SiMap* pMap, Unk_Node* pNode) : m_pMap(pMap), m_pNode(pNode) {}
+        Unk_Iterator(const Unk_Iterator& other) : m_pMap(other.m_pMap), m_pNode(other.m_pNode) {}
+
+        SiMap* m_pMap;
+        Unk_Node* m_pNode;
+    };
+
+    // the node of a key, or none (inline in every caller: placeholder name)
+    Unk_Iterator Unk_Find(const K& key) {
+        Unk_Node* pNode = m_pRoot;
+        Unk_Node* pPrev = nullptr;
+        while (pNode != nullptr && pNode != pPrev) {
+            pPrev = pNode;
+            if (Compare()(key, pNode->m_key)) {
+                pNode = pNode->m_pLeft;
+            } else if (Compare()(pNode->m_key, key)) {
+                pNode = pNode->m_pRight;
+            } else {
+                return Unk_Iterator(this, pNode);
+            }
+        }
+        return Unk_Iterator(this, nullptr);
+    }
+
+    // the node after one, a node before the ones under it (inline:
+    // placeholder name)
+    static Unk_Node* Unk_Next(Unk_Node* pNode) {
+        if (pNode->m_pLeft != nullptr) {
+            return pNode->m_pLeft;
+        }
+        if (pNode->m_pRight != nullptr) {
+            return pNode->m_pRight;
+        }
+        for (;;) {
+            Unk_Node* pParent = pNode->m_pParent;
+            if (pParent == nullptr) {
+                return nullptr;
+            }
+            Unk_Node* pRight = pParent->m_pRight;
+            if (pRight != nullptr && pRight != pNode) {
+                return pRight;
+            }
+            pNode = pParent;
+        }
+    }
+
+    // 0x71004c09a0 (SiKernel's map): adds a value under a key
+    bool Unk_4c09a0(const K& key, V value);
+    // 0x71004c0e60 (SiKernel's map): takes a node out; the position after it
+    Unk_Iterator Unk_4c0e60(const Unk_Iterator& position);
+
+    SiMap() : m_pAllocator(nullptr), m_count(0), m_pRoot(nullptr) { m_pAllocator = Unk_4bc640(); }
     virtual ~SiMap();
 
     ISiAllocator* m_pAllocator;

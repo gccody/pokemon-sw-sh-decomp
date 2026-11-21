@@ -17,7 +17,9 @@ struct Unk_4bf660 {
     ~Unk_4bf660() { Unk_4bf6a0_update(reinterpret_cast<u64>(this)); }
 
     SiSDK3::ISiAllocator* m_pAllocator;
-    u32 m_count;
+    // volatile: the constructor stores it and field_c one by one, where two
+    // plain 32-bit constants would be one 64-bit store
+    volatile u32 m_count;
     u32 field_c;
 };
 PKMN_SIZE_ASSERT(Unk_4bf660, 0x10);

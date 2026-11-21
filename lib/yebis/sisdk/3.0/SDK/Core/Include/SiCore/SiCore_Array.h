@@ -147,6 +147,57 @@ public:
         return true;
     }
 
+    // field_30 and field_38 for the elements there are (inline: placeholder
+    // name)
+    void Unk_UpdateRange() {
+        if (m_itemCount != 0) {
+            field_30 = m_pData;
+            field_38 = m_pData + m_itemCount;
+        } else {
+            field_30 = nullptr;
+            field_38 = nullptr;
+        }
+    }
+
+    // takes an element out, moving the ones after it down (the name is its
+    // assert's; the index is an int and the compare with the count is signed)
+    void RemoveByIndex(int index) {
+        for (s64 i = index + 1; i < static_cast<s64>(m_itemCount); i++) {
+            m_pData[i - 1] = m_pData[i];
+        }
+        m_itemCount--;
+    }
+
+    // takes out every element equal to value, from the last one (inline in
+    // every caller: placeholder name)
+    void Unk_RemoveValue(const T& value) {
+        for (int i = static_cast<int>(m_itemCount) - 1; i >= 0; i--) {
+            if (m_pData[i] == value) {
+                RemoveByIndex(i);
+            }
+        }
+        Unk_UpdateRange();
+    }
+
+    // an empty array in a buffer that isn't its own, with room for count
+    // elements (inline: placeholder name)
+    void Unk_SetBuffer(T* pData, size_t count) {
+        Unk_FreeData();
+        m_reservedCount = count;
+        m_itemCount = 0;
+        m_pData = pData;
+        field_30 = nullptr;
+        field_38 = nullptr;
+        field_48 = 1;
+    }
+
+    // frees the buffer and empties the array: 0x71004e3050 through one more
+    // inline function (placeholder name). The level shows where the caller
+    // also reads m_pData (SiKernel::vf28): the three pointers are cleared as
+    // one 24-byte block there, which LLVM's MemCpyOpt only forms on its
+    // second run over these stores, the one for this function.
+    void Unk_FreeAll() { Unk_4e3050(); }
+
     // empties the array for another allocator (inline: placeholder name)
     void Unk_SetAllocator(ISiAllocator* pAllocator) {
         if (m_pAllocator != pAllocator) {

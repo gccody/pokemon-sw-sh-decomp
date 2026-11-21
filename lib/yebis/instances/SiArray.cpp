@@ -13,7 +13,6 @@ class NVNtextureView;
 
 // The element types of the copies of Unk_4bf190 that no caller ties to a type
 // (placeholders named after each copy: the code doesn't depend on the type).
-struct Unk_4c2650;
 struct Unk_4cb8c0;
 struct Unk_4db5f0;
 struct Unk_4db790;
@@ -384,10 +383,11 @@ template bool SiSDK3::SiArray<SiSDK3::ISiGfxShaderEffectVariationList::ShaderVar
 // 0x7100587040
 template bool SiSDK3::SiArray<SiSDK3::SiIOVFSEntry*, 16>::Unk_4bf190(size_t, bool);
 
-// The other 24 copies of Unk_4bf190: called only from inline Adds of no known
+// 0x71004c2650 (SiKernel's array of the reflected classes: its vf20 calls it)
+template bool SiSDK3::SiArray<SiSDK3::SiReflectionObject*, 16>::Unk_4bf190(size_t, bool);
+
+// The other 23 copies of Unk_4bf190: called only from inline Adds of no known
 // class, so their element types aren't known; each gets a placeholder.
-// 0x71004c2650
-template bool SiSDK3::SiArray<Unk_4c2650*, 16>::Unk_4bf190(size_t, bool);
 // 0x71004cb8c0
 template bool SiSDK3::SiArray<Unk_4cb8c0*, 16>::Unk_4bf190(size_t, bool);
 // 0x71004db5f0
