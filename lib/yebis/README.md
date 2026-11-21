@@ -204,6 +204,71 @@ classes by RTTI (CGPUBaseResourceManage is CGPUResourceManage's base; its
 vtable isn't in the executable). Virtual functions are `vf<slot>`, as
 lib/yebis/class names them.
 
+## SiCore (0x71004bc640 to 0x71004c8ef0)
+
+SiSDK3's core library starts YEBIS's second half. Its TUs, in address order
+(a TU ends with its static initialiser; the ones that only construct the TU's
+`SiReflectionPropertyHandle` are lib/yebis/static's):
+
+| Range | File | What |
+|---|---|---|
+| 0x4bc640-0x4bc6c0 | `Unk_4bc640.cpp` | the kernel's allocator or the static one |
+| 0x4bc7f0-0x4bf5e0 | `SiCore_FixedHeapAllocator2.cpp` | the allocator over fixed regions, its header pool |
+| 0x4bf730-0x4c2cd0 | `SiCore_Kernel_Impl.cpp` | `SiKernel` (not written: lib/yebis/class has its accessors) |
+| 0x4c2cd0 | `Unk_4c2cd0.cpp` | the static `SiHeapAllocator` (the initialiser is the TU) |
+| 0x4c2d70-0x4c32e0 | `SiCore_HeapAllocator.cpp` | the allocator over the memory system |
+| 0x4c3360-0x4c35c0 | `Unk_4c3360.cpp` | CRC-32 |
+| 0x4c3640-0x4c4100 | `Unk_4c3650.cpp` | `SiMemorySystem`: malloc with a header, 65536 lists by address |
+| 0x4c4290-0x4c6010 | `Unk_4c4290.cpp` | string functions, `SiString`'s out-of-line members |
+| 0x4c6090-0x4c8620 | `SiCore_StringTable_Impl.cpp` | `SiStringTable` (not written) |
+| 0x4c86a0-0x4c8840 | `Unk_4c86a0.cpp` | `SiCoreCriticalSection`, the scoped lock |
+| 0x4c88c0-0x4c8ef0 | `SiCore_SystemInfo_Impl.cpp` | `SiSystemInfo` |
+
+What decided matches here, beyond the list above:
+
+- **A trap that returns** (`b.ne` over the word `0xe7ffdefe`, code going on
+  after it) is `__builtin_debugtrap()`: on AArch64 it's lowered like a trap,
+  without ending the block. `__builtin_trap()` ends it. The allocators trap
+  like that on an allocation number, address or size set for debugging.
+- **CallSiteSplitting** (LLVM 7, -O3) duplicates a call whose argument is
+  tested for null right before it: `if (p != nullptr) list.Remove(p);
+  list.AddTail(p);` gets a second, specialised `AddTail` for the null path.
+  The original has one: its null test is inside `Remove`.
+- `size_t index = a / b; array[index]->n++;` loads the array after the
+  division; `array[a / b]->n++` loads it first, and the registers follow.
+- An address taken as `(u8*)this + 8` isn't shared with the member's own
+  address: `SiMemorySystem`'s destructor locks through the first and destroys
+  the second, and so keeps `this` alone across its calls.
+- `&blocks[middle + 1]` and `blocks + middle + 1` are the same address but not
+  the same order of the two additions around it; a recursive sort's second
+  call needed the first form (the tail call becomes the loop).
+- Two inner scans of a partition, each `while (a) { if (++i >= j) break; }`,
+  are bottom-tested in the original: LoopRotate leaves a loop alone whose
+  latch already exits, so they are written `if (a) { do { ... } while (a); }`.
+- The registers of two loop counters follow their declarations: declaring
+  the index first or the count first swaps them (`size_t i; int n = 0;` or
+  `int lines = 0; for (s64 j = 0; ...)`).
+- `for (...; n < limit && p != nullptr; p = p->next) { a[n] = p; n++; }`: the
+  limit in the loop's condition and the increment as its own statement give
+  one widened counter; `a[n++] = p` with a `break` gives two.
+- A class's function that has an unused parameter and is called with
+  different constants for it is `inline` (or a template): the calls keep
+  their constants only for a function the linker may replace.
+- `Unk_Clear()` as `Unk_Empty(); field_20 = 0; field_28 = 0;` (a nested
+  inline function) and as five statements differ in which stores the exits
+  of `SiString`'s capacity setter share.
+- When only the order of a few stores differs, permuting the statements with
+  a script and the single-TU compile settles it in minutes (four to six
+  statements; the order that matches is often not the address order).
+
+Not matching yet in these files (status `m`, each with its reason in the
+source): `SiFixedHeapAllocator2`'s constructor and `Unk_4bd610`,
+`SiPool::Unk_4bcfa0`, `Unk_4c5a40`. Not written: the fixed allocator's `vf8`
+and `vf9` (allocate and free, 1.4 KB each, intrusive list work throughout),
+`SiPool::Unk_4be7d0`, the string TU's conversions (`Unk_4c42b0`, `Unk_4c4700`,
+`Unk_4c49f0`, `Unk_4c4f60`, `Unk_4c5280` and smaller ones), `SiKernel`,
+`SiStringTable`, `SiSystemInfo::Unk_4c8b50`.
+
 ## PPFX's GPU layer (0x710040f550 to 0x7100481000)
 
 Each `C:/workspace/YEBIS_draft/src/**/*.cpp` is its own translation unit: its

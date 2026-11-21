@@ -29,6 +29,14 @@ public:
             m_pAllocator = Unk_4bc690() != nullptr ? Unk_4bc690() : Unk_4bc640();
         }
     }
+    // in a buffer that isn't the string's own (inline in every caller)
+    SiString(ISiAllocator* pAllocator, T* pBuffer, size_t capacity)
+        : m_pAllocator(pAllocator), m_pBuffer(pBuffer), field_10(0), field_18(0), field_20(capacity), field_28(1) {
+        if (m_pAllocator == nullptr) {
+            m_pAllocator = Unk_4bc690() != nullptr ? Unk_4bc690() : Unk_4bc640();
+        }
+        m_pBuffer[0] = 0;
+    }
     ~SiString() { Unk_Release(); }
 
     // 0x71004c8020 (char): out of line

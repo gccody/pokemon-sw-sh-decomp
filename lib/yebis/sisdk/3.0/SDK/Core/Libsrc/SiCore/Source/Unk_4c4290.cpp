@@ -77,7 +77,7 @@ f64 Unk_4c5920(const char* s) {
 // 0x71004c5a40: the three bases share one format
 // NON_MATCHING: the original tests the bases in this order, 16, 10 and 8;
 // clang makes a switch of any spelling tried, and tests 8 first.
-bool Unk_4c5a40(char* dst, size_t, u64 value, int base) {
+bool Unk_4c5a40(char* dst, size_t, s64 value, int base) {
     if (base == 16) {
         sprintf(dst, "%llo", value);
         return true;
@@ -140,8 +140,8 @@ terminate:
 }
 
 // 0x71004c54a0
-void Unk_4c54a0(char* dst, s64 size, const char* src) {
-    Unk_Copy(dst, size, src);
+void Unk_4c54a0(char* dst, size_t size, const char* src) {
+    Unk_Copy(dst, static_cast<s64>(size), src);
 }
 
 // 0x71004c4c40: a wide string's characters, each cut to a byte
