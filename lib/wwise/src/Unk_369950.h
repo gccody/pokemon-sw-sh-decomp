@@ -5,6 +5,23 @@
 // `Unk_369950_Base2` is the object seen from its second base, 8 bytes in.
 #include "Unk_360c20.h"
 
+// What a notification about a parameter carries.
+struct Unk_361770_Params {
+    Unk_361770_Params()
+        : field_0(0), field_8(0), field_9(0xff), field_10(0), field_18(0), field_20(0), field_24(1),
+          field_28(0) {}
+
+    u64 field_0;
+    u8 field_8;
+    u8 field_9;
+    u64 field_10;
+    u64 field_18;
+    u32 field_20;
+    u32 field_24;
+    u64 field_28;
+};
+PKMN_SIZE_ASSERT(Unk_361770_Params, 0x30);
+
 // What the context refers to.
 struct Unk_369950_Sound {
     struct Params {
@@ -12,8 +29,21 @@ struct Unk_369950_Sound {
         u8 field_4c_0 : 3;
     };
 
-    u8 _0[0x10];
-    u8 field_10[0x100];
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9(Unk_361770_Params* params, u32 a2);
+
+    u64 field_8;
+    u64 field_10[6];  // what its values are looked up by
+    u8 _40[0x10];
+    u8 field_50[0xc0];
     f32 field_110;
     f32 field_114;
     f32 field_118;

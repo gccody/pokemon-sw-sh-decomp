@@ -8,8 +8,14 @@
 
 // What two of the second base's virtual functions return: a number of
 // values an item, and a list of items.
+struct Unk_361a70_Item {
+    u16 field_0;  // the parameter
+    u8 field_2;  // how its values add up
+};
+PKMN_SIZE_ASSERT(Unk_361a70_Item, 4);
+
 struct Unk_361410_A {
-    u64 field_0;
+    Unk_361a70_Item* field_0;
     u32 field_8;
 };
 
