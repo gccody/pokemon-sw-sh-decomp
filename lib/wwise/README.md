@@ -214,6 +214,58 @@ needed:
   `0x7100370110`/`0x710036b090`/`0x710039c830` (M: the original shares the
   block that sets a node's value between the inlined levels).
 
+**Sixth batch: the plug-in context and the object it holds**
+(`Unk_369510.cpp`, `Unk_36a200.cpp`, `Unk_362360.cpp`)
+
+- **An array of integers is not an array of pointers.** The sorted set of
+  `0x710036a200` has its keys as 64-bit integers (`Unk_HybridArray.h`). With
+  pointers InstCombine turns the copy of an item into an integer load and
+  store with casts, the cast of the store's address ends up after the load,
+  and LSR puts the rewritten address after its old operand: the destination
+  is then computed after the source, and the post-RA scheduler (which takes
+  a block's ready instructions in the order of the first one's uses) gives
+  another order for four instructions of the copy loop.
+- **The room in the object is bytes** (`Unk_HybridAlloc`): compared with
+  the items' pointer the object's address is then a zero-index `getelementptr`
+  to `i8`, as complex as the load, and the compare keeps its operands
+  (`cmp x19, x1`); with an array of items it is a cast and goes to the right.
+- **A constructor's stores are in the members' order**, and that order is
+  what gives the original's (`0x71003697a0`): MemCpyOpt makes a `memset` of
+  a run of zero stores to adjacent members, placed where the run ends (the
+  stores to members that aren't adjacent stay where they are, in front of
+  it), and its stores come out from the highest address down. A vtable's
+  load from the GOT has no memory operand after the pseudo is expanded, so
+  no store moves over it: the stores written before a vptr store stay in
+  front of that load, the others behind.
+- **Byte arguments read where they are passed** (`Unk_39b150`'s third and
+  fourth): the zero-extension of a `u8` argument belongs to the call, so
+  the two loads come after every other argument's, last first. In the
+  original they are in the arguments' order: they are widened where they
+  are read (`Unk_39b150_Wide`, parameters of 32 bits, the function called
+  through a cast).
+- **A temporary's lifetime ends in the condition.** `if (array.AddLast(
+  Item(...)) != nullptr) total = ...;` leaves the block after the `if`
+  empty, SimplifyCFG folds it, the loop's latch has three predecessors and
+  GVN's load PRE, which wants exactly one predecessor without the value,
+  leaves the reload of `self->field_10` in the latch. With a named `item`
+  the `lifetime.end` keeps that block, the latch has two predecessors and
+  the reload moves into it (`0x7100361fa0`). A load between a constructor's
+  store and the assignment that overwrites it also kept the dead store.
+- **Fast math and the operand order**: `value + total` and `value * total`
+  as written (`0x7100361c80`, which matches now), `total *= v` in an
+  `if`/`else` where `?:` gives the other order (`0x7100361a70`).
+- **Two copies of a loop under one test** (`0x7100362160`, sums or
+  products): a function template instantiated for each (`Unk_362160_Each`),
+  called under `if (mode == 3)`.
+- Declaration order again: `parameter` before `mode` (`0x7100361a70`), the
+  node before the parameters (stack slots, `0x7100361770`), the size read
+  before the count is computed (`0x710036a100`).
+- `0x71003697a0` (m): the create function. Everything matches but the eight
+  instructions after the member at 0xf0 is constructed (the byte with the
+  three flags is loaded before the float constants are stored, in `w9`).
+- The destructor of the member's base is called by the name its row has, a
+  constructor's (`_ZN11Unk_2384190C2Ev`, an asm label on the declaration).
+
 **Left out, and why**
 
 - `0x710035f4e0`, `0x710035f550` (destructor pair of the object of
@@ -221,8 +273,7 @@ needed:
   item or null in two branches (`cbz next`), and every way tried to write
   "remove the first item" compiles to one store. The same list's `AddFirst`
   has two branches too and matches (`Unk_362360_List::AddFirst`).
-- `0x7100361c80` is `m` (two loads after a call in the other order),
-  `0x7100366380` is `m` (two instructions before a loop), `0x71003807d0` is
+- `0x7100366380` is `m` (two instructions before a loop), `0x71003807d0` is
   `M` (block layout of the array's copy loop).
 - `0x71003641b0`, `0x71003637d0` (the list of playing items returned to a
   pool of 0x3c00-byte chunks): heavy register shuffling, not tried.
@@ -231,9 +282,6 @@ needed:
   `0x71024bcc18`; the original keeps two blocks for the failure's result.
 - `0x7100369c50` (M): returns the result of a test where the original
   branches on it.
-- `0x710036a200` and the four members that use it (`0x7100369d80`...): a
-  sorted set with room for one item in the object; needs an array template
-  whose allocator is part of the object.
 - `0x7100394850` (M): the stream write of `Unk_23829b0`. The original sets the
   failure's result before the first, third and fourth write only (the
   writes of two bytes, whose size is the same constant); here before the
