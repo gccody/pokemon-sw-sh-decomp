@@ -39,6 +39,28 @@ struct Unk_237ff98_Arg25 {
     bool field_8;
 };
 
+struct Unk_237ff98_c8 {
+    u32 field_0;
+    bool field_4;
+};
+
+// What 0x7100352df0 fills in.
+struct Unk_352df0_Out {
+    f32 field_0;
+    u8 _4[0x24];
+    f32 field_28;
+    f32 field_2c;
+    f32 field_30;
+    f32 field_34[12];
+    u32 field_64[4];
+    f32 field_74;
+    f32 field_78;
+    f32 field_7c;
+    bool field_80;
+};
+PKMN_OFFSET_ASSERT(Unk_352df0_Out, field_64, 0x64);
+PKMN_OFFSET_ASSERT(Unk_352df0_Out, field_80, 0x80);
+
 class Unk_237ff98 : public Unk_NodeActiveParent<Unk_NodeParent<Unk_2382098>> {
 public:
     // Both sets of children, the second set first.
@@ -96,12 +118,17 @@ public:
     virtual void vf75();
     virtual void vf76();
     virtual void vf77();
-    virtual void vf78();
-    virtual void vf79();
-    virtual void vf80();
+    // Slots 78 to 80 are those of the base at 0x30.
+    void c_vf0(u32 a1, Unk_NodeKey* a2, void* a3, f32 a4, f32 a5) override;
+    void c_vf1(bool a1, u32 a2) override;
+    void c_vf2(bool a1, u32 a2) override;
 
     void Unk_351b20();
     f32 Unk_352da0(u32 a1);
+    u32 Unk_352df0(Unk_352df0_Out* out, Unk_NodeKey* key);
+    f32 Unk_353010(Unk_NodeKey key, f32* out);
+    f32 Unk_353330(Unk_NodeKey key, u32 prop);
+    bool Unk_3536a0();
 
     Iterator Begin() {
         Iterator it;
@@ -120,7 +147,7 @@ public:
 
     void* field_b0;
     Unk_NodeChildren field_b8;  // the children of this class
-    u64 field_c8;
+    Unk_237ff98_c8 field_c8;
     f32 field_d0;
     Unk_List2<Unk_237ff98_Item18> field_d8;
     Unk_List2<Unk_237ff98_Item28> field_100;
