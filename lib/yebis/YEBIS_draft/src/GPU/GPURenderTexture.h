@@ -147,6 +147,11 @@ public:
     inline Unk_Viewport& Unk_Slot();
     inline void Unk_StoreViewport();
     static u32 Unk_Max(u32 a, u32 b) { return a > b ? a : b; }
+    // inline: field_a0, stored only when it changes
+    void Unk_SetA0(s32 value) {
+        if (field_a0 != value)
+            field_a0 = value;
+    }
     // inline in its callers (its description sits above their own locals)
     s32 Unk_Create(u32 flags, s32 width, s32 height, s32 format) {
         Unk_49ab20_Desc desc(flags, width, height, format);
