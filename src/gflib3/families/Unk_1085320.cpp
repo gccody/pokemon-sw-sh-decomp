@@ -4873,6 +4873,31 @@ public:
     ~Unk_24128c8() override;
 };
 
+class Unk_2412af8_Members
+    : public Unk_1054d30_TaskOf<Unk_1085320_Step<const Unk_1085320_Optional<u32>*>,
+                                u32,
+                                Unk_240bf88> {
+public:
+    u32 field_38 = 0;
+};
+
+class Unk_2412af8 : public Unk_2412af8_Members {
+public:
+    ~Unk_2412af8() override;
+};
+
+class Unk_2411eb0 {
+public:
+    virtual void vf0();
+};
+
+class Unk_23a5240 : public Unk_1054d30_TaskOf<Unk_1085320_Step<const Unk_1085320_Optional<u32>*>,
+                                              Unk_1085320_Words2,
+                                              Unk_2411eb0> {
+public:
+    ~Unk_23a5240() override;
+};
+
 class Unk_2412a88 : public Unk_1054d30_TaskOf<Unk_1085320_Step<const Unk_1085320_Optional<u32>*>,
                                               u32,
                                               Unk_240bf88> {
@@ -4890,6 +4915,31 @@ class Unk_24129a8 : public Unk_1054d30_TaskOf<Unk_1085320_Step<const Unk_1085320
                                               Unk_24120d8> {
 public:
     ~Unk_24129a8() override;
+};
+
+class Unk_2412200 {
+public:
+    virtual void vf0();
+};
+
+class Unk_24127e8_Members
+    : public Unk_1054d30_TaskOf<Unk_1085320_Step<const Unk_1085320_Optional<u32>*>,
+                                u32,
+                                Unk_2412200> {
+public:
+    u32 field_38 = 0;
+};
+
+class Unk_24127e8 : public Unk_24127e8_Members {
+public:
+    ~Unk_24127e8() override;
+};
+
+class Unk_23a50f0 : public Unk_1054d30_TaskOf<Unk_1085320_Step<const Unk_1085320_Optional<u32>*>,
+                                              Unk_1085320_Words2,
+                                              Unk_2411eb0> {
+public:
+    ~Unk_23a50f0() override;
 };
 
 class Unk_23a51d0 : public Unk_1054d30_TaskOf<Unk_1085320_Step<const Unk_1085320_Optional<u32>*>,
@@ -5152,6 +5202,36 @@ u64 Unk_10b1b20(Unk_2411bb0* self, void* arg) {
     return Unk_6a1f80(manager, std::move(task));
 }
 
+// 0x71010b2610
+u64 Unk_10b2610(Unk_2411cb0* self, void* arg) {
+    Unk_6a1f70* manager = Unk_2778c18;
+    if (manager == nullptr)
+        return 0;
+    Unk_239a418_Allocator* allocator =
+        reinterpret_cast<Unk_239a418_Allocator*>(Unk_6a1f70_getField58(manager));
+    if (allocator == nullptr)
+        return 0;
+    auto task = Unk_2771620_MakeUnique<Unk_2412af8>(allocator);
+    task->field_18 = Unk_1054d30_MakeWeak<Unk_1085320_Step<const Unk_1085320_Optional<u32>*>>(self);
+    task->field_28 = *static_cast<const u32*>(arg);
+    return Unk_6a1f80(manager, std::move(task));
+}
+
+// 0x71010b3120
+u64 Unk_10b3120(Unk_2411db0* self, void* arg) {
+    Unk_6a1f70* manager = Unk_2778c18;
+    if (manager == nullptr)
+        return 0;
+    Unk_239a418_Allocator* allocator =
+        reinterpret_cast<Unk_239a418_Allocator*>(Unk_6a1f70_getField58(manager));
+    if (allocator == nullptr)
+        return 0;
+    auto task = Unk_2771620_MakeUnique<Unk_23a5240>(allocator);
+    task->field_18 = Unk_1054d30_MakeWeak<Unk_1085320_Step<const Unk_1085320_Optional<u32>*>>(self);
+    task->field_28 = *static_cast<const Unk_1085320_Words2*>(arg);
+    return Unk_6a1f80(manager, std::move(task));
+}
+
 // 0x71010b3c40
 u64 Unk_10b3c40(Unk_2411ed8* self, void* arg) {
     Unk_6a1f70* manager = Unk_2778c18;
@@ -5179,6 +5259,36 @@ u64 Unk_10b4750(Unk_2411fd8* self, void* arg) {
     auto task = Unk_2771620_MakeUnique<Unk_24129a8>(allocator);
     task->field_18 = Unk_1054d30_MakeWeak<Unk_1085320_Step<const Unk_1085320_Optional<u32>*>>(self);
     task->field_28 = *static_cast<const u32*>(arg);
+    return Unk_6a1f80(manager, std::move(task));
+}
+
+// 0x71010b5480
+u64 Unk_10b5480(Unk_2412100* self, void* arg) {
+    Unk_6a1f70* manager = Unk_2778c18;
+    if (manager == nullptr)
+        return 0;
+    Unk_239a418_Allocator* allocator =
+        reinterpret_cast<Unk_239a418_Allocator*>(Unk_6a1f70_getField58(manager));
+    if (allocator == nullptr)
+        return 0;
+    auto task = Unk_2771620_MakeUnique<Unk_24127e8>(allocator);
+    task->field_18 = Unk_1054d30_MakeWeak<Unk_1085320_Step<const Unk_1085320_Optional<u32>*>>(self);
+    task->field_28 = *static_cast<const u32*>(arg);
+    return Unk_6a1f80(manager, std::move(task));
+}
+
+// 0x71010b6100
+u64 Unk_10b6100(Unk_2412228* self, void* arg) {
+    Unk_6a1f70* manager = Unk_2778c18;
+    if (manager == nullptr)
+        return 0;
+    Unk_239a418_Allocator* allocator =
+        reinterpret_cast<Unk_239a418_Allocator*>(Unk_6a1f70_getField58(manager));
+    if (allocator == nullptr)
+        return 0;
+    auto task = Unk_2771620_MakeUnique<Unk_23a50f0>(allocator);
+    task->field_18 = Unk_1054d30_MakeWeak<Unk_1085320_Step<const Unk_1085320_Optional<u32>*>>(self);
+    task->field_28 = *static_cast<const Unk_1085320_Words2*>(arg);
     return Unk_6a1f80(manager, std::move(task));
 }
 

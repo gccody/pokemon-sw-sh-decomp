@@ -2713,10 +2713,24 @@ What decided the match:
 `Unk_2778c18`) and its allocator (`0x71006a1f70`), makes a *task* from it
 with `Unk_2771620_MakeUnique`, gives the task a weak reference to the step's
 interface (`this + 0x60`) and a copy of the step's member at `+0x80`, and
-hands it to the manager (`0x71006a1f80`, not decompiled). 24 match (12,896
+hands it to the manager (`0x71006a1f80`, not decompiled). 28 match (15,000
 bytes): the two shapes whose task is 0x38 bytes, with a `u32` copied (16) or
-a reference (8). The other 37 have tasks with more members after the copy
-(explicit zeroes, a second vtable of the task's own); not written yet.
+a reference (8), a task with a zeroed `u32` after its last member (2: the
+`u32` is a member of a class of the task's own between the members' class
+and the task) and one that copies two words (2). The other 33 have tasks
+with more after the copy; not written yet:
+
+- 11 of 572 bytes (`0x710108bfe0`): a `u64` and a `u16` zeroed explicitly
+  after the member with a vtable. Written like the zeroed `u32`, the same
+  instructions come out with the two vptr stores in the other order (the
+  member's `stp x8, xzr, [x22, #0x30]` before the task's `stp x8, xzr, [x22]`;
+  the original has the task's first). Where the member and the fields are
+  declared (a class between, the task itself, a base of the member) doesn't
+  change that order: four arrangements give the same code;
+- 8 (584 and 544 bytes, `0x7101085c80`, `0x71010e15d0`) store a second
+  vptr of the task's own (`_ZTV + 0x90`) at `+0x38`: a second base, whose
+  place in the vtable needs the task's 14 primary slots declared;
+- 14 of one shape each.
 
 A task is a class of its own, named after its vtable: a base of 0x18 bytes,
 the weak reference at `+0x18`, the copy at `+0x28`, and a last member with a
