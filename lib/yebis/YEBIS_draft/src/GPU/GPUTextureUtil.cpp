@@ -1964,6 +1964,43 @@ s32 CTextureUtil::Unk_476bc0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
     return Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
 }
 
+// 0x71004772f0: the same from render textures
+s32 CTextureUtil::Unk_4772f0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 power,
+                             s32 count, CRenderTexture** sources, const Unk_Float4* colors, s32 index, u32 flags) {
+    Unk_GPUTexture* textures[16];
+    for (s32 i = 0; i < count; i++) {
+        textures[i] = Unk_GetTexture(sources[i]);
+    }
+    return Unk_476bc0(x, y, width, height, u0, v0, u1, v1, power, count, textures, colors, index, flags);
+}
+
+// 0x710047aa60
+s32 CTextureUtil::Unk_47aa60(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1,
+                             const Unk_Float4* value, Unk_GPUTexture* texture, void* arg3, u32 flags) {
+    field_30.field_0->vf29(field_30.field_20728);
+    Unk_24e4c18[0] = *value;
+    field_30.field_0->vf22(field_30.field_d4, Unk_24e4c18, 1);
+    if (texture != nullptr) {
+        s32 filter = texture->vf16();
+        texture->vf15(4);
+        field_30.field_0->vf26(field_30.field_10[0], texture);
+        s32 result = Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
+        texture->vf15(filter);
+        return result;
+    }
+    return Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
+}
+
+// 0x710047abf0
+void CTextureUtil::Unk_47abf0(f32 value) {
+    Unk_Float4 vector;
+    vector.field_0[0] = value;
+    vector.field_0[1] = 1.0f - value;
+    vector.field_0[2] = 1.0f / value;
+    vector.field_0[3] = -(1.0f - value) / value;
+    field_30.field_0->vf20(field_30.field_b0, &vector.field_0[0].field_0);
+}
+
 // DRAWRECTGPU_END
 
 // 0x71004708b0: releases what the device made
