@@ -17,7 +17,7 @@ public:
     virtual void vf4();
     virtual void vf5();
     virtual void vf6();
-    virtual void vf7();
+    virtual void* vf7(size_t size, u32 alignment, const char* file, int line);  // allocates an object
     // allocates count elements of elementSize bytes (an array: vf10 returns the count)
     virtual void* vf8(u32 elementSize, size_t count, u32 alignment, const char* file, int line);
     virtual void vf9(void* p, const char* file, int line);  // frees
@@ -86,6 +86,13 @@ void Unk_4c25a0(ISiAllocator* allocator, T* p, const char* file, long line) {
 }
 
 }  // namespace SiSDK3
+
+// An object's allocation, as `new (allocator, alignment, file, line) T(...)`
+// (placeholder: the original's macro isn't known). The result isn't tested.
+inline void* operator new(size_t size, SiSDK3::ISiAllocator* allocator, u32 alignment, const char* file, int line) {
+    return allocator->vf7(size, alignment, file, line);
+}
+#define UNK_NEW(allocator, alignment) new (allocator, alignment, __FILE__, __LINE__)
 
 #define SI_DELETE(allocator, p) ::SiSDK3::Unk_4c25a0(allocator, p, __FILE__, __LINE__)
 #define SI_NEW_ARRAY(allocator, T, count, align) \
