@@ -416,6 +416,34 @@ From CTextureUtil's rectangles and the DrawRectGPU functions that draw them
   exist before a later call's arguments are lowered.
 - `-(offset * dx)` is `fnmul`; `-offset * dx` with the negation used twice is
   `fneg` and two `fmul`.
+- YEBIS keeps its asserts while the build defines `NDEBUG` for everything:
+  `GPUTextureUtil.h` undefines it before `<assert.h>` (as TFXString.cpp
+  does). Without that the inline `GetHandle_tex2D_aTexture` loses its check,
+  and its callers' loops come out with pointer increments and no index.
+- A callee's result tested with `tbz w0, #0` whose blocks are laid out as for
+  a comparison with zero is a `bool` result (`Unk_442c50_get`): a `u32`
+  result masked with 1 gets no branch weights, a `bool` one does.
+- The order of the operands of a commutative operation is the order of their
+  definitions: Reassociate puts the operand with the lower rank first, also
+  for floating-point multiplications it does not reassociate. `fmul s2, s4,
+  s1` with `s4` loaded in a later block than `s1` was computed means the load
+  is earlier in the source (and MachineSink moved it); two loads multiplied
+  come in the order they are read in.
+- A technique chosen between two tables with the same indices
+  (`flag ? a[i][j] : b[i][j]`) is one address computation and a `csel` of the
+  two final addresses when both tables are members indexed directly. Through
+  a pointer to a member (`(&a)[i][j]`) LLVM selects the base first and
+  indexes after, and keeps the base in a register across calls. Hence
+  `TEXSHADERSET`'s tables with the dimensions the functions index them by
+  (`[2][8][22]`, `[2][8][8][22]`, the motion blur's groups of 7).
+- The scratch vectors are part of the TU's merged statics: an element with a
+  variable index is `block + 0x448 + index * 16` in the original, so they are
+  members of `Unk_24e45d0_Statics`, not symbols of their own.
+- `(a + b + 1) < 1` stays a comparison of the sum plus one (no `tbnz` on the
+  sum's sign) when the source's association is `a + 1 + b`: reassociating
+  drops the no-wrap flags the fold needs. Where a count is computed (before
+  the first use of its operands, or just before its own use) also decides
+  which callee-saved register it gets.
 
 ## SiSDK3's SiIO, SiOS and SiGfx classes (0x71004ed630 to 0x7100596d20)
 
