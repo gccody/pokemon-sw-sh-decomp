@@ -4,6 +4,7 @@
 // Placeholder names.
 #include "Unk_23837d0.h"
 #include "Unk_3476d0.h"
+#include "Unk_PlacementNew.h"
 
 extern u64 Unk_24bbbe0;
 
@@ -621,4 +622,109 @@ u32 Unk_3baa40(Unk_23837d0* self) {
     if (self->field_9c_29)
         return 1;
     return Unk_388140(self);
+}
+
+// The class's vtable is data here: five vptrs point into it (a vptr is an
+// address point, two words into its part).
+extern void* Unk_23837d0_Vtable[];
+
+static inline void Unk_23837d0_SetVptr(void* self, void** vtable) {
+    *static_cast<void***>(self) = vtable + 2;
+}
+
+static inline void Unk_23837d0_SetVtables(Unk_23837d0* self) {
+    Unk_23837d0_SetVptr(self, Unk_23837d0_Vtable);
+    Unk_23837d0_SetVptr(reinterpret_cast<u8*>(self) + 0x18, Unk_23837d0_Vtable + 0x51);
+    Unk_23837d0_SetVptr(reinterpret_cast<u8*>(self) + 0x30, Unk_23837d0_Vtable + 0x64);
+    Unk_23837d0_SetVptr(self->field_d8, Unk_23837d0_Vtable + 0x69);
+    Unk_23837d0_SetVptr(self->field_e0, Unk_23837d0_Vtable + 0x6e);
+}
+
+// The subscriber base as a class of its own, for its constructor and its
+// destructor.
+struct Unk_23837d0_Subscriber : Unk_23837a8 {
+    void vf2(u32 value, const Unk_3babc0_Key& key, void* arg3) override;
+};
+
+// The base class's constructor, destructor and what it sets up after the
+// constructor (named with the type of the other class on it).
+void Unk_379e60(Unk_363570_T* self, u32 id);
+void Unk_379eb0(Unk_363570_T* self);
+u32 Unk_379f40(Unk_363570_T* self);
+
+static inline void Unk_23837d0_Dtor(Unk_23837d0* self) {
+    Unk_23837d0_SetVtables(self);
+    Unk_3b7a60(self);
+    reinterpret_cast<Unk_23837d0_Subscriber*>(self->field_d8)
+        ->Unk_23837d0_Subscriber::~Unk_23837d0_Subscriber();
+    Unk_379eb0(reinterpret_cast<Unk_363570_T*>(self));
+}
+
+// 0x71003b7a00: the destructor
+void Unk_3b7a00(Unk_23837d0* self) {
+    Unk_23837d0_Dtor(self);
+}
+
+// 0x71003b7cb0: the same through the second base
+void Unk_3b7cb0(u8* self) {
+    Unk_23837d0_Dtor(reinterpret_cast<Unk_23837d0*>(self - 0x18));
+}
+
+// 0x71003b7d20: and through the subscriber
+void Unk_3b7d20(u8* self) {
+    Unk_23837d0_Dtor(reinterpret_cast<Unk_23837d0*>(self - 0xd8));
+}
+
+// 0x71003b7d80: the deleting destructor
+void Unk_3b7d80(Unk_23837d0* self) {
+    Unk_23837d0_Dtor(self);
+    operator delete(self);
+}
+
+// 0x71003b7df0
+void Unk_3b7df0(u8* self) {
+    Unk_23837d0* object = reinterpret_cast<Unk_23837d0*>(self - 0x18);
+    Unk_23837d0_Dtor(object);
+    operator delete(object);
+}
+
+// 0x71003b7e60
+void Unk_3b7e60(u8* self) {
+    Unk_23837d0* object = reinterpret_cast<Unk_23837d0*>(self - 0xd8);
+    Unk_23837d0_Dtor(object);
+    operator delete(object);
+}
+
+// 0x71003b89e0: a new one
+Unk_23837d0* Unk_3b89e0(u32 id) {
+    Unk_23837d0* self = static_cast<Unk_23837d0*>(Unk_3045e0(Unk_237e820, sizeof(Unk_23837d0)));
+    if (self != nullptr) {
+        Unk_379e60(reinterpret_cast<Unk_363570_T*>(self), id);
+        new (self->field_d8) Unk_23837d0_Subscriber;
+        self->field_e8 = 0;
+        self->field_f0 = 0;
+        Unk_23837d0_SetVtables(self);
+        self->field_f4 = 0;
+        self->field_f8 = 0;
+        self->field_fc = 0;
+        self->field_100.field_0 = nullptr;
+        self->field_100.field_8 = nullptr;
+        self->field_100.field_10 = nullptr;
+        self->field_100.field_18 = nullptr;
+        self->field_100.field_20 = 0;
+        self->field_100.field_24 = 0;
+        self->field_128.field_0 = nullptr;
+        self->field_128.field_8 = nullptr;
+        self->field_128.field_10 = nullptr;
+        self->field_128.field_18 = nullptr;
+        self->field_128.field_20 = 0;
+        self->field_128.field_24 = 0;
+        self->field_150.field_0 = 0;
+        self->field_150.first = nullptr;
+        if (Unk_379f40(reinterpret_cast<Unk_363570_T*>(self)) != 1) {
+            self->vf3();
+            self = nullptr;
+        }
+    }
+    return self;
 }

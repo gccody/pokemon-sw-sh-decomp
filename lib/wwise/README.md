@@ -338,8 +338,53 @@ What the switch container's own functions (`Unk_23837d0.cpp`) showed:
 - A global the TU defines is reached without the GOT: declare it with
   hidden visibility (`Unk_24deec8`, the pool of the playing children).
 
+What the classes after it showed (`Unk_2383b58.cpp`, `Unk_3bdca0.cpp`,
+`Unk_3be850.cpp`, `Unk_2383bb8.cpp`, `Unk_2383cc0.h` and its three files,
+`Unk_3c52f0.cpp`):
+
+- **Constructors and destructors are written with the vtable as data**
+  (`extern void* Unk_<addr>[]`, the vptr two words in), like the other
+  ranges do. A destructor reached through a secondary base is the same
+  inline function called with `self - offset` (`Unk_23837d0_Dtor`). A base
+  class with a real destructor is destroyed through a derived structure
+  without one of its own: its implicit destructor is the base's call and
+  stores no vptr (`Unk_23837d0_Subscriber`).
+- **A structure passed by value is read whole before it is stored**: the
+  28 bytes of `Unk_2383bb8_T::SetParams` come out as four loads and then
+  four stores (a `memmove`), where an assignment through two pointers loads
+  and stores piece by piece. And a by-value copy of a one-pointer structure
+  (`Unk_24df148_HasParent(bus->field_70)`) is loaded apart from the
+  structure's address, which is then computed where it is passed
+  (`add x0, x19, #0x70` after the tests instead of a write-back load).
+- **A lookup under a lock that returns in the middle** gets one unlock for
+  each way out only when the caller's test of the result is still a branch
+  when the lookup is inlined: return through a function
+  (`if (self != nullptr) return self->GetParams();`). Written as
+  `return self ? &self->field_18 : nullptr`, the test is a select before the
+  inliner runs, and there is one unlock and a `csel`.
+- **Where a narrow value is widened decides where its mask is**
+  (`u32 count = static_cast<u16>(result);` after the test that follows the
+  call, in `Unk_3c2490`).
+- **The order of the parameters decides the order they are saved in**
+  (`Unk_3bf5a0(f32, u32*)`: `mov x19, x0` before `mov v8, v0`).
+- **`while (i < n) { ... }` over an array that erases as it goes** matched as
+  "remove" first, then a switch for the states that only change the state,
+  then one test for the state that runs (`Unk_3be5a0`): a single switch with
+  a fall-through gives the same code in another order of the blocks.
+- `Unk_SortedKeyArrayBy` is `Unk_SortedKeyArray` with the order of the keys
+  as a parameter (`0x71003c0050` keeps the highest key first); `Unk_List2Ex`
+  adds the preallocation, `AddLast` and a `Term` whose last stores are in
+  another order than `Unk_List2`'s.
+
 Open:
 
+- `Unk_3bfce0` (`m`): the two inlined `AddLast` share their second half; the
+  original keeps the first one's blocks and the retry jumps back into them,
+  here the retry's are kept (4 bytes more). Probably the order of the blocks
+  before tail merging.
+- `Unk_3c2a80` (`m`): the two masks of the status byte (`and #0x80`,
+  `and #0xf0`) are computed in the other order; every way to write the test
+  gave the same.
 - `Unk_3b7ed0` (the switch container's bank reader, `m`): block placement
   only. The original has no shared preheader block before the loop over the
   switch values (both paths into the loop set the counter themselves, and the
