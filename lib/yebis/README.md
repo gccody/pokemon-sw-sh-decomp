@@ -147,3 +147,59 @@ local first (the early-exit block is then laid out last). Not matching:
 `Unk_4525a0` (a number's digits: one `msub` is scheduled later than the
 original's). Not written: `Unk_451900`, `Unk_451f00`, `Unk_4520d0`,
 `Unk_452400`.
+
+## PPFX's src/GPU classes (0x7100481000-0x71004bc640)
+
+Notes of the work on the rest of `src/GPU` (`GPUResourceManage.cpp`,
+`GPURenderTexturePool.cpp`, `GPUGlareDef.cpp`, ...), for whoever continues.
+
+**Each `.cpp` is one TU, and its statics decide a lot.** Every src/GPU TU
+includes a header with static objects (`Unk_Statics.h`: two objects made by
+`Unk_410f90_set`, a reflection handle, 24 white points and an angle). LLVM's
+GlobalMerge puts a TU's statics in one block, sorted by size (stable), so
+the offsets its functions use tell the TU's whole set of statics: 4-byte
+ones first, then the 8-byte white points (and function-local statics'
+guards), the 0x20-byte objects, the handle (0x78), and the TU's own tables
+after them. A TU whose only statics are the header's has a 616-byte static
+initialiser (five of them match that way); a file's own statics shift the
+block, which is how to find them. A function that reads a TU's statics only
+matches once the TU has all of them.
+
+**The vectors' elements aren't plain floats** (`include/PPFX/ppfxTypes.h`):
+the initialisers store the white points as integers. What shows it is one
+constant materialised as another plus a small difference (`add w8, w8,
+#0xa7d`): LLVM's constant hoisting only does that to integer immediates.
+A constructor taking element objects by reference and copying them as
+objects compiles to that; one taking floats doesn't.
+
+**Allocation** (`Unk_Array.h`): single objects are a placement new on
+`Unk_4b99a0`'s result without a null check; arrays keep their count before
+the first element, and their delete loop can't be removed. PPFX's containers
+are libc++'s (`std::vector`, `std::list`) on `Unk_StlAllocator`
+(`GPUMemoryAllocator.h`, whose line 440 is the allocation's `__LINE__`), so
+`lib/yebis/YEBIS_draft` is built with libc++'s headers (CMakeLists.txt).
+
+**Idioms that decided matches**
+
+- Struct copies are `memmove`, not assignments: the zeroing before a copy
+  survives in the original, which a `memcpy` (what an assignment is) lets
+  LLVM remove. Clearing an object is `memset(this, 0, sizeof(*this))`.
+- `CGPUResourceManage::RegisterStaticGPUDevice` takes the object as a
+  parameter (it's static): the pointer is spilled at entry because its
+  address goes to `push_back`.
+- An inline setter (`Unk_SetC(bool)`) converts its flag where it is called;
+  a plain assignment of a `bool` parameter reuses the conversion made at the
+  function's entry, and the two end up in different blocks.
+- A description built in an inline function (`CRenderTexture::Unk_Create`)
+  sits above the caller's own locals in the frame.
+- `if (++count >= limit) break;` after `array[count] = x` keeps the counter
+  in one register; `array[count++] = x; if (count >= limit)` doesn't.
+- Functions that lib/yebis/leaf's generated callers already name
+  (`Unk_49fc60`, `Unk_49ca70`, ...) keep that free-function name; the body
+  casts its first parameter to the class.
+
+**Names**: `CGPUResourceManage::RegisterStaticGPUDevice` and
+`CRenderTexturePool::AllocateTextures` are named by their log lines, the
+classes by RTTI (CGPUBaseResourceManage is CGPUResourceManage's base; its
+vtable isn't in the executable). Virtual functions are `vf<slot>`, as
+lib/yebis/class names them.

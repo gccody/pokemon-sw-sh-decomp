@@ -2445,6 +2445,22 @@ the tool gives the old figures too: 78 / 9,819, 3 `movi`, 5,183 FDEs and 5 /
   (6,732 bytes), is another inflater in YEBIS. No zlib 1.2.5 function
   matches it: it's the old zlib that FreeType's gzip module bundles (see
   "FreeType 2.8.1").
+
+- **YEBIS's PPFX code uses libc++**, on an allocator of its own. The
+  executable has eight copies of one function (348 bytes: `0x710043c530`,
+  ..., `0x710049f280`) that is libc++ 7's
+  `std::vector<T*, A>::__push_back_slow_path`, with the growth policy, the
+  backward element loop libc++ uses for an allocator that has a `construct`,
+  and a call of the SDK's
+  `std::__1::__vector_base_common<true>::__throw_length_error()`
+  (`0x71017e9760`); their allocations pass
+  `../src/GPU/GPUMemoryAllocator.h`, line 440. `PPFX::CRenderTexturePool`
+  (`0x710049f650`-`0x71004a02c0`) keeps a `std::list` on the same allocator.
+  So `lib/yebis/YEBIS_draft` has a `pkmn_library_settings` entry that adds
+  `include/libcxx` and the defines that make it build on musl, like gflib3's;
+  nothing else differs from the global flags
+  (`PPFX::CGPUResourceManage::RegisterStaticGPUDevice`, `0x710049edc0`, and the
+  other functions of `GPUResourceManage.cpp` match with it).
 - **After Lua** (NEX 4.6.8, Pia, NintendoWare, nn SDK static libraries): all
   `orr`-form constants (clang older than 9), frame pointers, GPR-only zeroing
   and no exception tables (1 `zPLR` FDE). Only 1 `-g` `ldr` pair against 868
