@@ -9,7 +9,11 @@ void Unk_38d2c0_set(Unk_38d2c0* self);
 struct Unk_3c2c10;
 void Unk_3c2c10_update(Unk_3c2c10* self);
 void Unk_308750(void* self);
-void Unk_3097b0(void* self);
+// The nodes' base class (Unk_237c170.h): only its destructor, 0x71003097b0.
+class Unk_237c170 {
+public:
+    ~Unk_237c170();
+};
 void Unk_3101f0(void* self);
 void Unk_313160(void* self);
 void Unk_316ee0(void* self);
@@ -62,7 +66,7 @@ void Unk_401e70(void* self);
 
 // 0x7100309880
 void Unk_309880(void* self) {
-    Unk_3097b0(static_cast<u8*>(self) - 0x18);
+    reinterpret_cast<Unk_237c170*>(static_cast<u8*>(self) - 0x18)->~Unk_237c170();
 }
 
 // 0x710030ad40
