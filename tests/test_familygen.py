@@ -312,7 +312,7 @@ def test_steps():
 def test_makes():
     funcs = {k: 0x1000 + 0x100 * n for n, k in enumerate(("vf7", "vf9", "vf10", "vf11", "t9", "t10", "t11"))}
     step = F.Step("Unk_240b658", funcs, F.STEP_OWNERS[0x1054690], 0x1054D30, 0x1053F20)
-    k = F.Make(0x1054D30, step, "u32", "u32", 0x240CB78, 0x240B758)
+    k = F.Make(0x1054D30, step, F.MAKE_SEEDS[0x1054D30], 0x240CB78, 0x240B758)
     body = F.make_function(k)
     assert body.startswith("// 0x7101054d30\nu64 Unk_1054d30(Unk_240b658* self, void* arg) {\n")
     assert "auto task = Unk_2771620_MakeUnique<Unk_240cb78>(allocator);" in body
@@ -321,15 +321,26 @@ def test_makes():
     assert "task->field_28 = *static_cast<const u32*>(arg);" in body
     # two makes of one task: its classes are written once
     other = F.Step("Unk_240b970", funcs, F.STEP_OWNERS[0x1054690], 0x10572B0, 0x1053F20)
-    k2 = F.Make(0x10572B0, other, "u32", "u32", 0x240CB78, 0x240B758)
+    k2 = F.Make(0x10572B0, other, F.MAKE_SEEDS[0x1054D30], 0x240CB78, 0x240B758)
     classes = F.make_classes([k, k2])
     assert classes == [
         "class Unk_240b758 {\npublic:\n    virtual void vf0();\n};\n",
         "class Unk_240cb78\n    : public Unk_1054d30_TaskOf<Unk_1085320_Step<const Unk_1085320_Optional<u32>*>, "
         "u32, Unk_240b758> {\npublic:\n    ~Unk_240cb78() override;\n};\n"]
     # a task made with another member: neither can be written
-    k3 = F.Make(0x10868C0, other, "Unk_Ref", "Unk_1054d30_Ref<Unk_239a418>", 0x240CB78, 0x240B758)
+    k3 = F.Make(0x10868C0, other, F.MAKE_SEEDS[0x10868C0], 0x240CB78, 0x240B758)
     assert F.make_classes([k, k3]) == "the task Unk_240cb78 is made two ways"
+    # a task with a member after the one with a vtable: a class of its own between the two
+    k4 = F.Make(0x10B2610, other, F.MAKE_SEEDS[0x10B2610], 0x2412AF8, 0x240B758)
+    classes = F.make_classes([k, k4])
+    assert len(classes) == 4 and classes[0].startswith("class Unk_240b758 {")   # the member's class, once
+    assert classes[2] == (
+        "class Unk_2412af8_Members\n    : public Unk_1054d30_TaskOf<Unk_1085320_Step<const Unk_1085320_Optional<u32>*>, "
+        "u32, Unk_240b758> {\npublic:\n    u32 field_38 = 0;\n};\n")
+    assert classes[3] == "class Unk_2412af8\n    : public Unk_2412af8_Members {\npublic:\n    ~Unk_2412af8() override;\n};\n"
+    # two words copied, the task's vtable loaded first
+    assert F.MAKE_SEEDS[0x10B3120].task_first and not F.MAKE_SEEDS[0x1054D30].task_first
+    assert F.MAKE_SEEDS[0x10B3120].arg == "Unk_1085320_Words2"
     # the manager's name carries the tasks' base
     assert F.MAKE_NAMES[F.MAKE_RUN].endswith("unique_ptrI15Unk_6a1f80_Task19Unk_23f4660_DeleterEE")
 
