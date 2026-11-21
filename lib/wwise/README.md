@@ -446,9 +446,49 @@ What the classes after it showed (`Unk_2383b58.cpp`, `Unk_3bdca0.cpp`,
 - The sources: `Unk_3dd7b0.h` is the class of `0x7102384dd0` (what a sound's
   samples come from, with its playing context at 0x18), `0x7102383f80` and
   `0x7102384ec0` are on it.
+- **The functions of a second or third table of functions are the first
+  one's again, from an address that is a number less** (the effect source's
+  destructors at 0x28 and 0x30, the item of `0x71003e1d40` at 0x58, the
+  plug-in context's getters): `reinterpret_cast<T*>(reinterpret_cast<u64>(
+  self) - offset)`, as the bus from its second base. With pointer
+  arithmetic every access is folded into the address it starts from.
+- **A member that is a structure and is passed on later should not be the
+  way to an earlier member**: `self->field_88.field_68` makes the address of
+  `field_88` in the first block, and it then lives in a register across the
+  calls before it is passed (`Unk_3dfe70`: the effect is `field_f0`, a member
+  of its own).
+- **Pointer plus number minus number stays in that order** (`add`, `sub`);
+  with three numbers the two that were given are subtracted first
+  (`Unk_3cc930`: the position in the stream is a pointer).
+- **The object a call is made with is read before the call's arguments**:
+  the audio manager's queue is the first argument of what reserves a
+  message, and the size of the message (a call) is computed after it is
+  read (`Unk_3e5940`). Through a helper that takes the size, the queue is
+  read after.
+- **Locals are laid out from the last declared up**: three addresses given
+  to one call tell the order they were declared in (`Unk_3e22b0`).
+- **A loop that is unswitched keeps what the source had as one function**:
+  the tail of `Unk_3cc420` is written once as an inline function and is
+  twice in the code, once ending in a jump and once in a call (after a
+  local's address was given away, calls are not jumps).
+- The sources: `Unk_2384080.h` is the stream source (on `0x7102383f80`),
+  `Unk_3de1e0.cpp` has the classes on both. `Unk_3e0020.cpp` is the source
+  whose samples an effect makes (three tables of functions),
+  `Unk_3e02b0.cpp` what an effect asks about the sound, `Unk_3d6930.cpp`
+  what changes a source's speed, `Unk_3db8a0.cpp` what plays a source.
+  `Unk_3e4760.cpp` and `Unk_3e5940.cpp` are the two ends of the messages of
+  kind 0x36.
 
 Open:
 
+- `Unk_3e1c80` (`m`): the original keeps the item in one more register (the
+  value the iterator has and the item it reads the next one from are two
+  values there, one here).
+- `0x71003d6d70` and `0x71003d7190` (the state of what changes a source's
+  speed): the order of ten stores of constants, and one shared `return
+  false` where this compiler makes two; not kept.
+- `0x71003d6cf0`, `0x71003e25d0`: their rows have names with one parameter
+  (matched thunks call them by those), and they use two more.
 - `Unk_3dcac0` (`m`) and `0x71003dd4a0`: after their last call the original
   compares the result with 1 and returns it either way (`cmp w0, #1` that
   nothing reads; the call is not a tail call). A source that returns 1 for 1

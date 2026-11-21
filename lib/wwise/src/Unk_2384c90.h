@@ -13,6 +13,7 @@ struct Unk_2384c90_Prev {
     virtual u32 vf4(u32* count);
     virtual void vf5(u32 arg1);
     virtual u32 vf6(u64 arg1, bool arg2);
+    virtual void vf7();
 };
 
 // The effect.
