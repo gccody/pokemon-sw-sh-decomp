@@ -484,12 +484,12 @@ s32 TEXSHADERSET::CreateEffect(void* device) {
         }
     }
     field_7e48 = field_0->vf15("tech_UpsampleSsao_IM");
-    field_7e4c = field_0->vf15("tech_UpsampleSsao");
-    field_7e50 = field_0->vf15("tech_UpsampleSsao_MC");
-    field_7e54 = field_0->vf15("tech_UpsampleSsao_MC_Mask");
-    field_7e58 = field_0->vf15("tech_UpsampleSsao_LN");
-    field_7e5c = field_0->vf15("tech_UpsampleSsao_LN_MC");
-    field_7e60 = field_0->vf15("tech_UpsampleSsao_LN_MC_Mask");
+    field_7e4c[0][0] = field_0->vf15("tech_UpsampleSsao");
+    field_7e4c[0][1] = field_0->vf15("tech_UpsampleSsao_MC");
+    field_7e4c[0][2] = field_0->vf15("tech_UpsampleSsao_MC_Mask");
+    field_7e4c[1][0] = field_0->vf15("tech_UpsampleSsao_LN");
+    field_7e4c[1][1] = field_0->vf15("tech_UpsampleSsao_LN_MC");
+    field_7e4c[1][2] = field_0->vf15("tech_UpsampleSsao_LN_MC_Mask");
     field_7e64 = field_0->vf15("tech_TemporalAntialias");
     field_7e68 = field_0->vf15("tech_TemporalAntialias_DynamicPixel");
     field_7e6c = field_0->vf15("tech_TemporalAntialias_DynamicPixel_DepthR");
@@ -2974,6 +2974,175 @@ void CTextureUtil::Unk_4783a0(f32 x, f32 y, f32 width, f32 height, f32 arg5, f32
     Unk_473410(x, y, width, height, arg5, arg6, arg7, arg8, flags);
     field_30.field_0->vf29(saved);
     field_30.field_0->vf20(field_30.field_d8, previous);
+}
+
+// 0x7100474570: the SSAO upsample (tech_UpsampleSsao.., one technique per
+// combination of LN, MC and Mask, and tech_UpsampleSsao_IM)
+s32 CTextureUtil::Unk_474570(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg9, f32 arg10,
+                             f32 arg11, const f32* coords, Unk_GPUTexture* texture0, Unk_GPUTexture* texture1,
+                             Unk_GPUTexture* texture2, Unk_GPUTexture* texture3, bool mc, bool im,
+                             const Unk_Vector3* arg19, s32 arg20, s32 mode, const Unk_Vector3* arg22,
+                             const Unk_Vector3* arg23, s32 linear, bool arg25, u32 flags) {
+    s32 technique = im ? field_30.field_7e48 : field_30.field_7e4c[linear != 0][mc ? (mode != 0 ? 2 : 1) : 0];
+    field_30.field_0->vf29(technique);
+    Unk_24e45d0.field_648[0].field_0[0].field_0 = 0.0f;
+    Unk_24e45d0.field_648[0].field_0[1].field_0 = 0.0f;
+    f32 textureWidth = static_cast<f32>(texture0->field_4c);
+    Unk_24e45d0.field_648[0].field_0[2].field_0 = textureWidth;
+    f32 textureHeight = static_cast<f32>(texture0->field_50);
+    Unk_24e45d0.field_648[0].field_0[3].field_0 = textureHeight;
+    Unk_24e45d0.field_648[1].field_0[0].field_0 = 1.0f / textureWidth;
+    Unk_24e45d0.field_648[1].field_0[1].field_0 = 1.0f / textureHeight;
+    Unk_24e45d0.field_648[1].field_0[2].field_0 = 0.5f / textureWidth;
+    Unk_24e45d0.field_648[1].field_0[3].field_0 = 0.5f / textureHeight;
+    field_30.field_0->vf22(field_30.field_d4, Unk_24e45d0.field_648, 2);
+    Unk_24e45d0.field_648[0].field_0[0].field_0 = logf(arg9 + 1.0f) / 0.6931472f;
+    Unk_24e45d0.field_648[0].field_0[1].field_0 = -1.0f / (2.0f * arg10 * arg10);
+    Unk_24e45d0.field_648[0].field_0[2].field_0 = -1.0f / (2.0f * arg11 * arg11);
+    Unk_24e45d0.field_648[0].field_0[3].field_0 = 0.0f;
+    field_30.field_0->vf22(field_30.field_cc, Unk_24e45d0.field_648, 1);
+    Unk_24e45d0.field_448[0].field_0[0].field_0 = arg19->field_0[0];
+    Unk_24e45d0.field_448[0].field_0[1].field_0 = arg19->field_0[1];
+    Unk_24e45d0.field_448[0].field_0[2].field_0 = arg19->field_0[2];
+    Unk_24e45d0.field_448[0].field_0[3].field_0 = 0.0f;
+    Unk_24e45d0.field_448[1].field_0[0].field_0 = arg22->field_0[0];
+    Unk_24e45d0.field_448[1].field_0[1].field_0 = arg22->field_0[1];
+    Unk_24e45d0.field_448[1].field_0[2].field_0 = arg22->field_0[2];
+    Unk_24e45d0.field_448[1].field_0[3].field_0 = 0.0f;
+    Unk_24e45d0.field_448[2].field_0[0].field_0 = arg23->field_0[0];
+    Unk_24e45d0.field_448[2].field_0[1].field_0 = arg23->field_0[1];
+    Unk_24e45d0.field_448[2].field_0[2].field_0 = arg23->field_0[2];
+    Unk_24e45d0.field_448[2].field_0[3].field_0 = 0.0f;
+    if (mode != 0) {
+        Unk_Float4 first(1.0f, 0.0f, 0.0f, 0.0f);
+        Unk_Float4 second(1.0f, 0.0f, 0.0f, 0.0f);
+        switch (mode) {
+        case 2:
+            first = Unk_Float4(0.0f, 1.0f, 0.0f, 0.0f);
+            break;
+        case 3:
+            first = Unk_Float4(0.0f, 0.0f, 1.0f, 0.0f);
+            break;
+        case 4:
+            first = Unk_Float4(0.0f, 0.0f, 0.0f, 1.0f);
+            break;
+        case 5:
+            first = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+            second = Unk_Float4(0.0f, 1.0f, 0.0f, 0.0f);
+            break;
+        }
+        Unk_24e45d0.field_448[3] = first;
+        Unk_24e45d0.field_448[4] = second;
+    }
+    field_30.field_0->vf22(field_30.field_d0, Unk_24e45d0.field_448, 5);
+    field_30.field_0->vf26(field_30.field_10[0], texture0);
+    if (linear == 0) {
+        field_30.field_0->vf26(field_30.field_10[1], texture1);
+    }
+    if (texture2 != nullptr) {
+        field_30.field_0->vf26(field_30.field_10[2], texture2);
+    }
+    if (texture3 != nullptr) {
+        field_30.field_0->vf26(field_30.field_10[3], texture3);
+    }
+    s32 filter0 = texture0->vf16();
+    s32 filter1 = texture1->vf16();
+    s32 filter2 = -1;
+    if (texture2 != nullptr) {
+        filter2 = texture2->vf16();
+    }
+    texture0->vf15(linear == 0 && arg25 ? 9 : 8);
+    texture1->vf15(9);
+    if (texture2 != nullptr) {
+        texture2->vf15(9);
+    }
+    s32 saved = field_20->vf47();
+    field_20->vf44(arg20);
+    s32 result;
+    if (linear != 0) {
+        result = Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
+    } else {
+        result = Unk_472900(x, y, width, height, u0, v0, u1, v1, coords[0], coords[1], coords[2], coords[3], coords[4],
+                            coords[5], coords[6], coords[7], coords[8], coords[9], coords[10], coords[11], coords[12],
+                            coords[13], coords[14], coords[15], flags);
+    }
+    field_20->vf44(saved);
+    texture0->vf15(filter0);
+    texture1->vf15(filter1);
+    if (texture2 != nullptr) {
+        texture2->vf15(filter2);
+    }
+    return result;
+}
+
+// 0x7100474e70: the same from render textures, into a render texture or a
+// GPU texture (one of the two)
+// NON_MATCHING: the same instructions, three runs of them in another order
+// (the copies of the parameters, the stores of the sixteen coordinates, the
+// last arguments' stores).
+s32 CTextureUtil::Unk_474e70(f32 arg9, f32 arg10, f32 arg11, CRenderTexture* target, Unk_GPUTexture* targetTexture,
+                             CRenderTexture* source0, CRenderTexture* source1, s32 arg20, CRenderTexture* source2,
+                             bool im, const Unk_Vector3* arg19, s32 mode, CRenderTexture* source3,
+                             const Unk_Vector3* arg22, const Unk_Vector3* arg23, s32 linear, bool clear) {
+    if ((targetTexture != nullptr) == (target != nullptr)) {
+        return -6;
+    }
+    if (clear) {
+        Unk_471410();
+    }
+    u32 targetWidth;
+    u32 targetHeight;
+    if (targetTexture != nullptr) {
+        targetWidth = targetTexture->field_4c;
+        targetHeight = targetTexture->field_50;
+    } else {
+        targetWidth = target->field_54;
+        targetHeight = target->field_58;
+    }
+    f32 width = static_cast<f32>(targetWidth);
+    f32 height = static_cast<f32>(targetHeight);
+    s32 result;
+    if (targetTexture != nullptr) {
+        field_20->vf8(nullptr);
+        result = field_20->vf7(0, targetTexture, 0);
+    } else {
+        target->Unk_49d250(0, 0, 1, 0, 0);
+        result = CRenderTexture::Unk_49cf50(nullptr, nullptr);
+    }
+    if (result < 0) {
+        return result;
+    }
+    f32 u1;
+    f32 v1;
+    Unk_GetCoords(source1, &u1, &v1);
+    f32 du = source1->field_88 + source1->field_90;
+    f32 dv = source1->field_8c + source1->field_94;
+    f32 coords[16];
+    coords[0] = -du;
+    coords[1] = -dv;
+    coords[2] = u1 - du;
+    coords[3] = v1 - dv;
+    coords[4] = du;
+    coords[5] = -dv;
+    coords[6] = u1 + du;
+    coords[7] = v1 - dv;
+    coords[8] = -du;
+    coords[9] = dv;
+    coords[10] = u1 - du;
+    coords[11] = v1 + dv;
+    coords[12] = du;
+    coords[13] = dv;
+    coords[14] = u1 + du;
+    coords[15] = v1 + dv;
+    f32 ratio = static_cast<f32>(static_cast<u32>(source0->field_58)) / height - 0.5f;
+    ratio = ratio > 0.0f ? ratio : -ratio;
+    bool same = ratio <= 0.005f;
+    result = Unk_474570(0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, arg9, arg10, arg11, coords,
+                        Unk_GetTexture(source0), Unk_GetTexture(source1),
+                        source2 != nullptr ? Unk_GetTexture(source2) : nullptr,
+                        source3 != nullptr ? Unk_GetTexture(source3) : nullptr, source2 != nullptr, im, arg19, arg20,
+                        mode, arg22, arg23, linear, same, 0);
+    return result < 0 ? result : 0;
 }
 
 // DRAWRECTGPU_END
