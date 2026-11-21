@@ -14,6 +14,12 @@ inline void* operator new(size_t size, int poolId) noexcept {
     return Unk_3045e0(poolId, size);
 }
 
+// Construction in allocated memory.
+struct Unk_Placement {};
+inline void* operator new(size_t, void* ptr, Unk_Placement) noexcept {
+    return ptr;
+}
+
 // Allocation policies of the containers: the pool they allocate from.
 struct Unk_PoolDefault {
     static void* Alloc(size_t size) { return Unk_3045e0(Unk_237e820, size); }
@@ -50,13 +56,106 @@ struct Unk_Array {
             return false;
         u32 length = Length();
         if (field_0 != nullptr && field_0 != items) {
-            for (u32 i = 0; i < length; i++)
+            for (u32 i = 0; i < length; i++) {
+                new (items + i, Unk_Placement()) T;
                 items[i] = field_0[i];
+            }
             A::Free(field_0);
         }
         field_0 = items;
         field_c = reserved;
         return true;
+    }
+
+    // Allocates the items of an empty array: 1, or 0x34 when out of memory.
+    u32 Reserve(u32 reserved) {
+        field_0 = static_cast<T*>(A::Alloc(sizeof(T) * reserved));
+        if (field_0 == nullptr)
+            return 0x34;
+        field_c = reserved;
+        return 1;
+    }
+
+    struct Iterator {
+        T* item;
+
+        Iterator& operator++() {
+            ++item;
+            return *this;
+        }
+        T& operator*() { return *item; }
+        bool operator==(const Iterator& other) const { return item == other.item; }
+        bool operator!=(const Iterator& other) const { return item != other.item; }
+    };
+
+    Iterator Begin() const {
+        Iterator it;
+        it.item = field_0;
+        return it;
+    }
+
+    Iterator End() const {
+        Iterator it;
+        it.item = field_0 + field_8;
+        return it;
+    }
+
+    // End() when the array doesn't have `item`.
+    Iterator FindEx(const T& item) const {
+        Iterator it = Begin();
+        for (Iterator end = End(); it != end; ++it) {
+            if (*it == item)
+                break;
+        }
+        return it;
+    }
+
+    T* Exists(const T& item) const {
+        Iterator it = FindEx(item);
+        return it != End() ? it.item : nullptr;
+    }
+
+    // Growing the array by one item when it is full.
+    T* AddLastGrow() {
+        size_t length = Length();
+        if (length >= field_c) {
+            if (!GrowArray(1))
+                return nullptr;
+        }
+        if (length < field_c) {
+            T* end = field_0 + field_8++;
+            new (end, Unk_Placement()) T;
+            return end;
+        }
+        return nullptr;
+    }
+
+    // A new item at `index`, the ones from there on moved up.
+    inline T* Insert(u32 index) {
+        size_t length = Length();
+        if (length >= field_c) {
+            if (!GrowArray(1))
+                return nullptr;
+        }
+        if (length < field_c) {
+            T* end = field_0 + field_8++;
+            new (end, Unk_Placement()) T;
+            for (T* p = end; p > field_0 + index; --p)
+                p[0] = p[-1];
+            new (field_0 + index, Unk_Placement()) T;
+            return field_0 + index;
+        }
+        return nullptr;
+    }
+
+    // Removes the item at `it`, the ones after it moved down.
+    Iterator Erase(Iterator& it) {
+        T* last = field_0 + field_8 - 1;
+        for (T* p = it.item; p < last; p++)
+            p[0] = p[1];
+        last->~T();
+        field_8--;
+        return it;
     }
 
     bool Resize(u32 size) {
