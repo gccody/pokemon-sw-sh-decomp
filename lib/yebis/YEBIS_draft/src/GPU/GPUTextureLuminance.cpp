@@ -5,6 +5,8 @@
 // initialiser, 0x71004b94e0 (_GLOBAL__sub_I_GPUTextureLuminance.cpp), sets up.
 #include <string.h>
 
+#include <yebis/YEBIS_draft/src/GPU/GPUClassUtil.h>
+#include <yebis/YEBIS_draft/src/GPU/GPURenderTexturePool.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUTextureLuminance.h>
 #include <yebis/YEBIS_draft/src/GPU/Unk_Statics.h>
 
@@ -109,6 +111,21 @@ s32 CTextureLuminance::vf2() {
     return field_30 == nullptr ? -1 : 0;
 }
 
+// 0x71004b7b90
+s32 CTextureLuminance::vf3() {
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    UNK_RELEASE_COUNTED(field_30);
+    if (field_78 != nullptr) {
+        Unk_49fc60(util->field_29a58, field_80, field_78);
+        UNK_DELETE_ARRAY(field_78);
+        field_80 = 0;
+    }
+    Unk_Reset();
+    s32 result = CGPUResourceManage::vf3();
+    return result < 0 ? result : 0;
+}
+
 // 0x71004b86d0
 CTextureLuminanceManage::CTextureLuminanceManage(const char* name) : CGPUResourceManage(nullptr) {
     Unk_4b8710(name);
@@ -138,6 +155,38 @@ s32 CTextureLuminanceManage::Unk_4b87d0(const Unk_Desc* desc) {
     if (result < 0)
         return result;
     return Unk_49ec30(device);
+}
+
+// 0x71004b8830
+s32 CTextureLuminanceManage::Unk_4b8830() {
+    {
+        Unk_TFXString name = field_10 + "::m_pQueryLuminance";
+        const char* text = name.field_8;
+#line 1920
+        field_40 = UNK_NEW(CTextureLuminance)(text);
+    }
+    {
+        Unk_TFXString name = field_10 + "::m_pTargetTexture";
+        const char* text = name.field_8;
+#line 1921
+        field_48 = UNK_NEW(CRenderTexture)(text);
+    }
+    s32 result = field_48->Unk_Create(0x400, field_2c.field_4, field_2c.field_8, 0x1c);
+    if (result < 0)
+        return result;
+    s32 count = field_2c.field_0;
+    switch (count) {
+    case 0:
+        break;
+    case 1:
+        count = 3;
+        break;
+    default:
+        count--;
+        break;
+    }
+    result = field_40->Unk_Create(field_48, count, field_2c.field_c);
+    return result < 0 ? result : 0;
 }
 
 // 0x71004b89b0
