@@ -2431,6 +2431,55 @@ Left:
   the description swap registers. `Unk_239a418_Ref` needs a move
   assignment and `operator->` for it.
 
+### 34 classes that are one class (`src/unsorted/Unk_23e14a8.*`, 2026-11-21)
+
+`0x7100cb8960` (22.8 KB, a switch, not decompiled) makes one of 34 classes on
+`Unk_23e14a8` (abstract, vtable `0x71023e14a8`) from a table of a serialized
+buffer. The classes differ only in the object they make, so six functions of
+each are one source: 204 functions, 67 KB, with the two destructors of a
+member of the base.
+
+| Function | Bytes | What it is |
+|---|---:|---|
+| `0x7100cc2460`… | 388 | `Unk_2771620_MakeUnique<Class>(allocator, arg, table, value)`, the constructor inlined |
+| vtable slots 0, 1 | 168, 164 | the destructors (the callable, then the base's, inline) |
+| slot 14 | 52 | `vf14`: calls the callable with `field_80` |
+| `0x7100ccb590`… | 812 | what `vf3` tail-calls: makes the object if there's none, places it |
+| `0x7100ccb8c0`… | 388 | `Unk_ccb8c0_Owner::Create<Object>`: `Unk_New::Create` and a reference kept in the owner's vector |
+
+- **A macro, not a template** (`UNK_23E14A8_CLASS`): the classes are named
+  after their vtables, and `vtables.py` and `leafgen.py` had already written
+  their `vf2`, `vf3`, `vf26`–`vf29` and the four functions of each callable
+  under those names. The macro declares what's written elsewhere, defines the
+  destructor out of line (the key function, so the vtable, `vf14` and the
+  destructors are emitted here) and instantiates the maker. The body of the
+  812-byte function is a `static` function template with one caller a class, so
+  the inliner always takes it.
+- **The tables are FlatBuffers tables** by their layout
+  (`src/unsorted/Unk_Table.h`: `Get<T>(field, default)`,
+  `GetPointer<T>(field)`); nothing in the executable names the library. The
+  vtable's size is tested once per field, and clang threads the tests
+  (`size < 5` skips them all).
+- **What decided the matches.** The base's constructor takes its value by
+  `const&` (it is loaded after the vptr is stored). The object the class
+  made is read through one accessor that returns null three ways (no handle,
+  no object, another type); where its result is dereferenced, clang drops
+  the two tests that branch (a null there is undefined) and keeps the type
+  test, a select. `field_360` is set through a setter (its argument is loaded
+  after the object is found), `field_1f0` by an assignment. The handle is
+  move-assigned from a temporary (`Unk_23e14a8_Assign`): a named local would
+  be released again at the end of its scope. The six floats of the placement
+  are read in the table's order before any is used; the rotation takes them
+  as (y, x, z), each `* 3.1415927f / 180.0f`. `Create` makes a reference on
+  the new object first and hands it to the vector's element (the element is
+  stored after the reference is added), and skips a null object.
+- `Unk_23dc940` is declared again in `Unk_23e14a8.h` with the two vectors the
+  classes set (`float32x4_t`, which aligns the class to 16; the objects are
+  allocated so). `src/unsorted/Unk_23dc940.h` has them as words, and its
+  `vf39` without the two references it takes: don't include both.
+- Left: the base's own virtual functions (slots 4 to 25, 1.7 KB, emitted
+  with the first class), the 34 objects' constructors, and the switch.
+
 ### Destructors in the unplaced areas (hand-written, 2026-11-19)
 
 Classes in `game/unk_133d350`, `unk_12ed1a0`, `unk_14b14a0`, `unk_143a7a0`,
