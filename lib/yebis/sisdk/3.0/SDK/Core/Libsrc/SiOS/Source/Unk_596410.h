@@ -73,9 +73,15 @@ PKMN_SIZE_ASSERT(Unk_CriticalSection, 0x30);
 
 }  // namespace SiSDK3
 
-// A lock held for a scope (placeholder name, after its constructor).
+// 0x7100596680 (leafgen's name and type): the scope's lock's destructor
+struct Unk_596680;
+void Unk_596680_call(Unk_596680* self);
+
+// A lock held for a scope (placeholder name, after its constructor). Its
+// destructor is the function above, under leafgen's name.
 struct Unk_596640 {
     Unk_596640(SiSDK3::SiOSSyncObject* object, bool lock);
+    ~Unk_596640() { Unk_596680_call(reinterpret_cast<Unk_596680*>(this)); }
 
     SiSDK3::SiOSSyncObject* field_0;
     bool field_8;  // whether it locked the object
