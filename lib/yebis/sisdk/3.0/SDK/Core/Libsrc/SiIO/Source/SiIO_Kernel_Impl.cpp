@@ -4,6 +4,7 @@
 #define UNK_SIIO_KERNEL_IMPL
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiIO/Source/SiIO_Kernel_Impl.h>
 
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_StringFuncs.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiIO/Source/NX/SiIO_NX_FileStream_Impl.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiIO/Source/NX/SiIO_NX_MemoryMappedFile_Impl.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiIO/Source/SiIO_BinaryArchive_Impl.h>
@@ -17,7 +18,53 @@ void* Unk_57e080(SiSDK3::ISiAllocator* pAllocator);
 // 0x71004c8f80: whether two identifiers are the same
 bool Unk_4c8f80(const void* a, const void* b);
 
+// 0x71004cad50: what SiIO is initialised after
+bool Unk_4cad50();
+
+// 0x7102770648: the kernel (this translation unit's own variable in the
+// original; its getter, 0x710057d030, is in lib/yebis/leaf, which declares it
+// the same way)
+extern SiSDK3::SiIOKernel* Unk_2770648 __attribute__((visibility("hidden")));
+
+// The kernel, made the first time it's asked for (leafgen's name).
+// 0x710057cfb0
+SiSDK3::SiIOKernel* Unk_57cfb0() {
+    static SiSDK3::SiIOKernel kernel;
+    return &kernel;
+}
+
+// Initialises SiIO (placeholder name).
+// 0x710057a2c0
+bool Unk_57a2c0(SiSDK3::ISiAllocator* pAllocator) {
+    if (!Unk_4cad50()) {
+        return false;
+    }
+    return Unk_57cfb0()->Unk_57d2a0(pAllocator);
+}
+
 namespace SiSDK3 {
+
+// 0x710057d040
+// (the kernel's allocator is asked for each time it's used: a macro's argument)
+#define UNK_ALLOCATOR Unk_GetKernel()->vf12()
+SiIOKernel::SiIOKernel()
+    : field_8(UNK_ALLOCATOR), field_18(nullptr), field_20(0), field_28(0), field_30(0), field_38(0), field_40(nullptr),
+      field_48(nullptr), field_50(UNK_ALLOCATOR) {
+    Unk_2770648 = this;
+    if (UNK_ALLOCATOR != nullptr) {
+        UNK_ALLOCATOR->vf2();
+    }
+    if (field_18 != nullptr) {
+        field_18->vf3();
+    }
+    field_18 = UNK_ALLOCATOR;
+}
+#undef UNK_ALLOCATOR
+
+// 0x710057d140 (D2), 0x710057d210 (D0)
+SiIOKernel::~SiIOKernel() {
+    Unk_2770648 = nullptr;
+}
 
 // 0x710057d590
 void SiIOKernel::vf5(ISiAllocator* pAllocator) {
