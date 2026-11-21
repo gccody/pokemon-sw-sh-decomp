@@ -16,10 +16,21 @@ class ISiIOStream;
 
 class SiGfxShaderEffectVariation {
 public:
-    // An item of its lists (RTTI: the arrays' element): 0x24 bytes, with no
-    // destructor.
+    // An item of its lists (RTTI: the arrays' element): nine numbers.
     struct VariationItem {
-        u32 field_0[9];
+        VariationItem()
+            : field_0(0), field_4(0), field_8(0), field_c(0), field_10(0x7fffffff), field_14(0), field_1c(0),
+              field_20(1) {}
+
+        s32 field_0;
+        s32 field_4;
+        s32 field_8;
+        s32 field_c;
+        s32 field_10;
+        s32 field_14;
+        s32 field_18;
+        s32 field_1c;
+        s32 field_20;
     };
 
     // 0x7100574710
@@ -46,10 +57,12 @@ public:
     SiString<char> field_18;
     SiArray<VariationItem> field_48;
     SiString<char> field_98;
-    u64 field_c8;
+    s32 field_c8;
+    s32 field_cc;
     SiArray<VariationItem> field_d0;
     SiString<char> field_120;
-    u64 field_150;
+    s32 field_150;
+    s32 field_154;
 };
 PKMN_SIZE_ASSERT(SiGfxShaderEffectVariation, 0x158);
 
