@@ -2335,6 +2335,109 @@ s32 CTextureUtil::Unk_4776f0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
     return Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
 }
 
+// 0x7100477a50: `count` textures, each with one weight, and a colour for all
+// (one texture: the weight goes into the colour, and it is Unk_4768b0)
+s32 CTextureUtil::Unk_477a50(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, s32 count,
+                             Unk_GPUTexture** textures, const Unk_Float4* color, const Unk_Float* weights, s32 index,
+                             u32 flags) {
+    if (count < 1 || count > 16) {
+        return -4;
+    }
+    if (count == 1) {
+        Unk_Float4 value = *color;
+        if (weights != nullptr) {
+            for (s32 i = 0; i < 4; i++) {
+                value.field_0[i].field_0 = weights[0].field_0 * value.field_0[i].field_0;
+            }
+        }
+        return Unk_4768b0(x, y, width, height, u0, v0, u1, v1, 1, textures, &value, index, flags);
+    }
+    s32 technique;
+    s32 last = count - 1;
+    for (;; last++) {
+        technique = field_30.field_69a8[last][index];
+        if (last >= 15 || technique != 0) {
+            break;
+        }
+    }
+    if (technique == 0) {
+        return -4;
+    }
+    field_30.field_0->vf29(technique);
+    for (s32 i = 0; i < count; i++) {
+        field_30.field_0->vf26(GetHandle_tex2D_aTexture(i), textures[i]);
+    }
+    for (s32 i = count; i <= last; i++) {
+        field_30.field_0->vf26(GetHandle_tex2D_aTexture(i), nullptr);
+    }
+    s32 used = last + 1;
+    Unk_Float4 values[16];
+    if (weights != nullptr) {
+        for (s32 i = 0; i < count; i++) {
+            values[i] = Unk_Float4(weights[i], weights[i], weights[i], weights[i]);
+        }
+    } else {
+        for (s32 i = 0; i < count; i++) {
+            values[i] = Unk_Float4(1.0f, 1.0f, 1.0f, 1.0f);
+        }
+    }
+    for (s32 i = count; i <= last; i++) {
+        values[i] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+    }
+    field_30.field_0->vf22(field_30.field_d0, values, used);
+    field_30.field_0->vf22(field_30.field_d4, color, 1);
+    return Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
+}
+
+// 0x7100477d80: the same with a power (1 / `power` goes to the effect); with
+// a power of 1, or none, it is the function above
+s32 CTextureUtil::Unk_477d80(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 power,
+                             s32 count, Unk_GPUTexture** textures, const Unk_Float4* color,
+                             const Unk_Float* weights, s32 index, u32 flags) {
+    if (count < 1 || count > 16) {
+        return -4;
+    }
+    if (power == 1.0f || power <= 0.0f) {
+        return Unk_477a50(x, y, width, height, u0, v0, u1, v1, count, textures, color, weights, index, flags);
+    }
+    s32 technique;
+    s32 last = count - 1;
+    for (;; last++) {
+        technique = field_30.field_6f28[last][index];
+        if (last >= 15 || technique != 0) {
+            break;
+        }
+    }
+    if (technique == 0) {
+        return -4;
+    }
+    field_30.field_0->vf29(technique);
+    for (s32 i = 0; i < count; i++) {
+        field_30.field_0->vf26(GetHandle_tex2D_aTexture(i), textures[i]);
+    }
+    for (s32 i = count; i <= last; i++) {
+        field_30.field_0->vf26(GetHandle_tex2D_aTexture(i), nullptr);
+    }
+    s32 used = last + 1;
+    Unk_Float4 values[16];
+    if (weights != nullptr) {
+        for (s32 i = 0; i < count; i++) {
+            values[i] = Unk_Float4(weights[i], weights[i], weights[i], weights[i]);
+        }
+    } else {
+        for (s32 i = 0; i < count; i++) {
+            values[i] = Unk_Float4(1.0f, 1.0f, 1.0f, 1.0f);
+        }
+    }
+    for (s32 i = count; i <= last; i++) {
+        values[i] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+    }
+    field_30.field_0->vf22(field_30.field_d0, values, used);
+    field_30.field_0->vf22(field_30.field_d4, color, 1);
+    field_30.field_0->vf18(field_30.field_fc, 1.0f / power);
+    return Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
+}
+
 // DRAWRECTGPU_END
 
 // 0x71004708b0: releases what the device made
