@@ -10,13 +10,19 @@
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_StringFuncs.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiIO/SiIO_Stream.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiIO/Source/NX/SiIO_NX_MemoryMappedFile_Impl.h>
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_Alloc.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiIO/Source/SiIO_Kernel_Impl.h>
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiIO/Source/SiIO_MemoryStream_Impl.h>
 
 // 0x71004c5520: copies a string into a buffer, 0x71004c5630: compares
 void Unk_4c5520(char* dst, size_t size, const char* src, s64 count);
 s64 Unk_4c5630(const char* a, const char* b, bool);
 // 0x71004c9090: formats a string
 void Unk_4c9090(SiSDK3::SiString<char>* self, const char* format, ...);
+// 0x71004c4290: a string's length
+s64 Unk_4c4290(const char* s);
+// 0x71004c9b60: a platform's name
+const char* Unk_4c9b60(u32 platform);
 // 0x71004c8f80: whether two identifiers are the same
 bool Unk_4c8f80(const void* a, const void* b);
 // 0x7100582f70: fills up to a multiple of alignment
@@ -95,6 +101,61 @@ bool SiIOBinaryArchive::vf5(const char* path, u32 platform) {
     return true;
 }
 
+inline bool SiIOBinaryArchive::Unk_ReadHeader(u32 platform) {
+    if (field_e8 == nullptr) {
+        return false;
+    }
+    memset(&field_30, 0, sizeof(field_30));
+    memcpy(&field_30, field_e8, sizeof(Unk_ChunkHeader));
+    if (field_30.field_40 != 1) {
+        return false;
+    }
+    if (field_30.field_58 < 0x60) {
+        return false;
+    }
+    if (field_30.field_58 > sizeof(field_30)) {
+        return false;
+    }
+    memcpy(&field_30, field_e8, field_30.field_58);
+    const char* name = Unk_4c9b60(platform);
+    if (Unk_4c4290(field_30.field_48) >= 1) {
+        if (Unk_4c5630(field_30.field_48, name, false) != 0) {
+            return false;
+        }
+    }
+    if (field_30.field_78 >= 1) {
+        field_f0 = reinterpret_cast<Unk_ChunkHeader*>(field_e8 + field_30.field_80);
+    }
+    if (field_30.field_88 >= 1 && field_30.field_90 >= 1) {
+        field_168 = reinterpret_cast<ChunkTypeInfo*>(field_e8 + field_30.field_88);
+    }
+    return true;
+}
+
+// 0x710057abf0
+bool SiIOBinaryArchive::vf6(ISiIOStream* stream, u32 platform) {
+    if (stream->vf5() == 2) {
+        field_e8 = reinterpret_cast<u8*>(stream->vf76());
+        field_f8 = false;
+    } else {
+#line 539
+        field_e8 = UNK_ALLOC_ARRAY(field_18.m_pAllocator, u8, stream->vf10(), field_28);
+        if (field_e8 == nullptr) {
+            return false;
+        }
+        stream->vf21(field_e8, stream->vf10(), true);
+        field_f8 = true;
+    }
+    return Unk_ReadHeader(platform);
+}
+
+// 0x710057adf0
+bool SiIOBinaryArchive::vf7(SiIONXMemoryMappedFile* file, u32 platform) {
+    field_e8 = file->vf10();
+    field_f8 = false;
+    return Unk_ReadHeader(platform);
+}
+
 // 0x710057af40
 bool SiIOBinaryArchive::vf8() {
     if (field_e8 != nullptr) {
@@ -114,6 +175,66 @@ bool SiIOBinaryArchive::vf8() {
     return true;
 }
 
+// 0x710057b070
+ISiIOBinaryArchive::Unk_ChunkHeader* SiIOBinaryArchive::vf15(const Unk_Id* id, Unk_ChunkHeader* start, bool inside) {
+    Unk_ChunkHeader* chunk = start != nullptr ? vf13(start) : vf11();
+    while (chunk != nullptr) {
+        if (Unk_4c8f80(chunk, id)) {
+            return chunk;
+        }
+        chunk = vf13(chunk);
+    }
+    if (inside) {
+        Unk_ChunkHeader* child = start != nullptr ? vf14(start) : vf14(vf11());
+        if (child != nullptr) {
+            return vf15(id, child, true);
+        }
+    }
+    return nullptr;
+}
+
+// 0x710057b190
+ISiIOBinaryArchive::Unk_ChunkHeader* SiIOBinaryArchive::vf16(s32 count, const Unk_Id* ids, Unk_ChunkHeader* start,
+                                                              bool inside) {
+    Unk_ChunkHeader* chunk = start != nullptr ? vf13(start) : vf11();
+    while (chunk != nullptr) {
+        for (s32 i = 0; i < count; i++) {
+            if (Unk_4c8f80(chunk, &ids[i])) {
+                return chunk;
+            }
+        }
+        chunk = vf13(chunk);
+    }
+    if (inside) {
+        Unk_ChunkHeader* child = start != nullptr ? vf14(start) : vf14(vf11());
+        if (child != nullptr) {
+            return vf16(count, ids, child, true);
+        }
+    }
+    return nullptr;
+}
+
+// 0x710057b320
+bool SiIOBinaryArchive::vf17(Unk_ChunkHeader* header, ChunkHandler* handler) {
+    if (!handler->vf7(this, header, &field_130)) {
+        return false;
+    }
+    SiIOMemoryStream stream(field_18.m_pAllocator);
+    stream.vf75(reinterpret_cast<u64>(field_e8), field_30.field_70);
+    stream.vf18(header->field_38, false);
+    handler->field_b0 = field_1c0;
+    if (!handler->vf8(this, header, reinterpret_cast<ISiIOStream*>(&stream))) {
+        return false;
+    }
+    Unk_ChunkHeader* child = vf14(header);
+    if (child != nullptr) {
+        if (!handler->vf9(this, child, reinterpret_cast<ISiIOStream*>(&stream))) {
+            return false;
+        }
+    }
+    return true;
+}
+
 // 0x710057afe0
 u8* SiIOBinaryArchive::vf12(Unk_ChunkHeader* header) {
     if (header == nullptr) {
@@ -126,25 +247,25 @@ u8* SiIOBinaryArchive::vf12(Unk_ChunkHeader* header) {
 }
 
 // 0x710057b010
-u8* SiIOBinaryArchive::vf13(Unk_ChunkHeader* header) {
+ISiIOBinaryArchive::Unk_ChunkHeader* SiIOBinaryArchive::vf13(Unk_ChunkHeader* header) {
     if (header == nullptr) {
         return nullptr;
     }
     if (header->field_40 < 1) {
         return nullptr;
     }
-    return field_e8 + header->field_40;
+    return reinterpret_cast<Unk_ChunkHeader*>(field_e8 + header->field_40);
 }
 
 // 0x710057b040
-u8* SiIOBinaryArchive::vf14(Unk_ChunkHeader* header) {
+ISiIOBinaryArchive::Unk_ChunkHeader* SiIOBinaryArchive::vf14(Unk_ChunkHeader* header) {
     if (header == nullptr) {
         return nullptr;
     }
     if (header->field_50 < 1) {
         return nullptr;
     }
-    return field_e8 + header->field_50;
+    return reinterpret_cast<Unk_ChunkHeader*>(field_e8 + header->field_50);
 }
 
 // 0x710057b470

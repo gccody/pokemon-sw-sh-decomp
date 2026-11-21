@@ -15,6 +15,8 @@ namespace SiSDK3 {
 
 class ISiIOStream;
 class SiIONXMemoryMappedFile;
+template <class T>
+class SiString;
 
 class ISiIOBinaryArchive {
 public:
@@ -49,8 +51,10 @@ public:
     };
 
     // A chunk: its links in the list it's in, its header and the chunks
-    // inside it. Slot 6 writes its data. Its destructor releases the chunks
-    // inside it; the class is abstract (its deleting destructor is a trap).
+    // inside it. Slot 6 writes its data; slots 7 to 9 read it from an archive
+    // (7 checks its header, 8 reads its data, 9 the chunks inside it). Its
+    // destructor releases the chunks inside it; the class is abstract (its
+    // deleting destructor is a trap).
     class ChunkHandler {
     public:
         virtual ~ChunkHandler() {
@@ -66,12 +70,16 @@ public:
         virtual u32 vf4();
         virtual void vf5() = 0;
         virtual bool vf6(ISiIOBinaryArchive* archive, ISiIOStream* stream) = 0;
+        virtual bool vf7(ISiIOBinaryArchive* archive, Unk_ChunkHeader* header, SiString<char>* error) = 0;
+        virtual bool vf8(ISiIOBinaryArchive* archive, Unk_ChunkHeader* header, ISiIOStream* stream) = 0;
+        virtual bool vf9(ISiIOBinaryArchive* archive, Unk_ChunkHeader* header, ISiIOStream* stream) = 0;
 
         Unk_4bf660 field_8;
         ChunkHandler* m_pPrev;
         ChunkHandler* m_pNext;
         Unk_ChunkHeader field_28;
         SiDirectLinkedList<ChunkHandler*> field_88;
+        s32 field_b0;  // the number of the archive it was read from
     };
 
     ISiIOBinaryArchive() : field_8(nullptr) {}
@@ -84,13 +92,16 @@ public:
     virtual bool vf8() = 0;                                             // closes
     virtual const u8* vf9() = 0;                                        // the header
     virtual u64 vf10() = 0;
-    virtual u64 vf11() = 0;
-    virtual u8* vf12(Unk_ChunkHeader* header) = 0;  // these three: where a chunk's offset is
-    virtual u8* vf13(Unk_ChunkHeader* header) = 0;
-    virtual u8* vf14(Unk_ChunkHeader* header) = 0;
-    virtual void vf15() = 0;
-    virtual void vf16() = 0;
-    virtual void vf17() = 0;
+    virtual Unk_ChunkHeader* vf11() = 0;  // the first chunk
+    // a chunk's data, the chunk after it and the first one inside it
+    virtual u8* vf12(Unk_ChunkHeader* header) = 0;
+    virtual Unk_ChunkHeader* vf13(Unk_ChunkHeader* header) = 0;
+    virtual Unk_ChunkHeader* vf14(Unk_ChunkHeader* header) = 0;
+    // the chunk of an identifier, or of one of count, after start (among the
+    // chunks inside them too if inside)
+    virtual Unk_ChunkHeader* vf15(const Unk_Id* id, Unk_ChunkHeader* start, bool inside) = 0;
+    virtual Unk_ChunkHeader* vf16(s32 count, const Unk_Id* ids, Unk_ChunkHeader* start, bool inside) = 0;
+    virtual bool vf17(Unk_ChunkHeader* header, ChunkHandler* handler) = 0;  // reads a chunk
     virtual const u8* vf18() = 0;  // the last error
     virtual bool vf19() = 0;
     virtual u32 vf20() = 0;
@@ -113,7 +124,7 @@ public:
 };
 PKMN_SIZE_ASSERT(ISiIOBinaryArchive::Unk_ChunkHeader, 0x60);
 PKMN_SIZE_ASSERT(ISiIOBinaryArchive::ChunkTypeInfo, 0x20);
-PKMN_SIZE_ASSERT(ISiIOBinaryArchive::ChunkHandler, 0xb0);
+PKMN_SIZE_ASSERT(ISiIOBinaryArchive::ChunkHandler, 0xb8);
 
 }  // namespace SiSDK3
 
