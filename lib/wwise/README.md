@@ -87,3 +87,63 @@ terms is only said here, as a guess.
   loop come out in the other order.
 - `0x710035fa60` (1,176 bytes) parses a RIFF file (`RIFF`/`WAVE`/`fmt `/`data`
   /`cue `/`LIST`/`smpl`... chunk tags in registers): not tried.
+
+
+## Range 0x71003b6ee0-0x710040f550
+
+Notes from decompiling this range (the switch container and its subscriber
+classes, the switch and state managers, and what follows).
+
+The container templates decide most of the code here, because nearly every
+function inlines some of them. What made them match:
+
+- **Iterators are structs returned by value** (`Unk_Array::Iterator`,
+  `Unk_KeyList::Iterator`). With raw pointers the search after `FindEx` is
+  folded with the loop's end test; with the struct the compiler keeps the
+  loop's exit value and the `End()` compared after it apart, which is what
+  the original shows (`mov x8, x9` after the loop, then `cmp x9, x8`).
+- **`GrowArray` constructs each item in place before it assigns it**
+  (`new (items + i, Unk_Placement()) T; items[i] = field_0[i];`). The
+  placement-new's address is the first use of `items + i`, so the
+  destination is computed before the source is loaded.
+- **Items that are pointers must be pointers in the source.** An integer of
+  the same size (`u64` for an object pointer) schedules the same copy loop
+  differently.
+- **`Insert` has an inline hint.** The original inlines it into
+  `Unk_SortedKeyArray::Set` together with the array growth, past the default
+  threshold (cost 260 and 305 against 250; an explicit `inline` gives 325).
+  When a container function is called out of line here but inlined in the
+  original, compare the inliner's remarks (`-Rpass=inline
+  -Rpass-missed=inline`) before changing the code.
+- **A loop that searches a constant table belongs in the function that uses
+  the result** (`Unk_HashListBare::Reserve` and the prime table), not in a
+  helper: a helper is unrolled on its own and then inlined, which puts the
+  code after the loop behind all the unrolled tests, and one compare comes
+  out as `cmp #0x35; b.hs` instead of the original's `cmp #0x34; b.hi`.
+- **A struct passed by value to an inlined function** shows as a copy through
+  two registers with the padding carried along (`Unk_23837d0::SetNodeParams`:
+  12 bytes as `x26` and `w23`, the bit-fields inserted into the low byte of
+  `w23`). Assigning the struct directly copies it piecewise instead.
+- **A parameter the callee doesn't use isn't set up by callers in the same
+  TU** (`Unk_3b8370`'s `this`): the callee is in the caller's file.
+- The bank readers take the address of their data pointer parameter
+  (`Unk_ReadBank<T>(data)` on a reference to the parameter itself), so every
+  read stores the pointer back; reading an 8-byte struct in one go is one
+  load, two 4-byte reads are two loads with a store between them.
+
+Classes with destructors are written as real classes (`Unk_23837a8`,
+`Unk_2383770`): an abstract base's deleting destructor is the 4-byte trap,
+its complete destructor an alias of the base one.
+
+Open:
+
+- `Unk_3b7ed0` (the switch container's bank reader, `m`): block placement
+  only. The original has no shared preheader block before the loop over the
+  switch values (both paths into the loop set the counter themselves, and the
+  head of the loop is duplicated after the list's preallocation); here the
+  preheader survives. Probably the order of the IR blocks: an empty block is
+  only removed before placement when it doesn't fall through to its successor.
+- `0x71003b7820` and the other static initialisers that construct a lock:
+  the lock's destructor is named as a function taking the mutex
+  (`Unk_32ec70`), so the `__cxa_atexit` call can't come from a class's
+  destructor yet.
