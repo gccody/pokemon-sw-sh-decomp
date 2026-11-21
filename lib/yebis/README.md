@@ -221,7 +221,7 @@ SiSDK3's core library starts YEBIS's second half. Its TUs, in address order
 | 0x4c3360-0x4c35c0 | `Unk_4c3360.cpp` | CRC-32 |
 | 0x4c3640-0x4c4100 | `Unk_4c3650.cpp` | `SiMemorySystem`: malloc with a header, 65536 lists by address |
 | 0x4c4290-0x4c6010 | `Unk_4c4290.cpp` | string functions, `SiString`'s out-of-line members |
-| 0x4c6090-0x4c8620 | `SiCore_StringTable_Impl.cpp` | `SiStringTable` (not written) |
+| 0x4c6090-0x4c8620 | `SiCore_StringTable_Impl.cpp` | `SiStringTable` and its `Entry` |
 | 0x4c86a0-0x4c8840 | `Unk_4c86a0.cpp` | `SiCoreCriticalSection`, the scoped lock |
 | 0x4c88c0-0x4c8ef0 | `SiCore_SystemInfo_Impl.cpp` | `SiSystemInfo` |
 | 0x4c8f70-0x4ca620 | `Unk_4c8f70.cpp` | ids (`SI_GUID`), the tick's period, noise; a report function, languages (not written) |
@@ -312,18 +312,55 @@ its RTTI; the file writes it as one class):
   named locals; the noise function itself (0x71004c9110, 344 bytes) has the
   right instructions in another order and isn't written.
 
+`SiStringTable` (RTTI: `SiStringTable : ISiStringTable`, which is on
+`ISiInterface` and, at 8, `ISiNamedObject`; `SiStringTable::Entry :
+ISiStringTable::IEntry : ISiInterface`) added these:
+
+- **The second base's vtable is thunks.** The table overrides the named
+  object's three functions, so they are the last three slots of its own vtable
+  and the second vtable has `_ZThn8_` thunks of them and of the destructors,
+  with the small ones inlined into the thunk (0x71004c7000, 0x71004c7070,
+  0x71004c70c0, 0x71004c70e0). leafgen had taken 0x71004c70c0 for a slot 3 of
+  the table; the class's accessors are in the TU now, not in lib/yebis/class.
+- A function that ends in a virtual call and still returns through its own
+  epilogue returns a reference (`const SiString<char>&`): a pointer result
+  would be a tail call.
+- A member function whose `this` is reloaded before every call although the
+  callee ignores it (the sort's partition) is `inline`: for a function the
+  linker can't replace, the callers pass anything.
+- One constructor with a default argument, not two: `StringPerLanguage(
+  ISiAllocator* = nullptr)`. With a second constructor for no allocator, the
+  language's zero and the null allocator are one 16-byte store in an entry's
+  four, where the original has two stores.
+- `StringPerLanguage`'s assignment copies the language and the string, not
+  its 128-byte buffer: its own `operator=`.
+- A value read twice with nothing between the reads (`ldr w8, [x26, #4]`
+  twice in `Entry::vf7`) is a test written twice: `if (a == b) return ...;
+  if (a.language == b.language) ...`. Jump threading merges the two tests
+  after GVN has run, and nothing removes the second load then.
+- The registers of a binary search's bounds follow their declarations
+  (`int high = count - 1; int low = 0;`, both before the first test), and
+  with them the operand order of `(low + high) >> 1`.
+- Store orders by permutation again: `SiString::Unk_SetView` (length,
+  capacity, flag, growth) and `Unk_SetBuffer`.
+
 Not matching yet in these files (status `m`, each with its reason in the
 source): `SiFixedHeapAllocator2`'s constructor and `Unk_4bd610`,
 `SiPool::Unk_4bcfa0`, `Unk_4c5a40`, `Unk_4c4d90`, `SiKernel::vf20` (block
 layout). Not written: the fixed allocator's `vf8` and `vf9` (allocate and
 free, 1.4 KB each, intrusive list work throughout), `SiPool::Unk_4be7d0`, the
 string TU's conversions (`Unk_4c42b0`, `Unk_4c4700`, `Unk_4c49f0`,
-`Unk_4c4f60`, `Unk_4c5280` and smaller ones; `Unk_4c5930`, a number's digits
-in groups of three, is close), the kernel's map of reflected classes (insert
-0x71004c09a0 and erase 0x71004c0e60, a red-black tree whose nodes have their
-colour at +0x30), `SiStringTable`, and of the last TU the report function
-(0x71004c9090, variadic), the noise (0x71004c9110) and the languages
-(0x71004c9390 on).
+`Unk_4c4f60`, `Unk_4c5280` and smaller ones), the kernel's map of reflected
+classes (insert 0x71004c09a0 and erase 0x71004c0e60, a red-black tree whose
+nodes have their colour at +0x30), `SiString`'s assignment in the string
+table's TU (`Unk_4c8020`: a copy loop unrolled by four), and of the last TU the
+report function (0x71004c9090, variadic), the noise (0x71004c9110) and the
+languages (0x71004c9390 on). `SiStringTable::vf11` is `m` (where the result's
+0 is set). `Unk_4c5930` (a number's digits in groups of three, 264 bytes) was
+two instructions away when the work stopped: a 64-bit digit count whose low
+32 bits are tested against 0xff, then a bottom-tested loop over a pointer into
+the digits with a `size_t` counter, `if (static_cast<s64>(pos) + 1 >= size) {
+pos++; break; } pos++;`, and the count decremented for the commas.
 
 ## PPFX's GPU layer (0x710040f550 to 0x7100481000)
 

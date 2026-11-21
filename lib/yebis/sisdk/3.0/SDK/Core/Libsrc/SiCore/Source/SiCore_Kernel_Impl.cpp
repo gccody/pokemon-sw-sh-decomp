@@ -34,7 +34,7 @@ bool Unk_4c5930(char* dst, size_t size, u64 value);
 void Unk_4c9300();
 void Unk_4ca6a0();
 // 0x71004ca820: what a language's name is looked up by
-void* Unk_4ca820(const Unk_4ca820_arg0& language);
+const SiSDK3::ISiStringTable::Unk_Item* Unk_4ca820(const Unk_4ca820_arg0& language);
 
 // 0x7101eea8cc: the id of the kernel's own string table
 extern const SiSDK3::SI_GUID Unk_1eea8cc __attribute__((visibility("hidden")));
@@ -325,7 +325,7 @@ const char* SiKernel::vf31(const SI_GUID* id, int string) {
     if (table == nullptr) {
         return nullptr;
     }
-    return Unk_StringCStr(table->vf14(string));
+    return Unk_StringCStr(&table->vf14(string));
 }
 
 // 0x71004c1ce0

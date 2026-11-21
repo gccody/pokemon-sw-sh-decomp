@@ -71,6 +71,22 @@ public:
             field_28 |= 1;
         }
     }
+    // frees the buffer and makes the string a view of s, which isn't copied
+    // (inline in SiStringTable::Entry's setter: placeholder name)
+    void Unk_SetView(const T* s) {
+        Unk_EmptyAll();
+        m_pBuffer = const_cast<T*>(s);
+        size_t length = 0;
+        if (s != nullptr) {
+            while (s[length] != 0) {
+                length++;
+            }
+        }
+        field_10 = length;
+        field_20 = 0;
+        field_28 = 1;
+        field_18 = 0;
+    }
     // empties the string for another allocator (inline: placeholder name)
     void Unk_SetAllocator(ISiAllocator* pAllocator);
     // an empty string in a buffer that isn't its own (inline: placeholder

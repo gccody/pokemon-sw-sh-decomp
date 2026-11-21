@@ -5,6 +5,7 @@
 #pragma once
 
 #include "SiCore_String.h"
+#include "Unk_4ca820_arg0.h"
 
 // 0x71004bf7b0: the kernel (leafgen's name and type)
 u64 Unk_4bf7b0_get();
@@ -23,7 +24,7 @@ public:
 };
 
 // The kernel as SiIO's and SiGfx's code uses it: slot 12 is its allocator,
-// slot 15 its system info.
+// slot 15 its system info, slot 24 its language.
 class Unk_KernelInterface {
 public:
     virtual void vf0();
@@ -42,6 +43,15 @@ public:
     virtual void vf13();
     virtual void vf14();
     virtual Unk_SystemInfoInterface* vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual const Unk_4ca820_arg0* vf24();
 };
 inline Unk_KernelInterface* Unk_GetKernel() {
     return reinterpret_cast<Unk_KernelInterface*>(Unk_4bf7b0_get());
