@@ -14,8 +14,8 @@ struct Unk_KeyIsMember {
     static K& Get(T& item) { return item.key; }
 };
 
-template <class K, class T, class GetKey, class A = Unk_PoolDefault>
-struct Unk_SortedKeyArray : Unk_Array<T, A> {
+template <class K, class T, class GetKey, class A = Unk_PoolDefault, u32 GrowBy = 1>
+struct Unk_SortedKeyArray : Unk_Array<T, A, GrowBy> {
     // The item of `key`, or where it would be (null in an array without items).
     T* BinarySearch(K key, bool& found) const {
         s32 top = 0;
@@ -45,10 +45,24 @@ struct Unk_SortedKeyArray : Unk_Array<T, A> {
         bool found;
         T* item = BinarySearch(key, found);
         if (found) {
-            typename Unk_Array<T, A>::Iterator it;
+            typename Unk_Array<T, A, GrowBy>::Iterator it;
             it.item = item;
             this->Erase(it);
         }
+    }
+
+    // A new item where `key` belongs, whether the array has the key or not.
+    // The caller sets its key.
+    T* AddNoSetKey(K key) {
+        bool found;
+        T* item = BinarySearch(key, found);
+        if (item != nullptr) {
+            u32 index = static_cast<u32>(item - this->field_0);
+            item = this->Insert(index);
+        } else {
+            item = this->AddLastGrow();
+        }
+        return item;
     }
 
     // The item of `key`, added when the array doesn't have it.
