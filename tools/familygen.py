@@ -8,7 +8,7 @@
 
 Unmatched functions that are the same code once branch targets and
 adrp/lo12 fields are masked are instances of one source: a template, or a
-class shape repeated. Six such families are on gflib3's allocator
+class shape repeated. Seven such families are on gflib3's allocator
 (src/unsorted/Unk_2771620.h) and its reference-counted object
 (src/gflib3/Unk_239a418.h). This tool finds their instances and writes them,
 in src/gflib3/families:
@@ -76,6 +76,17 @@ in src/gflib3/families:
   argument, none) that call the flag's getter, a factory and the emplace; an
   instance is written when its factory is (its class and the argument types
   are the factory's).
+- `steps`: four virtual functions of those classes, the steps of a request,
+  and the three thunks of their interface at +0x60, which inline them (in the
+  objects' file, after the adders): vf7 makes what the step runs, once (a
+  function of its own per class); vf9, vf10 and vf11 tell the owner behind
+  the weak reference that the step is done (a function per kind of owner),
+  failed or was cancelled (`Unk_1050c60_Owner::Unk_Cancel`, and `Unk_Fail` of
+  the owner's kind, `STEP_OWNERS`: the owners differ by their result at
+  +0x320, and so does what a failure hands them). A class is a step when the
+  seven functions in its vtables have the shapes of the seed's
+  (Unk_240b658's, vf10 one of the kinds') and call what they call; all seven
+  are written or none.
 
 A row is kept (written again) when its name is the one written for it and
 check.py matched it; `--only` adds addresses, `--all` writes every
@@ -1326,8 +1337,9 @@ def object_name(f: ObjectFactory) -> str:
     return f"_ZN7Unk_New6CreateI{cls}J{pack}EEEPT_P21Unk_239a418_AllocatorDpOT0_"
 
 
-def object_class(f: ObjectFactory) -> str:
-    bases = f"public {f.base.name}" + (", public Unk_1085320_Interface" if f.interface else "")
+def object_class(f: ObjectFactory, step: Step | None = None) -> str:
+    interface = f"Unk_1085320_Step<{step.owner.code}>" if step else "Unk_1085320_Interface"
+    bases = f"public {f.base.name}" + (f", public {interface}" if f.interface else "")
     align = "alignas(16) " if f.align == 16 else ""
     copied = {k for k, p in enumerate(f.params) if p.kind == "ref" and not p.moved}
     ps = []
@@ -1360,7 +1372,12 @@ def object_class(f: ObjectFactory) -> str:
         ctor = f"    {f.cls}({', '.join(ps)})"
         out.append(ctor + (" : " + ", ".join(inits) if inits else "") + " {}")
     out.append(f"    ~{f.cls}() override;")
-    out += [f"    virtual void vf{f.base.slots + k}();" for k in range(f.extra_slots)]
+    if step:
+        out += ["    virtual void vf6();", "    virtual u64 vf7();", "    virtual void vf8();",
+                "    void vf9() override;", f"    void vf10({step.owner.code} code) override;",
+                "    void vf11() override;"]
+    else:
+        out += [f"    virtual void vf{f.base.slots + k}();" for k in range(f.extra_slots)]
     if fields:
         out += [""] + fields
     args = ", ".join(t if t.endswith("&") else t + "&&" for t in create_args(f))
@@ -1399,6 +1416,44 @@ struct Unk_239a418_RefPair {
 class Unk_1085320_Interface {
 public:
     virtual void vf0();
+};
+
+// A value that may be absent: the flag first.
+template <class T>
+struct Unk_1085320_Optional {
+    Unk_1085320_Optional() : m_has(false) {}
+    Unk_1085320_Optional(const Unk_1085320_Optional& other) : m_has(false) {
+        if (other.m_has) {
+            m_value = other.m_value;
+            m_has = true;
+        }
+    }
+    Unk_1085320_Optional& operator=(const Unk_1085320_Optional& other) {
+        if (m_has) {
+            if (other.m_has)
+                m_value = other.m_value;
+            else
+                m_has = false;
+        } else if (other.m_has) {
+            m_value = other.m_value;
+            m_has = true;
+        }
+        return *this;
+    }
+
+    bool m_has;
+    T m_value;
+};
+
+// The interface at +0x60 of a step of a request (the steps, below): what its
+// owner is told when the step is done, fails (with what a failure leaves,
+// `Code`) or is cancelled.
+template <class Code>
+class Unk_1085320_Step {
+public:
+    virtual void vf9() = 0;
+    virtual void vf10(Code code) = 0;
+    virtual void vf11() = 0;
 };
 """
 
@@ -1629,6 +1684,30 @@ ADDER_HEADER = """
 // decompiled.
 struct Unk_6ce100;
 u32 Unk_6ce100_getField110(const Unk_6ce100* self);
+struct Unk_6ce3c0;
+void Unk_6ce3c0_setField110(Unk_6ce3c0* self, u32 value);
+
+// A type-erased callable, 0x80 bytes, like Unk_23d4470_Callable
+// (src/unsorted/Unk_23d4470.h): an invoker (+0x0) that takes the storage
+// (+0x20) and references to the arguments. Callers test it before they call it.
+template <class Signature>
+class Unk_1050c60_Callable;
+
+template <class R, class... Args>
+class Unk_1050c60_Callable<R(Args...)> {
+public:
+    explicit operator bool() const { return field_0 != nullptr; }
+    R operator()(Args... args) { return field_0(field_20, std::forward<Args>(args)...); }
+
+    R (*field_0)(void* storage, Args&&... args);
+    void (*field_8)(void*);
+    u64 field_10;
+    u64 field_18;
+    u8 field_20[0x60];
+};
+
+// An owner's result (+0x320): each kind of owner has its own.
+struct Unk_1050c60_Result;
 
 struct Unk_1054f70_List {
     void Unk_1054f70(Unk_Ref&& ref);
@@ -1657,11 +1736,233 @@ public:
         return Unk_Ref(this);
     }
 
+    void Unk_6ce580();
+    void Unk_SetState(u32 state) { Unk_6ce3c0_setField110(reinterpret_cast<Unk_6ce3c0*>(this), state); }
+    void Unk_Cancel() {
+        Unk_6ce580();
+        Unk_SetState(6);
+        if (field_2a0)
+            field_2a0();
+        if (field_1a0)
+            field_1a0();
+    }
+
     Unk_239a418_Allocator* field_60;
     u8 _68[0x48];
     Unk_1054f70_List field_b0;
+    u32 field_110;
+    u8 _114[0x8c];
+    alignas(16) Unk_1050c60_Callable<void()> field_1a0;
+    Unk_1050c60_Callable<void(Unk_1050c60_Result&)> field_220;
+    Unk_1050c60_Callable<void()> field_2a0;
 };
 PKMN_OFFSET_ASSERT(Unk_1050c60_Owner, field_b0, 0xb0);
+PKMN_OFFSET_ASSERT(Unk_1050c60_Owner, field_110, 0x110);
+PKMN_OFFSET_ASSERT(Unk_1050c60_Owner, field_1a0, 0x1a0);
+PKMN_SIZE_ASSERT(Unk_1050c60_Owner, 0x320);
+"""
+
+
+# ------------------------------------------------------------------------- steps
+
+STEP_SEED = 0x240B658            # the vtables of Unk_240b658, whose seven functions are the shapes
+STEP_INTERFACE = 0xE8            # its interface's slots, from the first vtable's start
+STEP_STOP = 0x6CE580             # Unk_1050c60_Owner::Unk_6ce580, not decompiled
+STEP_SET_STATE = 0x6CE3C0        # Unk_6ce3c0_setField110 (src/unsorted/leaf)
+STEP_NAMES = {STEP_STOP: "_ZN17Unk_1050c60_Owner10Unk_6ce580Ev"}
+
+
+@dataclass(frozen=True)
+class StepOwner:
+    """An owner with a result: what its steps' failure hands it (`code`,
+    mangled `mangled`) and the members after the owner's own (0x320)."""
+    name: str
+    code: str
+    mangled: str
+    members: tuple[str, ...]
+    param: str                   # Unk_Fail's parameter, by value
+    arg: str                     # what a step passes for it
+    keep: str                    # how Unk_Fail keeps it
+
+
+_OPTIONAL = "const Unk_1085320_Optional<u32>*"
+_OPTIONAL_MANGLED = "PK20Unk_1085320_OptionalIjE"
+# by the address of vf10 of the first class of each
+STEP_OWNERS = {
+    0x1054690: StepOwner("Unk_1054690_Owner", _OPTIONAL, _OPTIONAL_MANGLED,
+                         ("u8 field_320[0x3c];", "Unk_1085320_Optional<u32> field_35c;"),
+                         "Unk_1085320_Optional<u32>", "*code", "field_35c = code;"),
+    0x1056D00: StepOwner("Unk_1056d00_Owner", _OPTIONAL, _OPTIONAL_MANGLED,
+                         ("u8 field_320[0x34];", "Unk_1085320_Optional<u32> field_354;"),
+                         "Unk_1085320_Optional<u32>", "*code", "field_354 = code;"),
+    0x1059AA0: StepOwner("Unk_1059aa0_Owner", "u64", "m", ("u64 field_320;",), "u64", "code", "field_320 = code;"),
+}
+
+
+@dataclass
+class Step:
+    cls: str
+    funcs: dict                 # "vf7", "vf9", "vf10", "vf11" and their thunks "t9", "t10", "t11" -> address
+    owner: StepOwner
+    make: int                   # what vf7 calls
+    done: int                   # what vf9 tail-calls with the owner
+
+
+def _calls(m: Module, a: int) -> tuple[list[int], list[int]]:
+    """A function's bl targets, and its b targets outside itself."""
+    size = m.rows[a].sword_size
+    bls, bs = [], []
+    for o, w in m.words(a, size):
+        if (w & 0xFC000000) == 0x94000000:
+            bls.append(o + _sext(w & 0x3FFFFFF, 26) * 4)
+        elif (w & 0xFC000000) == 0x14000000:
+            x = o + _sext(w & 0x3FFFFFF, 26) * 4
+            if not a <= x < a + size:
+                bs.append(x)
+    return bls, bs
+
+
+def step_slots(m: Module, vt: int) -> dict | None:
+    """The seven functions of a step's vtables that the family writes."""
+    out = {f"vf{k}": m.slots.get(vt + 0x10 + 8 * k) for k in (7, 9, 10, 11)}
+    out.update({f"t{9 + k}": m.slots.get(vt + STEP_INTERFACE + 8 * k) for k in range(3)})
+    if not all(isinstance(a, int) and a in m.rows and m.rows[a].sword_size for a in out.values()):
+        return None
+    return out
+
+
+def parse_step(m: Module, f: ObjectFactory) -> Step | str:
+    """The step a written object is, or why it isn't one."""
+    if not f.interface or f.extra_slots != 6 or f.base.args or not f.params or f.params[0].kind != "pair":
+        return "not a class with a weak reference and the interface"
+    if not any(s.offset == 0x80 for s in f.members) or not any(s.offset == 0x78 and s.kind == "u64"
+                                                               for s in f.members):
+        return "no members at +0x78 and +0x80"
+    seed, funcs = step_slots(m, STEP_SEED), step_slots(m, int(f.cls[4:], 16))
+    if seed is None or funcs is None:
+        return "its vtables' slots aren't functions"
+
+    def same(key: str, like: int | None = None) -> bool:
+        a, b = funcs[key], seed[key] if like is None else like
+        return m.rows[a].sword_size == m.rows[b].sword_size and m.shape(a) == m.shape(b)
+
+    if not all(same(k) for k in ("vf7", "vf9", "vf11", "t9", "t11")):
+        return "other shapes"
+    owner = None
+    for first, o in STEP_OWNERS.items():
+        # the thunk of that first class's vf10: the same slot of its interface
+        vt = next((v for v in (s - 0x10 - 8 * 10 for s in m.data_refs(first)) if step_slots(m, v)), None)
+        if vt is not None and same("vf10", first) and same("t10", step_slots(m, vt)["t10"]):
+            owner = o
+    if owner is None:
+        return "another failure"
+    for k in ("vf10", "vf11", "t10", "t11"):
+        if _calls(m, funcs[k])[0] != [STEP_STOP, STEP_SET_STATE]:
+            return "other calls"
+    make, done = _calls(m, funcs["vf7"])[0], _calls(m, funcs["vf9"])[1]
+    if len(make) != 1 or len(done) != 1 or _calls(m, funcs["t9"])[1] != done:
+        return "other calls"
+    return Step(f.cls, funcs, owner, make[0], done[0])
+
+
+def step_names(m: Module, s: Step) -> dict[int, str] | str:
+    """The names of a step's functions and of the two it calls, or why they can't be given."""
+    cls = mangled_class(s.cls)
+    names = {
+        s.funcs["vf7"]: f"_ZN{cls}3vf7Ev", s.funcs["vf9"]: f"_ZN{cls}3vf9Ev",
+        s.funcs["vf10"]: f"_ZN{cls}4vf10E{s.owner.mangled}", s.funcs["vf11"]: f"_ZN{cls}4vf11Ev",
+        s.funcs["t9"]: f"_ZThn96_N{cls}3vf9Ev", s.funcs["t10"]: f"_ZThn96_N{cls}4vf10E{s.owner.mangled}",
+        s.funcs["t11"]: f"_ZThn96_N{cls}4vf11Ev",
+        s.make: f"_Z{len(placeholder(s.make))}{placeholder(s.make)}P{cls}Pv",
+        s.done: f"_Z{len(placeholder(s.done))}{placeholder(s.done)}P17Unk_1050c60_Owner",
+    }
+    for a in (s.make, s.done):
+        r = m.rows.get(a)
+        if r is None:
+            return f"0x{a + BASE:x} isn't a function"
+        if r.name and r.name != names[a]:
+            return f"0x{a + BASE:x} is named otherwise"
+    return names
+
+
+def step_functions(s: Step) -> str:
+    cls, f = s.cls, s.funcs
+    return f"""// 0x{f["vf7"] + BASE:x}
+u64 {cls}::vf7() {{
+    if (field_78 == 0)
+        field_78 = {placeholder(s.make)}(this, &field_80);
+    return field_78;
+}}
+
+// 0x{f["vf9"] + BASE:x}
+// 0x{f["t9"] + BASE:x}
+void {cls}::vf9() {{
+    if (Unk_1050c60_Owner* owner = Unk_WeakGet<Unk_1050c60_Owner>(field_68))
+        {placeholder(s.done)}(owner);
+}}
+
+// 0x{f["vf10"] + BASE:x}
+// 0x{f["t10"] + BASE:x}
+void {cls}::vf10({s.owner.code} code) {{
+    if ({s.owner.name}* owner = Unk_WeakGet<{s.owner.name}>(field_68))
+        owner->Unk_Fail({s.owner.arg});
+}}
+
+// 0x{f["vf11"] + BASE:x}
+// 0x{f["t11"] + BASE:x}
+void {cls}::vf11() {{
+    if (Unk_1050c60_Owner* owner = Unk_WeakGet<Unk_1050c60_Owner>(field_68))
+        owner->Unk_Cancel();
+}}
+"""
+
+
+def step_header(steps: list[Step]) -> str:
+    owners = []
+    for o in STEP_OWNERS.values():
+        if not any(s.owner is o for s in steps):
+            continue
+        members = "\n".join(f"    {x}" for x in o.members)
+        owners.append(f"""class {o.name} : public Unk_1050c60_Owner {{
+public:
+    void Unk_Fail({o.param} code) {{
+        {o.keep}
+        Unk_6ce580();
+        Unk_SetState(4);
+        if (field_220)
+            field_220(reinterpret_cast<Unk_1050c60_Result&>(field_320));
+        if (field_1a0)
+            field_1a0();
+    }}
+
+{members}
+}};
+""")
+    decls = sorted({f"u64 {placeholder(s.make)}({s.cls}* self, void* arg);" for s in steps}
+                   | {f"void {placeholder(s.done)}(Unk_1050c60_Owner* owner);" for s in steps})
+    return STEP_HEADER + "\n" + "\n".join(owners) + "\n" + "\n".join(decls) + "\n"
+
+
+STEP_HEADER = """
+// The steps: the classes the adders make are the steps of a request, and four
+// of their virtual functions are the same in every one of them (so are the
+// interface's thunks, which inline them). vf7 makes what the step runs, once
+// (a function of its own per class, not decompiled). The other three are the
+// interface: they tell the owner, if the weak reference still has one, that
+// the step is done (a function of the owner's, not decompiled), that it
+// failed (the owner keeps what the failure leaves, stops, goes to state 4 and
+// calls its failure callable with its result, then its last one) or that it
+// was cancelled (state 6, the cancel callable, the last one). The owners
+// differ by their result, at +0x320: three kinds are known by their steps.
+
+// The weak reference's object, while its handle counts references.
+template <class T>
+inline T* Unk_WeakGet(const Unk_239a418_RefPair& weak) {
+    Unk_239a418_Handle* handle = reinterpret_cast<Unk_239a418_Handle*>(weak.field_0.m_ptr);
+    if (handle != nullptr && handle->field_54.load() != 0)
+        return reinterpret_cast<T*>(weak.field_8);
+    return nullptr;
+}
 """
 
 
@@ -1818,6 +2119,7 @@ class Plan:
     objects: list = field(default_factory=list)
     creators: list = field(default_factory=list)
     adders: list = field(default_factory=list)       # (address, its factory)
+    steps: list = field(default_factory=list)
     names: dict = field(default_factory=dict)       # address -> name
     candidates: dict = field(default_factory=dict)  # family -> [addresses]
     skipped: list = field(default_factory=list)     # (family, address, reason)
@@ -1896,6 +2198,23 @@ def plan(m: Module, only: set[int] | None = None, everything: bool = False) -> P
             p.names[a] = n
     if p.adders:
         p.names.update(ADDER_NAMES)
+    p.candidates["steps"] = []
+    for o in p.objects:
+        s = parse_step(m, o)
+        if isinstance(s, str):
+            if o.params and o.params[0].kind == "pair" and o.interface:
+                p.skipped.append(("steps", o.addr, s))
+            continue
+        p.candidates["steps"] += sorted(s.funcs.values())
+        ns = step_names(m, s)
+        if isinstance(ns, str):
+            p.skipped.append(("steps", o.addr, ns))
+            continue
+        if all(kept(m, a, ns[a], only, everything) for a in s.funcs.values()):
+            p.steps.append(s)
+            p.names.update(ns)
+    if p.steps:
+        p.names.update(STEP_NAMES)
     if p.objects or p.creators:
         p.names.update(OUT_OF_LINE)
     return p
@@ -1914,10 +2233,15 @@ def sources(p: Plan) -> dict[str, str]:
     if p.objects:
         words = sorted({q.kind for o in p.objects for q in o.params if q.kind.startswith("words")},
                        key=lambda k: int(k[5:]))
+        stepped = {s.cls: s for s in p.steps}
         out[OBJECT_FILE] = (OBJECT_HEADER + "".join("\n" + words_struct(k) for k in words) + "\n"
-                            + "\n".join(object_class(o) for o in p.objects))
+                            + "\n".join(object_class(o, stepped.get(o.cls)) for o in p.objects))
+        if p.adders or p.steps:
+            out[OBJECT_FILE] += ADDER_HEADER
         if p.adders:
-            out[OBJECT_FILE] += ADDER_HEADER + "\n" + "\n".join(adder_instance(a, o) for a, o in p.adders)
+            out[OBJECT_FILE] += "\n" + "\n".join(adder_instance(a, o) for a, o in p.adders)
+        if p.steps:
+            out[OBJECT_FILE] += step_header(p.steps) + "\n" + "\n".join(step_functions(s) for s in p.steps)
     return out
 
 
@@ -1942,7 +2266,7 @@ def cmd_write(m: Module, args) -> None:
             fh.write(f"{n},{r.sword_str},{r.shield_str}\n")
     print(f"{len(p.vectors)} vector functions, {len(p.factories)} factories, "
           f"{len(p.singletons)} singletons, {len(p.objects)} objects, {len(p.creators)} creators, "
-          f"{len(p.adders)} adders; "
+          f"{len(p.adders)} adders, {len(p.steps)} steps; "
           f"{len(p.names)} names in {args.names}",
           file=sys.stderr)
 
