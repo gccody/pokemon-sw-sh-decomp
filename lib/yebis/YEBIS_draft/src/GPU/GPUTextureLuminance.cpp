@@ -1,6 +1,252 @@
 // Scope: common
-// C:/workspace/YEBIS_draft/src/GPU/GPUTextureLuminance.cpp (PPFX::CTextureLuminance and CTextureLuminanceManage; the __FILE__ of
-// the functions before its static initialiser). So far only the statics
-// every src/GPU TU has (Unk_Statics.h), which its static initialiser,
-// 0x71004b94e0 (_GLOBAL__sub_I_GPUTextureLuminance.cpp), sets up.
+// PPFX::CTextureLuminance and PPFX::CTextureLuminanceManage
+// (lib/yebis/YEBIS_draft/src/GPU/GPUTextureLuminance.h). The TU's statics
+// are the ones every src/GPU TU has (Unk_Statics.h), which its static
+// initialiser, 0x71004b94e0 (_GLOBAL__sub_I_GPUTextureLuminance.cpp), sets up.
+#include <string.h>
+
+#include <yebis/YEBIS_draft/src/GPU/GPUTextureLuminance.h>
 #include <yebis/YEBIS_draft/src/GPU/Unk_Statics.h>
+
+// one reference less, and the pointer cleared
+#define UNK_RELEASE(object)        \
+    do {                           \
+        if ((object) != nullptr) { \
+            (object)->vf1();       \
+            (object) = nullptr;    \
+        }                          \
+    } while (0)
+#define UNK_RELEASE_COUNTED(object)  \
+    do {                             \
+        if ((object) != nullptr) {   \
+            (object)->Unk_Release(); \
+            (object) = nullptr;      \
+        }                            \
+    } while (0)
+
+// 0x710049ca70 (GPURenderTexture.cpp)
+void Unk_49ca70(void* self, void* arg1, u32 arg2);
+
+namespace PPFX {
+
+// PPFX::IGPUTexture, as this file calls it
+struct Unk_4b7a30_Texture {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual s32 vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15(u32 filter);
+};
+
+// 0x7101eea4bc, 0x7101eea4ce: the classes' names
+extern const char Unk_1eea4bc[];
+extern const char Unk_1eea4ce[];
+const char Unk_1eea4bc[] = "CTextureLuminance";
+const char Unk_1eea4ce[] = "CTextureLuminanceManage";
+
+// 0x71004b75a0
+s32 CTextureLuminance::Unk_4b75a0(const char* name) {
+    if (name != nullptr && name[0] != '\0')
+        field_10 = Unk_TFXString(Unk_1eea4bc) + " " + name;
+    else
+        field_10 = Unk_1eea4bc;
+    Unk_Reset();
+    return 0;
+}
+
+// 0x71004b79b0, 0x71004b79f0
+CTextureLuminance::~CTextureLuminance() {
+    Unk_49ec80();
+}
+
+// 0x71004b7a30
+s32 CTextureLuminance::vf0(IGPUDevice* device) {
+    s32 result = CGPUResourceManage::vf0(device);
+    if (result < 0)
+        return result;
+    if (field_20 == nullptr)
+        return 0;
+    result = field_30->vf0(field_20);
+    if (result < 0)
+        return result;
+    CRenderTexture* texture = field_30;
+    while (texture->field_120 != nullptr)
+        texture = texture->field_120;
+    reinterpret_cast<Unk_4b7a30_Texture*>(texture->field_a8)->vf15(5);
+    field_60 = 5;
+    field_3c = 0;
+    field_74 = 0.0f;
+    return 0;
+}
+
+// 0x71004b7ac0
+s32 CTextureLuminance::vf1() {
+    field_30->vf1();
+    field_88 = 0;
+    UNK_RELEASE(field_40);
+    UNK_RELEASE(field_48);
+    UNK_RELEASE(field_50);
+    UNK_RELEASE(field_58);
+    return CGPUResourceManage::vf1();
+}
+
+// 0x71004b7b60
+s32 CTextureLuminance::vf2() {
+    s32 result = CGPUResourceManage::vf2();
+    if (result < 0)
+        return result;
+    return field_30 == nullptr ? -1 : 0;
+}
+
+// 0x71004b86d0
+CTextureLuminanceManage::CTextureLuminanceManage(const char* name) : CGPUResourceManage(nullptr) {
+    Unk_4b8710(name);
+}
+
+// 0x71004b8710
+s32 CTextureLuminanceManage::Unk_4b8710(const char* name) {
+    if (name != nullptr && name[0] != '\0')
+        field_10 = Unk_TFXString(Unk_1eea4ce) + " " + name;
+    else
+        field_10 = Unk_1eea4ce;
+    memset(&field_2c, 0, sizeof(field_2c));
+    field_58 = 0;
+    field_40 = nullptr;
+    field_48 = nullptr;
+    field_50 = 0;
+    field_54 = false;
+    return 0;
+}
+
+// 0x71004b87d0
+s32 CTextureLuminanceManage::Unk_4b87d0(const Unk_Desc* desc) {
+    IGPUDevice* device = field_20;
+    Unk_49ec80();
+    memmove(&field_2c, desc, sizeof(field_2c));
+    s32 result = Unk_4b8830();
+    if (result < 0)
+        return result;
+    return Unk_49ec30(device);
+}
+
+// 0x71004b89b0
+s32 CTextureLuminanceManage::Unk_4b89b0() {
+    CTextureLuminance* luminance = field_40;
+    if (luminance->field_20 == nullptr || luminance->field_74 < 0.0f)
+        return -3;
+    for (s32 i = 0; i < luminance->field_3c; i++) {
+        s32 result = reinterpret_cast<Unk_4b7a30_Texture*>((&luminance->field_40)[i])->vf7();
+        if (result < 0)
+            return result;
+    }
+    return 0;
+}
+
+// 0x71004b8a40
+s32 CTextureLuminanceManage::Unk_4b8a40(bool flag, f32 a, f32 b, f32 c, f32 d) {
+    s32 result = field_40->Unk_4b8240(field_48, flag);
+    if (result < 0)
+        return result;
+    s32 index = field_50 % 17;
+    field_3e8[index] = a;
+    field_42c[index] = b;
+    field_470[index] = c;
+    field_4b4[index] = d;
+    field_54 = true;
+    return 0;
+}
+
+// 0x71004b9140
+s32 CTextureLuminanceManage::Unk_4b9140(const Unk_Value* value, bool flag, f32 a, f32 b, f32 c, f32 d, f32 e) {
+    f32 ratio = a;
+    if (field_2c.field_0 != 1)
+        ratio = a / b;
+    field_5c = ratio;
+    field_60 = a;
+    memmove(&field_64, value, sizeof(field_64));
+    for (s32 i = 0; i < 17; i++) {
+        field_74[i] = 1;
+        field_20c[i] = ratio;
+        field_1c8[i] = a;
+        memmove(&field_b8[i], value, sizeof(Unk_Value));
+        field_3a4[i] = ratio;
+        field_360[i] = a;
+        memmove(&field_250[i], value, sizeof(Unk_Value));
+        field_3e8[i] = b;
+        field_42c[i] = c;
+        field_470[i] = d;
+        field_4b4[i] = e;
+    }
+    if (flag && field_48 != nullptr)
+        Unk_49ca70(field_48, nullptr, 0xffffffff);
+    return 0;
+}
+
+// 0x71004b9220, 0x71004b9260
+CTextureLuminanceManage::~CTextureLuminanceManage() {
+    Unk_49ec80();
+}
+
+// 0x71004b92a0
+s32 CTextureLuminanceManage::vf0(IGPUDevice* device) {
+    s32 result = CGPUResourceManage::vf0(device);
+    if (result < 0)
+        return result;
+    if (field_20 == nullptr)
+        return 0;
+    result = field_48->vf0(field_20);
+    if (result < 0)
+        return result;
+    result = field_40->vf0(field_20);
+    if (result < 0)
+        return result;
+    field_4f8 = 4;
+    field_4fc = 0.25f;
+    field_500 = -1;
+    Unk_Reset(Unk_Value(0.0f, 0.0f, 0.0f, 0.0f), 0.0f, 1.0f, 1.0f, 0.0f, 0.0f);
+    return 0;
+}
+
+// 0x71004b9380
+s32 CTextureLuminanceManage::vf1() {
+    field_48->vf1();
+    field_40->vf1();
+    return CGPUResourceManage::vf1();
+}
+
+// 0x71004b93c0
+s32 CTextureLuminanceManage::vf2() {
+    s32 result = CGPUResourceManage::vf2();
+    if (result < 0)
+        return result;
+    if (field_40 == nullptr)
+        return -1;
+    return field_48 == nullptr ? -1 : 0;
+}
+
+// 0x71004b9410
+s32 CTextureLuminanceManage::vf3() {
+    UNK_RELEASE_COUNTED(field_48);
+    UNK_RELEASE_COUNTED(field_40);
+    memset(&field_2c, 0, sizeof(field_2c));
+    field_58 = 0;
+    field_40 = nullptr;
+    field_48 = nullptr;
+    field_50 = 0;
+    field_54 = false;
+    s32 result = CGPUResourceManage::vf3();
+    return result < 0 ? result : 0;
+}
+
+}  // namespace PPFX
