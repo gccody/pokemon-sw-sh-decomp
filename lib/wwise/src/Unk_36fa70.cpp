@@ -145,17 +145,21 @@ PKMN_SIZE_ASSERT(Unk_36fa70_Key0, 0x30);
         (*it).RemoveAll();                                                                        \
     (self)->field_18.Term();
 
-// The second tree's first level: its RemoveAll (0x710039f8e0) has the name
-// that Unk_3babc0.h, which calls it, gave it. (That header can't be included
-// here: its sorted_array.h has another Unk_SortedKeyArray.) The same for the
-// root's Remove (0x710039a100) and Set (0x710039c830).
+// Unk_3babc0.h (the switch groups' manager) calls three functions of the
+// second tree and named them with its own placeholder types: the first
+// level's RemoveAll (0x710039f8e0), the root's Remove (0x710039a100) and Set
+// (0x710039c830). They keep those names here, and the first level's node
+// class has that header's name for it, Unk_2382c60_Item (its vtable is at
+// 0x7102382ca0), so that the call needs no cast: with one, the callers'
+// registers come out in another order. (The header itself can't be included
+// here: its sorted_array.h has another Unk_SortedKeyArray.)
 struct Unk_2382c60_Item;
 struct Unk_2382c60;
 struct Unk_3babc0_Key;
 void Unk_39f8e0(Unk_2382c60_Item* self);
 void Unk_39a100(Unk_2382c60* self, const Unk_3babc0_Key& key);
 u32* Unk_39c830(Unk_2382c60* self, const Unk_3babc0_Key& key);
-#define UNK_36FA70_REMOVEALL_39F8E0(self) Unk_39f8e0(reinterpret_cast<Unk_2382c60_Item*>(self));
+#define UNK_36FA70_REMOVEALL_39F8E0(self) Unk_39f8e0(self);
 
 // A node of the levels that have nodes below: `Below` is what Remove takes,
 // `REMOVEALL` one of the two above.
@@ -374,6 +378,8 @@ u32* Unk_39c830(Unk_2382c60* self, const Unk_3babc0_Key& key);
     UNK_36FA70_BASE(Name##_Base, Value, Child);                                                   \
     struct Name : Name##_Base {                                                                   \
         void Remove(const Unk_36fa70_Key0& below);                                                \
+        void RemoveAll() { UNK_36FA70_REMOVEALL_BELOW(this) }                                     \
+        void RemoveAll(const Unk_36fa70_Key0& below);                                             \
         bool Has(const Unk_36fa70_Key0& key, const Unk_36fa70_Key0& orig);                        \
         Value* Find(const Unk_36fa70_Key0& below, Value** closest, bool* hasMore);                \
         bool ForEach(typename Name##_Base::Callback cb, const Unk_36fa70_Key0& a2,                \
@@ -412,10 +418,10 @@ UNK_36FA70_NODE(Unk_2382d20, Unk_2382d40, Unk_3a1830_Value, u32, Unk_2382d60_Arr
 UNK_36FA70_NODE(Unk_2382ce0, Unk_2382d00, Unk_3a1830_Value, u32, Unk_2382d20_Array,
                 Unk_36fa70_Key2, 0x28,
                 UNK_36FA70_REMOVEALL_BELOW);
-UNK_36FA70_NODE(Unk_2382ca0, Unk_2382cc0, Unk_3a1830_Value, u64, Unk_2382ce0_Array,
+UNK_36FA70_NODE(Unk_2382c60_Item, Unk_2382cc0, Unk_3a1830_Value, u64, Unk_2382ce0_Array,
                 Unk_36fa70_Key1, 0x28,
                 UNK_36FA70_REMOVEALL_39F8E0);
-UNK_36FA70_ROOT(Unk_39a100_Root, Unk_3a1830_Value, Unk_2382ca0_Array);
+UNK_36FA70_ROOT(Unk_39a100_Root, Unk_3a1830_Value, Unk_2382c60_Item_Array);
 
 #define UNK_36FA70_LEVEL(Name, Key)                                                               \
     template Name*                                                                                \
@@ -439,7 +445,7 @@ UNK_36FA70_LEVEL(Unk_2381868, u8);
 UNK_36FA70_LEVEL(Unk_23818a8, u8);
 
 // 0x71003a1830, 0x71003a1980, 0x71003a1b40, 0x710039fa20
-UNK_36FA70_LEVEL(Unk_2382ca0, u64);
+UNK_36FA70_LEVEL(Unk_2382c60_Item, u64);
 // 0x71003a1d70, 0x71003a1fb0, 0x71003a2170, 0x710039fe90
 UNK_36FA70_LEVEL(Unk_2382ce0, u32);
 // 0x71003a23a0, 0x71003a24f0, 0x71003a26b0, 0x71003a03a0
@@ -478,7 +484,7 @@ UNK_36FA70_REMOVE(Unk_2381828, Unk_36fa70_Key3)
 UNK_36FA70_REMOVE(Unk_2381868, Unk_36fa70_Key4)
 
 // 0x71003a0e00
-UNK_36FA70_REMOVE(Unk_2382ca0, Unk_36fa70_Key1)
+UNK_36FA70_REMOVE(Unk_2382c60_Item, Unk_36fa70_Key1)
 // 0x71003a0f60
 UNK_36FA70_REMOVE(Unk_2382ce0, Unk_36fa70_Key2)
 // 0x71003a1080
@@ -490,8 +496,7 @@ UNK_36FA70_REMOVE(Unk_2382d60, Unk_36fa70_Key4)
 UNK_36FA70_REMOVE(Unk_36b160_Root, Unk_36fa70_Key0)
 // 0x710039f8e0
 void Unk_39f8e0(Unk_2382c60_Item* self) {
-    Unk_2382ca0* node = reinterpret_cast<Unk_2382ca0*>(self);
-    UNK_36FA70_REMOVEALL_BELOW(node)
+    UNK_36FA70_REMOVEALL_BELOW(self)
 }
 
 // 0x710039a100
@@ -503,7 +508,7 @@ void Unk_39a100(Unk_2382c60* self, const Unk_3babc0_Key& key) {
             root->field_10 = 0;
         return;
     }
-    Unk_2382ca0* child = root->field_18.Exists(below.field_0);
+    Unk_2382c60_Item* child = root->field_18.Exists(below.field_0);
     if (child != nullptr) {
         child->Remove(below.field_8);
         if (!child->field_10 && child->field_18.IsEmpty()) {
@@ -533,7 +538,7 @@ u32* Unk_39c830(Unk_2382c60* self, const Unk_3babc0_Key& key) {
     const Unk_36fa70_Key0& below = reinterpret_cast<const Unk_36fa70_Key0&>(key);
     if (below.IsAny())
         return root->SetValue();
-    Unk_2382ca0* child = root->field_18.Set(below.field_0);
+    Unk_2382c60_Item* child = root->field_18.Set(below.field_0);
     if (child == nullptr)
         return nullptr;
     return child->Set(below.field_8);
@@ -610,11 +615,38 @@ UNK_36FA70_FOREACH(Unk_2381868, Unk_36fa70_Value, Unk_36fa70_Key4)
     }
 
 // 0x710039f690
-UNK_36FA70_REMOVEALL(Unk_2382ca0, Unk_36fa70_Key1)
+UNK_36FA70_REMOVEALL(Unk_2382c60_Item, Unk_36fa70_Key1)
 // 0x710039fb90
 UNK_36FA70_REMOVEALL(Unk_2382ce0, Unk_36fa70_Key2)
 // 0x71003a0000
 UNK_36FA70_REMOVEALL(Unk_2382d20, Unk_36fa70_Key3)
+// 0x710039a5b0
+void Unk_39a100_Root::RemoveAll(const Unk_36fa70_Key0& below) {
+    if (below.IsAny()) {
+        if (this->field_10)
+            this->field_10 = 0;
+        RemoveAll();
+    } else if (below.IsAnyHere()) {
+        for (auto it = this->field_18.Begin(); it != this->field_18.End();) {
+            (*it).RemoveAll(below.field_8);
+            if (!(*it).field_10 && (*it).field_18.IsEmpty()) {
+                (*it).RemoveAll();
+                it = this->field_18.Erase(it);
+            } else {
+                ++it;
+            }
+        }
+    } else {
+        Unk_2382c60_Item* child = this->field_18.Exists(below.field_0);
+        if (child != nullptr) {
+            child->RemoveAll(below.field_8);
+            if (!child->field_10 && child->field_18.IsEmpty()) {
+                child->RemoveAll();
+                this->field_18.Unset(below.field_0);
+            }
+        }
+    }
+}
 // 0x71003a0510
 // NON_MATCHING: the original reads the key of the last level again for every
 // node of the loop; here the read before the loop is kept for the first one
@@ -730,7 +762,7 @@ void Unk_36b160_Root::Visit(Visitor cb, const Unk_36fa70_Key0& filter, const Unk
 bool Unk_39a100_Root::Has(const Unk_36fa70_Key0& key, const Unk_36fa70_Key0& orig) {
     if (orig.IsAnyHere())
         return false;
-    Unk_2382ca0* child = this->field_18.Exists(orig.field_0);
+    Unk_2382c60_Item* child = this->field_18.Exists(orig.field_0);
     if (child == nullptr)
         child = this->field_18.Exists(Unk_36fa70_Key0::Any());
     bool all = key.IsAny();
@@ -809,7 +841,7 @@ Unk_3a1830_Value* Unk_39a100_Root::Find(const Unk_36fa70_Key0& below, Unk_3a1830
     }
     if (closest != nullptr && this->field_10)
         *closest = &this->field_8;
-    Unk_2382ca0* child = this->field_18.Exists(below.field_0);
+    Unk_2382c60_Item* child = this->field_18.Exists(below.field_0);
     if (child != nullptr)
         return child->Find(below.field_8, closest, hasMore);
     return nullptr;
