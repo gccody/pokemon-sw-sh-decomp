@@ -2528,6 +2528,305 @@ s32 CTextureUtil::DrawRectGPU_DepthOfFieldLayerMask(f32 x, f32 y, f32 width, f32
     return result;
 }
 
+// 0x7100476290 (its log line names it)
+s32 CTextureUtil::DrawRectGPU_MadCocT2_Sn(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1,
+                                          s32 count, const Unk_Float4* values, const Unk_Float4* colors,
+                                          const Unk_Float4* arg4, Unk_GPUTexture* texture0,
+                                          Unk_GPUTexture* texture1, s32 arg7, u32 flags) {
+    switch (count) {
+    case 3:
+    case 4:
+    case 5:
+    case 7:
+    case 8:
+    case 9:
+    case 15:
+    case 19:
+        break;
+    default:
+        return -4;
+    }
+    if (arg7 != 0) {
+        return -4;
+    }
+    s32 technique = field_30.field_1a6d4[count - 1][arg7];
+    if (technique == 0) {
+#line 12457
+        PPFX_ERROR("CTextureUtil::DrawRectGPU_MadCocT2_Sn(): GetHandle_tech_MadCocT2_Sn(%d, %d) failed.\n", count, arg7);
+        return -4;
+    }
+    field_30.field_0->vf29(technique);
+    Unk_4738e0(count, values, count, 0);
+    if (colors != nullptr) {
+        for (s32 i = 0; i < count; i++) {
+            Unk_24e45d0.field_448[i] = colors[i];
+        }
+    } else {
+        for (s32 i = 0; i < count; i++) {
+            Unk_24e45d0.field_448[i] = Unk_Float4(1.0f, 1.0f, 1.0f, 1.0f);
+        }
+    }
+    field_30.field_0->vf22(field_30.field_d0, Unk_24e45d0.field_448, count);
+    Unk_24e45d0.field_648[0] = *arg4;
+    if (Unk_24e45d0.field_648[0].field_0[2].field_0 > Unk_24e45d0.field_648[0].field_0[3].field_0) {
+        f32 swap = Unk_24e45d0.field_648[0].field_0[2].field_0;
+        Unk_24e45d0.field_648[0].field_0[2].field_0 = Unk_24e45d0.field_648[0].field_0[3].field_0;
+        Unk_24e45d0.field_648[0].field_0[3].field_0 = swap;
+    }
+    field_30.field_0->vf22(field_30.field_d4, Unk_24e45d0.field_648, 1);
+    if (texture0 != nullptr) {
+        field_30.field_0->vf26(field_30.field_8, texture0);
+    }
+    if (texture1 != nullptr) {
+        field_30.field_0->vf26(field_30.field_c, texture1);
+    }
+    return Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
+}
+
+// 0x7100476580: the same for two textures (tech_MadT2_Sn, which has no
+// technique 21). Its log line is DrawRectGPU_MadT1_Sn's
+s32 CTextureUtil::Unk_476580(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, s32 count,
+                             const Unk_Float4* values, const Unk_Float4* colors, Unk_GPUTexture* texture1,
+                             Unk_GPUTexture* texture0, s32 index, u32 flags) {
+    if (count < 1 || count > 5) {
+        return -4;
+    }
+    s32 technique;
+    s32 used;
+    if (Unk_442c50_get(reinterpret_cast<u64>(field_20))) {
+        s32 last = count - 1;
+        for (;; last++) {
+            technique = index == 21 ? 0 : field_30.field_2218[last][index];
+            if (last >= 4 || technique != 0) {
+                break;
+            }
+        }
+        used = last + 1;
+    } else {
+        technique = field_30.field_118[count - 1][index];
+        used = count;
+    }
+    if (technique == 0) {
+#line 12584
+        PPFX_ERROR("CTextureUtil::DrawRectGPU_MadT1_Sn(): GetHandle_tech_MadT1_Sn(%d, %d) failed.\n", count, index);
+        return -4;
+    }
+    field_30.field_0->vf29(technique);
+    Unk_4738e0(count, values, used, 8);
+    if (colors != nullptr) {
+        for (s32 i = 0; i < count; i++) {
+            Unk_24e45d0.field_448[i] = colors[i];
+        }
+    } else {
+        for (s32 i = 0; i < count; i++) {
+            Unk_24e45d0.field_448[i] = Unk_Float4(1.0f, 1.0f, 1.0f, 1.0f);
+        }
+    }
+    for (s32 i = count; i < used; i++) {
+        Unk_24e45d0.field_448[i] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+    }
+    field_30.field_0->vf22(field_30.field_d0, Unk_24e45d0.field_448, used);
+    if (texture1 != nullptr) {
+        field_30.field_0->vf26(field_30.field_c, texture1);
+    }
+    if (texture0 != nullptr) {
+        field_30.field_0->vf26(field_30.field_8, texture0);
+    }
+    return Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
+}
+
+// 0x7100475560: the same through a colour grading LUT
+// (tech_MadColorGradingLutT1_Sn); without one it is the function below. Its
+// log line is DrawRectGPU_MadT1_Sn's
+s32 CTextureUtil::Unk_475560(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, s32 count,
+                             const Unk_Float4* values, const Unk_Float4* colors, Unk_GPUTexture* texture,
+                             Unk_GPUTexture* lut, s32 index, u32 flags) {
+    if (lut == nullptr) {
+        return DrawRectGPU_MadT1_Sn(x, y, width, height, u0, v0, u1, v1, count, values, colors, texture, index, flags);
+    }
+    if (count < 1 || count > 4) {
+        return -4;
+    }
+    s32 technique;
+    s32 last = count - 1;
+    for (;; last++) {
+        technique = field_30.field_74a8[last][index];
+        if (last >= 3 || technique != 0) {
+            break;
+        }
+    }
+    if (technique == 0) {
+#line 12205
+        PPFX_ERROR("CTextureUtil::DrawRectGPU_MadT1_Sn(): GetHandle_tech_MadT1_Sn(%d, %d) failed.\n", count, index);
+        return -4;
+    }
+    s32 used = last + 1;
+    field_30.field_0->vf29(technique);
+    Unk_4738e0(count, values, used, 8);
+    if (colors != nullptr) {
+        for (s32 i = 0; i < count; i++) {
+            Unk_24e45d0.field_448[i] = colors[i];
+        }
+    } else {
+        for (s32 i = 0; i < count; i++) {
+            Unk_24e45d0.field_448[i] = Unk_Float4(1.0f, 1.0f, 1.0f, 1.0f);
+        }
+    }
+    for (s32 i = count; i <= last; i++) {
+        Unk_24e45d0.field_448[i] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+    }
+    field_30.field_0->vf22(field_30.field_d0, Unk_24e45d0.field_448, used);
+    if (texture != nullptr) {
+        field_30.field_0->vf26(field_30.field_10[0], texture);
+    }
+    lut->vf15(4);
+    field_30.field_0->vf26(field_30.field_50[0], lut);
+    f32 lutWidth = static_cast<f32>(lut->field_4c);
+    f32 lutHeight = static_cast<f32>(lut->field_50);
+    f32 lutDepth = static_cast<f32>(lut->field_84);
+    Unk_24e45d0.field_648[0].field_0[0].field_0 = (lutWidth - 1.0f) / lutWidth;
+    Unk_24e45d0.field_648[0].field_0[1].field_0 = (lutHeight - 1.0f) / lutHeight;
+    Unk_24e45d0.field_648[0].field_0[2].field_0 = (lutDepth - 1.0f) / lutDepth;
+    Unk_24e45d0.field_648[0].field_0[3].field_0 = 0.0f;
+    Unk_24e45d0.field_648[1].field_0[0].field_0 = 0.5f / lutWidth;
+    Unk_24e45d0.field_648[1].field_0[1].field_0 = 0.5f / lutHeight;
+    Unk_24e45d0.field_648[1].field_0[2].field_0 = 0.5f / lutDepth;
+    Unk_24e45d0.field_648[1].field_0[3].field_0 = 0.5f;
+    field_30.field_0->vf22(field_30.field_d4, Unk_24e45d0.field_648, 2);
+    return Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
+}
+
+// 0x7100475960 (its log line names it, and its techniques are
+// tech_MadT1_Sn's): `count` samples of one texture (1 to 28), each at an
+// offset and times a colour. Where only tech_MadScalarWeightT1_Sn has a
+// technique, the colours' alphas go to the function below as weights
+s32 CTextureUtil::DrawRectGPU_MadT1_Sn(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, s32 count,
+                                       const Unk_Float4* values, const Unk_Float4* colors, Unk_GPUTexture* texture,
+                                       s32 index, u32 flags) {
+    if (count < 1 || count > 28) {
+        return -4;
+    }
+    s32 technique;
+    s32 used;
+    if (Unk_442c50_get(reinterpret_cast<u64>(field_20))) {
+        used = count - 1;
+        do {
+            technique = field_30.field_118[used][index];
+            used++;
+        } while (used < 28 && technique == 0);
+    } else {
+        used = count + 1;
+        do {
+            technique = field_30.field_118[used - 2][index];
+            s32 scalar = index == 21 ? 0 : field_30.field_c18[used - 2][index];
+            if (technique == 0 && scalar != 0) {
+                f32 weights[32];
+                for (s32 i = 0; i < count; i++) {
+                    weights[i] = colors[i].field_0[3].field_0;
+                }
+                return Unk_475d80(x, y, width, height, u0, v0, u1, v1, count, values, weights, texture, index, flags);
+            }
+            used--;
+        } while (used > 0 && technique == 0);
+    }
+    if (technique == 0) {
+#line 12347
+        PPFX_ERROR("CTextureUtil::DrawRectGPU_MadT1_Sn(): GetHandle_tech_MadT1_Sn(%d, %d) failed.\n", count, index);
+        return -4;
+    }
+    field_30.field_0->vf29(technique);
+    Unk_4738e0(count, values, used, 8);
+    if (colors != nullptr) {
+        for (s32 i = 0; i < count; i++) {
+            Unk_24e45d0.field_448[i] = colors[i];
+        }
+    } else {
+        for (s32 i = 0; i < count; i++) {
+            Unk_24e45d0.field_448[i] = Unk_Float4(1.0f, 1.0f, 1.0f, 1.0f);
+        }
+    }
+    for (s32 i = count; i < used; i++) {
+        Unk_24e45d0.field_448[i] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+    }
+    field_30.field_0->vf22(field_30.field_d0, Unk_24e45d0.field_448, used);
+    if (texture != nullptr) {
+        field_30.field_0->vf26(field_30.field_8, texture);
+    }
+    return Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
+}
+
+// 0x7100475d80: the same with one weight per sample (1 to 32,
+// tech_MadScalarWeightT1_Sn, which has no technique 21). Up to 20 samples,
+// or where tech_MadT1_Sn has a technique, it is the function above
+s32 CTextureUtil::Unk_475d80(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, s32 count,
+                             const Unk_Float4* values, const f32* weights, Unk_GPUTexture* texture, s32 index,
+                             u32 flags) {
+    if (count < 1 || count > 32) {
+        return -4;
+    }
+    if (count <= 20 || field_30.field_118[count - 1][index] != 0) {
+        Unk_Float4 colors[32];
+        for (s32 i = 0; i < count; i++) {
+            colors[i] = Unk_Float4(weights[i], weights[i], weights[i], weights[i]);
+        }
+        return DrawRectGPU_MadT1_Sn(x, y, width, height, u0, v0, u1, v1, count, values, colors, texture, index, flags);
+    }
+    s32 technique;
+    s32 used;
+    if (Unk_442c50_get(reinterpret_cast<u64>(field_20))) {
+        used = count - 1;
+        do {
+            technique = index == 21 ? 0 : field_30.field_c18[used][index];
+            used++;
+        } while (used < 32 && technique == 0);
+    } else {
+        used = count + 1;
+        do {
+            technique = index == 21 ? 0 : field_30.field_c18[used - 2][index];
+            used--;
+        } while (used > 0 && technique == 0);
+    }
+    if (technique == 0) {
+        return -4;
+    }
+    field_30.field_0->vf29(technique);
+    s32 first = count < 8 ? count : 8;
+    s32 rest = count - 8 > 0 ? count - 8 : 0;
+    s32 firstTotal = used < 8 ? used : 8;
+    s32 restTotal = used - 8 > 0 ? used - 8 : 0;
+    for (s32 i = 0; i < first; i++) {
+        Unk_24e45d0.field_648[i] = values[i];
+    }
+    for (s32 i = first; i < firstTotal; i++) {
+        Unk_24e45d0.field_648[i] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+    }
+    field_30.field_0->vf22(field_30.field_c4, Unk_24e45d0.field_648, firstTotal);
+    for (s32 i = 0; i < rest; i++) {
+        const Unk_Float4& value = values[8 + i];
+        Unk_24e45d0.field_648[i] = Unk_Float4(value.field_0[0].field_0 - values[0].field_0[0].field_0,
+                                             value.field_0[1].field_0 - values[0].field_0[1].field_0,
+                                             value.field_0[2].field_0 - values[0].field_0[2].field_0,
+                                             value.field_0[3].field_0 - values[0].field_0[3].field_0);
+    }
+    for (s32 i = rest; i < restTotal; i++) {
+        Unk_24e45d0.field_648[i] = Unk_Float4(-values[0].field_0[0].field_0, -values[0].field_0[1].field_0,
+                                             -values[0].field_0[2].field_0, -values[0].field_0[3].field_0);
+    }
+    field_30.field_0->vf22(field_30.field_c8, Unk_24e45d0.field_648, restTotal);
+    // the weights fill the vectors' array four to an element
+    for (s32 i = 0; i < count; i++) {
+        Unk_24e45d0.field_448[0].field_0[i].field_0 = weights[i];
+    }
+    for (s32 i = count; i < used; i++) {
+        Unk_24e45d0.field_448[0].field_0[i].field_0 = 0.0f;
+    }
+    field_30.field_0->vf22(field_30.field_d0, Unk_24e45d0.field_448, (used + 3) / 4);
+    if (texture != nullptr) {
+        field_30.field_0->vf26(field_30.field_8, texture);
+    }
+    return Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
+}
+
 // DRAWRECTGPU_END
 
 // 0x71004708b0: releases what the device made
