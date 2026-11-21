@@ -8,7 +8,7 @@ void Unk_38fcb0(void* self, u32 id);
 extern void* Unk_24bbc08;
 
 template <class T>
-static inline bool Unk_334be0_Init(Unk_Index<T>& index) {
+static inline bool Unk_334be0_Init(Unk_334be0_Index<T>& index) {
     return Unk_3352d0(reinterpret_cast<Unk_3352d0_T*>(&index.field_20), 11);
 }
 
@@ -45,7 +45,7 @@ void Unk_334be0_T::Unk_334cf0() {
 
 // Releases the objects of a table whose IDs have the top bit set.
 template <class T>
-static inline void Unk_334f70_Release(Unk_HashListBare<T>& table) {
+static inline void Unk_334f70_Release(Unk_334be0_Table<T>& table) {
     auto it = table.Begin();
     while (it != table.End()) {
         T* p = *it;
