@@ -24,6 +24,9 @@ extern s32 Unk_24e0008;
 // the effect file, compressed: its size, then miniz's stream
 extern const u8 Unk_1b61595[];
 
+// 0x7101b3516c: "CTextureUtil"
+extern const char Unk_1b3516c[];
+
 // 0x7100417a30: printf to the log
 void Unk_417a30(const char* format, ...);
 // 0x7100446df0: an error code's name
@@ -929,9 +932,344 @@ s32 TEXSHADERSET::CreateEffect(void* device) {
 }
 
 
+// 0x710046cfe0
+s32 TEXSHADERSET::Unk_46cfe0() {
+    if (field_0 == nullptr) {
+        return -1;
+    }
+    IGPUDevice* device;
+    Unk_InputElement elements[2] = {
+        Unk_InputElement(0, 0, 0x10),
+        Unk_InputElement(2, 0, 0x10),
+    };
+    if (field_299b8[1] != nullptr) {
+        return 1;
+    }
+    Unk_446620(field_0, &device);
+    device->vf1();
+    void* arg3 = field_0->vf37(0);
+    s32 arg4 = field_0->vf39(0);
+    return device->vf70(elements, 2, arg3, arg4, &field_299b8[1]);
+}
+
+// 0x710046d0c0
+s32 TEXSHADERSET::Unk_46d0c0() {
+    if (field_0 == nullptr) {
+        return -1;
+    }
+    IGPUDevice* device;
+    Unk_InputElement elements[3] = {
+        Unk_InputElement(0, 0, 0x10),
+        Unk_InputElement(2, 0, 0x10),
+        Unk_InputElement(2, 1, 0x10),
+    };
+    if (field_299b8[2] != nullptr) {
+        return 1;
+    }
+    Unk_446620(field_0, &device);
+    device->vf1();
+    void* arg3 = field_0->vf37(0);
+    s32 arg4 = field_0->vf39(0);
+    return device->vf70(elements, 3, arg3, arg4, &field_299b8[2]);
+}
+
+// 0x710046d1b0
+s32 TEXSHADERSET::Unk_46d1b0() {
+    if (field_0 == nullptr) {
+        return -1;
+    }
+    IGPUDevice* device;
+    Unk_InputElement elements[4] = {
+        Unk_InputElement(0, 0, 0x10),
+        Unk_InputElement(2, 0, 0x10),
+        Unk_InputElement(2, 1, 0x10),
+        Unk_InputElement(2, 2, 0x10),
+    };
+    if (field_299b8[3] != nullptr) {
+        return 1;
+    }
+    Unk_446620(field_0, &device);
+    device->vf1();
+    void* arg3 = field_0->vf37(0);
+    s32 arg4 = field_0->vf39(0);
+    return device->vf70(elements, 4, arg3, arg4, &field_299b8[3]);
+}
+
+// 0x710046d2a0
+s32 TEXSHADERSET::Unk_46d2a0() {
+    if (field_0 == nullptr) {
+        return -1;
+    }
+    IGPUDevice* device;
+    if (field_299b8[4] != nullptr) {
+        return 1;
+    }
+    Unk_446620(field_0, &device);
+    device->vf1();
+    Unk_InputElement elements[5] = {
+        Unk_InputElement(0, 0, 0x10),
+        Unk_InputElement(2, 0, 0x10),
+        Unk_InputElement(2, 1, 0x10),
+        Unk_InputElement(2, 2, 0x10),
+        Unk_InputElement(2, 3, 0x10),
+    };
+    void* arg3 = field_0->vf37(0);
+    s32 arg4 = field_0->vf39(0);
+    return device->vf70(elements, 5, arg3, arg4, &field_299b8[4]);
+}
+
+// 0x710046d3a0
+s32 TEXSHADERSET::Unk_46d3a0() {
+    if (field_0 == nullptr) {
+        return -1;
+    }
+    IGPUDevice* device;
+    if (field_299b8[5] != nullptr) {
+        return 1;
+    }
+    Unk_446620(field_0, &device);
+    device->vf1();
+    Unk_InputElement elements[6] = {
+        Unk_InputElement(0, 0, 0x10),
+        Unk_InputElement(2, 0, 0x10),
+        Unk_InputElement(2, 1, 0x10),
+        Unk_InputElement(2, 2, 0x10),
+        Unk_InputElement(2, 3, 0x10),
+        Unk_InputElement(2, 4, 0x10),
+    };
+    void* arg3 = field_0->vf37(0);
+    s32 arg4 = field_0->vf39(0);
+    return device->vf70(elements, 6, arg3, arg4, &field_299b8[5]);
+}
+
+// 0x710046d4b0
+s32 TEXSHADERSET::Unk_46d4b0() {
+    if (field_0 == nullptr) {
+        return -1;
+    }
+    IGPUDevice* device;
+    if (field_299b8[6] != nullptr) {
+        return 1;
+    }
+    Unk_446620(field_0, &device);
+    device->vf1();
+    Unk_InputElement elements[7] = {
+        Unk_InputElement(0, 0, 0x10),
+        Unk_InputElement(2, 0, 0x10),
+        Unk_InputElement(2, 1, 0x10),
+        Unk_InputElement(2, 2, 0x10),
+        Unk_InputElement(2, 3, 0x10),
+        Unk_InputElement(2, 4, 0x10),
+        Unk_InputElement(2, 5, 0x10),
+    };
+    void* arg3 = field_0->vf37(0);
+    s32 arg4 = field_0->vf39(0);
+    return device->vf70(elements, 7, arg3, arg4, &field_299b8[6]);
+}
+
+// 0x710046d5e0
+s32 TEXSHADERSET::Unk_46d5e0() {
+    if (field_0 == nullptr) {
+        return -1;
+    }
+    IGPUDevice* device;
+    Unk_InputElement elements[6] = {
+        Unk_InputElement(0, 0, 0x10),
+        Unk_InputElement(2, 0, 0x2),
+        Unk_InputElement(2, 1, 0x2),
+        Unk_InputElement(2, 2, 0x2),
+        Unk_InputElement(2, 3, 0x2),
+        Unk_InputElement(2, 4, 0x2),
+    };
+    if (field_299b8[11] != nullptr) {
+        return 1;
+    }
+    Unk_446620(field_0, &device);
+    device->vf1();
+    void* arg3 = field_0->vf37(0);
+    s32 arg4 = field_0->vf39(0);
+    return device->vf70(elements, 6, arg3, arg4, &field_299b8[11]);
+}
+
+// 0x710046d6f0
+s32 TEXSHADERSET::Unk_46d6f0() {
+    if (field_0 == nullptr) {
+        return -1;
+    }
+    IGPUDevice* device;
+    Unk_InputElement elements[3] = {
+        Unk_InputElement(0, 0, 0x6),
+        Unk_InputElement(2, 0, 0x2),
+        Unk_InputElement(2, 1, 0x2),
+    };
+    if (field_299b8[12] != nullptr) {
+        return 1;
+    }
+    Unk_446620(field_0, &device);
+    device->vf1();
+    void* arg3 = field_0->vf37(0);
+    s32 arg4 = field_0->vf39(0);
+    return device->vf70(elements, 3, arg3, arg4, &field_299b8[12]);
+}
+
+// 0x710046d7e0
+s32 TEXSHADERSET::InitializeDevice(IGPUDevice* device, bool keepEffect) {
+#line 4908
+    PPFX_LOG("==== TEXSHADERSET::InitializeDevice() ====\n");
+    if (!keepEffect) {
+        s32 result = CreateEffect(device);
+        if (result < 0) {
+#line 4924
+            PPFX_ERROR("TEXSHADERSET::InitializeDevice(): CreateEffect() failed (0x%x: %s).\n", result, Unk_446df0(result));
+            return result;
+        }
+    }
+    if (field_0 != nullptr) {
+        s32 result = field_0->vf10();
+        if (result < 0) {
+#line 4940
+            PPFX_ERROR("TEXSHADERSET::InitializeDevice(): m_pEffect->OnResetDevice() failed (0x%x: %s).\n", result, Unk_446df0(result));
+            return result;
+        }
+        f32 value[4] = {};
+        bool flag = device->field_58;
+        value[0] = 1.0f;
+        value[1] = flag ? 1.0f : -1.0f;
+        field_0->vf20(field_a0, value);
+    }
+#line 5367
+    PPFX_LOG("==== TEXSHADERSET::InitializeDevice() succeeded. ====\n");
+    return 0;
+}
+
 // 0x710046db60
 CTextureUtil::CTextureUtil(const char* name) : CGPUResourceManage(nullptr) {
     Unk_46dc60(name);
+}
+
+// A member object named after its owner: the name is made first, and the
+// object from its text (one line each in the original, by their __LINE__s).
+#define UNK_NEW_NAMED(member, T, suffix)                   do {                                                       Unk_TFXString name_ = field_10 + suffix;               const char* text_ = name_.field_8;                     member = UNK_NEW(T)(text_);                        } while (0)
+
+// 0x710046dc60: names the object, makes its texture pool and its measurement
+// texture, and fills the sample points
+s32 CTextureUtil::Unk_46dc60(const char* name) {
+    if (name != nullptr && name[0] != '\0') {
+        field_10 = Unk_TFXString(Unk_1b3516c) + " " + name;
+    } else {
+        field_10 = Unk_1b3516c;
+    }
+#line 5530
+    UNK_NEW_NAMED(field_29a58, CRenderTexturePool, "::m_pTexturePool");
+    Unk_24e2d50[0] = Unk_SamplePoint(0.12545430660247803f, -0.6233202219009399f);
+    Unk_24e2d50[1] = Unk_SamplePoint(-0.012919187545776367f, 0.2008380889892578f);
+    Unk_24e2d50[2] = Unk_SamplePoint(-0.013421475887298584f, -0.9243490695953369f);
+    Unk_24e2d50[3] = Unk_SamplePoint(0.391507625579834f, -0.02421402931213379f);
+    Unk_24e2d50[4] = Unk_SamplePoint(-0.47500234842300415f, 0.5201195478439331f);
+    Unk_24e2d50[5] = Unk_SamplePoint(0.185394287109375f, -0.7468999624252319f);
+    Unk_24e2d50[6] = Unk_SamplePoint(-0.9652976989746094f, -0.2772960662841797f);
+    Unk_24e2d50[7] = Unk_SamplePoint(0.7774732112884521f, -0.8726856708526611f);
+    Unk_Clear();
+#line 5694
+    UNK_NEW_NAMED(field_29a98, CRenderTexture, "::m_pTextureMeasurement");
+    s32 result = field_29a98->Unk_Create(0, 0x10, 0x10, 0x1c);
+    return result < 0 ? result : 0;
+}
+
+// 0x710046e360: the colour chart's bars (the members' names are in the strings)
+s32 CTextureUtil::Unk_46e360(s32 width, s32 height, s32 format) {
+    s32 result;
+    if (field_29b00 != nullptr) {
+        if (field_29b00->field_a8 != nullptr && field_29b00->field_b8 != nullptr) {
+            return 1;
+        }
+        if (field_20 == nullptr) {
+            return 0;
+        }
+        field_29b00->vf0(field_20);
+        field_29b08[1]->vf0(field_20);
+        field_29b08[0]->vf0(field_20);
+        field_29b08[2]->vf0(field_20);
+        return field_29b08[3]->vf0(field_20);
+    }
+#line 5893
+    UNK_NEW_NAMED(field_29b00, CRenderTexture, "::m_pRenderTextureColorChart_ColorBar");
+    UNK_NEW_NAMED(field_29b08[0], CRenderTexture, "::m_pRenderTextureColorChart_ColorBarGraded");
+    UNK_NEW_NAMED(field_29b08[1], CRenderTexture, "::m_pRenderTextureColorChart_ColorBar_Small");
+    UNK_NEW_NAMED(field_29b08[2], CRenderTexture, "::m_pRenderTextureColorChart_ColorBarGraded_Small");
+    UNK_NEW_NAMED(field_29b08[3], CRenderTexture, "::m_pRenderTextureColorChart_ColorBarLuminance");
+    field_29b00->Unk_Create(0, width, height, format);
+    field_29b08[0]->Unk_Create(0, width, height, format);
+    field_29b08[1]->Unk_Create(0, width, height, format);
+    field_29b08[2]->Unk_Create(0, width, height, format);
+    result = field_29b08[3]->Unk_Create(0, width, 4, format);
+    if (field_20 != nullptr) {
+        field_29b00->vf0(field_20);
+        field_29b08[0]->vf0(field_20);
+        field_29b08[1]->vf0(field_20);
+        field_29b08[2]->vf0(field_20);
+        result = field_29b08[3]->vf0(field_20);
+    }
+    return result;
+}
+
+// 0x710046e740: the colour chart's chromaticity diagrams
+s32 CTextureUtil::Unk_46e740(s32 width, s32 height, s32 format) {
+    s32 result;
+    if (field_29b08[4] != nullptr) {
+        if (field_29b08[4]->field_a8 != nullptr && field_29b08[4]->field_b8 != nullptr) {
+            return 1;
+        }
+        if (field_20 == nullptr) {
+            return 0;
+        }
+        field_29b08[4]->vf0(field_20);
+        field_29b08[5]->vf0(field_20);
+        field_29b08[6]->vf0(field_20);
+        return field_29b08[7]->vf0(field_20);
+    }
+#line 5973
+    UNK_NEW_NAMED(field_29b08[4], CRenderTexture, "::m_pRenderTextureColorChart_ChromaticityDiagram");
+    UNK_NEW_NAMED(field_29b08[5], CRenderTexture, "::m_pRenderTextureColorChart_ChromaticityDiagramLegacy");
+    UNK_NEW_NAMED(field_29b08[6], CRenderTexture, "::m_pRenderTextureColorChart_ChromaticityDiagramUV");
+    UNK_NEW_NAMED(field_29b08[7], CRenderTexture, "::m_pRenderTextureColorChart_ChromaticityDiagramLegacyUV");
+    field_29b08[4]->Unk_Create(0, width, height, format);
+    field_29b08[5]->Unk_Create(0, width, height, format);
+    field_29b08[6]->Unk_Create(0, width, height, format);
+    result = field_29b08[7]->Unk_Create(0, width, height, format);
+    if (field_20 != nullptr) {
+        field_29b08[4]->vf0(field_20);
+        field_29b08[5]->vf0(field_20);
+        field_29b08[6]->vf0(field_20);
+        result = field_29b08[7]->vf0(field_20);
+    }
+    return result;
+}
+
+// 0x710046ea80: the colour chart's waveform monitor and its source
+s32 CTextureUtil::Unk_46ea80(s32 width, s32 height) {
+    s32 result;
+    if (field_29b08[8] != nullptr) {
+        if (field_29b08[8]->field_a8 != nullptr && field_29b08[8]->field_b8 != nullptr) {
+            return 1;
+        }
+        if (field_20 == nullptr) {
+            return 0;
+        }
+        field_29b08[8]->vf0(field_20);
+        return field_29b08[9]->vf0(field_20);
+    }
+#line 6026
+    UNK_NEW_NAMED(field_29b08[8], CRenderTexture, "::m_pRenderTextureColorChart_WaveformMonitor");
+    field_29b08[8]->Unk_Create(0, width, height, 0x1c);
+#line 6039
+    UNK_NEW_NAMED(field_29b08[9], CRenderTexture, "::m_pRenderTextureColorChart_WaveformSource");
+    result = field_29b08[9]->Unk_Create(0, width, height, 0xa);
+    if (field_20 != nullptr) {
+        field_29b08[8]->vf0(field_20);
+        result = field_29b08[9]->vf0(field_20);
+    }
+    return result;
 }
 
 // 0x710046d990: releases the effect's objects, and with no argument the
@@ -955,6 +1293,42 @@ s32 TEXSHADERSET::Unk_46d990(void* arg) {
         PPFX_SAFE_RELEASE_INTERFACE(field_299b8[i]);
     }
     return 0;
+}
+
+}  // namespace PPFX
+
+// 0x710046e270: CTextureUtil::InitializeDeviceSharedTexturePoolWithCheck (its
+// log lines), under the placeholder name its caller gave it
+s32 Unk_46e270(void* self_, u32) {
+    PPFX::CTextureUtil* self = static_cast<PPFX::CTextureUtil*>(self_);
+    s32 result = self->field_29a58->vf0(self->field_20);
+    if (result < 0) {
+#line 5837
+        PPFX_ERROR("CTextureUtil::InitializeDeviceSharedTexturePoolWithCheck(): m_pTexturePool->InitializeDevice() failed (0x%x: %s).\n", result, Unk_446df0(result));
+        return result;
+    }
+#line 5841
+    PPFX_LOG("CTextureUtil::InitializeDeviceSharedTexturePoolWithCheck(): m_pTexturePool->InitializeDevice() succeeded.\n");
+    return result;
+}
+
+namespace PPFX {
+
+// 0x7100470860
+s32 CTextureUtil::Unk_470860(s32 value) {
+    field_29a64 = value;
+    return 0;
+}
+
+// 0x7100470880
+s32 CTextureUtil::Unk_470880() {
+    field_29a6c = false;
+    return 0;
+}
+
+// 0x71004708a0
+s32 CTextureUtil::Unk_4708a0(void* arg) {
+    return field_29a58->Unk_49fed0(arg);
 }
 
 // 0x71004708b0: releases what the device made
@@ -1007,43 +1381,7 @@ s32 CTextureUtil::vf3() {
     for (s32 i = 0; i < 10; i++) {
         PPFX_SAFE_RELEASE(field_29b08[i]);
     }
-    field_29a98 = nullptr;
-    for (s32 i = 0; i < 8; i++) {
-        field_29b68[i] = nullptr;
-    }
-    field_29b00 = nullptr;
-    for (s32 i = 0; i < 10; i++) {
-        field_29b08[i] = nullptr;
-    }
-    field_29ba8 = 1.0f;
-    field_29a60 = true;
-    field_29ab0 = true;
-    field_29ad0 = true;
-    field_29ae8 = 0x20;
-    field_29aec = 1;
-    field_29c00 = 0x40;
-    field_29c04 = 1;
-    field_29bb0 = nullptr;
-    field_29af0 = 0;
-    field_29af8 = nullptr;
-    for (s32 i = 0; i < 5; i++) {
-        field_29a70[i] = nullptr;
-    }
-    for (s32 i = 0; i < 2; i++) {
-        field_29aa0[i] = nullptr;
-    }
-    for (s32 i = 0; i < 3; i++) {
-        field_29ab8[i] = nullptr;
-    }
-    for (s32 i = 0; i < 2; i++) {
-        field_29ad8[i] = nullptr;
-    }
-    for (s32 i = 0; i < 7; i++) {
-        field_29bc8[i] = nullptr;
-    }
-    for (s32 i = 0; i < 2; i++) {
-        field_29b58[i] = nullptr;
-    }
+    Unk_Clear();
     s32 result = CGPUResourceManage::vf3();
     return result < 0 ? result : 0;
 }
