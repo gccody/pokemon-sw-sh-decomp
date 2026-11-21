@@ -1,6 +1,7 @@
 // Scope: common
 // Pooled lists of the range 0x710035ead0-0x71003b6ee0: the Term of three of
 // them. Placeholder names.
+#include "Unk_368a60.h"
 #include "list2.h"
 
 // The pooled list with its pool as a parameter (Unk_List2Ex has the default
@@ -166,7 +167,42 @@ template void Unk_List2Ex<Unk_395cb0_Item>::Term();
 typedef Unk_367ed0_List<Unk_367ed0_Item, Unk_Pool2381488> Unk_367ed0_Requests;
 Unk_367ed0_Requests Unk_24bcb50;
 u32 Unk_24bcb48;
-u64 Unk_24bcb38[2];
+
+// A list without a pool: the last item, then the first.
+struct Unk_368870_List {
+    struct IteratorEx {
+        Unk_368a60_T* item;
+        Unk_368a60_T* prev;
+    };
+
+    Unk_368a60_T* field_0;  // last
+    Unk_368a60_T* field_8;  // first
+
+    IteratorEx BeginEx() const {
+        IteratorEx it;
+        it.item = field_8;
+        it.prev = nullptr;
+        return it;
+    }
+
+    void RemoveItem(Unk_368a60_T* p, Unk_368a60_T* prev) {
+        if (p == field_8)
+            field_8 = p->field_68;
+        else
+            prev->field_68 = p->field_68;
+        if (p == field_0)
+            field_0 = prev;
+    }
+
+    IteratorEx Erase(const IteratorEx& it) {
+        IteratorEx next;
+        next.item = it.item->field_68;
+        next.prev = it.prev;
+        RemoveItem(it.item, it.prev);
+        return next;
+    }
+};
+Unk_368870_List Unk_24bcb38;
 u8 Unk_24bcb78;
 
 // 0x7100367e30
@@ -177,8 +213,8 @@ u32 Unk_367e30() {
 
 // 0x7100367eb0
 void Unk_367eb0() {
-    Unk_24bcb38[0] = 0;
-    Unk_24bcb38[1] = 0;
+    Unk_24bcb38.field_0 = nullptr;
+    Unk_24bcb38.field_8 = nullptr;
     Unk_24bcb50.Term();
 }
 
@@ -203,5 +239,139 @@ u32 Unk_3680c0(u32 type, Unk_3be850_Ctx* ctx) {
     item->field_c_8 = 0;
     if (type <= 1)
         Unk_24bcb78 = 1;
+    return 1;
+}
+
+// 0x7100368870
+void Unk_368870() {
+    for (auto it = Unk_24bcb38.BeginEx(); it.item != nullptr;) {
+        Unk_368a60_T* object = it.item;
+        it = Unk_24bcb38.Erase(it);
+        Unk_368a60(object, 0);
+    }
+}
+
+// The settings of this part of the engine (0x71024bcb80).
+struct Unk_3689f0_Settings {
+    u8 _0[0x84];
+    u32 field_84;  // the pool's size
+    u8 _88[4];
+    u16 field_8c;
+    u8 _8e[2];
+};
+PKMN_SIZE_ASSERT(Unk_3689f0_Settings, 0x90);
+Unk_3689f0_Settings Unk_24bcb80;
+
+struct Unk_2380d10_T {
+    u64 field_0;
+    u32 field_8;
+};
+extern Unk_2380d10_T Unk_2380d10;
+
+int Unk_305450(void* a0, u32 size, u32 a2, u32 a3, u32 a4);
+bool Unk_3044e0(void* a0);
+void Unk_305660(int poolId);
+void Unk_3338a0(void* settings);
+extern "C" void* memcpy(void* dest, const void* src, size_t size);
+
+// 0x7100368900: creates the pool: 1, or 0x34.
+u32 Unk_368900() {
+    if (Unk_2381488 == -1) {
+        Unk_2381488 = Unk_305450(nullptr, Unk_24bcb80.field_84 > 0x40 ? Unk_24bcb80.field_84 : 0x1000000,
+                                 0x40, 1, 0x10);
+        if (Unk_2381488 == -1)
+            return 0x34;
+        Unk_2380d10.field_8 = Unk_2381488;
+    }
+    return 1;
+}
+
+// 0x7100368990
+void Unk_368990(void* a0) {
+    if (Unk_3044e0(a0) && Unk_2381488 != -1) {
+        Unk_305660(Unk_2381488);
+        Unk_2381488 = -1;
+    }
+}
+
+// 0x71003689f0: sets the settings and gives them back as they are used, or
+// the defaults without settings.
+void Unk_3689f0(Unk_3689f0_Settings* settings) {
+    if (settings != nullptr) {
+        memcpy(&Unk_24bcb80, settings, sizeof(Unk_24bcb80));
+        if (Unk_24bcb80.field_8c == 0)
+            Unk_24bcb80.field_8c = 4;
+        memcpy(settings, &Unk_24bcb80, sizeof(Unk_24bcb80));
+    } else {
+        Unk_3338a0(&Unk_24bcb80);
+    }
+}
+
+// 0x7100368ff0: the array of 0x71024bcc18, whose items can own a buffer.
+struct Unk_368ff0_Item {
+    u8 _0[0x18];
+    void* field_18;
+    u32 field_20;
+    u8 field_24;
+};
+PKMN_SIZE_ASSERT(Unk_368ff0_Item, 0x28);
+Unk_Array<Unk_368ff0_Item> Unk_24bcc18;
+
+void Unk_368ff0() {
+    for (auto it = Unk_24bcc18.Begin(); it != Unk_24bcc18.End(); ++it) {
+        if ((*it).field_24 && (*it).field_18 != nullptr)
+            Unk_Pool2381488::Free((*it).field_18);
+    }
+    Unk_24bcc18.Term();
+}
+
+// A table of strings: 0x71003690b0 allocates it, 0x7100369110 frees it and
+// 0x71003691b0 sets one.
+struct Unk_3690b0_T {
+    struct Item {
+        u64 field_0;
+        char* field_8;
+    };
+
+    u32 field_0;
+    Item* field_8;
+};
+
+// 0x71003690b0
+u32 Unk_3690b0(Unk_3690b0_T* self, u32 count) {
+    self->field_0 = count;
+    self->field_8 = static_cast<Unk_3690b0_T::Item*>(
+        Unk_3045e0(Unk_2381488, sizeof(Unk_3690b0_T::Item) * count));
+    if (self->field_8 == nullptr) {
+        self->field_0 = 0;
+        return 0x34;
+    }
+    return 1;
+}
+
+// 0x7100369110
+void Unk_369110(void* object) {
+    Unk_3690b0_T* self = static_cast<Unk_3690b0_T*>(object);
+    if (self->field_8 != nullptr) {
+        for (u32 i = 0; i < self->field_0; i++) {
+            if (self->field_8[i].field_8 != nullptr) {
+                Unk_Pool2381488::Free(self->field_8[i].field_8);
+                self->field_8[i].field_8 = nullptr;
+            }
+        }
+        Unk_Pool2381488::Free(self->field_8);
+        self->field_8 = nullptr;
+    }
+    self->field_0 = 0;
+}
+
+// 0x71003691b0
+u32 Unk_3691b0(Unk_3690b0_T* self, u32 index, const char* string, u32 length) {
+    char* copy = static_cast<char*>(Unk_Pool2381488::Alloc(length + 1));
+    if (copy == nullptr)
+        return 0x34;
+    memcpy(copy, string, length);
+    copy[length] = 0;
+    self->field_8[index].field_8 = copy;
     return 1;
 }
