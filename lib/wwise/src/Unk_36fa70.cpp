@@ -656,3 +656,35 @@ bool Unk_2382df0::vf0(const Unk_36fa70_Key0& other) {
         return root->Has(*key, other);
     return false;
 }
+
+// The same for the first tree.
+// 0x710036dbe0 (and 0x710036dd30 and 0x710036de80)
+// NON_MATCHING: 0x710036e100, like 0x71003a3bb0.
+bool Unk_36b160_Root::Has(const Unk_36fa70_Key0& key, const Unk_36fa70_Key0& orig) {
+    if (orig.IsAnyHere())
+        return false;
+    Unk_23817a8* child = this->field_18.Exists(orig.field_0);
+    if (child == nullptr)
+        child = this->field_18.Exists(Unk_36fa70_Key0::Any());
+    bool all = key.IsAny();
+    bool result = child != nullptr && all;
+    if (child != nullptr && !all)
+        result = child->Has(key.field_8, orig.field_8);
+    return result;
+}
+
+struct Unk_2381780 {
+    virtual bool vf0(const Unk_36fa70_Key0& other);
+
+    const Unk_36fa70_Key0* field_8;
+    Unk_36b160_Root* field_10;
+};
+
+// 0x710036db50
+bool Unk_2381780::vf0(const Unk_36fa70_Key0& other) {
+    Unk_36b160_Root* root = field_10;
+    const Unk_36fa70_Key0* key = field_8;
+    if (key->IsWider(other))
+        return root->Has(*key, other);
+    return false;
+}
