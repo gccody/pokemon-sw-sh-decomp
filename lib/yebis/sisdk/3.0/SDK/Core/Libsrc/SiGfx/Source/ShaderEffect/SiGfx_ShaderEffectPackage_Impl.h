@@ -17,11 +17,59 @@ namespace SiSDK3 {
 
 class ISiIOStream;
 class ISiGfxShader;
-class ISiGfxShaderEffectDefinition;
-class ISiGfxShaderEffectVariation;
+
+// A definition and a variation as the package uses them: slot 14 writes one
+// to a stream.
+class ISiGfxShaderEffectDefinition {
+public:
+    virtual ~ISiGfxShaderEffectDefinition();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual bool vf14(ISiIOStream* stream);
+};
+class ISiGfxShaderEffectVariation {
+public:
+    virtual ~ISiGfxShaderEffectVariation();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual bool vf14(ISiIOStream* stream);
+};
+
 class ISiGfxShaderEffectPackage {
 public:
-    struct ShaderEffectData;
+    // An effect's data (RTTI: the pointee of the package's arrays), as far
+    // as the package's functions written so far read it.
+    struct ShaderEffectData {
+        u64 field_0;
+        SiString<char> field_8;
+        u32 field_38;
+        s32 field_3c;
+    };
+};
+
+// A shader's code as vf14 is given it (placeholder name): 16 bytes.
+struct Unk_5693e0 {
+    u64 field_0[2];
 };
 
 // A preprocessor definition: its name and its value (RTTI: the element of
@@ -82,8 +130,8 @@ struct Unk_567750_Header {
     Unk_567750_Half field_40;
     Unk_567750_Half field_50;
     u32 field_60;
-    u32 field_64;
-    u64 field_68;
+    s32 field_64;  // what the bytes at field_be8 are aligned to in the file
+    s64 field_68;  // how many they are
     s32 field_70;  // the number of variations
     s32 field_74;
     s32 field_78;  // the number of definitions
@@ -149,16 +197,16 @@ public:
     virtual void vf5(const char* name);  // sets the name
     virtual SiString<char>* vf6();       // the name
     virtual const u8* vf7();
-    virtual bool vf8(ISiIOStream* stream);
+    virtual bool vf8(const char* path);  // reads a file
     virtual bool vf9();  // releases what it holds
-    virtual bool vf10(ISiIOStream* stream);
-    virtual bool vf11(const char* path);
+    virtual bool vf10(const char* path, u32 byteOrder);  // writes a file
+    virtual bool vf11();
     virtual bool vf12(const Unk_567750_Desc* desc);
     virtual bool vf13(ISiIOStream* stream);
-    virtual bool vf14(u64 value108, void* valueBe8, u32 value104, const SiArray<ISiGfxShader*>* shaders0,
-                      const SiArray<ISiGfxShader*>* shaders1, const SiArray<ISiGfxShader*>* shaders2,
-                      const SiArray<ISiGfxShader*>* shaders3, const SiArray<ISiGfxShader*>* shaders4,
-                      const SiArray<ISiGfxShader*>* shaders5);
+    virtual bool vf14(s64 value108, void* valueBe8, u32 value104, const SiArray<Unk_5693e0>* shaders0,
+                      const SiArray<Unk_5693e0>* shaders1, const SiArray<Unk_5693e0>* shaders2,
+                      const SiArray<Unk_5693e0>* shaders3, const SiArray<Unk_5693e0>* shaders4,
+                      const SiArray<Unk_5693e0>* shaders5);
     virtual bool vf15(ISiGfxShaderEffectPackage::ShaderEffectData* data);  // adds an effect's data
     virtual void vf16(const Unk_567b80* options);
     virtual const u8* vf17();
@@ -176,6 +224,15 @@ public:
 
     // 0x71005686f0: releases the effects' data, definitions and variations
     bool Unk_5686f0();
+    // 0x7100569c40: writes the shaders' code, 0x7100569dd0: an effect's data
+    bool Unk_569c40(ISiIOStream* stream);
+    bool Unk_569dd0(ISiIOStream* stream, ISiGfxShaderEffectPackage::ShaderEffectData* data);
+    // 0x710056ae10, 0x710056b000, 0x710056b230, 0x710056b8a0: read the parts
+    // of a file after its header
+    bool Unk_56ae10(ISiIOStream* stream, Unk_567750_Header* header);
+    bool Unk_56b000(ISiIOStream* stream, Unk_567750_Header* header);
+    bool Unk_56b230(ISiIOStream* stream, Unk_567750_Header* header);
+    bool Unk_56b8a0(ISiIOStream* stream, Unk_567750_Header* header);
     // 0x71005697b0: writes the file's header, 0x710056a960: reads it
     bool Unk_5697b0(ISiIOStream* stream, u32 byteOrder);
     bool Unk_56a960(ISiIOStream* stream, Unk_567750_Header* header);
@@ -200,7 +257,7 @@ public:
     Unk_567b80 field_2d0;
     void* field_be8;
     bool field_bf0;
-    ISiGfxShader** field_bf8[6];  // the shaders of the header's six numbers
+    Unk_5693e0* field_bf8[6];  // the shaders' code of the header's six numbers
     Unk_CriticalSection field_c28;
     SiArray<ISiGfxShader*> field_c58[6];
     SiGfxShaderEffectVariationList field_e38;

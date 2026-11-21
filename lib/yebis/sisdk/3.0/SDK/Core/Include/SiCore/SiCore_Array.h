@@ -34,6 +34,30 @@ public:
     // nothing)
     void operator=(const SiArray& other);
 
+    // makes room for at least count elements (inline in every caller:
+    // placeholder name)
+    bool Unk_ReserveAtLeast(size_t count) {
+        if (m_reservedCount < count) {
+            if (!Unk_4bf190(count, true)) {
+                m_itemCount = 0;
+                field_30 = nullptr;
+                field_38 = nullptr;
+                return false;
+            }
+            if (m_reservedCount < m_itemCount) {
+                m_itemCount = m_reservedCount;
+            }
+            if (m_itemCount == 0) {
+                field_30 = nullptr;
+                field_38 = nullptr;
+            } else {
+                field_30 = m_pData;
+                field_38 = m_pData + m_itemCount;
+            }
+        }
+        return true;
+    }
+
     // sets the room to count elements (inline in the assignment: placeholder
     // name)
     bool Unk_SetReserved(size_t count) {

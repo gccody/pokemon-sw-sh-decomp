@@ -5,6 +5,11 @@
 
 namespace SiSDK3 {
 
+// 0x7100574710
+SiGfxShaderEffectVariation::SiGfxShaderEffectVariation(ISiAllocator* pAllocator)
+    : field_8(pAllocator), field_18(pAllocator), field_48(pAllocator), field_98(pAllocator), field_c8(0),
+      field_d0(pAllocator), field_120(pAllocator), field_150(0) {}
+
 // 0x7100574850 (D2), 0x7100574c30 (D0)
 SiGfxShaderEffectVariation::~SiGfxShaderEffectVariation() {
     Unk_574a20();

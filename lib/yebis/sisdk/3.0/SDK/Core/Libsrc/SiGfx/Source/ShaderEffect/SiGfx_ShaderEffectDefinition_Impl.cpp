@@ -33,6 +33,11 @@ inline void SiGfxShaderEffectDefinition::Unk_Release() {
     }
 }
 
+// 0x710056fd60
+SiGfxShaderEffectDefinition::SiGfxShaderEffectDefinition(ISiAllocator* pAllocator)
+    : field_8(pAllocator), field_18(pAllocator), field_48(pAllocator), field_78(pAllocator), field_a8(-1), field_ac(0),
+      field_b0(nullptr), field_b8(nullptr), field_c0(nullptr) {}
+
 // 0x710056fe50 (D2), 0x710056ffe0 (D0)
 SiGfxShaderEffectDefinition::~SiGfxShaderEffectDefinition() {
     Unk_Release();
