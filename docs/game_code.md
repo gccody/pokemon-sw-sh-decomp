@@ -2666,6 +2666,46 @@ What decided the match:
   in a callee-saved register across the temporary's `vf4`. Passing the list
   to a free function computes it after.
 
+### The requests' steps (`familygen.py`, 2026-11-20)
+
+The 61 classes those adders make are the steps of a network request, and
+seven functions of each one's vtables are the same in every class: `vf7`,
+`vf9`, `vf10`, `vf11` and the three slots of the interface at `+0x60`, which
+are thunks to the last three with the body inlined (clang emits a thunk as a
+function that tail-calls its target, and the inliner takes the target when it
+is defined in the TU). All 427 match (42,720 bytes), written after the adders
+in `src/gflib3/families/Unk_1085320.cpp`:
+
+- `vf7` returns `field_78`, made on the first call by a function of the class's
+  own (`Unk_<addr>(this, &field_80)`, not decompiled: 524 bytes and more each);
+- `vf9`, `vf10` and `vf11` are the interface (`Unk_1085320_Step<Code>`): if
+  the weak reference (`field_68`) still has an owner (`Unk_WeakGet`: the
+  handle's count read with `ldar`, no reference added), the step tells it
+  that it is done (a function of the owner's kind, tail-called, not
+  decompiled), that it failed (`Unk_Fail`) or that it was cancelled
+  (`Unk_1050c60_Owner::Unk_Cancel`).
+
+The owner (`Unk_1050c60_Owner`, the adders') has its state at `+0x110` and
+three callables (`Unk_1050c60_Callable`, 0x80 bytes each) at `+0x1a0`
+(called last, in a tail call), `+0x220` (on failure, with the result at
+`+0x320`) and `+0x2a0` (on cancel). Three kinds of owner are told apart by
+`vf10` (`STEP_OWNERS`): two keep the failure's code in an optional `u32`
+after a result of 0x3c or 0x34 bytes (`Unk_1054690_Owner`, 9 classes;
+`Unk_1056d00_Owner`, 36), one stores a `u64` as its result
+(`Unk_1059aa0_Owner`, 16).
+
+What decided the match:
+
+- the optional is `{bool, T}` (the flag first, unlike libc++'s), copied into
+  `Unk_Fail`'s by-value parameter and then assigned: the copy sets the flag
+  to false, then to true with the value (a phi of constants, and a load that
+  stays behind its test);
+- `vf10` takes a *pointer* to the optional. Through a `const&` the
+  parameter is `dereferenceable(8)` and SimplifyCFG speculates the value's
+  load (`ldrb ; ldr` with no test between them);
+- `vf7` returns the value: both paths leave it in `x0`, so the frame is set
+  up before the test. A `void` function is shrink-wrapped.
+
 Still left from the list above:
 
 - the 118 lookups (`0x7100795bc0`): everything but the loop's block
