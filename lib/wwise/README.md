@@ -191,3 +191,89 @@ Open:
   the lock's destructor is named as a function taking the mutex
   (`Unk_32ec70`), so the `__cxa_atexit` call can't come from a class's
   destructor yet.
+
+
+## Range 0x71003035e0-0x710035ead0
+
+Notes of the sessions that work on this part of the block. Placeholder names
+throughout.
+
+**What is where**
+
+- `Unk_237e948.*`: the Opus decoding thread ("AK::OpusDecodingThread", 24
+  decoder slots on the SDK's `nn::codec::HardwareOpusDecoder`), a global object
+  constructed by the TU's static initialiser.
+- `Unk_334a10.cpp`, `Unk_3358b0.*`: the audio thread ("AK::EventManager") and
+  the audio manager it serves (the message queue, two lists of waiting
+  actions). `Unk_Thread.h` has the thread wrapper (an `nn::os` thread, its
+  stack and the properties the platform settings give each thread).
+- `Unk_334be0.*`: the object index (14 hash tables with their locks, the
+  object `Unk_Indexed.h`'s `Unk_24bbbb8` points at).
+- `Unk_237c170.h`, `Unk_237d540.h`: the base classes of the sound engine's
+  nodes. `Unk_307850.cpp`, `Unk_30d8c0.cpp`, `Unk_30ed50.cpp`: three node
+  classes on them.
+
+**What the compiler does that the source has to allow for**
+
+- **Volatile members.** Code that keeps every load and store apart and in
+  source order, where the compiler would merge adjacent zero stores or keep a
+  value in a register, works on `volatile` fields: the slots' fields the
+  decoding thread shares with its clients, the message queue's pointers, the
+  audio manager's counters. A zeroing loop over a volatile array stays 24
+  `strb`. Non-volatile stores between two volatile ones keep their place too.
+- **Real classes for classes with several vtables.** The destructors' thunks
+  for the vtable at 0x18 are the destructor's body inlined behind the pointer
+  adjustment. Written as a class with virtual functions and the creator's
+  `new (pool) T(id)`, the compiler emits the vtable, D2, D0 and both thunks.
+  The thunk only comes out as in the original when the class's last members
+  are declared with their real types: instcombine rewrites `this - 0x18 + x`
+  as an offset from the unadjusted pointer when it finds a field of the class
+  at that offset, and it looks at offset `sizeof(class) - 0x18` first. A byte
+  array as padding there makes every access relative to the unadjusted
+  pointer, and the thunk gets longer.
+  `Unk_NodeA/B/C` in `Unk_237c170.h` give the three vtables their shape (83,
+  17 and 3 slots); a slot's declaration gets its signature when a class
+  overrides it (an override with another signature would add a slot).
+  A class whose key function is in another TU doesn't get its vtable here:
+  define its first out-of-line virtual function in the same file.
+- **The creators.** `new (pool) T(id)` with the constructor inline, then
+  `Register()`: a virtual call of slot 17 (the node's kind), folded to a
+  constant where the constructor's vptr store is still visible (no call
+  between it and the load), and a real virtual call otherwise.
+- **Inline helpers that take what they need as parameters** decide the order
+  of loads: `queue.Init(pool, size)` loads the pool ID before the size, and
+  `queue.Term(pool)` loads it before the null test. A thread routine that
+  casts its argument and calls an inline member function keeps the member's
+  GEPs whole (`this + i + 8`); the same loop written on the `void*` argument
+  splits them and hoists `this + 8`.
+- **`AkDelete`-like code** reads the pool ID before the destructor call:
+  `int pool = Unk_237e820; p->~T(); Unk_3047c0(pool, p);`, with the pointer in
+  a local first when the member is volatile.
+- **Clamps** are `if (v >= 0) { if (v > 1) v = 1; } else v = 0;`: the
+  conditional-operator forms become `fmin`/`fcsel mi`, this one the original's
+  `fcsel le`/`fcsel lt`.
+- A helper that two functions inline whole needs `always_inline`: the two
+  list flushes of `Unk_3358b0.cpp` are one shared function otherwise.
+
+**Left out, and why**
+
+- `0x7100305830`, `0x7100306180`, `0x7100306340`, `0x71003064b0`,
+  `0x7100306630`, `0x71003067b0` (the module at `Unk_305720.cpp`): loops over
+  the object list. The original unswitches them on both invariant conditions
+  and keeps two copies of the loop variable; every spelling tried is
+  unswitched on one condition only, at any `-loop-unswitch-threshold`.
+- `0x7100306c70`: the search loop's two exits stay two branches in the
+  original (`cbz`; `cmp`, `b.eq`), merged into a `ccmp` here.
+- `0x7100333b10` (`m`): the Opus thread's constructor, 1,412 bytes, matches
+  but for the first three instructions (the vtable's address is loaded after
+  the first store).
+- `0x7100334cf0`, `0x7100334f70`, `0x71003351b0` (the object index), and
+  `0x7100335df0`, `0x7100335f00` (the audio manager's flushes: the original
+  tests the action type 0x503 before 0x403): see their `NON_MATCHING` notes.
+- `0x7100307b70` (`m`): two stores of the inlined constructor swapped.
+- `0x7100307f00`, `0x710030e250`, `0x710030f2c0` (slot 75, "can this node be
+  a child"): the binary search over the children comes out without the
+  original's null test of the found position, and the return blocks in
+  another order.
+- `0x7100336100` (the message queue's reserve, compare-and-swap loops),
+  `0x7100335c40` and `0x71003368e0` (the message switches): not tried.
