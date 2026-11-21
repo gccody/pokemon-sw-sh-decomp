@@ -685,15 +685,6 @@ void Unk_3b1cd0() {
     __builtin_trap();
 }
 
-// 0x71003b78a0
-void Unk_3b78a0() {
-}
-
-// 0x71003b78b0
-void Unk_3b78b0() {
-    __builtin_trap();
-}
-
 // 0x71003bd6a0
 void Unk_3bd6a0(void* a0) {
     Unk_349ab0(a0);
