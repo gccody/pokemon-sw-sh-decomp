@@ -76,6 +76,46 @@ terms is only said here, as a guess.
   functions that end with `Unk_IndexedDtor(self)` (a placement new of
   `Unk_2380db0`) and store their vptrs with `Unk_SetVtable(self, Unk_<vtable>)`.
 
+**More that the compiler does (second batch)**
+
+- `Unk_GrowArray::Term` destroys its items first (`RemoveAll`, a loop over
+  `Begin()`..`End()` that calls the destructors, nothing for trivial items).
+  Without that loop the destructors `Unk_3627c0` and `Unk_366110` had two
+  loads in the other order; with it they match.
+- The code prefers early returns: `if (result != 1) { ...; return result; }`
+  and a final `return 1` gave `Unk_360550`'s code where one `return result`
+  at the end didn't.
+- Whether a `Reserve(count)` is inside `if (count != 0)` or called
+  unconditionally (it tests the count itself) decides whether the first
+  load in the loop that follows is hoisted (`Unk_35ff30` has it
+  unconditional three times, `Unk_363980` guarded).
+- An item added through `AddLast()` and then assigned from a struct passed
+  **by value** keeps one store of the constructor (`strb wzr` in
+  `Unk_35ff30`): `value->Set(Unk_360c20_Value)`.
+- A member function that the original inlines and the compiler here doesn't
+  (cost just over the threshold): write its body in the caller
+  (`Unk_367120`). No `always_inline`.
+- A helper whose unused parameter gets `mov w3, #1` in the caller is a
+  template (or another TU): dead-argument elimination turns the argument
+  into `undef` only for functions with an exact definition (`Unk_366f90`).
+- A temporary passed as an argument (`Unk_366f90_Key()`) is constructed
+  around the other arguments' loads; a named local before the call isn't.
+- A `switch` with a jump table of four entries where the source seems to
+  have three cases: two cases share a body (`case 0: case 3:` in
+  `Unk_363fa0`); the table says which.
+- The parameter of a virtual function that arrives in `x1` and is used as
+  `w1` is a small struct passed by value (`Unk_363cb0_Id`).
+- Calls with more arguments than the callee's recorded name has
+  (`Unk_39b730_call`, `Unk_3b1cc0`): through a function pointer cast, and a
+  comment.
+
+**The five-level tree (`Unk_36fa70.cpp`)**: sorted arrays of nodes (0x30
+bytes: vptr, value, flag, the next level's array, key), `Set` by binary
+search, `Insert`, `GrowArray` with a move policy that hands over the child
+array (`Unk_TransferMove`). `Set` and `Insert` match for all levels; the
+`GrowArray` instances don't (M). The same template is at
+`0x71003a1b40`-`0x71003a3600` (`2x488`, `2x440`, `2x336`: not tried yet).
+
 **Left out, and why**
 
 - `0x710035f4e0`, `0x710035f550` (destructor pair of the object of
@@ -83,8 +123,12 @@ terms is only said here, as a guess.
   item or null in two branches (`cbz next`), and every way tried to write
   "remove the first item" compiles to one store. The same list's `AddFirst`
   has two branches too and matches (`Unk_362360_List::AddFirst`).
-- `0x71003627c0` is `m`: the loads of an array's items and length before a
-  loop come out in the other order.
+- `0x7100361c80` is `m` (two loads after a call in the other order),
+  `0x7100366380` is `m` (two instructions before a loop), `0x71003807d0` is
+  `M` (block layout of the array's copy loop).
+- `0x71003641b0`, `0x71003637d0` (the list of playing items returned to a
+  pool of 0x3c00-byte chunks): heavy register shuffling, not tried.
+- `0x7100391040` (972 bytes, a bank reader that sets bitfields): not tried.
 - `0x710035fa60` (1,176 bytes) parses a RIFF file (`RIFF`/`WAVE`/`fmt `/`data`
   /`cue `/`LIST`/`smpl`... chunk tags in registers): not tried.
 
