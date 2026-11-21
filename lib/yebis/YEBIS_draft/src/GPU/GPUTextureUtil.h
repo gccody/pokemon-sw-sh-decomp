@@ -78,7 +78,7 @@ struct Unk_463fd0_Effect {
     virtual void vf22(s32 parameter, const Unk_Float4* values, s32 count);
     virtual void vf23();
     virtual void vf24();
-    virtual void vf25();
+    virtual void vf25(s32 parameter, const void* values, s32 count);
     virtual void vf26(s32 parameter, Unk_GPUTexture* texture);
     virtual s32 vf27(s32 technique);
     virtual s32 vf28(s32 technique);
@@ -420,30 +420,10 @@ public:
     s32 field_1bc74[8][22];
     s32 field_1bf34[8][22];
     s32 field_1c1f4[8][22];
-    s32 field_1c4b4;
-    s32 field_1c4b8;
-    s32 field_1c4bc;
-    s32 field_1c4c0;
-    s32 field_1c4c4;
-    u8 pad_1c4c8[0x8];
-    s32 field_1c4d0;
-    s32 field_1c4d4;
-    s32 field_1c4d8;
-    s32 field_1c4dc;
-    s32 field_1c4e0;
-    u8 pad_1c4e4[0x8];
-    s32 field_1c4ec;
-    s32 field_1c4f0;
-    s32 field_1c4f4;
-    s32 field_1c4f8;
-    s32 field_1c4fc;
-    u8 pad_1c500[0x8];
-    s32 field_1c508;
-    s32 field_1c50c;
-    s32 field_1c510;
-    s32 field_1c514;
-    s32 field_1c518;
-    u8 pad_1c51c[0x8];
+    s32 field_1c4b4[7];
+    s32 field_1c4d0[7];
+    s32 field_1c4ec[7];
+    s32 field_1c508[7];
     s32 field_1c524[8][22];
     s32 field_1c7e4[8][22];
     s32 field_1caa4[8][22];
@@ -758,6 +738,13 @@ inline void Unk_GetCoords(const CRenderTexture* texture, f32* u, f32* v) {
     *v = texture->field_8c * height + texture->field_94;
 }
 
+// what CTextureUtil::Unk_47a030 reads of its first object: two distances
+struct Unk_47a030_Arg1 {
+    u8 pad_0[0x2c];
+    f32 field_2c;
+    f32 field_30;
+};
+
 class CTextureUtil : public CGPUResourceManage {
 public:
     CTextureUtil(const char* name);  // 0x710046db60
@@ -887,6 +874,14 @@ public:
     s32 Unk_47b040(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 u2, f32 v2, f32 u3,
                    f32 v3, s32 arg1, s32 arg2, Unk_GPUTexture** textures, const Unk_Float2* weights,
                    const Unk_Float2* value, s32 arg6, s32 index, u32 flags);
+    s32 Unk_47a850(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 u2, f32 v2, f32 u3,
+                   f32 v3, f32 u4, f32 v4, f32 u5, f32 v5, f32 arg17, f32 arg18, const Unk_Float4* value,
+                   Unk_GPUTexture* texture0, Unk_GPUTexture* texture1, Unk_GPUTexture* texture2, s32 arg5,
+                   u32 flags);
+    s32 Unk_47a030(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 u2, f32 v2, f32 u3,
+                   f32 v3, const Unk_47a030_Arg1* arg1, const void* arg2, const Unk_Float2* arg3,
+                   const Unk_Float2* arg4, const Unk_Float2* arg5, s32 index, const Unk_Float2* arg7,
+                   const Unk_Float2* falloff, Unk_GPUTexture* texture0, Unk_GPUTexture* texture1, u32 flags);
     // The handle of a texture stage (inline; its name and line are its assert's)
     s32 GetHandle_tex2D_aTexture(s32 stage) {
 #line 3059
