@@ -22,6 +22,8 @@ SiSDK3::SiString<char> Unk_4e4230(SiSDK3::SiString<char>* path);
 void Unk_4c8020(SiSDK3::SiString<char>* self, const SiSDK3::SiString<char>* other);
 void Unk_4ca0b0(SiSDK3::SiString<char>* self, const char* from, const char* to, u64, u64, bool);
 s64 Unk_4c5630(const char* a, const char* b, bool);
+// 0x71004c5520: copies a string into a buffer
+void Unk_4c5520(char* dst, size_t size, const char* src, s64 count);
 
 // 0x71024e9360: the empty string a string without a buffer reads as
 extern char Unk_24e9360[];
@@ -48,13 +50,26 @@ public:
     virtual void vf6();
     virtual void vf7();
     virtual void vf8();
-    virtual void vf9();
+    virtual ISiIOStream* vf9(const char* path, u32 mode, void*);  // opens a file
     virtual void vf10();
     virtual Unk_MappedFileInterface* vf11(void*);
 };
 
 inline SiIOVFSManager* Unk_GetVFSManager() {
     return reinterpret_cast<SiIOVFSManager*>(Unk_57d840_get(Unk_57cfb0()));
+}
+
+inline void Unk_WriteHeader(ISiIOStream* stream, SiIOVFS::Unk_Header* header) {
+    stream->vf44(header->field_0, 8, true);
+    stream->vf52(header->field_8, true);
+    stream->vf52(header->field_9, true);
+    stream->vf52(header->field_a, true);
+    stream->vf52(header->field_b, true);
+    stream->vf50(header->field_10, true);
+    stream->vf50(header->field_14, true);
+    stream->vf51(header->field_18, true);
+    stream->vf51(header->field_20, true);
+    stream->vf51(header->field_28, true);
 }
 
 template <class T>
@@ -240,6 +255,59 @@ SiIOVFSEntry* SiIOVFS::vf21() {
         entry = nullptr;
     }
     return entry;
+}
+
+// 0x7100585780
+// NON_MATCHING: one instruction more. After the list's room is allocated (SiArray's reserve, inlined)
+// its two end pointers are cleared there and again after the join; the original clears them only
+// after the join.
+bool SiIOVFS::vf22(const char* path, u32 byteOrder) {
+    s64 offset;
+    if (field_e8 == nullptr) {
+        return false;
+    }
+    s32 count = Unk_586260(field_e8) + 1;
+    if (count == 0) {
+        return false;
+    }
+    if (field_e8 != nullptr) {
+        Unk_586310(field_e8);
+    }
+    SiArray<SiIOVFSEntry*> list(field_8.m_pAllocator);
+    list.Unk_Reserve(count);
+    Unk_585ca0(&list);
+    SiArray<SiIOVFSEntry*> sorted(field_8.m_pAllocator);
+    Unk_585d70(&list, &sorted);
+    bool result = false;
+    ISiIOStream* stream = reinterpret_cast<Unk_IOKernelInterface*>(Unk_57d030_get())->vf9(path, 0x15, nullptr);
+    if (stream != nullptr) {
+        stream->vf13(byteOrder);
+        Unk_Header header = {};
+        Unk_4c5520(header.field_0, 8, "SiIOVFS", -1);
+        header.field_8 = static_cast<u8>(stream->vf15());
+        header.field_10 = 3;
+        header.field_14 = 0;
+        header.field_18 = list.m_itemCount;
+        Unk_WriteHeader(stream, &header);
+        offset = 0;
+        for (s32 i = 0; i < static_cast<s32>(list.m_itemCount); i++) {
+            Unk_585e70(stream, &header, list.m_pData[i], &offset);
+        }
+        s64 start = stream->vf17();
+        header.field_28 = start;
+        for (s32 i = 0; i < static_cast<s32>(list.m_itemCount); i++) {
+            SiIOVFSEntry* entry = list.m_pData[i];
+            if (!entry->vf11()) {
+                stream->vf44(reinterpret_cast<void*>(entry->field_168), entry->field_a0 > 0 ? entry->field_a0 : entry->field_98, true);
+            }
+        }
+        header.field_20 = stream->vf17() - start;
+        stream->vf18(0, false);
+        Unk_WriteHeader(stream, &header);
+        stream->vf3();
+        result = true;
+    }
+    return result;
 }
 
 // 0x7100585ca0
