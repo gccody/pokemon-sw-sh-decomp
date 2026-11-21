@@ -300,6 +300,17 @@ pkmn_library_settings(lib/pia
   EVIDENCE "docs/compiler.md, section Pia 5.18.0"
   OPTIONS -fno-builtin)
 
+# YEBIS's PPFX code (lib/yebis/YEBIS_draft): the game's compiler and global
+# flags (the zlib YEBIS embeds settles that), and libc++ containers on an
+# allocator of its own: std::vector's __push_back_slow_path (eight copies,
+# which call libc++'s __vector_base_common<true>::__throw_length_error) and
+# std::list's nodes. libc++ supplies the headers; the defines make them build
+# on musl, as for gflib3.
+pkmn_library_settings(lib/yebis/YEBIS_draft
+  EVIDENCE "docs/compiler.md, section Other middleware"
+  DEFINES _GNU_SOURCE _LIBCPP_HAS_MUSL_LIBC _LIBCPP_HAS_THREAD_API_PTHREAD
+  SYSTEM_INCLUDES include/libcxx)
+
 # Game Freak's protobuf messages: protoc 3.0.0 output for the .proto files
 # under src/ (gflnet3's and the game's), which `python tools/protos.py generate`
 # writes next to each .proto. It isn't committed: each .pb.cc embeds its file's
