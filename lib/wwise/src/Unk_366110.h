@@ -157,5 +157,10 @@ struct Unk_366f90_Key {
 
     Unk_366f90_Key()
         : field_0(0), field_8(0), field_10(0), field_18(0xff), field_20(0xff), field_28(0) {}
+    // The key of an object alone.
+    explicit Unk_366f90_Key(u64 object)
+        : field_8(0), field_10(0), field_18(0xff), field_20(0xff), field_28(0) {
+        field_0 = object;
+    }
 };
 PKMN_SIZE_ASSERT(Unk_366f90_Key, 0x30);
