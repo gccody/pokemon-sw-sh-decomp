@@ -1,7 +1,7 @@
 // Scope: common
 // Two trees of five levels of sorted arrays, each node with a value and the
 // nodes of the next level by their key: the arrays' Set, Insert and
-// GrowArray for every level. Placeholder names; the node classes are named
+// GrowArray and Unset for every level. Placeholder names; the node classes are named
 // after their vtables.
 #include "Unk_SortedArray.h"
 
@@ -81,30 +81,30 @@ UNK_36FA70_NODE(Unk_2382ca0, Unk_2382cc0, Unk_3a1830_Value, u64, Unk_2382ce0_Arr
 
 #define UNK_36FA70_LEVEL(Name, Key)                                                               \
     template Name*                                                                                \
-        Unk_SortedKeyArray<Key, Name, Unk_PoolDefault, 1, Unk_TransferMove<Name>>::Set(Key);      \
+        Unk_SortedKeyArray<Key, Name, Unk_PoolDefault, 1, Unk_TransferMove<Name>>::Set(Key);          template bool                                                                                         Unk_SortedKeyArray<Key, Name, Unk_PoolDefault, 1, Unk_TransferMove<Name>>::Unset(Key);    \
     template Name*                                                                                \
     Unk_GrowArray<Name, Unk_PoolDefault, 1, const Name&, Unk_TransferMove<Name>>::Insert(u32);    \
     template bool                                                                                 \
     Unk_GrowArray<Name, Unk_PoolDefault, 1, const Name&, Unk_TransferMove<Name>>::GrowArray(u32)
 
-// 0x710036fa70, 0x710036fbc0, 0x710036fd80
+// 0x710036fa70, 0x710036fbc0, 0x710036fd80, 0x71003719d0
 UNK_36FA70_LEVEL(Unk_23817a8, u64);
-// 0x710036ffc0, 0x71003701f0, 0x71003703b0
+// 0x710036ffc0, 0x71003701f0, 0x71003703b0, 0x7100371c60
 UNK_36FA70_LEVEL(Unk_23817e8, u32);
-// 0x71003705f0, 0x7100370740, 0x7100370900
+// 0x71003705f0, 0x7100370740, 0x7100370900, 0x7100371f10
 UNK_36FA70_LEVEL(Unk_2381828, u32);
-// 0x7100370b40, 0x7100370c90, 0x7100370e50
+// 0x7100370b40, 0x7100370c90, 0x7100370e50, 0x7100372350
 UNK_36FA70_LEVEL(Unk_2381868, u8);
-// 0x7100371090, 0x71003711e0, 0x7100371350
+// 0x7100371090, 0x71003711e0, 0x7100371350, 0x71003724c0
 UNK_36FA70_LEVEL(Unk_23818a8, u8);
 
-// 0x71003a1830, 0x71003a1980, 0x71003a1b40
+// 0x71003a1830, 0x71003a1980, 0x71003a1b40, 0x710039fa20
 UNK_36FA70_LEVEL(Unk_2382ca0, u64);
-// 0x71003a1d70, 0x71003a1fb0, 0x71003a2170
+// 0x71003a1d70, 0x71003a1fb0, 0x71003a2170, 0x710039fe90
 UNK_36FA70_LEVEL(Unk_2382ce0, u32);
-// 0x71003a23a0, 0x71003a24f0, 0x71003a26b0
+// 0x71003a23a0, 0x71003a24f0, 0x71003a26b0, 0x71003a03a0
 UNK_36FA70_LEVEL(Unk_2382d20, u32);
-// 0x71003a28e0, 0x71003a2a30, 0x71003a2bf0
+// 0x71003a28e0, 0x71003a2a30, 0x71003a2bf0, 0x71003a0b20
 UNK_36FA70_LEVEL(Unk_2382d60, u8);
-// 0x71003a2e20, 0x71003a2f70, 0x71003a30e0
+// 0x71003a2e20, 0x71003a2f70, 0x71003a30e0, 0x71003a0c90
 UNK_36FA70_LEVEL(Unk_2382da0, u8);

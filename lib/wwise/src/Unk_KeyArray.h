@@ -129,6 +129,7 @@ struct Unk_GrowArray : Unk_Array<T, A> {
         T* last = this->field_0 + this->field_8 - 1;
         for (T* item = it.item; item < last; item++)
             Move(item[0], item[1]);
+        last->~T();
         this->field_8--;
         return it;
     }
