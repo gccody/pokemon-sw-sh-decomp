@@ -958,3 +958,15 @@ void Unk_237ff98::Unk_3552e0(u32 id, f32 target, u32 a3, u32 a4, u32 prop) {
         item->vf0(prop, target, true);
     }
 }
+
+// NON_MATCHING: register allocation only (the ID and the index's object in each other's
+// register)
+// 0x7100356a90
+void Unk_237ff98::Unk_356a90(Unk_237ff98_Ref* out) {
+    out->Set(nullptr);
+    out->field_8 = 0;
+    if (field_b0 != nullptr && field_b0->field_4 != 0) {
+        u32 id = field_b0->field_4;
+        out->Set(field_b0->field_9 ? Unk_237ff98_Find<0x230>(id) : Unk_237ff98_Find<0x268>(id));
+    }
+}
