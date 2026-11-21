@@ -17,12 +17,31 @@ void Unk_4c5520(char* dst, size_t size, const char* src, s64 count);
 s64 Unk_4c5630(const char* a, const char* b, bool);
 // 0x71004c9090: formats a string
 void Unk_4c9090(SiSDK3::SiString<char>* self, const char* format, ...);
+// 0x71004c8f80: whether two identifiers are the same
+bool Unk_4c8f80(const void* a, const void* b);
+// 0x7100582f70: fills up to a multiple of alignment
+s64 Unk_582f70(SiSDK3::ISiIOStream* stream, s64 alignment, u8 fill);
 // 0x710057d030: SiIO's kernel as a number (leafgen's name and type)
 u64 Unk_57d030_get();
 // 0x71027705c8: how many archives were made
 static s32 Unk_27705c8;
 
 namespace SiSDK3 {
+
+namespace {
+
+// the index of an identifier among count chunk types (inline in its callers:
+// placeholder name)
+inline s32 Unk_FindType(ISiIOBinaryArchive::ChunkTypeInfo* infos, s32 count, const ISiIOBinaryArchive::Unk_Id* id) {
+    for (s32 i = 0; i < count; i++) {
+        if (Unk_4c8f80(&infos[i], id)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+}  // namespace
 
 // 0x710057a650
 SiIOBinaryArchive::SiIOBinaryArchive(ISiAllocator* pAllocator)
@@ -39,6 +58,18 @@ SiIOBinaryArchive::SiIOBinaryArchive(ISiAllocator* pAllocator)
     field_30.field_60.field_8 = 0;
     field_30.field_60.field_c = 0x9d;
     field_30.field_44 = field_28;
+}
+
+// 0x710057a7f0 (D2), 0x710057aac0 (D0)
+SiIOBinaryArchive::~SiIOBinaryArchive() {
+    SiIOBinaryArchive::vf8();
+    while (field_108.m_count != 0) {
+        ChunkHandler* handler = field_108.m_pHead;
+        if (handler != nullptr) {
+            field_108.Remove(handler);
+            handler->vf3();
+        }
+    }
 }
 
 // 0x710057aaf0
@@ -147,6 +178,47 @@ bool SiIOBinaryArchive::vf23(const char* path) {
     return result;
 }
 
+// 0x710057b600
+bool SiIOBinaryArchive::vf24(ISiIOStream* stream) {
+    stream->vf18(0, false);
+    s64 start = stream->vf17();
+    Unk_57b7d0(stream);
+    field_30.field_80 = Unk_582f70(stream, field_28, 0);
+    for (ChunkHandler* handler = field_108.m_pHead; handler != nullptr; handler = handler->m_pNext) {
+        if (!Unk_57b9c0(stream, handler, true)) {
+            Unk_4c9090(&field_130, "SiIOBinaryArchive::Save --> Failed to save chunk");
+            return false;
+        }
+        if (handler->m_pNext != nullptr) {
+            handler->field_28.field_40 = Unk_582f70(stream, field_28, 0);
+        }
+    }
+    s64 end = stream->vf17();
+    stream->vf18(0, false);
+    if (field_108.m_count != 0) {
+        for (ChunkHandler* handler = field_108.m_pHead; handler != nullptr; handler = handler->m_pNext) {
+            Unk_57c090(handler);
+        }
+    }
+    field_30.field_88 = end;
+    field_30.field_90 = field_170.m_itemCount;
+    field_30.field_70 = end - start + field_170.m_itemCount * sizeof(ChunkTypeInfo);
+    Unk_57b7d0(stream);
+    stream->vf18(field_30.field_80, false);
+    for (ChunkHandler* handler = field_108.m_pHead; handler != nullptr; handler = handler->m_pNext) {
+        if (!Unk_57b9c0(stream, handler, false)) {
+            Unk_4c9090(&field_130, "SiIOBinaryArchive::Save --> Failed to save chunk");
+            return false;
+        }
+        if (handler->m_pNext != nullptr) {
+            stream->vf18(handler->field_28.field_40, false);
+        }
+    }
+    stream->vf18(end, false);
+    Unk_57bb60(stream);
+    return true;
+}
+
 // 0x710057b7d0
 bool SiIOBinaryArchive::Unk_57b7d0(ISiIOStream* stream) {
     stream->vf13(field_30.field_40);
@@ -170,6 +242,46 @@ bool SiIOBinaryArchive::Unk_57b7d0(ISiIOStream* stream) {
     return true;
 }
 
+// 0x710057b9c0
+// NON_MATCHING: the original passes the header writer its last argument (`mov w3, wzr`),
+// which that function doesn't use in the end: here its callers leave it out.
+bool SiIOBinaryArchive::Unk_57b9c0(ISiIOStream* stream, ChunkHandler* handler, bool first) {
+    Unk_57bd30(stream, handler, false);
+    if (first) {
+        s64 start = Unk_582f70(stream, field_28, 0);
+        if (!handler->vf6(this, stream)) {
+            Unk_4c9090(&field_130, "SiIOBinaryArchive::WriteChunkHandler --> Failed to write chunk header");
+            return false;
+        }
+        s64 size = stream->vf17() - start;
+        handler->field_28.field_28 = size;
+        if (size >= 1) {
+            handler->field_28.field_38 = start;
+        }
+        if (handler->field_88.m_count >= 1) {
+            handler->field_28.field_50 = Unk_582f70(stream, field_28, 0);
+            for (ChunkHandler* child = handler->field_88.m_pHead; child != nullptr; child = child->m_pNext) {
+                Unk_57b9c0(stream, child, true);
+                if (child->m_pNext != nullptr) {
+                    child->field_28.field_40 = Unk_582f70(stream, field_28, 0);
+                }
+            }
+        }
+        handler->field_28.field_30 = stream->vf17() - start;
+    } else {
+        if (handler->field_28.field_48 >= 1) {
+            stream->vf18(handler->field_28.field_50, false);
+            for (ChunkHandler* child = handler->field_88.m_pHead; child != nullptr; child = child->m_pNext) {
+                Unk_57b9c0(stream, child, false);
+                if (child->m_pNext != nullptr) {
+                    stream->vf18(child->field_28.field_40, false);
+                }
+            }
+        }
+    }
+    return true;
+}
+
 // 0x710057bb60
 bool SiIOBinaryArchive::Unk_57bb60(ISiIOStream* stream) {
     for (s64 i = 0; i < static_cast<s32>(field_170.m_itemCount); i++) {
@@ -185,10 +297,10 @@ bool SiIOBinaryArchive::Unk_57bb60(ISiIOStream* stream) {
         stream->vf52(info->field_0.field_8[5], true);
         stream->vf52(info->field_0.field_8[6], true);
         stream->vf52(info->field_0.field_8[7], true);
-        stream->vf50(info->field_10, true);
-        stream->vf50(info->field_14, true);
-        stream->vf50(info->field_18, true);
-        stream->vf50(info->field_1c, true);
+        stream->vf50(info->field_10.field_0, true);
+        stream->vf50(info->field_10.field_4, true);
+        stream->vf50(info->field_10.field_8, true);
+        stream->vf50(info->field_10.field_c, true);
     }
     return true;
 }
@@ -201,10 +313,10 @@ bool SiIOBinaryArchive::Unk_57bd30(ISiIOStream* stream, ChunkHandler* handler, b
     stream->vf53(handler->field_28.field_0.field_4, true);
     stream->vf53(handler->field_28.field_0.field_6, true);
     stream->vf44(handler->field_28.field_0.field_8, sizeof(handler->field_28.field_0.field_8), true);
-    stream->vf50(handler->field_28.field_10, true);
-    stream->vf50(handler->field_28.field_14, true);
-    stream->vf50(handler->field_28.field_18, true);
-    stream->vf50(handler->field_28.field_1c, true);
+    stream->vf50(handler->field_28.field_10.field_0, true);
+    stream->vf50(handler->field_28.field_10.field_4, true);
+    stream->vf50(handler->field_28.field_10.field_8, true);
+    stream->vf50(handler->field_28.field_10.field_c, true);
     stream->vf51(handler->field_28.field_20, true);
     stream->vf51(handler->field_28.field_28, true);
     stream->vf51(handler->field_28.field_30, true);
@@ -230,6 +342,35 @@ ISiIOBinaryArchive::ChunkTypeInfo* SiIOBinaryArchive::vf31(s64 index) {
         return &field_170.m_pData[index];
     }
     return nullptr;
+}
+
+// 0x710057bfb0
+ISiIOBinaryArchive::ChunkTypeInfo* SiIOBinaryArchive::vf32(const Unk_Id* id) {
+    if (field_168 != nullptr) {
+        s32 index = Unk_FindType(field_168, field_30.field_90, id);
+        if (index >= 0) {
+            return &field_168[index];
+        }
+    } else if (field_170.m_itemCount != 0) {
+        s32 index = Unk_FindType(field_170.m_pData, field_170.m_itemCount, id);
+        if (index >= 0) {
+            return &field_170.m_pData[index];
+        }
+    }
+    return nullptr;
+}
+
+// 0x710057c090
+void SiIOBinaryArchive::Unk_57c090(ChunkHandler* handler) {
+    if (Unk_FindType(field_170.m_pData, field_170.m_itemCount, &handler->field_28.field_0) < 0) {
+        ChunkTypeInfo info;
+        info.field_0 = handler->field_28.field_0;
+        info.field_10 = handler->field_28.field_10;
+        field_170.Unk_Add(info);
+    }
+    for (ChunkHandler* child = handler->field_88.m_pHead; child != nullptr; child = child->m_pNext) {
+        Unk_57c090(child);
+    }
 }
 
 }  // namespace SiSDK3

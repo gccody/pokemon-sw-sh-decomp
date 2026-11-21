@@ -90,13 +90,6 @@ struct Unk_562770 {
     u64 field_0;
 };
 
-struct Unk_57c850 {
-    Unk_57c850() : field_10(0), field_18(0) {}
-    u64 field_0;
-    u64 field_8;
-    u64 field_10;
-    u64 field_18;
-};
 struct Unk_57cae0 {
     u64 field_0[2];
 };
@@ -185,8 +178,6 @@ template bool SiArray<Unk_557e60, 16>::Unk_4bf190(size_t, bool);
 template bool SiArray<Unk_562770, 16>::Unk_4bf190(size_t, bool);
 // 0x7100574090 = _ZN6SiSDK37SiArrayINS_31ISiGfxShaderEffectVariationList16ShaderEffectDataELi16EE10Unk_4bf190Emb
 template bool SiArray<ISiGfxShaderEffectVariationList::ShaderEffectData, 16>::Unk_4bf190(size_t, bool);
-// 0x710057c850 = _ZN6SiSDK37SiArrayI10Unk_57c850Li16EE10Unk_4bf190Emb
-template bool SiArray<Unk_57c850, 16>::Unk_4bf190(size_t, bool);
 // 0x710057cae0 = _ZN6SiSDK37SiArrayI10Unk_57cae0Li16EE10Unk_4bf190Emb
 template bool SiArray<Unk_57cae0, 16>::Unk_4bf190(size_t, bool);
 // 0x710057cd00 = _ZN6SiSDK37SiArrayI10Unk_57cd00Li16EE10Unk_4bf190Emb

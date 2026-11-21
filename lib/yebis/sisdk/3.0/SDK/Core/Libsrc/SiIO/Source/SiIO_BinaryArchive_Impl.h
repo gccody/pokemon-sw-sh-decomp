@@ -64,15 +64,19 @@ public:
     virtual u32 vf29();
     virtual u64 vf30();
     virtual ChunkTypeInfo* vf31(s64 index);
-    virtual void vf32();
+    virtual ChunkTypeInfo* vf32(const Unk_Id* id);
     virtual void vf33();
     virtual u32 vf34();
 
     // 0x710057b7d0: writes the header, 0x710057bb60: the chunk types
     bool Unk_57b7d0(ISiIOStream* stream);
     bool Unk_57bb60(ISiIOStream* stream);
-    // 0x710057bd30: writes a chunk's header
+    // 0x710057bd30: writes a chunk's header, 0x710057b9c0: a chunk and the
+    // chunks inside it (first their data, then their headers again)
     bool Unk_57bd30(ISiIOStream* stream, ChunkHandler* handler, bool flag);
+    bool Unk_57b9c0(ISiIOStream* stream, ChunkHandler* handler, bool first);
+    // 0x710057c090: adds the types of a chunk and of the chunks inside it
+    void Unk_57c090(ChunkHandler* handler);
 
     Unk_4bf660 field_18;
     s64 field_28;  // what the file's parts are aligned to
