@@ -94,9 +94,9 @@ in src/gflib3/families:
   +0x80, hand it to the manager (0x71006a1f80). The tasks are classes of
   their own, named after their vtables, with a last member that has a vtable
   too; their members are a class between their base and them. Written for
-  the shapes of `MAKE_SEEDS` (a u32 or a reference copied, a task of 0x38
-  bytes); the body is spelled out in each, since clang inlines a shared one
-  into vf7.
+  the shapes of `MAKE_SEEDS` (a u32, a reference or two words copied; a task
+  with nothing after that member, or with a zeroed u32); the body is spelled
+  out in each, since clang inlines a shared one into vf7.
 
 A row is kept (written again) when its name is the one written for it and
 check.py matched it; `--only` adds addresses, `--all` writes every
@@ -1984,11 +1984,29 @@ MAKE_MANAGER = 0x2778C18         # the global the makes read: the manager (data 
 MAKE_ALLOCATOR = 0x6A1F70        # Unk_6a1f70_getField58 (src/unsorted/leaf): the manager's allocator
 MAKE_RUN = 0x6A1F80              # the manager takes the task, not decompiled
 MAKE_NAMES = {MAKE_RUN: "_Z10Unk_6a1f80P10Unk_6a1f70NSt3__110unique_ptrI15Unk_6a1f80_Task19Unk_23f4660_DeleterEE"}
-# the shapes, by their first function: what the step's member at +0x80 is, the
-# task's member for it at +0x28 and what the task has after it
+@dataclass(frozen=True)
+class MakeShape:
+    """A shape of make: the type of the step's member at +0x80, the task's
+    member that keeps a copy of it (+0x28), the task's members after the one
+    with a vtable that follows, and whether the task's vtable is loaded
+    before that member's.
+
+    The members after that one are a class of the task's own between the
+    members' class and the task: initialised after the member's vptr is
+    stored and before the task's."""
+    arg: str
+    member: str
+    after: tuple[str, ...] = ()
+    task_first: bool = False
+
+
+_REF_MEMBER = "Unk_1054d30_Ref<Unk_239a418>"
+# by their first function
 MAKE_SEEDS = {
-    0x1054D30: ("u32", "u32", "u32"),
-    0x10868C0: ("ref", "Unk_Ref", "Unk_1054d30_Ref<Unk_239a418>"),
+    0x1054D30: MakeShape("u32", "u32"),
+    0x10868C0: MakeShape("Unk_Ref", _REF_MEMBER),
+    0x10B2610: MakeShape("u32", "u32", after=("u32 field_38 = 0;",)),
+    0x10B3120: MakeShape("Unk_1085320_Words2", "Unk_1085320_Words2", task_first=True),
 }
 
 
@@ -1996,10 +2014,17 @@ MAKE_SEEDS = {
 class Make:
     addr: int
     step: Step
-    arg: str                    # the type of the step's member the make reads
-    member: str                 # the task's member that keeps it
+    shape: MakeShape
     task: int                   # the task's vtable
     tail: int                   # the vtable of the task's last member
+
+    @property
+    def arg(self) -> str:
+        return self.shape.arg
+
+    @property
+    def member(self) -> str:
+        return self.shape.member
 
 
 def parse_make(m: Module, s: Step) -> Make | str:
@@ -2009,21 +2034,22 @@ def parse_make(m: Module, s: Step) -> Make | str:
                  and m.shape(x) == m.shape(s.make)), None)
     if seed is None:
         return "another shape"
-    _, arg, member = MAKE_SEEDS[seed]
+    shape = MAKE_SEEDS[seed]
     got = m.got_target(s.make, r.sword_size)
     if len(got) != 4 or got[0] != MAKE_MANAGER:
         return "other globals"
     calls = _calls(m, s.make)[0]
     if calls[:1] != [MAKE_ALLOCATOR] or MAKE_RUN not in calls:
         return "other calls"
-    return Make(s.make, s, arg, member, got[3], got[2])
+    task, tail = (got[2], got[3]) if shape.task_first else (got[3], got[2])
+    return Make(s.make, s, shape, task, tail)
 
 
 def make_classes(makes: list[Make]) -> str | list[str]:
     """The tasks and their last members, each once; an error if two makes disagree on a task."""
     tails, tasks, out = set(), {}, []
     for k in makes:
-        spec = (k.step.owner.code, k.member, k.tail)
+        spec = (k.step.owner.code, k.shape, k.tail)
         if k.task in tasks:
             if tasks[k.task] != spec:
                 return f"the task {placeholder(k.task)} is made two ways"
@@ -2032,8 +2058,15 @@ def make_classes(makes: list[Make]) -> str | list[str]:
         if k.tail not in tails:
             tails.add(k.tail)
             out.append(f"class {placeholder(k.tail)} {{\npublic:\n    virtual void vf0();\n}};\n")
-        out.append(f"class {placeholder(k.task)}\n    : public Unk_1054d30_TaskOf<Unk_1085320_Step<{k.step.owner.code}>, "
-                   f"{k.member}, {placeholder(k.tail)}> {{\npublic:\n    ~{placeholder(k.task)}() override;\n}};\n")
+        members = (f"Unk_1054d30_TaskOf<Unk_1085320_Step<{k.step.owner.code}>, {k.member}, "
+                   f"{placeholder(k.tail)}>")
+        if k.shape.after:
+            # more members after that one: a class of the task's own between the two
+            after = "".join(f"    {x}\n" for x in k.shape.after)
+            out.append(f"class {placeholder(k.task)}_Members\n    : public {members} {{\npublic:\n{after}}};\n")
+            members = f"{placeholder(k.task)}_Members"
+        out.append(f"class {placeholder(k.task)}\n    : public {members} {{\npublic:\n"
+                   f"    ~{placeholder(k.task)}() override;\n}};\n")
     return out
 
 
