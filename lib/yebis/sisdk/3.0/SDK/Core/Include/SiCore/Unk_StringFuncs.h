@@ -58,7 +58,15 @@ bool Unk_4c5b50_call(void* self, void* value);
 bool Unk_4c5b70(SiSDK3::SiString<char>* self, const wchar_t* s);
 bool Unk_4c5c60(SiSDK3::SiString<wchar_t>* self, const char* s);
 
+// 0x71024e9360: the empty string a string without a buffer reads as
+extern char Unk_24e9360[];
+
 namespace SiSDK3 {
+
+// A string's characters (the empty string's without a buffer).
+inline const char* Unk_StringCStr(const SiString<char>* self) {
+    return self->m_pBuffer != nullptr ? self->m_pBuffer : Unk_24e9360;
+}
 
 inline bool Unk_StringSetCapacity(SiString<char>* self, size_t capacity, bool keep) {
     return Unk_4c5d50(self, capacity, keep);
