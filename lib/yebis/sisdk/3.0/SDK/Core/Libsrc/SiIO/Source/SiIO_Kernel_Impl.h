@@ -6,8 +6,10 @@
 #pragma once
 
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_LinkedList.h>
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_String.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_4bf660.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_RefCount.h>
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiIO/SiIO_BinaryArchive.h>
 
 namespace SiSDK3 {
 
@@ -39,14 +41,27 @@ public:
     virtual SiIOCodecZLib* vf16(s32 type, ISiAllocator* pAllocator);  // a codec (1: zlib)
     virtual u64 vf17(u32);
     virtual void* vf18(ISiAllocator* pAllocator);  // a CSV document
-    virtual void vf19();
-    virtual void vf20();
-    // a chunk type's name and version (placeholder parameter types: the
-    // function isn't written yet)
-    virtual bool vf21(const void* id, SiString<char>* name, void* version);
+    // add a chunk handler's type, remove it, and its name and version
+    virtual void vf19(const ISiIOBinaryArchive::Unk_Id* id, const char* name, const Unk_567750_Version* version);
+    virtual void vf20(const ISiIOBinaryArchive::Unk_Id* id);
+    virtual bool vf21(const ISiIOBinaryArchive::Unk_Id* id, SiString<char>* name, Unk_567750_Version* version);
 
-    // A chunk handler's type (RTTI: SiIOKernel::ChunkHandlerTypeInfo), listed in field_50.
-    struct ChunkHandlerTypeInfo;
+    // A chunk handler's type (RTTI: SiIOKernel::ChunkHandlerTypeInfo), listed
+    // in field_50: its identifier, its version and its name (a view of the
+    // string it's made with).
+    struct ChunkHandlerTypeInfo {
+        ChunkHandlerTypeInfo(ISiAllocator* pAllocator, const ISiIOBinaryArchive::Unk_Id& id, const char* name,
+                             const Unk_567750_Version& version)
+            : m_pPrev(nullptr), m_pNext(nullptr), field_10(id), field_20(version), field_30(pAllocator) {
+            field_30.Unk_SetExternal(name);
+        }
+
+        ChunkHandlerTypeInfo* m_pPrev;
+        ChunkHandlerTypeInfo* m_pNext;
+        ISiIOBinaryArchive::Unk_Id field_10;
+        Unk_567750_Version field_20;
+        SiString<char> field_30;
+    };
 
     Unk_4bf660 field_8;
     ISiAllocator* field_18;
@@ -56,7 +71,11 @@ public:
     u64 field_38;
     SiIOVFSManager* field_40;
     SiIOCodecZLib* field_48;
-    u8 field_50[0x28];  // SiDirectLinkedList<ChunkHandlerTypeInfo*>
+    // the chunk handler type of an identifier (inline in its callers:
+    // placeholder name)
+    ChunkHandlerTypeInfo* Unk_FindType(const ISiIOBinaryArchive::Unk_Id* id);
+
+    SiDirectLinkedList<ChunkHandlerTypeInfo*> field_50;
 };
 PKMN_SIZE_ASSERT(SiIOKernel, 0x78);
 

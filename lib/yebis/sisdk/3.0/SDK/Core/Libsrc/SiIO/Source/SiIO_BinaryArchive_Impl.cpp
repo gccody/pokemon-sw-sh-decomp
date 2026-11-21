@@ -493,7 +493,7 @@ bool SiIOBinaryArchive::vf33(SiArray<Unk_Id>* ids, SiArray<Unk_567750_Version>* 
         if (info == nullptr) {
             continue;
         }
-        if (!reinterpret_cast<SiIOKernel*>(Unk_57d030_get())->vf21(info, &name, &version)) {
+        if (!reinterpret_cast<SiIOKernel*>(Unk_57d030_get())->vf21(&info->field_0, &name, &version)) {
             ids->Unk_Add(info->field_0);
             versions->Unk_AddNew();
             return false;
