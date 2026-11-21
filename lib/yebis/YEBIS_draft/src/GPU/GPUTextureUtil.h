@@ -7,7 +7,13 @@
 #include <string.h>
 
 #include <yebis/YEBIS_draft/src/GPU/GPUInterface.h>
+#include <yebis/YEBIS_draft/src/GPU/GPUInterfaceDevice.h>
+#include <yebis/YEBIS_draft/src/GPU/GPURenderTexture.h>
+#include <yebis/YEBIS_draft/src/GPU/GPURenderTexturePool.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUResourceManage.h>
+
+// 0x7100446620: the device of an IGPUResource (with a reference)
+void Unk_446620(void* resource, PPFX::IGPUDevice** device);
 
 namespace PPFX {
 
@@ -23,7 +29,7 @@ struct Unk_463fd0_Effect {
     virtual void vf7();
     virtual void vf8();
     virtual void vf9();
-    virtual void vf10();
+    virtual s32 vf10();  // "OnResetDevice"
     virtual s32 vf11();
     virtual s32 vf12(u32 parent, const char* name);  // a parameter's handle
     virtual void vf13();
@@ -33,7 +39,7 @@ struct Unk_463fd0_Effect {
     virtual void vf17();
     virtual void vf18();
     virtual void vf19();
-    virtual void vf20();
+    virtual void vf20(s32 parameter, const f32* value);
     virtual void vf21();
     virtual void vf22();
     virtual void vf23();
@@ -42,6 +48,17 @@ struct Unk_463fd0_Effect {
     virtual void vf26();
     virtual s32 vf27(s32 technique);
     virtual s32 vf28(s32 technique);
+    virtual void vf29();
+    virtual void vf30();
+    virtual void vf31();
+    virtual void vf32();
+    virtual void vf33();
+    virtual void vf34();
+    virtual void vf35();
+    virtual void vf36();
+    virtual void* vf37(s32 arg);
+    virtual void vf38();
+    virtual s32 vf39(s32 arg);
 };
 
 // 0x710049a300: "IGPUEffect::CreateEffectFromFile()" in the log
@@ -67,7 +84,18 @@ public:
     }
 
     s32 CreateEffect(void* device);  // 0x7100463fd0
+    s32 InitializeDevice(IGPUDevice* device, bool keepEffect);  // 0x710046d7e0
     s32 Unk_46d990(void* arg);       // 0x710046d990: releases the effect
+    // 0x710046cfe0 to 0x710046d6f0: the vertex layouts (a position and 1 to 6
+    // texture coordinates; 5 of another format; 2 with another position)
+    s32 Unk_46cfe0();
+    s32 Unk_46d0c0();
+    s32 Unk_46d1b0();
+    s32 Unk_46d2a0();
+    s32 Unk_46d3a0();
+    s32 Unk_46d4b0();
+    s32 Unk_46d5e0();
+    s32 Unk_46d6f0();
 
     // a technique's handles: one per HDR format pair, per tone map, ...
     s32 Unk_462fe0(s32* techniques, const char* name);
@@ -612,10 +640,66 @@ struct Unk_29af8 {
     u8 field_0[0x38];
 };
 
+// a sample point: two coordinates, and two zeros
+struct Unk_SamplePoint {
+    Unk_SamplePoint(f32 x, f32 y) : field_0(x), field_4(y), field_8(0.0f), field_c(0.0f) {}
+
+    f32 field_0;
+    f32 field_4;
+    f32 field_8;
+    f32 field_c;
+};
+// 0x71024e2d50: eight of them, set by CTextureUtil::Unk_46dc60
+extern Unk_SamplePoint Unk_24e2d50[8];
+
 class CTextureUtil : public CGPUResourceManage {
 public:
     CTextureUtil(const char* name);  // 0x710046db60
     s32 Unk_46dc60(const char* name);  // 0x710046dc60
+    s32 Unk_46e360(s32 width, s32 height, s32 format);  // 0x710046e360: the colour bars
+    s32 Unk_46e740(s32 width, s32 height, s32 format);  // 0x710046e740: the chromaticity diagrams
+    s32 Unk_46ea80(s32 width, s32 height);              // 0x710046ea80: the waveform monitor
+
+    // the members as the constructor leaves them (inline in Unk_46dc60 and vf3)
+    inline void Unk_Clear() {
+        field_29a98 = nullptr;
+        for (s32 i = 0; i < 8; i++) {
+            field_29b68[i] = nullptr;
+        }
+        field_29b00 = nullptr;
+        for (s32 i = 0; i < 10; i++) {
+            field_29b08[i] = nullptr;
+        }
+        field_29ba8 = 1.0f;
+        field_29a60 = true;
+        field_29ab0 = true;
+        field_29ad0 = true;
+        field_29ae8 = 0x20;
+        field_29aec = 1;
+        field_29c00 = 0x40;
+        field_29c04 = 1;
+        field_29bb0 = nullptr;
+        field_29af0 = 0;
+        field_29af8 = nullptr;
+        for (s32 i = 0; i < 5; i++) {
+            field_29a70[i] = nullptr;
+        }
+        for (s32 i = 0; i < 2; i++) {
+            field_29aa0[i] = nullptr;
+        }
+        for (s32 i = 0; i < 3; i++) {
+            field_29ab8[i] = nullptr;
+        }
+        for (s32 i = 0; i < 2; i++) {
+            field_29ad8[i] = nullptr;
+        }
+        for (s32 i = 0; i < 7; i++) {
+            field_29bc8[i] = nullptr;
+        }
+        for (s32 i = 0; i < 2; i++) {
+            field_29b58[i] = nullptr;
+        }
+    }
     s32 vf0(IGPUDevice* device) override;  // 0x710046edd0
     s32 vf1() override;           // 0x7100470e40
     s32 vf2() override;           // 0x7100470e70
@@ -623,14 +707,21 @@ public:
     ~CTextureUtil() override;     // 0x710046e110, 0x710046e1c0
 
     s32 Unk_4708b0(void* arg);  // 0x71004708b0
+    s32 Unk_470860(s32 value);  // 0x7100470860
+    s32 Unk_470880();           // 0x7100470880
+    s32 Unk_4708a0(void* arg);  // 0x71004708a0
 
     // UNK_FIELDS_BEGIN
     TEXSHADERSET field_30;
-    CGPUResourceManage* field_29a58;
+    CRenderTexturePool* field_29a58;
     bool field_29a60;
-    u8 pad_29a61[0xf];
+    u8 pad_29a61[0x3];
+    s32 field_29a64;
+    u8 pad_29a68[0x4];
+    bool field_29a6c;
+    u8 pad_29a6d[0x3];
     IGPUInterface* field_29a70[5];
-    CGPUResourceManage* field_29a98;
+    CRenderTexture* field_29a98;
     IGPUInterface* field_29aa0[2];
     bool field_29ab0;
     u8 pad_29ab1[0x7];
@@ -643,8 +734,8 @@ public:
     s32 field_29af0;
     u8 pad_29af4[0x4];
     Unk_29af8* field_29af8;
-    CGPUResourceManage* field_29b00;
-    CGPUResourceManage* field_29b08[10];
+    CRenderTexture* field_29b00;
+    CRenderTexture* field_29b08[10];
     void* field_29b58[2];
     void* field_29b68[8];
     f32 field_29ba8;

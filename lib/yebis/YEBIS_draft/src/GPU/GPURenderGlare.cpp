@@ -19,8 +19,6 @@ void Unk_4a1010();
 void Unk_4a15b0();
 void Unk_4a0a30();
 void Unk_4a2b80();
-// 0x710049fc60
-void Unk_49fc60(void* self, u32 count, void* objects);
 
 namespace PPFX {
 
