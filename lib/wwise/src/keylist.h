@@ -56,9 +56,27 @@ struct Unk_KeyList {
         bool operator!=(const Iterator& other) const { return item != other.item; }
     };
 
+    // An iterator that knows the item before its own, for `Erase`.
+    struct IteratorEx : Iterator {
+        Item* prev;
+
+        IteratorEx& operator++() {
+            prev = this->item;
+            this->item = this->item->next;
+            return *this;
+        }
+    };
+
     Iterator Begin() {
         Iterator it;
         it.item = field_0;
+        return it;
+    }
+
+    IteratorEx BeginEx() {
+        IteratorEx it;
+        it.item = field_0;
+        it.prev = nullptr;
         return it;
     }
 
@@ -107,6 +125,38 @@ struct Unk_KeyList {
             return &pair->item;
         }
         return nullptr;
+    }
+
+    // The removed item goes to the free ones.
+    void RemoveItem(Item* item, Item* prev) {
+        if (item == field_0)
+            field_0 = item->next;
+        else
+            prev->next = item->next;
+        if (item == field_8)
+            field_8 = prev;
+        item->next = field_10;
+        field_10 = item;
+        field_24--;
+    }
+
+    IteratorEx Erase(const IteratorEx& it) {
+        IteratorEx next;
+        next.item = it.item->next;
+        next.prev = it.prev;
+        RemoveItem(it.item, it.prev);
+        return next;
+    }
+
+    void Unset(K key) {
+        IteratorEx it = BeginEx();
+        while (it != End()) {
+            if ((*it).key == key) {
+                Erase(it);
+                break;
+            }
+            ++it;
+        }
     }
 
     void RemoveFirst() {

@@ -4,7 +4,9 @@
 // the group). Placeholder names; the layout is what its functions use.
 #include "Unk_3babc0.h"
 #include "bank_read.h"
+#include "block_pool.h"
 #include "containers.h"
+#include "sorted_array.h"
 #include "keylist.h"
 
 // The nodes one switch value plays, by ID.
@@ -37,26 +39,49 @@ struct Unk_23837d0_NodeParams {
     u8 field_8_4 : 1;
 };
 
+// A game object: reference counted.
+struct Unk_23837d0_Object {
+    virtual ~Unk_23837d0_Object();
+
+    u8 _8[0x48];
+    u32 field_50;  // reference count
+
+    void Release() {
+        if (--field_50 == 0) {
+            int pool = Unk_237e820;
+            this->~Unk_23837d0_Object();
+            Unk_3047c0(pool, this);
+        }
+    }
+};
+PKMN_OFFSET_ASSERT(Unk_23837d0_Object, field_50, 0x50);
+
+void Unk_331150(void* self);  // releases a reference
+
+// A reference counted pointer.
+struct Unk_23837d0_Ref {
+    void* field_0;
+
+    Unk_23837d0_Ref() : field_0(nullptr) {}
+    ~Unk_23837d0_Ref() {
+        if (field_0 != nullptr)
+            Unk_331150(field_0);
+    }
+};
+
 // A playing child that goes on when the switch changes (0x78 bytes).
 struct Unk_23837d0_Cont {
     Unk_23837d0_Cont* next;
-    void* field_8;
+    Unk_23837d0_Ref field_8;
     u64 field_10;
     u32 field_18;
-    u32 field_1c;
-    void* field_20;  // the game object
+    u32 field_1c;  // the playing ID
+    Unk_23837d0_Object* field_20;  // the game object
     u8 field_28[0x44];
     u32 field_6c;
     u32 field_70;  // 1 while paused
 };
 PKMN_SIZE_ASSERT(Unk_23837d0_Cont, 0x78);
-
-// A list through the items' `next`, with the number of items before it.
-template <class T>
-struct Unk_ListLight {
-    u32 field_0;  // number of items
-    T* field_8;  // first
-};
 
 // How an action fades.
 struct Unk_23837d0_Transition {
@@ -107,26 +132,74 @@ struct Unk_23837d0_Filter {
     virtual bool vf0(const Unk_3babc0_Key& key);
 };
 
-// A node of the hierarchy, as far as this class calls it.
-struct Unk_23837d0_Child {
+struct Unk_23837d0_Node;
+
+// A group a node's sound depends on: 8 bytes.
+struct Unk_23837d0_Group {
+    u32 field_0;  // 1 for a state group
+    u32 field_4;  // ID
+
+    Unk_23837d0_Group() : field_0(1), field_4(0) {}
+};
+
+// An item of the children's array. That the items are structures shows in
+// the binary search of `Unset`: the item's address is computed once and kept
+// for the removal (with plain pointers, LICM computes it again after the
+// loop and the load takes an index).
+struct Unk_23837d0_ChildItem {
+    Unk_23837d0_Node* field_0;
+
+    Unk_23837d0_Node* operator->() const { return field_0; }
+};
+
+// The children, sorted by ID. The search isn't Unk_SortedKeyArray's: it takes
+// the item's address first, then reads the key through it.
+struct Unk_23837d0_Children : Unk_Array<Unk_23837d0_ChildItem> {
+    inline Unk_23837d0_ChildItem* BinarySearch(u32 key, bool& found) const;
+
+    void Unset(u32 key) {
+        bool found;
+        Unk_23837d0_ChildItem* item = BinarySearch(key, found);
+        if (found) {
+            Iterator it;
+            it.item = item;
+            Erase(it);
+        }
+    }
+};
+
+// What a node counts of what plays in it.
+struct Unk_23837d0_Info {
+    u8 _0[0x90];
+    s16 field_90;
+    s16 field_92;
+    s16 field_94;
+};
+
+// A node of the hierarchy with children, as far as this class uses it: the
+// class's base, and what its children and its parent are. (That it is a base
+// shows where a node is compared with `this` and then released: the call
+// takes the other pointer, and the vtable is read through `this`.)
+struct Unk_23837d0_Node {
     virtual void vf0();
     virtual void vf1();
-    virtual void vf2();
+    virtual void vf2();  // adds a reference
     virtual void vf3();  // release
     virtual void vf4();
     virtual void vf5();
     virtual void vf6();
-    virtual void vf7();
+    virtual void vf7(Unk_23837d0_Node* parent);  // sets the parent
     virtual void vf8();
     virtual void vf9();
     virtual void vf10();
-    virtual void vf11();
+    virtual u32 vf11(u32 id);  // add a child
     virtual void vf12();
     virtual void vf13();
     virtual void vf14();
     virtual void vf15();
-    virtual void vf16();
-    virtual void vf17();
+    virtual void vf16(void* arg1, void* arg2, Unk_Array<Unk_23837d0_Group>* groups, bool current,
+                      void* object, u32 group, u32 value);
+    virtual u32 vf17();  // the node's type
     virtual void vf18();
     virtual void vf19(Unk_23837d0_Action* action);
     virtual void vf20();
@@ -146,40 +219,50 @@ struct Unk_23837d0_Child {
     virtual void vf34();
     virtual void vf35();
     virtual void vf36();
-    virtual void vf37();
-    virtual void vf38();
-    virtual void vf39();
-    virtual void vf40();
-};
-
-struct Unk_23837d0 {
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();  // adds a reference
-    virtual void vf3();  // release
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual u32 vf11(u32 id);  // add a child
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15();
-    virtual void vf16();
-    virtual u32 vf17();  // the node's type
+    virtual bool vf37(u32 count);
+    virtual void vf38(u32 count);
+    virtual u32 vf39();  // prepares its data
+    virtual void vf40();  // the data isn't needed any more
 
     u8 _8[8];
     u32 field_10;  // ID
-    u8 _14[0x88];
+    u8 _14[0x5c];
+    Unk_23837d0_Info* field_70;
+    Unk_23837d0_Node* field_78;  // parent
+    void* field_80;
+    u8 _88[0x14];
     u32 field_9c_0 : 29;
     u32 field_9c_29 : 1;
     u8 _a0[0x18];
-    Unk_Array<Unk_23837d0_Child*> field_b8;  // children
+    Unk_23837d0_Children field_b8;
     u8 _c8[0x10];
+};
+PKMN_SIZE_ASSERT(Unk_23837d0_Node, 0xd8);
+PKMN_OFFSET_ASSERT(Unk_23837d0_Node, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_23837d0_Node, field_70, 0x70);
+PKMN_OFFSET_ASSERT(Unk_23837d0_Node, field_80, 0x80);
+PKMN_OFFSET_ASSERT(Unk_23837d0_Node, field_b8, 0xb8);
+
+inline Unk_23837d0_ChildItem* Unk_23837d0_Children::BinarySearch(u32 key, bool& found) const {
+    s32 top = 0;
+    s32 bottom = Length() - 1;
+    while (top <= bottom) {
+        s32 mid = (bottom - top) / 2 + top;
+        Unk_23837d0_ChildItem* item = field_0 + mid;
+        if (key < item->field_0->field_10) {
+            bottom = mid - 1;
+        } else if (key > item->field_0->field_10) {
+            top = mid + 1;
+        } else {
+            found = true;
+            return item;
+        }
+    }
+    found = false;
+    return field_0 != nullptr ? field_0 + top : nullptr;
+}
+
+struct Unk_23837d0 : Unk_23837d0_Node {
     u8 field_d8[8];  // the subscriber, a base class
     u8 field_e0[8];  // a second base class: what is told that data is prepared
     u64 field_e8;
@@ -213,8 +296,6 @@ struct Unk_23837d0 {
         return 1;
     }
 };
-PKMN_OFFSET_ASSERT(Unk_23837d0, field_10, 0x10);
-PKMN_OFFSET_ASSERT(Unk_23837d0, field_b8, 0xb8);
 PKMN_OFFSET_ASSERT(Unk_23837d0, field_d8, 0xd8);
 PKMN_OFFSET_ASSERT(Unk_23837d0, field_f4, 0xf4);
 PKMN_OFFSET_ASSERT(Unk_23837d0, field_100, 0x100);
