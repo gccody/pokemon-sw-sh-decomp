@@ -2576,7 +2576,35 @@ Not written: the eight `vf7`s (48 bytes to 840: they set the object's
 callables up, with lambdas of their own), three larger `vf8`/`vf10`s, the
 lambdas, and `Unk_2429a08`'s functions at the start of the TU. They're
 declared, so the object has undefined local symbols (a clang warning).
-The next TU (`0x71012851f0`) has twelve more of these classes.
+
+The next TU (`src/unsorted/Unk_12851f0.cpp`, `0x71012851f0` to
+`0x7101290e40`) has twelve more: 112 functions, 26.8 KB, match. What was new
+there:
+
+- **Its class in between has a member and four more virtual functions**
+  (`+0x3c0`, 0xd in every object; `vf11` to `vf14`). The value-initialized
+  base is zeroed up to 0x3c4, its data's end. `vf14` makes a class by the
+  member's value, and is the only maker of one of the twelve.
+- **The makers are constructors.** A caller has no store before the call
+  (`add x0, sp, #8 ; bl`): the reference isn't default-constructed first, so
+  the function that makes a class is the constructor of a reference to a new
+  object. They're structs with external linkage here (`Unk_12857e0_Made`),
+  one per class with several makers; in the original they're local to the TU.
+- **An argument slot and an inlined function's.** A callable hands a new
+  reference to `Unk_24284d0::Unk_126ad50`, which takes it by value: the
+  constructor's object keeps a stack slot of its own and the moved one shares
+  a slot, which is what an argument's temporary (clang 7 gives it no
+  lifetime markers) and an inlined function's (the inliner adds them) do:
+  `Unk_SetNext(object, Made(allocator))`, taking the reference by value.
+- **Shared with the first TU** (`src/unsorted/Unk_24284d0_Make.h`): the
+  creation, the move-assignment, and the callable that registers an empty
+  callable under a lock and makes the next class.
+
+Left non-matching there: one callable (`0x710128dfa0`, `M`: the allocator's
+address is kept in a register across an `if`), and five `vf_type`s (`m`):
+the class `vf14` makes is emitted with the first vtable, where the original
+reaches four classes before it through the first class's `vf7`; their
+statics are one place off until that `vf7` is written.
 
 ### Destructors in the unplaced areas (hand-written, 2026-11-19)
 

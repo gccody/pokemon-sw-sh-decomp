@@ -73,6 +73,8 @@ public:
     void Unk_126b1f0();
     Unk_126aca0_Result* Unk_126aca0();
     Unk_239a418_Ref<Unk_126b5b0_Object> Unk_126b5b0();
+    // 0x710126ad50: field_78 becomes `next` (not decompiled yet).
+    void Unk_126ad50(Unk_239a418_Ref<Unk_239a418> next);
 
     virtual void vf7(u64 arg);
     // field_70, or a reference to itself when that's empty.
