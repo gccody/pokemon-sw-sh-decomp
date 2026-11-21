@@ -6,6 +6,23 @@
 #include "Unk_Indexed.h"
 #include "Unk_KeyArray.h"
 
+// What two of the second base's virtual functions return: a number of
+// values an item, and a list of items.
+struct Unk_361410_A {
+    u64 field_0;
+    u32 field_8;
+};
+
+struct Unk_361410_Node {
+    u64 field_0;
+    u64 field_8;
+    Unk_361410_Node* field_10;  // next
+};
+
+struct Unk_361410_B {
+    Unk_361410_Node* field_0;
+};
+
 // The second base (0x71003629e0 constructs it, 0x7100362a20 destroys it).
 class Unk_2380c68 {
 public:
@@ -16,7 +33,7 @@ public:
     virtual void wf4();
     virtual void wf5();
     virtual void wf6();
-    virtual void wf7();
+    virtual Unk_361410_A* wf7();
     virtual void wf8();
     virtual void wf9();
     virtual void wf10();
@@ -24,6 +41,8 @@ public:
     virtual void wf12();
     virtual void wf13();
     virtual u32 wf14(u8** data, u32* size);
+    virtual void wf15();
+    virtual Unk_361410_B* wf16();
     u8 field_8;
     u64 field_10;
 };
@@ -129,7 +148,7 @@ struct Unk_360c20_Params {
     virtual void vf0();
     virtual void vf1();
     virtual void vf2(void* allocator);
-    virtual void vf3();
+    virtual Unk_360c20_Params* vf3(void* allocator);  // a copy
     virtual u32 vf4(void* allocator, const void* data, u32 size);
     virtual void vf5(void* allocator);
 };

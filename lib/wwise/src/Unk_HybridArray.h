@@ -3,7 +3,7 @@
 // comes first, and the array only allocates when it needs more. The array's
 // own code is that of containers.h and sorted_array.h, with the allocator's
 // functions called on the object. Placeholder names.
-#include "sorted_array.h"
+#include "containers.h"
 
 void* Unk_3046a0(int poolId, size_t size, u32 align);
 u32 Unk_304740(int poolId, void* ptr);

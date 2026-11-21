@@ -1,7 +1,7 @@
 // Scope: common
 // The objects that refer to an Unk_360c20_T (Unk_362360_T) and a class
 // derived from them. Placeholder names.
-#include "Unk_360c20.h"
+#include "Unk_369950.h"
 
 void operator delete(void* ptr) noexcept;
 
@@ -178,4 +178,59 @@ void Unk_362bf0(Unk_2380c68* base, u16 parameter, u32 mode, u32 a3, f32, f32 val
     Unk_360c20_T* self = &static_cast<Unk_360c20_T&>(*base);
     for (Unk_362360_T* p = self->field_70.field_0; p != nullptr; p = p->field_58)
         Unk_361c80(p, 2, a3, parameter, mode, value);
+}
+
+void Unk_361770(Unk_362360_T* self, Unk_369950_Sound* sound);
+void Unk_361900(Unk_362360_T* self, void* a1, void* a2);
+void Unk_361a70(Unk_362360_T* self);
+
+// 0x7100361410: makes the object one of `target`, with room for its values:
+// what it has of the target's parameters object, or null.
+Unk_360c20_Params* Unk_361410(Unk_362360_T* self, Unk_360c20_T* target, Unk_369950_Sound* sound,
+                              void* a3, void* a4, bool a5) {
+    if (target->field_38 == nullptr)
+        return self->field_8;
+    self->field_8 = target->field_38->vf3(&Unk_2380d10);
+    self->field_10 = target;
+    if (self != nullptr) {
+        target->field_70.AddFirst(self);
+        target->vf2();
+    }
+    self->field_48.field_8 = 0;
+    u32 count = self->field_10->field_60.Length();
+    for (auto it = self->field_10->field_50.Begin(); it != self->field_10->field_50.End(); ++it) {
+        if ((*it).field_5 != 1)
+            count++;
+    }
+    Unk_361410_A* a = self->field_10->wf7();
+    Unk_361410_B* b = self->field_10->wf16();
+    if (a != nullptr && b != nullptr) {
+        u32 n = 0;
+        for (Unk_361410_Node* node = b->field_0; node != nullptr; node = node->field_10)
+            n++;
+        count += a->field_8 * n;
+    }
+    if (count != 0) {
+        if (!self->field_48.Resize(count)) {
+            self->vf5();
+            return self->field_8;
+        }
+    }
+    for (size_t i = 0; i < self->field_10->field_60.Length(); i++) {
+        Unk_360c20_Value& value = self->field_10->field_60.field_0[i];
+        Unk_362360_Item& item = self->field_48.field_0[i];
+        item.field_8 = value.field_0;
+        item.field_c = value.field_4;
+    }
+    if (sound != nullptr)
+        Unk_361770(self, sound);
+    else if (a5)
+        Unk_361900(self, a3, a4);
+    Unk_361a70(self);
+    return self->field_8;
+}
+
+// 0x7100361400
+Unk_360c20_Params* Unk_361400(Unk_362360_T* self, Unk_360c20_T* object, Unk_369950_Sound* sound) {
+    return Unk_361410(self, object, sound, sound->field_10, nullptr, true);
 }
