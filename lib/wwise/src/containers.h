@@ -33,8 +33,15 @@ struct Unk_Pool2385820 {
     static void Free(void* ptr) { Unk_3047c0(Unk_2385820, ptr); }
 };
 
-// A growable array of T.
-template <class T, class A = Unk_PoolDefault>
+// A third pool (0x7102381488).
+extern int Unk_2381488;
+struct Unk_Pool2381488 {
+    static void* Alloc(size_t size) { return Unk_3045e0(Unk_2381488, size); }
+    static void Free(void* ptr) { Unk_3047c0(Unk_2381488, ptr); }
+};
+
+// A growable array of T: a full array grows by GrowBy items when one is added.
+template <class T, class A = Unk_PoolDefault, u32 GrowBy = 1>
 struct Unk_Array {
     T* field_0;  // items
     u32 field_8;  // length
@@ -47,6 +54,24 @@ struct Unk_Array {
         if (field_8 >= field_c)
             return nullptr;
         return field_0 + field_8++;
+    }
+
+    T* AddLast(const T& item) {
+        T* p = AddLast();
+        if (p != nullptr)
+            *p = item;
+        return p;
+    }
+
+    // Takes the items of `other`, which is left empty.
+    void Transfer(Unk_Array& other) {
+        Term();
+        field_0 = other.field_0;
+        field_8 = other.field_8;
+        field_c = other.field_c;
+        other.field_0 = nullptr;
+        other.field_8 = 0;
+        other.field_c = 0;
     }
 
     bool GrowArray(u32 growBy) {
@@ -115,11 +140,11 @@ struct Unk_Array {
         return it != End() ? it.item : nullptr;
     }
 
-    // Growing the array by one item when it is full.
+    // Growing the array when it is full.
     T* AddLastGrow() {
         size_t length = Length();
         if (length >= field_c) {
-            if (!GrowArray(1))
+            if (!GrowArray(GrowBy))
                 return nullptr;
         }
         if (length < field_c) {
@@ -134,7 +159,7 @@ struct Unk_Array {
     inline T* Insert(u32 index) {
         size_t length = Length();
         if (length >= field_c) {
-            if (!GrowArray(1))
+            if (!GrowArray(GrowBy))
                 return nullptr;
         }
         if (length < field_c) {
