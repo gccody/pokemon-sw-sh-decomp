@@ -450,12 +450,18 @@ void Unk_3ca360(Unk_3ca240_T* self, u32 arg1, u32 arg2, u32* result) {
         *result = 0xffffffff;
 }
 
-void Unk_356a90(Unk_3ca240_Bus* self, Unk_3ca300_Ref* ref);
+// Unk_237ff98.h: the node class has this function.
+struct Unk_237ff98_Ref;
+class Unk_237ff98 {
+public:
+    void Unk_356a90(Unk_237ff98_Ref* out);
+};
 
 // 0x71003ca3b0
 void Unk_3ca3b0(Unk_3ca240_T* self, Unk_3ca300_Ref* ref) {
     if (self->field_0 != nullptr)
-        Unk_356a90(self->field_0, ref);
+        reinterpret_cast<Unk_237ff98*>(self->field_0)
+            ->Unk_356a90(reinterpret_cast<Unk_237ff98_Ref*>(ref));
     else
         ref->Clear();
 }

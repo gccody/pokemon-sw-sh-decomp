@@ -30,9 +30,13 @@ u32 Unk_367e30();
 void Unk_367eb0();
 void Unk_368870();
 u32 Unk_368900();
-void Unk_368990();
-void Unk_368a60(Unk_3c54c0_T* item, u32 arg1);
-void Unk_368ff0();
+// 0x7100368990 has a parameter in its name that it passes on to
+// 0x71003044e0, which has one in its name and reads none: what is in x0
+// when it is called here is what the call before it left there.
+void Unk_368990(void* arg);
+struct Unk_368a60_T;  // Unk_368a60.h: the items of the list
+void Unk_368a60(Unk_368a60_T* item, u32 arg1);
+void* Unk_368ff0();
 u32 Unk_37bef0();
 void Unk_37c450();
 void Unk_3a8030_update();
@@ -68,8 +72,7 @@ void Unk_3c5360() {
     Unk_24df148.Term();
     Unk_24df158.RemoveAll();
     Unk_35ef60();
-    Unk_368ff0();
-    Unk_368990();
+    Unk_368990(Unk_368ff0());
 }
 
 // 0x71003c54c0
@@ -78,7 +81,7 @@ void Unk_3c54c0() {
     while (it != Unk_24df158.End()) {
         Unk_3c54c0_T* item = *it;
         it = Unk_24df158.Erase(it);
-        Unk_368a60(item, 0);
+        Unk_368a60(reinterpret_cast<Unk_368a60_T*>(item), 0);
     }
     Unk_3c5550();
     Unk_368870();

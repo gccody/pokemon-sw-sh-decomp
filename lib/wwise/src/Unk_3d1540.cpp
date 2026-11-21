@@ -25,7 +25,7 @@ extern void* Unk_23844d0[];
 
 u64 Unk_369930_get(const Unk_369930* self);
 void Unk_356bc0(Unk_24df148_Node* self, u32 key, u32* result);
-void Unk_368ee0(u32 arg0, u64 arg1, u32 arg2, u64 arg3, u64 arg4);
+void Unk_368ee0(u32 arg0, u64 arg1, u32 arg2, void** buffer, u32* size);
 u32 Unk_37b3e0(Unk_37d6b0_T* self, u64 arg1, u64 arg2, u64 arg3);
 void Unk_3ad110(Unk_24df148_Config arg0, Unk_24df148_Config arg1, void* arg2);
 u32 Unk_3b1200(Unk_37d6b0_T* self, f32 arg1, Unk_24df148_Config arg2, f32 arg3, void* arg4);
@@ -210,8 +210,8 @@ void Unk_3d2e40(Unk_24df148_Bus* self, u64 arg1, u64 arg2) {
         id = 0;
         number = 0xffffffffffffffff;
     }
-    Unk_368ee0(id, number, self->field_328 != nullptr ? self->field_328->vf2() : 0xffffffff, arg1,
-               arg2);
+    Unk_368ee0(id, number, self->field_328 != nullptr ? self->field_328->vf2() : 0xffffffff,
+               reinterpret_cast<void**>(arg1), reinterpret_cast<u32*>(arg2));
 }
 
 // 0x71003d2ec0
@@ -232,7 +232,8 @@ void Unk_3d2f40(void* arg0, u32 index, u64 arg1, u64 arg2) {
         number = 0xffffffffffffffff;
     }
     Unk_24df148_SlotCtx& ctx = self->field_c8[index].field_0;
-    Unk_368ee0(id, number, ctx.vf2(), arg1, arg2);
+    Unk_368ee0(id, number, ctx.vf2(), reinterpret_cast<void**>(arg1),
+               reinterpret_cast<u32*>(arg2));
 }
 
 // 0x71003d3110: the channels of what plays into the bus
