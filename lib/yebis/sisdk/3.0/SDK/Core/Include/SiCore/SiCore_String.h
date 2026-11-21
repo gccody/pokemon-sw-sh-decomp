@@ -4,11 +4,22 @@
 
 #include "SiCore_Memory.h"
 
+// 0x71004bc690: the kernel's allocator, or null without a kernel
+SiSDK3::ISiAllocator* Unk_4bc690();
+
 namespace SiSDK3 {
 
 template <class T>
 class SiString {
 public:
+    SiString() = default;
+    // the kernel's allocator for a null one (inline in every caller)
+    explicit SiString(ISiAllocator* pAllocator)
+        : m_pAllocator(pAllocator), m_pBuffer(nullptr), field_10(0), field_18(0), field_20(0), field_28(0) {
+        if (m_pAllocator == nullptr) {
+            m_pAllocator = Unk_4bc690() != nullptr ? Unk_4bc690() : Unk_4bc640();
+        }
+    }
     ~SiString() { Unk_Release(); }
 
     // frees the buffer unless it isn't the string's own (inline in every
@@ -17,10 +28,10 @@ public:
 
     ISiAllocator* m_pAllocator;
     T* m_pBuffer;
-    size_t field_10;
-    size_t field_18;
-    size_t field_20;
-    u64 field_28;  // bit 0: m_pBuffer isn't the string's own
+    size_t field_10;  // length
+    size_t field_18;  // what a full string grows by (0: it doubles)
+    size_t field_20;  // capacity
+    u64 field_28;     // bit 0: m_pBuffer isn't the string's own
 };
 
 }  // namespace SiSDK3
