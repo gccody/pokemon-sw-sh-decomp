@@ -444,6 +444,31 @@ From CTextureUtil's rectangles and the DrawRectGPU functions that draw them
   drops the no-wrap flags the fold needs. Where a count is computed (before
   the first use of its operands, or just before its own use) also decides
   which callee-saved register it gets.
+- A technique getter that gives 0 for one index (`index == 21 ? 0 :
+  table[n][index]`, tech_MadT2_Sn and tech_MadScalarWeightT1_Sn have no
+  technique 21) shows as one compare ahead of the search loop: the loop is
+  unswitched on it and the copy that finds nothing is deleted. Written as an
+  `if` around the loop, the index's sign extension is folded into the shift.
+- Three functions log as `DrawRectGPU_MadT1_Sn` (0x7100475560, 0x7100475960,
+  0x7100476580). Only 0x7100475960 draws tech_MadT1_Sn alone, so it has the
+  name; the other two (the colour grading LUT's and tech_MadT2_Sn's) keep
+  placeholders.
+- A `bool` that is a `switch`'s result in one branch and a range check in the
+  other, then selects between two constants, must get the `switch` from an
+  inline function (`Unk_47b560_Format`). In one function InstCombine pushes
+  the select into the predecessors before the inliner runs, and the range
+  check becomes a table load; after inlining, jump threading sees the select
+  first and the range check stays a branch to the block the cases share.
+- Floats written into the scratch vectors four to an element are indexed from
+  the statics block (`Unk_24e45d0.field_448[0].field_0[i].field_0`): with a
+  global at the root of the address the copy loop costs one more unit and
+  unrolls by 2, through a `f32*` to the member it unrolls by 4.
+- The matrix helpers of the first TU (Unk_415f40.cpp) zero their elements
+  with one chained assignment (`m[0][1] = m[0][2] = ... = 0.0f`, stores from
+  right to left), and compute every element of a transformed vector before
+  they store one (all loads come first). `m * v` is the order of every
+  product: the first element's has the matrix element first because it is
+  read first, the others the vector's (Reassociate's ranks, above).
 
 ## SiSDK3's SiIO, SiOS and SiGfx classes (0x71004ed630 to 0x7100596d20)
 
