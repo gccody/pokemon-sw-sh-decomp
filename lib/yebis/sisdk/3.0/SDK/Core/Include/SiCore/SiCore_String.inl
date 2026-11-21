@@ -17,6 +17,10 @@ inline void SiString<T>::Unk_Release() {
     }
 }
 
+// (The buffer's pointer is cleared between the capacity and the flags: with
+// it first or last, the stores of the capacity and the flags are merged and
+// come before those of the pointer and the length, which isn't the original's
+// order: SiGfxShaderEffectVariation's 0x7100574a20.)
 template <class T>
 inline void SiString<T>::Unk_Clear() {
     if (!(field_28 & 1) && m_pBuffer != nullptr) {
@@ -26,9 +30,9 @@ inline void SiString<T>::Unk_Clear() {
         }
         m_pBuffer = nullptr;
     }
-    m_pBuffer = nullptr;
     field_10 = 0;
     field_20 = 0;
+    m_pBuffer = nullptr;
     field_28 = 0;
 }
 

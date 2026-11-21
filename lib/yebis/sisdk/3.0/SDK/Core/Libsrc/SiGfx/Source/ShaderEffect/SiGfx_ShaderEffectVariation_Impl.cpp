@@ -23,8 +23,6 @@ SiGfxShaderEffectVariation::~SiGfxShaderEffectVariation() {
 }
 
 // 0x7100574a20
-// NON_MATCHING: the same instructions, but the original stores the first string's zeroed capacity
-// and flags after it has read the second array's flags, and this stores them before.
 void SiGfxShaderEffectVariation::Unk_574a20() {
     field_48.Unk_4e3050();
     field_98.Unk_Clear();

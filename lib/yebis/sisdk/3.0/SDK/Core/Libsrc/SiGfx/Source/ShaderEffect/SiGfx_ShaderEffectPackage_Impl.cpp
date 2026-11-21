@@ -6,6 +6,7 @@
 
 #include <string.h>
 
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_Alloc.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_StringFuncs.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiIO/SiIO_Stream.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/ShaderEffect/SiGfx_ShaderEffectDefinition_Impl.h>
@@ -165,6 +166,48 @@ void SiGfxShaderEffectPackage::vf5(const char* name) {
     field_e38.field_50 = *vf6();
 }
 
+// 0x71005686f0
+// NON_MATCHING: the same instructions, but x20 and x21 are exchanged from the release of
+// field_190 to that of field_280. The addresses of an array's count and of its buffer live
+// equally long there, and the allocator takes the count's first; the original took the
+// buffer's.
+void SiGfxShaderEffectPackage::Unk_5686f0() {
+    Unk_566a00(field_8.m_pAllocator, &field_140, false);
+    field_190.Unk_4e3050();
+    Unk_ReleaseAll(&field_230);
+    Unk_ReleaseAll(&field_280);
+    if (field_bf0) {
+#line 1354
+        UNK_SAFE_DELETE_ARRAY(field_8.m_pAllocator, field_be8)
+        UNK_SAFE_DELETE_ARRAY(field_8.m_pAllocator, field_bf8[0])
+        UNK_SAFE_DELETE_ARRAY(field_8.m_pAllocator, field_bf8[1])
+        UNK_SAFE_DELETE_ARRAY(field_8.m_pAllocator, field_bf8[2])
+        UNK_SAFE_DELETE_ARRAY(field_8.m_pAllocator, field_bf8[3])
+        UNK_SAFE_DELETE_ARRAY(field_8.m_pAllocator, field_bf8[4])
+        UNK_SAFE_DELETE_ARRAY(field_8.m_pAllocator, field_bf8[5])
+    } else {
+        field_be8 = nullptr;
+        field_bf8[5] = nullptr;
+        field_bf8[4] = nullptr;
+        field_bf8[3] = nullptr;
+        field_bf8[2] = nullptr;
+        field_bf8[1] = nullptr;
+        field_bf8[0] = nullptr;
+    }
+    Unk_ReleaseAll(&field_c58[0]);
+    Unk_ReleaseAll(&field_c58[1]);
+    Unk_ReleaseAll(&field_c58[2]);
+    Unk_ReleaseAll(&field_c58[3]);
+    Unk_ReleaseAll(&field_c58[4]);
+    Unk_ReleaseAll(&field_c58[5]);
+    field_48.Unk_Clear();
+    // (a zeroed header that's assigned after the flag: the stores' order)
+    Unk_567750_Header header;
+    memset(&header, 0, sizeof(header));
+    field_bf0 = false;
+    field_a0 = header;
+}
+
 // 0x7100568e10
 bool SiGfxShaderEffectPackage::vf12(const Unk_567750_Desc* desc) {
     if (field_138++ == 0) {
@@ -184,7 +227,7 @@ bool SiGfxShaderEffectPackage::vf14(s64 value108, void* valueBe8, u32 value104, 
                                     const SiArray<Unk_5693e0>* shaders1, const SiArray<Unk_5693e0>* shaders2,
                                     const SiArray<Unk_5693e0>* shaders3, const SiArray<Unk_5693e0>* shaders4,
                                     const SiArray<Unk_5693e0>* shaders5) {
-    field_be8 = valueBe8;
+    field_be8 = static_cast<u8*>(valueBe8);
     field_a0.field_68 = value108;
     field_a0.field_64 = value104;
     field_a0.field_80 = shaders0->m_itemCount;
@@ -610,6 +653,85 @@ bool SiGfxShaderEffectPackage::Unk_56b000(ISiIOStream* stream, Unk_567750_Header
     return true;
 }
 
+// 0x710056b230
+// (each of the six tests is of field_be8, like the first one's)
+bool SiGfxShaderEffectPackage::Unk_56b230(ISiIOStream* stream, Unk_567750_Header* header) {
+    if (stream == nullptr) {
+        return false;
+    }
+    if (header->field_68 >= 1) {
+        Unk_582f10(stream, header->field_64);
+#line 1606
+        field_be8 = UNK_ALLOC_ARRAY(field_8.m_pAllocator, u8, header->field_68, header->field_64);
+        if (field_be8 == nullptr) {
+            return false;
+        }
+        stream->vf21(field_be8, header->field_68, true);
+    }
+    Unk_582f10(stream, 0x10);
+    if (header->field_80 >= 1) {
+#line 1620
+        field_bf8[0] = UNK_ALLOC_ARRAY(field_8.m_pAllocator, Unk_5693e0, header->field_80, 0xffffffff);
+        if (field_be8 == nullptr) {
+            return false;
+        }
+        stream->vf21(field_bf8[0], static_cast<s64>(header->field_80) * sizeof(Unk_5693e0), true);
+        field_c58[0].Unk_SetCount(header->field_80);
+        memset(field_c58[0].m_pData, 0, static_cast<s64>(header->field_80) * sizeof(ISiGfxShader*));
+    }
+    if (header->field_84 >= 1) {
+#line 1635
+        field_bf8[1] = UNK_ALLOC_ARRAY(field_8.m_pAllocator, Unk_5693e0, header->field_84, 0xffffffff);
+        if (field_be8 == nullptr) {
+            return false;
+        }
+        stream->vf21(field_bf8[1], static_cast<s64>(header->field_84) * sizeof(Unk_5693e0), true);
+        field_c58[1].Unk_SetCount(header->field_84);
+        memset(field_c58[1].m_pData, 0, static_cast<s64>(header->field_84) * sizeof(ISiGfxShader*));
+    }
+    if (header->field_88 >= 1) {
+#line 1650
+        field_bf8[2] = UNK_ALLOC_ARRAY(field_8.m_pAllocator, Unk_5693e0, header->field_88, 0xffffffff);
+        if (field_be8 == nullptr) {
+            return false;
+        }
+        stream->vf21(field_bf8[2], static_cast<s64>(header->field_88) * sizeof(Unk_5693e0), true);
+        field_c58[2].Unk_SetCount(header->field_88);
+        memset(field_c58[2].m_pData, 0, static_cast<s64>(header->field_88) * sizeof(ISiGfxShader*));
+    }
+    if (header->field_8c >= 1) {
+#line 1665
+        field_bf8[3] = UNK_ALLOC_ARRAY(field_8.m_pAllocator, Unk_5693e0, header->field_8c, 0xffffffff);
+        if (field_be8 == nullptr) {
+            return false;
+        }
+        stream->vf21(field_bf8[3], static_cast<s64>(header->field_8c) * sizeof(Unk_5693e0), true);
+        field_c58[3].Unk_SetCount(header->field_8c);
+        memset(field_c58[3].m_pData, 0, static_cast<s64>(header->field_8c) * sizeof(ISiGfxShader*));
+    }
+    if (header->field_90 >= 1) {
+#line 1680
+        field_bf8[4] = UNK_ALLOC_ARRAY(field_8.m_pAllocator, Unk_5693e0, header->field_90, 0xffffffff);
+        if (field_be8 == nullptr) {
+            return false;
+        }
+        stream->vf21(field_bf8[4], static_cast<s64>(header->field_90) * sizeof(Unk_5693e0), true);
+        field_c58[4].Unk_SetCount(header->field_90);
+        memset(field_c58[4].m_pData, 0, static_cast<s64>(header->field_90) * sizeof(ISiGfxShader*));
+    }
+    if (header->field_94 >= 1) {
+#line 1695
+        field_bf8[5] = UNK_ALLOC_ARRAY(field_8.m_pAllocator, Unk_5693e0, header->field_94, 0xffffffff);
+        if (field_be8 == nullptr) {
+            return false;
+        }
+        stream->vf21(field_bf8[5], static_cast<s64>(header->field_94) * sizeof(Unk_5693e0), true);
+        field_c58[5].Unk_SetCount(header->field_94);
+        memset(field_c58[5].m_pData, 0, static_cast<s64>(header->field_94) * sizeof(ISiGfxShader*));
+    }
+    return true;
+}
+
 // 0x710056b8a0
 bool SiGfxShaderEffectPackage::Unk_56b8a0(ISiIOStream* stream, Unk_567750_Header* header) {
     field_140.Unk_ReserveAtLeast(header->field_7c);
@@ -625,9 +747,9 @@ bool SiGfxShaderEffectPackage::Unk_56b8a0(ISiIOStream* stream, Unk_567750_Header
 }
 
 // 0x710056ba50
-bool SiGfxShaderEffectPackage::vf9() {
+void SiGfxShaderEffectPackage::vf9() {
     field_1e0.Unk_4e3050();
-    return Unk_5686f0();
+    Unk_5686f0();
 }
 
 // 0x710056bbf0

@@ -422,7 +422,7 @@ template bool SiSDK3::SiArray<SiSDK3::ISiGfxShaderEffectDefinition*, 16>::Unk_4b
 // 0x710056ef00
 template bool SiSDK3::SiArray<SiSDK3::ISiGfxShaderEffectVariation*, 16>::Unk_4bf190(size_t, bool);
 // 0x710056f0a0
-template bool SiSDK3::SiArray<Unk_56f0a0*, 16>::Unk_4bf190(size_t, bool);
+template bool SiSDK3::SiArray<SiSDK3::ISiGfxShader*, 16>::Unk_4bf190(size_t, bool);
 // 0x710056f240
 template bool SiSDK3::SiArray<SiSDK3::ISiGfxShaderEffectPackage::TechniqueData*, 16>::Unk_4bf190(size_t, bool);
 // 0x710056f3e0

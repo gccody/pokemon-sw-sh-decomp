@@ -20,7 +20,14 @@
 namespace SiSDK3 {
 
 class ISiIOStream;
-class ISiGfxShader;
+
+// A shader as the package uses it: slots 2 and 3 are the reference count.
+class ISiGfxShader {
+public:
+    virtual ~ISiGfxShader();
+    virtual u32 vf2();
+    virtual u32 vf3();
+};
 
 // A variation and a definition as the package uses them: slots 2 and 3 are
 // the reference count, slot 14 writes one to a stream; a variation's slots 7
@@ -332,7 +339,7 @@ public:
     virtual SiString<char>* vf6();       // the name
     virtual const u8* vf7();
     virtual bool vf8(const char* path);  // reads a file
-    virtual bool vf9();  // releases what it holds
+    virtual void vf9();  // releases what it holds
     virtual bool vf10(const char* path, u32 byteOrder);  // writes a file
     virtual bool vf11();
     virtual bool vf12(const Unk_567750_Desc* desc);
@@ -357,7 +364,7 @@ public:
     virtual bool vf28();
 
     // 0x71005686f0: releases the effects' data, definitions and variations
-    bool Unk_5686f0();
+    void Unk_5686f0();
     // 0x7100569c40: writes the shaders' code, 0x7100569dd0: an effect's data
     bool Unk_569c40(ISiIOStream* stream);
     bool Unk_569dd0(ISiIOStream* stream, ISiGfxShaderEffectPackage::ShaderEffectData* data);
@@ -412,7 +419,7 @@ public:
     SiArray<ISiGfxShaderEffectVariation*> field_230;
     SiArray<ISiGfxShaderEffectDefinition*> field_280;
     Unk_567b80 field_2d0;
-    void* field_be8;
+    u8* field_be8;
     bool field_bf0;
     Unk_5693e0* field_bf8[6];  // the shaders' code of the header's six numbers
     Unk_CriticalSection field_c28;
