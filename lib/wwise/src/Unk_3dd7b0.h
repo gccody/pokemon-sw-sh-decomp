@@ -13,15 +13,31 @@ struct Unk_3dd7b0_Ctx {
     u32 field_1d8;
     u8 _1dc[0x2c];
     u32 field_208;
-    u8 _20c[0x5c];
+    u32 field_20c;
+    u16 field_210_0 : 6;
+    u16 field_210_6 : 10;  // bytes of a sample of all channels
+    u8 _212[0x52];
+    u32 field_264;  // where to go to
     u16 field_268;
     u8 _26a;
     // 40 bits of flags, not aligned.
     struct __attribute__((packed)) {
         u64 field_26b_0 : 22;
         u64 field_26b_22 : 1;
-        u64 field_26b_23 : 17;
+        u64 field_26b_23 : 1;
+        u64 field_26b_24 : 1;
+        u64 field_26b_25 : 4;
+        u64 field_26b_29 : 1;
+        u64 field_26b_30 : 10;
     };
+
+    // Nowhere to go to any more.
+    void ResetSeek() {
+        field_264 = 0;
+        field_26b_22 = 0;
+        field_26b_23 = 0;
+        field_26b_24 = 0;
+    }
 };
 PKMN_OFFSET_ASSERT(Unk_3dd7b0_Ctx, field_1d8, 0x1d8);
 PKMN_OFFSET_ASSERT(Unk_3dd7b0_Ctx, field_208, 0x208);
