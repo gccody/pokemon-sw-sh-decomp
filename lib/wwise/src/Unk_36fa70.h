@@ -481,8 +481,13 @@ PKMN_SIZE_ASSERT(Unk_36b350_T, 0x78);
 
 // What the first tree's values point to: an object with a reference count
 // (the one Unk_373fd0_get, in lib/wwise/leaf, takes).
+struct Unk_373fd0;
+// What the object lets go of when it is destroyed.
+void Unk_3739f0(Unk_373fd0* self);
+
 struct Unk_373fd0 {
-    virtual ~Unk_373fd0();
+    Unk_373fd0();  // 0x71003739b0
+    virtual ~Unk_373fd0() { Unk_3739f0(this); }  // 0x7100374410
     virtual void vf2(u32 a1, f32 a2);
 
     void Release() {

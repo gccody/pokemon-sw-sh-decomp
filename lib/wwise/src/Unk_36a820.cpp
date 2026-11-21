@@ -183,3 +183,71 @@ u32 Unk_36a9f0(Unk_36b350_T* self, u8* data) {
         return 2;
     return Unk_36a9f0_ReadParams(&data, &size, self);
 }
+
+// The objects of the tree, one class for each kind of owner (0xe0 and 0xb0
+// bytes; vtables 0x7102381928 and 0x7102381968).
+struct Unk_2381968 : Unk_373fd0 {
+    Unk_2381968() {}
+
+    u8 _78[0x38];
+};
+PKMN_SIZE_ASSERT(Unk_2381968, 0xb0);
+
+struct Unk_2381928 : Unk_373fd0 {
+    Unk_2381928() : field_b8(), field_c8(), field_d8(0) {}
+
+    u8 _78[0x40];
+    u64 field_b8[2];
+    u64 field_c8[2];
+    u8 field_d8;
+};
+PKMN_SIZE_ASSERT(Unk_2381928, 0xe0);
+
+// What an object is made for.
+struct Unk_36b520_Arg {
+    u8 _0[0x24];
+    u32 field_24;
+};
+
+// What sets an object up.
+u32 Unk_373c10(Unk_373fd0* self, Unk_36b350_T* owner, Unk_36b520_Arg* a2, void* a3, u32 a4);
+
+// A new object of the owner's kind: null without memory, or for another
+// kind.
+static inline Unk_373fd0* Unk_36b520_New(u32 kind) {
+    switch (kind) {
+    case 0:
+        return new (Unk_237e820) Unk_2381928;
+    case 1:
+        return new (Unk_237e820) Unk_2381968;
+    }
+    return nullptr;
+}
+
+// 0x710036b520: the object for `a2`: the one there is, set up again when the
+// owner says so, or a new one of the owner's kind (`*created` is set then).
+// Null when there is to be none, or without memory.
+// NON_MATCHING: three callee-saved registers the other way round (the
+// original has the owner in x22, `created` in x23 and the object in x24);
+// every instruction is otherwise the same.
+Unk_373fd0* Unk_36b520(Unk_36b350_T* self, Unk_373fd0* existing, Unk_36b520_Arg* a2, void* a3,
+                       u32 a4, bool* created) {
+    *created = false;
+    if (!self->vf9(a2))
+        return nullptr;
+    if (existing != nullptr) {
+        if (self->vf8()) {
+            if (a2->field_24 == 1 || a2->field_24 == 3)
+                Unk_373c10(existing, self, a2, a3, a4);
+        }
+        return existing;
+    }
+    if (a4 != 0 && a2->field_24 == 0)
+        return nullptr;
+    Unk_373fd0* object = Unk_36b520_New(self->field_18);
+    if (object != nullptr) {
+        Unk_373c10(object, self, a2, a3, a4);
+        *created = true;
+    }
+    return object;
+}

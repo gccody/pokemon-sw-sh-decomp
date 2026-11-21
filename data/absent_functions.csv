@@ -857,6 +857,7 @@ _ZN15MBP_PairManagerC1Ev,"PhysX: not in the executable (inlined into every calle
 _ZN15MBP_PairManagerC2Ev,"PhysX: not in the executable (inlined into every caller, or unreferenced and dropped by the linker)"
 _ZN15MeshRayCollider7collideILi0ELi0EEEvRKN5physx6PxVec3ES4_fbPKNS1_2Gu17RTreeTriangleMeshERNS5_15MeshHitCallbackINS1_12PxRaycastHitEEEPS3_,"PhysX: not in the executable (inlined into every caller, or unreferenced and dropped by the linker)"
 _ZN15PxsCMUpdateTaskD0Ev,"PhysX: not in the executable (inlined into every caller, or unreferenced and dropped by the linker)"
+_ZN15Unk_36b160_RootD0Ev,"Wwise (lib/wwise/src/Unk_36a820.cpp): the deleting destructor of the first tree's root as the class is written there; the executable's slot (0x710036e290) is a 4-byte branch, not this code"
 _ZN16MBPOS_TmpBuffersC1Ev,"PhysX: not in the executable (inlined into every caller, or unreferenced and dropped by the linker)"
 _ZN16MBPOS_TmpBuffersC2Ev,"PhysX: not in the executable (inlined into every caller, or unreferenced and dropped by the linker)"
 _ZN17InternalIndexPool11freeIndicesEjRKN5physx16PxStrideIteratorIKjEE,"PhysX: not in the executable (inlined into every caller, or unreferenced and dropped by the linker)"
