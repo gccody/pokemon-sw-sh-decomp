@@ -176,7 +176,7 @@ void Unk_237ff98::vf27(f32 a1, u32 a2, void* a3, void* a4) {
 
 // 0x7100352da0
 f32 Unk_237ff98::Unk_352da0(u32 a1) {
-    Unk_List2<Unk_237ff98_Item28>* list;
+    Unk_237ff98_List* list;
     switch (a1) {
     case 0:
         list = &field_100;
@@ -190,7 +190,7 @@ f32 Unk_237ff98::Unk_352da0(u32 a1) {
     }
     f32 sum = 0.0f;
     for (auto it = list->Begin(); it != list->End(); ++it)
-        sum += (*it).field_20;
+        sum += (*it).field_8.field_18;
     return sum > field_d0 ? sum : field_d0;
 }
 
@@ -470,11 +470,11 @@ void Unk_3c5b00_call(u32 id);
 // 0x7100355640
 void Unk_237ff98::Unk_355640() {
     for (auto it = field_100.Begin(); it != field_100.End(); ++it) {
-        if ((*it).field_20 < -0.01f)
+        if ((*it).field_8.field_18 < -0.01f)
             return;
     }
     for (auto it = field_128.Begin(); it != field_128.End(); ++it) {
-        if ((*it).field_20 < -0.01f)
+        if ((*it).field_8.field_18 < -0.01f)
             return;
     }
 }
@@ -865,7 +865,7 @@ void* Unk_3bdd90(void* self, Unk_3bdd90_Params* params, bool a2, bool a3);
 // or a new change), or at once.
 // 0x7100355510
 void Unk_237ff98::Unk_355510(u32 id, u32 a2, u32 a3, u32 prop) {
-    Unk_List2<Unk_237ff98_Item28>* list;
+    Unk_237ff98_List* list;
     switch (prop) {
     case 0:
         list = &field_100;
@@ -880,29 +880,81 @@ void Unk_237ff98::Unk_355510(u32 id, u32 a2, u32 a3, u32 prop) {
     for (auto it = list->Begin(); it != list->End(); ++it) {
         if ((*it).field_0 == id) {
             Unk_237ff98_Item28& item = *it;
-            void* change = item.field_18;
-            item.field_24 = true;
+            void* change = item.field_8.field_10;
+            item.field_8.field_1c = true;
             if (change != nullptr) {
                 Unk_3be290(Unk_24bbbe8, change, prop, a2, a3, 0, 0.0f);
             } else {
                 Unk_237ff98_Item28_8* user = item.User();
-                if (a2 != 0 && item.field_20 != 0.0f) {
+                if (a2 != 0 && item.field_8.field_18 != 0.0f) {
                     Unk_3bdd90_Params params;
                     params.field_0 = user;
                     params.field_8 = prop;
-                    params.field_10 = item.field_20;
+                    params.field_10 = item.field_8.field_18;
                     params.field_14 = 0.0f;
                     params.field_18 = a2;
                     params.field_1c = a3;
                     params.field_20 = true;
                     params.field_21 = true;
                     params.field_22 = false;
-                    item.field_18 = Unk_3bdd90(Unk_24bbbe8, &params, true, false);
+                    item.field_8.field_10 = Unk_3bdd90(Unk_24bbbe8, &params, true, false);
                 } else {
                     user->vf0(prop, 0.0f, true);
                 }
             }
             return;
         }
+    }
+}
+
+struct Unk_35c6f0;
+void Unk_35c6f0_update(Unk_35c6f0* self, unsigned long a1);
+u32 Unk_3a48c0(Unk_2382e40* self, u32 param);
+
+// Starts taking the value another node asks for towards `target`: over a3
+// (with what already changes it, or a new change), or at once.
+// NON_MATCHING: 20 bytes short. The original keeps a pointer to the list's free items across the new item's
+// allocation; the rest has the same shape
+// 0x71003552e0
+void Unk_237ff98::Unk_3552e0(u32 id, f32 target, u32 a3, u32 a4, u32 prop) {
+    Unk_237ff98_List* list;
+    switch (prop) {
+    case 0:
+        list = &field_100;
+        break;
+    case 5:
+        list = &field_128;
+        break;
+    default:
+        list = nullptr;
+        break;
+    }
+    Unk_237ff98_Item28_8* item = list->Exists(id);
+    if (item == nullptr) {
+        item = list->Set(id);
+        if (item == nullptr)
+            return;
+        Unk_35c6f0_update(reinterpret_cast<Unk_35c6f0*>(item), reinterpret_cast<unsigned long>(this));
+    }
+    if (Unk_3a48c0(&field_150, Unk_1b1d654[prop]) != 1)
+        return;
+    void* change = item->field_10;
+    item->field_1c = false;
+    if (change != nullptr) {
+        Unk_3be290(Unk_24bbbe8, change, prop, a3, a4, 2, target);
+    } else if (a3 != 0 && item->field_18 != target) {
+        Unk_3bdd90_Params params;
+        params.field_0 = item;
+        params.field_8 = prop;
+        params.field_10 = item->field_18;
+        params.field_14 = target;
+        params.field_18 = a3;
+        params.field_1c = a4;
+        params.field_20 = true;
+        params.field_21 = true;
+        params.field_22 = false;
+        item->field_10 = Unk_3bdd90(Unk_24bbbe8, &params, true, false);
+    } else {
+        item->vf0(prop, target, true);
     }
 }
