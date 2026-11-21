@@ -8,7 +8,7 @@
 
 Unmatched functions that are the same code once branch targets and
 adrp/lo12 fields are masked are instances of one source: a template, or a
-class shape repeated. Five such families are on gflib3's allocator
+class shape repeated. Six such families are on gflib3's allocator
 (src/unsorted/Unk_2771620.h) and its reference-counted object
 (src/gflib3/Unk_239a418.h). This tool finds their instances and writes them,
 in src/gflib3/families:
@@ -66,6 +66,16 @@ in src/gflib3/families:
   (whose slow path is the `vectors` instance 0x7100790490) and returns one.
   Everything after the construction must do what the seed's (0x7100790260)
   does, compared symbolically.
+- `adders`: a template member of the owners of some of those objects
+  (`Unk_1050c60_Owner::Unk_Add<T>`, in the objects' file after the classes):
+  unless a flag is set, make a T from the owner's allocator with a weak
+  reference to the owner (its handle and itself, `Unk_Weak`) and the
+  arguments, by const reference; keep a reference to it in the owner's list
+  (+0xb0, whose emplace 0x7101054f70 isn't decompiled); return a reference
+  to the owner. The candidates are the functions of the seeds' shapes (one
+  argument, none) that call the flag's getter, a factory and the emplace; an
+  instance is written when its factory is (its class and the argument types
+  are the factory's).
 
 A row is kept (written again) when its name is the one written for it and
 check.py matched it; `--only` adds addresses, `--all` writes every
@@ -1561,6 +1571,100 @@ Unk_239a418_Ref<T> Unk_790260_Owner::Create(const Unk_Ref& parent, u64 a2) {
 """
 
 
+# ------------------------------------------------------------------------- adders
+
+ADDER_SEEDS = (0x1050C60, 0x1052DF0)   # Unk_1050c60_Owner::Unk_Add<T> with one argument, and with none
+ADDER_OWNER = "Unk_1050c60_Owner"
+ADDER_GETTER = 0x6CE100                # Unk_6ce100_getField110 (src/unsorted/leaf)
+ADDER_LIST = 0x1054F70                 # the owner's list's emplace, not decompiled
+ADDER_NAMES = {ADDER_LIST: "_ZN16Unk_1054f70_List11Unk_1054f70EO15Unk_239a418_RefI11Unk_239a418E"}
+
+
+def adder_candidates(m: Module) -> dict[int, int]:
+    """The adders (the functions of the seeds' shapes) and the factory each calls."""
+    want = {(m.rows[s].sword_size, m.shape(s)) for s in ADDER_SEEDS if s in m.rows}
+    out = {}
+    for a, r in m.rows.items():
+        if not r.sword_size or (r.sword_size, m.shape(a)) not in want:
+            continue
+        calls = [x for x in (bl_target(o, w) for o, w in m.words(a, r.sword_size)) if x is not None]
+        if len(calls) == 3 and calls[0] == ADDER_GETTER and calls[2] == ADDER_LIST:
+            out[a] = calls[1]
+    return out
+
+
+def adder_args(f: ObjectFactory) -> list[str] | None:
+    """What an adder passes on to its factory after the weak reference: the
+    types of its `const&` parameters. None when the factory takes anything
+    else than a moved pair and const references."""
+    args = create_args(f)
+    if not args or args[0] != PAIR or not all(x.endswith("&") for x in args[1:]):
+        return None
+    return [x.removeprefix("const ").removesuffix(" const&").rstrip("&") for x in args[1:]]
+
+
+def adder_name(f: ObjectFactory) -> str | None:
+    args = adder_args(f)
+    if args is None:
+        return None
+    owner, cls = mangled_class(ADDER_OWNER), mangled_class(f.cls)
+    subs = [owner, f"{owner}7Unk_Add", cls]
+    pack = mangle_types(args, subs)
+    ret = mangle_types([REF], subs)
+    return f"_ZN{owner}7Unk_AddI{cls}J{pack}EEE{ret}DpRKT0_"
+
+
+def adder_instance(a: int, f: ObjectFactory) -> str:
+    params = ", ".join(cref(object_type(x)) for x in adder_args(f))
+    return f"// 0x{a + BASE:x}\ntemplate Unk_Ref {ADDER_OWNER}::Unk_Add<{f.cls}>({params});\n"
+
+
+ADDER_HEADER = """
+// The adders. An owner of such objects (a class on the object, with its
+// allocator at +0x60 and a list of references at +0xb0) makes one with a weak
+// reference to itself (its handle and itself) and what it is given, keeps a
+// reference to it in the list and returns a reference to itself: one member
+// template, an instance per class. A set flag (+0x110, through the leaf getter
+// 0x71006ce100) skips the rest. The list's emplace (0x7101054f70) isn't
+// decompiled.
+struct Unk_6ce100;
+u32 Unk_6ce100_getField110(const Unk_6ce100* self);
+
+struct Unk_1054f70_List {
+    void Unk_1054f70(Unk_Ref&& ref);
+
+    u8 _0[0x60];
+};
+
+// A weak reference to an object: its handle, and the object itself.
+inline Unk_239a418_RefPair Unk_Weak(Unk_239a418* object) {
+    if (object == nullptr)
+        return Unk_239a418_RefPair{Unk_Ref(), 0};
+    Unk_239a418_Ref<Unk_239a418_Handle> handle(object->m_handle);
+    return Unk_239a418_RefPair{Unk_Ref(reinterpret_cast<Unk_239a418*>(handle.m_ptr)),
+                               reinterpret_cast<u64>(object)};
+}
+
+class Unk_1050c60_Owner : public Unk_239a418 {
+public:
+    template <class T, class... Args>
+    Unk_Ref Unk_Add(const Args&... args) {
+        if (Unk_6ce100_getField110(reinterpret_cast<const Unk_6ce100*>(this)))
+            return Unk_Ref(this);
+        Unk_239a418_Allocator* allocator = field_60;
+        Unk_Ref object(Unk_New().Create<T>(allocator, Unk_Weak(this), args...));
+        field_b0.Unk_1054f70(Unk_Ref(object));
+        return Unk_Ref(this);
+    }
+
+    Unk_239a418_Allocator* field_60;
+    u8 _68[0x48];
+    Unk_1054f70_List field_b0;
+};
+PKMN_OFFSET_ASSERT(Unk_1050c60_Owner, field_b0, 0xb0);
+"""
+
+
 # ------------------------------------------------------------------------- singletons
 
 @dataclass
@@ -1713,6 +1817,7 @@ class Plan:
     singletons: list = field(default_factory=list)
     objects: list = field(default_factory=list)
     creators: list = field(default_factory=list)
+    adders: list = field(default_factory=list)       # (address, its factory)
     names: dict = field(default_factory=dict)       # address -> name
     candidates: dict = field(default_factory=dict)  # family -> [addresses]
     skipped: list = field(default_factory=list)     # (family, address, reason)
@@ -1776,6 +1881,21 @@ def plan(m: Module, only: set[int] | None = None, everything: bool = False) -> P
         classes.add(c.cls)
         p.creators.append(c)
         p.names[a] = n
+    ac = adder_candidates(m)
+    p.candidates["adders"] = sorted(ac)
+    written = {o.addr: o for o in p.objects}
+    for a in sorted(ac):
+        o = written.get(ac[a])
+        n = adder_name(o) if o is not None else None
+        if n is None:
+            p.skipped.append(("adders", a, "its factory isn't written" if o is None
+                              else "its factory takes more than const references"))
+            continue
+        if kept(m, a, n, only, everything):
+            p.adders.append((a, o))
+            p.names[a] = n
+    if p.adders:
+        p.names.update(ADDER_NAMES)
     if p.objects or p.creators:
         p.names.update(OUT_OF_LINE)
     return p
@@ -1796,6 +1916,8 @@ def sources(p: Plan) -> dict[str, str]:
                        key=lambda k: int(k[5:]))
         out[OBJECT_FILE] = (OBJECT_HEADER + "".join("\n" + words_struct(k) for k in words) + "\n"
                             + "\n".join(object_class(o) for o in p.objects))
+        if p.adders:
+            out[OBJECT_FILE] += ADDER_HEADER + "\n" + "\n".join(adder_instance(a, o) for a, o in p.adders)
     return out
 
 
@@ -1819,7 +1941,8 @@ def cmd_write(m: Module, args) -> None:
             r = m.rows[a]
             fh.write(f"{n},{r.sword_str},{r.shield_str}\n")
     print(f"{len(p.vectors)} vector functions, {len(p.factories)} factories, "
-          f"{len(p.singletons)} singletons, {len(p.objects)} objects, {len(p.creators)} creators; "
+          f"{len(p.singletons)} singletons, {len(p.objects)} objects, {len(p.creators)} creators, "
+          f"{len(p.adders)} adders; "
           f"{len(p.names)} names in {args.names}",
           file=sys.stderr)
 
