@@ -9,6 +9,7 @@ namespace SiSDK3 {
 
 class SiIOBinaryArchive {
 public:
+    explicit SiIOBinaryArchive(ISiAllocator* pAllocator);
     virtual ~SiIOBinaryArchive();
     UNK_REFCOUNT_DECLARE;
 
@@ -16,10 +17,14 @@ public:
     u64 field_10;
     SiSDK3::ISiAllocator* field_18;
     u32 field_20;
+    u8 field_28[0x1a0];
 };
+PKMN_SIZE_ASSERT(SiIOBinaryArchive, 0x1c8);
 
 }  // namespace SiSDK3
 
+#ifdef UNK_SIIO_BINARYARCHIVE_IMPL
 // 0x710057c5d0 (vf2), 0x710057c5f0 (vf3)
 #line 32
 UNK_REFCOUNT_DEFINE(SiSDK3::SiIOBinaryArchive, field_18, field_20)
+#endif
