@@ -22,6 +22,22 @@ struct Unk_InputElement {
 };
 PKMN_SIZE_ASSERT(Unk_InputElement, 0x18);
 
+// what vf17 fills in
+struct Unk_Viewport {
+    s32 field_0;
+    s32 field_4;
+    u32 field_8;  // width
+    u32 field_c;  // height
+    u8 field_10[0x10];
+};
+
+// PPFX::IGPUBuffer (GPUInterfaceBuffer.cpp names it and these two in its log lines)
+class IGPUBuffer : public IGPUInterface {
+public:
+    void* Map(s32 mode, u32 offset, u32 size);  // 0x71004491b0
+    s32 Unmap();                                // 0x7100449380
+};
+
 class IGPUDevice : public IGPUInterface {
 public:
     // slots 4 to 75: only those this code calls are typed
@@ -30,7 +46,7 @@ public:
     virtual void vf6();
     virtual void vf7();
     virtual void vf8();
-    virtual void vf9();
+    virtual void vf9(void* arg1, s32 arg2);
     virtual void vf10();
     virtual void vf11();
     virtual void vf12();
@@ -38,7 +54,7 @@ public:
     virtual void vf14();
     virtual void vf15();
     virtual void vf16();
-    virtual void vf17();
+    virtual void vf17(Unk_Viewport* viewport);  // the current target's rectangle
     virtual void vf18();
     virtual void vf19();
     virtual void vf20();
@@ -62,7 +78,7 @@ public:
     virtual void vf38();
     virtual void vf39();
     virtual void vf40(s32 arg);
-    virtual void vf41();
+    virtual void vf41(s32 arg1, s32 arg2);
     virtual void vf42(s32 arg);
     virtual void vf43();
     virtual void vf44();
@@ -79,7 +95,7 @@ public:
     virtual void vf55();
     virtual void vf56();
     virtual void vf57();
-    virtual void vf58();
+    virtual void vf58(s32 primitive, s32 count, s32 arg3, s32 arg4, s32 arg5);  // draws
     virtual void vf59();
     virtual void vf60();
     virtual void vf61();
