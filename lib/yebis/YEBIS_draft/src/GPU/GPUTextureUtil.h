@@ -882,6 +882,9 @@ public:
                    f32 v3, const Unk_47a030_Arg1* arg1, const void* arg2, const Unk_Float2* arg3,
                    const Unk_Float2* arg4, const Unk_Float2* arg5, s32 index, const Unk_Float2* arg7,
                    const Unk_Float2* falloff, Unk_GPUTexture* texture0, Unk_GPUTexture* texture1, u32 flags);
+    s32 Unk_4773e0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, const Unk_Float4* arg1,
+                   const Unk_Float4* arg2, const Unk_Float4* arg3, const Unk_Float4* rect, bool arg5,
+                   const Unk_Float4* arg6, Unk_GPUTexture* texture, s32 index, u32 flags);
     // The handle of a texture stage (inline; its name and line are its assert's)
     s32 GetHandle_tex2D_aTexture(s32 stage) {
 #line 3059

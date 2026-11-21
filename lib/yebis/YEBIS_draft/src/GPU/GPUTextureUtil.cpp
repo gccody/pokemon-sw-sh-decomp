@@ -2163,6 +2163,62 @@ s32 CTextureUtil::Unk_47a030(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
     return Unk_471f60(x, y, width, height, u0, v0, u1, v1, -1.0f, -sign, 1.0f, sign, flags);
 }
 
+// 0x71004773e0
+s32 CTextureUtil::Unk_4773e0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1,
+                             const Unk_Float4* arg1, const Unk_Float4* arg2, const Unk_Float4* arg3,
+                             const Unk_Float4* rect, bool arg5, const Unk_Float4* arg6, Unk_GPUTexture* texture,
+                             s32 index, u32 flags) {
+    Unk_24e4a18[0] = *arg2;
+    if (arg3 != nullptr) {
+        Unk_24e4a18[1] = arg3[0];
+        Unk_24e4a18[2] = arg3[1];
+    } else {
+        Unk_24e4a18[1] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+        Unk_24e4a18[2] = Unk_Float4(64512.0f, 64512.0f, 64512.0f, 64512.0f);
+    }
+    field_30.field_0->vf22(field_30.field_d0, arg1, 1);
+    field_30.field_0->vf22(field_30.field_d4, Unk_24e4a18, 3);
+    if (texture != nullptr) {
+        field_30.field_0->vf26(field_30.field_8, texture);
+    }
+    if (rect != nullptr && (rect->field_0[0].field_0 != 0.0f || rect->field_0[1].field_0 != 0.0f ||
+                            rect->field_0[2].field_0 != 0.0f || rect->field_0[3].field_0 != 0.0f)) {
+        field_30.field_0->vf29(arg5 ? field_30.field_6428[0][index] : field_30.field_5ea8[0][index]);
+        if (arg5) {
+            f32 arg = arg6->field_0[1].field_0;
+            Unk_Float first = arg6->field_0[0];
+            f32 range = arg6->field_0[2].field_0;
+            f32 d = arg6->field_0[3].field_0;
+            f32 distance = d > 0.0f ? d : -d;
+            f32 a;
+            f32 b;
+            f32 c;
+            if (distance < 0.0f) {
+                a = 0.0f;
+                b = 1.0f;
+                c = 1.0f;
+            } else {
+                a = -0.5f / distance;
+                b = 0.5f - range * a;
+                c = distance > range ? range / distance : 1.0f;
+                c = c * c;
+            }
+            Unk_Float4 value;
+            value.field_0[0].field_0 = a;
+            value.field_0[1].field_0 = b;
+            value.field_0[3].field_0 = c;
+            value.field_0[2] = first;
+            f32 half = arg * 0.5f;
+            field_30.field_0->vf20(field_30.field_e4, &value.field_0[0].field_0);
+            field_30.field_0->vf18(field_30.field_e8, half);
+        }
+        return Unk_471f60(x, y, width, height, u0, v0, u1, v1, rect->field_0[0].field_0, rect->field_0[1].field_0,
+                          rect->field_0[2].field_0, rect->field_0[3].field_0, flags);
+    }
+    field_30.field_0->vf29(field_30.field_5928[0][index]);
+    return Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
+}
+
 // DRAWRECTGPU_END
 
 // 0x71004708b0: releases what the device made
