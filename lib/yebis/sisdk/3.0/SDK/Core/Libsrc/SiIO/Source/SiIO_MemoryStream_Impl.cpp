@@ -1,5 +1,6 @@
 // Scope: common
 // SiSDK3::SiIOMemoryStream.
+#define UNK_SIIO_MEMORYSTREAM_IMPL
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiIO/Source/SiIO_MemoryStream_Impl.h>
 
 #include <stdio.h>
