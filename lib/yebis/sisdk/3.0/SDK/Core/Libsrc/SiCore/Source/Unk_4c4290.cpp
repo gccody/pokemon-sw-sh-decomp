@@ -6,6 +6,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <wchar.h>
 
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_StringFuncs.h>
 
@@ -158,4 +159,56 @@ char* Unk_4c4c40(const wchar_t* src, char* dst, s64 size) {
     }
     *dst = 0;
     return dst;
+}
+
+// 0x71004c4d10: a multibyte string's wide characters
+wchar_t* Unk_4c4d10(const char* s, wchar_t* dst, size_t size) {
+    if (s == nullptr) {
+        *dst = 0;
+        return dst;
+    }
+    if (*s == 0) {
+        *dst = 0;
+        return dst;
+    }
+    mbstowcs(dst, s, size);
+    return dst;
+}
+
+// 0x71004c5b70: a string from a wide one, in the C locale's encoding
+bool Unk_4c5b70(SiSDK3::SiString<char>* self, const wchar_t* s) {
+    mbstate_t state;
+    mbsinit(&state);
+    const wchar_t* src = s;
+    size_t length = wcsrtombs(nullptr, &src, 0, &state);
+    if (length == static_cast<size_t>(-1)) {
+        return false;
+    }
+    SiSDK3::Unk_StringReserve(self, length + 1);
+    SiSDK3::Unk_StringResize(self, length);
+    src = s;
+    if (wcsrtombs(self->m_pBuffer, &src, length + 1, &state) == static_cast<size_t>(-1)) {
+        return false;
+    }
+    self->m_pBuffer[length] = 0;
+    return true;
+}
+
+// 0x71004c5c60: a wide string from one in the C locale's encoding
+bool Unk_4c5c60(SiSDK3::SiString<wchar_t>* self, const char* s) {
+    mbstate_t state;
+    mbsinit(&state);
+    const char* src = s;
+    size_t length = mbsrtowcs(nullptr, &src, 0, &state);
+    if (length == static_cast<size_t>(-1)) {
+        return false;
+    }
+    SiSDK3::Unk_StringReserve(self, length + 1);
+    SiSDK3::Unk_StringResize(self, length);
+    src = s;
+    if (mbsrtowcs(self->m_pBuffer, &src, length + 1, &state) == static_cast<size_t>(-1)) {
+        return false;
+    }
+    self->m_pBuffer[length] = 0;
+    return true;
 }
