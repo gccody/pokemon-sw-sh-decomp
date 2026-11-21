@@ -82,6 +82,8 @@ public:
     void Unk_585ca0(SiArray<SiIOVFSEntry*>* list);
     // 0x7100585d70: copies a list, sorts it by field_88 and numbers it (field_c0)
     void Unk_585d70(SiArray<SiIOVFSEntry*>* list, SiArray<SiIOVFSEntry*>* sorted);
+    // 0x7100585e70: writes an entry
+    bool Unk_585e70(ISiIOStream* stream, void*, SiIOVFSEntry* entry, s64* offset);
     // 0x7100586750: lists the entries below a directory
     void Unk_586750(SiArray<SiIOVFSEntry*>* list, SiIOVFSEntry* entry);
     // 0x7100586260: the number of entries below a directory

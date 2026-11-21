@@ -23,6 +23,9 @@ void Unk_4c8020(SiSDK3::SiString<char>* self, const SiSDK3::SiString<char>* othe
 void Unk_4ca0b0(SiSDK3::SiString<char>* self, const char* from, const char* to, u64, u64, bool);
 s64 Unk_4c5630(const char* a, const char* b, bool);
 
+// 0x71024e9360: the empty string a string without a buffer reads as
+extern char Unk_24e9360[];
+
 namespace SiSDK3 {
 
 // 0x7100586910: sorts entries by field_88 (a member of an empty class: its
@@ -262,6 +265,55 @@ void SiIOVFS::Unk_585d70(SiArray<SiIOVFSEntry*>* list, SiArray<SiIOVFSEntry*>* s
     for (s32 i = 0; i < static_cast<s32>(sorted->m_itemCount); i++) {
         sorted->m_pData[i]->field_c0 = i;
     }
+}
+
+// 0x7100585e70
+bool SiIOVFS::Unk_585e70(ISiIOStream* stream, void*, SiIOVFSEntry* entry, s64* offset) {
+    u8 directory = entry->vf11();
+    s64 count118 = static_cast<s32>(entry->vf15());
+    s64 countC8 = static_cast<s32>(entry->vf12());
+    s64 start = *offset;
+    s64 index = entry->field_c0;
+    u32 value88 = entry->field_88;
+    s64 advance;
+    s32 valueB0;
+    s64 valueA0;
+    s64 size;
+    if (entry->vf11()) {
+        valueB0 = 0;
+        valueA0 = 0;
+        size = 0;
+        advance = 0;
+    } else {
+        size = entry->vf18();
+        valueA0 = entry->field_a0;
+        valueB0 = entry->field_b0;
+        advance = valueA0 > 0 ? valueA0 : size;
+    }
+    stream->vf51(start, true);
+    stream->vf51(size, true);
+    stream->vf51(index, true);
+    stream->vf51(count118, true);
+    stream->vf51(countC8, true);
+    stream->vf51(valueA0, true);
+    stream->vf50(valueB0, true);
+    stream->vf54(value88, true);
+    stream->vf52(directory, true);
+    stream->vf52(0, true);
+    stream->vf52(0, true);
+    stream->vf52(0, true);
+    *offset += advance;
+    SiString<char>* name = entry->vf9();
+    stream->vf60(name->m_pBuffer != nullptr ? name->m_pBuffer : Unk_24e9360, true);
+    if (entry->vf11()) {
+        for (s32 i = 0; i < static_cast<s32>(entry->vf15()); i++) {
+            stream->vf50(static_cast<s32>(entry->vf16(i)->field_b8), true);
+        }
+        for (s32 i = 0; i < static_cast<s32>(entry->vf12()); i++) {
+            stream->vf50(static_cast<s32>(entry->vf13(i)->field_b8), true);
+        }
+    }
+    return true;
 }
 
 // 0x71005861a0
