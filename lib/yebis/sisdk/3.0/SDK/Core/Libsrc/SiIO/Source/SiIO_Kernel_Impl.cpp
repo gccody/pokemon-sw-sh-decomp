@@ -23,16 +23,6 @@ void Unk_4c5930(char* dst, size_t size, u64 value);
 // 0x7100583970 (leafgen's name and type): the VFS manager's initialisation
 bool Unk_583970_get(u64 manager);
 
-// What an allocator's slot 11 fills in (placeholder name).
-struct Unk_57d2a0_Info {
-    u64 field_0;
-    u64 field_8;
-    u64 field_10;
-    u64 field_18;
-    u64 field_20;
-    u64 field_28;
-    u64 field_30;
-};
 
 // 0x7102770648: the kernel (this translation unit's own variable in the
 // original; its getter, 0x710057d030, is in lib/yebis/leaf, which declares it

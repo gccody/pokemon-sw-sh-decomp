@@ -109,6 +109,18 @@ void Unk_4c25a0(ISiAllocator* allocator, T* p, const char* file, long line) {
 
 }  // namespace SiSDK3
 
+// What an allocator's slot 11 fills in (placeholder name, after the function
+// of SiIOKernel that first showed it).
+struct Unk_57d2a0_Info {
+    u64 field_0;
+    u64 field_8;
+    u64 field_10;
+    u64 field_18;
+    u64 field_20;
+    u64 field_28;
+    u64 field_30;
+};
+
 // An object's allocation, as `new (allocator, alignment, file, line) T(...)`
 // (placeholder: the original's macro isn't known). The result isn't tested.
 inline void* operator new(size_t size, SiSDK3::ISiAllocator* allocator, u32 alignment, const char* file, int line) {
