@@ -48,4 +48,17 @@ struct Unk_Float4 {
 };
 PKMN_SIZE_ASSERT(Unk_Float4, 0x10);
 
+// three plain floats
+struct Unk_Vector3 {
+    f32 field_0[3];
+};
+PKMN_SIZE_ASSERT(Unk_Vector3, 0xc);
+
+// A 4x4 matrix of plain floats. MATRIXT44_MatrixMultiply (0x7100415c00) is
+// the function its asserts name, which is all that names the type.
+struct MATRIXT44 {
+    f32 field_0[4][4];
+};
+PKMN_SIZE_ASSERT(MATRIXT44, 0x40);
+
 }  // namespace PPFX
