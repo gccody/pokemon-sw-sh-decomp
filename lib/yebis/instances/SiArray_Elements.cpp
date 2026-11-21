@@ -207,3 +207,9 @@ template bool SiArray<Unk_57c850, 16>::Unk_4bf190(size_t, bool);
 template bool SiArray<Unk_57cae0, 16>::Unk_4bf190(size_t, bool);
 // 0x710057cd00 = _ZN6SiSDK37SiArrayI10Unk_57cd00Li16EE10Unk_4bf190Emb
 template bool SiArray<Unk_57cd00, 16>::Unk_4bf190(size_t, bool);
+
+// The assignment's copy for strings (NON_MATCHING: SiCore_Array.h). The
+// copies for pointers, 0x7100542fe0 and 0x7100586ea0, differ the same way and
+// aren't instantiated.
+// 0x710056e140 = _ZN6SiSDK37SiArrayINS_8SiStringIcEELi16EEaSERKS3_
+template void SiArray<SiString<char>, 16>::operator=(const SiArray&);

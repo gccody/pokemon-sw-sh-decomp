@@ -30,8 +30,33 @@ public:
 
     virtual ~SiArray() { Unk_4e3050(); }
 
-    // 0x710056e140 (SiString<char>): copies the other's elements (not written yet)
-    SiArray& operator=(const SiArray& other);
+    // 0x710056e140 (SiString<char>): copies the other's elements (it returns
+    // nothing)
+    void operator=(const SiArray& other);
+
+    // sets the room to count elements (inline in the assignment: placeholder
+    // name)
+    bool Unk_SetReserved(size_t count) {
+        if (m_reservedCount != count) {
+            if (!Unk_4bf190(count, true)) {
+                m_itemCount = 0;
+                field_30 = nullptr;
+                field_38 = nullptr;
+                return false;
+            }
+            if (m_reservedCount < m_itemCount) {
+                m_itemCount = m_reservedCount;
+            }
+            if (m_itemCount == 0) {
+                field_30 = nullptr;
+                field_38 = nullptr;
+            } else {
+                field_30 = m_pData;
+                field_38 = m_pData + m_itemCount;
+            }
+        }
+        return true;
+    }
 
     // sets the number of elements, making room for them (inline in every
     // caller: placeholder name)
@@ -153,6 +178,28 @@ bool SiArray<T, ALIGN>::Unk_4bf190(size_t count, bool keep) {
     m_itemCount = n;
     m_reservedCount = count;
     return true;
+}
+
+// NON_MATCHING (0x710056e140 and the other copies): the same instructions but
+// for one address. The original computes the address of field_30 where the
+// loop starts and stores through `this` in the reserve's failure before it;
+// this computes it once, before the reserve, for both.
+template <class T, int ALIGN>
+void SiArray<T, ALIGN>::operator=(const SiArray& other) {
+    field_40 = other.field_40;
+    if (other.m_reservedCount == 0) {
+        if (m_itemCount != 0) {
+            m_itemCount = 0;
+            field_30 = nullptr;
+            field_38 = nullptr;
+        }
+    } else {
+        Unk_4e3050();
+        Unk_SetReserved(other.m_reservedCount);
+        for (size_t i = 0; i < other.m_itemCount; i++) {
+            Unk_Add(other.m_pData[i]);
+        }
+    }
 }
 
 template <class T, int ALIGN>
