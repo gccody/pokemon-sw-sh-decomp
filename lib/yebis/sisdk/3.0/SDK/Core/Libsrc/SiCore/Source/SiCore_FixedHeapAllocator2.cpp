@@ -224,8 +224,6 @@ size_t SiFixedHeapAllocator2::vf10(void* p) {
 }
 
 // 0x71004be580
-// NON_MATCHING: registers only (the original keeps count in x19, this in x20
-// and blocks in x21; here blocks, count, this).
 bool SiFixedHeapAllocator2::Unk_Sorter::Unk_4be580(s64 count, MemoryBlockHeader** blocks) {
     if (count < 2) {
         return true;
@@ -269,7 +267,7 @@ bool SiFixedHeapAllocator2::Unk_Sorter::Unk_4be580(s64 count, MemoryBlockHeader*
         middle = 0;
     }
     Unk_4be580(middle, blocks);
-    Unk_4be580(count - (middle + 1), blocks + middle + 1);
+    Unk_4be580(count - middle - 1, &blocks[middle + 1]);
     return true;
 }
 
