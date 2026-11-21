@@ -19,6 +19,9 @@ typedef u32 Unk_3a1830_Value;
 struct Unk_36fa70_Key5 {
     u64 field_0;
 
+    Unk_36fa70_Key5() : field_0(0) {}
+    explicit Unk_36fa70_Key5(u64 a) : field_0(a) {}
+
     static u64 Any() { return 0; }
     bool IsAnyHere() const { return field_0 == 0; }
     bool IsAny() const { return field_0 == 0; }
@@ -31,6 +34,9 @@ struct Unk_36fa70_Key5 {
 struct Unk_36fa70_Key4 {
     u8 field_0;
     Unk_36fa70_Key5 field_8;
+
+    Unk_36fa70_Key4() : field_0(0xff), field_8() {}
+    Unk_36fa70_Key4(u8 a, u64 b) : field_0(a), field_8(b) {}
 
     static u8 Any() { return 0xff; }
     bool IsAnyHere() const { return field_0 == 0xff; }
@@ -45,6 +51,9 @@ struct Unk_36fa70_Key3 {
     u8 field_0;
     Unk_36fa70_Key4 field_8;
 
+    Unk_36fa70_Key3() : field_0(0xff), field_8() {}
+    Unk_36fa70_Key3(u8 a, u8 b, u64 c) : field_0(a), field_8(b, c) {}
+
     static u8 Any() { return 0xff; }
     bool IsAnyHere() const { return field_0 == 0xff; }
     bool IsAny() const { return field_0 == 0xff && field_8.IsAny(); }
@@ -56,6 +65,9 @@ struct Unk_36fa70_Key3 {
 struct Unk_36fa70_Key2 {
     u32 field_0;
     Unk_36fa70_Key3 field_8;
+
+    Unk_36fa70_Key2() : field_0(0), field_8() {}
+    Unk_36fa70_Key2(u32 a, u8 b, u8 c, u64 d) : field_0(a), field_8(b, c, d) {}
 
     static u32 Any() { return 0; }
     bool IsAnyHere() const { return field_0 == 0; }
@@ -69,6 +81,9 @@ struct Unk_36fa70_Key1 {
     u32 field_0;
     Unk_36fa70_Key2 field_8;
 
+    Unk_36fa70_Key1() : field_0(0), field_8() {}
+    Unk_36fa70_Key1(u32 a, u32 b, u8 c, u8 d, u64 e) : field_0(a), field_8(b, c, d, e) {}
+
     static u32 Any() { return 0; }
     bool IsAnyHere() const { return field_0 == 0; }
     bool IsAny() const { return field_0 == 0 && field_8.IsAny(); }
@@ -81,6 +96,10 @@ PKMN_SIZE_ASSERT(Unk_36fa70_Key1, 0x28);
 struct Unk_36fa70_Key0 {
     u64 field_0;
     Unk_36fa70_Key1 field_8;
+
+    Unk_36fa70_Key0() : field_0(0), field_8() {}
+    Unk_36fa70_Key0(u64 a, u32 b, u32 c, u8 d, u8 e, u64 f)
+        : field_0(a), field_8(b, c, d, e, f) {}
 
     static u64 Any() { return 0; }
     bool IsAnyHere() const { return field_0 == 0; }
@@ -721,7 +740,7 @@ bool Unk_39a100_Root::Has(const Unk_36fa70_Key0& key, const Unk_36fa70_Key0& ori
     return result;
 }
 
-struct Unk_2382df0 {
+struct Unk_2382de0 {
     virtual bool vf0(const Unk_36fa70_Key0& other);
 
     const Unk_36fa70_Key0* field_8;
@@ -729,7 +748,7 @@ struct Unk_2382df0 {
 };
 
 // 0x71003a3600
-bool Unk_2382df0::vf0(const Unk_36fa70_Key0& other) {
+bool Unk_2382de0::vf0(const Unk_36fa70_Key0& other) {
     Unk_39a100_Root* root = field_10;
     const Unk_36fa70_Key0* key = field_8;
     if (key->IsWider(other))
@@ -753,7 +772,9 @@ bool Unk_36b160_Root::Has(const Unk_36fa70_Key0& key, const Unk_36fa70_Key0& ori
     return result;
 }
 
-struct Unk_2381780 {
+struct Unk_2381770 {
+    Unk_2381770(const Unk_36fa70_Key0* key, Unk_36b160_Root* root) : field_8(key), field_10(root) {}
+
     virtual bool vf0(const Unk_36fa70_Key0& other);
 
     const Unk_36fa70_Key0* field_8;
@@ -761,7 +782,7 @@ struct Unk_2381780 {
 };
 
 // 0x710036db50
-bool Unk_2381780::vf0(const Unk_36fa70_Key0& other) {
+bool Unk_2381770::vf0(const Unk_36fa70_Key0& other) {
     Unk_36b160_Root* root = field_10;
     const Unk_36fa70_Key0* key = field_8;
     if (key->IsWider(other))
@@ -814,14 +835,146 @@ inline Unk_36fa70_Value* Unk_36b160_Root::Find(const Unk_36fa70_Key0& below,
 }
 
 // What owns the first tree.
+struct Unk_36a6b0_Item;
 struct Unk_36b350_T {
-    u8 pad_0[0x38];
+    u8 _0[0x10];
+    u32 field_10;
+    u8 _14[0x24];
     Unk_36b160_Root field_38;
+    Unk_GrowArray<Unk_36a6b0_Item*> field_60;
 };
+PKMN_OFFSET_ASSERT(Unk_36b350_T, field_38, 0x38);
+PKMN_OFFSET_ASSERT(Unk_36b350_T, field_60, 0x60);
 
 // 0x710036b350 (and 0x710036d980, the fourth level with the last inlined)
 // NON_MATCHING: 0x710036d790, like 0x710039f290.
 void* Unk_36b350(Unk_36b350_T* self, const Unk_36fa70_Key0& key) {
     Unk_36fa70_Value* value = self->field_38.Find(key, nullptr, nullptr);
     return value != nullptr ? value->field_0 : nullptr;
+}
+
+// What the first tree's values point to: an object with a reference count
+// (the one Unk_373fd0_get, in lib/wwise/leaf, takes).
+struct Unk_373fd0 {
+    virtual ~Unk_373fd0();
+    virtual void vf2(u32 a1, f32 a2);
+
+    void Release() {
+        if (--field_64 == 0)
+            Unk_Delete(this);
+    }
+
+    // The key it is in the tree by.
+    Unk_36fa70_Key0 Key() const {
+        Unk_36fa70_Key0 key;
+        key.field_0 = field_30;
+        key.field_8.field_0 = field_48;
+        key.field_8.field_8.field_0 = field_44;
+        key.field_8.field_8.field_8.field_0 = field_41;
+        key.field_8.field_8.field_8.field_8.field_0 = field_40;
+        key.field_8.field_8.field_8.field_8.field_8.field_0 = field_18;
+        return key;
+    }
+
+    u8 _8[0x10];
+    u64 field_18;
+    u8 _20[0x10];
+    u64 field_30;
+    u8 _38[8];
+    u8 field_40;
+    u8 field_41;
+    u32 field_44;
+    u32 field_48;
+    struct {
+        u8 _0[0xc];
+        f32 field_c;
+    }* field_50;
+    u8 _58[0xc];
+    u32 field_64;  // reference count
+    u32 field_68;
+    u8 _6c[4];
+    f32 field_70;
+};
+PKMN_OFFSET_ASSERT(Unk_373fd0, field_64, 0x64);
+PKMN_OFFSET_ASSERT(Unk_373fd0, field_70, 0x70);
+bool Unk_373fd0_get(const Unk_373fd0* self);
+
+struct Unk_36a620_Arg {
+    u32 field_0;
+    f32 field_4;
+};
+
+// 0x710036a620
+void Unk_36a620(Unk_36fa70_Value* value, const Unk_36fa70_Key0&, void* arg) {
+    Unk_36a620_Arg* a = static_cast<Unk_36a620_Arg*>(arg);
+    static_cast<Unk_373fd0*>(value->field_0)->vf2(a->field_0, a->field_4);
+}
+
+// 0x710036a640
+bool Unk_36a640(Unk_36fa70_Value* value, const Unk_36fa70_Key0&, void*) {
+    Unk_373fd0* object = static_cast<Unk_373fd0*>(value->field_0);
+    object->field_68 = 3;
+    object->Release();
+    return true;
+}
+
+// What the owner's array holds.
+struct Unk_36a6b0_Item {
+    struct Inner {
+        void* field_0;
+        struct {
+            u8 _0[0x18];
+            u32 field_18;
+        }* field_8;
+    };
+
+    bool IsActive() const {
+        if (field_48 == 1)
+            return true;
+        if (field_8 == 0 || field_8 == 7)
+            return false;
+        if (field_48 == 2)
+            return field_0->field_8 != nullptr && field_0->field_8->field_18 != 0;
+        return true;
+    }
+
+    Inner* field_0;
+    u32 field_8;
+    u8 _c[0x3c];
+    u32 field_48;
+};
+
+void Unk_39c9e0(Unk_36a6b0_Item* item, u32 a1, f32 a2, const Unk_36fa70_Key0& key, void* test,
+                void* a5, f32 a6);
+
+// 0x710036a6b0
+bool Unk_36a6b0(Unk_36fa70_Value* value, const Unk_36fa70_Key0& key, void* arg) {
+    Unk_36b350_T* owner = static_cast<Unk_36b350_T*>(arg);
+    Unk_373fd0* object = static_cast<Unk_373fd0*>(value->field_0);
+    Unk_2381770 test(&key, &owner->field_38);
+    for (auto it = owner->field_60.Begin(), end = owner->field_60.End(); it != end; ++it) {
+        Unk_36a6b0_Item* item = *it;
+        if (item->IsActive()) {
+            f32 a6 = object->field_50 != nullptr ? object->field_50->field_c : object->field_70;
+            Unk_39c9e0(item, owner->field_10, object->field_70, object->Key(), &test, nullptr, a6);
+        }
+    }
+    if (Unk_373fd0_get(object)) {
+        object->Release();
+        return true;
+    }
+    return false;
+}
+
+// 0x710036b2a0
+u32 Unk_36b2a0(Unk_36b350_T* self, const Unk_36fa70_Key0& filter) {
+    Unk_36fa70_Key0 key;
+    self->field_38.ForEach(Unk_36a640, filter, key, &key, nullptr, filter.IsAny());
+    return 1;
+}
+
+// 0x710036b920
+void Unk_36b920(Unk_36b350_T* self) {
+    Unk_36fa70_Key0 key;
+    self->field_38.ForEach(Unk_36a6b0, key, &key, self);
 }
