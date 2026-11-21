@@ -287,6 +287,20 @@ void Unk_566a00(ISiAllocator* pAllocator, SiArray<T*, ALIGN>* array, bool keep) 
     }
 }
 
+// Releases the objects an array of pointers holds (their slot 3), then frees
+// the array's buffer (inline in every caller: placeholder name).
+template <class T, int ALIGN>
+inline void Unk_ReleaseAll(SiArray<T*, ALIGN>* array) {
+    for (size_t i = 0; i < array->m_itemCount; i++) {
+        T* item = array->m_pData[i];
+        if (item != nullptr) {
+            array->m_pData[i] = nullptr;
+            item->vf3();
+        }
+    }
+    array->Unk_4e3050();
+}
+
 }  // namespace SiSDK3
 
 PKMN_SIZE_ASSERT(SiSDK3::SiArray<void*>, 0x50);

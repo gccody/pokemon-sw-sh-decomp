@@ -80,6 +80,21 @@ void Unk_56de40(ISiAllocator* allocator, T*& p, const char* file, long line) {
     p = nullptr;
 }
 
+// The array delete of a pointer that isn't null, which its caller clears
+// (inline in every caller: placeholder name).
+template <class T>
+inline void Unk_DeleteArray(ISiAllocator* allocator, T* p, const char* file, long line) {
+    if (allocator != nullptr) {
+        if (!Unk_PodTraits<T>::value) {
+            size_t count = allocator->vf10(p);
+            for (size_t i = 0; i < count; i++) {
+                p[i].~T();
+            }
+        }
+        allocator->vf9(p, file, line);
+    }
+}
+
 // 0x71004c25a0 (a SiMap node): the single-object delete. Destroys the object,
 // then frees it.
 template <class T>
@@ -119,6 +134,10 @@ inline void* operator new(size_t size, SiSDK3::ISiAllocator* allocator, u32 alig
     }
 #define SI_DELETE_ARRAY(allocator, p) ::SiSDK3::Unk_56de40(allocator, p, __FILE__, __LINE__)
 #define SI_FREE(allocator, p) (allocator)->vf9(p, __FILE__, __LINE__)
+// The array delete of a pointer that may be null, which is cleared without an
+// allocator too (placeholder names): the pointer is read once and cleared
+// once, by the code the macro is expanded in.
+#define UNK_SAFE_DELETE_ARRAY(allocator, p)                                        if ((p) != nullptr) {                                                              ::SiSDK3::Unk_DeleteArray(allocator, p, __FILE__, __LINE__);                   (p) = nullptr;                                                             }
 
 // 0x71004bc640: the kernel's allocator, or the default one
 SiSDK3::ISiAllocator* Unk_4bc640();
