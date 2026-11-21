@@ -2,6 +2,7 @@
 // Pooled lists of the range 0x710035ead0-0x71003b6ee0: the Term of three of
 // them. Placeholder names.
 #include "Unk_368a60.h"
+#include "Unk_KeyArray.h"
 #include "list2.h"
 
 // The pooled list with its pool as a parameter (Unk_List2Ex has the default
@@ -307,20 +308,94 @@ void Unk_3689f0(Unk_3689f0_Settings* settings) {
     }
 }
 
-// 0x7100368ff0: the array of 0x71024bcc18, whose items can own a buffer.
-struct Unk_368ff0_Item {
-    u8 _0[0x18];
-    void* field_18;
-    u32 field_20;
-    u8 field_24;
-};
-PKMN_SIZE_ASSERT(Unk_368ff0_Item, 0x28);
-Unk_Array<Unk_368ff0_Item> Unk_24bcc18;
+// The array of 0x71024bcc18: buffers by a key of three parts.
+struct Unk_368d30_Key {
+    u32 field_0;
+    u64 field_8;
+    u32 field_10;
 
+    Unk_368d30_Key() : field_0(0), field_8(0), field_10(0) {}
+    Unk_368d30_Key(u32 a0, u64 a1, u32 a2) : field_0(a0), field_8(a1), field_10(a2) {}
+
+    bool operator==(const Unk_368d30_Key& other) const {
+        return field_0 == other.field_0 && field_10 == other.field_10 && field_8 == other.field_8;
+    }
+};
+
+struct Unk_368d30_Value {
+    void* field_0;
+    u32 field_8;
+    u8 field_c;  // whether the buffer is the array's to free
+};
+
+typedef Unk_KeyArray<Unk_368d30_Key, Unk_368d30_Value> Unk_368d30_Array;
+PKMN_SIZE_ASSERT(Unk_368d30_Array::Item, 0x28);
+Unk_368d30_Array Unk_24bcc18;
+
+// 0x7100368d30
+template Unk_368d30_Value* Unk_KeyArray<Unk_368d30_Key, Unk_368d30_Value>::Set(Unk_368d30_Key);
+
+// 0x7100368b20: sets or, without a buffer, removes the buffer of a key: 1,
+// or 0x34 without memory.
+// NON_MATCHING: the original has the failure's result twice (after the
+// buffer is freed, and in a block of its own for a buffer that isn't the
+// array's); here the two are one block, and the result 1 is set later in
+// the block before it (8 bytes less).
+u32 Unk_368b20(u32 a0, u64 a1, u32 a2, u32 a3, u32 a4, void* buffer, u32 size, bool own) {
+    u32 result = 1;
+    Unk_368d30_Key key(a0, a1, a2 + (a3 << 4) + (a4 << 16));
+    Unk_368d30_Value* value = Unk_24bcc18.Exists(key);
+    if (value != nullptr) {
+        if (value->field_c)
+            Unk_3047c0(Unk_2381488, value->field_0);
+        if (buffer != nullptr) {
+            value->field_0 = buffer;
+            value->field_8 = size;
+            value->field_c = own;
+        } else {
+            Unk_24bcc18.Unset(key);
+        }
+    } else if (buffer != nullptr) {
+        value = Unk_24bcc18.Set(key);
+        if (value != nullptr) {
+            value->field_0 = buffer;
+            value->field_8 = size;
+            value->field_c = own;
+        } else {
+            result = 0x34;
+            if (own)
+                Unk_3047c0(Unk_2381488, buffer);
+        }
+    }
+    return result;
+}
+
+// 0x7100368ee0: the buffer of a key, or of the key with any (-1) in the
+// middle, or null.
+void Unk_368ee0(u32 a0, u64 a1, u32 a2, void** buffer, u32* size) {
+    Unk_368d30_Value* value = Unk_24bcc18.Exists(Unk_368d30_Key(a0, a1, a2));
+    if (value != nullptr) {
+        *buffer = value->field_0;
+        *size = value->field_8;
+        return;
+    }
+    if (a1 != static_cast<u64>(-1)) {
+        value = Unk_24bcc18.Exists(Unk_368d30_Key(a0, static_cast<u64>(-1), a2));
+        if (value != nullptr) {
+            *buffer = value->field_0;
+            *size = value->field_8;
+            return;
+        }
+    }
+    *buffer = nullptr;
+    *size = 0;
+}
+
+// 0x7100368ff0
 void Unk_368ff0() {
     for (auto it = Unk_24bcc18.Begin(); it != Unk_24bcc18.End(); ++it) {
-        if ((*it).field_24 && (*it).field_18 != nullptr)
-            Unk_Pool2381488::Free((*it).field_18);
+        if ((*it).item.field_c && (*it).item.field_0 != nullptr)
+            Unk_Pool2381488::Free((*it).item.field_0);
     }
     Unk_24bcc18.Term();
 }
