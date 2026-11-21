@@ -17,7 +17,8 @@ class SiIOVFS;
 
 class SiIOVFSEntry {
 public:
-    SiIOVFSEntry(ISiAllocator* pAllocator, SiIOVFS* pVFS);
+    // (an array's new entries are made without arguments)
+    SiIOVFSEntry(ISiAllocator* pAllocator = nullptr, SiIOVFS* pVFS = nullptr);
     virtual ~SiIOVFSEntry();
     UNK_REFCOUNT_DECLARE;
     virtual u32 vf4();
