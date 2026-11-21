@@ -21,7 +21,7 @@ public:
         Unk_3b7900(this, id, type);
     }
     ~Unk_2383770() override;
-    void vf2() override;
+    void vf2(u32 value, const Unk_3babc0_Key& key, void* arg3) override;
     virtual u32 vf3();  // adds a reference
     virtual u32 vf4();  // releases one
 

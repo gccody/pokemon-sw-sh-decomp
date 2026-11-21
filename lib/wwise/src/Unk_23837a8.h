@@ -4,11 +4,14 @@
 // names.
 #include <types.h>
 
+struct Unk_3babc0_Key;
+
 class Unk_23837a8 {
 public:
     Unk_23837a8();
     virtual ~Unk_23837a8();
-    virtual void vf2() = 0;  // the group's value changed
+    // the group's value changed
+    virtual void vf2(u32 value, const Unk_3babc0_Key& key, void* arg3) = 0;
 };
 
 // 0x71003b78c0: stops following its group

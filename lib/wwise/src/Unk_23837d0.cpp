@@ -70,9 +70,9 @@ u32 Unk_3b7ed0(Unk_3476d0_Obj* object, u32* source, u32 size) {
             if (result != 0xf && result != 1)
                 break;
         }
-        if (result != 1)
-            return result;
     }
+    if (result != 1)
+        return result;
 
     u32 numSwitches = Unk_ReadBank<u32>(data);
     self->field_100.Init(numSwitches);
