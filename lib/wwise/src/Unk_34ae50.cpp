@@ -41,7 +41,7 @@ public:
     // 0x710034bf40 (_ZN20Unk_NodeActiveParentI14Unk_NodeParentI11Unk_2381d78EE4vf40Ev)
     // 0x710034bf90 (_ZN20Unk_NodeActiveParentI14Unk_NodeParentI11Unk_2381d78EE4vf48Eb)
     // The inline virtual functions of the classes below it:
-    // 0x710034b310 (_ZN11Unk_23820984vf11Ej)
+    // 0x710034b310 (_ZN11Unk_23820984vf11E10Unk_NodeId)
     // 0x710034c040 (_ZN11Unk_2381d784vf61Ej)
     // 0x710034c0e0 (_ZN11Unk_2381d784vf62Ej)
     // 0x710034c1a0 (_ZN11Unk_2381d784vf73Ej)
