@@ -203,3 +203,73 @@ are libc++'s (`std::vector`, `std::list`) on `Unk_StlAllocator`
 classes by RTTI (CGPUBaseResourceManage is CGPUResourceManage's base; its
 vtable isn't in the executable). Virtual functions are `vf<slot>`, as
 lib/yebis/class names them.
+
+## PPFX's GPU layer (0x710040f550 to 0x7100481000)
+
+Each `C:/workspace/YEBIS_draft/src/**/*.cpp` is its own translation unit: its
+static initialiser (`_GLOBAL__sub_I_<file>.cpp`) is the last function of its
+address range, which is how the ranges below were found. Files whose name no
+log line gives are `Unk_<address of the initialiser>.cpp`.
+
+| Range | File |
+| --- | --- |
+| 0x40f610 to 0x417870 | colour science, matrices: its initialiser (0x415f40, 6,444 bytes) also fills two CIE tables |
+| 0x417870 to 0x4190d0 | `src/ppfx.cpp` |
+| 0x4190e0 to 0x43dc70 | `src/GPU/GPUPostEffect.cpp` (initialiser 0x43d330) |
+| 0x43dc70 to 0x4437f0 | `GPUInterfaceDevice.cpp` (initialiser 0x443570) |
+| 0x4437f0 to 0x445dc0 | `GPUInterfaceSurface.cpp` |
+| 0x445dc0 to 0x445f10 | `Unk_445e80.cpp`: `IGPUInterface` |
+| 0x445f10 to 0x446330 | `Unk_4460c0.cpp` |
+| 0x446330 to 0x446a90 | `GPUInterfaceResource.cpp` |
+| 0x446a90 to 0x4472c0 | `Unk_447050.cpp`: the formats' names |
+| 0x4472c0 to 0x448b70 | `GPUInterfaceTexture.cpp` |
+| 0x448b70 to 0x44a050 | `GPUInterfaceBuffer.cpp` |
+| 0x44a050 to 0x44ab80 | `GPUInterfaceQuery.cpp` |
+| 0x44ab80 to 0x450eb0 | `TinyEffect/TinyEffect.cpp` (initialiser 0x450bf0) |
+| 0x450eb0 to 0x452f00 | `TinyEffect/TFXString.cpp` |
+| 0x452f00 to 0x45fe50 | `GPURenderGlare.cpp` (initialiser 0x45fbe0) |
+| 0x461d60 on | `GPUTextureUtil.cpp` |
+
+### The static objects of every TU
+
+`include/PPFX/Unk_Primaries.h` and `Unk_ColorSpace.h` (placeholder names)
+define what each initialiser constructs: two colour spaces' primaries, SiSDK3's
+reflection handle, then 24 CIE standard illuminants and an angle. They are
+`static` and dynamically initialised, so LLVM's GlobalMerge puts a TU's into
+one object, sorted by size (stable), with the TU's other internal statics:
+an initialiser that doesn't match yet (GPURenderGlare.cpp, ppfx.cpp,
+GPUInterfaceDevice.cpp, TinyEffect.cpp, GPUPostEffect.cpp, the colour TU)
+is missing statics its functions use, and the gaps in the merged object give
+their sizes. The illuminants are stored as integers: their constructor copies
+member by member from a temporary (InstCombine turns a load whose only use is
+a store into an integer load), and LLVM's constant hoisting then derives
+D60's x from D70's y (`add w8, w8, #0xa7d`), which is what breaks the stores'
+pairing at that point.
+
+### Idioms that decided matches here
+
+- A destructor's vtable slots: `IGPUInterface`'s slot 2 is its complete
+  destructor (leafgen had named it `vf2`); an abstract class's deleting
+  destructor is a trap.
+- `ldrb; eor w, w, #1` passed as an argument, in a branch LLVM didn't turn
+  into a select: the parameter is an `int`, not a `bool` (the zext makes the
+  block cost 3, over SimplifyCFG's folding threshold of 2).
+- Two stores of a path's result with a common tail but no `csel`: each path
+  ends in its own `return` (the stores can't be merged into the return block,
+  which has the early returns' conditional edges).
+- A constructor's store order that no body order reproduces: a
+  mem-initializer list.
+- `CPostEffect::Unk_426a50` (the viewports): the repeated block is an inline
+  helper that takes the four fractions by value (their registers are s0 to s2
+  in the original) and converts the texture's size at each use; an alternate
+  rectangle is chosen field by field (the two it compared stay values, the
+  other two become loads through address phis); a first call whose `this`
+  member is read after the fractions' addresses are taken but before they are
+  read is an inline wrapper with `const f32&` parameters.
+
+Scratch tools used (not in the repository): an annotated disassembler (names,
+strings, GOT targets, folded constants), a one-TU compile-and-compare loop
+(`qc.py` of the notes), a straight-line emulator for static initialisers, and
+generators for placeholder interfaces (`Unk_SiGfx.h`) and for a class's
+members from an offset table (`GPUPostEffect.h`, between the UNK_FIELDS
+markers).
