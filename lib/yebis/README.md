@@ -232,19 +232,18 @@ log line gives are `Unk_<address of the initialiser>.cpp`.
 
 ### The static objects of every TU
 
-`include/PPFX/Unk_Primaries.h` and `Unk_ColorSpace.h` (placeholder names)
-define what each initialiser constructs: two colour spaces' primaries, SiSDK3's
-reflection handle, then 24 CIE standard illuminants and an angle. They are
-`static` and dynamically initialised, so LLVM's GlobalMerge puts a TU's into
-one object, sorted by size (stable), with the TU's other internal statics:
-an initialiser that doesn't match yet (GPURenderGlare.cpp, ppfx.cpp,
-GPUInterfaceDevice.cpp, TinyEffect.cpp, GPUPostEffect.cpp, the colour TU)
-is missing statics its functions use, and the gaps in the merged object give
-their sizes. The illuminants are stored as integers: their constructor copies
-member by member from a temporary (InstCombine turns a load whose only use is
-a store into an integer load), and LLVM's constant hoisting then derives
-D60's x from D70's y (`add w8, w8, #0xa7d`), which is what breaks the stores'
-pairing at that point.
+`src/GPU/Unk_StaticsBase.h` and `Unk_Statics.h` (placeholder names) define what
+each initialiser constructs: two colour spaces' primaries and SiSDK3's
+reflection handle (the base header: IGPUInterface's TU and TFXString.cpp have
+only these, a 144-byte initialiser), then 24 CIE standard illuminants and an
+angle. They are `static` and dynamically initialised, so LLVM's GlobalMerge
+puts a TU's into one object, sorted by size (stable), with the TU's other
+internal statics: an initialiser that doesn't match yet (GPURenderGlare.cpp,
+ppfx.cpp, GPUInterfaceDevice.cpp, TinyEffect.cpp, GPUPostEffect.cpp, the
+colour TU) is missing statics its functions use, and the gaps in the merged
+object give their sizes. The illuminants are stored as integers (ppfxTypes.h
+says why), and LLVM's constant hoisting then derives D60's x from D70's y
+(`add w8, w8, #0xa7d`), which is what breaks the stores' pairing at that point.
 
 ### Idioms that decided matches here
 
@@ -273,3 +272,28 @@ strings, GOT targets, folded constants), a one-TU compile-and-compare loop
 generators for placeholder interfaces (`Unk_SiGfx.h`) and for a class's
 members from an offset table (`GPUPostEffect.h`, between the UNK_FIELDS
 markers).
+
+More, from CTextureUtil's and CRenderGlare's release and reset functions:
+
+- The release of a `CGPUResourceManage` is inline in every user
+  (`PPFX_SAFE_RELEASE`, GPUInterface.h): decrement, and at zero the allocator
+  is read, the destructor called through slot 4 and the object freed. An
+  `IGPUInterface`'s is the virtual call of slot 1. With `UNK_DELETE` and
+  `UNK_DELETE_ARRAY` (Unk_Array.h) a function that only releases members is a
+  list of macro calls in the order of the code, and matches at once.
+- A run of members set to zero comes back as memsets: MemCpyOpt merges the
+  zero stores that follow each other in the code (no other store or load
+  between them) when a range has four stores or 16 bytes, puts the memset
+  where the run ends, and the backend expands it last address first. So a
+  group of stores in descending address order is such a range, whatever the
+  order in the source; a store of another value ends the run; and a store of a
+  non-zero constant can be emitted before the stores that precede it in the
+  source (next to another store of the same constant, or at the block's
+  start). CRenderGlare's reset was found that way: write the stores in the
+  order of the code, then move the non-zero ones to where the runs must end.
+- An inline function too large for LLVM's default threshold that is inlined in
+  two callers has the `inline` keyword (the hint raises the threshold from 250
+  to 325, times 1.5 for a single block).
+- `cmp w9, #1` on a count just incremented, where `count + 1 > 1` would follow
+  from the test before it: the increment wraps (GPUClassUtil.h's shared
+  CTextureUtil), and the release tests `count <= 1` before it decrements.

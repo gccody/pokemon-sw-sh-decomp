@@ -1,7 +1,7 @@
 // Scope: common
 // PPFX::CPostEffect (C:/workspace/YEBIS_draft/src/GPU/GPUPostEffect.cpp, the
 // __FILE__ of its log lines).
-#include <yebis/YEBIS_draft/include/PPFX/Unk_ColorSpace.h>
+#include <yebis/YEBIS_draft/src/GPU/Unk_Statics.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUPostEffect.h>
 
 #define PPFX_FILE "C:/workspace/YEBIS_draft/src/GPU/GPUPostEffect.cpp"
