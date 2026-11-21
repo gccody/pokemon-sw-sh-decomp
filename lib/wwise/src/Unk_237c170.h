@@ -22,6 +22,7 @@
 // one copy of each, with the first class of the instantiation (Unk_34ae50.cpp,
 // Unk_34d760.cpp).
 #include <types.h>
+#include "Unk_KeyArray.h"
 #include "containers.h"
 
 #define UNK_VF10(p)                                                                              \
@@ -93,6 +94,12 @@ struct Unk_NodeEntry15 {
     u32 field_8;  // its depth
 };
 
+// A node's ID as slot 11 takes it: with which of the two indices has it.
+struct Unk_NodeId {
+    u32 field_0;
+    bool field_4;
+};
+
 struct Unk_NodeA {
     virtual ~Unk_NodeA() {}
     virtual void vf2();  // adds a reference
@@ -101,10 +108,10 @@ struct Unk_NodeA {
     virtual void vf5();
     virtual void vf6();
     virtual void vf7(Unk_2382098* parent);
-    virtual void vf8();
+    virtual void vf8(Unk_2382098* parent);
     virtual void vf9();
     virtual u32 vf10(Unk_2382098* child);
-    virtual u32 vf11(u32 id);
+    virtual u32 vf11(Unk_NodeId id);
     virtual void vf12(Unk_NodeA* child);
     virtual void vf13(u32 id);
     virtual void vf14();
@@ -126,15 +133,15 @@ struct Unk_NodeA {
     virtual void vf30(void* a1, void* a2, void* a3);
     virtual void vf31(u32 a1, u32 a2, void* a3, void* a4);
     virtual void vf32();
-    virtual void vf33();
+    virtual Unk_2382098* vf33();  // 0x7100382cb0
     virtual void vf34(u32 a1);
     virtual void vf35();
-    virtual void vf36();
-    virtual void vf37();
-    virtual void vf38();
+    virtual void vf36(void* a1);
+    virtual bool vf37(bool a1);
+    virtual void vf38(bool a1);
     virtual u32 vf39();
     virtual void vf40();
-    virtual void vf41();
+    virtual void vf41(void* a1, void* a2, bool a3);
     virtual void vf42();
     virtual void vf43();
     virtual void vf44();
@@ -187,14 +194,14 @@ struct Unk_NodeB {
     virtual void b_vf3();
     virtual bool b_vf4(u32 a1);
     virtual bool b_vf5(u32 a1);
-    virtual void b_vf6();
+    virtual void b_vf6(u32 a1, void* a2, bool a3);  // 0x7100389210
     virtual Unk_NodeB_28_20* b_vf7() { return field_28; }  // 0x710034c1f0
     virtual void b_vf8();
     virtual void b_vf9();
     virtual void b_vf10();
-    virtual void b_vf11();
-    virtual void b_vf12();
-    virtual void b_vf13();
+    virtual void b_vf11(u32 a1, bool a2);  // 0x71003b2610
+    virtual void* b_vf12(u32 a1, bool a2);  // 0x71003b2490
+    virtual u32 b_vf13(u32 a1, void* a2, void* a3);  // 0x71003b2ef0
     virtual void b_vf14();
     virtual void b_vf15();
     virtual Unk_NodeB_16* b_vf16();
@@ -257,10 +264,9 @@ struct Unk_PropBundle {
             Id count = *reinterpret_cast<Id*>(field_0);
             T* values = reinterpret_cast<T*>(
                 field_0 + ((sizeof(Id) + count * sizeof(Id) + 3) & ~3));
-            Id* ids = reinterpret_cast<Id*>(field_0) + 1;
             u32 i = 0;
             do {
-                if (ids[i] == id)
+                if (reinterpret_cast<Id*>(field_0)[i + 1] == id)
                     return values + i;
                 i++;
             } while (i < count);
@@ -318,30 +324,22 @@ struct Unk_2382098_38 {
 
 // What field_50 of a node points at.
 struct Unk_2382098_50 {
+    // Adds its values of the properties 5 and 0x18.
+    void Unk_353010_Get(f32* a, f32* b) {
+        Unk_PropValue16* value = field_18.FindProp(5);
+        if (value != nullptr)
+            *a += value->field_0;
+        value = field_18.FindProp(0x18);
+        if (value != nullptr)
+            *b += value->field_0;
+    }
+
     u8 _0[0x18];
     Unk_PropBundle<Unk_PropValue16> field_18;
 };
 
 // What field_58 of a node points at: Unk_2382098_50 objects by key.
-struct Unk_2382098_58_Item {
-    void* field_0;
-    Unk_2382098_50* field_8;
-};
-struct Unk_2382098_58 {
-    Unk_2382098_58_Item* field_0;
-    u32 field_8;
-
-    Unk_2382098_58_Item* Begin() const { return field_0; }
-    Unk_2382098_58_Item* End() const { return field_0 + field_8; }
-    Unk_2382098_58_Item* FindEx(void* key) const {
-        Unk_2382098_58_Item* it = Begin();
-        for (Unk_2382098_58_Item* end = End(); it != end; ++it) {
-            if (it->field_0 == key)
-                break;
-        }
-        return it;
-    }
-};
+typedef Unk_KeyArray<void*, Unk_2382098_50*> Unk_2382098_58;
 
 // What field_60 of a node points at.
 struct Unk_2382098_60_Item {
@@ -394,7 +392,7 @@ public:
         return node->field_70 != nullptr && node->field_70->field_90 > 0;
     }
 
-    u32 vf11(u32 id) override;  // 0x710034b310, inline
+    u32 vf11(Unk_NodeId id) override;  // 0x710034b310, inline
 
     // 0x7100352bd0, inline: adds a property's value to *out, with what its
     // parameter changes it by.

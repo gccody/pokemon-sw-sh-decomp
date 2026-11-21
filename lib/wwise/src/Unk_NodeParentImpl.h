@@ -13,10 +13,10 @@ bool Unk_382c40(Unk_2382098* self, void* a1);
 extern u8* Unk_24bbbb8;
 
 // Slot 11: adds the child with this ID.
-inline u32 Unk_2382098::vf11(u32 id) {
-    if (id == 0)
+inline u32 Unk_2382098::vf11(Unk_NodeId id) {
+    if (id.field_0 == 0)
         return 0xe;
-    Unk_2382098* child = Unk_3351b0(Unk_24bbbb8, id, 0);
+    Unk_2382098* child = Unk_3351b0(Unk_24bbbb8, id.field_0, 0);
     if (child == nullptr)
         return 0xf;
     return vf10(child);

@@ -19,17 +19,39 @@ public:
     void* field_8;
 };
 
+// An item of the list at 0xd8: another node of the class and what to do to it.
 struct Unk_237ff98_Item18 {
-    u8 _0[0x18];
+    u32 field_0;  // the node's ID
+    f32 field_4;
+    u32 field_8;
+    u32 field_c;
+    u32 field_10;
+    u32 field_14;
 };
+PKMN_SIZE_ASSERT(Unk_237ff98_Item18, 0x18);
 
 struct Unk_35c6b0;
 void Unk_35c6b0_get(Unk_35c6b0* self);
 
+// What an item of the lists at 0x100 and 0x128 has at 8: an object that is
+// told a value.
+struct Unk_237ff98_Item28_8 {
+    virtual void vf0(u32 a1, bool a2, f32 a3);
+
+    u64 field_8;
+};
+
+// An item of the lists at 0x100 and 0x128: what another node of the class
+// (field_0, its ID) does to this one's value.
 struct Unk_237ff98_Item28 {
-    u64 field_0;
-    u8 field_8[0x18];  // an Unk_35c6b0
-    f32 field_20;
+    // The object as its users see it: a pointer, so that the call is virtual.
+    Unk_237ff98_Item28_8* User() { return &field_8; }
+
+    u32 field_0;
+    Unk_237ff98_Item28_8 field_8;  // an Unk_35c6b0
+    void* field_18;  // what changes the value over time
+    f32 field_20;  // the value
+    bool field_24;
 };
 PKMN_SIZE_ASSERT(Unk_237ff98_Item28, 0x28);
 
@@ -39,9 +61,25 @@ struct Unk_237ff98_Arg25 {
     bool field_8;
 };
 
+// A channel configuration: the number of channels, the kind of configuration
+// and, for kind 1, a bit for each channel.
+struct Unk_237ff98_Config {
+    u32 field_0_0 : 8;
+    u32 field_0_8 : 4;
+    u32 field_0_12 : 20;
+};
+
 struct Unk_237ff98_c8 {
     u32 field_0;
-    bool field_4;
+    Unk_237ff98_Config field_4;
+};
+
+// What says whose parameter a notification is about.
+struct Unk_NodeTarget {
+    Unk_NodeC* field_0;
+    void* field_8;
+    u32 field_10;
+    u32 field_14;
 };
 
 // What 0x7100352df0 fills in.
@@ -61,6 +99,9 @@ struct Unk_352df0_Out {
 PKMN_OFFSET_ASSERT(Unk_352df0_Out, field_64, 0x64);
 PKMN_OFFSET_ASSERT(Unk_352df0_Out, field_80, 0x80);
 
+void Unk_3be290(void* self, void* change, u64 prop, u32 a3, u32 a4, bool a5, f32 a6);
+extern void* Unk_24bbbe8;
+
 class Unk_237ff98 : public Unk_NodeActiveParent<Unk_NodeParent<Unk_2382098>> {
 public:
     // Both sets of children, the second set first.
@@ -77,7 +118,7 @@ public:
     // The slots this class overrides. Those not written yet have the
     // signature of their placeholder in Unk_NodeA.
     u32 vf10(Unk_2382098* child) override;
-    u32 vf11(u32 id) override;
+    u32 vf11(Unk_NodeId id) override;
     void vf12(Unk_NodeA* child) override;
     void vf13(u32 id) override;
     u32 vf17() override { return 0; }  // 0x7100352000
@@ -90,13 +131,13 @@ public:
     void vf29() override;
     void vf30(void* a1, void* a2, void* a3) override;
     void vf31(u32 a1, u32 a2, void* a3, void* a4) override;
-    void vf33() override;
+    Unk_2382098* vf33() override;
     void vf34(u32 a1) override;
     void vf35() override;
-    void vf36() override;
-    void vf37() override;
-    void vf38() override;
-    void vf41() override;
+    void vf36(void* a1) override;
+    bool vf37(bool a1) override;
+    void vf38(bool a1) override;
+    void vf41(void* a1, void* a2, bool a3) override;
     void vf42() override;
     void vf43() override;
     void vf45() override;
@@ -113,10 +154,11 @@ public:
     void vf68() override;
     u32 p_vf0() override { return children.field_8 + field_b8.field_8; }  // 0x710034dc10
     u32 p_vf1(Unk_2382098* child) override;
-    virtual void vf73();
-    virtual void vf74();
-    virtual void vf75();
-    virtual void vf76();
+    // Slots 73 to 76 are those of the base at 0x18.
+    void b_vf6(u32 a1, void* a2, bool a3) override;
+    void* b_vf12(u32 a1, bool a2) override;
+    void b_vf11(u32 a1, bool a2) override;
+    u32 b_vf13(u32 a1, void* a2, void* a3) override;
     virtual void vf77();
     // Slots 78 to 80 are those of the base at 0x30.
     void c_vf0(u32 a1, Unk_NodeKey* a2, void* a3, f32 a4, f32 a5) override;
@@ -129,6 +171,23 @@ public:
     f32 Unk_353010(Unk_NodeKey key, f32* out);
     f32 Unk_353330(Unk_NodeKey key, u32 prop);
     bool Unk_3536a0();
+    void Unk_355510(u32 id, u32 a2, u32 a3, u32 prop);
+    void Unk_3552e0(u32 id, f32 a2, u32 a3, u32 a4, u32 a5);
+    void Unk_355640();
+    void Unk_355690(u32 id);
+
+    // Ends what the item does to the value of `prop`.
+    void Unk_355690_End(Unk_237ff98_Item28& item, u32 prop) {
+        f32 value = item.field_20;
+        void* change = item.field_18;
+        item.field_24 = false;
+        if (change != nullptr)
+            Unk_3be290(Unk_24bbbe8, change, prop, 0, 4, true, value);
+        else
+            item.User()->vf0(prop, true, value);
+    }
+    u32 Unk_355880();
+    void Unk_355c10(Unk_237ff98_Config config);
 
     Iterator Begin() {
         Iterator it;
@@ -154,7 +213,8 @@ public:
     Unk_List2<Unk_237ff98_Item28> field_128;
     Unk_2382e40 field_150;
     u32 field_160;
-    u8 field_164_0 : 4;
+    u8 field_164_0 : 3;
+    u8 field_164_3 : 1;
     u8 field_164_4 : 1;
     u8 field_164_5 : 1;
     u8 field_164_6 : 1;

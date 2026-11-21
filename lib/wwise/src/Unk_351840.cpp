@@ -15,6 +15,7 @@ Unk_237ff98::Unk_237ff98(u32 id)
       field_d0(-96.3f) {
     field_160 = 0xffffffff;
     field_164_0 = 0;
+    field_164_3 = 0;
     field_164_4 = 1;
     field_164_5 = 1;
     field_164_6 = 0;
@@ -48,10 +49,10 @@ Unk_237ff98::Unk_237ff98(u32 id)
 Unk_237ff98::~Unk_237ff98() {
     Unk_351b20();
     for (auto it = field_100.Begin(); it != field_100.End(); ++it)
-        Unk_35c6b0_get(reinterpret_cast<Unk_35c6b0*>((*it).field_8));
+        Unk_35c6b0_get(reinterpret_cast<Unk_35c6b0*>(&(*it).field_8));
     field_100.Term();
     for (auto it = field_128.Begin(); it != field_128.End(); ++it)
-        Unk_35c6b0_get(reinterpret_cast<Unk_35c6b0*>((*it).field_8));
+        Unk_35c6b0_get(reinterpret_cast<Unk_35c6b0*>(&(*it).field_8));
     field_128.Term();
     field_d8.Term();
 
@@ -230,7 +231,6 @@ u32 Unk_237ff98::Unk_352df0(Unk_352df0_Out* out, Unk_NodeKey* key) {
     return 1;
 }
 
-// NON_MATCHING: 8 bytes short; the search of field_58 and the walk up the parents differ
 // 0x7100353330
 f32 Unk_237ff98::Unk_353330(Unk_NodeKey key, u32 prop) {
     f32 value = 0.0f;
@@ -241,9 +241,9 @@ f32 Unk_237ff98::Unk_353330(Unk_NodeKey key, u32 prop) {
             value += own->field_0;
     }
     if (field_58 != nullptr) {
-        Unk_2382098_58_Item* it = field_58->FindEx(key.field_0);
-        if (it != field_58->End()) {
-            Unk_PropValue16* other = it->field_8->field_18.FindProp(prop);
+        Unk_2382098_50** found = field_58->Exists(key.field_0);
+        if (found != nullptr) {
+            Unk_PropValue16* other = (*found)->field_18.FindProp(prop);
             if (other != nullptr)
                 value += other->field_0;
         }
@@ -266,7 +266,7 @@ bool Unk_237ff98::Unk_3536a0() {
     }
     if (vf17() == 10)
         return true;
-    if (field_c8.field_4)
+    if (field_c8.field_4.field_0_0 != 0)
         return true;
     if (field_9c_19 || field_9c_24)
         return true;
@@ -319,4 +319,281 @@ void Unk_237ff98::c_vf2(bool a1, u32 a2) {
     field_164_4 = 1;
     field_164_5 = 1;
     Unk_NodeC::c_vf2(a1, a2);
+}
+
+// NON_MATCHING: after the first of two property lookups this keeps the pointer to the values
+// for the second (GVN's scalar PRE through the PHI of the count); the original computes it again
+// 0x7100353010
+f32 Unk_237ff98::Unk_353010(Unk_NodeKey key, f32* out) {
+    f32 value = 0.0f;
+    Unk_352bd0(&value, 5, &key);
+    *out = 0.0f;
+    Unk_352bd0(out, 0x18, &key);
+    if (field_50 != nullptr) {
+        Unk_PropValue16* own = field_50->field_18.FindProp(5);
+        if (own != nullptr)
+            value += own->field_0;
+        own = field_50->field_18.FindProp(0x18);
+        if (own != nullptr)
+            *out += own->field_0;
+    }
+    if (field_58 != nullptr) {
+        Unk_2382098_50** found = field_58->Exists(key.field_0);
+        if (found != nullptr) {
+            Unk_PropValue16* other = (*found)->field_18.FindProp(5);
+            if (other != nullptr)
+                value += other->field_0;
+            other = (*found)->field_18.FindProp(0x18);
+            if (other != nullptr)
+                *out += other->field_0;
+        }
+    }
+    value += Unk_352da0(5);
+    Unk_237ff98* parent = static_cast<Unk_237ff98*>(field_80);
+    if (parent != nullptr && !parent->Unk_3536a0()) {
+        f32 above;
+        f32 result = static_cast<Unk_237ff98*>(field_80)->Unk_353010(key, &above);
+        *out += result + above;
+    }
+    return value;
+}
+
+void Unk_377930(void* self, Unk_NodeTarget* target, void* a2, void* a3);
+extern void* Unk_24bbc18;
+
+// 0x7100353560
+void Unk_237ff98::vf41(void* a1, void* a2, bool a3) {
+    if (field_38 != nullptr && field_38->field_20) {
+        Unk_NodeTarget target;
+        target.field_0 = this;
+        target.field_8 = this;
+        target.field_10 = 2;
+        target.field_14 = 2;
+        Unk_377930(Unk_24bbc18, &target, a1, a2);
+    }
+    Unk_237ff98* parent = static_cast<Unk_237ff98*>(field_80);
+    if (parent != nullptr) {
+        if (a3 && parent->Unk_3536a0())
+            return;
+        static_cast<Unk_237ff98*>(field_80)->vf41(a1, a2, true);
+    }
+}
+
+Unk_2382098* Unk_3352a0(void* self, Unk_NodeId* id);
+void Unk_3c57e0(u32 id);
+
+// 0x7100354bd0
+void Unk_237ff98::vf31(u32 a1, u32 a2, void* a3, void* a4) {
+    Unk_3c57e0(field_10);
+}
+
+// 0x7100354cf0
+u32 Unk_237ff98::vf10(Unk_2382098* child) {
+    Unk_2382098* old = static_cast<Unk_2382098*>(child->field_80);
+    if (old != nullptr) {
+        if (old == this) {
+            child->vf3();
+            return 1;
+        }
+        old->vf12(child);
+    }
+    u32 result = p_vf1(child);
+    if (result == 1) {
+        Unk_NodeA** slot =
+            Unk_34c330(!child->field_9c_17 ? &children : &field_b8, child->field_10);
+        if (slot != nullptr) {
+            *slot = child;
+            child->vf8(this);
+            vf2();
+        } else {
+            result = 2;
+        }
+    }
+    child->vf3();
+    return result;
+}
+
+// 0x7100354de0
+u32 Unk_237ff98::vf11(Unk_NodeId id) {
+    if (id.field_0 == 0)
+        return 0xe;
+    Unk_2382098* child = Unk_3352a0(Unk_24bbbb8, &id);
+    if (child == nullptr)
+        return 0xf;
+    return vf10(child);
+}
+
+void Unk_3c5b10(u32 a1);
+
+// Slots 73 to 76, with their copies for the vtable at 0x18: the base's
+// function, and a notification when it changed whether the node mixes.
+// 0x7100354430 (_ZN11Unk_237ff985b_vf6EjPvb)
+// 0x7100354610 (_ZThn24_N11Unk_237ff985b_vf6EjPvb)
+void Unk_237ff98::b_vf6(u32 a1, void* a2, bool a3) {
+    bool before = Unk_3536a0();
+    Unk_NodeB::b_vf6(a1, a2, a3);
+    if (before != Unk_3536a0() && field_70 != nullptr)
+        Unk_3c5b10(1);
+}
+
+// 0x7100354620 (_ZN11Unk_237ff986b_vf12Ejb)
+// 0x71003547f0 (_ZThn24_N11Unk_237ff986b_vf12Ejb)
+void* Unk_237ff98::b_vf12(u32 a1, bool a2) {
+    bool before = Unk_3536a0();
+    void* result = Unk_NodeB::b_vf12(a1, a2);
+    if (before != Unk_3536a0() && field_70 != nullptr)
+        Unk_3c5b10(1);
+    return result;
+}
+
+// 0x7100354800 (_ZN11Unk_237ff986b_vf11Ejb)
+// 0x71003549d0 (_ZThn24_N11Unk_237ff986b_vf11Ejb)
+void Unk_237ff98::b_vf11(u32 a1, bool a2) {
+    bool before = Unk_3536a0();
+    Unk_NodeB::b_vf11(a1, a2);
+    if (before != Unk_3536a0() && field_70 != nullptr)
+        Unk_3c5b10(1);
+}
+
+// 0x71003549e0 (_ZN11Unk_237ff986b_vf13EjPvS0_)
+// 0x7100354bc0 (_ZThn24_N11Unk_237ff986b_vf13EjPvS0_)
+u32 Unk_237ff98::b_vf13(u32 a1, void* a2, void* a3) {
+    bool before = Unk_3536a0();
+    u32 result = Unk_NodeB::b_vf13(a1, a2, a3);
+    if (before != Unk_3536a0() && field_70 != nullptr)
+        Unk_3c5b10(1);
+    return result;
+}
+
+struct Unk_387770;
+void Unk_388010(Unk_2382098* self, bool a1);
+void Unk_387770_update(Unk_387770* self);
+bool Unk_387370(Unk_2382098* self, bool a1);
+void Unk_3874a0(Unk_2382098* self, bool a1);
+void Unk_3557c0(void* self);
+void Unk_3c5a70(u32 id);
+void Unk_3c5b00_call(u32 id);
+
+// 0x7100355640
+void Unk_237ff98::Unk_355640() {
+    for (auto it = field_100.Begin(); it != field_100.End(); ++it) {
+        if ((*it).field_20 < -0.01f)
+            return;
+    }
+    for (auto it = field_128.Begin(); it != field_128.End(); ++it) {
+        if ((*it).field_20 < -0.01f)
+            return;
+    }
+}
+
+// 0x7100355a80
+void Unk_237ff98::vf36(void* a1) {
+    Unk_388010(this, true);
+    Unk_387770_update(reinterpret_cast<Unk_387770*>(this));
+    if (field_80 != nullptr)
+        static_cast<Unk_2382098*>(field_80)->vf36(a1);
+    if (field_70 == nullptr || field_70->field_90 == 0) {
+        if (field_c8.field_0 != 0 && field_d8.field_24 != 0) {
+            u32 result = Unk_355880();
+            field_164_0 = 0;
+            if (result == 1)
+                field_164_0 = 2;
+        } else {
+            field_164_0 = 0;
+        }
+        Unk_3557c0(this);
+    }
+}
+
+// 0x7100355b30
+bool Unk_237ff98::vf37(bool a1) {
+    bool result = Unk_387370(this, true);
+    if (field_80 != nullptr)
+        result &= static_cast<Unk_2382098*>(field_80)->vf37(true);
+    return result;
+}
+
+// 0x7100355b80
+void Unk_237ff98::vf38(bool a1) {
+    Unk_3874a0(this, true);
+    if (field_80 != nullptr)
+        static_cast<Unk_2382098*>(field_80)->vf38(true);
+}
+
+// Whether `node` is `other` or below it.
+// 0x7100355bd0
+bool Unk_355bd0(Unk_237ff98* node, Unk_237ff98* other) {
+    for (; node != nullptr; node = static_cast<Unk_237ff98*>(node->field_80)) {
+        if (node == other)
+            return true;
+    }
+    return false;
+}
+
+// 0x7100355c10
+void Unk_237ff98::Unk_355c10(Unk_237ff98_Config config) {
+    u32 old = *reinterpret_cast<u32*>(&field_c8.field_4);
+    if (config.field_0_8 == 1) {
+        u32 mask = config.field_0_12 & 0x3ff3f;
+        config.field_0_0 = __builtin_popcount(mask);
+        config.field_0_8 = 1;
+        config.field_0_12 = mask;
+    }
+    field_c8.field_4 = config;
+    if (old != *reinterpret_cast<u32*>(&config))
+        Unk_3c5b00_call(field_10);
+}
+
+// 0x7100355c80
+Unk_2382098* Unk_237ff98::vf33() {
+    if (Unk_3536a0())
+        return this;
+    return Unk_2382098::vf33();
+}
+
+// 0x7100355d50
+void Unk_237ff98::vf34(u32 a1) {
+    Unk_3c5a70(field_10);
+}
+
+// NON_MATCHING: register allocation (the list item is in x0 here, x8 in the original, which
+// then needs one more instruction for each virtual call)
+// 0x7100355690
+void Unk_237ff98::Unk_355690(u32 id) {
+    for (auto it = field_100.Begin(); it != field_100.End(); ++it) {
+        if ((*it).field_0 == id) {
+            Unk_355690_End(*it, 0);
+            break;
+        }
+    }
+    for (auto it = field_128.Begin(); it != field_128.End(); ++it) {
+        if ((*it).field_0 == id) {
+            Unk_355690_End(*it, 5);
+            break;
+        }
+    }
+}
+
+// 0x71003557c0
+void Unk_3557c0(void* self_) {
+    Unk_237ff98* self = static_cast<Unk_237ff98*>(self_);
+    for (auto it = self->field_d8.Begin(); it != self->field_d8.End(); ++it) {
+        Unk_237ff98_Item18& item = *it;
+        Unk_237ff98* target = static_cast<Unk_237ff98*>(Unk_3351b0(Unk_24bbbb8, item.field_0, 1));
+        if (target != nullptr) {
+            switch (self->field_164_0) {
+            case 0:
+                target->Unk_355510(self->field_10, item.field_c, item.field_10, item.field_14);
+                break;
+            case 1:
+                target->Unk_3552e0(self->field_10, item.field_4, item.field_8, item.field_10,
+                                   item.field_14);
+                break;
+            case 2:
+                target->Unk_355690(self->field_10);
+                break;
+            }
+            target->vf3();
+        }
+    }
 }
