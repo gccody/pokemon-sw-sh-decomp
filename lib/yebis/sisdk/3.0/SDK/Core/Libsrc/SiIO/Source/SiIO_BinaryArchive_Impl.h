@@ -65,7 +65,7 @@ public:
     virtual u64 vf30();
     virtual ChunkTypeInfo* vf31(s64 index);
     virtual ChunkTypeInfo* vf32(const Unk_Id* id);
-    virtual void vf33();
+    virtual bool vf33(SiArray<Unk_Id>* ids, SiArray<Unk_567750_Version>* versions);
     virtual u32 vf34();
 
     // reads the header from the file's bytes (inline in its callers:

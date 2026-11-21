@@ -41,7 +41,9 @@ public:
     virtual void* vf18(ISiAllocator* pAllocator);  // a CSV document
     virtual void vf19();
     virtual void vf20();
-    virtual void vf21();
+    // a chunk type's name and version (placeholder parameter types: the
+    // function isn't written yet)
+    virtual bool vf21(const void* id, SiString<char>* name, void* version);
 
     // A chunk handler's type (RTTI: SiIOKernel::ChunkHandlerTypeInfo), listed in field_50.
     struct ChunkHandlerTypeInfo;

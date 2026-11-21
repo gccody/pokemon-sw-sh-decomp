@@ -6,6 +6,7 @@
 // that has them (UNK_ISIIO_BINARYARCHIVE_IMPL).
 #pragma once
 
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_Array.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_LinkedList.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_4bf660.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_RefCount.h>
@@ -117,7 +118,8 @@ public:
     virtual u64 vf30() = 0;
     virtual ChunkTypeInfo* vf31(s64 index) = 0;  // a chunk type
     virtual ChunkTypeInfo* vf32(const Unk_Id* id) = 0;  // the chunk type of an identifier
-    virtual void vf33() = 0;
+    // collects the chunk types whose versions aren't the kernel's
+    virtual bool vf33(SiArray<Unk_Id>* ids, SiArray<Unk_567750_Version>* versions) = 0;
     virtual u32 vf34() = 0;
 
     Unk_4bf660 field_8;
