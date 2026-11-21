@@ -256,6 +256,50 @@ struct Unk_ListBare {
         if (field_0 == p)
             field_0 = prev;
     }
+
+    // An item and the one before it.
+    struct IteratorEx {
+        T* item;
+        T* prev;
+
+        void operator++() {
+            prev = item;
+            item = item->next;
+        }
+    };
+
+    IteratorEx BeginEx() const {
+        IteratorEx it;
+        it.item = field_8;
+        it.prev = nullptr;
+        return it;
+    }
+
+    IteratorEx FindEx(T* item) const {
+        IteratorEx it = BeginEx();
+        for (; it.item != nullptr; ++it) {
+            if (it.item == item)
+                break;
+        }
+        return it;
+    }
+
+    void RemoveItem(T* item, T* prev) {
+        T* next = item->next;
+        if (item == field_8)
+            field_8 = next;
+        else
+            prev->next = next;
+        if (field_0 == item)
+            field_0 = prev;
+    }
+
+    // Like Remove, in the form most of the code has it.
+    void RemoveEx(T* item) {
+        IteratorEx it = FindEx(item);
+        if (it.item != nullptr)
+            RemoveItem(it.item, it.prev);
+    }
 };
 
 // A singly linked list of T whose items come from a free list: the items of a
@@ -272,6 +316,9 @@ struct Unk_List2 {
         Item* item;
 
         void operator++() { item = item->next; }
+        T& operator*() { return item->item; }
+        bool operator==(const Iterator& other) const { return item == other.item; }
+        bool operator!=(const Iterator& other) const { return item != other.item; }
     };
 
     struct IteratorEx : Iterator {
@@ -298,6 +345,18 @@ struct Unk_List2 {
         IteratorEx it;
         it.item = field_0;
         it.prev = nullptr;
+        return it;
+    }
+
+    Iterator Begin() const {
+        Iterator it;
+        it.item = field_0;
+        return it;
+    }
+
+    Iterator End() const {
+        Iterator it;
+        it.item = nullptr;
         return it;
     }
 
