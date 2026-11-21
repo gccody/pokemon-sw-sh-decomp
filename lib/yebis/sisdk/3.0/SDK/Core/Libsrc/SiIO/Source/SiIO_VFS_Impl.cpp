@@ -480,3 +480,7 @@ s32 SiIOVFS::Unk_586260(SiIOVFSEntry* entry) {
 }
 
 }  // namespace SiSDK3
+
+// The entries' array's reserve, which this translation unit instantiates
+// (its new entries are constructed, the kept ones assigned).
+// 0x7100586c20 = _ZN6SiSDK37SiArrayINS_12SiIOVFSEntryELi16EE10Unk_4bf190Emb
