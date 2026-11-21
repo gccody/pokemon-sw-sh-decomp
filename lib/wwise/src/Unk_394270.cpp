@@ -3,10 +3,10 @@
 // the vtables 0x71023829b0 and 0x71023829f8): one with two bit arrays, a list
 // of indices and a total, one with a flag and an index. Placeholder names; the
 // members are vf<slot>, as in lib/wwise/class.
-#include "Unk_PlacementNew.h"
-#include "containers.h"
+#include "Unk_KeyArray.h"
 
 extern "C" void* memset(void* dest, int value, size_t size);
+extern "C" void* memcpy(void* dest, const void* src, size_t size);
 
 // What the objects are written to or read from: true when it worked.
 struct Unk_394850_Stream {
@@ -52,7 +52,7 @@ public:
     u32 field_c;  // the total
     u16 field_10;
     u16 field_12;  // the number of bits
-    Unk_Array<u16> field_18;
+    Unk_GrowArray<u16, Unk_PoolDefault, 1, u16> field_18;
     u8* field_28;  // a bit an index
     u8* field_30;  // a second bit an index, in the same allocation
 };
@@ -143,7 +143,7 @@ u32 Unk_23829b0::vf5(Unk_394850_Stream* stream, u16 count) {
     u16 length = field_18.Length();
     if (!stream->vf0(&length, 2, &done))
         return 2;
-    u32 size = (count + 7) >> 3;
+    u32 size = static_cast<u32>((static_cast<u64>(count) + 7) >> 3);
     if (!stream->vf0(field_28, size, &doneBits))
         return 2;
     if (!stream->vf0(field_30, size, &doneBits))
@@ -153,6 +153,76 @@ u32 Unk_23829b0::vf5(Unk_394850_Stream* stream, u16 count) {
             return 2;
     }
     return 1;
+}
+
+// 0x71003949d0
+u32 Unk_23829b0::vf6(Unk_394850_Stream* stream, u16 count) {
+    u32 done;
+    u16 readCount = 0;
+    if (!stream->vf0(&readCount, 2, &done))
+        return 2;
+    if (readCount != count)
+        return 2;
+    u32 total = 0;
+    u16 a = 0;
+    u16 b = 0;
+    u16 length = 0;
+    u32 doneBits = 0;
+    if (!stream->vf0(&total, 4, &done))
+        return 2;
+    if (!stream->vf0(&a, 2, &done))
+        return 2;
+    if (!stream->vf0(&b, 2, &done))
+        return 2;
+    if (!stream->vf0(&length, 2, &done))
+        return 2;
+    u32 size = static_cast<u32>((static_cast<u64>(count) + 7) >> 3);
+    if (!stream->vf0(field_28, size, &doneBits))
+        return 2;
+    if (!stream->vf0(field_30, size, &doneBits))
+        return 2;
+    field_c = total;
+    field_10 = a;
+    field_12 = b;
+    if (length != 0) {
+        if (!field_18.Resize(length))
+            return 2;
+        if (!stream->vf0(field_18.field_0, length * 2, &doneBits))
+            return 2;
+    }
+    return 1;
+}
+
+// 0x7100394440: a copy for `count` bits, null without memory.
+Unk_23829b0* Unk_23829b0::vf4(u16 count) {
+    if (count == 0)
+        return nullptr;
+    Unk_23829b0* copy = new (Unk_237e820) Unk_23829b0(count);
+    if (copy == nullptr)
+        return nullptr;
+    copy->field_8 = field_8;
+    copy->field_c = field_c;
+    copy->field_10 = field_10;
+    copy->field_12 = field_12;
+    if (field_28 != nullptr) {
+        u32 size = (count + 7) >> 3;
+        u32 size2 = size * 2;
+        copy->field_28 = static_cast<u8*>(Unk_PoolDefault::Alloc(size2));
+        if (copy->field_28 == nullptr) {
+            copy->vf2();
+            return nullptr;
+        }
+        copy->field_30 = copy->field_28 + size;
+        memcpy(copy->field_28, field_28, size2);
+    }
+    copy->field_18.Reserve(field_18.Length());
+    for (auto it = field_18.Begin(); it != field_18.End(); ++it) {
+        if (copy->field_18.AddLast(*it) == nullptr) {
+            copy->vf2();
+            return nullptr;
+        }
+    }
+    return copy;
 }
 
 class Unk_23829f8 {
