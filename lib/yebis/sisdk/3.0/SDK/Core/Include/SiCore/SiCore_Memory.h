@@ -28,6 +28,7 @@ public:
     virtual void* vf8(u32 elementSize, size_t count, u32 alignment, const char* file, int line);
     virtual void vf9(void* p, const char* file, int line);  // frees
     virtual size_t vf10(void* p);                            // the element count of an array from vf8
+    virtual void vf11(void* info);                           // fills in what it has allocated
 };
 
 // Element types the array delete needn't destroy (placeholder name): pointers

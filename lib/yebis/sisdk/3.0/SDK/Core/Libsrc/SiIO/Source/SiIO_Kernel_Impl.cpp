@@ -18,8 +18,21 @@ void* Unk_57e080(SiSDK3::ISiAllocator* pAllocator);
 // 0x71004c8f80: whether two identifiers are the same
 bool Unk_4c8f80(const void* a, const void* b);
 
-// 0x71004cad50: what SiIO is initialised after
-bool Unk_4cad50();
+// 0x71004c5930: a number as a string
+void Unk_4c5930(char* dst, size_t size, u64 value);
+// 0x7100583970 (leafgen's name and type): the VFS manager's initialisation
+bool Unk_583970_get(u64 manager);
+
+// What an allocator's slot 11 fills in (placeholder name).
+struct Unk_57d2a0_Info {
+    u64 field_0;
+    u64 field_8;
+    u64 field_10;
+    u64 field_18;
+    u64 field_20;
+    u64 field_28;
+    u64 field_30;
+};
 
 // 0x7102770648: the kernel (this translation unit's own variable in the
 // original; its getter, 0x710057d030, is in lib/yebis/leaf, which declares it
@@ -31,15 +44,6 @@ extern SiSDK3::SiIOKernel* Unk_2770648 __attribute__((visibility("hidden")));
 SiSDK3::SiIOKernel* Unk_57cfb0() {
     static SiSDK3::SiIOKernel kernel;
     return &kernel;
-}
-
-// Initialises SiIO (placeholder name).
-// 0x710057a2c0
-bool Unk_57a2c0(SiSDK3::ISiAllocator* pAllocator) {
-    if (!Unk_4cad50()) {
-        return false;
-    }
-    return Unk_57cfb0()->Unk_57d2a0(pAllocator);
 }
 
 namespace SiSDK3 {
@@ -64,6 +68,34 @@ SiIOKernel::SiIOKernel()
 // 0x710057d140 (D2), 0x710057d210 (D0)
 SiIOKernel::~SiIOKernel() {
     Unk_2770648 = nullptr;
+}
+
+// 0x710057d2a0
+bool SiIOKernel::Unk_57d2a0(ISiAllocator* pAllocator) {
+    field_20++;
+    if (field_20 != 1) {
+        return true;
+    }
+    if (pAllocator != nullptr) {
+        vf5(pAllocator);
+    } else if (field_18 == nullptr) {
+        vf5(Unk_GetKernel()->vf12());
+    }
+    Unk_57d3f0();
+#line 539
+    field_48 = UNK_SI_NEW(field_18, 0x10) SiIOCodecZLib(field_18);
+#line 397
+    field_40 = UNK_SI_NEW(field_18, 0x10) SiIOVFSManager(field_18);
+    if (field_40 == nullptr || !Unk_583970_get(reinterpret_cast<u64>(field_40))) {
+        return false;
+    }
+    Unk_57d2a0_Info info;
+    field_18->vf11(&info);
+    char used[0x80];
+    Unk_4c5930(used, sizeof(used), info.field_8);
+    char total[0x80];
+    Unk_4c5930(total, sizeof(total), info.field_28);
+    return true;
 }
 
 // 0x710057d590
