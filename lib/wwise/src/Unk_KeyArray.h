@@ -131,6 +131,12 @@ struct Unk_KeyArray : Unk_GrowArray<Unk_KeyArrayItem<K, T>, A, kGrowBy> {
         return nullptr;
     }
 
+    void Unset(K key) {
+        Iterator it = FindEx(key);
+        if (it != this->End())
+            this->Erase(it);
+    }
+
     T* Set(K key, const T& item) {
         T* found = Exists(key);
         if (found != nullptr) {
