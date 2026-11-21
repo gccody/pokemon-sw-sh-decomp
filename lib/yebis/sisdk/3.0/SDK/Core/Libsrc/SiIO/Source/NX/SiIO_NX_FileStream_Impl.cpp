@@ -1,5 +1,6 @@
 // Scope: common
 // SiSDK3::SiIONXFileStream.
+#define UNK_SIIO_NX_FILESTREAM_IMPL
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiIO/Source/NX/SiIO_NX_FileStream_Impl.h>
 
 #include <string.h>

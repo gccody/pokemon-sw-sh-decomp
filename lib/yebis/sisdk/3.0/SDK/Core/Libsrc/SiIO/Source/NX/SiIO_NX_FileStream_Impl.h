@@ -178,6 +178,8 @@ PKMN_OFFSET_ASSERT(SiIONXFileStream, field_10100, 0x10100);
 
 }  // namespace SiSDK3
 
+#ifdef UNK_SIIO_NX_FILESTREAM_IMPL
 // 0x710058b780 (vf2), 0x710058b7a0 (vf3)
 #line 37
 UNK_REFCOUNT_DEFINE(SiSDK3::SiIONXFileStream, field_8.m_pAllocator, field_8.m_count)
+#endif
