@@ -147,6 +147,14 @@ public:
         return true;
     }
 
+    // empties the array for another allocator (inline: placeholder name)
+    void Unk_SetAllocator(ISiAllocator* pAllocator) {
+        if (m_pAllocator != pAllocator) {
+            Unk_4e3050();
+            m_pAllocator = pAllocator;
+        }
+    }
+
     // 0x71004bf190 (8-byte elements): makes room for count elements, keeping
     // the first ones if keep
     bool Unk_4bf190(size_t count, bool keep);
@@ -196,9 +204,9 @@ bool SiArray<T, ALIGN>::Unk_4bf190(size_t count, bool keep) {
     }
     Unk_FreeData();
     field_48 = 0;
-    m_pData = pData;
     field_30 = nullptr;
     field_38 = nullptr;
+    m_pData = pData;
     m_itemCount = n;
     m_reservedCount = count;
     return true;
