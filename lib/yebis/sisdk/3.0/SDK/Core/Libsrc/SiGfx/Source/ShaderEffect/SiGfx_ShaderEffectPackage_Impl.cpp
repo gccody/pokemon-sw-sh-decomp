@@ -28,6 +28,85 @@ u64 Unk_570d00_get(u64 list);
 // 0x710056ca20 (leafgen's name): whether an effect may be added
 bool Unk_56ca20(void* package, void* effect);
 
+namespace SiSDK3 {
+
+inline void SiGfxShaderEffectPackage::Unk_ReadKey(ISiIOStream* stream, SiGfxShaderEffectKey* key, bool keep) {
+    Unk_582f10(stream, 0x10);
+    u32 value = stream->vf31(true);
+    key->field_8 = keep ? value : 0;
+    for (s64 i = 0; i < key->field_c; i++) {
+        key->field_10[i] = stream->vf29(true);
+    }
+}
+
+inline void SiGfxShaderEffectPackage::Unk_WriteKey(ISiIOStream* stream, const SiGfxShaderEffectKey* key) {
+    Unk_582f70(stream, 0x10, 0);
+    stream->vf54(key->field_8, true);
+    for (s64 i = 0; i < key->field_c; i++) {
+        stream->vf52(key->field_10[i], true);
+    }
+}
+
+// 0x7100566070
+ISiGfxShaderEffectPackage::ShaderProgramData::ShaderProgramData(ISiAllocator* pAllocator)
+    : field_0(pAllocator), field_8(pAllocator), field_50(pAllocator), field_a0(0), field_c0(pAllocator), field_110(0),
+      field_114(0) {
+    for (s32 i = 0; i < 6; i++) {
+        field_118[i] = -1;
+    }
+}
+
+// 0x7100566150
+ISiGfxShaderEffectPackage::ShaderProgramData::~ShaderProgramData() {}
+
+// 0x7100566250
+ISiGfxShaderEffectPackage::TechniqueData::TechniqueData(ISiAllocator* pAllocator)
+    : field_0(pAllocator), field_8(0), field_10(pAllocator), field_40(pAllocator), field_70(pAllocator),
+      field_a0(pAllocator), field_d0(pAllocator), field_100(pAllocator), field_130(pAllocator), field_160(pAllocator),
+      field_190(pAllocator), field_1c0(pAllocator), field_1f0(pAllocator), field_220(pAllocator), field_250(0),
+      field_a70(pAllocator), field_ac0(pAllocator), field_b10(0), field_b14(0) {
+    memset(&field_254, 0, sizeof(field_254));
+}
+
+// 0x71005665d0
+ISiGfxShaderEffectPackage::TechniqueData::~TechniqueData() {
+    field_ac0.Unk_4e3050();
+    Unk_566a00(field_0, &field_a70, false);
+}
+
+// Makes an effect's data (inline in its caller: placeholder name; its line
+// is before the constructor's).
+static ISiGfxShaderEffectPackage::ShaderEffectData* Unk_NewShaderEffectData(ISiAllocator* pAllocator);
+
+// 0x7100566bb0
+ISiGfxShaderEffectPackage::ShaderEffectData::ShaderEffectData(ISiAllocator* pAllocator)
+    : field_0(pAllocator), field_8(pAllocator), field_38(0), field_3c(0), field_40(0), field_44(-1), field_48(0),
+      field_4c(-1), field_50(0), field_58(nullptr), field_60(pAllocator), field_b0(nullptr) {
+#line 174
+    field_b0 = UNK_SI_NEW(pAllocator, 0x10) SiGfxShaderEffect::ShaderProgramMap(pAllocator);
+}
+
+// SiCore_Array.h's delete of what an array of pointers holds, for the three
+// kinds of data (the programs' is the technique's destructor's).
+// 0x7100566a00 = _ZN6SiSDK310Unk_566a00INS_25ISiGfxShaderEffectPackage17ShaderProgramDataELi16EEEvPNS_12ISiAllocatorEPNS_7SiArrayIPT_XT0_EEEb
+// 0x71005675a0 = _ZN6SiSDK310Unk_566a00INS_25ISiGfxShaderEffectPackage13TechniqueDataELi16EEEvPNS_12ISiAllocatorEPNS_7SiArrayIPT_XT0_EEEb
+template void Unk_566a00<ISiGfxShaderEffectPackage::TechniqueData, 16>(
+    ISiAllocator*, SiArray<ISiGfxShaderEffectPackage::TechniqueData*, 16>*, bool);
+// 0x710056bac0 = _ZN6SiSDK310Unk_566a00INS_25ISiGfxShaderEffectPackage16ShaderEffectDataELi16EEEvPNS_12ISiAllocatorEPNS_7SiArrayIPT_XT0_EEEb
+template void Unk_566a00<ISiGfxShaderEffectPackage::ShaderEffectData, 16>(
+    ISiAllocator*, SiArray<ISiGfxShaderEffectPackage::ShaderEffectData*, 16>*, bool);
+
+// SiGfxShaderEffectKey's destructors (inline, in its header).
+// 0x7100535ff0 = _ZN6SiSDK320SiGfxShaderEffectKeyD2Ev
+// 0x7100536390 = _ZN6SiSDK320SiGfxShaderEffectKeyD0Ev
+
+static ISiGfxShaderEffectPackage::ShaderEffectData* Unk_NewShaderEffectData(ISiAllocator* pAllocator) {
+#line 150
+    return UNK_SI_NEW(pAllocator, 0x10) ISiGfxShaderEffectPackage::ShaderEffectData(pAllocator);
+}
+
+}  // namespace SiSDK3
+
 // 0x7100567750
 SiSDK3::SiGfxShaderEffectPackage* Unk_567750(SiSDK3::ISiAllocator* pAllocator) {
 #line 267
@@ -279,6 +358,104 @@ bool SiGfxShaderEffectPackage::Unk_569dd0(ISiIOStream* stream, ISiGfxShaderEffec
     return true;
 }
 
+// 0x7100569f40
+bool SiGfxShaderEffectPackage::Unk_569f40(ISiIOStream* stream, ISiGfxShaderEffectPackage::ShaderEffectData* data,
+                                          ISiGfxShaderEffectPackage::TechniqueData* technique) {
+    Unk_582f70(stream, 0x10, 0);
+    stream->vf54(technique->field_8, true);
+    if (technique->field_8 & 1) {
+        Unk_582f70(stream, 0x10, 0);
+        stream->vf60(Unk_StringCStr(&technique->field_10), true);
+        Unk_582f70(stream, 0x10, 0);
+        stream->vf58(Unk_StringCStr(&technique->field_40), true);
+    }
+    if (technique->field_8 & 2) {
+        Unk_582f70(stream, 0x10, 0);
+        stream->vf60(Unk_StringCStr(&technique->field_70), true);
+        Unk_582f70(stream, 0x10, 0);
+        stream->vf58(Unk_StringCStr(&technique->field_a0), true);
+    }
+    if (technique->field_8 & 4) {
+        Unk_582f70(stream, 0x10, 0);
+        stream->vf60(Unk_StringCStr(&technique->field_d0), true);
+        Unk_582f70(stream, 0x10, 0);
+        stream->vf58(Unk_StringCStr(&technique->field_100), true);
+    }
+    if (technique->field_8 & 0x10) {
+        Unk_582f70(stream, 0x10, 0);
+        stream->vf60(Unk_StringCStr(&technique->field_130), true);
+        Unk_582f70(stream, 0x10, 0);
+        stream->vf58(Unk_StringCStr(&technique->field_160), true);
+    }
+    if (technique->field_8 & 8) {
+        Unk_582f70(stream, 0x10, 0);
+        stream->vf60(Unk_StringCStr(&technique->field_190), true);
+        Unk_582f70(stream, 0x10, 0);
+        stream->vf58(Unk_StringCStr(&technique->field_1c0), true);
+    }
+    if (technique->field_8 & 0x20) {
+        Unk_582f70(stream, 0x10, 0);
+        stream->vf60(Unk_StringCStr(&technique->field_1f0), true);
+        Unk_582f70(stream, 0x10, 0);
+        stream->vf58(Unk_StringCStr(&technique->field_220), true);
+    }
+    Unk_582f70(stream, 0x10, 0);
+    stream->vf50(technique->field_250, true);
+    if (technique->field_250 != 0) {
+        Unk_56a350_(stream, &technique->field_254);
+    }
+    Unk_582f70(stream, 0x10, 0);
+    stream->vf50(technique->field_a70.m_itemCount, true);
+    Unk_582f70(stream, 0x10, 0);
+    for (s64 i = 0; i < static_cast<s32>(technique->field_a70.m_itemCount); i++) {
+        Unk_56a4f0(stream, data, technique, technique->field_a70.m_pData[i]);
+    }
+    Unk_582f70(stream, 0x10, 0);
+    for (s64 i = 0; i < static_cast<s32>(technique->field_ac0.m_itemCount); i++) {
+        stream->vf50(technique->field_ac0.m_pData[i]->field_114, true);
+    }
+    return true;
+}
+
+// 0x710056a4f0
+bool SiGfxShaderEffectPackage::Unk_56a4f0(ISiIOStream* stream, ISiGfxShaderEffectPackage::ShaderEffectData* data,
+                                          ISiGfxShaderEffectPackage::TechniqueData* technique,
+                                          ISiGfxShaderEffectPackage::ShaderProgramData* program) {
+    if (stream == nullptr || program == nullptr) {
+        return false;
+    }
+    Unk_582f70(stream, 0x10, 0);
+    stream->vf58(Unk_StringCStr(&program->field_8), true);
+    Unk_582f70(stream, 0x10, 0);
+    Unk_WriteKey(stream, &program->field_38);
+    Unk_582f70(stream, 0x10, 0);
+    stream->vf54(program->field_a0, true);
+    Unk_582f70(stream, 0x10, 0);
+    Unk_WriteKey(stream, &program->field_a8);
+    Unk_582f70(stream, 0x10, 0);
+    stream->vf54(program->field_110, true);
+    u32 flags = technique->field_8;
+    if (flags & 1) {
+        stream->vf50(program->field_118[0], true);
+    }
+    if (flags & 2) {
+        stream->vf50(program->field_118[1], true);
+    }
+    if (flags & 4) {
+        stream->vf50(program->field_118[2], true);
+    }
+    if (flags & 0x10) {
+        stream->vf50(program->field_118[3], true);
+    }
+    if (flags & 8) {
+        stream->vf50(program->field_118[4], true);
+    }
+    if (flags & 0x20) {
+        stream->vf50(program->field_118[5], true);
+    }
+    return true;
+}
+
 // 0x710056a350 = _ZN6SiSDK324SiGfxShaderEffectPackage11Unk_56a350_EPNS_11ISiIOStreamEPNS_10Unk_56a350E
 bool SiGfxShaderEffectPackage::Unk_56a350_(ISiIOStream* stream, Unk_56a350* table) {
     if (stream == nullptr) {
@@ -433,10 +610,142 @@ bool SiGfxShaderEffectPackage::Unk_56b000(ISiIOStream* stream, Unk_567750_Header
     return true;
 }
 
+// 0x710056b8a0
+bool SiGfxShaderEffectPackage::Unk_56b8a0(ISiIOStream* stream, Unk_567750_Header* header) {
+    field_140.Unk_ReserveAtLeast(header->field_7c);
+    for (s32 i = 0; i < header->field_7c; i++) {
+        ISiGfxShaderEffectPackage::ShaderEffectData* data = Unk_NewShaderEffectData(field_8.m_pAllocator);
+        if (data != nullptr) {
+            data->field_3c = i;
+            Unk_56bbf0(stream, data);
+            field_140.Unk_Add(data);
+        }
+    }
+    return true;
+}
+
 // 0x710056ba50
 bool SiGfxShaderEffectPackage::vf9() {
     field_1e0.Unk_4e3050();
     return Unk_5686f0();
+}
+
+// 0x710056bbf0
+bool SiGfxShaderEffectPackage::Unk_56bbf0(ISiIOStream* stream, ISiGfxShaderEffectPackage::ShaderEffectData* data) {
+    if (stream == nullptr || data == nullptr) {
+        return false;
+    }
+    Unk_582f10(stream, 0x10);
+    stream->vf35(&data->field_8, true);
+    Unk_582f10(stream, 0x10);
+    data->field_38 = stream->vf31(true);
+    SiString<char> name(field_8.m_pAllocator);
+    stream->vf35(&name, true);
+    Unk_582f10(stream, 0x10);
+    s32 size0 = 0;
+    s32 size1 = 0;
+    s32 index = stream->vf27(true);
+    if (index >= 0 && index < static_cast<s32>(field_280.m_itemCount)) {
+        data->Unk_SetDefinition(field_280.m_pData[index]);
+        ISiGfxShaderEffectVariation* variation = data->field_58->vf17();
+        if (variation != nullptr) {
+            size0 = variation->vf7();
+            size1 = variation->vf11();
+        }
+    }
+    s32 count = stream->vf27(true);
+    data->field_60.Unk_SetCount(count);
+    for (s64 i = 0; i < count; i++) {
+#line 1789
+        ISiGfxShaderEffectPackage::TechniqueData* technique = UNK_SI_NEW(field_8.m_pAllocator, 0x10) ISiGfxShaderEffectPackage::TechniqueData(field_8.m_pAllocator);
+        if (technique == nullptr) {
+            return false;
+        }
+        technique->field_b10 = size0;
+        technique->field_b14 = size1;
+        data->field_60.m_pData[i] = technique;
+        Unk_56bf40(stream, data, technique);
+    }
+    return true;
+}
+
+// 0x710056bf40
+bool SiGfxShaderEffectPackage::Unk_56bf40(ISiIOStream* stream, ISiGfxShaderEffectPackage::ShaderEffectData* data,
+                                          ISiGfxShaderEffectPackage::TechniqueData* technique) {
+    Unk_582f10(stream, 0x10);
+    technique->field_8 = stream->vf31(true);
+    if (technique->field_8 & 1) {
+        Unk_582f10(stream, 0x10);
+        stream->vf37(&technique->field_10, true);
+        Unk_582f10(stream, 0x10);
+        stream->vf35(&technique->field_40, true);
+    }
+    if (technique->field_8 & 2) {
+        Unk_582f10(stream, 0x10);
+        stream->vf37(&technique->field_70, true);
+        Unk_582f10(stream, 0x10);
+        stream->vf35(&technique->field_a0, true);
+    }
+    if (technique->field_8 & 4) {
+        Unk_582f10(stream, 0x10);
+        stream->vf37(&technique->field_d0, true);
+        Unk_582f10(stream, 0x10);
+        stream->vf35(&technique->field_100, true);
+    }
+    if (technique->field_8 & 0x10) {
+        Unk_582f10(stream, 0x10);
+        stream->vf37(&technique->field_130, true);
+        Unk_582f10(stream, 0x10);
+        stream->vf35(&technique->field_160, true);
+    }
+    if (technique->field_8 & 8) {
+        Unk_582f10(stream, 0x10);
+        stream->vf37(&technique->field_190, true);
+        Unk_582f10(stream, 0x10);
+        stream->vf35(&technique->field_1c0, true);
+    }
+    if (technique->field_8 & 0x20) {
+        Unk_582f10(stream, 0x10);
+        stream->vf37(&technique->field_1f0, true);
+        Unk_582f10(stream, 0x10);
+        stream->vf35(&technique->field_220, true);
+    }
+    Unk_582f10(stream, 0x10);
+    s32 table = stream->vf27(true);
+    if (table != 0) {
+        technique->field_250 = table;
+        Unk_56c480(stream, &technique->field_254);
+    }
+    Unk_582f10(stream, 0x10);
+    s32 count = stream->vf27(true);
+    if (!technique->field_a70.Unk_SetCount(count)) {
+        return false;
+    }
+    if (!technique->field_ac0.Unk_SetCount(count)) {
+        return false;
+    }
+    Unk_582f10(stream, 0x10);
+    for (s64 i = 0; i < static_cast<s32>(technique->field_a70.m_itemCount); i++) {
+#line 1878
+        ISiGfxShaderEffectPackage::ShaderProgramData* program = UNK_SI_NEW(field_8.m_pAllocator, 0x10) ISiGfxShaderEffectPackage::ShaderProgramData(field_8.m_pAllocator);
+        if (technique->field_b10 > 0) {
+            program->field_50.Unk_SetCount(technique->field_b10);
+            program->field_38.Unk_Set(technique->field_b10, program->field_50.m_pData);
+        }
+        if (technique->field_b14 > 0) {
+            program->field_c0.Unk_SetCount(technique->field_b14);
+            program->field_a8.Unk_Set(technique->field_b14, program->field_c0.m_pData);
+        }
+        technique->field_a70.m_pData[i] = program;
+        program->field_114 = i;
+        Unk_56c610(stream, data, technique, program);
+    }
+    Unk_582f10(stream, 0x10);
+    for (s32 i = 0; i < count; i++) {
+        s32 index = stream->vf27(true);
+        technique->field_ac0.m_pData[i] = technique->field_a70.m_pData[index];
+    }
+    return true;
 }
 
 // 0x710056c480
@@ -457,6 +766,45 @@ bool SiGfxShaderEffectPackage::Unk_56c480(ISiIOStream* stream, Unk_56a350* table
     }
     for (s64 i = 0; i < table->field_804; i++) {
         table->field_808[i] = stream->vf27(true);
+    }
+    return true;
+}
+
+// 0x710056c610
+bool SiGfxShaderEffectPackage::Unk_56c610(ISiIOStream* stream, ISiGfxShaderEffectPackage::ShaderEffectData* data,
+                                          ISiGfxShaderEffectPackage::TechniqueData* technique,
+                                          ISiGfxShaderEffectPackage::ShaderProgramData* program) {
+    if (stream == nullptr || program == nullptr) {
+        return false;
+    }
+    Unk_582f10(stream, 0x10);
+    stream->vf35(&program->field_8, true);
+    Unk_582f10(stream, 0x10);
+    Unk_ReadKey(stream, &program->field_38, true);
+    Unk_582f10(stream, 0x10);
+    program->field_a0 = stream->vf31(true);
+    Unk_582f10(stream, 0x10);
+    Unk_ReadKey(stream, &program->field_a8, false);
+    Unk_582f10(stream, 0x10);
+    program->field_110 = stream->vf31(true);
+    u32 flags = technique->field_8;
+    if (flags & 1) {
+        program->field_118[0] = stream->vf27(true);
+    }
+    if (flags & 2) {
+        program->field_118[1] = stream->vf27(true);
+    }
+    if (flags & 4) {
+        program->field_118[2] = stream->vf27(true);
+    }
+    if (flags & 0x10) {
+        program->field_118[3] = stream->vf27(true);
+    }
+    if (flags & 8) {
+        program->field_118[4] = stream->vf27(true);
+    }
+    if (flags & 0x20) {
+        program->field_118[5] = stream->vf27(true);
     }
     return true;
 }
