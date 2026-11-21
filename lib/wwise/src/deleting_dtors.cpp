@@ -21,7 +21,6 @@ void Unk_33ebe0(void* self);
 void Unk_341330(void* self);
 void Unk_34cce0(void* self);
 void Unk_34e6e0(void* self);
-void Unk_3518d0(void* self);
 void Unk_3627c0(void* self);
 void Unk_362a20(void* self);
 void Unk_362d20(void* self);
@@ -184,18 +183,6 @@ void Unk_3414b0(void* self) {
 // 0x710034ce70
 void Unk_34ce70(void* self) {
     Unk_34cce0(self);
-    operator delete(self);
-}
-
-// 0x710034d780
-void Unk_34d780(void* self) {
-    Unk_3518d0(self);
-    operator delete(self);
-}
-
-// 0x7100351eb0
-void Unk_351eb0(void* self) {
-    Unk_3518d0(self);
     operator delete(self);
 }
 

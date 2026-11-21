@@ -24,7 +24,6 @@ void Unk_33d8a0(void* a0);
 void Unk_3463b0(void* a0);
 void Unk_349ab0(void* a0);
 void Unk_34e6e0(void* a0);
-void Unk_3518d0(void* a0);
 void Unk_37e0e0(void* a0);
 void Unk_37e350(void* a0);
 void Unk_3862d0(void* a0);
@@ -360,34 +359,11 @@ void Unk_349ef0(void* a0) {
     Unk_3463b0(a0);
 }
 
-// 0x710034c290
-void Unk_34c290() {
-    __builtin_trap();
-}
 
-// 0x710034c320
-void Unk_34c320() {
-    __builtin_trap();
-}
-
-// 0x710034d760
-void Unk_34d760(void* a0) {
-    Unk_3518d0(a0);
-}
 
 // 0x7100356f70
 void Unk_356f70(void* a0) {
     Unk_3862d0(a0);
-}
-
-// 0x71003579d0
-void Unk_3579d0() {
-    __builtin_trap();
-}
-
-// 0x7100357a50
-void Unk_357a50() {
-    __builtin_trap();
 }
 
 // 0x7100357af0

@@ -47,7 +47,6 @@ struct Unk_Plugin {
 void Unk_3101f0(void* self);
 void Unk_313160(void* self);
 void Unk_3191e0(void* self);
-void Unk_3518d0(void* self);
 void Unk_3627c0(void* self);
 void Unk_3d17f0(void* self);
 void Unk_3d4310(void* self);
@@ -178,20 +177,6 @@ void Unk_310310(void* self) {
 void Unk_313330(void* self) {
     void* object = static_cast<u8*>(self) - 0x18;
     Unk_313160(object);
-    operator delete(object);
-}
-
-// 0x710034d7b0
-void Unk_34d7b0(void* self) {
-    void* object = static_cast<u8*>(self) - 0x18;
-    Unk_3518d0(object);
-    operator delete(object);
-}
-
-// 0x7100351ee0
-void Unk_351ee0(void* self) {
-    void* object = static_cast<u8*>(self) - 0x18;
-    Unk_3518d0(object);
     operator delete(object);
 }
 
