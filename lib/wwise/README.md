@@ -471,12 +471,26 @@ throughout.
   `0x71003578d0` and the three slot-75 functions above: binary searches over
   the sorted children, which match with clang 5.0.2 and not 6.0.1 (LICM's
   clone of the item's address).
-- The rest of `Unk_237ff98` (about 35 functions, 15 KB): not written. The
+- Slots 43, 48, 55 and 68 of `Unk_237ff98` (`m`/`M`): written, a few
+  instructions off (two argument copies in the other order; `this` and the
+  pointer to the children swapped; the structure of slot 55's returns; the
+  order in which slot 68 computes four flags). See their notes.
+- The rest of `Unk_237ff98` (about 22 functions, 13 KB): not written. The
   larger ones are slot 42 (`0x7100352830`), 52 (`0x7100353820`), 23
-  (`0x7100353c40`), 77 (`0x7100356100`), the two static walks over all nodes
-  of the class (`0x71003521d0`, `0x7100352440`), and `0x71003552e0`,
-  `0x7100355510` (what a node does to another's value). Its fields so far are
-  in `Unk_237ff98.h`; the slots not written have placeholder signatures.
+  (`0x7100353c40`), 59 and 60 (`0x7100354040`, `0x7100354260`), 64
+  (`0x7100355d60`), 77 (`0x7100356100`), 57 and 58 (`0x7100356780`,
+  `0x71003568f0`: lookups in two of the object index's tables, inline), the
+  two static walks over all nodes of the class (`0x71003521d0`,
+  `0x7100352440`), and `0x71003552e0`, `0x7100355510` (what a node does to
+  another's value). Its fields so far are in `Unk_237ff98.h`; the slots not
+  written have placeholder signatures.
+- **Locals of an inline getter.** Two defaults read through an inline
+  function (`Unk_2382098::GetProp`) have their stack slots in the other order
+  than two locals of the caller: an inlined call's locals go in front of the
+  caller's (`Unk_357370`).
+- **A float argument between integer ones** (slot 43): its place decides the
+  order of the copies, as for slots 26 and 27; no place tried gives both the
+  registers and the order.
 - An object held by value is called through a pointer where the original's
   call is virtual (`Unk_237ff98_Item28::User()`): clang calls a member
   object's virtual function directly.

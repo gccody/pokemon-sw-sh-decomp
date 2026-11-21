@@ -144,7 +144,7 @@ public:
     void vf31(u32 a1, u32 a2, void* a3, void* a4) override;
     Unk_2382098* vf33() override;
     void vf34(u32 a1) override;
-    void vf35() override;
+    u32 vf35(Unk_NodeArg35* a1, bool a2, bool a3) override;
     void vf36(void* a1) override;
     bool vf37(bool a1) override;
     void vf38(bool a1) override;
@@ -161,7 +161,7 @@ public:
     void vf59() override;
     void vf60() override;
     void vf64() override;
-    void vf65() override;
+    u32 vf65(u8*& data) override;
     void* vf68(void* a1) override;
     u32 p_vf0() override { return children.field_8 + field_b8.field_8; }  // 0x710034dc10
     u32 p_vf1(Unk_2382098* child) override;

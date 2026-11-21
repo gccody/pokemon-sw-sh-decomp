@@ -6,6 +6,7 @@
 #include "Unk_237ff98.h"
 #include "Unk_NodeParentImpl.h"
 #include "Unk_3358b0.h"
+#include "bank_read.h"
 
 void Unk_349950();
 void Unk_3c58d0(u32 id);
@@ -769,4 +770,79 @@ u32 Unk_237ff98::vf55(u32 a1, bool a2, s32 a3) {
         field_b0 = nullptr;
     }
     return 1;
+}
+
+// 0x7100353f30
+void Unk_237ff98::vf25(void* a1, bool a2, f32 a3) {
+    if (field_70 == nullptr)
+        return;
+    for (Iterator it = Begin(); !IsEnd(it); Next(it)) {
+        Unk_2382098* child = *it;
+        if (IsActive(child)) {
+            if (Unk_24bcab8 && field_164_6 && static_cast<Unk_237ff98_Arg25*>(a1)->field_0 == this)
+                a3 = 0.0f;
+            child->vf25(a1, true, a3);
+        }
+    }
+}
+
+u32 Unk_387fb0(Unk_2382098* self, bool a1);
+void Unk_387510(Unk_2382098* self, Unk_NodeArg35* a1, bool a2);
+
+// 0x7100355970
+u32 Unk_237ff98::vf35(Unk_NodeArg35* a1, bool a2, bool a3) {
+    u32 result = 1;
+    if (a2)
+        result = Unk_387fb0(this, true);
+    if (!a3 && !a1->field_1c) {
+        Unk_387510(this, a1, a2);
+        a1->field_1c = field_9c_30;
+    }
+    if (field_80 != nullptr) {
+        u32 above = static_cast<Unk_2382098*>(field_80)->vf35(a1, a2, a3);
+        if (above != 1) {
+            if (above == 0x50) {
+                if (result == 1)
+                    result = 0x50;
+            } else {
+                result = above;
+            }
+        }
+    }
+    if (field_70 != nullptr && field_70->field_90 == 1) {
+        field_164_0 = 1;
+        Unk_3557c0(this);
+    }
+    return result;
+}
+
+u32 Unk_383520(Unk_2382098* self, u32 index, u32 id, bool a3, u32 a4);
+void Unk_383740(Unk_2382098* self, u32 a1, u32 a2);
+
+// Slot 65: reads the node's effects from a sound bank's data.
+// 0x71003565e0
+u32 Unk_237ff98::vf65(u8*& data) {
+    u32 result = 1;
+    u32 count = Unk_ReadBank<u8>(data);
+    if (count != 0) {
+        u32 bypass = Unk_ReadBank<u8>(data);
+        for (u32 i = 0; i < count; i++) {
+            u32 index = Unk_ReadBank<u8>(data);
+            u32 id = Unk_ReadBank<u32>(data);
+            bool shared = Unk_ReadBank<u8>(data) != 0;
+            Unk_ReadBank<u8>(data);
+            if (id != 0)
+                result = Unk_383520(this, index, id, shared, 0);
+            if (result != 1)
+                break;
+        }
+        Unk_383740(this, bypass, 0xffffffff);
+    }
+    if (result == 1) {
+        u32 id = Unk_ReadBank<u32>(data);
+        u8 flag = Unk_ReadBank<u8>(data);
+        result = vf55(id, flag != 0, 0);
+    }
+    field_98_12 = 0x1f;
+    return result;
 }
