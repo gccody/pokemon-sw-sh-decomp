@@ -140,6 +140,22 @@ PKMN_SIZE_ASSERT(Unk_36fa70_Key0, 0x30);
         void Remove(const Below& below);                                                          \
         void RemoveAll(const Below& below);                                                       \
                                                                                                   \
+        Value* Find(const Below& below, Value** closest, bool* hasMore) {                         \
+            if (below.IsAny()) {                                                                  \
+                if (hasMore != nullptr)                                                           \
+                    *hasMore = !this->field_18.IsEmpty();                                         \
+                if (this->field_10)                                                               \
+                    return &this->field_8;                                                        \
+                return nullptr;                                                                   \
+            }                                                                                     \
+            if (closest != nullptr && this->field_10)                                             \
+                *closest = &this->field_8;                                                        \
+            auto* child = this->field_18.Exists(below.field_0);                                   \
+            if (child != nullptr)                                                                 \
+                return child->Find(below.field_8, closest, hasMore);                              \
+            return nullptr;                                                                       \
+        }                                                                                         \
+                                                                                                  \
         bool Has(const Below& key, const Below& orig) {                                           \
             if (orig.IsAnyHere())                                                                 \
                 return false;                                                                     \
@@ -231,6 +247,22 @@ PKMN_SIZE_ASSERT(Unk_36fa70_Key0, 0x30);
                 this->field_18.Term();                                                            \
         }                                                                                         \
                                                                                                   \
+        Value* Find(const Unk_36fa70_Key5& below, Value** closest, bool* hasMore) {               \
+            if (below.IsAny()) {                                                                  \
+                if (hasMore != nullptr)                                                           \
+                    *hasMore = !this->field_18.IsEmpty();                                         \
+                if (this->field_10)                                                               \
+                    return &this->field_8;                                                        \
+                return nullptr;                                                                   \
+            }                                                                                     \
+            if (closest != nullptr && this->field_10)                                             \
+                *closest = &this->field_8;                                                        \
+            if (hasMore != nullptr)                                                               \
+                *hasMore = false;                                                                 \
+            Name##_Item* item = this->field_18.Exists(below.field_0);                             \
+            return item != nullptr ? &item->field_0 : nullptr;                                    \
+        }                                                                                         \
+                                                                                                  \
         bool Has(const Unk_36fa70_Key5& key, const Unk_36fa70_Key5& orig) {                       \
             if (!key.IsAny())                                                                     \
                 return false;                                                                     \
@@ -309,6 +341,7 @@ PKMN_SIZE_ASSERT(Unk_36fa70_Key0, 0x30);
     struct Name : Name##_Base {                                                                   \
         void Remove(const Unk_36fa70_Key0& below);                                                \
         bool Has(const Unk_36fa70_Key0& key, const Unk_36fa70_Key0& orig);                        \
+        Value* Find(const Unk_36fa70_Key0& below, Value** closest, bool* hasMore);                \
         bool ForEach(typename Name##_Base::Callback cb, const Unk_36fa70_Key0& a2,                \
                      Unk_36fa70_Key0* below, void* a4);                                           \
         bool ForEach(typename Name##_Base::Callback cb, const Unk_36fa70_Key0& filter,            \
@@ -687,4 +720,29 @@ bool Unk_2381780::vf0(const Unk_36fa70_Key0& other) {
     if (key->IsWider(other))
         return root->Has(*key, other);
     return false;
+}
+
+// The value a key has in the tree, or null. `closest` gets the value of the
+// last node on the way that has one, `hasMore` whether the node the key ends
+// at has nodes below it.
+// 0x710039f0a0 (and 0x710039f1a0 and 0x710039f480, the first and the fourth
+// level, the fourth with the last one inlined)
+// NON_MATCHING: 0x710039f290, the second level with the third inlined: the
+// original shares the last return with the block before it, here that
+// block has a return of its own (4 bytes more).
+Unk_3a1830_Value* Unk_39a100_Root::Find(const Unk_36fa70_Key0& below, Unk_3a1830_Value** closest,
+                                        bool* hasMore) {
+    if (below.IsAny()) {
+        if (hasMore != nullptr)
+            *hasMore = !this->field_18.IsEmpty();
+        if (this->field_10)
+            return &this->field_8;
+        return nullptr;
+    }
+    if (closest != nullptr && this->field_10)
+        *closest = &this->field_8;
+    Unk_2382ca0* child = this->field_18.Exists(below.field_0);
+    if (child != nullptr)
+        return child->Find(below.field_8, closest, hasMore);
+    return nullptr;
 }
