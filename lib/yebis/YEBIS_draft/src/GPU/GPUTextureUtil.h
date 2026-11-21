@@ -39,6 +39,10 @@ struct Unk_GPUTexture {
     virtual void vf15(s32 filter);  // sets what vf16 gives
     virtual s32 vf16();
     virtual void vf17(s32 arg);
+
+    u8 pad_8[0x44];
+    u32 field_4c;  // its size
+    u32 field_50;
 };
 
 // PPFX::IGPUEffect, as this file calls it
@@ -854,6 +858,15 @@ public:
     s32 Unk_475150(CRenderTexture* source, CRenderTexture* target, bool clear);
     s32 Unk_475320(f32 arg8, f32 arg9, CRenderTexture* source, CRenderTexture* target, const Unk_Float4* arg3,
                    const Unk_Float4* arg4, const Unk_Float4* arg5, const Unk_Float4* arg6, u32 flags);
+    s32 Unk_473150(f32 x, f32 y, f32 width, f32 height, const f32* u0, const f32* v0, const f32* u1, const f32* v1,
+                   s32 count, u32 flags);
+    s32 Unk_4732b0(s32 count, s32 arg2, s32 arg3, IGPUBuffer* vertices, void* indices, u32 offset, s32 arg7,
+                   u32 flags);
+    s32 Unk_474ae0(CRenderTexture* target, CRenderTexture* source, bool clear);
+    s32 Unk_473fd0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 sigma, f32 arg10,
+                   f32 arg11, const Unk_Float2* direction, Unk_GPUTexture* texture, s32 taps, u32 flags);
+    s32 Unk_474d00(f32 sigma, f32 arg2, f32 arg3, CRenderTexture* source, CRenderTexture* target, bool horizontal,
+                   s32 taps, bool clear);
     s32 Unk_470860(s32 value);  // 0x7100470860
     s32 Unk_470880();           // 0x7100470880
     s32 Unk_4708a0(void* arg);  // 0x71004708a0
