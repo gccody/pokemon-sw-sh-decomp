@@ -36,7 +36,7 @@ void Unk_35c6b0_get(Unk_35c6b0* self);
 // What an item of the lists at 0x100 and 0x128 has at 8: an object that is
 // told a value.
 struct Unk_237ff98_Item28_8 {
-    virtual void vf0(u32 a1, bool a2, f32 a3);
+    virtual void vf0(u64 a1, f32 a2, bool a3);
 
     u64 field_8;
 };
@@ -110,7 +110,7 @@ struct Unk_352df0_Out {
 PKMN_OFFSET_ASSERT(Unk_352df0_Out, field_64, 0x64);
 PKMN_OFFSET_ASSERT(Unk_352df0_Out, field_80, 0x80);
 
-void Unk_3be290(void* self, void* change, u64 prop, u32 a3, u32 a4, bool a5, f32 a6);
+void Unk_3be290(void* self, void* change, u64 prop, u32 a3, u32 a4, u32 a5, f32 a6);
 extern void* Unk_24bbbe8;
 
 class Unk_237ff98 : public Unk_NodeActiveParent<Unk_NodeParent<Unk_2382098>> {
@@ -210,9 +210,9 @@ public:
         void* change = item.field_18;
         item.field_24 = false;
         if (change != nullptr)
-            Unk_3be290(Unk_24bbbe8, change, prop, 0, 4, true, value);
+            Unk_3be290(Unk_24bbbe8, change, prop, 0, 4, 1, value);
         else
-            item.User()->vf0(prop, true, value);
+            item.User()->vf0(prop, value, true);
     }
     u32 Unk_355880();
     void Unk_355c10(Unk_237ff98_Config config);
