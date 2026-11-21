@@ -25,10 +25,6 @@ struct Unk_HashItem8 {
     Unk_HashItem8* next;
 };
 
-// 0x71003bc420
-template u32 Unk_HashListBare<Unk_HashItem8<0x3bc420>, Unk_HashMembers>::Reserve(u32);
-// 0x71003bcaa0
-template u32 Unk_HashListBare<Unk_HashItem8<0x3bcaa0>, Unk_HashMembers>::Reserve(u32);
 // 0x7100404a20
 template u32 Unk_HashListBare<Unk_HashItem8<0x404a20>, Unk_HashMembers>::Reserve(u32);
 

@@ -94,10 +94,12 @@ struct Unk_Array {
 
     // Allocates the items of an empty array: 1, or 0x34 when out of memory.
     u32 Reserve(u32 reserved) {
-        field_0 = static_cast<T*>(A::Alloc(sizeof(T) * reserved));
-        if (field_0 == nullptr)
-            return 0x34;
-        field_c = reserved;
+        if (reserved != 0) {
+            field_0 = static_cast<T*>(A::Alloc(sizeof(T) * reserved));
+            if (field_0 == nullptr)
+                return 0x34;
+            field_c = reserved;
+        }
         return 1;
     }
 
@@ -155,6 +157,13 @@ struct Unk_Array {
         return nullptr;
     }
 
+    T* AddLastGrow(const T& item) {
+        T* p = AddLastGrow();
+        if (p != nullptr)
+            *p = item;
+        return p;
+    }
+
     // A new item at `index`, the ones from there on moved up.
     inline T* Insert(u32 index) {
         size_t length = Length();
@@ -197,9 +206,15 @@ struct Unk_Array {
         return true;
     }
 
+    void RemoveAll() {
+        for (Iterator it = Begin(), end = End(); it != end; ++it)
+            (*it).~T();
+        field_8 = 0;
+    }
+
     void Term() {
         if (field_0 != nullptr) {
-            field_8 = 0;
+            RemoveAll();
             A::Free(field_0);
             field_0 = nullptr;
             field_c = 0;

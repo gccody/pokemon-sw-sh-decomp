@@ -65,6 +65,14 @@ struct Unk_SortedKeyArray : Unk_Array<T, A, GrowBy> {
         return item;
     }
 
+    // A new item of `key`, whether the array has the key or not.
+    T* Add(K key) {
+        T* item = AddNoSetKey(key);
+        if (item != nullptr)
+            GetKey::Get(*item) = key;
+        return item;
+    }
+
     // The item of `key`, added when the array doesn't have it.
     T* Set(K key) {
         bool found;
