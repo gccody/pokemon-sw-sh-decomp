@@ -100,6 +100,12 @@ struct Unk_NodeId {
     bool field_4;
 };
 
+// The argument of slot 35.
+struct Unk_NodeArg35 {
+    u8 _0[0x1c];
+    bool field_1c;
+};
+
 struct Unk_NodeA {
     virtual ~Unk_NodeA() {}
     virtual void vf2();  // adds a reference
@@ -135,7 +141,7 @@ struct Unk_NodeA {
     virtual void vf32();
     virtual Unk_2382098* vf33();  // 0x7100382cb0
     virtual void vf34(u32 a1);
-    virtual void vf35();
+    virtual u32 vf35(Unk_NodeArg35* a1, bool a2, bool a3);
     virtual void vf36(void* a1);
     virtual bool vf37(bool a1);
     virtual void vf38(bool a1);
@@ -165,7 +171,7 @@ struct Unk_NodeA {
     virtual bool vf62(u32 a1);
     virtual void vf63();
     virtual void vf64();
-    virtual void vf65();
+    virtual u32 vf65(u8*& data);
     virtual void vf66();
     virtual void vf67();
     virtual void* vf68(void* a1);  // 0x71003857d0
@@ -457,7 +463,9 @@ public:
     u32 field_9c_19 : 1;
     u32 field_9c_20 : 4;
     u32 field_9c_24 : 1;
-    u32 field_9c_25 : 7;
+    u32 field_9c_25 : 5;
+    u32 field_9c_30 : 1;
+    u32 field_9c_31 : 1;
 };
 PKMN_SIZE_ASSERT(Unk_2382098, 0xa0);
 PKMN_OFFSET_ASSERT(Unk_2382098, field_78, 0x78);
