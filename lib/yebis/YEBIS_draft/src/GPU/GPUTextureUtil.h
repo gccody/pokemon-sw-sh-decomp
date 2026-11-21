@@ -892,6 +892,8 @@ public:
     s32 Unk_477350(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 power, Unk_Float4 color,
                    Unk_Float4 rect, s32 count, CRenderTexture** sources, CRenderTexture* extra,
                    const Unk_Float4* colors, s32 index, u32 flags);
+    s32 Unk_4776f0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, s32 count,
+                   Unk_GPUTexture** textures, const Unk_Float4* colors, const Unk_Float4* arg4, s32 index, u32 flags);
     // The handle of a texture stage (inline; its name and line are its assert's)
     s32 GetHandle_tex2D_aTexture(s32 stage) {
 #line 3059
