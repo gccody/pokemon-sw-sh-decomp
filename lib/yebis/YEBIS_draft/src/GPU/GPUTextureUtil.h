@@ -47,12 +47,41 @@ struct Unk_GPUTexture {
     virtual void vf17(s32 arg);
     virtual void vf18(s32 arg);
 
-    u8 pad_8[0x44];
+    u8 pad_8[0x3c];
+    s32 field_44;  // its format
+    u8 pad_48[0x4];
     u32 field_4c;  // its size
     u32 field_50;
     u8 pad_54[0x30];
     u32 field_84;  // and its depth
 };
+
+// Whether a texture format is one of those Unk_47b560 gives its larger bias
+inline bool Unk_47b560_Format(s32 format) {
+    switch (format) {
+    case 28:
+    case 29:
+    case 30:
+    case 31:
+    case 32:
+    case 49:
+    case 50:
+    case 51:
+    case 52:
+    case 61:
+    case 62:
+    case 63:
+    case 64:
+    case 65:
+    case 87:
+    case 88:
+    case 91:
+    case 93:
+        return true;
+    default:
+        return false;
+    }
+}
 
 // PPFX::IGPUEffect, as this file calls it
 struct Unk_463fd0_Effect {
@@ -326,30 +355,12 @@ public:
     s32 field_b5ac[2][8][8][22];  // ...CompositeMaskedBlurLevels(_USNORM)_TSn_n
     s32 field_e1ac[2][25][22];  // tech_DepthOfField_BackgroundLayerMaskT1(_USNORM)_Sn: [USNORM][n - 1]
     s32 field_f2dc[2][25][22];  // tech_DepthOfField_ForegroundLayerMaskT1(_USNORM)_Sn
-    s32 field_1040c[17];
-    u8 pad_10450[0x40];
-    s32 field_10490[17];
-    u8 pad_104d4[0x40];
-    s32 field_10514[33];
-    s32 field_10598[33];
-    s32 field_1061c[17];
-    u8 pad_10660[0x40];
-    s32 field_106a0[17];
-    u8 pad_106e4[0x40];
-    s32 field_10724[33];
-    s32 field_107a8[33];
-    s32 field_1082c[17];
-    u8 pad_10870[0x40];
-    s32 field_108b0[17];
-    u8 pad_108f4[0x40];
-    s32 field_10934[33];
-    s32 field_109b8[33];
-    s32 field_10a3c[17];
-    u8 pad_10a80[0x40];
-    s32 field_10ac0[17];
-    u8 pad_10b04[0x40];
-    s32 field_10b44[33];
-    s32 field_10bc8[33];
+    // tech_DepthOfField_BackgroundLayerMaskMakeColor(Dense)T1(_USNORM)_Sn:
+    // [Dense][USNORM][n - 1] (the ones that are not Dense stop at 17)
+    s32 field_1040c[2][2][33];
+    s32 field_1061c[2][2][33];  // ...ForegroundLayerMaskMakeColor...
+    s32 field_1082c[2][2][33];  // ...BackgroundLayerMaskMakeColor(Dense)Mask...
+    s32 field_10a3c[2][2][33];  // ...ForegroundLayerMaskMakeColor(Dense)Mask...
     s32 field_10c4c;
     u8 pad_10c50[0x4];
     s32 field_10c54;
@@ -377,10 +388,7 @@ public:
     u8 pad_15e8c[0x4830];
     s32 field_1a6bc;
     s32 field_1a6c0;
-    s32 field_1a6c4;
-    s32 field_1a6c8;
-    s32 field_1a6cc;
-    s32 field_1a6d0;
+    s32 field_1a6c4[2][2];  // tech_DepthOfField_FrontBlurBlendFactor(Dilation)(Mask): [Mask][Dilation]
     s32 field_1a6d4[25][22];
     Unk_1af6c field_1af6c;
     s32 field_1b32c;
@@ -792,8 +800,8 @@ public:
         for (s32 i = 0; i < 7; i++) {
             field_29bc8[i] = nullptr;
         }
-        for (s32 i = 0; i < 2; i++) {
-            field_29b58[i] = nullptr;
+        for (s32 i = 0; i < 4; i++) {
+            field_29b58[i] = 0;
         }
     }
     s32 vf0(IGPUDevice* device) override;  // 0x710046edd0
@@ -920,6 +928,12 @@ public:
                              u32 flags);
     s32 Unk_475d80(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, s32 count,
                    const Unk_Float4* values, const f32* weights, Unk_GPUTexture* texture, s32 index, u32 flags);
+    s32 Unk_47b560(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, bool background, s32 count,
+                   const Unk_Float4* values, const Unk_Float2* arg4, Unk_GPUTexture* texture, Unk_GPUTexture* mask,
+                   s32 usnorm, s32 bits, s32 dense, u32 flags);
+    s32 Unk_47b8e0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, const Unk_Float4* arg1,
+                   const Unk_Float4* arg2, bool dilation, Unk_GPUTexture* texture, Unk_GPUTexture* mask, u32 flags);
+    void Unk_47e000(s32* arg1, s32* arg2, s32* arg3, s32* arg4);
     // The handle of a texture stage (inline; its name and line are its assert's)
     s32 GetHandle_tex2D_aTexture(s32 stage) {
 #line 3059
@@ -955,7 +969,7 @@ public:
     Unk_29af8* field_29af8;
     CRenderTexture* field_29b00;
     CRenderTexture* field_29b08[10];
-    void* field_29b58[2];
+    s32 field_29b58[4];
     void* field_29b68[8];
     f32 field_29ba8;
     u8 pad_29bac[0x4];
