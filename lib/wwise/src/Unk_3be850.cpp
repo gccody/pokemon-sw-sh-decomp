@@ -344,3 +344,47 @@ void Unk_3c0010(Unk_3c0010_T* self) {
 
 // 0x71003c0050
 template Unk_3c0010_T** Unk_24df0f8_T::AddNoSetKey(u64);
+
+struct Unk_381010;
+void Unk_381010_set(Unk_381010* self, u16 arg1, bool arg2, bool arg3);
+extern bool Unk_24df138;
+extern bool Unk_24df139;
+void Unk_38bc20(Unk_3be850_Ctx* ctx);
+void Unk_381b90(Unk_3c0010_T* item);
+
+// 0x71003c0340: out of the sorted array
+void Unk_3c0340(Unk_3c0010_T* item) {
+    auto it = Unk_24df0f8.FindEx(item);
+    if (it != Unk_24df0f8.End())
+        Unk_24df0f8.Erase(it);
+}
+
+// 0x71003c0430
+void Unk_3c0430() {
+    if (Unk_24df138 && !Unk_24df139) {
+        for (auto it = Unk_24df0a8.Begin(); it != Unk_24df0a8.End(); ++it)
+            Unk_38bc20(*it);
+        Unk_24df138 = false;
+    }
+    for (auto it = Unk_24df0a8.Begin(); it != Unk_24df0a8.End(); ++it)
+        (*it)->field_26b_25 = 0;
+    for (auto it = Unk_24df0f8.Begin(); it != Unk_24df0f8.End(); ++it) {
+        if (*it != nullptr)
+            Unk_381b90(*it);
+    }
+}
+
+// 0x71003c0500: the lists and arrays are empty
+void Unk_3c0500() {
+    Unk_24df0a8.RemoveAll();
+    Unk_24df0c0.field_0 = nullptr;
+    Unk_24df0c0.field_8 = nullptr;
+    Unk_24df0c0.field_10 = nullptr;
+    Unk_24df0c0.field_18 = nullptr;
+    Unk_24df0c0.field_20 = 0;
+    Unk_24df0c0.field_24 = 0;
+    Unk_24df0f8.field_0 = nullptr;
+    Unk_24df0f8.field_8 = 0;
+    Unk_24df0f8.field_c = 0;
+    Unk_381010_set(reinterpret_cast<Unk_381010*>(&Unk_24df108), 0x100, true, true);
+}

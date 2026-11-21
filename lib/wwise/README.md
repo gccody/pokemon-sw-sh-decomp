@@ -375,8 +375,23 @@ What the classes after it showed (`Unk_2383b58.cpp`, `Unk_3bdca0.cpp`,
   as a parameter (`0x71003c0050` keeps the highest key first); `Unk_List2Ex`
   adds the preallocation, `AddLast` and a `Term` whose last stores are in
   another order than `Unk_List2`'s.
+- **A list's head read through an iterator is an integer load, through a
+  plain pointer loop a pointer load**, and the two are not merged or hoisted
+  together. Where the original reads the head once in each of two branches
+  (`Unk_3c94c0`), walk with the iterators (`BeginEx`/`++it`/`Erase`); where
+  the first pass's `item == first` test is folded away, walk with pointers.
+- The classes at `0x7102383d28`-`0x7102383e40` are small objects over
+  `Unk_2383da8_T` (a list of counted nodes at 0x10, `Unk_3c9550_Term`), and
+  `Unk_3ca240_T` is a bus with a number and a counted object that forwards to
+  the bus's slots 57/58 or clears what it is given.
 
 Open:
+
+- `Unk_2383cc0`'s destructor (`0x71003c2cd0`, `m`): its loop over the uses
+  keeps the reloaded head of the list where the original keeps the next
+  pointer it saved before the release.
+- `Unk_3c8f90` (`m`): the two tests of the first block are in the other order
+  and two registers are swapped after it.
 
 - `Unk_3bfce0` (`m`): the two inlined `AddLast` share their second half; the
   original keeps the first one's blocks and the retry jumps back into them,

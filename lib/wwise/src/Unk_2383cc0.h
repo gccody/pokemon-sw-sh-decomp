@@ -5,9 +5,56 @@
 // and destructors functions that store the vptr. Placeholder names.
 #include "Unk_23837d0.h"
 #include "block_pool.h"
+#include "keylist.h"
 
 struct Unk_2383c58_Item;
 u32 Unk_3c2c30(void* self);
+
+// A playing context, as far as these classes use it.
+struct Unk_3c44e0_Ctx {
+    u8 _0[0x2b8];
+    u32 field_2b8;
+};
+
+// A node with something that goes with it: the value of the first list.
+struct Unk_3c44e0_NodeRef {
+    Unk_23837d0_Node* field_0;
+    u64 field_8;
+};
+
+// What plays for a node of an item: three lists by key (0x90 bytes), counted.
+struct Unk_3c44e0_T {
+    u32 field_0;  // references
+    u8 _4[0xc];
+    struct Unk_3c44e0_Use* field_10;  // its use in the owner's list
+    Unk_KeyList<u64, Unk_3c44e0_NodeRef> field_18;
+    Unk_KeyList<u64, Unk_3c44e0_Ctx*> field_40;
+    Unk_KeyList<u64, void*> field_68;
+};
+PKMN_OFFSET_ASSERT(Unk_3c44e0_T, field_40, 0x40);
+PKMN_SIZE_ASSERT(Unk_3c44e0_T, 0x90);
+
+// One use of a node by an item, in the lists of the owner: 0x38 bytes.
+struct Unk_3c44e0_Use {
+    Unk_3c44e0_Use* next;
+    u32 field_8;  // references
+    Unk_3c44e0_T* field_10;
+    Unk_2383c58_Item* field_18;
+    Unk_23837d0_Node* field_20;
+    u8 field_28;
+    u8 field_29;
+    u8 _2a[6];
+    u8 field_30_0 : 3;
+};
+PKMN_SIZE_ASSERT(Unk_3c44e0_Use, 0x38);
+
+// The uses the owner has by node: 0x20 bytes.
+struct Unk_2383cc0_Entry {
+    Unk_23837d0_Node* key;
+    Unk_ListWithLast<Unk_3c44e0_Use> item;
+    u64 field_18;
+};
+PKMN_SIZE_ASSERT(Unk_2383cc0_Entry, 0x20);
 
 // A list by its first item only.
 typedef Unk_ListPolicy<Unk_2383c58_Item, Unk_ListNoCount, Unk_ListNoLast> Unk_2383cc0_List;
@@ -20,10 +67,8 @@ public:
 
     void** field_0;  // vptr
     Unk_2383cc0_List field_8;  // the items
-    u64 field_10;
-    u64 field_18;
-    u64 field_20;
-    u64 field_28;
+    Unk_Array<Unk_2383cc0_Entry> field_10;  // the uses by node
+    Unk_ListWithLast<Unk_3c44e0_Use> field_20;  // and the other ones
 };
 PKMN_SIZE_ASSERT(Unk_2383cc0, 0x30);
 
@@ -125,3 +170,8 @@ u32 Unk_3c2a50(Unk_2383c58_Item* self);
 void Unk_3c2ec0(Unk_2383cc0* self, Unk_2383c58_Item* item);
 void Unk_3c2ee0(Unk_2383cc0* self, Unk_2383c58_Item* item);
 void Unk_3c3610(void* self, Unk_2383c58_Item* item);
+void Unk_3c44e0(Unk_3c44e0_T* self);
+u32 Unk_3c4880(Unk_3c44e0_Use* self);
+void Unk_3c5180(Unk_3c44e0_Use* self);
+void Unk_3c51e0(Unk_3c44e0_Use* self);
+void Unk_3c5260(Unk_3c44e0_Use* self);
