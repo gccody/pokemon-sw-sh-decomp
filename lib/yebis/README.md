@@ -297,3 +297,57 @@ More, from CTextureUtil's and CRenderGlare's release and reset functions:
 - `cmp w9, #1` on a count just incremented, where `count + 1 > 1` would follow
   from the test before it: the increment wraps (GPUClassUtil.h's shared
   CTextureUtil), and the release tests `count <= 1` before it decrements.
+
+From CTextureUtil's rectangles and the DrawRectGPU functions that draw them
+(0x7100471960 on; GPUTextureUtil.cpp's block between the DRAWRECTGPU markers):
+
+- **Parameter order shows in two places.** The copies of the arguments at a
+  call come in the order of the parameters (integer and floating-point
+  registers interleaved as declared; the post-RA scheduler then keeps the
+  order among equals), and the allocator hands out callee-saved registers by
+  the length of each parameter's live range, which the position of its copy at
+  every call changes. These functions take their floating-point parameters
+  first, then the pointers, and the flags last: with the flags first the same
+  instructions came out with the registers permuted (six floating-point ones
+  in the six-set rectangle), and with zero in several floating-point
+  parameters the copies of `fmov s0, wzr` came in another order.
+- A pointer to a member kept in a register across blocks (`mov x24, x20;
+  ldr x0, [x24, #0x30]!` in one block, `add x24, x20, #0x30` on the edge that
+  skips it) is GVN's PRE of the member's address. It needs the address to be
+  one expression everywhere: a `reinterpret_cast` of the loaded pointer makes
+  instcombine retype the load, the address becomes a second expression, and
+  the PRE (and with it the block order) is lost. Hence the effect view's
+  `SetupGraphicsPipelineState` under IGPUEffect's symbol.
+- The condition's spelling places the blocks: `(flags & 0x20000) == 0` and
+  `!(flags & 0x20000)` branch the other way round, and with an edge split
+  between them that decides which block falls through.
+- Element-wise copies of a vertex: the original reads all of a corner's
+  elements, then writes them (a temporary vertex copied into the array, which
+  SROA turns into loads followed by stores). The DAG combiner then merges
+  pairs of 32-bit stores of loads into 64-bit ones where a following store
+  loads from the same array, which is why the last set of every vertex (and
+  the position) stay 32-bit pairs.
+- `ucvtf s0, s8` after `ldp s8, s9, [x20, #0x54]` (the integer loaded into a
+  floating-point register): load and conversion were in one block when
+  instructions were selected, and MachineSink moved the conversion later. A
+  conversion written in the caller is sunk by the first instcombine instead
+  (into the block of its use, across the inline call that becomes a loop
+  later) and loads into a general register: so the source's coordinates come
+  from an inline function (`Unk_GetCoords`), the target's size from plain
+  code, and the loop over the texture's parents from another inline function
+  (`Unk_GetTexture`).
+- A float constant kept in a register over several blocks (`fmov s2, #1.0`
+  once, then `fadd s4, s3, s2` in each unrolled iteration) is used by an
+  instruction of the block that dominates the others: `next = offset + 1.0f`
+  is computed before the test, not in its `else`.
+- `adrp x8, sym+0x10; add x8, x8, #lo12` for an element of a static array
+  (not base register plus offset): the compiler folds the smallest offset a
+  block uses into the address, but only when the offset is inside the object,
+  so the hidden `extern` declarations of this TU's scratch arrays need their
+  sizes.
+- Stores of `0.0f` through the vector types' element objects are integer
+  stores (`store i32 0`); written as plain floats they are `store float 0.0`.
+  Both become `str wzr`, but only the second makes the block's zero constant
+  exist before a later call's arguments are lowered.
+- `-(offset * dx)` is `fnmul`; `-offset * dx` with the negation used twice is
+  `fneg` and two `fmul`.
