@@ -68,7 +68,7 @@ SiIOVFSEntry* SiIOVFSEntry::vf17(s64 index) {
 // 0x7100587730
 ISiIOStream* SiIOVFSEntry::vf19() {
 #line 257
-    SiIOMemoryStream* stream = UNK_NEW(field_8.m_pAllocator, 0x10) SiIOMemoryStream(field_8.m_pAllocator);
+    SiIOMemoryStream* stream = UNK_SI_NEW(field_8.m_pAllocator, 0x10) SiIOMemoryStream(field_8.m_pAllocator);
     stream->vf75(field_a8, field_98);
     return reinterpret_cast<ISiIOStream*>(stream);
 }

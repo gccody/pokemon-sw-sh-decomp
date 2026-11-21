@@ -23,7 +23,7 @@ SiIOVFSManager::~SiIOVFSManager() {}
 // before the head's store).
 SiIOVFS* SiIOVFSManager::Unk_583980(ISiAllocator* pAllocator) {
 #line 56
-    SiIOVFS* pVFS = UNK_NEW(pAllocator, 0x10) SiIOVFS(pAllocator);
+    SiIOVFS* pVFS = UNK_SI_NEW(pAllocator, 0x10) SiIOVFS(pAllocator);
     if (pVFS == nullptr) {
         return nullptr;
     }
