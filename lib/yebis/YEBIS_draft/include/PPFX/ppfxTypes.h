@@ -10,7 +10,12 @@
 // taking the elements by reference and copying them as objects compiles to.
 #pragma once
 
+#include <assert.h>
 #include <types.h>
+
+// YEBIS keeps its asserts while the build defines NDEBUG for everything; this
+// is <assert.h>'s assert without that switch
+#define PPFX_TYPES_ASSERT(x) ((void)((x) || (__assert_fail(#x, __FILE__, __LINE__, __func__), 0)))
 
 namespace PPFX {
 
@@ -60,5 +65,21 @@ struct MATRIXT44 {
     f32 field_0[4][4];
 };
 PKMN_SIZE_ASSERT(MATRIXT44, 0x40);
+
+// 0x7100415c00 (its asserts name it, and give its lines)
+inline void MATRIXT44_MatrixMultiply(MATRIXT44* pOut, const MATRIXT44* pM1, const MATRIXT44* pM2) {
+#line 19571
+    PPFX_TYPES_ASSERT(pOut);
+    PPFX_TYPES_ASSERT(pM1);
+    PPFX_TYPES_ASSERT(pM2);
+    MATRIXT44 result;
+    for (s32 i = 0; i < 4; i++) {
+        for (s32 j = 0; j < 4; j++) {
+            result.field_0[i][j] = pM1->field_0[i][0] * pM2->field_0[0][j] + pM1->field_0[i][1] * pM2->field_0[1][j] +
+                                   pM1->field_0[i][2] * pM2->field_0[2][j] + pM1->field_0[i][3] * pM2->field_0[3][j];
+        }
+    }
+    *pOut = result;
+}
 
 }  // namespace PPFX
