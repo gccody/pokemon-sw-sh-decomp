@@ -228,6 +228,8 @@ PKMN_SIZE_ASSERT(Unk_360c20_T, 0x78);
 // A value of a parameter of an Unk_362360_T, and where it comes from.
 struct Unk_362360_Item {
     Unk_362360_Item() : field_0(0), field_4(0), field_8(0), field_c(0) {}
+    Unk_362360_Item(u32 a0, u32 a1, u16 parameter, f32 value)
+        : field_0(a0), field_4(a1), field_8(parameter), field_c(value) {}
 
     u32 field_0;
     u32 field_4;

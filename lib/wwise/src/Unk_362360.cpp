@@ -1,6 +1,7 @@
 // Scope: common
 // The objects that refer to an Unk_360c20_T (Unk_362360_T) and a class
 // derived from them. Placeholder names.
+#include "Unk_237c170.h"
 #include "Unk_369950.h"
 
 void operator delete(void* ptr) noexcept;
@@ -258,7 +259,103 @@ void Unk_361900(Unk_362360_T* self, void* a1, void* a2) {
     }
 }
 
-bool Unk_362160(Unk_362360_T* self, u32 parameter, u32 mode, f32* total);
+struct Unk_3b33a0;
+bool Unk_3b33a0_check(const Unk_3b33a0* self);
+
+// What the target's list has (Unk_237c170.h's item, with the ID after it).
+struct Unk_362160_Node : Unk_NodeB_16_Item {
+    u8 _28[0x10];
+    u32 field_38;
+};
+
+// How a parameter's values add up: as a sum or as a product.
+struct Unk_362160_Sum {
+    static f32 None() { return 0.0f; }
+    static void Add(f32& total, f32 value) { total += value; }
+};
+
+struct Unk_362160_Product {
+    static f32 None() { return 1.0f; }
+    static void Add(f32& total, f32 value) { total *= value; }
+};
+
+template <class Op>
+static inline bool Unk_362160_Each(Unk_362360_T* self, Unk_2380c68& base, Unk_361410_B* list,
+                                   u32 parameter, f32* total) {
+    bool any = false;
+    if (list != nullptr) {
+        for (Unk_362160_Node* node = reinterpret_cast<Unk_362160_Node*>(list->field_0);
+             node != nullptr; node = static_cast<Unk_362160_Node*>(node->field_10)) {
+            f32 value = Op::None();
+            Unk_PropValue16* found = node->field_20.FindProp(parameter);
+            if (found != nullptr && Unk_3b33a0_check(reinterpret_cast<Unk_3b33a0*>(&base)))
+                value = found->field_0;
+            Unk_362360_Item item;
+            item.field_0 = 2;
+            item.field_4 = node->field_38;
+            item.field_8 = parameter;
+            item.field_c = value;
+            self->field_48.AddLast(item);
+            Op::Add(*total, value);
+            any = true;
+        }
+    }
+    return any;
+}
+
+// 0x7100362160: adds an item for every one of the target's list, with the
+// value it has of the parameter, to the total too: whether there was one.
+bool Unk_362160(Unk_362360_T* self, u32 parameter, u32 mode, f32* total) {
+    Unk_2380c68& base = *self->field_10;
+    Unk_361410_B* list = base.wf16();
+    if (mode == 3)
+        return Unk_362160_Each<Unk_362160_Product>(self, base, list, parameter, total);
+    return Unk_362160_Each<Unk_362160_Sum>(self, base, list, parameter, total);
+}
+
+f32 Unk_39d140(void* self, Unk_NodeC* owner, u32 param, const Unk_NodeKey* key);
+
+// 0x7100361fa0: the object's own value of a parameter, with the ones that
+// come on top of it, given to the parameters object.
+void Unk_361fa0(Unk_362360_T* self, u32 parameter, f32 value) {
+    f32 total = value;
+    u32 mode = 0;
+    Unk_361410_A* a = self->field_10->wf7();
+    if (a != nullptr) {
+        for (Unk_361a70_Item* it = a->field_0; it != a->field_0 + a->field_8; ++it) {
+            if (it->field_0 == static_cast<u16>(parameter)) {
+                u32 itemMode = it->field_2;
+                mode = Unk_362160(self, parameter, itemMode, &total) ? itemMode : 0;
+                break;
+            }
+        }
+    }
+    if (self->field_10 != nullptr) {
+        for (auto it = self->field_10->field_50.Begin(); it != self->field_10->field_50.End();
+             ++it) {
+            if ((*it).field_6 == static_cast<u16>(parameter)) {
+                mode = (*it).field_5;
+                f32 other = Unk_39d140(Unk_24bbbf8, reinterpret_cast<Unk_NodeC*>(self),
+                                       static_cast<u16>(parameter),
+                                       reinterpret_cast<const Unk_NodeKey*>(&self->field_18));
+                if (self->field_48.AddLast(Unk_362360_Item(1, (*it).field_0, parameter, other)) !=
+                    nullptr)
+                    total = mode != 3 ? total + other : total * other;
+            }
+        }
+    }
+    if (mode == 4) {
+        total -= value;
+    } else {
+        Unk_362360_Item item;
+        item.field_0 = 0;
+        item.field_4 = 0;
+        item.field_8 = parameter;
+        item.field_c = value;
+        self->field_48.AddLast(item);
+    }
+    reinterpret_cast<Unk_362360_Sink*>(self->field_8)->vf2(parameter, &total, 4);
+}
 
 // 0x7100361a70: gives the parameters object the total of every parameter the
 // target has values of.
