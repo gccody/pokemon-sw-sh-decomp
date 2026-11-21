@@ -66,3 +66,5 @@ template bool SiPool<Unk_Node, 16>::vf2(size_t);
 template bool SiPool<Unk_Node, 16>::vf5(size_t);
 // 0x7100533880 = _ZN6SiSDK36SiPoolINS_13SiGfxQuadTreeINS_22SiGfxFreeTypeFaceCache9CacheDataEE8QuadNodeELi16EE10Unk_4be3f0EPS5_
 template void SiPool<Unk_Node, 16>::Unk_4be3f0(Unk_Node*);
+// 0x7100531a90 = _ZN6SiSDK36SiPoolINS_13SiGfxQuadTreeINS_22SiGfxFreeTypeFaceCache9CacheDataEE8QuadNodeELi16EEC1EPNS_12ISiAllocatorEb
+template SiPool<Unk_Node, 16>::SiPool(ISiAllocator*, bool);

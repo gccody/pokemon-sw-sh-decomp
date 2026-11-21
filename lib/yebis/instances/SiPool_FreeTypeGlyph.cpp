@@ -28,3 +28,5 @@ using namespace SiSDK3;
 template bool SiPool<SiGfxFreeTypeGlyph, 16>::vf2(size_t);
 // 0x7100501210 = _ZN6SiSDK36SiPoolINS_18SiGfxFreeTypeGlyphELi16EE3vf5Em
 template bool SiPool<SiGfxFreeTypeGlyph, 16>::vf5(size_t);
+// 0x71004ffed0 = _ZN6SiSDK36SiPoolINS_18SiGfxFreeTypeGlyphELi16EEC1EPNS_12ISiAllocatorEb
+template SiPool<SiGfxFreeTypeGlyph, 16>::SiPool(ISiAllocator*, bool);
