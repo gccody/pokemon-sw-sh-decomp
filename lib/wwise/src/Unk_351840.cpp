@@ -9,7 +9,7 @@
 #include "bank_read.h"
 
 void Unk_349950();
-void Unk_3c58d0(u32 id);
+void Unk_3c58d0(u32 id, u32 arg1, f32 arg2);
 
 // 0x7100351840
 Unk_237ff98::Unk_237ff98(u32 id)
@@ -171,7 +171,7 @@ void Unk_237ff98::vf30(void* a1, void* a2, void* a3) {
 // 0x7100352800
 void Unk_237ff98::vf27(f32 a1, u32 a2, void* a3, void* a4) {
     if (field_80 != nullptr)
-        Unk_3c58d0(field_10);
+        Unk_3c58d0(field_10, a2, a1);
 }
 
 // 0x7100352da0
@@ -373,11 +373,12 @@ void Unk_237ff98::vf41(void* a1, void* a2, bool a3) {
 }
 
 Unk_2382098* Unk_3352a0(void* self, Unk_NodeId* id);
-void Unk_3c57e0(u32 id);
+struct Unk_3c57e0_Arg;
+void Unk_3c57e0(u32 id, u32 arg1, u32 arg2, Unk_3c57e0_Arg* arg3);
 
 // 0x7100354bd0
 void Unk_237ff98::vf31(u32 a1, u32 a2, void* a3, void* a4) {
-    Unk_3c57e0(field_10);
+    Unk_3c57e0(field_10, a1, a2, static_cast<Unk_3c57e0_Arg*>(a3));
 }
 
 // 0x7100354cf0
@@ -464,7 +465,7 @@ void Unk_387770_update(Unk_387770* self);
 bool Unk_387370(Unk_2382098* self, bool a1);
 void Unk_3874a0(Unk_2382098* self, bool a1);
 void Unk_3557c0(void* self);
-void Unk_3c5a70(u32 id);
+void Unk_3c5a70(u32 id, u32 bit);
 void Unk_3c5b00_call(u32 id);
 
 // 0x7100355640
@@ -546,7 +547,7 @@ Unk_2382098* Unk_237ff98::vf33() {
 
 // 0x7100355d50
 void Unk_237ff98::vf34(u32 a1) {
-    Unk_3c5a70(field_10);
+    Unk_3c5a70(field_10, a1);
 }
 
 // NON_MATCHING: register allocation (the list item is in x0 here, x8 in the original, which

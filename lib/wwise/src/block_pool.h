@@ -27,6 +27,10 @@ struct Unk_ListLast {
 
     T* GetLast() { return last; }
     void SetLast(T* item) { last = item; }
+    void AddItem(T* item, T* next) {
+        if (next == nullptr)
+            last = item;
+    }
     void RemoveItem(T* item, T* prev) {
         if (item == last)
             last = prev;
@@ -36,6 +40,7 @@ struct Unk_ListLast {
 template <class T>
 struct Unk_ListNoLast {
     void SetLast(T*) {}
+    void AddItem(T*, T*) {}
     void RemoveItem(T*, T*) {}
 };
 
@@ -63,6 +68,17 @@ struct Unk_ListPolicy : Count<T>, Last<T> {
             Unk_ListNext<T>::Get(item) = first;
             first = item;
         }
+        Count<T>::Increment();
+    }
+
+    // Puts an item between two that follow each other (either can be null).
+    void AddItem(T* item, T* next, T* prev) {
+        Unk_ListNext<T>::Get(item) = next;
+        if (prev == nullptr)
+            first = item;
+        else
+            Unk_ListNext<T>::Get(prev) = item;
+        Last<T>::AddItem(item, next);
         Count<T>::Increment();
     }
 

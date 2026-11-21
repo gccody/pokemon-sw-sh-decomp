@@ -2,6 +2,8 @@
 // The class with the vtable 0x7102383b58: the bank manager that does what it
 // is asked on a thread of its own ("AK::BankManager"). Written from the
 // executable. Placeholder names.
+#include <string.h>
+#include "Unk_Indexed.h"
 #include "Unk_Thread.h"
 #include "list2.h"
 
@@ -208,4 +210,37 @@ u32 Unk_3bd620(Unk_2383b58* /*self*/, Unk_3bd5f0_Sync* sync, u32 result) {
         sync->field_8.Destroy();
     }
     return result;
+}
+
+// The class's vtable is data here.
+extern void* Unk_2383b58_Vtable[];
+
+// The base class's constructor and destructor.
+void Unk_342920(Unk_2383b58* self);
+void Unk_342990(Unk_2383b58* self);
+
+// 0x71003bce40: the constructor
+void Unk_3bce40(Unk_2383b58* self) {
+    Unk_342920(self);
+    Unk_SetVtable(self, Unk_2383b58_Vtable);
+    self->field_158 = false;
+    nn::os::InitializeMutex(&self->field_160, true, 0);
+    new (&self->field_180) Unk_List2Ex<Unk_2383b58_Item>;
+    memset(self->field_130.field_0, 0, sizeof(self->field_130.field_0));
+    Unk_24deed0.field_40 = 0;
+}
+
+// 0x71003bceb0: the destructor
+void Unk_3bceb0(Unk_2383b58* self) {
+    Unk_SetVtable(self, Unk_2383b58_Vtable);
+    nn::os::FinalizeMutex(&self->field_160);
+    Unk_342990(self);
+}
+
+// 0x71003bcef0: the deleting destructor
+void Unk_3bcef0(Unk_2383b58* self) {
+    Unk_SetVtable(self, Unk_2383b58_Vtable);
+    nn::os::FinalizeMutex(&self->field_160);
+    Unk_342990(self);
+    operator delete(self);
 }
