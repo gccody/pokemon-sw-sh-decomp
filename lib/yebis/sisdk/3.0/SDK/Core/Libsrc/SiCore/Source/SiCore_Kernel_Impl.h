@@ -15,6 +15,7 @@
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_4bf660.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_Guid.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_RefCount.h>
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiCore/Source/SiCore_StringTable_Impl.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiCore/Source/SiCore_SystemInfo_Impl.h>
 
 namespace SiSDK3 {
@@ -34,42 +35,7 @@ public:
 // 0x71004c5630: compares two strings (below zero: a is before b)
 s64 Unk_4c5630(const char* a, const char* b, bool);
 
-// eight bytes that name a language (leafgen-style placeholder: 0x71004ca820
-// takes one)
-struct Unk_4ca820_arg0 {
-    Unk_4ca820_arg0() : field_0(0) {}
-
-    u64 field_0;
-};
-
 namespace SiSDK3 {
-
-// a string table, as far as the kernel uses it (its class is in
-// SiCore_StringTable_Impl.cpp)
-class SiStringTable {
-public:
-    explicit SiStringTable(ISiAllocator* pAllocator);  // 0x71004c6b70
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();  // one reference more
-    virtual void vf3();  // one less
-    virtual void vf4();
-    virtual const SI_GUID* vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11(const Unk_4ca820_arg0& language, void* value);
-    virtual void vf12();
-    virtual void vf13();
-    virtual SiString<char>* vf14(int id);
-
-    // 0x71004c70f0
-    void Unk_4c70f0(const SI_GUID* id);
-
-    u8 _8[0x1148 - 8];
-};
 
 class ISiKernel {
 public:
@@ -189,7 +155,6 @@ public:
     FILE* field_1048;
     FILE* field_1050;  // where reports are written
 };
-PKMN_SIZE_ASSERT(SiStringTable, 0x1148);
 PKMN_OFFSET_ASSERT(SiKernel, field_450, 0x450);
 PKMN_OFFSET_ASSERT(SiKernel, field_490, 0x490);
 PKMN_OFFSET_ASSERT(SiKernel, field_678, 0x678);
