@@ -1,0 +1,16 @@
+// Scope: common
+// The lock of a weak handle as Unk_2430578 (src/gflib3/Unk_Lock.h). Unk_2430578's getter is
+// its type's: a class on the object itself. Written by tools/lockgen.py:
+// regenerate, don't edit.
+#include "gflib3/Unk_Lock.h"
+
+class Unk_2430578 : public Unk_239a418 {
+public:
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_239a418_GetType());
+        return &type;
+    }
+};
+
+// 0x71013287c0
+template Unk_239a418_Ref<Unk_2430578> Unk_Lock<Unk_2430578>(Unk_239a418_Handle*);
