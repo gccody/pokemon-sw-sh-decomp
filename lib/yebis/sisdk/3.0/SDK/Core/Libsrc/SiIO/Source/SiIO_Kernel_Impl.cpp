@@ -33,7 +33,7 @@ ISiIOStream* SiIOKernel::vf8(ISiAllocator* pAllocator) {
         pAllocator = vf6();
     }
 #line 263
-    return reinterpret_cast<ISiIOStream*>(UNK_NEW(pAllocator, 0x10) SiIOMemoryStream(pAllocator));
+    return reinterpret_cast<ISiIOStream*>(UNK_SI_NEW(pAllocator, 0x10) SiIOMemoryStream(pAllocator));
 }
 
 // 0x710057d670
@@ -42,7 +42,7 @@ ISiIOStream* SiIOKernel::vf9(const char* path, u32 mode, ISiAllocator* pAllocato
         pAllocator = vf6();
     }
 #line 291
-    SiIONXFileStream* stream = UNK_NEW(pAllocator, 0x10) SiIONXFileStream(pAllocator);
+    SiIONXFileStream* stream = UNK_SI_NEW(pAllocator, 0x10) SiIONXFileStream(pAllocator);
     if (stream == nullptr) {
         return nullptr;
     }
@@ -69,7 +69,7 @@ SiIONXMemoryMappedFile* SiIOKernel::vf11(ISiAllocator* pAllocator) {
         pAllocator = vf6();
     }
 #line 362
-    return UNK_NEW(pAllocator, 0x10) SiIONXMemoryMappedFile(pAllocator);
+    return UNK_SI_NEW(pAllocator, 0x10) SiIONXMemoryMappedFile(pAllocator);
 }
 
 // 0x710057d7d0
@@ -78,7 +78,7 @@ SiIOBinaryArchive* SiIOKernel::vf12(ISiAllocator* pAllocator) {
         pAllocator = vf6();
     }
 #line 383
-    return UNK_NEW(pAllocator, 0x10) SiIOBinaryArchive(pAllocator);
+    return UNK_SI_NEW(pAllocator, 0x10) SiIOBinaryArchive(pAllocator);
 }
 
 // 0x710057d870
@@ -103,7 +103,7 @@ SiIOCodecZLib* SiIOKernel::vf16(s32 type, ISiAllocator* pAllocator) {
         return nullptr;
     }
 #line 504
-    return UNK_NEW(pAllocator, 0x10) SiIOCodecZLib(pAllocator);
+    return UNK_SI_NEW(pAllocator, 0x10) SiIOCodecZLib(pAllocator);
 }
 
 // 0x710057d970

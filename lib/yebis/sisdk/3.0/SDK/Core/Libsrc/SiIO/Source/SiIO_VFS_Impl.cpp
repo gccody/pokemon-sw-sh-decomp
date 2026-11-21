@@ -249,7 +249,7 @@ void SiIOVFS::vf19(const char* s) {
 // 0x7100585700
 SiIOVFSEntry* SiIOVFS::vf21() {
 #line 638
-    SiIOVFSEntry* entry = UNK_NEW(field_8.m_pAllocator, 0x10) SiIOVFSEntry(field_8.m_pAllocator, this);
+    SiIOVFSEntry* entry = UNK_SI_NEW(field_8.m_pAllocator, 0x10) SiIOVFSEntry(field_8.m_pAllocator, this);
     if (entry != nullptr && !Unk_587510_get(reinterpret_cast<u64>(entry))) {
         entry->vf3();
         entry = nullptr;
@@ -390,7 +390,7 @@ bool SiIOVFS::vf23() {
         return true;
     }
 #line 917
-    field_e8 = UNK_NEW(field_8.m_pAllocator, 0x10) SiIOVFSEntry(field_8.m_pAllocator, this);
+    field_e8 = UNK_SI_NEW(field_8.m_pAllocator, 0x10) SiIOVFSEntry(field_8.m_pAllocator, this);
     if (field_e8 == nullptr) {
         vf6();
         return false;

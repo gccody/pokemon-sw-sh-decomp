@@ -26,7 +26,7 @@ extern char Unk_24e9360[];
 // 0x710057e080
 void* Unk_57e080(SiSDK3::ISiAllocator* pAllocator) {
 #line 34
-    return UNK_NEW(pAllocator, 0x10) SiSDK3::SiIOCSVDocument(pAllocator);
+    return UNK_SI_NEW(pAllocator, 0x10) SiSDK3::SiIOCSVDocument(pAllocator);
 }
 
 namespace SiSDK3 {

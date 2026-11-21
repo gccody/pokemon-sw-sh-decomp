@@ -114,7 +114,7 @@ public:
 
     Node* AddTail(const T& value) {
 #line 741
-        Node* node = UNK_NEW(m_pAllocator, 0x10) Node(this, value);
+        Node* node = UNK_SI_NEW(m_pAllocator, 0x10) Node(this, value);
         if (node == nullptr) {
             return nullptr;
         }

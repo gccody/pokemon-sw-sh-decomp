@@ -98,7 +98,7 @@ void Unk_4c25a0(ISiAllocator* allocator, T* p, const char* file, long line) {
 inline void* operator new(size_t size, SiSDK3::ISiAllocator* allocator, u32 alignment, const char* file, int line) {
     return allocator->vf7(size, alignment, file, line);
 }
-#define UNK_NEW(allocator, alignment) new (allocator, alignment, __FILE__, __LINE__)
+#define UNK_SI_NEW(allocator, alignment) new (allocator, alignment, __FILE__, __LINE__)
 
 #define SI_DELETE(allocator, p) ::SiSDK3::Unk_4c25a0(allocator, p, __FILE__, __LINE__)
 // The array new: allocates into p, then constructs each element of a class
