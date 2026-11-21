@@ -9,6 +9,7 @@
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_LinkedList.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_4bf660.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_RefCount.h>
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_Version.h>
 
 namespace SiSDK3 {
 
@@ -30,10 +31,7 @@ public:
     // size, the numbers from field_28 on are sizes and offsets in the file.
     struct Unk_ChunkHeader {
         Unk_Id field_0;
-        s32 field_10;
-        s32 field_14;
-        s32 field_18;
-        s32 field_1c;
+        Unk_567750_Version field_10;
         s64 field_20;
         s64 field_28;
         s64 field_30;
@@ -47,21 +45,27 @@ public:
     // A chunk type of an archive (RTTI: the element of the archive's array).
     struct ChunkTypeInfo {
         Unk_Id field_0;
-        s32 field_10;
-        s32 field_14;
-        s32 field_18;
-        s32 field_1c;
+        Unk_567750_Version field_10;
     };
 
     // A chunk: its links in the list it's in, its header and the chunks
-    // inside it. Slot 6 writes its data.
+    // inside it. Slot 6 writes its data. Its destructor releases the chunks
+    // inside it; the class is abstract (its deleting destructor is a trap).
     class ChunkHandler {
     public:
-        virtual ~ChunkHandler();
+        virtual ~ChunkHandler() {
+            while (field_88.m_count != 0) {
+                ChunkHandler* handler = field_88.m_pHead;
+                if (handler != nullptr) {
+                    field_88.Remove(handler);
+                    handler->vf3();
+                }
+            }
+        }
         UNK_REFCOUNT_DECLARE;
         virtual u32 vf4();
-        virtual void vf5();
-        virtual bool vf6(ISiIOBinaryArchive* archive, ISiIOStream* stream);
+        virtual void vf5() = 0;
+        virtual bool vf6(ISiIOBinaryArchive* archive, ISiIOStream* stream) = 0;
 
         Unk_4bf660 field_8;
         ChunkHandler* m_pPrev;
@@ -71,7 +75,7 @@ public:
     };
 
     ISiIOBinaryArchive() : field_8(nullptr) {}
-    virtual ~ISiIOBinaryArchive();
+    virtual ~ISiIOBinaryArchive() {}
     UNK_REFCOUNT_DECLARE;
     virtual u32 vf4();
     virtual bool vf5(const char* path, u32 platform) = 0;                  // opens a file
@@ -101,7 +105,7 @@ public:
     virtual u32 vf29() = 0;
     virtual u64 vf30() = 0;
     virtual ChunkTypeInfo* vf31(s64 index) = 0;  // a chunk type
-    virtual void vf32() = 0;
+    virtual ChunkTypeInfo* vf32(const Unk_Id* id) = 0;  // the chunk type of an identifier
     virtual void vf33() = 0;
     virtual u32 vf34() = 0;
 
