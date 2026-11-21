@@ -12,11 +12,7 @@ struct Unk_36fa70_Value {
     void* field_0;
 };
 
-struct Unk_3a1830_Value {
-    Unk_3a1830_Value() : field_0(0) {}
-
-    u32 field_0;
-};
+typedef u32 Unk_3a1830_Value;
 
 // What a node is given to find something below it: the keys of the levels
 // below, and what the last level holds. 0 or 0xff in a key is any.
@@ -55,6 +51,14 @@ struct Unk_36fa70_Key1 {
 };
 PKMN_SIZE_ASSERT(Unk_36fa70_Key1, 0x28);
 
+struct Unk_36fa70_Key0 {
+    u64 field_0;
+    Unk_36fa70_Key1 field_8;
+
+    bool IsAny() const { return field_0 == 0 && field_8.IsAny(); }
+};
+PKMN_SIZE_ASSERT(Unk_36fa70_Key0, 0x30);
+
 // A node: `Key` is the type of its key, `Child` what its array holds. The
 // value and the array are a base class's (`Base`, with a vtable of its own).
 #define UNK_36FA70_BASE(Base, Value, Child)                                                       \
@@ -66,6 +70,14 @@ PKMN_SIZE_ASSERT(Unk_36fa70_Key1, 0x28);
             field_8 = other.field_8;                                                              \
             field_10 = other.field_10;                                                            \
             field_18.Transfer(other.field_18);                                                    \
+        }                                                                                         \
+                                                                                                  \
+        Value* SetValue() {                                                                       \
+            if (!field_10) {                                                                      \
+                Unk_PlacementNew(&field_8) Value();                                               \
+                field_10 = 1;                                                                     \
+            }                                                                                     \
+            return &field_8;                                                                      \
         }                                                                                         \
                                                                                                   \
         Value field_8;                                                                            \
@@ -92,14 +104,41 @@ PKMN_SIZE_ASSERT(Unk_36fa70_Key1, 0x28);
                                                                                                   \
         void Remove(const Below& below);                                                          \
                                                                                                   \
+        Value* Set(const Below& below) {                                                          \
+            if (below.IsAny())                                                                    \
+                return this->SetValue();                                                          \
+            auto* child = this->field_18.Set(below.field_0);                                      \
+            if (child == nullptr)                                                                 \
+                return nullptr;                                                                   \
+            return child->Set(below.field_8);                                                     \
+        }                                                                                         \
+                                                                                                  \
         Key key;                                                                                  \
     };                                                                                            \
     PKMN_SIZE_ASSERT(Name, Size);                                                                 \
     typedef Unk_SortedKeyArray<Key, Name, Unk_PoolDefault, 1, Unk_TransferMove<Name>> Name##_Array
 
+// What a last level holds, sorted too, and its array, which has a
+// constructor of its own.
+#define UNK_36FA70_ITEMS(Name, Value)                                                             \
+    struct Name##_Item {                                                                          \
+        Name##_Item() : field_0() {}                                                              \
+                                                                                                  \
+        Value field_0;                                                                            \
+        u64 key;                                                                                  \
+    };                                                                                            \
+    struct Name##_Items : Unk_SortedKeyArray<u64, Name##_Item> {                                  \
+        Name##_Items() {                                                                          \
+            field_0 = nullptr;                                                                    \
+            field_8 = 0;                                                                          \
+            field_c = 0;                                                                          \
+        }                                                                                         \
+    }
+
 // A node of the last level.
 #define UNK_36FA70_LAST(Name, Base, Value, Key, Size)                                             \
-    UNK_36FA70_BASE(Base, Value, Unk_23818a8_Items);                                              \
+    UNK_36FA70_ITEMS(Name, Value);                                                                \
+    UNK_36FA70_BASE(Base, Value, Name##_Items);                                                   \
     struct Name : Base {                                                                          \
         ~Name() override;                                                                         \
                                                                                                   \
@@ -121,25 +160,25 @@ PKMN_SIZE_ASSERT(Unk_36fa70_Key1, 0x28);
                 this->field_18.Term();                                                            \
         }                                                                                         \
                                                                                                   \
+        Value* Set(const Unk_36fa70_Key5& below) {                                                \
+            if (below.IsAny())                                                                    \
+                return this->SetValue();                                                          \
+            Name##_Item* item = this->field_18.Set(below.field_0);                                \
+            return item != nullptr ? &item->field_0 : nullptr;                                    \
+        }                                                                                         \
+                                                                                                  \
         Key key;                                                                                  \
     };                                                                                            \
     PKMN_SIZE_ASSERT(Name, Size);                                                                 \
     typedef Unk_SortedKeyArray<Key, Name, Unk_PoolDefault, 1, Unk_TransferMove<Name>> Name##_Array
 
-// What the last levels hold, sorted too.
-struct Unk_23818a8_Item {
-    u64 field_0;
-    u64 key;
-};
-
-// Their array has a constructor of its own.
-struct Unk_23818a8_Items : Unk_SortedKeyArray<u64, Unk_23818a8_Item> {
-    Unk_23818a8_Items() {
-        field_0 = nullptr;
-        field_8 = 0;
-        field_c = 0;
+// The root of a tree: a node without a key.
+#define UNK_36FA70_ROOT(Name, Value, Child)                                                       \
+    UNK_36FA70_BASE(Name##_Base, Value, Child);                                                   \
+    struct Name : Name##_Base {                                                                   \
+        void Remove(const Unk_36fa70_Key0& below);                                                \
+        Value* Set(const Unk_36fa70_Key0& below);                                                 \
     }
-};
 
 // The tree of 0x710036fa70 (nodes of 0x30 bytes).
 UNK_36FA70_LAST(Unk_23818a8, Unk_23818c8, Unk_36fa70_Value, u8, 0x30);
@@ -151,6 +190,7 @@ UNK_36FA70_NODE(Unk_23817e8, Unk_2381808, Unk_36fa70_Value, u32, Unk_2381828_Arr
                 Unk_36fa70_Key2, 0x30);
 UNK_36FA70_NODE(Unk_23817a8, Unk_23817c8, Unk_36fa70_Value, u64, Unk_23817e8_Array,
                 Unk_36fa70_Key1, 0x30);
+UNK_36FA70_ROOT(Unk_36b160_Root, Unk_36fa70_Value, Unk_23817a8_Array);
 
 // The tree of 0x71003a1830 (nodes of 0x28 bytes).
 UNK_36FA70_LAST(Unk_2382da0, Unk_2382dc0, Unk_3a1830_Value, u8, 0x28);
@@ -162,6 +202,7 @@ UNK_36FA70_NODE(Unk_2382ce0, Unk_2382d00, Unk_3a1830_Value, u32, Unk_2382d20_Arr
                 Unk_36fa70_Key2, 0x28);
 UNK_36FA70_NODE(Unk_2382ca0, Unk_2382cc0, Unk_3a1830_Value, u64, Unk_2382ce0_Array,
                 Unk_36fa70_Key1, 0x28);
+UNK_36FA70_ROOT(Unk_39a100_Root, Unk_3a1830_Value, Unk_2382ca0_Array);
 
 #define UNK_36FA70_LEVEL(Name, Key)                                                               \
     template Name*                                                                                \
@@ -231,3 +272,37 @@ UNK_36FA70_REMOVE(Unk_2382ce0, Unk_36fa70_Key2)
 UNK_36FA70_REMOVE(Unk_2382d20, Unk_36fa70_Key3)
 // 0x71003a11c0
 UNK_36FA70_REMOVE(Unk_2382d60, Unk_36fa70_Key4)
+
+// 0x710036b160 (and 0x710036e680, the RemoveAll of the first level)
+UNK_36FA70_REMOVE(Unk_36b160_Root, Unk_36fa70_Key0)
+// 0x710039a100 (and 0x710039f8e0)
+UNK_36FA70_REMOVE(Unk_39a100_Root, Unk_36fa70_Key0)
+
+// NON_MATCHING: 0x710036b090, 0x7100370110 and 0x710039c830. The original
+// has the code that sets a node's value once for all the levels inlined in a
+// function; here each level keeps its copy.
+
+// 0x710036b090 (and 0x7100370110, the Set of the second level)
+Unk_36fa70_Value* Unk_36b160_Root::Set(const Unk_36fa70_Key0& below) {
+    if (below.IsAny())
+        return this->SetValue();
+    Unk_23817a8* child = this->field_18.Set(below.field_0);
+    if (child == nullptr)
+        return nullptr;
+    return child->Set(below.field_8);
+}
+
+// 0x710039c830 (and 0x71003a1ec0)
+Unk_3a1830_Value* Unk_39a100_Root::Set(const Unk_36fa70_Key0& below) {
+    if (below.IsAny())
+        return this->SetValue();
+    Unk_2382ca0* child = this->field_18.Set(below.field_0);
+    if (child == nullptr)
+        return nullptr;
+    return child->Set(below.field_8);
+}
+
+// 0x7100371530
+template Unk_23818a8_Item* Unk_SortedKeyArray<u64, Unk_23818a8_Item>::Set(u64);
+// 0x71003a32c0
+template Unk_2382da0_Item* Unk_SortedKeyArray<u64, Unk_2382da0_Item>::Set(u64);
