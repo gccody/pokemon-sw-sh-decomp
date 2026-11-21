@@ -299,6 +299,20 @@ throughout.
 - `Unk_237c170.h`, `Unk_237d540.h`: the base classes of the sound engine's
   nodes. `Unk_307850.cpp`, `Unk_30d8c0.cpp`, `Unk_30ed50.cpp`: three node
   classes on them.
+- The node hierarchy, as the vtables and the constructors show it:
+  `Unk_2382098` (the root, 0xa0 bytes, 71 slots) -> `Unk_2381d78` (0xb8, 74)
+  for one family, and two templates on either: `Unk_NodeParent<T>` (T and its
+  sorted children, two more slots, abstract) and `Unk_NodeActiveParent<P>`
+  (what a node passes on to its children; no vtable of its own in the
+  executable). The same template code is there twice, over the root with the
+  children at 0xa0 and over `Unk_2381d78` with them at 0xb8.
+  `Unk_NodeParentImpl.h` has the templates' member functions and the inline
+  virtual functions of the two classes: a file includes it when it is the
+  first class of an instantiation, as the executable has one copy of each.
+- `Unk_34ae50.cpp`: `Unk_237f528`, the plain container node over
+  `Unk_2381d78`. `Unk_237ff98.h`, `Unk_351840.cpp`: the node class with two
+  sets of children over the root (0x168 bytes), and `Unk_34d760.cpp`: the class
+  derived from it.
 
 **What the compiler does that the source has to allow for**
 
@@ -342,6 +356,40 @@ throughout.
 - A helper that two functions inline whole needs `always_inline`: the two
   list flushes of `Unk_3358b0.cpp` are one shared function otherwise.
 
+- **Fast math.** The library is built with `-ffast-math`
+  (`docs/compiler.md`, "Fast math"): an accumulating float add has the loaded
+  value first and the accumulator second whatever the source says, and
+  `a > b ? a : b` on floats is an `fmaxnm`. `fmaxf()` is an `fmax` with the
+  flag, so a maximum in the original's `fmaxnm` is the comparison.
+- **A float parameter's place in the signature.** The registers are the same
+  wherever it is, but not the order of the argument copies at the function's
+  start, which the scheduler and then the register allocator follow: slots 26
+  and 27 take their float first (`vf26(f32, void*, void*, bool)`). With it
+  last, `this` and the first pointer argument come out in each other's
+  callee-saved register. `-mllvm -print-machineinstrs` shows the copies before
+  the allocator.
+- **Whose destructor a slot is.** A class with an empty out-of-line
+  destructor has its own D2 (the base's body inline, or a tail call when the
+  base's is in another file), D0 and thunks at the start of its file. A
+  template base's D2, with a trap for its D0 when it is abstract, comes later
+  in the file, with the template's other functions in vtable order.
+- **Tests that share a return.** `if (a) return true; if (b) return true;`
+  keeps one branch and one copy of the return for each test, except where
+  SimplifyCFG folds a test into the one before it: only a test with at most
+  one more instruction than the compare, none of them a load the compiler
+  can't speculate. So the order of two adjacent tests shows in which of them
+  share the `mov w0, #1`: in `Unk_3536a0` the pointer at 0x88 is tested
+  before the bit of the word at 0x9c, though the code tests the bit first.
+  Such a function is the predicate itself, out of line, not a wrapper of an
+  inline one.
+- **A loop over an array that calls out** reloads the array's fields: the
+  reverse walks are `--i; items[i]->f(); if (i > length) i = length;`, with
+  the decrement before the items are loaded.
+- **Reading the passes.** `-mllvm -print-after-all -mllvm
+  -filter-print-funcs=<mangled name>` prints one function's IR after every
+  pass, and `-S -emit-llvm` the final IR: that is how the fast-math order and
+  the folded tests were found.
+
 **Left out, and why**
 
 - `0x7100305830`, `0x7100306180`, `0x7100306340`, `0x71003064b0`,
@@ -364,3 +412,12 @@ throughout.
   another order.
 - `0x7100336100` (the message queue's reserve, compare-and-swap loops),
   `0x7100335c40` and `0x71003368e0` (the message switches): not tried.
+- `0x7100352670` (slot 22 of `Unk_237ff98`, `M`): the walk over both sets of
+  children. The original reloads the current array's length through the array
+  pointer; this keeps a second pointer to the length across the loop (the
+  header's GEP is shared with the body's before the loop is rotated). Slot 30,
+  the same walk with a test in the body, matches.
+- `0x7100353330` (`M`): 8 bytes short, not looked into.
+- The rest of `Unk_237ff98` (about 60 functions, 19 KB, from `0x7100353010`):
+  not written. Its fields so far are in `Unk_237ff98.h`; slots 10 to 68 are
+  declared with placeholder signatures.
