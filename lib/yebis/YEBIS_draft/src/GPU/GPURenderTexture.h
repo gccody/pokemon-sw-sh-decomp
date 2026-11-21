@@ -110,6 +110,8 @@ public:
     s32 Unk_49aa20(const char* name);             // 0x710049aa20
     s32 Unk_49ab20(const Unk_49ab20_Desc* desc);  // 0x710049ab20: (re)creates it
     s32 Unk_49b230();  // 0x710049b230: makes the device's objects
+    // 0x710049d250: makes it the device's target
+    s32 Unk_49d250(s32 arg1, u32 arg2, s32 arg3, u32 arg4, s32 arg5);
     // 0x710049cf50
     static s32 Unk_49cf50(Unk_49b230_Object* depth, void* owner);
 

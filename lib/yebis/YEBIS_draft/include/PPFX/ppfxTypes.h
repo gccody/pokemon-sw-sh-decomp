@@ -34,4 +34,18 @@ struct Unk_Float2 {
 };
 PKMN_SIZE_ASSERT(Unk_Float2, 8);
 
+// four elements
+struct Unk_Float4 {
+    Unk_Float4() {}
+    Unk_Float4(const Unk_Float& x, const Unk_Float& y, const Unk_Float& z, const Unk_Float& w) {
+        field_0[0] = x;
+        field_0[1] = y;
+        field_0[2] = z;
+        field_0[3] = w;
+    }
+
+    Unk_Float field_0[4];
+};
+PKMN_SIZE_ASSERT(Unk_Float4, 0x10);
+
 }  // namespace PPFX

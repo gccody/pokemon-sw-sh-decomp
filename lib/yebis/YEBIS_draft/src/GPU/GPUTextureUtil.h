@@ -18,6 +18,29 @@ void Unk_446620(void* resource, PPFX::IGPUDevice** device);
 
 namespace PPFX {
 
+// PPFX::IGPUTexture, as the DrawRectGPU functions call it (a
+// CRenderTexture's field_a8 is one)
+struct Unk_GPUTexture {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15(s32 filter);  // sets what vf16 gives
+    virtual s32 vf16();
+    virtual void vf17(s32 arg);
+};
+
 // PPFX::IGPUEffect, as this file calls it
 struct Unk_463fd0_Effect {
     virtual void vf0();
@@ -42,19 +65,19 @@ struct Unk_463fd0_Effect {
     virtual void vf19();
     virtual void vf20(s32 parameter, const f32* value);
     virtual void vf21();
-    virtual void vf22();
+    virtual void vf22(s32 parameter, const Unk_Float4* values, s32 count);
     virtual void vf23();
     virtual void vf24();
     virtual void vf25();
-    virtual void vf26();
+    virtual void vf26(s32 parameter, Unk_GPUTexture* texture);
     virtual s32 vf27(s32 technique);
     virtual s32 vf28(s32 technique);
-    virtual void vf29();
+    virtual void vf29(s32 technique);
     virtual void vf30();
     virtual void vf31();
     virtual void vf32();
     virtual void vf33(void* passes, u32 technique);  // begins a technique
-    virtual void vf34();  // ends it
+    virtual s32 vf34();  // ends it
     virtual void vf35(s32 pass);  // begins a pass
     virtual void vf36();  // ends it
     // 0x710049a480: IGPUEffect's function, under IGPUEffect's symbol. This
@@ -711,6 +734,24 @@ struct Unk_RectVertex {
     Unk_Float2 field_8[N];
 };
 
+// A render texture's device texture: its outermost parent's (inline in the
+// DrawRectGPU functions).
+inline Unk_GPUTexture* Unk_GetTexture(CRenderTexture* texture) {
+    while (texture->field_120 != nullptr) {
+        texture = texture->field_120;
+    }
+    return reinterpret_cast<Unk_GPUTexture*>(texture->field_a8);
+}
+
+// The texture coordinates of the far corner of a render texture's viewport
+// (inline in the DrawRectGPU functions).
+inline void Unk_GetCoords(const CRenderTexture* texture, f32* u, f32* v) {
+    f32 width = static_cast<f32>(static_cast<u32>(texture->field_54));
+    f32 height = static_cast<f32>(static_cast<u32>(texture->field_58));
+    *u = texture->field_88 * width + texture->field_90;
+    *v = texture->field_8c * height + texture->field_94;
+}
+
 class CTextureUtil : public CGPUResourceManage {
 public:
     CTextureUtil(const char* name);  // 0x710046db60
@@ -769,23 +810,24 @@ public:
 
     s32 Unk_4708b0(void* arg);  // 0x71004708b0
     // 0x7100471960: draws a rectangle (or the triangle that covers it) in the current target
-    void Unk_471960(u32 flags, f32 x, f32 y, f32 width, f32 height);
+    s32 Unk_471960(f32 x, f32 y, f32 width, f32 height, u32 flags);
     // 0x7100471470: the corners of a rectangle (or of the triangle that
     // covers it) and of `sets` rectangles of texture coordinates
     s32 Unk_471470(s32 sets, const Unk_Float2* from, const Unk_Float2* to, u32 flags, s32* count,
                    Unk_RectPosition* positions, Unk_Float2 (*coords)[4], f32 x, f32 y, f32 width, f32 height);
     // 0x7100471c50 to 0x7100472cd0: the same with 1 to 6 rectangles of
-    // texture coordinates
-    void Unk_471c50(u32 flags, f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1);
-    void Unk_471f60(u32 flags, f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1);
-    void Unk_472250(u32 flags, f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1, f32 u2, f32 v2, f32 s2, f32 t2);
-    void Unk_472590(u32 flags, f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1, f32 u2, f32 v2, f32 s2, f32 t2, f32 u3, f32 v3, f32 s3, f32 t3);
-    void Unk_472900(u32 flags, f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1, f32 u2, f32 v2, f32 s2, f32 t2, f32 u3, f32 v3, f32 s3, f32 t3, f32 u4, f32 v4, f32 s4, f32 t4);
-    void Unk_472cd0(u32 flags, f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1, f32 u2, f32 v2, f32 s2, f32 t2, f32 u3, f32 v3, f32 s3, f32 t3, f32 u4, f32 v4, f32 s4, f32 t4, f32 u5, f32 v5, f32 s5, f32 t5);
-    // The end of the DrawRect functions (inline): the vertices go through
+    // texture coordinates. The flags are the last parameter: the callers set
+    // w1 after the floating-point registers.
+    s32 Unk_471c50(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, u32 flags);
+    s32 Unk_471f60(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1, u32 flags);
+    s32 Unk_472250(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1, f32 u2, f32 v2, f32 s2, f32 t2, u32 flags);
+    s32 Unk_472590(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1, f32 u2, f32 v2, f32 s2, f32 t2, f32 u3, f32 v3, f32 s3, f32 t3, u32 flags);
+    s32 Unk_472900(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1, f32 u2, f32 v2, f32 s2, f32 t2, f32 u3, f32 v3, f32 s3, f32 t3, f32 u4, f32 v4, f32 s4, f32 t4, u32 flags);
+    s32 Unk_472cd0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1, f32 u2, f32 v2, f32 s2, f32 t2, f32 u3, f32 v3, f32 s3, f32 t3, f32 u4, f32 v4, f32 s4, f32 t4, f32 u5, f32 v5, f32 s5, f32 t5, u32 flags);
+    // The end of the DrawRect functions (inline; its result is the draw call's): the vertices go through
     // the vertex buffer, which is written as a ring, and are drawn as a strip.
     // (`inline` is spelled out: the hint is what gets a function this long inlined.)
-    inline void Unk_DrawVertices(const void* vertices, s32 count, u32 stride, s32 layout) {
+    inline s32 Unk_DrawVertices(const void* vertices, s32 count, u32 stride, s32 layout) {
         u32 size = count * stride;
         u32 start = field_29bb8;
         bool wrap = start + size >= field_29bbc;
@@ -800,8 +842,18 @@ public:
         field_30.field_0->vf42(field_30.field_299b8[layout], static_cast<IGPUBuffer*>(field_29bc8[0]), start, 0, 0, 1);
         field_20->vf9(field_29bc8[1], 0);
         field_30.field_0->SetupGraphicsPipelineState();
-        field_20->vf58(5, count, 0, 0, count - 1);
+        return field_20->vf58(5, count, 0, 0, count - 1);
     }
+    // 0x7100473d90 and on: the DrawRectGPU functions. Each sets a technique
+    // and its parameters, and draws one of the rectangles above. Their
+    // floating-point parameters come first and the flags last (the order the
+    // callers fill the registers in, and the order of the entry's copies).
+    s32 Unk_473d90(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg9, f32 arg10, f32 arg11,
+                   f32 arg12, f32 arg13, const Unk_Float4* arg1, const Unk_Float4* arg2, const Unk_Float4* matrix,
+                   Unk_GPUTexture* texture, u32 flags);
+    s32 Unk_475150(CRenderTexture* source, CRenderTexture* target, bool clear);
+    s32 Unk_475320(f32 arg8, f32 arg9, CRenderTexture* source, CRenderTexture* target, const Unk_Float4* arg3,
+                   const Unk_Float4* arg4, const Unk_Float4* arg5, const Unk_Float4* arg6, u32 flags);
     s32 Unk_470860(s32 value);  // 0x7100470860
     s32 Unk_470880();           // 0x7100470880
     s32 Unk_4708a0(void* arg);  // 0x71004708a0
