@@ -115,8 +115,6 @@ Unk_GrowArray<Unk_362360_Item, Unk_PoolDefault, 2>::AddLast(const Unk_362360_Ite
 void Unk_361fa0(Unk_362360_T* self, u32 parameter, f32 value);
 
 // 0x7100361c80
-// NON_MATCHING: after the item is added, the value and the total are loaded
-// in the other order (4 instructions).
 void Unk_361c80(Unk_362360_T* self, u32 a1, u32 a2, u32 parameter, u32 mode, f32 value) {
     if (self->field_8 == nullptr)
         return;
@@ -134,7 +132,7 @@ void Unk_361c80(Unk_362360_T* self, u32 a1, u32 a2, u32 parameter, u32 mode, f32
                 (*it).field_c = value;
             }
             if (mode != 4 || (*it).field_0 != 0)
-                total = mode != 3 ? total + (*it).field_c : total * (*it).field_c;
+                total = mode != 3 ? (*it).field_c + total : (*it).field_c * total;
         }
     }
     if (found == self->field_48.End()) {
@@ -144,7 +142,7 @@ void Unk_361c80(Unk_362360_T* self, u32 a1, u32 a2, u32 parameter, u32 mode, f32
         item.field_8 = parameter;
         item.field_c = value;
         if (self->field_48.AddLast(item) != nullptr)
-            total = mode != 3 ? total + value : total * value;
+            total = mode != 3 ? value + total : value * total;
     }
     reinterpret_cast<Unk_362360_Sink*>(self->field_8)->vf2(parameter, &total, 4);
 }
@@ -180,9 +178,120 @@ void Unk_362bf0(Unk_2380c68* base, u16 parameter, u32 mode, u32 a3, f32, f32 val
         Unk_361c80(p, 2, a3, parameter, mode, value);
 }
 
-void Unk_361770(Unk_362360_T* self, Unk_369950_Sound* sound);
-void Unk_361900(Unk_362360_T* self, void* a1, void* a2);
-void Unk_361a70(Unk_362360_T* self);
+void Unk_39b150(void* self, Unk_362360_T* owner, u32 a2, u8 a3, u8 a4, u32 parameter, u32 a6,
+                u32 scaling, const Unk_35f3b0_Point* points, u32 count, u64* a10, u32 a11,
+                bool a12);
+
+// What says whose parameter a notification is about (as Unk_237ff98.h has
+// it).
+struct Unk_NodeTarget {
+    void* field_0;
+    u64 field_8;
+    u32 field_10;
+    u32 field_14;
+};
+extern void* Unk_24bbc18;
+void Unk_377930(void* self, Unk_NodeTarget* target, void* a2, void* a3);
+
+// The two values after the ID are bytes by the name the function has; here
+// they are widened where they are read, as for parameters of 32 bits.
+static inline void Unk_39b150_Wide(void* self, Unk_362360_T* owner, u32 a2, u32 a3, u32 a4,
+                                   u32 parameter, u32 a6, u32 scaling,
+                                   const Unk_35f3b0_Point* points, u32 count, u64* key, u32 a11,
+                                   bool a12) {
+    reinterpret_cast<void (*)(void*, Unk_362360_T*, u32, u32, u32, u32, u32, u32,
+                              const Unk_35f3b0_Point*, u32, u64*, u32, bool)>(Unk_39b150)(
+        self, owner, a2, a3, a4, parameter, a6, scaling, points, count, key, a11, a12);
+}
+
+// Registers the object for every parameter of its target that follows a
+// game parameter, with `key` for what its values are looked up by.
+static inline void Unk_361770_Register(Unk_362360_T* self, u64* key) {
+    Unk_360c20_T* target = self->field_10;
+    if (target == nullptr)
+        return;
+    for (auto it = target->field_50.Begin(); it != target->field_50.End(); ++it)
+        Unk_39b150_Wide(Unk_24bbbf8, self, (*it).field_0, (*it).field_4, (*it).field_5,
+                        (*it).field_6, (*it).field_8, (*it).field_10.field_c,
+                        (*it).field_10.field_0, (*it).field_10.field_8, key, 1, true);
+    memcpy(&self->field_18, key, 0x30);
+}
+
+// 0x7100361770
+void Unk_361770(Unk_362360_T* self, Unk_369950_Sound* sound) {
+    Unk_361770_Register(self, sound->field_10);
+    if (self->field_10 == nullptr)
+        return;
+    Unk_NodeTarget node;
+    node.field_0 = self;
+    node.field_10 = 1;
+    node.field_14 = 0;
+    Unk_361770_Params params;
+    node.field_8 = sound->field_148;
+    sound->vf9(&params, 1);
+    params.field_20 = 0;
+    Unk_360c20_T* target = self->field_10;
+    for (auto it = target->field_50.Begin(); it != target->field_50.End(); ++it) {
+        if ((*it).field_4 == 2)
+            Unk_377930(Unk_24bbc18, &node, &params, sound->field_50);
+    }
+}
+
+// 0x7100361900
+void Unk_361900(Unk_362360_T* self, void* a1, void* a2) {
+    u64* key = static_cast<u64*>(a1);
+    Unk_361770_Register(self, key);
+    Unk_360c20_T* target = self->field_10;
+    if (target == nullptr)
+        return;
+    u64 first = *key;
+    Unk_NodeTarget node;
+    node.field_0 = self;
+    node.field_8 = 0;
+    node.field_10 = 1;
+    node.field_14 = 2;
+    Unk_361770_Params params;
+    params.field_0 = first;
+    for (auto it = target->field_50.Begin(); it != target->field_50.End(); ++it) {
+        if ((*it).field_4 == 2)
+            Unk_377930(Unk_24bbc18, &node, &params, a2);
+    }
+}
+
+bool Unk_362160(Unk_362360_T* self, u32 parameter, u32 mode, f32* total);
+
+// 0x7100361a70: gives the parameters object the total of every parameter the
+// target has values of.
+void Unk_361a70(Unk_362360_T* self) {
+    Unk_361410_A* a = self->field_10->wf7();
+    if (a == nullptr)
+        return;
+    u32 count = self->field_48.Length();
+    for (Unk_361a70_Item* it = a->field_0; it != a->field_0 + a->field_8; ++it) {
+        u32 parameter = it->field_0;
+        u32 mode = it->field_2;
+        f32 total = mode == 3 ? 1.0f : 0.0f;
+        f32 own = total;
+        bool other = false;
+        for (u32 i = 0; i < count; i++) {
+            Unk_362360_Item& item = self->field_48.field_0[i];
+            if (item.field_8 == parameter) {
+                if (mode == 3)
+                    total *= item.field_c;
+                else
+                    total += item.field_c;
+                if (item.field_0 == 0)
+                    own = item.field_c;
+                else
+                    other = true;
+            }
+        }
+        bool more = Unk_362160(self, parameter, mode, &total);
+        if (mode == 4 && (other | more))
+            total -= own;
+        reinterpret_cast<Unk_362360_Sink*>(self->field_8)->vf2(parameter, &total, 4);
+    }
+}
 
 // 0x7100361410: makes the object one of `target`, with room for its values:
 // what it has of the target's parameters object, or null.

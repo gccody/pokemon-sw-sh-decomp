@@ -174,7 +174,9 @@ void Unk_384340(u64 source, Unk_384340_Ref* out);
 
 // The object the sound is the second base of (0x18 bytes in).
 struct Unk_369b40_First {
-    u64 field_0[3];
+    virtual void vf0();
+
+    u64 field_8[2];
 };
 struct Unk_369b40_Whole : Unk_369b40_First, Unk_369950_Sound {};
 
