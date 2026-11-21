@@ -1,27 +1,13 @@
 // PPFX::IGPUInterface, the reference-counted base of YEBIS's GPU objects
-// (RTTI names the class; its members are placeholders), and YEBIS's new and
-// delete: every allocation goes through one allocator, with the caller's
-// __FILE__ and __LINE__.
+// (RTTI names the class; its members are placeholders), and the release
+// macros of YEBIS's reference-counted objects (Unk_Array.h has its new and
+// delete).
 #pragma once
 
-#include <miniz/miniz_yebis.h>
 #include <types.h>
-
-inline void* operator new(size_t, void* p) noexcept {
-    return p;
-}
+#include <yebis/YEBIS_draft/src/GPU/Unk_Array.h>
 
 namespace PPFX {
-
-// the destructor, then the allocator's free (the allocator is read first)
-template <class T>
-inline void Unk_Delete(Unk_4b99a0_arg0* allocator, T* p) {
-    p->~T();
-    Unk_4b9a60(allocator, p);
-}
-
-#define PPFX_NEW(T) new (Unk_4b99a0(Unk_238d5f8, sizeof(T), __FILE__, __LINE__, nullptr)) T
-#define PPFX_DELETE(p) ::PPFX::Unk_Delete(Unk_238d5f8, p)
 
 class IGPUInterface {
 public:
@@ -35,3 +21,9 @@ public:
 PKMN_SIZE_ASSERT(IGPUInterface, 0x10);
 
 }  // namespace PPFX
+
+// One reference less for a CGPUResourceManage (its release is inline in every
+// user), and for an IGPUInterface (whose release is virtual); the pointer is
+// cleared.
+#define PPFX_SAFE_RELEASE(p)        do {                                if ((p) != nullptr) {               (p)->Unk_Release();             (p) = nullptr;              }                           } while (0)
+#define PPFX_SAFE_RELEASE_INTERFACE(p)     do {                                       if ((p) != nullptr) {                      (p)->vf1();                            (p) = nullptr;                     }                                  } while (0)

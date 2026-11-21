@@ -11,28 +11,13 @@
 
 #include <types.h>
 #include <yebis/YEBIS_draft/include/PPFX/ppfxTypes.h>
-#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_Reflection.h>
-
-// 0x20 bytes, aligned to 4 (the merged statics put it at 0xcc)
-struct Unk_410f90 {
-    f32 field_0[8];
-};
-// 0x7100410f90
-void Unk_410f90_set(Unk_410f90* self, u32 value);
+#include <yebis/YEBIS_draft/src/GPU/Unk_StaticsBase.h>
 
 namespace PPFX {
-
-struct Unk_410f90_Object : Unk_410f90 {
-    explicit Unk_410f90_Object(u32 value) { Unk_410f90_set(this, value); }
-};
 
 inline f32 Unk_Radians(f32 degrees) {
     return degrees * 3.14159265f / 180.0f;
 }
-
-static const Unk_410f90_Object Unk_Static_Object0(0xffffffff);
-static const Unk_410f90_Object Unk_Static_Object1(0x19);
-static SiSDK3::SiReflectionPropertyHandle Unk_Static_Handle;
 
 static const Unk_Float2 Unk_White_A(0.44757f, 0.40745f);
 static const Unk_Float2 Unk_White_B(0.34842f, 0.35161f);

@@ -2,7 +2,7 @@
 // PPFX::IGPUBaseQuery and IGPUQueryOcclusion
 // (C:/workspace/YEBIS_draft/src/GPU/GPUInterfaceQuery.cpp, the __FILE__ of
 // its log lines).
-#include <yebis/YEBIS_draft/include/PPFX/Unk_ColorSpace.h>
+#include <yebis/YEBIS_draft/src/GPU/Unk_Statics.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUInterfaceDevice.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUInterfaceQuery.h>
 
@@ -203,7 +203,7 @@ s32 IGPUQueryOcclusion::vf12(u32* result, bool flush) {
 // 0x710044a880
 IGPUQueryOcclusion* Unk_44a880(IGPUDevice* device) {
 #line 1209
-    IGPUQueryOcclusion* query = PPFX_NEW(IGPUQueryOcclusion)(device);
+    IGPUQueryOcclusion* query = UNK_NEW(IGPUQueryOcclusion)(device);
     query->CreateDeviceQuery();
     query->vf5();
     return query;
