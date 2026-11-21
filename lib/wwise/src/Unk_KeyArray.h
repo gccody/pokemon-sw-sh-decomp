@@ -94,6 +94,23 @@ struct Unk_GrowArray : Unk_Array<T, A> {
         return true;
     }
 
+    // The array with `size` items, the new ones constructed.
+    bool Resize(u32 size) {
+        size_t length = this->Length();
+        if (size < length) {
+            this->field_8 = size;
+            return true;
+        }
+        if (size > this->field_c) {
+            if (!GrowArray(size - length))
+                return false;
+        }
+        for (size_t i = length; i < size; i++)
+            Unk_PlacementNew(this->field_0 + i) T;
+        this->field_8 = size;
+        return true;
+    }
+
     T* AddLast() {
         size_t length = this->Length();
         if (length >= this->field_c && kGrowBy > 0) {

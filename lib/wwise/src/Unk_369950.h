@@ -3,7 +3,7 @@
 // gets to ask about the sound it is in), as far as its members in
 // Unk_369950.cpp and Unk_36a200.cpp need it. Placeholder names;
 // `Unk_369950_Base2` is the object seen from its second base, 8 bytes in.
-#include <types.h>
+#include "Unk_360c20.h"
 
 // What the context refers to.
 struct Unk_369950_Sound {
@@ -12,14 +12,16 @@ struct Unk_369950_Sound {
         u8 field_4c_0 : 3;
     };
 
-    u8 _0[0x110];
+    u8 _0[0x10];
+    u8 field_10[0x100];
     f32 field_110;
     f32 field_114;
     f32 field_118;
     u8 field_11c;
     u8 _11d[0x23];
     Params* field_140;
-    u8 _148[0xc];
+    u64 field_148;
+    u32 _150;
     u16 field_154_0 : 2;
     u16 field_154_2 : 2;
     u16 field_154_4 : 12;
@@ -31,7 +33,7 @@ PKMN_OFFSET_ASSERT(Unk_369950_Sound, field_140, 0x140);
 struct Unk_3d08c0_Self {
     virtual void vf0();
     virtual void vf1();
-    virtual void vf2();
+    virtual u64 vf2();
     virtual void vf3();
     virtual void vf4();
     virtual void vf5();
@@ -62,13 +64,52 @@ struct Unk_3d08c0_Self {
     };
 };
 
-struct Unk_369950_T {
-    u8 _0[0x48];
-    Unk_3d08c0_Self* field_48;
-    u8 _50[0x78];
-    u64 field_c8;
+// A pair of arrays the context owns (as lib/wwise/leaf has it).
+struct Unk_36a5e0 {
+    u64 field_0;
+    u32 field_8;
+    u64 field_10;
+    u64 field_18;
 };
+
+struct Unk_3d45c0;
+
+// The context (0x2b0 bytes). Its second base is 8 bytes in; the object at
+// 0x68 is one that refers to an Unk_360c20_T, the one at 0xe0 has the vtable
+// 0x7102384248 and a member of 0x1a0 bytes.
+struct Unk_369950_T {
+    void** vptr;
+    void** vptr2;
+    f32 field_10[4];
+    Unk_36a5e0 field_20;
+    Unk_369950_T* field_40;  // next
+    Unk_3d08c0_Self* field_48;
+    Unk_3d45c0* field_50;
+    void* field_58;
+    u64 field_60;
+    Unk_362360_T field_68;
+    u64 field_c8;
+    u64 field_d0;
+    u64 _d8;
+    void** field_e0;
+    u64 field_e8;
+    alignas(16) u8 field_f0[0x1a0];
+    f32 field_290;
+    f32 field_294;
+    f32 field_298;
+    u32 field_29c;
+    u32 field_2a0;
+    u8 field_2a4_0 : 1;
+    u8 field_2a4_1 : 1;
+    u8 field_2a4_2 : 1;
+};
+PKMN_OFFSET_ASSERT(Unk_369950_T, field_48, 0x48);
+PKMN_OFFSET_ASSERT(Unk_369950_T, field_68, 0x68);
 PKMN_OFFSET_ASSERT(Unk_369950_T, field_c8, 0xc8);
+PKMN_OFFSET_ASSERT(Unk_369950_T, field_e0, 0xe0);
+PKMN_OFFSET_ASSERT(Unk_369950_T, field_290, 0x290);
+PKMN_OFFSET_ASSERT(Unk_369950_T, field_2a0, 0x2a0);
+PKMN_SIZE_ASSERT(Unk_369950_T, 0x2b0);
 
 struct Unk_369950_Base2 {
     u8 _0[0x40];
