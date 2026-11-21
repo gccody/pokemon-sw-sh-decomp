@@ -1,6 +1,7 @@
 // Scope: common
 // What starts and stops the lower engine (globals at 0x71024df148-0x71024df180:
 // two arrays and a list). Written from the executable. Placeholder names.
+#include "Unk_24df148.h"
 #include "block_pool.h"
 
 // An item of the list at 0x71024df158: its next one is at 0x68.
@@ -8,63 +9,6 @@ struct Unk_3c54c0_T {
     u8 _0[0x68];
     Unk_3c54c0_T* next;
 };
-
-// What a bus mixes with, as far as these functions call it.
-struct Unk_24df148_Mix {
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2(u32 arg1, f32 arg2, f32 arg3);
-    virtual void vf3(u32 arg1, u32 arg2);
-};
-
-// The node of a bus.
-struct Unk_24df148_Node {
-    u8 _0[0x10];
-    u32 field_10;  // ID
-    u8 _14[0x6c];
-    void* field_80;
-};
-
-// What a bus is the bus of: a structure around its node (its address is
-// taken apart from the node's load).
-struct Unk_24df148_Ctx {
-    Unk_24df148_Node* field_0;
-};
-
-// One of the four things a bus has at 0x130: 0x80 bytes.
-struct Unk_24df148_Slot {
-    void* field_0;
-    void* field_8;
-    u8 _10[0x70];
-};
-
-// A bus of the lower engine: the array at 0x71024df148 has them.
-struct Unk_24df148_Bus {
-    u8 _0[0x20];
-    Unk_24df148_Mix* field_20;
-    u8 _28[0x20];
-    void* field_48;
-    u8 _50[0x20];
-    Unk_24df148_Ctx field_70;
-    void* field_78;
-    u8 _80[0xb0];
-    Unk_24df148_Slot field_130[4];
-    u8 _330[0x18];
-    u32 field_348;
-    u8 _34c[8];
-    u8 field_354_0 : 1;
-
-    u32 Id() const { return field_70.field_0 != nullptr ? field_70.field_0->field_10 : 0; }
-};
-
-// What 0x710037d6b0 finds for a bus's node.
-struct Unk_37d6b0_T {
-    u8 _0[0x118];
-    Unk_24df148_Bus* field_118;
-};
-
-PKMN_OFFSET_ASSERT(Unk_24df148_Bus, field_130, 0x130);
-PKMN_OFFSET_ASSERT(Unk_24df148_Bus, field_348, 0x348);
 
 struct Unk_24bbc30_T {
     u8 _0[0x58];
@@ -94,12 +38,9 @@ void Unk_37c450();
 void Unk_3a8030_update();
 void Unk_3c5550();
 void Unk_34f7b0(Unk_24df148_Mix* self, u32 arg1, f32 arg2);
-Unk_37d6b0_T* Unk_37d6b0(Unk_24df148_Ctx* ctx);
 struct Unk_37af50;
 void Unk_37af50_set(Unk_37af50* self);
 bool Unk_3c59d0(Unk_24df148_Bus* bus, void* arg1);
-void Unk_3d1930(Unk_24df148_Bus* bus);
-void Unk_3d4310(void* bus);  // a bus's destructor
 
 // 0x71003c52f0
 u32 Unk_3c52f0(void* arg) {
@@ -222,13 +163,12 @@ struct Unk_3c57e0_Arg {
     u8 _0[0x48];
     void* field_48;
 };
-void Unk_3d2290(Unk_24df148_Bus* bus, u32 arg1, u32 arg2);
 
 // 0x71003c57e0
 void Unk_3c57e0(u32 id, u32 arg1, u32 arg2, Unk_3c57e0_Arg* arg3) {
     for (auto it = Unk_24df148.Begin(); it != Unk_24df148.End(); ++it) {
         Unk_24df148_Bus* bus = *it;
-        if (bus->Id() == id && (arg3 == nullptr || bus->field_78 == arg3->field_48))
+        if (bus->Id() == id && (arg3 == nullptr || reinterpret_cast<void*>(bus->field_78) == arg3->field_48))
             Unk_3d2290(bus, arg1, arg2);
     }
 }
@@ -239,14 +179,13 @@ bool Unk_3c8da0(Unk_24df148_Bus* bus, void* arg1);
 // 0x71003c59d0
 bool Unk_3c59d0(Unk_24df148_Bus* bus, void* arg1) {
     for (u32 i = 0; i < 4; i++) {
-        if (bus->field_130[i].field_8 != nullptr &&
-            Unk_3c9ae0(bus->field_130[i].field_8, arg1, bus->field_130[i].field_0))
+        if (bus->field_c8[i].field_70 != nullptr &&
+            Unk_3c9ae0(bus->field_c8[i].field_70, arg1, bus->field_c8[i].field_68))
             return true;
     }
     return Unk_3c8da0(bus, arg1);
 }
 
-void Unk_3d45f0(Unk_24df148_Bus* bus, u32 mask);
 
 // 0x71003c5a70
 void Unk_3c5a70(u32 id, u32 bit) {

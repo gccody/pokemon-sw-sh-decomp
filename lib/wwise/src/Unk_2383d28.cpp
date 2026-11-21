@@ -104,7 +104,7 @@ void Unk_3c9bc0(Unk_2383e40_T* self, void* arg1, u32 arg2) {
 struct Unk_369910;
 void* Unk_3cfb30(void* arg0);
 u32 Unk_369910_get(const Unk_369910* self);
-void Unk_3d14e0(void* arg0);
+void Unk_3d14e0(void* arg0, u32* arg1, u32* arg2);
 
 // 0x71003c9e80
 u32 Unk_3c9e80(Unk_2383e40_T* self, u32* result) {
@@ -138,8 +138,8 @@ void Unk_3c9ef0(Unk_2383ed8_T* self, void* arg1, u32 arg2, Unk_2383ed8_Pair* arg
 }
 
 // 0x71003ca000
-u32 Unk_3ca000(Unk_2383e40_T* self) {
-    Unk_3d14e0(self->field_20);
+u32 Unk_3ca000(Unk_2383e40_T* self, u32* arg1, u32* arg2) {
+    Unk_3d14e0(self->field_20, arg1, arg2);
     return 1;
 }
 
@@ -464,4 +464,14 @@ void Unk_3ca3b0(Unk_3ca240_T* self, Unk_3ca300_Ref* ref) {
 void Unk_3ca450(Unk_3ca240_T* self) {
     if (self->field_10 != nullptr)
         self->field_10->Release();
+}
+
+void Unk_356bc0(Unk_3ca240_Bus* self, u32 key, u32* result);
+
+// 0x71003ca400
+void Unk_3ca400(Unk_3ca240_T* self, u32 key, u32* result) {
+    if (self->field_0 != nullptr)
+        Unk_356bc0(self->field_0, key, result);
+    else
+        *result = 0xffffffff;
 }
