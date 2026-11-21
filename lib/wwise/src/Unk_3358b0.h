@@ -120,6 +120,8 @@ struct Unk_24bbc30_T {
     u32 field_14;  // size of the message queue
     u8 _18[0x2d];
     bool field_45;
+    void (*field_48)(bool a1, void* a2);  // told when the flagged nodes' state changes
+    void* field_50;
 };
 PKMN_OFFSET_ASSERT(Unk_24bbc30_T, field_45, 0x45);
 extern Unk_24bbc30_T Unk_24bbc30;

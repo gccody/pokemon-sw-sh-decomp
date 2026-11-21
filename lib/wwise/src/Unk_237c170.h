@@ -143,11 +143,11 @@ struct Unk_NodeA {
     virtual void vf40();
     virtual void vf41(void* a1, void* a2, bool a3);
     virtual void vf42();
-    virtual void vf43();
+    virtual void vf43(f32 a1, u32 a2, void* a3, u32 a4, u32 a5, u32 a6);
     virtual void vf44();
-    virtual void vf45();
-    virtual void vf46();
-    virtual void vf47();
+    virtual void vf45(void* a1, u32 a2, u32 a3);
+    virtual void vf46(void* a1, u32 a2, u32 a3);
+    virtual void vf47(u32 a1, u32 a2);
     virtual void vf48(bool a1);
     virtual void vf49();
     virtual void vf50();
@@ -168,7 +168,7 @@ struct Unk_NodeA {
     virtual void vf65();
     virtual void vf66();
     virtual void vf67();
-    virtual void vf68();
+    virtual void* vf68(void* a1);  // 0x71003857d0
     virtual void vf69();
     virtual void vf70();
 
@@ -393,6 +393,16 @@ public:
     }
 
     u32 vf11(Unk_NodeId id) override;  // 0x710034b310, inline
+
+    // The base at 0x18 of a node that isn't null (a conversion of the pointer
+    // would test it).
+    Unk_NodeB* AsNodeB() { return this; }
+
+    // A property's value: the node's own, or the default.
+    Unk_PropValue GetProp(u32 prop) {
+        Unk_PropValue def = Unk_24bceb8[prop];
+        return field_90.GetProp(prop, def);
+    }
 
     // 0x7100352bd0, inline: adds a property's value to *out, with what its
     // parameter changes it by.

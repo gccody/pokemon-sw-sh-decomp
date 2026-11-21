@@ -5,6 +5,7 @@
 #include <math.h>
 #include "Unk_237ff98.h"
 #include "Unk_NodeParentImpl.h"
+#include "Unk_3358b0.h"
 
 void Unk_349950();
 void Unk_3c58d0(u32 id);
@@ -81,16 +82,7 @@ void Unk_237ff98::Unk_351b20() {
     if (field_164_6) {
         Unk_24bca98.RemoveSwap(this);
         field_164_6 = 0;
-        Unk_237ff98_Arg25 arg;
-        arg.field_8 = true;
-        arg.field_0 = this;
-        f32 value = 1.0f;
-        if (field_50 != nullptr) {
-            Unk_PropValue16* prop = field_50->field_18.FindProp(0xb);
-            if (prop != nullptr)
-                value = prop->field_0;
-        }
-        vf25(&arg, true, value);
+        Unk_351b20_Tell(1.0f);
         if (Unk_24bca98.Length() == 0)
             Unk_24bca98.Term();
     }
@@ -595,5 +587,115 @@ void Unk_3557c0(void* self_) {
             }
             target->vf3();
         }
+    }
+}
+
+void Unk_3831c0(Unk_2382098* self, void* a1, u32 a2, u32 a3, f32 a4, u32 a5, u32 a6);
+void Unk_383410(Unk_2382098* self, void* a1, u32 a2, u32 a3, f32 a4);
+
+// NON_MATCHING: the copies of the float argument and of a4 are in the other order (the float's
+// place in the signature isn't found: last of the first three it gives two registers swapped)
+// 0x7100356e60
+void Unk_237ff98::vf43(f32 a1, u32 a2, void* a3, u32 a4, u32 a5, u32 a6) {
+    void* target = vf68(a2 == 5 ? a3 : nullptr);
+    if (target != nullptr)
+        Unk_3831c0(this, target, a2, a4, a1, a5, a6);
+}
+
+// 0x7100356f00
+void Unk_237ff98::vf45(void* a1, u32 a2, u32 a3) {
+    if (a1 != nullptr)
+        return;
+    void* target = vf68(a1);
+    if (target != nullptr)
+        Unk_383410(this, target, a2, a3, 0.0f);
+}
+
+// 0x7100356f80
+void Unk_237ff98::vf47(u32 a1, u32 a2) {
+    vf46(nullptr, a1, a2);
+}
+
+// 0x7100357250
+void Unk_237ff98::vf29() {
+    if (field_70 == nullptr)
+        return;
+    for (Iterator it = Begin(); !IsEnd(it); Next(it)) {
+        Unk_2382098* child = *it;
+        if (child->field_70 != nullptr &&
+            (child->field_70->field_90 > 0 || child->field_70->field_94 > 0))
+            child->vf29();
+    }
+}
+
+// 0x7100357310
+u32 Unk_237ff98::Unk_357310() {
+    Unk_PropValue def;
+    def.i = 0;
+    return field_90.GetProp(0x1e, def).i;
+}
+
+// 0x7100357370
+void Unk_237ff98::Unk_357370(f32* value) {
+    f32 min = GetProp(0x1f).f;
+    f32 max = GetProp(0x20).f;
+    f32 v = *value;
+    *value = v < min ? min : (v < max ? v : max);
+}
+
+// 0x7100357650
+void Unk_237ff98::Unk_357650(u32 a1) {
+    if (field_160 != a1) {
+        field_160 = a1;
+        for (u32 i = 0; i < field_b8.field_8; i++)
+            static_cast<Unk_237ff98*>(field_b8.field_0[i])->Unk_357650(a1);
+        if (field_80 == nullptr)
+            Unk_3c5b10(1);
+    }
+}
+
+bool Unk_3b36d0(Unk_NodeB* self, u32 a1, void* a2);
+
+// 0x7100356720
+bool Unk_237ff98::Unk_356720(u32 a1, void* a2) {
+    Unk_237ff98* node = this;
+    do {
+        if (Unk_3b36d0(node->AsNodeB(), a1, a2))
+            return true;
+        node = static_cast<Unk_237ff98*>(node->field_80);
+    } while (node != nullptr);
+    return false;
+}
+
+// The nodes with field_164_6 set are told 0 when the flag at 0x71024bcab8
+// goes up, and their own value when it goes down.
+// 0x7100357450
+void Unk_357450() {
+    if (!Unk_24bcab8) {
+        Unk_24bcab8 = true;
+        nn::os::LockMutex(&Unk_24bcac0);
+        for (u32 i = 0; i < Unk_24bca98.Length(); i++) {
+            Unk_237ff98* node = Unk_24bca98.field_0[i];
+            Unk_237ff98_Arg25 arg;
+            arg.field_8 = true;
+            arg.field_0 = node;
+            node->vf25(&arg, true, 0.0f);
+        }
+        if (Unk_24bbc30.field_48 != nullptr)
+            Unk_24bbc30.field_48(Unk_24bcab8, Unk_24bbc30.field_50);
+        nn::os::UnlockMutex(&Unk_24bcac0);
+    }
+}
+
+// 0x7100357520
+void Unk_357520() {
+    if (Unk_24bcab8) {
+        Unk_24bcab8 = false;
+        nn::os::LockMutex(&Unk_24bcac0);
+        for (u32 i = 0; i < Unk_24bca98.Length(); i++)
+            Unk_24bca98.field_0[i]->Unk_351b20_Tell(1.0f);
+        if (Unk_24bbc30.field_48 != nullptr)
+            Unk_24bbc30.field_48(Unk_24bcab8, Unk_24bbc30.field_50);
+        nn::os::UnlockMutex(&Unk_24bcac0);
     }
 }
