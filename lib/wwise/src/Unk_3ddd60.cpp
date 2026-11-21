@@ -6,6 +6,13 @@
 
 extern void* _ZTV11Unk_2384ec0[];
 
+// The class with the vtable 0x7102384ec0: its samples are in memory.
+class Unk_2384ec0_T : public Unk_2383f80 {
+public:
+    u8* field_58;
+};
+PKMN_OFFSET_ASSERT(Unk_2384ec0_T, field_58, 0x58);
+
 void Unk_3cbca0(Unk_2383f80* self);
 u32 Unk_3cbff0(Unk_2383f80* self, u8* samples, u32 count, u32 arg3, u32 arg4,
                Unk_3dd7b0_Buffer* buffer);
@@ -30,14 +37,14 @@ void Unk_3ddde0(Unk_2383f80* self) {
 }
 
 // 0x71003ddfd0: where its samples are
-u32 Unk_3ddfd0(Unk_2383f80* self, u8* base) {
+u32 Unk_3ddfd0(Unk_2384ec0_T* self, u8* base) {
     if (self->field_58 != nullptr)
         self->field_58 = base + self->field_30;
     return 1;
 }
 
 // 0x71003ddff0: gives samples from where it is
-u32 Unk_3ddff0(Unk_2383f80* self, Unk_3dd7b0_Buffer* buffer) {
+u32 Unk_3ddff0(Unk_2384ec0_T* self, Unk_3dd7b0_Buffer* buffer) {
     u16 loops = self->field_54;
     Unk_3dd7b0_Ctx* ctx = self->field_18;
     u32 count = buffer->field_10;

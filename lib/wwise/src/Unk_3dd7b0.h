@@ -4,12 +4,31 @@
 // executable. Placeholder names.
 #include <types.h>
 
+// What the node of a playing context has at 0x38: a pointer to this.
+struct Unk_3dd7b0_Info {
+    u8 _0[0x38];
+    u16 field_38;
+    u8 field_3a_0 : 3;
+    u8 _3b[5];
+    f32 field_40;
+};
+
+// The node of a playing context, as far as it is read here.
+struct Unk_3dd7b0_Node {
+    u8 _0[0x38];
+    Unk_3dd7b0_Info** field_38;
+    u8 _40[8];
+    u64 field_48;
+};
+
 // A playing context.
 struct Unk_3dd7b0_Ctx {
     u8 _0[0xa];
     u8 field_a_0 : 4;
     u8 field_a_4 : 1;
-    u8 _b[0x1cd];
+    u8 _b[0x1d];
+    Unk_3dd7b0_Node* field_28;
+    u8 _30[0x1a8];
     u32 field_1d8;
     u8 _1dc[0x2c];
     u32 field_208;
@@ -30,18 +49,25 @@ struct Unk_3dd7b0_Ctx {
         u64 field_26b_29 : 1;
         u64 field_26b_30 : 10;
     };
+    f32 field_270;
+    u8 _274[0x1c];
+    u8* field_290;  // the data of the sound
+    u8 _298[4];
+    u32 field_29c;
 
-    // Nowhere to go to any more.
-    void ResetSeek() {
-        field_264 = 0;
+    // Where to go to is known (or there is nowhere to go to any more).
+    void SetSeek(u32 position) {
+        field_264 = position;
         field_26b_22 = 0;
         field_26b_23 = 0;
         field_26b_24 = 0;
     }
+    void ResetSeek() { SetSeek(0); }
 };
 PKMN_OFFSET_ASSERT(Unk_3dd7b0_Ctx, field_1d8, 0x1d8);
 PKMN_OFFSET_ASSERT(Unk_3dd7b0_Ctx, field_208, 0x208);
 PKMN_OFFSET_ASSERT(Unk_3dd7b0_Ctx, field_268, 0x268);
+PKMN_OFFSET_ASSERT(Unk_3dd7b0_Ctx, field_29c, 0x29c);
 
 // Samples and what was done to get them: 0x38 bytes.
 struct Unk_3dd7b0_Buffer {
@@ -53,8 +79,37 @@ struct Unk_3dd7b0_Buffer {
     u16 field_14;
     u8 _16[2];
     u64 field_18;
-    u8 _20[0x10];
+    u32 field_20;
+    f32 field_24;
+    u32 field_28;
+    u32 field_2c;
     u32 field_30;  // result
+
+    // No samples (what they were is not changed).
+    void Clear() {
+        field_0 = nullptr;
+        field_c = 0x2b;
+        field_10 = 0;
+        field_12 = 0;
+        field_20 = 0xffffffff;
+        field_24 = 1.0f;
+        field_28 = 0xffffffff;
+        field_2c = 1;
+    }
+
+    // No samples at all.
+    void ClearAll() {
+        field_c = 0x2b;
+        field_10 = 0;
+        field_12 = 0;
+        field_18 = 0;
+        field_20 = 0xffffffff;
+        field_24 = 1.0f;
+        field_0 = nullptr;
+        field_14 = 0;
+        field_28 = 0xffffffff;
+        field_2c = 1;
+    }
 };
 PKMN_SIZE_ASSERT(Unk_3dd7b0_Buffer, 0x38);
 
@@ -85,6 +140,13 @@ struct Unk_3dd7b0_T {
     virtual void vf23();
     virtual void vf24();
     virtual u32 vf25();
+    virtual void vf26();
+    virtual void vf27();
+    virtual void vf28();
+    virtual void vf29();
+    virtual void vf30();
+    virtual void vf31();
+    virtual u16 vf32();
 
     u64 field_8;
     u64 field_10;

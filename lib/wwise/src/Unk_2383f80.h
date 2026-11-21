@@ -9,9 +9,11 @@
 // the base class is a parameter.
 class Unk_2383f80 {
 public:
+    Unk_2383f80();
+
     void** field_0;  // vptr
     u64 field_8;
-    u64 field_10;
+    void* field_10;  // data of its own (the stream source)
     Unk_3dd7b0_Ctx* field_18;
     u8 field_20;
     u32 field_24;
@@ -24,7 +26,6 @@ public:
     u8 field_40[0x10];
     u32 field_50;
     u16 field_54;
-    u8* field_58;  // the samples, in the class with the vtable 0x7102384ec0
 };
 PKMN_OFFSET_ASSERT(Unk_2383f80, field_24, 0x24);
 PKMN_OFFSET_ASSERT(Unk_2383f80, field_54, 0x54);
