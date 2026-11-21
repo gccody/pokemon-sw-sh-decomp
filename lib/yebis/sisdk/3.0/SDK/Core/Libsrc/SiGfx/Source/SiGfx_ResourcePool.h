@@ -15,9 +15,9 @@ namespace SiSDK3 {
 // A resource as its pool uses it (placeholder name): slot 3 releases it, slot
 // 7 is its index in the pool, slots 9 to 14 are what the pool's slots 7 to 12
 // call on every resource.
-class Unk_534460_Resource {
+class Unk_534460_ResourceBase {
 public:
-    virtual ~Unk_534460_Resource();
+    virtual ~Unk_534460_ResourceBase();
     virtual u32 vf2();
     virtual u32 vf3();
     virtual void vf4();
@@ -32,6 +32,18 @@ public:
     virtual void vf13();
     virtual void vf14();
 };
+// Its second base (RTTI: ISiNamedObject is one of a resource's bases, at
+// offset 8): slot 4 is its name's hash. (Its slots' placeholder names say
+// which vtable they're in, the resource's first base having the plain ones.)
+class ISiNamedObject {
+public:
+    virtual void named_vf0();
+    virtual void named_vf1();
+    virtual void named_vf2();
+    virtual void named_vf3();
+    virtual u32 named_vf4();
+};
+class Unk_534460_Resource : public Unk_534460_ResourceBase, public ISiNamedObject {};
 
 class SiGfxResourcePool {
 public:
@@ -59,17 +71,14 @@ public:
     virtual void vf12();
     virtual void vf13(Unk_534460_Resource* resource);  // takes a resource's item back
 
-    // the first resource in use and the one after another (inline in their
-    // callers: placeholder names)
-    Unk_534460_Resource* Unk_First() {
-        Unk_596640 lock(field_18.Unk_Get(), true);
-        return field_48.m_usedList.m_count != 0 ? field_48.m_usedList.m_pHead->field_20 : nullptr;
-    }
-    Unk_534460_Resource* Unk_Next(Unk_534460_Resource* resource) {
-        Unk_596640 lock(field_18.Unk_Get(), true);
-        ResourceItem* next = field_48.Unk_Get(resource->vf7())->m_pNext;
-        return next != nullptr ? next->field_20 : nullptr;
-    }
+    // 0x7100534780: the resource of an index, if it's in use
+    Unk_534460_Resource* Unk_534780(size_t index);
+    // 0x7100534810: the first resource in use, 0x7100534870: the one after
+    // another
+    Unk_534460_Resource* Unk_534810();
+    Unk_534460_Resource* Unk_534870(Unk_534460_Resource* resource);
+    // 0x7100534900: the resource of a name
+    Unk_534460_Resource* Unk_534900(const char* name);
 
     // 0x7100534420 (leafgen's name and type): what the pools' vf5 call first
     u32 vf5();

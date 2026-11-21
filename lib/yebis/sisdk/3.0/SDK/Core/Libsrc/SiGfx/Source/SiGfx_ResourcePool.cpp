@@ -4,6 +4,9 @@
 #define UNK_SIGFX_RESOURCEPOOL_IMPL
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/SiGfx_ResourcePool.h>
 
+// 0x71004c34a0: a name's hash
+u32 Unk_4c34a0(const char* name);
+
 namespace SiSDK3 {
 
 // 0x7100534000
@@ -27,19 +30,56 @@ void SiGfxResourcePool::vf6() {
 void SiGfxResourcePool::Unk_534460() {
     Unk_596640 lock(field_18.Unk_Get(), true);
     field_170 = true;
-    Unk_534460_Resource* resource = Unk_First();
+    Unk_534460_Resource* resource = Unk_534810();
     while (resource != nullptr) {
-        Unk_534460_Resource* next = Unk_Next(resource);
+        Unk_534460_Resource* next = Unk_534870(resource);
         resource->vf3();
         resource = next;
     }
     field_170 = false;
 }
 
+// 0x7100534780
+Unk_534460_Resource* SiGfxResourcePool::Unk_534780(size_t index) {
+    Unk_596640 lock(field_18.Unk_Get(), true);
+    if (index < field_48.field_118) {
+        ResourceItem* item = field_48.Unk_Get(index);
+        if (item->field_18) {
+            return item->field_20;
+        }
+    }
+    return nullptr;
+}
+
+// 0x7100534810
+Unk_534460_Resource* SiGfxResourcePool::Unk_534810() {
+    Unk_596640 lock(field_18.Unk_Get(), true);
+    return field_48.m_usedList.m_count != 0 ? field_48.m_usedList.m_pHead->field_20 : nullptr;
+}
+
+// 0x7100534870
+Unk_534460_Resource* SiGfxResourcePool::Unk_534870(Unk_534460_Resource* resource) {
+    Unk_596640 lock(field_18.Unk_Get(), true);
+    ResourceItem* next = field_48.Unk_Get(resource->vf7())->m_pNext;
+    return next != nullptr ? next->field_20 : nullptr;
+}
+
+// 0x7100534900
+Unk_534460_Resource* SiGfxResourcePool::Unk_534900(const char* name) {
+    Unk_596640 lock(field_18.Unk_Get(), true);
+    u32 hash = Unk_4c34a0(name);
+    for (ResourceItem* item = field_48.m_usedList.m_pHead; item != nullptr; item = item->m_pNext) {
+        if (item->field_20 != nullptr && item->field_20->named_vf4() == hash) {
+            return item->field_20;
+        }
+    }
+    return nullptr;
+}
+
 #define UNK_FOR_EACH(Slot, Call)                                                                              \
     void SiGfxResourcePool::Slot() {                                                                          \
         Unk_596640 lock(field_18.Unk_Get(), true);                                                            \
-        for (Unk_534460_Resource* resource = Unk_First(); resource != nullptr; resource = Unk_Next(resource)) { \
+        for (Unk_534460_Resource* resource = Unk_534810(); resource != nullptr; resource = Unk_534870(resource)) { \
             resource->Call();                                                                                 \
         }                                                                                                     \
     }
