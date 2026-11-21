@@ -3,11 +3,43 @@
 // (on the class with the vtable 0x7102384c90), and two deleting destructors.
 // Written from the executable. Placeholder names.
 #include "Unk_2384c90.h"
+#include "Unk_3dd7b0.h"
 
 // 0x71003dc880: the deleting destructor of what an effect starts with
 void Unk_3dc880(Unk_24df148_SlotCtx* self) {
     Unk_2380be8_Dtor(self);
     operator delete(self);
+}
+
+void* Unk_3046a0(int poolId, u64 size, u32 align);
+
+// 0x71003dc8e0: samples through the effect, in place
+void Unk_3dc8e0(Unk_2384c90_T* self, Unk_3dd7b0_Buffer* buffer) {
+    // The playing context is found before it is known to be needed.
+    Unk_3dcd40_Playing* playing = static_cast<Unk_3dcd40_Playing*>(
+        static_cast<Unk_3dcd40_Ctx*>(self->field_10)->field_20);
+    if (self->field_8a != 0 || playing->field_e4 != 0) {
+        if (!self->field_8c)
+            self->field_98->vf3();
+        self->field_8c = 1;
+        return;
+    }
+    self->field_8c = 0;
+    if (buffer->field_30 == 0x11)
+        self->field_88 = true;
+    if (buffer->field_0 == nullptr) {
+        self->field_a0 = Unk_3046a0(Unk_2381488,
+                                    sizeof(f32) * buffer->field_10 * (buffer->field_8 & 0xff), 0x10);
+        if (self->field_a0 == nullptr) {
+            buffer->field_30 = 2;
+            return;
+        }
+        buffer->field_0 = self->field_a0;
+        buffer->field_12 = 0;
+    }
+    buffer->field_c = buffer->field_30;
+    self->field_98->vf8(buffer);
+    buffer->field_30 = buffer->field_c;
 }
 
 // 0x71003dc9e0

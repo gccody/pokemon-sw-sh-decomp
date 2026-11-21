@@ -1,6 +1,7 @@
 // Scope: common
 // The class under a bus (vtable 0x71023841b0). Written from the executable.
 // Placeholder names.
+#include "Unk_FastMath.h"
 #include "Unk_23841b0.h"
 
 extern void* Unk_23841b0[];
@@ -126,4 +127,29 @@ bool Unk_3d1260(Unk_23841b0_T* self, u64* items, u32* count) {
 // 0x71003d1310
 u32 Unk_3d1310(Unk_23841b0_T* self) {
     return Unk_34fb90_get(reinterpret_cast<const Unk_34fb90*>(self->field_20));
+}
+
+extern const f32 Unk_238497c;
+
+// 0x71003d0050: what plays into it is as loud as the buses it goes to let it be
+// NON_MATCHING: the operands of one sum are the other way around (the original adds the
+// change to the level, `fadd s17, s17, s18`; here the level is added to the change).
+void Unk_3d0050(Unk_23841b0_T* self) {
+    for (Unk_369930* item = self->field_40.first; item != nullptr; item = item->field_40) {
+        Unk_24df148_Bus* bus = item->field_58;
+        if (bus != nullptr) {
+            f32 level = item->field_294;
+            f32 volume = bus->field_3c;
+            f32 limit = bus->field_368 + volume;
+            f32 over = level - limit;
+            if (over > 0.0f)
+                limit = bus->field_36c * over + limit;
+            limit = limit > bus->field_360 ? limit : bus->field_360;
+            f32 change = volume - limit;
+            item->field_290 *= Unk_FromDecibels(change);
+            level += change;
+            item->field_2a4_0 = Unk_238497c >= level;
+            item->field_294 = level;
+        }
+    }
 }

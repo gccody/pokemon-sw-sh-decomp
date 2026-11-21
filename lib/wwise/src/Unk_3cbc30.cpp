@@ -40,3 +40,12 @@ u32 Unk_3cbde0(Unk_2383f80* self) {
     }
     return result;
 }
+
+// 0x71003cbe60: milliseconds it plays for, with what it repeats
+f32 Unk_3cbe60(Unk_2383f80* self) {
+    u16 count = self->field_18->field_268;
+    if (count == 0)
+        return 0.0f;
+    f32 samples = self->field_24 + (count - 1) * static_cast<f32>(self->field_38 + 1 - self->field_34);
+    return samples * 1000.0f / reinterpret_cast<u32 (**)(Unk_2383f80*)>(self->field_0)[28](self);
+}

@@ -1,68 +1,9 @@
 // Scope: common
 // What changes a source's speed (vtable 0x7102384858): the state at 0x10
 // and two buffers. Written from the executable. Placeholder names.
-#include "Unk_3dd7b0.h"
+#include "Unk_2384858.h"
 
-struct Unk_390440;
-struct Unk_390500;
-struct Unk_3d7680;
-struct Unk_3d7690;
-extern void* Unk_2384858[];
-
-void Unk_390440_set(Unk_390440* self);
-void Unk_390500_call(Unk_390500* self);
-void Unk_3d6da0_update(u64 arg);
-void Unk_3d7680_set(Unk_3d7680* self);
-void Unk_3d7690_call(const Unk_3d7690* self);
-
-// What it gets its samples from.
-struct Unk_2384858_Prev {
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual void vf3();
-    virtual void vf4();
-    virtual void vf5();
-    virtual u32 vf6(u32 arg1, bool arg2);
-    virtual u32 vf7();
-};
-
-// The state: 0x60 bytes.
-struct Unk_2384858_State {
-    u8 _0[0x20];
-    u64 field_20;
-    u32 field_28;
-    u32 field_2c;
-    u32 field_30;
-    u32 field_34;
-    u64 field_38;
-    u8 _40[8];
-    bool field_48;
-    u8 _49[7];
-    u32 field_50;
-    f32 field_54;
-    f32 field_58;
-    u8 field_5c_0 : 2;
-    u8 field_5c_2 : 6;
-    u8 field_5d;
-    u8 _5e;
-    bool field_5f;
-};
-PKMN_SIZE_ASSERT(Unk_2384858_State, 0x60);
-
-struct Unk_2384858_T {
-    void** field_0;  // vptr
-    Unk_2384858_Prev* field_8;
-    Unk_2384858_State field_10;
-    Unk_3dd7b0_Buffer field_70;
-    Unk_3dd7b0_Buffer field_a8;
-    u8 _e0[8];
-    Unk_3dd7b0_Ctx* field_e8;
-    bool field_f0;
-    bool field_f1;
-};
-PKMN_OFFSET_ASSERT(Unk_2384858_T, field_70, 0x70);
-PKMN_OFFSET_ASSERT(Unk_2384858_T, field_e8, 0xe8);
+#include <math.h>
 
 // 0x71003d6930
 void Unk_3d6930(Unk_2384858_T* self) {
@@ -125,4 +66,151 @@ void Unk_3d6d30(Unk_2384858_T* self) {
     self->field_0 = Unk_2384858 + 2;
     Unk_3d6da0_update(reinterpret_cast<u64>(&self->field_10));
     operator delete(self);
+}
+
+// 0x71003d6db0
+f32 Unk_3d6db0(Unk_2384858_State* self) {
+    return self->field_34 * (1.0f / 65536.0f) / self->field_54;
+}
+
+// 0x71003d6320: samples are asked for
+void Unk_3d6320(Unk_2384858_T* self, Unk_3dd7b0_Buffer* buffer) {
+    u32 count = buffer->field_10;
+    Unk_2384858_Prev* prev = self->field_8;
+    self->field_f1 = false;
+    self->field_10.field_44 = count;
+    f32 pitch = prev->vf8();
+    Unk_3d71c0(&self->field_10, self->field_e8->field_26b_30 == 0, pitch);
+    if (self->field_70.field_12 != 0) {
+        Unk_3d63c0(self, buffer);
+        return;
+    }
+    if (self->field_f0)
+        buffer->field_30 = 0x11;
+}
+
+// 0x71003d6b20
+void Unk_3d6b20(Unk_2384858_T* self, u32 arg1) {
+    if (arg1 != 2) {
+        if (self->field_70.field_0 != nullptr)
+            self->field_8->vf3();
+        Unk_390440_set(reinterpret_cast<Unk_390440*>(&self->field_70));
+        self->field_70.Clear();
+        Unk_3d7680_set(reinterpret_cast<Unk_3d7680*>(&self->field_10));
+        if (arg1 == 0)
+            self->field_f0 = false;
+    }
+    if (!self->field_f0)
+        self->field_8->vf5(arg1);
+}
+
+// Samples and what they are (0x14 bytes), and what a buffer has after them.
+struct Unk_3d7350_Base {
+    Unk_3d7350_Base() {}
+
+    void* field_0;
+    u32 field_8;
+    u32 field_c;
+    u16 field_10;
+    u16 field_12;
+};
+struct Unk_3d7350_Buffer : Unk_3d7350_Base {
+    u16 field_14;
+    u8 _16[2];
+    u64 field_18;
+    u32 field_20;
+    f32 field_24;
+    u32 field_28;
+    u32 field_2c;
+};
+PKMN_SIZE_ASSERT(Unk_3d7350_Buffer, 0x30);
+
+u32 Unk_390480(void* buffer, u16 count, u32 config);
+void Unk_3da1d0(Unk_3d7350_Buffer* self, Unk_3d7350_Buffer* to);
+
+// 0x71003d7350: the samples of a buffer go to memory of its own
+u32 Unk_3d7350(void* /*self*/, Unk_3d7350_Buffer* buffer) {
+    Unk_3d7350_Buffer copy = *buffer;
+    u32 result = Unk_390480(&copy, buffer->field_10, buffer->field_8);
+    if (result != 1)
+        return result;
+    copy.field_12 = buffer->field_12;
+    Unk_3da1d0(buffer, &copy);
+    Unk_390500_call(reinterpret_cast<Unk_390500*>(buffer));
+    static_cast<Unk_3d7350_Base&>(*buffer) = copy;
+    return 1;
+}
+
+// 0x71003d75b0: makes samples until there are enough or none are left
+u32 Unk_3d75b0(Unk_2384858_State* self, Unk_3dd7b0_Buffer* in, Unk_3dd7b0_Buffer* out) {
+    if (in->field_12 == 0)
+        return 0x11;
+    u32 result;
+    do {
+        result = Unk_23848b8[self->field_50][self->field_5c](in, out, self->field_44, self);
+        if (self->field_50 == 2 && self->field_3c >= 0x400) {
+            self->field_34 = self->field_38;
+            self->field_50 = 1;
+        }
+    } while (in->field_12 != 0 && out->field_12 < self->field_44);
+    return result;
+}
+
+// The step for a pitch in cents: 0x10000 when a sample is played for a sample.
+static inline u32 Unk_3d76c0_Step(f32 rate, f32 pitch) {
+    u32 step = static_cast<u32>(rate * 65536.0f * powf(2.0f, pitch / 1200.0f) + 0.5);
+    if (step == 0)
+        step = pitch > 0.0f ? 0xffffffff : 1;
+    return step;
+}
+
+// 0x71003d76c0: the pitch (in cents) the samples are played with
+void Unk_3d76c0(Unk_2384858_State* self, f32 pitch) {
+    if (self->field_5f || self->field_58 != pitch) {
+        u32 step = Unk_3d76c0_Step(self->field_54, pitch);
+        self->field_34 = step;
+        self->field_38 = step;
+        self->field_3c = 0x400;
+        self->field_58 = pitch;
+        self->field_5f = false;
+    }
+}
+
+// 0x71003d71c0: the pitch it goes to, in 0x400 samples
+void Unk_3d71c0(Unk_2384858_State* self, bool arg1, f32 pitch) {
+    if (self->field_5f)
+        Unk_3d76c0(self, pitch);
+    if (self->field_58 != pitch) {
+        if (self->field_50 == 2) {
+            u32 step = self->field_34 +
+                       static_cast<s32>((self->field_38 - self->field_34) * self->field_3c) / 1024;
+            if (step == 0)
+                step = 1;
+            self->field_34 = step;
+        }
+        f32 rate = self->field_54;
+        self->field_3c = 0;
+        self->field_38 = Unk_3d76c0_Step(rate, pitch);
+        self->field_58 = pitch;
+        if (!arg1)
+            self->field_34 = self->field_38;
+    }
+    if (self->field_34 != self->field_38)
+        self->field_50 = 2;
+    else if (self->field_38 == 0x10000)
+        self->field_50 = 0;
+    else
+        self->field_50 = 1;
+}
+
+// 0x71003d7190
+bool Unk_3d7190(Unk_2384858_State* self) {
+    if (self->field_50 == 0) {
+        if (self->field_5d >= 3) {
+            if (self->field_5c >= 4 && self->field_5c <= 7)
+                return false;
+            return true;
+        }
+    }
+    return false;
 }

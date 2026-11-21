@@ -526,9 +526,68 @@ What the classes after it showed (`Unk_2383b58.cpp`, `Unk_3bdca0.cpp`,
   what changes a source's speed, `Unk_3db8a0.cpp` what plays a source.
   `Unk_3e4760.cpp` and `Unk_3e5940.cpp` are the two ends of the messages of
   kind 0x36.
+- **Blocks that end the same way are merged with the one before what they
+  all go to**: three stores of different numbers in an `if`/`else if`/`else`
+  are three stores in the code, and two of them share theirs only when one
+  of the two is the last branch (`Unk_3d71c0`: the state is 2, else 0, else
+  1). The same for `return true` after each of six tests
+  (`Unk_3dc4b0`/`Unk_3dc5f0`): they share one block when the last test's is
+  the block before the return, which a second loop over the two sources
+  gives and two `if`s don't.
+- **A result that is a constant on some paths**: `return false;` written
+  out where it happens (and `return true;` at the end) keeps a block with
+  the constant that several tests jump to; one expression with `&&`, or
+  `return test;`, has the constant made on every edge (`Unk_3d7190`).
+- **A playing context from its second base, with a test after it**
+  (`Unk_3dc3f0`): the address computed as a number under a test for null
+  keeps the second test for null (`sub`, `cbz`); as pointer arithmetic the
+  compiler knows the result is not null.
+- **Fast math** (`Unk_FastMath.h`: 10 to a power and decibels from the bits
+  of a float, inline wherever a volume is used): constants that are
+  multiplied are written as the product they were (`0.4342945f * 20.0f`,
+  `x * 0.05f` into the helper that multiplies again): the folded constant
+  is rounded once more than the decimal number. The integer steps are
+  written in the order they are in the code (the exponent's bits, then the
+  fraction's), the floats made from them where they are used. `2y * (1 +
+  y²/3)` written that way is the `fmadd` with `y + y` twice; as a sum of two
+  products it is flattened into the sum around it.
+- **The operands of a sum or product of two**: the one computed later is
+  the first (`Unk_3cbe60`: the member loaded first is the first operand of
+  the source and the last of the `fmadd`).
+- **A table of functions of the file itself** (`Unk_23848b8`, what makes
+  the samples of a speed change, reached with `adrp`+`add`) is declared
+  with hidden visibility.
+- What plays a source (`Unk_3db8a0.cpp`): the class under it (vtable
+  `0x7102384980`) has the two sources (an array: both loops over them are
+  unrolled) and the state; what the samples go through is one structure
+  from 0xa0 on (`Unk_2384a98_Chain`: what changes the speed, the filters,
+  four effects), whose functions get the address of the whole.
+- **Two tests of a loop are one branch** (`cmp`, `ccmp`) when what the
+  second reads is loaded before the first is made (`Unk_3dd600`: the size
+  of a buffer, a global, is compared first in the source).
+- Not started, small and regular: the stream classes from `0x71003fb0f0`
+  (vtables `0x7102385b28`, `0x7102385ba8` and three like it; the generated
+  `lib/wwise/class/Unk_2385ba8.cpp` has their getters). The table at 0x70
+  of an object has copies of the first table's functions with the object's
+  address computed by pointer arithmetic (`str x9, [x19, #-0x70]!`): the
+  function called with `base - 0x70` in the same file. Fields: 0x18 what
+  reads, 0x20 the file (its size at 0), 0x28 a mutex, 0x50 the device
+  (0x608 what opens files, 0x610 its block size, 0x618 its ID), 0x58 the
+  name, 0x60 the size of a block, 0x65 to 0x6c flags, 0x78 the position,
+  0xa8 the state.
 
 Open:
 
+- `Unk_3d23e0` (`m`, what measures a bus): one instruction is elsewhere.
+  The address of the bus's own samples (`add x24, x19, #0x88`) is before the
+  first test of the last effect in the original and after the three tests
+  here: there the three edges that leave the search without an effect go
+  straight to where the search ends, here they share a block. Every way to
+  write the search (a loop with `return`, with `break`, an index, a chain of
+  `if`s) kept the block or made a `csel`.
+- `Unk_3d0050` (`m`): one sum's operands are the other way around (`fadd
+  s17, s17, s18`: the level plus the change; here the change, computed
+  later, is first, the order every such sum gets).
 - `Unk_3e1c80` (`m`): the original keeps the item in one more register (the
   value the iterator has and the item it reads the next one from are two
   values there, one here).

@@ -72,6 +72,7 @@ struct Unk_24df148_Ctx {
 };
 
 // What plays into a bus: a list through 0x40.
+struct Unk_24df148_Bus;
 struct Unk_369930 {
     virtual void vf0();  // the destructor
 
@@ -79,7 +80,11 @@ struct Unk_369930 {
     Unk_369930* field_40;
     u8 _48[8];
     void* field_50;  // where it comes from
-    u8 _58[0x248];
+    Unk_24df148_Bus* field_58;  // and the bus it goes to
+    u8 _60[0x230];
+    f32 field_290;  // how loud it is
+    f32 field_294;  // decibels over the bus's
+    u8 _298[8];
     u32 field_2a0;
     u8 field_2a4_0 : 1;
     u8 field_2a4_1 : 1;
@@ -168,7 +173,9 @@ struct Unk_24df148_Bus {
     void** field_0;  // vptr
     u8 _8[0x18];
     Unk_24df148_Mix* field_20;
-    u8 _28[0x20];
+    u8 _28[0x14];
+    f32 field_3c;  // decibels
+    u8 _40[8];
     Unk_369930* field_48;
     u8 _50[0x20];
     Unk_24df148_Ctx field_70;
@@ -176,8 +183,10 @@ struct Unk_24df148_Bus {
     u8 _80[8];
     Unk_24df148_Buffer field_88;
     u8 _a0[8];
-    Unk_24df148_Object* field_a8;
-    u8 _b0[9];
+    Unk_24df148_Object* field_a8;  // what measures it
+    u8 _b0[8];
+    u8 field_b8_0 : 2;
+    u8 field_b8_2 : 5;
     u8 field_b9_0 : 5;
     u8 _ba[6];
     Unk_24df148_Sub field_c0;
@@ -194,6 +203,11 @@ struct Unk_24df148_Bus {
     u32 field_34c;
     u8 _350[4];
     u8 field_354_0 : 1;
+    u8 _355[0xb];
+    f32 field_360;  // decibels: the lowest it goes
+    u8 _364[4];
+    f32 field_368;  // decibels from which what plays into it is less loud
+    f32 field_36c;  // by this much of what it is over
 
     u32 Id() const { return field_70.field_0 != nullptr ? field_70.field_0->field_10 : 0; }
 };
