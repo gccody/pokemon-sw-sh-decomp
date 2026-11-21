@@ -219,6 +219,52 @@ def test_object_names():
         "template Unk_239a418_Ref<Unk_23c9028> Unk_790260_Owner::Create<Unk_23c9028>(const Unk_Ref& parent, u64 a2);\n")
 
 
+def test_adders():
+    def factory(cls, kinds):
+        params = [F.Param(k, True, moved) for k, moved in kinds]
+        return F.ObjectFactory(0, cls, 0, 8, 0, False, params, [])
+
+    # what an adder hands its factory after the weak reference, and its name
+    f = factory("Unk_240b658", [("pair", True), ("u32", False)])
+    assert F.adder_args(f) == ["u32"]
+    assert F.adder_name(f) == (
+        "_ZN17Unk_1050c60_Owner7Unk_AddI11Unk_240b658JjEEE15Unk_239a418_RefI11Unk_239a418EDpRKT0_")
+    assert F.adder_instance(0x1050C60, f) == (
+        "// 0x7101050c60\ntemplate Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240b658>(const u32&);\n")
+    f = factory("Unk_240d540", [("pair", True), ("ref", False)])
+    assert F.adder_name(f) == (
+        "_ZN17Unk_1050c60_Owner7Unk_AddI11Unk_240d540J15Unk_239a418_RefI11Unk_239a418EEEES4_DpRKT0_")
+    f = factory("Unk_2411db0", [("pair", True), ("words2", False)])
+    assert F.adder_name(f) == (
+        "_ZN17Unk_1050c60_Owner7Unk_AddI11Unk_2411db0J18Unk_1085320_Words2EEE"
+        "15Unk_239a418_RefI11Unk_239a418EDpRKT0_")
+    f = factory("Unk_240c1b0", [("pair", True)])
+    assert F.adder_args(f) == []
+    assert F.adder_name(f) == (
+        "_ZN17Unk_1050c60_Owner7Unk_AddI11Unk_240c1b0JEEE15Unk_239a418_RefI11Unk_239a418EDpRKT0_")
+    assert F.adder_instance(0x1052DF0, f).endswith("Unk_1050c60_Owner::Unk_Add<Unk_240c1b0>();\n")
+    # not an adder's factory: no weak reference first, or an argument moved in
+    assert F.adder_name(factory("Unk_5000", [("ref", True)])) is None
+    assert F.adder_name(factory("Unk_5000", [("pair", True), ("ref", True)])) is None
+
+
+def test_adder_candidates():
+    # the seed's shape with the calls an adder makes: the getter, a factory, the list
+    def body(at, factory, getter=F.ADDER_GETTER):
+        return [bl(at, getter), 0xAA0003F3, bl(at + 8, factory), bl(at + 12, F.ADDER_LIST), 0xD65F03C0]
+
+    seed, other, third = F.ADDER_SEEDS[0], 0x2000, 0x3000
+    img = bytearray(max(F.ADDER_SEEDS[0], F.ADDER_LIST) + 0x1000)
+    rows = {}
+    for at, words in ((seed, body(seed, 0x4000)), (other, body(other, 0x5000)),
+                      (third, body(third, 0x5000, getter=0x6000))):
+        struct.pack_into(f"<{len(words)}I", img, at, *words)
+        rows[at] = SimpleNamespace(sword_size=4 * len(words), status="U", name="")
+    m = F.Module(bytes(img), rows, {})
+    # the third has the shape but calls another getter
+    assert F.adder_candidates(m) == {seed: 0x4000, other: 0x5000}
+
+
 def test_copied_reference_is_ref2():
     # a reference copied from the factory's const& argument: kept as Unk_239a418_Ref2
     f = F.ObjectFactory(0, "Unk_5000", 0x68, 8, 0, False, [F.Param("ref", True, False)],
