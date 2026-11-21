@@ -2,8 +2,7 @@
 // The objects the sound engine keeps by ID: each kind has an index (a hash
 // table with a lock) in the global object at 0x71024bbbb8. Placeholder names.
 #include <nn/os.h>
-#include "Unk_PlacementNew.h"
-#include "containers.h"
+#include "Unk_HashList.h"
 
 // An object kept in an index.
 struct Unk_Indexed {
@@ -70,12 +69,12 @@ static inline void Unk_SetVtable(void* self, void** vtable) {
     *static_cast<void***>(self) = vtable + 2;
 }
 
-// Grows the table of an index for `size` objects.
-struct Unk_IndexTable {
-    Unk_Array<Unk_Indexed*> field_0;  // buckets
-    u32 field_10;  // number of objects
+// The table of an index.
+struct Unk_IndexedPolicy {
+    static u32 Key(Unk_Indexed* item) { return item->field_10; }
+    static Unk_Indexed*& Next(Unk_Indexed* item) { return item->field_8; }
 };
-void Unk_335420(Unk_IndexTable* self, u32 size);
+typedef Unk_HashListBare<Unk_Indexed, Unk_IndexedPolicy> Unk_IndexTable;
 
 template <u32 Offset>
 static inline void Unk_IndexedAdd(Unk_Indexed* self) {
@@ -84,7 +83,7 @@ static inline void Unk_IndexedAdd(Unk_Indexed* self) {
     Unk_IndexTable* table = reinterpret_cast<Unk_IndexTable*>(&index->field_20);
     if (table->field_0.Length() == 0 ||
         static_cast<f32>(table->field_10) / static_cast<f32>(table->field_0.Length()) > 0.9f)
-        Unk_335420(table, table->field_0.Length());
+        table->Reserve(table->HashSize());
     if (table->field_0.Length() != 0) {
         u32 bucket = self->field_10 % table->field_0.Length();
         self->field_8 = table->field_0.field_0[bucket];
