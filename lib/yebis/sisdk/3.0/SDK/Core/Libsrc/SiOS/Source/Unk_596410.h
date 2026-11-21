@@ -54,6 +54,25 @@ PKMN_SIZE_ASSERT(SiOSMutex, 0x28);
 
 }  // namespace SiSDK3
 
+// 0x7100596410 (leafgen's name and type): SiOSCriticalSection's constructor
+void Unk_596410(void* self, u32 value);
+
+namespace SiSDK3 {
+
+// A critical section as another class's member (placeholder name): its
+// constructor is the function above, under leafgen's name, so the member is
+// this wrapper, which calls it by that name.
+struct Unk_CriticalSection {
+    explicit Unk_CriticalSection(u32 value) { Unk_596410(this, value); }
+    ~Unk_CriticalSection() { Unk_Get()->SiOSCriticalSection::~SiOSCriticalSection(); }
+    SiOSCriticalSection* Unk_Get() { return reinterpret_cast<SiOSCriticalSection*>(this); }
+
+    u64 field_0[6];
+};
+PKMN_SIZE_ASSERT(Unk_CriticalSection, 0x30);
+
+}  // namespace SiSDK3
+
 // A lock held for a scope (placeholder name, after its constructor).
 struct Unk_596640 {
     Unk_596640(SiSDK3::SiOSSyncObject* object, bool lock);
