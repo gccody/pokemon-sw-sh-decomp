@@ -219,6 +219,53 @@ Classes with destructors are written as real classes (`Unk_23837a8`,
 `Unk_2383770`): an abstract base's deleting destructor is the 4-byte trap,
 its complete destructor an alias of the base one.
 
+What the switch container's own functions (`Unk_23837d0.cpp`) showed:
+
+- **The intrusive lists are one template with policies** (`block_pool.h`:
+  `Unk_ListPolicy<T, Count, Last>`; `Unk_ListLight` counts its items,
+  `Unk_ListWithLast` keeps the last one). "Remove the first item" stores the
+  next item or null in two branches (`cbz next`; `str next` / `str xzr`)
+  only when the next item is read through a function returning a reference
+  (`Unk_ListNext<T>::Get`) and a call follows the store of null (the last
+  item's policy: `SetLast(nullptr)`, empty in a list without one). Before
+  the inliner runs, the load that only feeds the store becomes an integer
+  load, and the call keeps the two stores from being merged; afterwards
+  they have different types and stay apart. Written with the member
+  directly, the two stores fold into one. (This is the form the destructor
+  at `0x710035f4e0` needs.)
+- **A test of an item against an optional filter compares first and asks
+  for "no filter" second**: `(item->object == object || object == nullptr)`.
+  The second block then has no load, the two tests fold into one `or`, and
+  the loop is unswitched on every invariant (`Unk_3b92b0`: four copies of
+  each loop). With the null test first, the loop that knows `object !=
+  nullptr` isn't unswitched on the second filter.
+- **The children's array holds one-pointer structures**, and its binary
+  search takes the item's address before it reads the key through it
+  (`Unk_23837d0_Children`). The address then has a use that isn't a load, so
+  LICM doesn't compute it again after the loop, and the original's
+  `add x10, x11, w14, sxtw #3; ldr x15, [x10]` comes out. With plain pointers
+  (or with `Unk_SortedKeyArray`'s search) the load takes the index instead.
+- **The class derives from the node class its parent pointer has**
+  (`Unk_23837d0_Node`). `if (child->field_78 == self) ... self->vf3()` calls
+  through `self`'s vtable with the loaded parent as `this`: the call's `this`
+  is `self` converted to the base, which GVN replaces by the older equal
+  value, and the vtable load isn't that conversion.
+- **A loop that came from an inlined function has its entry test already**,
+  and the test folds with an earlier one. `Unk_3b8500` looks a value up twice
+  in a list (two inlined `Exists`) and then walks the list: the walk's
+  `first != nullptr` is only removed when the walk is an inline function of
+  its own (`Unk_23837d0_AskNodes`), rotated before it is inlined; written in
+  place, the loop is rotated after jump threading and the test stays.
+- **A structure passed by value is put together before the call**, and the
+  instructions that do it are sunk to the top of the block that stores it
+  (`AddLastGrowValue`: `mov w10, #1; bfi x10, x11, #32, #32` before the
+  item's address). By reference, they come after the item's constructor.
+- **The key of a group's value is default-constructed and then given its
+  fields** (`key.field_0 = object; key.field_8 = 0;`): that order of the
+  stores is the original's; the constructor with the object isn't.
+- A global the TU defines is reached without the GOT: declare it with
+  hidden visibility (`Unk_24deec8`, the pool of the playing children).
+
 Open:
 
 - `Unk_3b7ed0` (the switch container's bank reader, `m`): block placement

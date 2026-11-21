@@ -164,6 +164,15 @@ struct Unk_Array {
         return p;
     }
 
+    // The same with the item passed by value: it is read before the array
+    // grows (0x71003b8500 builds the 8 bytes to store before the call).
+    T* AddLastGrowValue(T item) {
+        T* p = AddLastGrow();
+        if (p != nullptr)
+            *p = item;
+        return p;
+    }
+
     // A new item at `index`, the ones from there on moved up.
     inline T* Insert(u32 index) {
         size_t length = Length();

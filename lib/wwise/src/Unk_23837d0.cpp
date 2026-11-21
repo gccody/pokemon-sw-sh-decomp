@@ -117,7 +117,7 @@ extern void* Unk_24bbbb8;
 extern void* Unk_24bbbc0;
 extern void* Unk_24bbbd8;
 
-void Unk_3b9500(Unk_23837d0* self, void* object, bool arg2);
+void Unk_3b9500(Unk_23837d0* self, Unk_23837d0_Object* object, u32 playingId);
 u32 Unk_3b9b60(Unk_23837d0* self, u32 value, const Unk_3babc0_Key& key,
                Unk_23837d0_Filter* except);
 u32 Unk_3ba2a0(Unk_23837d0* self, u32 value, void* object);
@@ -127,7 +127,9 @@ void Unk_34b7c0(Unk_363570_T* self, Unk_3643f0_Action* action);  // the base cla
 u32 Unk_382d00(u32 id);
 void Unk_382d80(u32 id);
 void Unk_399200(void* self, u32 id, void* arg2);
-Unk_23837d0_Child* Unk_3351b0(void* self, u32 id, u32 type);
+Unk_23837d0_Node* Unk_3351b0(void* self, u32 id, u32 type);
+// 0x7100339930 was named with this type for the node: a cast at the calls.
+struct Unk_23837d0_Child;
 void Unk_339930(void* self, Unk_23837d0_Child* node, void* object, u32 arg3);
 // 0x71003baa80 has the name of a function without parameters (lib/wwise/leaf):
 // the second base's object and its group are passed on to what it calls.
@@ -143,7 +145,7 @@ void Unk_3bab30(void* self, u32 group, u32 type);
 void Unk_3b97a0(Unk_23837d0* self, Unk_23837d0_Action* action) {
     switch (action->field_0) {
     case 0:
-        Unk_3b9500(self, action->field_8, false);
+        Unk_3b9500(self, static_cast<Unk_23837d0_Object*>(action->field_8), 0);
         break;
     case 1: {
         void* object = action->field_8;
@@ -255,6 +257,65 @@ u32 Unk_3b9e20(u8* self, u32 value, bool prepare) {
     return Unk_23837d0_PrepareSwitch(reinterpret_cast<Unk_23837d0*>(self - 0xe0), value, prepare);
 }
 
+u32 Unk_3baab0(void* self, u32 group, u32 type);
+
+// 0x71003b9f00: the data is needed: the children's, or the nodes' of the
+// switch values that are prepared
+u32 Unk_3b9f00(Unk_23837d0* self) {
+    u32 result = 1;
+    if (Unk_24bbc30.field_1c) {
+        if (self->field_f0 != 0) {
+            self->field_f0++;
+        } else {
+            Unk_Array<u32>* prepared =
+                Unk_23837d0_GetPrepared(self->field_e0, self->field_f8, self->field_f4);
+            if (prepared != nullptr) {
+                for (auto* p = self->field_100.field_0; p != nullptr; p = p->next) {
+                    if (prepared->FindEx(p->item.key) != prepared->End()) {
+                        Unk_23837d0_Nodes& nodes = p->item.item;
+                        for (auto it = nodes.Begin(); it != nodes.End(); ++it) {
+                            result = Unk_382d00(*it);
+                            if (result != 1) {
+                                for (auto undo = nodes.Begin(); undo != it; ++undo)
+                                    Unk_382d80(*undo);
+                                break;
+                            }
+                        }
+                        if (result != 1) {
+                            for (auto* q = self->field_100.field_0; q != p; q = q->next) {
+                                if (prepared->FindEx(q->item.key) != prepared->End()) {
+                                    for (auto it = q->item.item.Begin(); it != q->item.item.End();
+                                         ++it)
+                                        Unk_382d80(*it);
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+                if (result == 1) {
+                    self->field_f0++;
+                    result = Unk_3baab0(self->field_e0, self->field_f8, self->field_f4);
+                    if (result != 1)
+                        self->vf40();
+                }
+            } else {
+                result = 0x34;
+            }
+        }
+    } else {
+        for (auto it = self->field_b8.Begin(); it != self->field_b8.End(); ++it) {
+            result = (*it)->vf39();
+            if (result != 1) {
+                for (auto undo = self->field_b8.Begin(); undo != it; ++undo)
+                    (*undo)->vf40();
+                break;
+            }
+        }
+    }
+    return result;
+}
+
 // 0x71003ba170: the data isn't needed any more
 void Unk_3ba170(Unk_23837d0* self) {
     if (Unk_24bbc30.field_1c) {
@@ -338,9 +399,9 @@ u32 Unk_3ba520(Unk_23837d0* self, Unk_23837d0_Nodes* old, Unk_23837d0_Nodes* now
 
 // 0x71003ba930: stops a node for a game object, or lets it go on
 u32 Unk_3ba930(Unk_23837d0* self, u32 id, const Unk_23837d0_NodeParams* params, void* object) {
-    Unk_23837d0_Child* node = Unk_3351b0(Unk_24bbbb8, id, 0);
+    Unk_23837d0_Node* node = Unk_3351b0(Unk_24bbbb8, id, 0);
     if (node != nullptr) {
-        Unk_339930(Unk_24bbbc0, node, object, 0);
+        Unk_339930(Unk_24bbbc0, reinterpret_cast<Unk_23837d0_Child*>(node), object, 0);
         if (params->field_8_0 == 1) {
             Unk_23837d0_Action action;
             action.field_14.field_4 = 4;
@@ -350,13 +411,196 @@ u32 Unk_3ba930(Unk_23837d0* self, u32 id, const Unk_23837d0_NodeParams* params, 
             action.field_14.field_0 = params->field_0.field_0;
             action.field_21 = false;
             node->vf19(&action);
-            Unk_339930(Unk_24bbbc0, node, object, action.field_10);
+            Unk_339930(Unk_24bbbc0, reinterpret_cast<Unk_23837d0_Child*>(node), object,
+                       action.field_10);
         } else {
             node->vf22(object, self, 0);
         }
         node->vf3();
     }
     return 1;
+}
+
+extern void* Unk_24bbc08;
+void Unk_38fcb0(void* self, u32 playingId);
+// 0x71003b79c0 has a generated name (lib/wwise/leaf): the group's value for a key.
+u32 Unk_3b79c0_call(void* self, u64 key, u32 group, u32 type);
+
+// Asks the nodes of every switch value; the ones of `nodes` are told that
+// theirs is the current one.
+static inline void Unk_23837d0_AskNodes(Unk_23837d0* self, void* arg1, void* arg2,
+                                        Unk_Array<Unk_23837d0_Group>* groups, bool current,
+                                        Unk_23837d0_Nodes* nodes, void* object, u32 group,
+                                        u32 value) {
+    for (auto p = self->field_100.Begin(); p != self->field_100.End(); ++p) {
+        Unk_23837d0_Nodes& list = (*p).item;
+        bool isCurrent = current && &list == nodes;
+        for (auto it = list.Begin(); it != list.End(); ++it) {
+            Unk_23837d0_Node* node = Unk_3351b0(Unk_24bbbb8, *it, 0);
+            if (node != nullptr) {
+                node->vf16(arg1, arg2, groups, isCurrent, object, group, value);
+                node->vf3();
+            }
+        }
+    }
+}
+
+// 0x71003b8500: asks the nodes of every switch value; the ones of the
+// current value are told so
+void Unk_3b8500(Unk_23837d0* self, void* arg1, void* arg2, Unk_Array<Unk_23837d0_Group>* groups,
+                bool current, void* object, u32 group, u32 value) {
+    if (self->field_100.field_24 == 0)
+        return;
+    if (self->field_f4 == 1) {
+        if (current) {
+            Unk_23837d0_Group item;
+            item.field_4 = self->field_f8;
+            groups->AddLastGrowValue(item);
+        }
+        u32 now = value;
+        if (self->field_f8 != group) {
+            Unk_3babc0_Key key;
+            key.field_0 = object;
+            key.field_8 = 0;
+            now = Unk_3b79c0_call(self->field_d8, reinterpret_cast<u64>(&key), self->field_f8,
+                                  self->field_f4);
+        }
+        Unk_23837d0_Nodes* nodes = self->field_100.Exists(now);
+        if (nodes == nullptr)
+            nodes = self->field_100.Exists(self->field_fc);
+        Unk_23837d0_AskNodes(self, arg1, arg2, groups, current, nodes, object, group, value);
+    } else {
+        for (auto p = self->field_100.Begin(); p != self->field_100.End(); ++p) {
+            Unk_23837d0_Nodes& list = (*p).item;
+            for (auto it = list.Begin(); it != list.End(); ++it) {
+                Unk_23837d0_Node* node = Unk_3351b0(Unk_24bbbb8, *it, 0);
+                if (node != nullptr) {
+                    node->vf16(arg1, arg2, groups, current, object, group, value);
+                    node->vf3();
+                }
+            }
+        }
+    }
+}
+
+// Where the playing children's records come from: this TU's (reached without
+// the GOT).
+extern Unk_BlockPool<Unk_23837d0_Cont, 128> Unk_24deec8 __attribute__((visibility("hidden")));
+
+u64 Unk_382e00(void* arg0, void* arg1, void* arg2, bool arg3);
+
+// 0x71003b8810
+u64 Unk_3b8810(void* arg0, void* arg1, void* arg2, bool arg3) {
+    return Unk_382e00(arg0, arg1, arg2, arg3);
+}
+
+void Unk_3b8850(Unk_23837d0* self);
+void Unk_3b3970(void* self);
+
+// 0x71003b8820: forgets the playing children, then what the second base does
+void Unk_3b8820(Unk_23837d0* self) {
+    Unk_3b8850(self);
+    Unk_3b3970(reinterpret_cast<u8*>(self) + 0x18);
+}
+
+// 0x71003b8850: forgets the playing children
+void Unk_3b8850(Unk_23837d0* self) {
+    while (self->field_150.field_8 != nullptr) {
+        Unk_23837d0_Cont* cont = self->field_150.field_8;
+        self->field_150.RemoveFirst();
+        Unk_38fcb0(Unk_24bbc08, cont->field_1c);
+        self->vf38(1);
+        cont->field_20->Release();
+        Unk_24deec8.Delete(cont);
+    }
+}
+
+// 0x71003b98a0: a child goes away
+void Unk_3b98a0(Unk_23837d0* self, Unk_23837d0_Node* child) {
+    Unk_23837d0_Node* parent = child->field_78;
+    u32 id = child->field_10;
+    if (parent == self) {
+        child->vf7(nullptr);
+        self->field_b8.Unset(id);
+    }
+    self->field_128.Unset(id);
+    if (parent == self)
+        self->vf3();
+}
+
+static inline bool Unk_23837d0_Matches(Unk_23837d0_Cont* cont, void* object, u32 playingId) {
+    return (cont->field_20 == object || object == nullptr) &&
+           (cont->field_1c == playingId || playingId == 0);
+}
+
+// 0x71003b92b0: an action on the node and on its children
+void Unk_3b92b0(Unk_23837d0* self, Unk_23837d0_Action* action) {
+    switch (action->field_0) {
+    case 0:
+    case 3:
+        Unk_3b9500(self, static_cast<Unk_23837d0_Object*>(action->field_8), action->field_10);
+        break;
+    case 1: {
+        void* object = action->field_8;
+        u32 playingId = action->field_10;
+        for (Unk_23837d0_Cont* p = self->field_150.field_8; p != nullptr; p = p->next) {
+            if (Unk_23837d0_Matches(p, object, playingId)) {
+                if (p->field_70 != 1)
+                    p->field_70 = 1;
+            }
+        }
+        break;
+    }
+    case 2: {
+        void* object = action->field_8;
+        u32 playingId = action->field_10;
+        for (Unk_23837d0_Cont* p = self->field_150.field_8; p != nullptr; p = p->next) {
+            if (Unk_23837d0_Matches(p, object, playingId)) {
+                if (p->field_70 != 0)
+                    p->field_70 = 0;
+            }
+        }
+        break;
+    }
+    }
+    if (self->field_70 != nullptr && (self->field_70->field_90 > 0 || self->field_70->field_94 > 0)) {
+        for (u32 i = self->field_b8.field_8; i > 0; i--) {
+            Unk_23837d0_Node* child = self->field_b8.field_0[i - 1].field_0;
+            if (!action->field_20 || child->field_80 == nullptr)
+                child->vf19(action);
+        }
+    }
+}
+
+// 0x71003b9500: forgets the playing children of a game object (all if null)
+// and of a playing ID (all if 0)
+void Unk_3b9500(Unk_23837d0* self, Unk_23837d0_Object* object, u32 playingId) {
+    bool found = false;
+    auto it = self->field_150.BeginEx();
+    while (it != self->field_150.End()) {
+        Unk_23837d0_Cont* cont = *it;
+        if ((object == nullptr || cont->field_20 == object) &&
+            (playingId == 0 || cont->field_1c == playingId)) {
+            Unk_23837d0_Object* other;
+            if (object == nullptr) {
+                other = cont->field_20;
+            } else {
+                other = nullptr;
+                found = true;
+            }
+            it = self->field_150.Erase(it);
+            Unk_38fcb0(Unk_24bbc08, cont->field_1c);
+            self->vf38(1);
+            cont->field_20->Release();
+            Unk_24deec8.Delete(cont);
+            if (other != nullptr)
+                Unk_399200(Unk_24bbbd8, self->field_10, other);
+        } else {
+            ++it;
+        }
+    }
+    if (found)
+        Unk_399200(Unk_24bbbd8, self->field_10, object);
 }
 
 // 0x71003b8370: adds a node to a switch value's nodes
@@ -368,4 +612,13 @@ u32 Unk_3b8370(Unk_23837d0* self, Unk_Array<u32>* list, u32 id) {
         return 2;
     *item = id;
     return 1;
+}
+
+u32 Unk_388140(Unk_23837d0* self);
+
+// 0x71003baa40
+u32 Unk_3baa40(Unk_23837d0* self) {
+    if (self->field_9c_29)
+        return 1;
+    return Unk_388140(self);
 }
