@@ -49,9 +49,11 @@ const char* Unk_446df0(s32 result);
     } while (0)
 
 // 0x71024e4a18 and 0x71024e4c18: this file's scratch vectors (statics: the
-// code takes their addresses directly), written just before the effect reads them
-extern PPFX::Unk_Float4 Unk_24e4a18[] __attribute__((visibility("hidden")));
-extern PPFX::Unk_Float4 Unk_24e4c18[] __attribute__((visibility("hidden")));
+// code takes their addresses directly), written just before the effect reads
+// them. The sizes matter: the compiler only folds an element's offset into the
+// address it materialises when the offset is inside the object.
+extern PPFX::Unk_Float4 Unk_24e4a18[32] __attribute__((visibility("hidden")));
+extern PPFX::Unk_Float4 Unk_24e4c18[32] __attribute__((visibility("hidden")));
 
 namespace PPFX {
 
@@ -1700,6 +1702,167 @@ s32 CTextureUtil::Unk_475320(f32 arg8, f32 arg9, CRenderTexture* source, CRender
         texture->vf15(5);
         result = Unk_471c50(0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, flags & 1);
         texture->vf15(filter);
+        result = result < 0 ? result : 0;
+    }
+    return result;
+}
+
+// 0x7100473150: a rectangle with `count` (1 to 4) rectangles of texture
+// coordinates, given as four arrays
+s32 CTextureUtil::Unk_473150(f32 x, f32 y, f32 width, f32 height, const f32* u0, const f32* v0, const f32* u1,
+                             const f32* v1, s32 count, u32 flags) {
+    if (count < 1 || count > 4) {
+        return -4;
+    }
+    switch (count) {
+    case 1:
+        return Unk_471c50(x, y, width, height, u0[0], v0[0], u1[0], v1[0], flags);
+    case 2:
+        return Unk_471f60(x, y, width, height, u0[0], v0[0], u1[0], v1[0], u0[1], v0[1], u1[1], v1[1], flags);
+    case 3:
+        return Unk_472250(x, y, width, height, u0[0], v0[0], u1[0], v1[0], u0[1], v0[1], u1[1], v1[1], u0[2], v0[2],
+                          u1[2], v1[2], flags);
+    case 4:
+        return Unk_472590(x, y, width, height, u0[0], v0[0], u1[0], v1[0], u0[1], v0[1], u1[1], v1[1], u0[2], v0[2],
+                          u1[2], v1[2], u0[3], v0[3], u1[3], v1[3], flags);
+    }
+    return 0;
+}
+
+// 0x71004732b0: draws indexed triangles from the caller's buffers
+s32 CTextureUtil::Unk_4732b0(s32 count, s32 arg2, s32 arg3, IGPUBuffer* vertices, void* indices, u32 offset, s32 arg7,
+                             u32 flags) {
+    if ((flags & 0x40000) == 0) {
+        field_20->vf41(-1, 1);
+    }
+    if ((flags & 0x20000) == 0) {
+        u32 passes;
+        field_30.field_0->vf33(&passes, flags & 0xffff);
+        field_30.field_0->vf35(0);
+    }
+    field_30.Unk_46d6f0();
+    field_30.field_0->vf42(field_30.field_299b8[12], vertices, offset, 0, 0, 1);
+    field_20->vf9(indices, arg7);
+    field_30.field_0->SetupGraphicsPipelineState();
+    s32 result = field_20->vf58(4, count, 0, arg2, arg3);
+    if ((flags & 0x20000) == 0) {
+        field_30.field_0->vf36();
+        result = field_30.field_0->vf34();
+    }
+    return result;
+}
+
+// 0x7100474ae0: four taps, half a texel around each corner
+s32 CTextureUtil::Unk_474ae0(CRenderTexture* target, CRenderTexture* source, bool clear) {
+    if (clear) {
+        Unk_471410();
+    }
+    f32 width0 = static_cast<f32>(static_cast<u32>(source->field_54));
+    f32 height0 = static_cast<f32>(static_cast<u32>(source->field_58));
+    f32 sx = source->field_88;
+    f32 sy = source->field_8c;
+    f32 ox = source->field_90;
+    f32 oy = source->field_94;
+    f32 a = sx * 0.5f + ox;
+    f32 b = sy * 0.5f + oy;
+    f32 u1 = sx * width0 + ox;
+    f32 v1 = sy * height0 + oy;
+    Unk_Float4 rects[4];
+    rects[0] = Unk_Float4(-a, -b, u1 - a, v1 - b);
+    rects[1] = Unk_Float4(a, -b, u1 + a, v1 - b);
+    rects[2] = Unk_Float4(-a, b, u1 - a, v1 + b);
+    rects[3] = Unk_Float4(a, b, u1 + a, v1 + b);
+    f32 width = static_cast<f32>(static_cast<u32>(target->field_54));
+    f32 height = static_cast<f32>(static_cast<u32>(target->field_58));
+    target->Unk_49d250(0, 0, 1, 0, 0);
+    s32 result = CRenderTexture::Unk_49cf50(nullptr, nullptr);
+    if (result >= 0) {
+        Unk_GPUTexture* texture = Unk_GetTexture(source);
+        field_30.field_0->vf29(field_30.field_7dc4);
+        field_30.field_0->vf26(field_30.field_10[0], texture);
+        s32 filter = texture->vf16();
+        texture->vf15(5);
+        result = Unk_472590(0.0f, 0.0f, width, height, rects[0].field_0[0].field_0, rects[0].field_0[1].field_0,
+                            rects[0].field_0[2].field_0, rects[0].field_0[3].field_0, rects[1].field_0[0].field_0,
+                            rects[1].field_0[1].field_0, rects[1].field_0[2].field_0, rects[1].field_0[3].field_0,
+                            rects[2].field_0[0].field_0, rects[2].field_0[1].field_0, rects[2].field_0[2].field_0,
+                            rects[2].field_0[3].field_0, rects[3].field_0[0].field_0, rects[3].field_0[1].field_0,
+                            rects[3].field_0[2].field_0, rects[3].field_0[3].field_0, 0);
+        texture->vf15(filter);
+        result = result < 0 ? result : 0;
+    }
+    return result;
+}
+
+// 0x7100473fd0: one direction of a Gaussian blur with up to 8 pairs of taps
+// (the offsets step by 1, by 1.5 around the limit and by 2 beyond it)
+s32 CTextureUtil::Unk_473fd0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 sigma,
+                             f32 arg10, f32 arg11, const Unk_Float2* direction, Unk_GPUTexture* texture, s32 taps,
+                             u32 flags) {
+    s32 n = taps;
+    if (taps < 1) {
+        n = static_cast<s32>(sigma + 0.9999f);
+    }
+    n = n < 8 ? n : 8;
+    n = n > 2 ? n : 2;
+    s32 count = n * 2 + 1;
+    field_30.field_0->vf29(field_30.field_7e28[n - 2]);
+    f32 scale = -1.0f / (2.0f * sigma * sigma);
+    f32 limit = sigma * 1.4823039f;
+    Unk_24e4c18[0] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+    bool nearest = limit <= static_cast<f32>(n);
+    f32 offset = 0.0f;
+    for (s32 i = 0; i < n; i++) {
+        f32 next = offset + 1.0f;
+        if (offset > limit) {
+            next = offset + 2.0f;
+        } else if (next > limit) {
+            next = offset + 1.5f;
+        }
+        offset = next;
+        f32 dx = offset * direction->field_0[0].field_0;
+        f32 dy = offset * direction->field_0[1].field_0;
+        f32 weight = offset * (scale * offset);
+        Unk_24e4c18[1 + i * 2] = Unk_Float4(dx, dy, weight, 0.0f);
+        Unk_24e4c18[2 + i * 2] = Unk_Float4(-dx, -dy, weight, 0.0f);
+    }
+    field_30.field_0->vf22(field_30.field_c8, Unk_24e4c18, count);
+    field_30.field_0->vf22(field_30.field_c4, Unk_24e4c18, count < 8 ? count : 8);
+    Unk_24e4c18[0] = Unk_Float4(0.0f, -1.0f / (2.0f * arg10 * arg10), -1.0f / (2.0f * arg11 * arg11), 0.0f);
+    field_30.field_0->vf22(field_30.field_cc, Unk_24e4c18, 1);
+    field_30.field_0->vf26(field_30.field_10[0], texture);
+    if (static_cast<f32>(texture->field_4c) != width || static_cast<f32>(texture->field_50) != height) {
+        nearest = true;
+    }
+    s32 filter = texture->vf16();
+    texture->vf15(nearest ? 8 : 9);
+    s32 result = Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
+    texture->vf15(filter);
+    return result;
+}
+
+// 0x7100474d00: the same from one render texture into another, along x or y
+s32 CTextureUtil::Unk_474d00(f32 sigma, f32 arg2, f32 arg3, CRenderTexture* source, CRenderTexture* target,
+                             bool horizontal, s32 taps, bool clear) {
+    if (clear) {
+        Unk_471410();
+    }
+    Unk_Float2 direction = *reinterpret_cast<const Unk_Float2*>(&source->field_88);
+    if (horizontal) {
+        direction.field_0[1] = 0.0f;
+    } else {
+        direction.field_0[0] = 0.0f;
+    }
+    f32 u1;
+    f32 v1;
+    Unk_GetCoords(source, &u1, &v1);
+    f32 width = static_cast<f32>(static_cast<u32>(target->field_54));
+    f32 height = static_cast<f32>(static_cast<u32>(target->field_58));
+    target->Unk_49d250(0, 0, 1, 0, 0);
+    s32 result = CRenderTexture::Unk_49cf50(nullptr, nullptr);
+    if (result >= 0) {
+        result = Unk_473fd0(0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, sigma, arg2, arg3, &direction,
+                            Unk_GetTexture(source), taps, 0);
         result = result < 0 ? result : 0;
     }
     return result;
