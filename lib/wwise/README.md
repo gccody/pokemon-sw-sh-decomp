@@ -109,6 +109,40 @@ terms is only said here, as a guess.
   (`Unk_39b730_call`, `Unk_3b1cc0`): through a function pointer cast, and a
   comment.
 
+**More that the compiler does (third batch)**
+
+- **A cast at a call can change the caller's registers.** The second tree's
+  first level was a class of this file's naming whose `RemoveAll` had to be
+  called under the name `Unk_3babc0.h` gave it (`Unk_39f8e0(Unk_2382c60_Item*)`).
+  The `bitcast` before each call left the root's removal (`0x710039a5b0`)
+  with the same instructions and four callee-saved registers permuted. The
+  class has that header's name now, so the call needs no cast.
+- **A function that only has a declaration counts as free to inline
+  through.** A wrapper that passes a callback to the tree's visit
+  (`Unk_36b920`) had the whole visit inlined (2 KB for 84 bytes) until the
+  callback was defined in the same file: the inliner gives the bonus for an
+  indirect call it can resolve, and a declaration costs nothing.
+- **Arguments in the order of their loads.** A float argument that is read
+  before a struct argument is built is to the left of it in the call (`f32`
+  and integer arguments don't share registers, so the order doesn't show
+  otherwise); a value computed before the call's other loads is a local
+  (`Unk_36a6b0`).
+- **Filling a struct member by member** (loads and stores in turn) is not
+  a constructor with one argument a member (all loads, then all stores).
+- **Locals get their stack slots in the order of their declarations**, the
+  first one highest (`Unk_23829f8::vf5`: the two `u32` a stream call writes
+  to were swapped).
+- **The width of an expression decides where a zero extension is.** Where a
+  `u16` count is compared and later turned into a number of bytes, the
+  original extends it twice (`cmp w8, w21, uxth` and `and w8, w21, #0xffff`):
+  the bytes are computed in 64 bits (`(u64(count) + 7) >> 3`, narrowed
+  later), so EarlyCSE doesn't share the extension with the comparison's
+  (`Unk_23829b0::vf6`). The copy of the same class computes them in 32 bits.
+- **A `void*` parameter puts casts in compares.** `Unk_362d20` (a destructor
+  that `deleting_dtors.cpp` declared with `void*`) compares a member's
+  address with a pointer; the address is a cast of a byte offset there, and
+  InstCombine moves casts to the right of a compare (m, one instruction).
+
 **The two five-level trees (`Unk_36fa70.cpp`)**: sorted arrays of nodes
 (vptr, value, flag, the next level's array, key; 0x30 bytes at
 `0x710036fa70`, 0x28 at `0x71003a1830` where the value is a `u32`), the last
@@ -169,6 +203,13 @@ needed:
 - `0x71003641b0`, `0x71003637d0` (the list of playing items returned to a
   pool of 0x3c00-byte chunks): heavy register shuffling, not tried.
 - `0x7100391040` (972 bytes, a bank reader that sets bitfields): not tried.
+- `0x7100394850` (M): the stream write of `Unk_23829b0`. The original sets the
+  failure's result before the first, third and fourth write only (the
+  writes of two bytes, whose size is the same constant); here before the
+  fifth too.
+- `0x7100395830`, `0x7100395920`, `0x7100395a20`, `0x7100395b30`-`0x7100396050`:
+  classes built on `Unk_Registered`, whose template is in `registered.cpp`
+  and would have to move to a header first.
 - `0x710035fa60` (1,176 bytes) parses a RIFF file (`RIFF`/`WAVE`/`fmt `/`data`
   /`cue `/`LIST`/`smpl`... chunk tags in registers): not tried.
 
