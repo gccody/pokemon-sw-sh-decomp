@@ -7,17 +7,6 @@
 // An array that doesn't grow by itself.
 template <class T, class A = Unk_PoolDefault>
 struct Unk_FixedArray : Unk_GrowArray<T, A, 0> {
-
-    // Takes the other array's items, which it loses.
-    void Transfer(Unk_FixedArray& other) {
-        this->Term();
-        this->field_0 = other.field_0;
-        this->field_8 = other.field_8;
-        this->field_c = other.field_c;
-        other.field_0 = nullptr;
-        other.field_8 = 0;
-        other.field_c = 0;
-    }
 };
 
 template <class T, class P>
