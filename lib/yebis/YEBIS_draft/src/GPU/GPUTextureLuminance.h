@@ -10,6 +10,7 @@ namespace PPFX {
 
 class CTextureLuminance : public CGPUResourceManage {
 public:
+    explicit CTextureLuminance(const char* name) : CGPUResourceManage(nullptr) { Unk_4b75a0(name); }
     s32 vf0(IGPUDevice* device) override;  // 0x71004b7a30
     s32 vf1() override;                    // 0x71004b7ac0
     s32 vf2() override;                    // 0x71004b7b60
@@ -17,8 +18,20 @@ public:
     ~CTextureLuminance() override;         // 0x71004b79b0, 0x71004b79f0
 
     s32 Unk_4b75a0(const char* name);  // 0x71004b75a0
+    // 0x71004b7670
+    s32 Unk_4b7670(CRenderTexture* target, s32 format, s32 arg2);
     // 0x71004b8240
     s32 Unk_4b8240(CGPUBaseResourceManage* target, bool flag);
+    // (re)creates it for a target (inline in the manager)
+    s32 Unk_Create(CRenderTexture* target, s32 count, s32 format) {
+        IGPUDevice* device = field_20;
+        Unk_49ec80();
+        field_38 = count;
+        s32 result = Unk_4b7670(target, format, 0);
+        if (result < 0)
+            return result;
+        return Unk_49ec30(device);
+    }
 
     // what the name setter and vf3 leave (inline)
     void Unk_Reset() {
