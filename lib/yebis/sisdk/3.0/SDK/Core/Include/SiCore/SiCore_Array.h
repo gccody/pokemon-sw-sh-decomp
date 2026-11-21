@@ -19,7 +19,40 @@ public:
         m_pAllocator = Unk_4bc640();
     }
 
+    // with an allocator, or the kernel's for a null one
+    explicit SiArray(ISiAllocator* pAllocator)
+        : m_pAllocator(pAllocator), m_itemCount(0), m_reservedCount(0), field_20(sizeof(T)), m_pData(nullptr),
+          field_30(nullptr), field_38(nullptr), field_40(0), field_48(0) {
+        if (m_pAllocator == nullptr) {
+            m_pAllocator = Unk_4bc640();
+        }
+    }
+
     virtual ~SiArray() { Unk_4e3050(); }
+
+    // sets the number of elements, making room for them (inline in every
+    // caller: placeholder name)
+    bool Unk_SetCount(size_t count) {
+        if (m_itemCount != count) {
+            if (m_reservedCount <= count) {
+                if (!Unk_4bf190(count, true)) {
+                    m_itemCount = 0;
+                    field_30 = nullptr;
+                    field_38 = nullptr;
+                    return false;
+                }
+            }
+            m_itemCount = count;
+            if (count == 0) {
+                field_30 = nullptr;
+                field_38 = nullptr;
+            } else {
+                field_30 = m_pData;
+                field_38 = m_pData + count;
+            }
+        }
+        return true;
+    }
 
     // 0x71004bf190 (8-byte elements): makes room for count elements, keeping
     // the first ones if keep

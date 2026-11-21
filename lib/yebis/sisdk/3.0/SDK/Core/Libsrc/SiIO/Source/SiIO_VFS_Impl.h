@@ -14,6 +14,22 @@
 
 namespace SiSDK3 {
 
+// A file mapped to memory (SiIONXMemoryMappedFile's interface).
+class Unk_MappedFileInterface {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual u32 vf2();
+    virtual u32 vf3();  // releases
+    virtual void vf4();
+    virtual bool vf5(const char* path, u32 mode);  // opens
+    virtual void vf6();                            // closes
+    virtual u64 vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual u64 vf10();
+};
+
 class SiIOVFS {
 public:
     explicit SiIOVFS(ISiAllocator* pAllocator);
@@ -34,17 +50,45 @@ public:
     virtual u64 vf16();
     virtual void vf17(bool);
     virtual u8 vf18();
-    virtual void vf19();
+    virtual void vf19(const char* s);
     virtual const u8* vf20();
-    virtual void vf21();
+    virtual SiIOVFSEntry* vf21();  // a new entry
     virtual void vf22();
-    virtual void vf23();
-    virtual void vf24();
+    virtual bool vf23();
+    virtual bool vf24();
+
+    // The archive's header.
+    struct Unk_Header {
+        char field_0[8];  // "SiIOVFS"
+        u8 field_8;       // the byte order
+        u8 field_9;
+        u8 field_a;
+        u8 field_b;
+        u32 field_c;
+        s32 field_10;
+        s32 field_14;
+        s64 field_18;  // the number of entries
+        s64 field_20;
+        s64 field_28;
+    };
+
+    // 0x71005845e0: reads the header
+    bool Unk_5845e0(ISiIOStream* stream, Unk_Header* header);
+    // 0x7100584750: reads the entries
+    bool Unk_584750(ISiIOStream* stream, Unk_Header* header);
+    // 0x71005848c0: reads an entry
+    void Unk_5848c0(ISiIOStream* stream, Unk_Header* header, SiIOVFSEntry* entry);
+    // 0x7100586260: the number of entries below a directory
+    s32 Unk_586260(SiIOVFSEntry* entry);
+    // 0x7100586310
+    void Unk_586310(SiIOVFSEntry* entry);
 
     Unk_4bf660 field_8;
     bool field_18;
     bool field_19;
-    ISiIOStream* field_20;  // the archive's stream
+    u16 field_1a;
+    s32 field_1c;
+    Unk_MappedFileInterface* field_20;  // the archive's file
     SiString<char> field_28;
     SiString<char> field_58;
     SiString<char> field_88;

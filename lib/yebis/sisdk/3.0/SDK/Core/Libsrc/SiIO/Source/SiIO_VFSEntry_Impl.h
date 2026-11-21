@@ -17,7 +17,7 @@ class SiIOVFS;
 
 class SiIOVFSEntry {
 public:
-    SiIOVFSEntry();
+    SiIOVFSEntry(ISiAllocator* pAllocator, SiIOVFS* pVFS);
     virtual ~SiIOVFSEntry();
     UNK_REFCOUNT_DECLARE;
     virtual u32 vf4();
@@ -28,10 +28,10 @@ public:
     virtual const u8* vf9();
     virtual const u8* vf10();
     virtual u8 vf11();  // whether it's a directory
-    virtual u64 vf12();
-    virtual u64 vf13();
+    virtual s32 vf12();                    // the number of directories in a directory
+    virtual SiIOVFSEntry* vf13(s64 index);  // one of them
     virtual u64 vf14();
-    virtual u64 vf15();  // the number of files in a directory
+    virtual s64 vf15();  // the number of files in a directory
     virtual u64 vf16();
     virtual u64 vf17();
     virtual u64 vf18();

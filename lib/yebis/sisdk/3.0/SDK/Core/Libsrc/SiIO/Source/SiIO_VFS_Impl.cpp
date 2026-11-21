@@ -1,4 +1,224 @@
 // Scope: common
-// SiSDK3::SiIOVFS: their functions, so far the reference counts
-// their header defines.
+// SiSDK3::SiIOVFS.
+#define UNK_SIIO_VFS_IMPL
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiIO/Source/SiIO_VFS_Impl.h>
+
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_StringFuncs.h>
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiIO/Source/SiIO_MemoryStream_Impl.h>
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiIO/Source/SiIO_VFSManager_Impl.h>
+
+// 0x710057cfb0: SiIO's kernel (leafgen's name), 0x710057d840: its archive
+// manager (leafgen's name and types), 0x710057d030: the kernel as a number
+// (leafgen's name and type)
+struct Unk_57d840;
+Unk_57d840* Unk_57cfb0();
+u64 Unk_57d840_get(const Unk_57d840* self);
+u64 Unk_57d030_get();
+// 0x7100587510 (leafgen's name and type): an entry's initialisation
+bool Unk_587510_get(u64 entry);
+// 0x71004e4230: a path's directory, 0x71004c8020: a string's assignment,
+// 0x71004ca0b0: replaces a substring, 0x71004c5630: compares
+SiSDK3::SiString<char> Unk_4e4230(SiSDK3::SiString<char>* path);
+void Unk_4c8020(SiSDK3::SiString<char>* self, const SiSDK3::SiString<char>* other);
+void Unk_4ca0b0(SiSDK3::SiString<char>* self, const char* from, const char* to, u64, u64, bool);
+s64 Unk_4c5630(const char* a, const char* b, bool);
+
+namespace SiSDK3 {
+
+namespace {
+
+// SiIO's kernel: slot 11 makes a mapped file.
+class Unk_IOKernelInterface {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual Unk_MappedFileInterface* vf11(void*);
+};
+
+inline SiIOVFSManager* Unk_GetVFSManager() {
+    return reinterpret_cast<SiIOVFSManager*>(Unk_57d840_get(Unk_57cfb0()));
+}
+
+template <class T>
+inline void Unk_Release(T*& p) {
+    if (p != nullptr) {
+        p->vf3();
+        p = nullptr;
+    }
+}
+
+}  // namespace
+
+// 0x7100583d80
+SiIOVFS::SiIOVFS(ISiAllocator* pAllocator)
+    : field_8(pAllocator), field_18(false), field_19(false), field_1a(0), field_1c(0), field_20(nullptr),
+      field_28(pAllocator), field_58(pAllocator), field_88(pAllocator), field_b8(pAllocator), field_e8(nullptr),
+      field_f0(0), field_f8(pAllocator), field_148(pAllocator) {}
+
+// 0x7100583f00 (D2), 0x71005843e0 (D0)
+SiIOVFS::~SiIOVFS() {
+    field_19 = false;
+    // what vf6 does, spelled out again: the original inlines it here, which a
+    // call of vf6 or of a shared inline function isn't small enough for
+    Unk_Release(field_e8);
+    field_f8.Unk_4e3050();
+    field_148.Unk_4e3050();
+    if (field_20 != nullptr) {
+        field_20->vf6();
+        Unk_Release(field_20);
+    }
+    Unk_Release(field_e8);
+    if (Unk_GetVFSManager() != nullptr) {
+        Unk_GetVFSManager()->Unk_583a80(this);
+    }
+}
+
+// 0x7100584420
+bool SiIOVFS::vf5(const char* path, const char* root) {
+    vf6();
+    field_20 = reinterpret_cast<Unk_IOKernelInterface*>(Unk_57d030_get())->vf11(nullptr);
+    if (field_20 == nullptr) {
+        return false;
+    }
+    if (!field_20->vf5(path, 0x29)) {
+        Unk_Release(field_20);
+        return false;
+    }
+    Unk_StringAssign(&field_28, path);
+    if (root != nullptr) {
+        Unk_StringAssign(&field_58, root);
+    } else {
+        SiString<char> directory = Unk_4e4230(&field_28);
+        Unk_4c8020(&field_58, &directory);
+    }
+    Unk_4ca0b0(&field_58, "\\", "/", 0, 0, true);
+    field_18 = true;
+    SiIOMemoryStream stream(field_8.m_pAllocator);
+    stream.SiIOMemoryStream::vf75(field_20->vf10(), field_20->vf7());
+    Unk_Header header;
+    bool result;
+    if (Unk_5845e0(reinterpret_cast<ISiIOStream*>(&stream), &header)) {
+        result = Unk_584750(reinterpret_cast<ISiIOStream*>(&stream), &header);
+    } else {
+        result = false;
+    }
+    return result;
+}
+
+// 0x71005845e0
+bool SiIOVFS::Unk_5845e0(ISiIOStream* stream, Unk_Header* header) {
+    bool result = false;
+    stream->vf21(header, 8, true);
+    if (Unk_4c5630(header->field_0, "SiIOVFS", true) == 0) {
+        header->field_8 = stream->vf29(true);
+        if (static_cast<u8>(header->field_8 - 1) <= 1) {
+            stream->vf13(header->field_8);
+            header->field_9 = stream->vf29(true);
+            header->field_a = stream->vf29(true);
+            header->field_b = stream->vf29(true);
+            header->field_10 = stream->vf27(true);
+            header->field_14 = stream->vf27(true);
+            header->field_18 = stream->vf28(true);
+            header->field_20 = stream->vf28(true);
+            header->field_28 = stream->vf28(true);
+            field_f0 = header->field_28;
+            result = true;
+        }
+    }
+    return result;
+}
+
+// 0x7100584750
+bool SiIOVFS::Unk_584750(ISiIOStream* stream, Unk_Header* header) {
+    if (header->field_18 > 0) {
+        if (!field_f8.Unk_SetCount(header->field_18)) {
+            return false;
+        }
+        if (!field_148.Unk_SetCount(header->field_18)) {
+            return false;
+        }
+        for (s64 i = 0; i < header->field_18; i++) {
+            SiIOVFSEntry* entry = &field_f8.m_pData[i];
+            entry->field_18 = this;
+            entry->field_b8 = i;
+            Unk_5848c0(stream, header, entry);
+        }
+        field_e8 = field_f8.m_pData;
+        field_e8->vf2();
+        if (field_e8 != nullptr) {
+            Unk_586310(field_e8);
+        }
+    }
+    return true;
+}
+
+// 0x7100584c30
+void SiIOVFS::vf6() {
+    Unk_Release(field_e8);
+    field_f8.Unk_4e3050();
+    field_148.Unk_4e3050();
+    if (field_20 != nullptr) {
+        field_20->vf6();
+        Unk_Release(field_20);
+    }
+}
+
+// 0x71005856e0
+void SiIOVFS::vf19(const char* s) {
+    Unk_StringAssign(&field_88, s);
+}
+
+// 0x7100585700
+SiIOVFSEntry* SiIOVFS::vf21() {
+#line 638
+    SiIOVFSEntry* entry = UNK_NEW(field_8.m_pAllocator, 0x10) SiIOVFSEntry(field_8.m_pAllocator, this);
+    if (entry != nullptr && !Unk_587510_get(reinterpret_cast<u64>(entry))) {
+        entry->vf3();
+        entry = nullptr;
+    }
+    return entry;
+}
+
+// 0x71005861a0
+bool SiIOVFS::vf23() {
+    if (field_1c++ != 0) {
+        return true;
+    }
+#line 917
+    field_e8 = UNK_NEW(field_8.m_pAllocator, 0x10) SiIOVFSEntry(field_8.m_pAllocator, this);
+    if (field_e8 == nullptr) {
+        vf6();
+        return false;
+    }
+    field_e8->field_8c = true;
+    return true;
+}
+
+// 0x7100586240
+bool SiIOVFS::vf24() {
+    if (field_1c < 1) {
+        return false;
+    }
+    field_1c--;
+    return true;
+}
+
+// 0x7100586260
+s32 SiIOVFS::Unk_586260(SiIOVFSEntry* entry) {
+    s32 count = static_cast<s32>(entry->vf15() + entry->vf12());
+    for (s64 i = 0; i < entry->vf12(); i++) {
+        count += Unk_586260(entry->vf13(i));
+    }
+    return count;
+}
+
+}  // namespace SiSDK3

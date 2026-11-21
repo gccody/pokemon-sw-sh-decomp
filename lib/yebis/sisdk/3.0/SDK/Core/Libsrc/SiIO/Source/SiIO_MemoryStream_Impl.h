@@ -1,7 +1,8 @@
 // SiSDK3::SiIOMemoryStream (RTTI names the class): a stream over a buffer of
 // its own or a borrowed one. Placeholder members; the virtual functions are
 // vf<slot>. The reference counts are defined in this header (their __FILE__),
-// at the original's lines.
+// at the original's lines, for the class's own translation unit
+// (UNK_SIIO_MEMORYSTREAM_IMPL).
 #pragma once
 
 #include <stdarg.h>
@@ -125,6 +126,8 @@ PKMN_OFFSET_ASSERT(SiIOMemoryStream, field_40, 0x40);
 
 }  // namespace SiSDK3
 
+#ifdef UNK_SIIO_MEMORYSTREAM_IMPL
 // 0x7100582c10 (vf2), 0x7100582c30 (vf3)
 #line 26
 UNK_REFCOUNT_DEFINE(SiSDK3::SiIOMemoryStream, field_8.m_pAllocator, field_8.m_count)
+#endif
