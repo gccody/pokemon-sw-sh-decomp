@@ -425,10 +425,10 @@ s32 TEXSHADERSET::CreateEffect(void* device) {
     Unk_462fe0(field_7c44, "tech_LightGhost_N6");
     Unk_462fe0(field_7c9c, "tech_LightGhost_N7");
     Unk_462fe0(field_7cf4, "tech_LightGhost_N8");
-    Unk_GetTechs(field_7eac, "tech_DepthOfField_CompositeBlurredLevels_Tn", 8);
-    Unk_GetTechs(field_816c, "tech_DepthOfField_CompositeBlurredLevels_USNORM_Tn", 8);
-    Unk_GetTechs(field_842c, "tech_DepthOfField_CompositeBlurredLevelsFrontBlur_Tn", 8);
-    Unk_GetTechs(field_86ec, "tech_DepthOfField_CompositeBlurredLevelsFrontBlur_USNORM_Tn", 8);
+    Unk_GetTechs(field_7eac[0], "tech_DepthOfField_CompositeBlurredLevels_Tn", 8);
+    Unk_GetTechs(field_7eac[1], "tech_DepthOfField_CompositeBlurredLevels_USNORM_Tn", 8);
+    Unk_GetTechs(field_842c[0], "tech_DepthOfField_CompositeBlurredLevelsFrontBlur_Tn", 8);
+    Unk_GetTechs(field_842c[1], "tech_DepthOfField_CompositeBlurredLevelsFrontBlur_USNORM_Tn", 8);
     Unk_463340(field_89ac, "tech_DepthOfField_CompositeBlurLevelsFrontBlur_TSn_n");
     Unk_463340(field_9fac, "tech_DepthOfField_CompositeBlurLevelsFrontBlur_USNORM_TSn_n");
     Unk_463340(field_b5ac, "tech_DepthOfField_CompositeMaskedBlurLevels_TSn_n");
@@ -1999,6 +1999,27 @@ void CTextureUtil::Unk_47abf0(f32 value) {
     vector.field_0[2] = 1.0f / value;
     vector.field_0[3] = -(1.0f - value) / value;
     field_30.field_0->vf20(field_30.field_b0, &vector.field_0[0].field_0);
+}
+
+// 0x710047ac50: `count` textures with a pair of weights each, and two
+// rectangles of texture coordinates
+s32 CTextureUtil::Unk_47ac50(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 u2, f32 v2,
+                             f32 u3, f32 v3, s32 count, Unk_GPUTexture** textures, const Unk_Float2* weights,
+                             bool arg4, s32 arg5, s32 index, u32 flags) {
+    s32 technique = arg4 ? field_30.field_842c[arg5][count - 1][index] : field_30.field_7eac[arg5][count - 1][index];
+    if (technique == 0) {
+        return -4;
+    }
+    field_30.field_0->vf29(technique);
+    Unk_Float4 values[16];
+    for (s32 i = 0; i < count; i++) {
+        values[i] = Unk_Float4(weights[i].field_0[0], weights[i].field_0[1], 0.0f, 0.0f);
+    }
+    field_30.field_0->vf22(field_30.field_b4, values, count);
+    for (s32 i = 0; i < count; i++) {
+        field_30.field_0->vf26(GetHandle_tex2D_aTexture(i), textures[i]);
+    }
+    return Unk_471f60(x, y, width, height, u0, v0, u1, v1, u2, v2, u3, v3, flags);
 }
 
 // DRAWRECTGPU_END

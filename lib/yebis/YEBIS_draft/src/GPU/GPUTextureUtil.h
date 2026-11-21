@@ -317,10 +317,8 @@ public:
     s32 field_7e9c;
     s32 field_7ea0;
     u8 pad_7ea4[0x8];
-    s32 field_7eac[8][22];
-    s32 field_816c[8][22];
-    s32 field_842c[8][22];
-    s32 field_86ec[8][22];
+    s32 field_7eac[2][8][22];  // tech_DepthOfField_CompositeBlurredLevels(_USNORM)_Tn: [USNORM][textures - 1]
+    s32 field_842c[2][8][22];  // ...CompositeBlurredLevelsFrontBlur(_USNORM)_Tn
     s32 field_89ac[8][8][22];
     s32 field_9fac[8][8][22];
     s32 field_b5ac[8][8][22];
@@ -882,6 +880,9 @@ public:
     s32 Unk_47aa60(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, const Unk_Float4* value,
                    Unk_GPUTexture* texture, void* arg3, u32 flags);
     void Unk_47abf0(f32 value);
+    s32 Unk_47ac50(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 u2, f32 v2, f32 u3,
+                   f32 v3, s32 count, Unk_GPUTexture** textures, const Unk_Float2* weights, bool arg4, s32 arg5,
+                   s32 index, u32 flags);
     // The handle of a texture stage (inline; its name and line are its assert's)
     s32 GetHandle_tex2D_aTexture(s32 stage) {
 #line 3059
