@@ -52,15 +52,17 @@ public:
 };
 PKMN_SIZE_ASSERT(Unk_237d8a8, 0x40);
 
-void Unk_3820f0(void* self);
-
 // 0x140 bytes.
 class Unk_237bca0 : public Unk_237d540 {
 public:
     explicit Unk_237bca0(u32 id) : Unk_237d540(id), field_138(false), field_139(1), field_13a(0) {
-        field_9c &= ~0x20000;
         field_13c = 0;
     }
+
+    u32 vf17() override { return 8; }
+    void vf19(Unk_NodeArg19* a1) override;
+    u32 vf71(Unk_NodeArg71* a1) override;
+    Unk_310160_T* vf76(void* a1, void* a2, void* a3, bool a4) override;
 
     // The destructors, and their copies for the vtable at 0x18:
     // 0x7100307850 (_ZN11Unk_237bca0D2Ev)
@@ -88,6 +90,47 @@ struct Unk_3476d0_Obj;
 Unk_3476d0_Obj* Unk_307b70(u32 id) {
     Unk_237bca0* node = new (Unk_237e820) Unk_237bca0(id);
     if (node != nullptr)
-        Unk_3820f0(node);
+        node->Register();
     return reinterpret_cast<Unk_3476d0_Obj*>(node);
+}
+
+void Unk_31c020(Unk_310160_T* self, Unk_237c170* node, void* a2);
+u32 Unk_31c280(Unk_310160_T* self, void* a1, void* a2, bool a3);
+
+// 0x7100307ee0
+void Unk_237bca0::vf19(Unk_NodeArg19* a1) {
+    if (a1->field_0 != 4)
+        Unk_30a0c0(this, a1);
+}
+
+// 0x7100308030
+Unk_310160_T* Unk_237bca0::vf76(void* a1, void* a2, void* a3, bool a4) {
+    Unk_310160_T* obj = static_cast<Unk_310160_T*>(Unk_3045e0(Unk_237e820, 0xe8));
+    if (obj != nullptr) {
+        Unk_31c020(obj, this, a1);
+        obj->field_48++;
+        if (Unk_31c280(obj, a2, a3, a4) == 1) {
+            Unk_308aa0(obj);
+        } else {
+            Unk_309380_call(reinterpret_cast<Unk_309380*>(obj));
+            Unk_308aa0(obj);
+            obj = nullptr;
+        }
+    }
+    return obj;
+}
+
+// 0x71003080f0
+u32 Unk_237bca0::vf71(Unk_NodeArg71* a1) {
+    Unk_310160_T* obj =
+        Unk_237bca0::vf76(nullptr, a1->field_10, a1->field_20, a1->field_188_2);
+    if (obj == nullptr)
+        return 2;
+    obj->vf16();
+    Unk_309110_Arg arg;
+    arg.field_0 = a1->field_18->field_0;
+    arg.field_4 = a1->field_18->field_4;
+    arg.field_8 = Unk_30ae10(obj);
+    Unk_309110(obj, &arg);
+    return 1;
 }
