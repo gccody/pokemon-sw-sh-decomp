@@ -17,6 +17,14 @@ public:
     SiDirectLinkedList() : field_8(nullptr), m_pHead(nullptr), m_pTail(nullptr), m_count(0) {
         field_8 = Unk_4bc640();
     }
+    // with an allocator, or the kernel's for a null one (inline in every
+    // caller)
+    explicit SiDirectLinkedList(ISiAllocator* pAllocator)
+        : field_8(pAllocator), m_pHead(nullptr), m_pTail(nullptr), m_count(0) {
+        if (field_8 == nullptr) {
+            field_8 = Unk_4bc640();
+        }
+    }
     virtual ~SiDirectLinkedList() { RemoveAll(); }
 
     // empties the list for another allocator (the kernel's for a null pointer)
