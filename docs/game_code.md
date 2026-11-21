@@ -2706,6 +2706,49 @@ What decided the match:
 - `vf7` returns the value: both paths leave it in `x0`, so the frame is set
   up before the test. A `void` function is shrink-wrapped.
 
+### What a step makes (`familygen.py`, 2026-11-20)
+
+`vf7` calls a function of the step's own class, 61 in all (524 to 608 bytes,
+33,852 bytes, in 21 shapes). Each takes the manager (the global
+`Unk_2778c18`) and its allocator (`0x71006a1f70`), makes a *task* from it
+with `Unk_2771620_MakeUnique`, gives the task a weak reference to the step's
+interface (`this + 0x60`) and a copy of the step's member at `+0x80`, and
+hands it to the manager (`0x71006a1f80`, not decompiled). 24 match (12,896
+bytes): the two shapes whose task is 0x38 bytes, with a `u32` copied (16) or
+a reference (8). The other 37 have tasks with more members after the copy
+(explicit zeroes, a second vtable of the task's own); not written yet.
+
+A task is a class of its own, named after its vtable: a base of 0x18 bytes,
+the weak reference at `+0x18`, the copy at `+0x28`, and a last member with a
+vtable of its own. What decided the match:
+
+- the task has no constructor: it is value-initialised, so a `memset` of
+  the whole object comes first and the vptrs after it (`stp xzr, xzr` pairs
+  in descending order, the vptr paired with the zero at `+0x8`). A member
+  with a constructor of its own that stores null adds a second `memset`, and
+  its address stays in a register;
+- the task's members are a class *between* the base and the task
+  (`Unk_1054d30_TaskOf`): the last member's vptr is then stored before the
+  task's own, and the two vtable addresses are loaded in the original's
+  order. With the members in the task itself only that order differs (5
+  instructions);
+- the references in the task and in the weak reference
+  (`Unk_1054d30_Ref`) copy by testing the pointer they stored and assign by
+  taking a copy and swapping (`operator=(Ref other)`). With a copy that
+  tests the other's pointer, or an assignment that adds a reference and
+  drops the old one, the same instructions come out with two registers
+  swapped: InstCombine turns a load that is only stored into an integer
+  load, SROA then makes the temporary's slot an `i64`, and the phis that
+  jump threading leaves at the join are created in another order, which
+  decides which of them shares a register with the handle;
+- the weak reference is made from a handle returned by value
+  (`Unk_1054d30_Handle`) and the object, converted to the interface inside
+  the constructor: the conversion is then computed between the two `vf4`
+  calls;
+- the body is written out in each function. Through a shared inline
+  function clang inlines the whole make into `vf7`, which the original
+  doesn't.
+
 Still left from the list above:
 
 - the 118 lookups (`0x7100795bc0`): everything but the loop's block
