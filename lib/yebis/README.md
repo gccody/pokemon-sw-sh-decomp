@@ -525,6 +525,28 @@ From CTextureUtil's rectangles and the DrawRectGPU functions that draw them
   they store one (all loads come first). `m * v` is the order of every
   product: the first element's has the matrix element first because it is
   read first, the others the vector's (Reassociate's ranks, above).
+- `MATRIXT44_MatrixMultiply` is an inline function of ppfxTypes.h with three
+  asserts (lines 19571 to 19573); the header has its own assert macro
+  (`PPFX_TYPES_ASSERT`) so that including it does not switch `NDEBUG` for
+  anyone. Plain loops over `i` and `j` into a local matrix give the original:
+  rows 0 and 2 load the second matrix again and rows 1 and 3 reuse the loads
+  (GVN looks back 100 instructions).
+- The helpers' matrices end with `m[0][3] = m[1][3] = m[2][3] = 0.0f;
+  m[3][0] = m[3][1] = m[3][2] = 0.0f; m[3][3] = 1.0f;` after the 3x3 part in
+  row order (`Unk_RotationAxis`, which `Unk_40fde0` has three times).
+- Vectors chosen by a `switch` and stored after it (`Unk_474570`: the masks
+  of the SSAO upsample) are two locals with initial values, a `switch` without
+  `default` inside `if (mode != 0)`: the elements become integer phis, the
+  jump table gets its entry for 1 from the range check's default, and the
+  rest of the function's registers and spill slots follow. Stores in each
+  `case` are merged per case instead.
+- A size read from one of two objects (`targetTexture ? a->field_4c :
+  b->field_54`) and converted to float after a call stays in a callee-saved
+  floating-point register (`ldr s11`, later `ucvtf s2, s11`) when the
+  conversion is written where the value is read; MachineSink moves the
+  conversion, not the load. A comparison written before a run of loops
+  (`bool same = ratio <= 0.005f;`) is moved to its use by CodeGenPrepare and
+  leaves the select that feeds it before the loops.
 
 ## SiSDK3's SiIO, SiOS and SiGfx classes (0x71004ed630 to 0x7100596d20)
 
