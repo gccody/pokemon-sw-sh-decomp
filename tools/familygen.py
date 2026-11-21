@@ -8,7 +8,7 @@
 
 Unmatched functions that are the same code once branch targets and
 adrp/lo12 fields are masked are instances of one source: a template, or a
-class shape repeated. Seven such families are on gflib3's allocator
+class shape repeated. Eight such families are on gflib3's allocator
 (src/unsorted/Unk_2771620.h) and its reference-counted object
 (src/gflib3/Unk_239a418.h). This tool finds their instances and writes them,
 in src/gflib3/families:
@@ -87,6 +87,16 @@ in src/gflib3/families:
   seven functions in its vtables have the shapes of the seed's
   (Unk_240b658's, vf10 one of the kinds') and call what they call; all seven
   are written or none.
+- `makes`: what a step's vf7 calls, a function per class (in the objects'
+  file, after the steps): make a task from the manager's allocator
+  (`Unk_2771620_MakeUnique`: zeroed, then its vptrs), give it a weak
+  reference to the step's interface and a copy of the step's member at
+  +0x80, hand it to the manager (0x71006a1f80). The tasks are classes of
+  their own, named after their vtables, with a last member that has a vtable
+  too; their members are a class between their base and them. Written for
+  the shapes of `MAKE_SEEDS` (a u32 or a reference copied, a task of 0x38
+  bytes); the body is spelled out in each, since clang inlines a shared one
+  into vf7.
 
 A row is kept (written again) when its name is the one written for it and
 check.py matched it; `--only` adds addresses, `--all` writes every
@@ -1398,10 +1408,12 @@ OBJECT_HEADER = """// Scope: common
 // scalar by value, or a const& read after the base is constructed; their
 // members are what the factories store after the base: those parameters and
 // constants. Written by tools/familygen.py: regenerate, don't edit.
+#include <memory>
 #include <utility>
 
 #include "gflib3/Unk_New.h"
 #include "unsorted/Unk_23f4660.h"
+#include "unsorted/Unk_2771620.h"
 
 using Unk_Ref = Unk_239a418_Ref<Unk_239a418>;
 
@@ -1966,6 +1978,172 @@ inline T* Unk_WeakGet(const Unk_239a418_RefPair& weak) {
 """
 
 
+# ------------------------------------------------------------------------- makes
+
+MAKE_MANAGER = 0x2778C18         # the global the makes read: the manager (data symbol Unk_2778c18)
+MAKE_ALLOCATOR = 0x6A1F70        # Unk_6a1f70_getField58 (src/unsorted/leaf): the manager's allocator
+MAKE_RUN = 0x6A1F80              # the manager takes the task, not decompiled
+MAKE_NAMES = {MAKE_RUN: "_Z10Unk_6a1f80P10Unk_6a1f70NSt3__110unique_ptrI15Unk_6a1f80_Task19Unk_23f4660_DeleterEE"}
+# the shapes, by their first function: what the step's member at +0x80 is, the
+# task's member for it at +0x28 and what the task has after it
+MAKE_SEEDS = {
+    0x1054D30: ("u32", "u32", "u32"),
+    0x10868C0: ("ref", "Unk_Ref", "Unk_1054d30_Ref<Unk_239a418>"),
+}
+
+
+@dataclass
+class Make:
+    addr: int
+    step: Step
+    arg: str                    # the type of the step's member the make reads
+    member: str                 # the task's member that keeps it
+    task: int                   # the task's vtable
+    tail: int                   # the vtable of the task's last member
+
+
+def parse_make(m: Module, s: Step) -> Make | str:
+    """What a step's vf7 calls, when it has the shape of a seed."""
+    r = m.rows[s.make]
+    seed = next((x for x in MAKE_SEEDS if x in m.rows and m.rows[x].sword_size == r.sword_size
+                 and m.shape(x) == m.shape(s.make)), None)
+    if seed is None:
+        return "another shape"
+    _, arg, member = MAKE_SEEDS[seed]
+    got = m.got_target(s.make, r.sword_size)
+    if len(got) != 4 or got[0] != MAKE_MANAGER:
+        return "other globals"
+    calls = _calls(m, s.make)[0]
+    if calls[:1] != [MAKE_ALLOCATOR] or MAKE_RUN not in calls:
+        return "other calls"
+    return Make(s.make, s, arg, member, got[3], got[2])
+
+
+def make_classes(makes: list[Make]) -> str | list[str]:
+    """The tasks and their last members, each once; an error if two makes disagree on a task."""
+    tails, tasks, out = set(), {}, []
+    for k in makes:
+        spec = (k.step.owner.code, k.member, k.tail)
+        if k.task in tasks:
+            if tasks[k.task] != spec:
+                return f"the task {placeholder(k.task)} is made two ways"
+            continue
+        tasks[k.task] = spec
+        if k.tail not in tails:
+            tails.add(k.tail)
+            out.append(f"class {placeholder(k.tail)} {{\npublic:\n    virtual void vf0();\n}};\n")
+        out.append(f"class {placeholder(k.task)}\n    : public Unk_1054d30_TaskOf<Unk_1085320_Step<{k.step.owner.code}>, "
+                   f"{k.member}, {placeholder(k.tail)}> {{\npublic:\n    ~{placeholder(k.task)}() override;\n}};\n")
+    return out
+
+
+def make_function(k: Make) -> str:
+    # written out in each: through a shared inline function, clang inlines the
+    # make into the vf7 that calls it
+    return f"""// 0x{k.addr + BASE:x}
+u64 {placeholder(k.addr)}({k.step.cls}* self, void* arg) {{
+    Unk_6a1f70* manager = Unk_2778c18;
+    if (manager == nullptr)
+        return 0;
+    Unk_239a418_Allocator* allocator = reinterpret_cast<Unk_239a418_Allocator*>(Unk_6a1f70_getField58(manager));
+    if (allocator == nullptr)
+        return 0;
+    auto task = Unk_2771620_MakeUnique<{placeholder(k.task)}>(allocator);
+    task->field_18 = Unk_1054d30_MakeWeak<Unk_1085320_Step<{k.step.owner.code}>>(self);
+    task->field_28 = *static_cast<const {k.arg}*>(arg);
+    return Unk_6a1f80(manager, std::move(task));
+}}
+"""
+
+
+MAKE_HEADER = """
+// The makes: what a step's vf7 calls. Each makes a task from the manager's
+// allocator (the global Unk_2778c18, its allocator through the leaf getter
+// 0x71006a1f70), gives it a weak reference to the step's interface and a copy
+// of the step's member at +0x80, and hands it to the manager (0x71006a1f80,
+// not decompiled), which returns what the step keeps. The tasks are classes
+// of their own (their vtables are all the executable says about them): a
+// base of 0x18 bytes, the weak reference, the copy, and a last member with a
+// vtable of its own; they have no constructor, they're zeroed where they're made.
+
+// A reference with no constructor of its own (zeroed with its owner), whose
+// copy tests the pointer it stored and whose assignment takes a copy and swaps.
+template <class T>
+class Unk_1054d30_Ref {
+public:
+    Unk_1054d30_Ref() = default;
+    Unk_1054d30_Ref(const Unk_1054d30_Ref& other) : m_ptr(other.m_ptr) {
+        if (m_ptr)
+            static_cast<Unk_239a458*>(m_ptr)->vf4();
+    }
+    Unk_1054d30_Ref(const Unk_239a418_Ref<T>& other) : m_ptr(other.m_ptr) {
+        if (m_ptr)
+            static_cast<Unk_239a458*>(m_ptr)->vf4();
+    }
+    ~Unk_1054d30_Ref() {
+        if (m_ptr) {
+            static_cast<Unk_239a458*>(m_ptr)->vf5();
+            m_ptr = nullptr;
+        }
+    }
+    Unk_1054d30_Ref& operator=(Unk_1054d30_Ref other) {
+        T* p = other.m_ptr;
+        other.m_ptr = m_ptr;
+        m_ptr = p;
+        return *this;
+    }
+
+    T* m_ptr;
+};
+
+// A weak reference: the object's handle, and the object as a T.
+template <class T>
+struct Unk_1054d30_Weak {
+    Unk_1054d30_Weak() = default;
+    Unk_1054d30_Weak(const Unk_1054d30_Ref<Unk_239a418_Handle>& handle, T* ptr) : m_handle(handle), m_ptr(ptr) {}
+
+    Unk_1054d30_Ref<Unk_239a418_Handle> m_handle;
+    T* m_ptr;
+};
+
+inline Unk_1054d30_Ref<Unk_239a418_Handle> Unk_1054d30_Handle(const Unk_239a418* object) {
+    return Unk_1054d30_Ref<Unk_239a418_Handle>(object->m_handle);
+}
+
+template <class T, class U>
+inline Unk_1054d30_Weak<T> Unk_1054d30_MakeWeak(U* object) {
+    if (object == nullptr)
+        return Unk_1054d30_Weak<T>();
+    return Unk_1054d30_Weak<T>(Unk_1054d30_Handle(object), object);
+}
+
+struct Unk_6a1f70;
+u64 Unk_6a1f70_getField58(const Unk_6a1f70* self);
+extern Unk_6a1f70* Unk_2778c18;
+
+// What the manager runs: the tasks' base.
+class Unk_6a1f80_Task {
+public:
+    virtual ~Unk_6a1f80_Task();
+
+    u64 field_8;
+    u64 field_10;
+};
+
+u64 Unk_6a1f80(Unk_6a1f70* manager, std::unique_ptr<Unk_6a1f80_Task, Unk_23f4660_Deleter> task);
+
+// A task's members: they're a class between the base and the task (the
+// task's vptr is stored before its last member's).
+template <class Step, class Arg, class Tail>
+class Unk_1054d30_TaskOf : public Unk_6a1f80_Task {
+public:
+    Unk_1054d30_Weak<Step> field_18;
+    Arg field_28;
+    Tail field_30;
+};
+"""
+
+
 # ------------------------------------------------------------------------- singletons
 
 @dataclass
@@ -2120,6 +2298,7 @@ class Plan:
     creators: list = field(default_factory=list)
     adders: list = field(default_factory=list)       # (address, its factory)
     steps: list = field(default_factory=list)
+    makes: list = field(default_factory=list)
     names: dict = field(default_factory=dict)       # address -> name
     candidates: dict = field(default_factory=dict)  # family -> [addresses]
     skipped: list = field(default_factory=list)     # (family, address, reason)
@@ -2215,6 +2394,18 @@ def plan(m: Module, only: set[int] | None = None, everything: bool = False) -> P
             p.names.update(ns)
     if p.steps:
         p.names.update(STEP_NAMES)
+    p.candidates["makes"] = sorted(s.make for s in p.steps)
+    for s in p.steps:
+        k = parse_make(m, s)
+        if isinstance(k, str):
+            p.skipped.append(("makes", s.make, k))
+        elif kept(m, k.addr, p.names[k.addr], only, everything):
+            p.makes.append(k)
+    if isinstance(make_classes(p.makes), str):
+        p.skipped += [("makes", k.addr, make_classes(p.makes)) for k in p.makes]
+        p.makes = []
+    if p.makes:
+        p.names.update(MAKE_NAMES)
     if p.objects or p.creators:
         p.names.update(OUT_OF_LINE)
     return p
@@ -2242,6 +2433,9 @@ def sources(p: Plan) -> dict[str, str]:
             out[OBJECT_FILE] += "\n" + "\n".join(adder_instance(a, o) for a, o in p.adders)
         if p.steps:
             out[OBJECT_FILE] += step_header(p.steps) + "\n" + "\n".join(step_functions(s) for s in p.steps)
+        if p.makes:
+            out[OBJECT_FILE] += (MAKE_HEADER + "\n" + "\n".join(make_classes(p.makes)) + "\n"
+                                 + "\n".join(make_function(k) for k in p.makes))
     return out
 
 
@@ -2266,7 +2460,7 @@ def cmd_write(m: Module, args) -> None:
             fh.write(f"{n},{r.sword_str},{r.shield_str}\n")
     print(f"{len(p.vectors)} vector functions, {len(p.factories)} factories, "
           f"{len(p.singletons)} singletons, {len(p.objects)} objects, {len(p.creators)} creators, "
-          f"{len(p.adders)} adders, {len(p.steps)} steps; "
+          f"{len(p.adders)} adders, {len(p.steps)} steps, {len(p.makes)} makes; "
           f"{len(p.names)} names in {args.names}",
           file=sys.stderr)
 

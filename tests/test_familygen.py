@@ -309,6 +309,64 @@ def test_steps():
     assert F.parse_step(None, f) == "not a class with a weak reference and the interface"
 
 
+def test_makes():
+    funcs = {k: 0x1000 + 0x100 * n for n, k in enumerate(("vf7", "vf9", "vf10", "vf11", "t9", "t10", "t11"))}
+    step = F.Step("Unk_240b658", funcs, F.STEP_OWNERS[0x1054690], 0x1054D30, 0x1053F20)
+    k = F.Make(0x1054D30, step, "u32", "u32", 0x240CB78, 0x240B758)
+    body = F.make_function(k)
+    assert body.startswith("// 0x7101054d30\nu64 Unk_1054d30(Unk_240b658* self, void* arg) {\n")
+    assert "auto task = Unk_2771620_MakeUnique<Unk_240cb78>(allocator);" in body
+    assert ("task->field_18 = Unk_1054d30_MakeWeak<Unk_1085320_Step<const Unk_1085320_Optional<u32>*>>(self);"
+            in body)
+    assert "task->field_28 = *static_cast<const u32*>(arg);" in body
+    # two makes of one task: its classes are written once
+    other = F.Step("Unk_240b970", funcs, F.STEP_OWNERS[0x1054690], 0x10572B0, 0x1053F20)
+    k2 = F.Make(0x10572B0, other, "u32", "u32", 0x240CB78, 0x240B758)
+    classes = F.make_classes([k, k2])
+    assert classes == [
+        "class Unk_240b758 {\npublic:\n    virtual void vf0();\n};\n",
+        "class Unk_240cb78\n    : public Unk_1054d30_TaskOf<Unk_1085320_Step<const Unk_1085320_Optional<u32>*>, "
+        "u32, Unk_240b758> {\npublic:\n    ~Unk_240cb78() override;\n};\n"]
+    # a task made with another member: neither can be written
+    k3 = F.Make(0x10868C0, other, "Unk_Ref", "Unk_1054d30_Ref<Unk_239a418>", 0x240CB78, 0x240B758)
+    assert F.make_classes([k, k3]) == "the task Unk_240cb78 is made two ways"
+    # the manager's name carries the tasks' base
+    assert F.MAKE_NAMES[F.MAKE_RUN].endswith("unique_ptrI15Unk_6a1f80_Task19Unk_23f4660_DeleterEE")
+
+
+def test_parse_make():
+    # a make of the seed's shape: its globals and calls decide
+    seed = 0x1054D30
+    got_mgr, got_tls, got_tail, got_task = 0x8000, 0x8008, 0x8010, 0x8018
+
+    def body(at):
+        return [adrp(8, at, got_mgr), 0xF9400108 | ((got_mgr & 0xFFF) >> 3 << 10), bl(at + 8, F.MAKE_ALLOCATOR),
+                adrp(8, at + 12, got_tls), 0xF9400108 | ((got_tls & 0xFFF) >> 3 << 10),
+                adrp(8, at + 20, got_tail), 0xF9400108 | ((got_tail & 0xFFF) >> 3 << 10),
+                adrp(9, at + 28, got_task), 0xF9400129 | ((got_task & 0xFFF) >> 3 << 10),
+                bl(at + 36, F.MAKE_RUN), 0xD65F03C0]
+
+    other = 0x3000
+    img = bytearray(max(seed, F.MAKE_RUN) + 0x1000)
+    rows = {}
+    for at in (seed, other):
+        words = body(at)
+        struct.pack_into(f"<{len(words)}I", img, at, *words)
+        rows[at] = SimpleNamespace(sword_size=4 * len(words), status="U", name="")
+    slots = {got_mgr: F.MAKE_MANAGER, got_tls: 0x2771620, got_tail: 0x240B758, got_task: 0x240CB78}
+    m = F.Module(bytes(img), rows, slots)
+    step = F.Step("Unk_240b970", {}, F.STEP_OWNERS[0x1054690], other, 0x1053F20)
+    k = F.parse_make(m, step)
+    assert isinstance(k, F.Make), k
+    assert (k.addr, k.arg, k.task, k.tail) == (other, "u32", 0x240CB78, 0x240B758)
+    # another global first: not the manager
+    slots[got_mgr] = 0x1234
+    assert F.parse_make(F.Module(bytes(img), rows, slots), step) == "other globals"
+    # another shape
+    rows[other] = SimpleNamespace(sword_size=8, status="U", name="")
+    assert F.parse_make(m, step) == "another shape"
+
+
 def test_calls():
     # bl targets, and b targets outside the function (tail calls)
     at = 0x1000
