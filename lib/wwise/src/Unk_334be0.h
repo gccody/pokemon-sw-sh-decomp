@@ -5,12 +5,13 @@
 #include "Unk_3476d0.h"
 #include "containers.h"
 
-// A hash table of T by key: T has the next item of its chain at field_8 and
+// A hash table of T by key, with its iterator (Unk_HashList.h has the same table with a policy
+// for the key and the link, and its Reserve): T has the next item of its chain at field_8 and
 // its key at field_10.
 template <class T>
-struct Unk_HashListBare {
+struct Unk_334be0_Table {
     struct Iterator {
-        Unk_HashListBare* table;
+        Unk_334be0_Table* table;
         u32 bucket;
         T* item;
 
@@ -67,9 +68,9 @@ struct Unk_HashListBare {
 
 // 0x38 bytes: one of the index's tables.
 template <class T>
-struct Unk_Index {
+struct Unk_334be0_Index {
     nn::os::MutexType field_0;
-    Unk_HashListBare<T> field_20;
+    Unk_334be0_Table<T> field_20;
 
     T* GetAndAddRef(u32 key) {
         nn::os::LockMutex(&field_0);
@@ -89,20 +90,20 @@ struct Unk_3350e0_Obj : Unk_3476d0_Obj {
 PKMN_OFFSET_ASSERT(Unk_3350e0_Obj, field_6c, 0x6c);
 
 struct Unk_334be0_T {
-    Unk_Index<Unk_3476d0_Obj> field_0;
-    Unk_Index<Unk_3476d0_Obj> field_38;
-    Unk_Index<Unk_3476d0_Obj> field_70;
-    Unk_Index<Unk_3476d0_Obj> field_a8;
-    Unk_Index<Unk_3476d0_Obj> field_e0;
-    Unk_Index<Unk_3476d0_Obj> field_118;
-    Unk_Index<Unk_3476d0_Obj> field_150;
-    Unk_Index<Unk_3476d0_Obj> field_188;
-    Unk_Index<Unk_3350e0_Obj> field_1c0;
-    Unk_Index<Unk_3476d0_Obj> field_1f8;
-    Unk_Index<Unk_3476d0_Obj> field_230;
-    Unk_Index<Unk_3476d0_Obj> field_268;
-    Unk_Index<Unk_3476d0_Obj> field_2a0;
-    Unk_Index<Unk_3476d0_Obj> field_2d8;
+    Unk_334be0_Index<Unk_3476d0_Obj> field_0;
+    Unk_334be0_Index<Unk_3476d0_Obj> field_38;
+    Unk_334be0_Index<Unk_3476d0_Obj> field_70;
+    Unk_334be0_Index<Unk_3476d0_Obj> field_a8;
+    Unk_334be0_Index<Unk_3476d0_Obj> field_e0;
+    Unk_334be0_Index<Unk_3476d0_Obj> field_118;
+    Unk_334be0_Index<Unk_3476d0_Obj> field_150;
+    Unk_334be0_Index<Unk_3476d0_Obj> field_188;
+    Unk_334be0_Index<Unk_3350e0_Obj> field_1c0;
+    Unk_334be0_Index<Unk_3476d0_Obj> field_1f8;
+    Unk_334be0_Index<Unk_3476d0_Obj> field_230;
+    Unk_334be0_Index<Unk_3476d0_Obj> field_268;
+    Unk_334be0_Index<Unk_3476d0_Obj> field_2a0;
+    Unk_334be0_Index<Unk_3476d0_Obj> field_2d8;
 
     bool Unk_334be0();
     void Unk_334cf0();
