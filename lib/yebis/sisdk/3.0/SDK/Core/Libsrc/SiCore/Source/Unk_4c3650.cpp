@@ -67,8 +67,8 @@ public:
 // 0x71004bf730: the kernel
 SiSDK3::Unk_Kernel* Unk_4bf730();
 // 0x71004c54a0, 0x71004c5520: string copies
-void Unk_4c54a0(char* dst, size_t size, const char* src);
-void Unk_4c5520(char* dst, size_t size, const char* src, s64 count);
+void Unk_4c54a0(char* dst, s64 size, const char* src);
+void Unk_4c5520(char* dst, s64 size, const char* src, s64 count);
 
 namespace SiSDK3 {
 

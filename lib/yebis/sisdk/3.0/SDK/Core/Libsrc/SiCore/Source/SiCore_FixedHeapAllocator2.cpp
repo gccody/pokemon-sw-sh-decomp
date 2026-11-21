@@ -7,8 +7,8 @@
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_FixedHeapAllocator2.h>
 
 // 0x71004c54a0, 0x71004c5520: string copies
-void Unk_4c54a0(char* dst, size_t size, const char* src);
-void Unk_4c5520(char* dst, size_t size, const char* src, s64 count);
+void Unk_4c54a0(char* dst, s64 size, const char* src);
+void Unk_4c5520(char* dst, s64 size, const char* src, s64 count);
 
 namespace SiSDK3 {
 
