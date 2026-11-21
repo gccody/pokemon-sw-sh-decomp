@@ -4,9 +4,22 @@
 #include "Unk_PlacementNew.h"
 #include "containers.h"
 
+// How an array moves an item to another place: by assignment, or by handing
+// over what the item owns.
+template <class T>
+struct Unk_AssignMove {
+    static void Move(T& dest, T& src) { dest = src; }
+};
+
+template <class T>
+struct Unk_TransferMove {
+    static void Move(T& dest, T& src) { dest.Transfer(src); }
+};
+
 // Unk_Array with an AddLast that grows the array by kGrowBy items when it is
 // full.
-template <class T, class A = Unk_PoolDefault, u32 kGrowBy = 1, class ArgT = const T&>
+template <class T, class A = Unk_PoolDefault, u32 kGrowBy = 1, class ArgT = const T&,
+          class M = Unk_AssignMove<T>>
 struct Unk_GrowArray : Unk_Array<T, A> {
     struct Iterator {
         T* item;
@@ -34,7 +47,33 @@ struct Unk_GrowArray : Unk_Array<T, A> {
         return it;
     }
 
-    static void Move(T& dest, T& src) { dest = src; }
+    static void Move(T& dest, T& src) { M::Move(dest, src); }
+
+    void RemoveAll() {
+        for (Iterator it = Begin(), end = End(); it != end; ++it)
+            (*it).~T();
+        this->field_8 = 0;
+    }
+
+    void Term() {
+        if (this->field_0 != nullptr) {
+            RemoveAll();
+            A::Free(this->field_0);
+            this->field_0 = nullptr;
+            this->field_c = 0;
+        }
+    }
+
+    // Takes the other array's items, which it loses.
+    void Transfer(Unk_GrowArray& other) {
+        Term();
+        this->field_0 = other.field_0;
+        this->field_8 = other.field_8;
+        this->field_c = other.field_c;
+        other.field_0 = nullptr;
+        other.field_8 = 0;
+        other.field_c = 0;
+    }
 
     bool GrowArray(u32 growBy = kGrowBy) {
         u32 reserved = this->field_c + growBy;
@@ -46,6 +85,7 @@ struct Unk_GrowArray : Unk_Array<T, A> {
             for (size_t i = 0; i < length; i++) {
                 Unk_PlacementNew(items + i) T;
                 Move(items[i], this->field_0[i]);
+                this->field_0[i].~T();
             }
             A::Free(this->field_0);
         }
@@ -62,6 +102,25 @@ struct Unk_GrowArray : Unk_Array<T, A> {
         }
         if (length < this->field_c)
             return Unk_PlacementNew(this->field_0 + this->field_8++) T;
+        return nullptr;
+    }
+
+    // A new item at `index`, the ones from there on moved up.
+    T* Insert(u32 index) {
+        size_t length = this->Length();
+        if (length >= this->field_c && kGrowBy > 0) {
+            if (!GrowArray(kGrowBy))
+                return nullptr;
+        }
+        if (length < this->field_c) {
+            T* last = this->field_0 + this->field_8++;
+            Unk_PlacementNew(last) T;
+            for (T* item = last; item > this->field_0 + index; --item)
+                Move(item[0], item[-1]);
+            (this->field_0 + index)->~T();
+            Unk_PlacementNew(this->field_0 + index) T;
+            return this->field_0 + index;
+        }
         return nullptr;
     }
 
