@@ -726,26 +726,26 @@ s32 TEXSHADERSET::CreateEffect(void* device) {
     Unk_GetTechs(field_1bc74, "tech_MotionBlurCameraRotatePerspectiveFalloff_SM3_T1_Sn", 8);
     Unk_GetTechs(field_1bf34, "tech_MotionBlurCameraRotatePerspectiveFalloffBiLinearT1_Sn", 8);
     Unk_GetTechs(field_1c1f4, "tech_MotionBlurCameraRotatePerspectiveFalloffBiLinear_SM3_T1_Sn", 8);
-    field_1c4b4 = field_0->vf15("tech_MotionBlurMakeCameraVelocity_R");
-    field_1c4b8 = field_0->vf15("tech_MotionBlurMakeCameraVelocity_G");
-    field_1c4bc = field_0->vf15("tech_MotionBlurMakeCameraVelocity_B");
-    field_1c4c0 = field_0->vf15("tech_MotionBlurMakeCameraVelocity_A");
-    field_1c4c4 = field_0->vf15("tech_MotionBlurMakeCameraVelocity_RGBA8");
-    field_1c4d0 = field_0->vf15("tech_MotionBlurMakeCameraVelocityFalloff_R");
-    field_1c4d4 = field_0->vf15("tech_MotionBlurMakeCameraVelocityFalloff_G");
-    field_1c4d8 = field_0->vf15("tech_MotionBlurMakeCameraVelocityFalloff_B");
-    field_1c4dc = field_0->vf15("tech_MotionBlurMakeCameraVelocityFalloff_A");
-    field_1c4e0 = field_0->vf15("tech_MotionBlurMakeCameraVelocityFalloff_RGBA8");
-    field_1c4ec = field_0->vf15("tech_MotionBlurMakeCameraVelocityOverwrite_R");
-    field_1c4f0 = field_0->vf15("tech_MotionBlurMakeCameraVelocityOverwrite_G");
-    field_1c4f4 = field_0->vf15("tech_MotionBlurMakeCameraVelocityOverwrite_B");
-    field_1c4f8 = field_0->vf15("tech_MotionBlurMakeCameraVelocityOverwrite_A");
-    field_1c4fc = field_0->vf15("tech_MotionBlurMakeCameraVelocityOverwrite_RGBA8");
-    field_1c508 = field_0->vf15("tech_MotionBlurMakeCameraVelocityOverwriteFalloff_R");
-    field_1c50c = field_0->vf15("tech_MotionBlurMakeCameraVelocityOverwriteFalloff_G");
-    field_1c510 = field_0->vf15("tech_MotionBlurMakeCameraVelocityOverwriteFalloff_B");
-    field_1c514 = field_0->vf15("tech_MotionBlurMakeCameraVelocityOverwriteFalloff_A");
-    field_1c518 = field_0->vf15("tech_MotionBlurMakeCameraVelocityOverwriteFalloff_RGBA8");
+    field_1c4b4[0] = field_0->vf15("tech_MotionBlurMakeCameraVelocity_R");
+    field_1c4b4[1] = field_0->vf15("tech_MotionBlurMakeCameraVelocity_G");
+    field_1c4b4[2] = field_0->vf15("tech_MotionBlurMakeCameraVelocity_B");
+    field_1c4b4[3] = field_0->vf15("tech_MotionBlurMakeCameraVelocity_A");
+    field_1c4b4[4] = field_0->vf15("tech_MotionBlurMakeCameraVelocity_RGBA8");
+    field_1c4d0[0] = field_0->vf15("tech_MotionBlurMakeCameraVelocityFalloff_R");
+    field_1c4d0[1] = field_0->vf15("tech_MotionBlurMakeCameraVelocityFalloff_G");
+    field_1c4d0[2] = field_0->vf15("tech_MotionBlurMakeCameraVelocityFalloff_B");
+    field_1c4d0[3] = field_0->vf15("tech_MotionBlurMakeCameraVelocityFalloff_A");
+    field_1c4d0[4] = field_0->vf15("tech_MotionBlurMakeCameraVelocityFalloff_RGBA8");
+    field_1c4ec[0] = field_0->vf15("tech_MotionBlurMakeCameraVelocityOverwrite_R");
+    field_1c4ec[1] = field_0->vf15("tech_MotionBlurMakeCameraVelocityOverwrite_G");
+    field_1c4ec[2] = field_0->vf15("tech_MotionBlurMakeCameraVelocityOverwrite_B");
+    field_1c4ec[3] = field_0->vf15("tech_MotionBlurMakeCameraVelocityOverwrite_A");
+    field_1c4ec[4] = field_0->vf15("tech_MotionBlurMakeCameraVelocityOverwrite_RGBA8");
+    field_1c508[0] = field_0->vf15("tech_MotionBlurMakeCameraVelocityOverwriteFalloff_R");
+    field_1c508[1] = field_0->vf15("tech_MotionBlurMakeCameraVelocityOverwriteFalloff_G");
+    field_1c508[2] = field_0->vf15("tech_MotionBlurMakeCameraVelocityOverwriteFalloff_B");
+    field_1c508[3] = field_0->vf15("tech_MotionBlurMakeCameraVelocityOverwriteFalloff_A");
+    field_1c508[4] = field_0->vf15("tech_MotionBlurMakeCameraVelocityOverwriteFalloff_RGBA8");
     Unk_GetTechs(field_1c524, "tech_MotionBlurVelocityT2_Sn", 8);
     Unk_GetTechs(field_1d5a4, "tech_MotionBlurVelocity_SM3_T2_Sn", 8);
     Unk_GetTechs(field_1c7e4, "tech_MotionBlurVelocityInnerscreenT2_Sn", 8);
@@ -2072,6 +2072,95 @@ s32 CTextureUtil::Unk_47b040(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
         field_30.field_0->vf26(GetHandle_tex2D_aTexture(i), textures[i]);
     }
     return Unk_471f60(x, y, width, height, u0, v0, u1, v1, u2, v2, u3, v3, flags);
+}
+
+// 0x710047a850: up to three textures, three rectangles of texture coordinates
+s32 CTextureUtil::Unk_47a850(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 u2, f32 v2,
+                             f32 u3, f32 v3, f32 u4, f32 v4, f32 u5, f32 v5, f32 arg17, f32 arg18,
+                             const Unk_Float4* value, Unk_GPUTexture* texture0, Unk_GPUTexture* texture1,
+                             Unk_GPUTexture* texture2, s32 arg5, u32 flags) {
+    field_30.field_0->vf29(field_30.field_20724);
+    Unk_24e4c18[0] = *value;
+    Unk_24e4c18[1].field_0[0] = 1.0f / arg18;
+    Unk_24e4c18[1].field_0[1] = -arg17 / arg18;
+    field_30.field_0->vf22(field_30.field_d4, Unk_24e4c18, 2);
+    s32 filter = -1;
+    if (texture0 != nullptr) {
+        filter = texture0->vf16();
+        texture0->vf15(4);
+        field_30.field_0->vf26(field_30.field_10[0], texture0);
+    }
+    if (texture1 != nullptr) {
+        texture1->vf15(4);
+        field_30.field_0->vf26(field_30.field_10[1], texture1);
+    }
+    if (texture2 != nullptr) {
+        texture2->vf15(4);
+        field_30.field_0->vf26(field_30.field_10[2], texture2);
+    }
+    s32 result = Unk_472250(x, y, width, height, u0, v0, u1, v1, u2, v2, u3, v3, u4, v4, u5, v5, flags);
+    if (texture0 != nullptr) {
+        texture0->vf15(filter);
+    }
+    return result;
+}
+
+// 0x710047a030: the motion blur's camera velocity (tech_MotionBlurMakeCameraVelocity,
+// its Falloff and Overwrite variants)
+s32 CTextureUtil::Unk_47a030(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 u2, f32 v2,
+                             f32 u3, f32 v3, const Unk_47a030_Arg1* arg1, const void* arg2, const Unk_Float2* arg3,
+                             const Unk_Float2* arg4, const Unk_Float2* arg5, s32 index, const Unk_Float2* arg7,
+                             const Unk_Float2* falloff, Unk_GPUTexture* texture0, Unk_GPUTexture* texture1,
+                             u32 flags) {
+    bool hasFalloff = false;
+    if (falloff != nullptr && falloff->field_0[0].field_0 != 0.0f) {
+        hasFalloff = true;
+    }
+    s32 technique;
+    if (texture1 != nullptr) {
+        technique = hasFalloff ? field_30.field_1c508[index] : field_30.field_1c4ec[index];
+    } else {
+        technique = hasFalloff ? field_30.field_1c4d0[index] : field_30.field_1c4b4[index];
+    }
+    field_30.field_0->vf29(technique);
+    f32 far = arg1->field_30;
+    f32 near = arg1->field_2c;
+    Unk_Float4 planes(near, far, far * near, far - near);
+    field_30.field_0->vf20(field_30.field_a4, &planes.field_0[0].field_0);
+    Unk_24e4c18[0].field_0[0] = arg3->field_0[0];
+    Unk_24e4c18[0].field_0[1] = arg3->field_0[1];
+    Unk_24e4c18[0].field_0[2] = arg4->field_0[0];
+    Unk_24e4c18[0].field_0[3] = arg4->field_0[1];
+    Unk_24e4c18[2].field_0[0].field_0 = 1.0f / arg3->field_0[0].field_0;
+    Unk_24e4c18[2].field_0[1].field_0 = 1.0f / arg3->field_0[1].field_0;
+    f32 scale = arg5->field_0[0].field_0;
+    f32 offset = arg5->field_0[1].field_0;
+    Unk_24e4c18[2].field_0[2].field_0 = 1.0f / scale;
+    Unk_24e4c18[2].field_0[3].field_0 = -offset / scale;
+    Unk_24e4c18[1].field_0[0] = arg7->field_0[0];
+    Unk_24e4c18[1].field_0[1] = arg7->field_0[1];
+    if (hasFalloff) {
+        Unk_24e4c18[1].field_0[2].field_0 = falloff->field_0[0].field_0 / 0.99609375f;
+        Unk_24e4c18[1].field_0[3].field_0 = falloff->field_0[1].field_0 - 0.00390625f;
+    } else {
+        Unk_24e4c18[1].field_0[2].field_0 = 0.0f;
+        Unk_24e4c18[1].field_0[3].field_0 = 0.0f;
+    }
+    field_30.field_0->vf22(field_30.field_d0, Unk_24e4c18, 3);
+    field_30.field_0->vf25(field_30.field_114, arg2, 1);
+    Unk_Float4 one(1.0f, 0.0f, 1.0f, 0.0f);
+    field_30.field_0->vf20(field_30.field_c0, &one.field_0[0].field_0);
+    if (texture0 != nullptr) {
+        field_30.field_0->vf26(field_30.field_8, texture0);
+    }
+    if (texture1 != nullptr) {
+        field_30.field_0->vf26(field_30.field_c, texture1);
+    }
+    f32 sign = field_20->field_58 ? 1.0f : -1.0f;
+    if (texture1 != nullptr) {
+        return Unk_472250(x, y, width, height, u0, v0, u1, v1, -1.0f, -sign, 1.0f, sign, u2, v2, u3, v3, flags);
+    }
+    return Unk_471f60(x, y, width, height, u0, v0, u1, v1, -1.0f, -sign, 1.0f, sign, flags);
 }
 
 // DRAWRECTGPU_END
