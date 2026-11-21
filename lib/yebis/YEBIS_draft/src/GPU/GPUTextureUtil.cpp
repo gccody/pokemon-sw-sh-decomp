@@ -1917,6 +1917,53 @@ s32 CTextureUtil::Unk_4768b0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
     return Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
 }
 
+// 0x7100476bc0: the same with a power applied (1 / `power` goes to the
+// effect); with a power of 1, or none, it is the function above
+s32 CTextureUtil::Unk_476bc0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 power,
+                             s32 count, Unk_GPUTexture** textures, const Unk_Float4* colors, s32 index, u32 flags) {
+    if (power == 1.0f || power <= 0.0f) {
+        return Unk_4768b0(x, y, width, height, u0, v0, u1, v1, count, textures, colors, index, flags);
+    }
+    if (count < 1 || count > 16) {
+        return -4;
+    }
+    s32 technique;
+    s32 last = count - 1;
+    for (;; last++) {
+        technique = field_30.field_4e28[last][index];
+        if (last >= 15 || technique != 0) {
+            break;
+        }
+    }
+    s32 used = last + 1;
+    if (technique == 0) {
+        return -4;
+    }
+    field_30.field_0->vf29(technique);
+    Unk_Float4 values[16];
+    if (colors != nullptr) {
+        for (s32 i = 0; i < count; i++) {
+            values[i] = colors[i];
+        }
+    } else {
+        for (s32 i = 0; i < count; i++) {
+            values[i] = Unk_Float4(1.0f, 1.0f, 1.0f, 1.0f);
+        }
+    }
+    for (s32 i = count; i <= last; i++) {
+        values[i] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+    }
+    field_30.field_0->vf22(field_30.field_d0, values, used);
+    field_30.field_0->vf18(field_30.field_fc, 1.0f / power);
+    for (s32 i = 0; i < count; i++) {
+        field_30.field_0->vf26(GetHandle_tex2D_aTexture(i), textures[i]);
+    }
+    for (s32 i = count; i <= last; i++) {
+        field_30.field_0->vf26(GetHandle_tex2D_aTexture(i), nullptr);
+    }
+    return Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
+}
+
 // DRAWRECTGPU_END
 
 // 0x71004708b0: releases what the device made
