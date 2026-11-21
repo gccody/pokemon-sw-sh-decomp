@@ -19,7 +19,7 @@ void Unk_3b7a60(Unk_23837d0* self) {
     for (auto* p = self->field_100.field_0; p != nullptr; p = p->next)
         p->item.item.Term();
     self->field_100.RemoveAll();
-    self->field_150.field_8 = nullptr;
+    self->field_150.first = nullptr;
     self->field_150.field_0 = 0;
     self->field_128.Term();
     self->field_100.Term();
@@ -149,7 +149,7 @@ void Unk_3b97a0(Unk_23837d0* self, Unk_23837d0_Action* action) {
         break;
     case 1: {
         void* object = action->field_8;
-        for (Unk_23837d0_Cont* p = self->field_150.field_8; p != nullptr; p = p->next) {
+        for (Unk_23837d0_Cont* p = self->field_150.first; p != nullptr; p = p->next) {
             if (object == nullptr || p->field_20 == object) {
                 if (p->field_70 != 1)
                     p->field_70 = 1;
@@ -159,7 +159,7 @@ void Unk_3b97a0(Unk_23837d0* self, Unk_23837d0_Action* action) {
     }
     case 2: {
         void* object = action->field_8;
-        for (Unk_23837d0_Cont* p = self->field_150.field_8; p != nullptr; p = p->next) {
+        for (Unk_23837d0_Cont* p = self->field_150.first; p != nullptr; p = p->next) {
             if (object == nullptr || p->field_20 == object) {
                 if (p->field_70 != 0)
                     p->field_70 = 0;
@@ -201,7 +201,7 @@ u32 Unk_3b9b60(Unk_23837d0* self, u32 value, const Unk_3babc0_Key& key,
         if (objects == nullptr)
             return 2;
         u32 count = 0;
-        for (Unk_23837d0_Cont* p = self->field_150.field_8; p != nullptr; p = p->next) {
+        for (Unk_23837d0_Cont* p = self->field_150.first; p != nullptr; p = p->next) {
             if (except == nullptr || !except->vf0(Unk_3babc0_Key(p->field_20)))
                 objects[count++] = p->field_20;
         }
@@ -363,7 +363,7 @@ u32 Unk_3ba2a0(Unk_23837d0* self, u32 value, void* object) {
     history.field_0 = 0;
     history.field_4 = 0;
     u32 result = 1;
-    for (Unk_23837d0_Cont* p = self->field_150.field_8; p != nullptr; p = p->next) {
+    for (Unk_23837d0_Cont* p = self->field_150.first; p != nullptr; p = p->next) {
         if (p->field_20 == object) {
             history.Increment(value);
             if (now != nullptr) {
@@ -505,8 +505,8 @@ void Unk_3b8820(Unk_23837d0* self) {
 
 // 0x71003b8850: forgets the playing children
 void Unk_3b8850(Unk_23837d0* self) {
-    while (self->field_150.field_8 != nullptr) {
-        Unk_23837d0_Cont* cont = self->field_150.field_8;
+    while (self->field_150.first != nullptr) {
+        Unk_23837d0_Cont* cont = self->field_150.first;
         self->field_150.RemoveFirst();
         Unk_38fcb0(Unk_24bbc08, cont->field_1c);
         self->vf38(1);
@@ -543,7 +543,7 @@ void Unk_3b92b0(Unk_23837d0* self, Unk_23837d0_Action* action) {
     case 1: {
         void* object = action->field_8;
         u32 playingId = action->field_10;
-        for (Unk_23837d0_Cont* p = self->field_150.field_8; p != nullptr; p = p->next) {
+        for (Unk_23837d0_Cont* p = self->field_150.first; p != nullptr; p = p->next) {
             if (Unk_23837d0_Matches(p, object, playingId)) {
                 if (p->field_70 != 1)
                     p->field_70 = 1;
@@ -554,7 +554,7 @@ void Unk_3b92b0(Unk_23837d0* self, Unk_23837d0_Action* action) {
     case 2: {
         void* object = action->field_8;
         u32 playingId = action->field_10;
-        for (Unk_23837d0_Cont* p = self->field_150.field_8; p != nullptr; p = p->next) {
+        for (Unk_23837d0_Cont* p = self->field_150.first; p != nullptr; p = p->next) {
             if (Unk_23837d0_Matches(p, object, playingId)) {
                 if (p->field_70 != 0)
                     p->field_70 = 0;
