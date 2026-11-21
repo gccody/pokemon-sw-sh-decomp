@@ -53,7 +53,7 @@ public:
     virtual void vf19(const char* s);
     virtual const u8* vf20();
     virtual SiIOVFSEntry* vf21();  // a new entry
-    virtual void vf22();
+    virtual bool vf22(const char* path, u32 byteOrder);  // writes the archive
     virtual bool vf23();
     virtual bool vf24();
 

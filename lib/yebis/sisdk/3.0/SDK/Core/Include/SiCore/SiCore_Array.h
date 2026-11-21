@@ -54,6 +54,22 @@ public:
         return true;
     }
 
+    // makes room for count elements (inline in every caller: placeholder name)
+    bool Unk_Reserve(size_t count) {
+        bool result = Unk_4bf190(count, true);
+        if (!result) {
+            m_itemCount = 0;
+        }
+        if (m_itemCount == 0) {
+            field_30 = nullptr;
+            field_38 = nullptr;
+        } else {
+            field_30 = m_pData;
+            field_38 = m_pData + m_itemCount;
+        }
+        return result;
+    }
+
     // appends an element, growing by field_40 elements or to twice the
     // room (inline in every caller: placeholder name)
     bool Unk_Add(const T& value) {
