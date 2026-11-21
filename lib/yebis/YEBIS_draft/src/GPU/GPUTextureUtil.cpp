@@ -929,10 +929,38 @@ s32 TEXSHADERSET::CreateEffect(void* device) {
 }
 
 
+// 0x710046db60
+CTextureUtil::CTextureUtil(const char* name) : CGPUResourceManage(nullptr) {
+    Unk_46dc60(name);
+}
+
+// 0x710046d990: releases the effect's objects, and with no argument the
+// effect and its file too
+s32 TEXSHADERSET::Unk_46d990(void* arg) {
+    if (field_0 != nullptr) {
+        s32 result = field_0->vf11();
+        if (result < 0) {
+            return result;
+        }
+    }
+    if (arg == nullptr) {
+        PPFX_SAFE_RELEASE_INTERFACE(field_0);
+        // an array of bytes: nothing to destroy (the count is still before it)
+        if (field_29a20 != nullptr) {
+            Unk_4b9a60(Unk_238d5f8, reinterpret_cast<u64*>(field_29a20) - 1);
+            field_29a20 = nullptr;
+        }
+    }
+    for (s32 i = 0; i < 13; i++) {
+        PPFX_SAFE_RELEASE_INTERFACE(field_299b8[i]);
+    }
+    return 0;
+}
+
 // 0x71004708b0: releases what the device made
 s32 CTextureUtil::Unk_4708b0(void* arg) {
     field_29bb0 = arg;
-    field_30.Unk_46d990();
+    field_30.Unk_46d990(arg);
     field_29a58->vf1();
     field_29a98->vf1();
     PPFX_SAFE_RELEASE(field_29b00);

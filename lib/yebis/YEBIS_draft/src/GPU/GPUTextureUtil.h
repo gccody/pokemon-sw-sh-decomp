@@ -4,6 +4,7 @@
 #pragma once
 
 #include <stdio.h>
+#include <string.h>
 
 #include <yebis/YEBIS_draft/src/GPU/GPUInterface.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUResourceManage.h>
@@ -23,7 +24,7 @@ struct Unk_463fd0_Effect {
     virtual void vf8();
     virtual void vf9();
     virtual void vf10();
-    virtual void vf11();
+    virtual s32 vf11();
     virtual s32 vf12(u32 parent, const char* name);  // a parameter's handle
     virtual void vf13();
     virtual void vf14();
@@ -57,8 +58,16 @@ PKMN_SIZE_ASSERT(Unk_1af6c, 0x3c0);
 
 class TEXSHADERSET {
 public:
+    TEXSHADERSET() {
+        memset(this, 0, __builtin_offsetof(TEXSHADERSET, field_299b4));
+        for (s32 i = 0; i < 13; i++) {
+            field_299b8[i] = nullptr;
+        }
+        field_29a20 = nullptr;
+    }
+
     s32 CreateEffect(void* device);  // 0x7100463fd0
-    void Unk_46d990();               // 0x710046d990: releases the effect
+    s32 Unk_46d990(void* arg);       // 0x710046d990: releases the effect
 
     // a technique's handles: one per HDR format pair, per tone map, ...
     s32 Unk_462fe0(s32* techniques, const char* name);
@@ -587,7 +596,9 @@ public:
     u8 pad_29890[0x80];
     s32 field_29910[16];
     s32 field_29950[16];
-    u8 pad_29990[0x90];
+    u8 pad_29990[0x24];
+    s32 field_299b4;  // the constructor clears what's before it at once
+    IGPUInterface* field_299b8[13];
     u8* field_29a20;  // the effect file
 };
 PKMN_OFFSET_ASSERT(TEXSHADERSET, field_a0, 0xa0);
@@ -604,6 +615,7 @@ struct Unk_29af8 {
 class CTextureUtil : public CGPUResourceManage {
 public:
     CTextureUtil(const char* name);  // 0x710046db60
+    s32 Unk_46dc60(const char* name);  // 0x710046dc60
     s32 vf0(IGPUDevice* device) override;  // 0x710046edd0
     s32 vf1() override;           // 0x7100470e40
     s32 vf2() override;           // 0x7100470e70

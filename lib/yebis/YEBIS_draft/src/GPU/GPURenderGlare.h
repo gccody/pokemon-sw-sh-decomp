@@ -144,7 +144,7 @@ public:
         field_384[0] = 0.0f;
         field_384[1] = 0.0f;
         field_390 = nullptr;
-        field_348 = 0;
+        field_348 = nullptr;
     }
 
     // UNK_FIELDS_BEGIN
@@ -195,7 +195,7 @@ public:
     CGPUResourceManage* field_330;
     CGPUResourceManage* field_338;
     CGPUResourceManage* field_340;
-    u64 field_348;
+    IGPUInterface* field_348;
     CGPUResourceManage** field_350;
     u32* field_358;
     u64 field_360;
