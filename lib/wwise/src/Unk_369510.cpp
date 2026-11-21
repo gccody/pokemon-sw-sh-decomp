@@ -215,3 +215,36 @@ void Unk_36a100(Unk_369950_T* self, void* out1, void* out2) {
         }
     }
 }
+
+u32 Unk_304740(int poolId, void* ptr);
+
+// Frees the buffers.
+static inline void Unk_36a530_Term(Unk_36a5e0* self) {
+    if (self->field_0 != 0)
+        Unk_304740(Unk_2381488, reinterpret_cast<void*>(self->field_0));
+    self->field_0 = 0;
+    self->field_8 = 0;
+    self->field_10 = 0;
+    self->field_18 = 0;
+}
+
+// 0x710036a530: room for the context's two buffers, the two halves of one
+// allocation: 1, or 2 without memory.
+// NON_MATCHING: the original halves the size after the allocation (`lsr w8,
+// w20, #1`); here InstCombine folds the shift with the multiplication by 32
+// (the product, times 16, masked), which keeps the product in a register of
+// its own across the call (12 bytes more).
+u32 Unk_36a530(Unk_36a5e0* self, u32 a1, u32 a2) {
+    u32 size = a1 * ((a2 + 3) / 4) * 32;
+    if (size == self->field_8)
+        return 1;
+    if (self->field_8 != 0)
+        Unk_36a530_Term(self);
+    self->field_0 = reinterpret_cast<u64>(Unk_3046a0(Unk_2381488, size, 0x10));
+    if (self->field_0 == 0)
+        return 2;
+    self->field_8 = size;
+    self->field_10 = self->field_0;
+    self->field_18 = self->field_0 + size / 2;
+    return 1;
+}
