@@ -327,12 +327,7 @@ public:
     s32 field_7e28[7];
     u8 pad_7e44[0x4];
     s32 field_7e48;
-    s32 field_7e4c;
-    s32 field_7e50;
-    s32 field_7e54;
-    s32 field_7e58;
-    s32 field_7e5c;
-    s32 field_7e60;
+    s32 field_7e4c[2][3];  // tech_UpsampleSsao(_LN)(_MC(_Mask)): [LN][none, MC, MC and Mask]
     s32 field_7e64;
     s32 field_7e68;
     s32 field_7e6c;
@@ -940,6 +935,15 @@ public:
     s32 Unk_473410(f32 x, f32 y, f32 width, f32 height, f32 arg5, f32 arg6, f32 arg7, f32 arg8, u32 flags);
     void Unk_4783a0(f32 x, f32 y, f32 width, f32 height, f32 arg5, f32 arg6, f32 arg7, f32 arg8, const f32* color,
                     u32 flags);
+    s32 Unk_474570(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg9, f32 arg10,
+                   f32 arg11, const f32* coords, Unk_GPUTexture* texture0, Unk_GPUTexture* texture1,
+                   Unk_GPUTexture* texture2, Unk_GPUTexture* texture3, bool mc, bool im, const Unk_Vector3* arg19,
+                   s32 arg20, s32 mode, const Unk_Vector3* arg22, const Unk_Vector3* arg23, s32 linear, bool arg25,
+                   u32 flags);
+    s32 Unk_474e70(f32 arg9, f32 arg10, f32 arg11, CRenderTexture* target, Unk_GPUTexture* targetTexture,
+                   CRenderTexture* source0, CRenderTexture* source1, s32 arg20, CRenderTexture* source2, bool im,
+                   const Unk_Vector3* arg19, s32 mode, CRenderTexture* source3, const Unk_Vector3* arg22,
+                   const Unk_Vector3* arg23, s32 linear, bool clear);
     // The handle of a texture stage (inline; its name and line are its assert's)
     s32 GetHandle_tex2D_aTexture(s32 stage) {
 #line 3059

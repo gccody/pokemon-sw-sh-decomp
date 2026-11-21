@@ -44,8 +44,8 @@ public:
     virtual void vf4();
     virtual void vf5();
     virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
+    virtual s32 vf7(s32 index, void* target, s32 arg3);
+    virtual void vf8(void* arg);
     virtual void vf9(void* arg1, s32 arg2);
     virtual void vf10();
     virtual void vf11();
@@ -81,10 +81,10 @@ public:
     virtual void vf41(s32 arg1, s32 arg2);
     virtual void vf42(s32 arg);
     virtual void vf43();
-    virtual void vf44();
+    virtual void vf44(s32 arg);
     virtual void vf45();
     virtual void vf46();
-    virtual void vf47();
+    virtual s32 vf47();  // what vf44 set
     virtual void vf48();
     virtual void vf49();
     virtual void vf50();
