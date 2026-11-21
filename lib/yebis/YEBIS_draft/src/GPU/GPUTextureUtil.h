@@ -106,7 +106,7 @@ struct Unk_463fd0_Effect {
     virtual void vf18(s32 parameter, f32 value);  // a float
     virtual void vf19();
     virtual void vf20(s32 parameter, const f32* value);
-    virtual void vf21();
+    virtual void vf21(s32 parameter, f32* value);  // reads what vf20 sets
     virtual void vf22(s32 parameter, const Unk_Float4* values, s32 count);
     virtual void vf23();
     virtual void vf24();
@@ -115,7 +115,7 @@ struct Unk_463fd0_Effect {
     virtual s32 vf27(s32 technique);
     virtual s32 vf28(s32 technique);
     virtual void vf29(s32 technique);
-    virtual void vf30();
+    virtual s32 vf30();  // the technique vf29 set
     virtual void vf31();
     virtual void vf32();
     virtual void vf33(void* passes, u32 technique);  // begins a technique
@@ -934,6 +934,12 @@ public:
     s32 Unk_47b8e0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, const Unk_Float4* arg1,
                    const Unk_Float4* arg2, bool dilation, Unk_GPUTexture* texture, Unk_GPUTexture* mask, u32 flags);
     void Unk_47e000(s32* arg1, s32* arg2, s32* arg3, s32* arg4);
+    s32 DrawRectGPU_TexCoordMadT1_Sn(f32 x, f32 y, f32 width, f32 height, const f32* u0, const f32* v0, const f32* u1,
+                                     const f32* v1, s32 count, const Unk_Float4* colors, Unk_GPUTexture* texture,
+                                     s32 arg8, u32 flags);
+    s32 Unk_473410(f32 x, f32 y, f32 width, f32 height, f32 arg5, f32 arg6, f32 arg7, f32 arg8, u32 flags);
+    void Unk_4783a0(f32 x, f32 y, f32 width, f32 height, f32 arg5, f32 arg6, f32 arg7, f32 arg8, const f32* color,
+                    u32 flags);
     // The handle of a texture stage (inline; its name and line are its assert's)
     s32 GetHandle_tex2D_aTexture(s32 stage) {
 #line 3059
