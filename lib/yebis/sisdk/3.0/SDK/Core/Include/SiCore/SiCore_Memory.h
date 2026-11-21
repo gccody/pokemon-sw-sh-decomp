@@ -6,6 +6,12 @@
 #include <stddef.h>
 #include <types.h>
 
+// Construction in place (placeholder: these TUs have no <new>).
+struct Unk_Placement {};
+inline void* operator new(size_t, Unk_Placement, void* p) {
+    return p;
+}
+
 namespace SiSDK3 {
 
 class ISiAllocator {
@@ -56,6 +62,19 @@ UNK_POD(float)
 UNK_POD(double)
 #undef UNK_POD
 
+// The array new (inline in every caller: placeholder name): allocates, then
+// constructs each element, except for pointers and the builtin types.
+template <class T>
+inline T* Unk_NewArray(ISiAllocator* allocator, size_t count, u32 alignment, const char* file, int line) {
+    T* p = static_cast<T*>(allocator->vf8(sizeof(T), count, alignment, file, line));
+    if (!Unk_PodTraits<T>::value && p != nullptr) {
+        for (s64 i = 0; i < static_cast<s64>(count); i++) {
+            new (Unk_Placement(), &p[i]) T;
+        }
+    }
+    return p;
+}
+
 // 0x710056de40 (SIGFX_SHADER_PREPROCESSOR): the array delete. Destroys each
 // element (asking the allocator for their count), frees, and clears the
 // pointer.
@@ -96,7 +115,7 @@ inline void* operator new(size_t size, SiSDK3::ISiAllocator* allocator, u32 alig
 
 #define SI_DELETE(allocator, p) ::SiSDK3::Unk_4c25a0(allocator, p, __FILE__, __LINE__)
 #define SI_NEW_ARRAY(allocator, T, count, align) \
-    static_cast<T*>((allocator)->vf8(sizeof(T), count, align, __FILE__, __LINE__))
+    ::SiSDK3::Unk_NewArray<T>(allocator, count, align, __FILE__, __LINE__)
 #define SI_DELETE_ARRAY(allocator, p) ::SiSDK3::Unk_56de40(allocator, p, __FILE__, __LINE__)
 #define SI_FREE(allocator, p) (allocator)->vf9(p, __FILE__, __LINE__)
 

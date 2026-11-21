@@ -30,6 +30,9 @@ public:
 
     virtual ~SiArray() { Unk_4e3050(); }
 
+    // 0x710056e140 (SiString<char>): copies the other's elements (not written yet)
+    SiArray& operator=(const SiArray& other);
+
     // sets the number of elements, making room for them (inline in every
     // caller: placeholder name)
     bool Unk_SetCount(size_t count) {

@@ -8,19 +8,32 @@
 SiSDK3::ISiAllocator* Unk_4bc690();
 
 namespace SiSDK3 {
+template <class T>
+class SiString;
+}  // namespace SiSDK3
+
+// 0x71004c8020: a string's assignment
+void Unk_4c8020(SiSDK3::SiString<char>* self, const SiSDK3::SiString<char>* other);
+
+namespace SiSDK3 {
 
 template <class T>
 class SiString {
 public:
-    SiString() = default;
     // the kernel's allocator for a null one (inline in every caller)
-    explicit SiString(ISiAllocator* pAllocator)
+    explicit SiString(ISiAllocator* pAllocator = nullptr)
         : m_pAllocator(pAllocator), m_pBuffer(nullptr), field_10(0), field_18(0), field_20(0), field_28(0) {
         if (m_pAllocator == nullptr) {
             m_pAllocator = Unk_4bc690() != nullptr ? Unk_4bc690() : Unk_4bc640();
         }
     }
     ~SiString() { Unk_Release(); }
+
+    // 0x71004c8020 (char): out of line
+    SiString& operator=(const SiString& other) {
+        Unk_4c8020(this, &other);
+        return *this;
+    }
 
     // frees the buffer unless it isn't the string's own (inline in every
     // caller: placeholder name)
