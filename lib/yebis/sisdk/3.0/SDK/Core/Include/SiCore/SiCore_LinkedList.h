@@ -7,6 +7,8 @@
 #include <stddef.h>
 #include <types.h>
 
+#include "SiCore_Memory.h"
+
 namespace SiSDK3 {
 
 template <class T>
@@ -84,6 +86,89 @@ public:
     size_t m_count;
 };
 
+// SiSDK3's list of nodes it allocates (the class's name isn't in the
+// executable: its instances have no vtable; SiLinkedList after the header).
+// The original header's __LINE__s (the allocator's file/line arguments) are
+// kept with #line.
+template <class T>
+class SiLinkedList {
+public:
+    struct Node {
+        Node(SiLinkedList* pList, const T& value)
+            : m_pList(pList), m_pPrev(nullptr), m_pNext(nullptr), field_18(nullptr), m_value(value) {}
+
+        SiLinkedList* m_pList;
+        Node* m_pPrev;
+        Node* m_pNext;
+        void* field_18;
+        T m_value;
+    };
+
+    explicit SiLinkedList(ISiAllocator* pAllocator)
+        : m_pAllocator(pAllocator), m_pHead(nullptr), m_pTail(nullptr), m_count(0) {
+        if (m_pAllocator == nullptr) {
+            m_pAllocator = Unk_4bc640();
+        }
+    }
+    ~SiLinkedList() { RemoveAll(); }
+
+    Node* AddTail(const T& value) {
+#line 741
+        Node* node = UNK_NEW(m_pAllocator, 0x10) Node(this, value);
+        if (node == nullptr) {
+            return nullptr;
+        }
+        if (m_pHead != nullptr) {
+            m_pTail->m_pNext = node;
+            node->m_pPrev = m_pTail;
+        } else {
+            m_pHead = node;
+        }
+        m_pTail = node;
+        m_count++;
+        return node;
+    }
+
+    // unlinks and frees a node; the node after it
+    Node* Remove(Node* node) {
+        Node* prev = node->m_pPrev;
+        Node* next = node->m_pNext;
+        if (prev != nullptr) {
+            prev->m_pNext = next;
+        }
+        if (next != nullptr) {
+            next->m_pPrev = prev;
+        }
+        bool head = m_pHead == node;
+        bool tail = m_pTail == node;
+        m_count--;
+        if (m_pAllocator != nullptr) {
+#line 1243
+            SI_FREE(m_pAllocator, node);
+        }
+        if (head) {
+            m_pHead = next;
+        }
+        if (tail) {
+            m_pTail = prev;
+        }
+        return next;
+    }
+
+    void RemoveAll() {
+        while (m_pHead != nullptr) {
+            Remove(m_pHead);
+        }
+    }
+
+    ISiAllocator* m_pAllocator;
+    Node* m_pHead;
+    Node* m_pTail;
+    size_t m_count;
+};
+
 }  // namespace SiSDK3
 
 PKMN_SIZE_ASSERT(SiSDK3::SiDirectLinkedList<void**>, 0x28);
+PKMN_SIZE_ASSERT(SiSDK3::SiLinkedList<void*>, 0x20);
+PKMN_SIZE_ASSERT(SiSDK3::SiLinkedList<void*>::Node, 0x28);

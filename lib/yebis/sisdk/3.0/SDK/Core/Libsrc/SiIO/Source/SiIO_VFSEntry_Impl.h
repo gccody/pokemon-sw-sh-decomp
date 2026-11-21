@@ -1,23 +1,72 @@
-// SiSDK3::SiIOVFSEntry: as far as the executable's functions show
-// them, with placeholder members (RTTI names the classes). The reference
-// counts are defined in this header (their __FILE__), at the original's lines.
+// SiSDK3::SiIOVFSEntry (RTTI names the class): a file or a directory of a
+// mounted archive (SiIOVFS). Placeholder members; the virtual functions are
+// vf<slot>. The reference counts are defined in this header (their __FILE__),
+// at the original's lines, for the class's own translation unit
+// (UNK_SIIO_VFSENTRY_IMPL).
 #pragma once
 
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_Array.h>
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_String.h>
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_4bf660.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_RefCount.h>
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiIO/SiIO_Stream.h>
 
 namespace SiSDK3 {
 
+class SiIOVFS;
+
 class SiIOVFSEntry {
 public:
+    SiIOVFSEntry();
     virtual ~SiIOVFSEntry();
     UNK_REFCOUNT_DECLARE;
+    virtual u32 vf4();
+    virtual u64 vf5();
+    virtual u64 vf6();
+    virtual u64 vf7();
+    virtual u64 vf8();
+    virtual const u8* vf9();
+    virtual const u8* vf10();
+    virtual u8 vf11();  // whether it's a directory
+    virtual u64 vf12();
+    virtual u64 vf13();
+    virtual u64 vf14();
+    virtual u64 vf15();  // the number of files in a directory
+    virtual u64 vf16();
+    virtual u64 vf17();
+    virtual u64 vf18();
+    virtual ISiIOStream* vf19();  // a file's stream
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
 
-    SiSDK3::ISiAllocator* field_8;
-    u32 field_10;
+    Unk_4bf660 field_8;
+    SiIOVFS* field_18;        // the archive
+    SiIOVFSEntry* field_20;   // the directory it's in
+    SiString<char> field_28;  // the name
+    SiString<char> field_58;
+    u32 field_88;
+    bool field_8c;
+    s64 field_90;  // where the data starts in the archive's stream
+    s64 field_98;
+    s64 field_a0;
+    s64 field_a8;
+    u32 field_b0;
+    u64 field_b8;
+    s64 field_c0;                        // its index in the archive
+    SiArray<SiIOVFSEntry*> field_c8;     // a directory's files
+    SiArray<SiIOVFSEntry*> field_118;    // and directories
+    u64 field_168;
 };
+PKMN_SIZE_ASSERT(SiIOVFSEntry, 0x170);
+PKMN_OFFSET_ASSERT(SiIOVFSEntry, field_88, 0x88);
+PKMN_OFFSET_ASSERT(SiIOVFSEntry, field_c8, 0xc8);
 
 }  // namespace SiSDK3
 
+#ifdef UNK_SIIO_VFSENTRY_IMPL
 // 0x71005879b0 (vf2), 0x71005879d0 (vf3)
 #line 33
-UNK_REFCOUNT_DEFINE(SiSDK3::SiIOVFSEntry, field_8, field_10)
+UNK_REFCOUNT_DEFINE(SiSDK3::SiIOVFSEntry, field_8.m_pAllocator, field_8.m_count)
+#endif
