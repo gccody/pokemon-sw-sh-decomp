@@ -78,6 +78,12 @@ public:
     bool Unk_584750(ISiIOStream* stream, Unk_Header* header);
     // 0x71005848c0: reads an entry
     bool Unk_5848c0(ISiIOStream* stream, Unk_Header* header, SiIOVFSEntry* entry);
+    // 0x7100585ca0: lists every entry from the root down, and numbers them (field_b8)
+    void Unk_585ca0(SiArray<SiIOVFSEntry*>* list);
+    // 0x7100585d70: copies a list, sorts it by field_88 and numbers it (field_c0)
+    void Unk_585d70(SiArray<SiIOVFSEntry*>* list, SiArray<SiIOVFSEntry*>* sorted);
+    // 0x7100586750: lists the entries below a directory
+    void Unk_586750(SiArray<SiIOVFSEntry*>* list, SiIOVFSEntry* entry);
     // 0x7100586260: the number of entries below a directory
     s32 Unk_586260(SiIOVFSEntry* entry);
     // 0x7100586310
