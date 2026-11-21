@@ -201,6 +201,25 @@ struct Unk_Array {
         return it;
     }
 
+    bool IsEmpty() const { return field_8 == 0; }
+    T& Last() { return *(field_0 + field_8 - 1); }
+
+    // Removes the item at `index`: the ones after it move down.
+    void Erase(u32 index) {
+        T* last = field_0 + field_8 - 1;
+        for (T* p = field_0 + index; p < last; p++)
+            p[0] = p[1];
+        last->~T();
+        field_8--;
+    }
+
+    // Puts the last item in the place of the erased one.
+    void EraseSwap(Iterator& it) {
+        if (Length() > 1)
+            *it.item = Last();
+        field_8--;
+    }
+
     bool Resize(u32 size) {
         u32 length = Length();
         if (size < length) {

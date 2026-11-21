@@ -90,3 +90,51 @@ struct Unk_SortedKeyArray : Unk_Array<T, A, GrowBy> {
         return item;
     }
 };
+
+// How two keys compare.
+template <class K>
+struct Unk_KeyLess {
+    static bool Lesser(K& a, K& b) { return a < b; }
+};
+template <class K>
+struct Unk_KeyGreater {
+    static bool Lesser(K& a, K& b) { return a > b; }
+};
+
+// The same array with the order of its keys given (0x71003c0050 keeps its
+// items from the highest key down).
+template <class K, class T, class GetKey, class Compare, class A = Unk_PoolDefault, u32 GrowBy = 1>
+struct Unk_SortedKeyArrayBy : Unk_Array<T, A, GrowBy> {
+    T* BinarySearch(K key, bool& found) const {
+        s32 top = 0;
+        s32 bottom = this->Length() - 1;
+        while (top <= bottom) {
+            s32 mid = (bottom - top) / 2 + top;
+            if (Compare::Lesser(key, GetKey::Get(this->field_0[mid]))) {
+                bottom = mid - 1;
+            } else if (Compare::Lesser(GetKey::Get(this->field_0[mid]), key)) {
+                top = mid + 1;
+            } else {
+                found = true;
+                return this->field_0 + mid;
+            }
+        }
+        found = false;
+        return this->field_0 != nullptr ? this->field_0 + top : nullptr;
+    }
+
+    // A new item where `key` belongs, whether the array has the key or not.
+    // The caller sets its key (an item that is a pointer has it in what it
+    // points to).
+    T* AddNoSetKey(K key) {
+        bool found;
+        T* item = BinarySearch(key, found);
+        if (item != nullptr) {
+            u32 index = static_cast<u32>(item - this->field_0);
+            item = this->Insert(index);
+        } else {
+            item = this->AddLastGrow();
+        }
+        return item;
+    }
+};

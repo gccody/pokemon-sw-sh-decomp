@@ -10,12 +10,14 @@ struct Unk_ListCount {
 
     void Increment() { ++field_0; }
     void Decrement() { --field_0; }
+    void Reset() { field_0 = 0; }
 };
 
 template <class T>
 struct Unk_ListNoCount {
     void Increment() {}
     void Decrement() {}
+    void Reset() {}
 };
 
 // ... and the last item or not.
@@ -23,6 +25,7 @@ template <class T>
 struct Unk_ListLast {
     T* last;
 
+    T* GetLast() { return last; }
     void SetLast(T* item) { last = item; }
     void RemoveItem(T* item, T* prev) {
         if (item == last)
@@ -49,26 +52,37 @@ struct Unk_ListNext {
 // inliner runs) and that a call follows the store of null.
 template <class T, template <class> class Count, template <class> class Last>
 struct Unk_ListPolicy : Count<T>, Last<T> {
-    T* field_8;  // first
+    T* first;
 
     void AddFirst(T* item) {
-        if (field_8 == nullptr) {
-            field_8 = item;
+        if (first == nullptr) {
+            first = item;
             Last<T>::SetLast(item);
             Unk_ListNext<T>::Get(item) = nullptr;
         } else {
-            Unk_ListNext<T>::Get(item) = field_8;
-            field_8 = item;
+            Unk_ListNext<T>::Get(item) = first;
+            first = item;
         }
         Count<T>::Increment();
     }
 
+    // For a list that keeps its last item.
+    void AddLast(T* item) {
+        Unk_ListNext<T>::Get(item) = nullptr;
+        if (first == nullptr)
+            first = item;
+        else
+            Unk_ListNext<T>::Get(Last<T>::GetLast()) = item;
+        Last<T>::SetLast(item);
+        Count<T>::Increment();
+    }
+
     void RemoveFirst() {
-        if (Unk_ListNext<T>::Get(field_8) == nullptr) {
-            field_8 = nullptr;
+        if (Unk_ListNext<T>::Get(first) == nullptr) {
+            first = nullptr;
             Last<T>::SetLast(nullptr);
         } else {
-            field_8 = Unk_ListNext<T>::Get(field_8);
+            first = Unk_ListNext<T>::Get(first);
         }
         Count<T>::Decrement();
     }
@@ -98,13 +112,13 @@ struct Unk_ListPolicy : Count<T>, Last<T> {
 
     Iterator Begin() {
         Iterator it;
-        it.item = field_8;
+        it.item = first;
         return it;
     }
 
     IteratorEx BeginEx() {
         IteratorEx it;
-        it.item = field_8;
+        it.item = first;
         it.prev = nullptr;
         return it;
     }
@@ -125,8 +139,8 @@ struct Unk_ListPolicy : Count<T>, Last<T> {
     }
 
     void RemoveItem(T* item, T* prev) {
-        if (item == field_8)
-            field_8 = Unk_ListNext<T>::Get(item);
+        if (item == first)
+            first = Unk_ListNext<T>::Get(item);
         else
             Unk_ListNext<T>::Get(prev) = Unk_ListNext<T>::Get(item);
         Last<T>::RemoveItem(item, prev);
@@ -146,6 +160,16 @@ struct Unk_ListPolicy : Count<T>, Last<T> {
         IteratorEx it = FindEx(item);
         if (it != End())
             Erase(it);
+    }
+
+    bool IsEmpty() const { return first == nullptr; }
+    T* First() { return first; }
+
+    // Forgets the items.
+    void RemoveAll() {
+        Count<T>::Reset();
+        first = nullptr;
+        Last<T>::SetLast(nullptr);
     }
 };
 
