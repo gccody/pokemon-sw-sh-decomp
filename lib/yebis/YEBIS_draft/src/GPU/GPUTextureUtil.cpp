@@ -2926,6 +2926,56 @@ void CTextureUtil::Unk_47e000(s32* arg1, s32* arg2, s32* arg3, s32* arg4) {
     }
 }
 
+// 0x7100473b50 (its log line names it): `count` samples (1 to 4) of one
+// texture, each times a colour, through the rectangle with four texture
+// coordinate sets
+s32 CTextureUtil::DrawRectGPU_TexCoordMadT1_Sn(f32 x, f32 y, f32 width, f32 height, const f32* u0, const f32* v0,
+                                               const f32* u1, const f32* v1, s32 count, const Unk_Float4* colors,
+                                               Unk_GPUTexture* texture, s32 arg8, u32 flags) {
+    if (count < 1 || count > 4) {
+        return -4;
+    }
+    if (arg8 != 0) {
+        return -4;
+    }
+    s32 technique = field_30.field_1b414[count - 1];
+    if (technique == 0) {
+#line 11261
+        PPFX_ERROR("CTextureUtil::DrawRectGPU_TexCoordMadT1_Sn(): GetHandle_tech_TexCoordMadT1_Sn(%d) failed.\n", count);
+        return -4;
+    }
+    field_30.field_0->vf29(technique);
+    if (colors != nullptr) {
+        for (s32 i = 0; i < count; i++) {
+            Unk_24e45d0.field_448[i] = colors[i];
+        }
+    } else {
+        for (s32 i = 0; i < count; i++) {
+            Unk_24e45d0.field_448[i] = Unk_Float4(1.0f, 1.0f, 1.0f, 1.0f);
+        }
+    }
+    field_30.field_0->vf22(field_30.field_d0, Unk_24e45d0.field_448, count);
+    if (texture != nullptr) {
+        field_30.field_0->vf26(field_30.field_10[0], texture);
+    }
+    return Unk_473150(x, y, width, height, u0, v0, u1, v1, count, flags);
+}
+
+// 0x71004783a0: the outline 0x7100473410 draws, in one colour
+// (tech_ConstantColor); the effect's technique and colour are put back after
+void CTextureUtil::Unk_4783a0(f32 x, f32 y, f32 width, f32 height, f32 arg5, f32 arg6, f32 arg7, f32 arg8,
+                              const f32* color, u32 flags) {
+    s32 technique = field_30.field_22738;
+    s32 saved = field_30.field_0->vf30();
+    field_30.field_0->vf29(technique);
+    f32 previous[16];
+    field_30.field_0->vf21(field_30.field_d8, previous);
+    field_30.field_0->vf20(field_30.field_d8, color);
+    Unk_473410(x, y, width, height, arg5, arg6, arg7, arg8, flags);
+    field_30.field_0->vf29(saved);
+    field_30.field_0->vf20(field_30.field_d8, previous);
+}
+
 // DRAWRECTGPU_END
 
 // 0x71004708b0: releases what the device made
