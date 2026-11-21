@@ -40,6 +40,8 @@ public:
     virtual const u8* vf10();
     virtual const u8* vf11();
 
+    void Unk_4c8b50(ISiAllocator* pAllocator);  // 0x71004c8b50
+
     Unk_4bf660 field_8;
     char field_18[0x80];
     char field_98[0x80];

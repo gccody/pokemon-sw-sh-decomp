@@ -71,6 +71,11 @@ public:
             field_28 |= 1;
         }
     }
+    // empties the string for another allocator (inline: placeholder name)
+    void Unk_SetAllocator(ISiAllocator* pAllocator);
+    // an empty string in a buffer that isn't its own (inline: placeholder
+    // name)
+    void Unk_SetBuffer(T* pBuffer, size_t capacity);
 
     ISiAllocator* m_pAllocator;
     T* m_pBuffer;

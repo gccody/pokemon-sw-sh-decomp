@@ -204,7 +204,7 @@ classes by RTTI (CGPUBaseResourceManage is CGPUResourceManage's base; its
 vtable isn't in the executable). Virtual functions are `vf<slot>`, as
 lib/yebis/class names them.
 
-## SiCore (0x71004bc640 to 0x71004c8ef0)
+## SiCore (0x71004bc640 to 0x71004ca7a0)
 
 SiSDK3's core library starts YEBIS's second half. Its TUs, in address order
 (a TU ends with its static initialiser; the ones that only construct the TU's
@@ -214,8 +214,9 @@ SiSDK3's core library starts YEBIS's second half. Its TUs, in address order
 |---|---|---|
 | 0x4bc640-0x4bc6c0 | `Unk_4bc640.cpp` | the kernel's allocator or the static one |
 | 0x4bc7f0-0x4bf5e0 | `SiCore_FixedHeapAllocator2.cpp` | the allocator over fixed regions, its header pool |
-| 0x4bf730-0x4c2cd0 | `SiCore_Kernel_Impl.cpp` | `SiKernel` (not written: lib/yebis/class has its accessors) |
-| 0x4c2cd0 | `Unk_4c2cd0.cpp` | the static `SiHeapAllocator` (the initialiser is the TU) |
+| 0x4bf660-0x4bf6b0 | `Unk_4bf660.cpp` | the allocator and count every object keeps: its constructor |
+| 0x4bf730-0x4c2cd0 | `SiCore_Kernel_Impl.cpp` | `SiKernel` (lib/yebis/class has its accessors) |
+| 0x4c2cd0 | `Unk_4c2cd0.cpp` | the static `SiHeapAllocator` (the kernel TU's initialiser) |
 | 0x4c2d70-0x4c32e0 | `SiCore_HeapAllocator.cpp` | the allocator over the memory system |
 | 0x4c3360-0x4c35c0 | `Unk_4c3360.cpp` | CRC-32 |
 | 0x4c3640-0x4c4100 | `Unk_4c3650.cpp` | `SiMemorySystem`: malloc with a header, 65536 lists by address |
@@ -223,6 +224,8 @@ SiSDK3's core library starts YEBIS's second half. Its TUs, in address order
 | 0x4c6090-0x4c8620 | `SiCore_StringTable_Impl.cpp` | `SiStringTable` (not written) |
 | 0x4c86a0-0x4c8840 | `Unk_4c86a0.cpp` | `SiCoreCriticalSection`, the scoped lock |
 | 0x4c88c0-0x4c8ef0 | `SiCore_SystemInfo_Impl.cpp` | `SiSystemInfo` |
+| 0x4c8f70-0x4ca620 | `Unk_4c8f70.cpp` | ids (`SI_GUID`), the tick's period, noise; a report function, languages (not written) |
+| 0x4ca6a0-0x4ca7a0 | `Unk_4ca6a0.cpp` | the noise's tables |
 
 What decided matches here, beyond the list above:
 
@@ -261,13 +264,66 @@ What decided matches here, beyond the list above:
   a script and the single-TU compile settles it in minutes (four to six
   statements; the order that matches is often not the address order).
 
+`SiKernel` added these (the class is `SiKernel : ISiKernel : ISiInterface` by
+its RTTI; the file writes it as one class):
+
+- **One more inline function is one more run of the function passes**, and it
+  shows. `SiArray`'s clear (0x71004e3050: free, then six zero stores) keeps
+  `m_pData`'s store apart from the two after it when it is inlined straight
+  into a function that also reads `m_pData` in a loop (GVN's scalar PRE makes
+  the address a phi, and MemCpyOpt can't merge through a phi); through an
+  inline wrapper (`Unk_FreeAll() { Unk_4e3050(); }`) MemCpyOpt has already made
+  the three stores one 24-byte memset in the wrapper, and the caller keeps
+  `&m_pData` in a register for it (`str xzr, [x20]; stp xzr, xzr, [x20, #8]`).
+  The array's destructor is such a level by itself. The kernel's set-up has
+  the same thing one level up: the string tables' array gets its allocator and
+  its buffer in a kernel inline function of its own (`Unk_SetTablesAllocator`),
+  which is why the buffer's free is gone on the path where the allocator
+  changed (jump threading in the inline function, then GVN's load PRE in the
+  caller) and the buffer's address is computed on both paths.
+- `if (p != nullptr) f(p); else f(&global);` is two calls that the back end
+  merges; `f(p != nullptr ? p : &global)` is a select that loads the global's
+  address from the GOT on both paths.
+- A counter that is read again after every write (`ldr; add; str; ldr`) is
+  `volatile`: the kernel's set-up count, and the reference count's member
+  (its constructor stores the count and the word after it one by one, where
+  two plain 32-bit constants would be one 64-bit store).
+- `SiArray::RemoveByIndex` takes an `int` and compares a signed 64-bit index
+  with the count; the loop that calls it counts an `int` down. The mix of
+  `sxtw` and signed compares in the removal says so.
+- `SiString`'s clears in the kernel are the nested one (`Unk_EmptyAll`): the
+  16-byte store of buffer and length comes before the two single stores.
+- A buffer on the stack that is 0x404 bytes when 0x400 are passed on
+  (`sub sp, #0x420`, the buffer at `sp+0xc`): `char buffer[0x400 + 4]`.
+- A function that keeps its `int` result in x0 through a loop and returns
+  without setting it returns that value: `vf20` returns the array's count.
+- Globals reached with `adrp`+`add`/`str` instead of the GOT, but used from
+  another TU's code too, are hidden-visibility globals here
+  (`__attribute__((visibility("hidden")))`): the kernel pointer, the tick's
+  period, the kernel's own string table's id.
+- The append's growth (`step != 0 ? step + reserved : (2 * reserved != 0 ?
+  2 * reserved : 1)`) is a branch in IR that the back end's early
+  if-conversion turns into `csel` or leaves, by the code around it: written
+  as a default that is then overridden it is always a `csel`, which matches
+  `vf20` better and breaks two of SiGfx's readers. It stays a branch.
+- Float code is scheduled twice (the post-RA scheduler of the Cortex-A57
+  tuning): the registers follow the order before register allocation, the
+  instructions the one after it. `Unk_4ca6a0` needed its three products as
+  named locals; the noise function itself (0x71004c9110, 344 bytes) has the
+  right instructions in another order and isn't written.
+
 Not matching yet in these files (status `m`, each with its reason in the
 source): `SiFixedHeapAllocator2`'s constructor and `Unk_4bd610`,
-`SiPool::Unk_4bcfa0`, `Unk_4c5a40`. Not written: the fixed allocator's `vf8`
-and `vf9` (allocate and free, 1.4 KB each, intrusive list work throughout),
-`SiPool::Unk_4be7d0`, the string TU's conversions (`Unk_4c42b0`, `Unk_4c4700`,
-`Unk_4c49f0`, `Unk_4c4f60`, `Unk_4c5280` and smaller ones), `SiKernel`,
-`SiStringTable`, `SiSystemInfo::Unk_4c8b50`.
+`SiPool::Unk_4bcfa0`, `Unk_4c5a40`, `Unk_4c4d90`, `SiKernel::vf20` (block
+layout). Not written: the fixed allocator's `vf8` and `vf9` (allocate and
+free, 1.4 KB each, intrusive list work throughout), `SiPool::Unk_4be7d0`, the
+string TU's conversions (`Unk_4c42b0`, `Unk_4c4700`, `Unk_4c49f0`,
+`Unk_4c4f60`, `Unk_4c5280` and smaller ones; `Unk_4c5930`, a number's digits
+in groups of three, is close), the kernel's map of reflected classes (insert
+0x71004c09a0 and erase 0x71004c0e60, a red-black tree whose nodes have their
+colour at +0x30), `SiStringTable`, and of the last TU the report function
+(0x71004c9090, variadic), the noise (0x71004c9110) and the languages
+(0x71004c9390 on).
 
 ## PPFX's GPU layer (0x710040f550 to 0x7100481000)
 

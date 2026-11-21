@@ -10,7 +10,20 @@
 u64 Unk_4bf7b0_get();
 
 namespace SiSDK3 {
-// The kernel as SiIO's and SiGfx's code uses it: slot 12 is its allocator.
+// What the kernel tells about the machine, as its users see it: slot 5 is a
+// block that starts with the system tick's frequency.
+class Unk_SystemInfoInterface {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual const s64* vf5();
+};
+
+// The kernel as SiIO's and SiGfx's code uses it: slot 12 is its allocator,
+// slot 15 its system info.
 class Unk_KernelInterface {
 public:
     virtual void vf0();
@@ -26,6 +39,9 @@ public:
     virtual void vf10();
     virtual void vf11();
     virtual ISiAllocator* vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual Unk_SystemInfoInterface* vf15();
 };
 inline Unk_KernelInterface* Unk_GetKernel() {
     return reinterpret_cast<Unk_KernelInterface*>(Unk_4bf7b0_get());

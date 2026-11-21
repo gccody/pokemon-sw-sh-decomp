@@ -30,6 +30,15 @@ SiSystemInfo::SiSystemInfo(ISiAllocator* pAllocator)
 // 0x71004c89e0, 0x71004c8aa0
 SiSystemInfo::~SiSystemInfo() {}
 
+// 0x71004c8b50
+void SiSystemInfo::Unk_4c8b50(ISiAllocator* pAllocator) {
+    field_8.m_pAllocator = pAllocator;
+    field_118.Unk_SetAllocator(pAllocator);
+    field_118.Unk_SetBuffer(field_18, sizeof(field_18));
+    field_148.Unk_SetAllocator(pAllocator);
+    field_148.Unk_SetBuffer(field_98, sizeof(field_98));
+}
+
 // 0x71004c8d40
 void SiSystemInfo::vf6() {
     char text[0x400];

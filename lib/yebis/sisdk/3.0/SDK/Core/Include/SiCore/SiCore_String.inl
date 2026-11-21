@@ -37,6 +37,35 @@ inline void SiString<T>::Unk_Clear() {
 }
 
 template <class T>
+inline void SiString<T>::Unk_SetAllocator(ISiAllocator* pAllocator) {
+    if (field_10 != 0) {
+        Unk_EmptyAll();
+    }
+    if (!(field_28 & 1)) {
+        if (m_pBuffer != nullptr) {
+            if (m_pAllocator != nullptr) {
+#line 250
+                SI_FREE(m_pAllocator, m_pBuffer);
+            }
+            m_pBuffer = nullptr;
+        }
+        m_pBuffer = nullptr;
+    }
+    m_pAllocator = pAllocator;
+}
+
+template <class T>
+inline void SiString<T>::Unk_SetBuffer(T* pBuffer, size_t capacity) {
+    Unk_FreeBuffer();
+    field_18 = 0;
+    field_20 = capacity;
+    pBuffer[0] = 0;
+    m_pBuffer = pBuffer;
+    field_10 = 0;
+    field_28 = 1;
+}
+
+template <class T>
 inline void SiString<T>::Unk_FreeBuffer() {
     if (!(field_28 & 1) && m_pBuffer != nullptr) {
         if (m_pAllocator != nullptr) {
