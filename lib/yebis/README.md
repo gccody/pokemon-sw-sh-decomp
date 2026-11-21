@@ -695,6 +695,39 @@ placeholder named after its first function (`SiOS/Source/Unk_596410.cpp`,
   virtual functions' returns, `(s32)fwrite(...) == 1`, flag reads before the
   stores that follow: see the comments in `SiIO_NX_FileStream_Impl.cpp` and
   `SiIO_MemoryStream_Impl.cpp`.
+- A function that doesn't use an argument loses it in its callers too (dead
+  argument elimination, for functions of the translation unit): the package's
+  readers and writers are inline members that use `this`, and their callers
+  pass what the original passes.
+- `SiString::Unk_Clear` clears the buffer's pointer between the capacity and
+  the flags, and both lists' `AddTail` test the empty list first: the orders
+  of the original's stores and branches (0x7100574a20, 0x710057d9a0).
+- An abstract class's deleting destructor is a trap (4 bytes) and its complete
+  destructor is the base one's alias; a class with nothing to destroy has
+  `b _ZdlPv` (`SiGfxShaderEffectKey`).
+- A kernel's pointer to itself is only written in its translation unit: a
+  `static` would be removed with its stores, so it's declared
+  `extern ... __attribute__((visibility("hidden")))`, as `lib/yebis/leaf`
+  does, and read without the GOT. Counters that are read are `static`.
+- The kernels' initialisation count is read again right after it's stored,
+  with no call in between (`ldr`, `add`, `str`, `ldr`, `cmp`): a `volatile`
+  member in the original, which is the only thing that makes clang reload
+  it. `SiIOKernel` and `SiMathKernel` declare it so.
+- A value-initialised pair of pointers (`field_18()`) gives the 16-byte zero
+  before the other members' stores (the chunk handler's links); a zeroed local
+  struct assigned after another member's store gives the archive's header.
+- A loop that sets a result and breaks shares the return block; a ternary of
+  two calls (`c ? f(a) : f(g())`) duplicates the call as the original does.
+- Addresses used on both sides of a call become locals (`pair0`, `pair1` in
+  `Unk_56d630`), which clang keeps in callee-saved registers; an index read
+  into a local before the array's pointer gives the original's load order.
+- `SiPool`'s instances are in files of their own (`instances/SiPool_*.cpp`):
+  with a member's definition visible in the translation unit that calls it, it
+  would be inlined there. The pool's constructor tests its parameter
+  (`pAllocator == nullptr`) at the end, not the member it stored.
+- The quad tree node's constructor isn't unrolled in its array's reserve and
+  clears six words from the last pair to the first: four pointers cleared by a
+  loop, then two words, a number and a flag (`instances/SiPool_QuadNode.cpp`).
 
 ### How it was done
 
@@ -709,20 +742,58 @@ compares `m_reservedCount`, the assignment copies `field_40`).
 ### Near misses (`m`) and what's left
 
 The `m` functions each have their `NON_MATCHING` reason: register choices of
-the allocator (SiIOVFS's entry reader and sort, two file stream functions),
-the order of independent stores (SiIOVFSManager's mount, the variation's
-release), a return block shared instead of duplicated or the reverse
-(SiIOCSVDocument::vf15, SiGfxShaderEffectDefinition::vf11, the package's
-vf15), a tail call where the original has a call (`Unk_55bc90`), four bytes of
-frame (SiIOCSVDocument's constructor and vf17).
+the allocator (SiIOVFS's entry reader and sort, two file stream functions, the
+package's release `Unk_5686f0`, where two registers are exchanged between live
+ranges of the same length), the order of independent stores (SiIOVFSManager's
+mount and `Unk_583980`), a return block shared instead of duplicated or the
+reverse (SiIOCSVDocument::vf15, SiGfxShaderEffectDefinition::vf11, the
+package's vf15), a tail call where the original has a call (`Unk_55bc90`),
+four bytes of frame (SiIOCSVDocument's constructor and vf17), an argument the
+original still passes to a function that doesn't use it
+(`SiIOBinaryArchive::Unk_57b9c0`).
+
+Tried and not written:
+
+- `SiPool::Unk_4be7d0` (0x7100532020, 0x7100534580, 0x71005000e0; the base
+  instance is 0x71004be7d0): the reconstruction keeps `&m_pData` in a register
+  across the loop and clears 24 bytes with one `memset`, where the original
+  has a store and a `memset` of 16.
+- Each library's table for a locale (0x7100579c60, 0x7100587be0,
+  0x71005952e0, 0x71005967f0, 1192 bytes each; SiCore's is 0x71004ca820): two
+  strings in 64-character buffers on the stack, the locale's language and
+  country from 0x71004c9390, "neutral" for an empty one, then three pairs of
+  comparisons without case ("neutral"/"neutral", "en"/"neutral",
+  "ja"/"neutral") that pick one of three tables. The comparison is inline
+  (`tolower` of each character, less: differs, greater: differs, then the next
+  two characters; at the end the strings are equal if the first has ended and
+  both characters are 0). The original keeps `b.lo` and `b.hi` as two branches
+  to the same block and tests `(b | a) | a` at the end, which says that the
+  branches were merged after the last InstCombine. Every form tried gives one
+  `eor`/`tst`/`b.ne`: early returns of -1 and 1, a result variable with
+  `break`, the result in the loop's condition with `continue`, a character
+  compare of its own, a `bool`. The same comparison is in 0x71004f5100,
+  0x7100571c00 and 0x7100573480. The kernels' functions that call the tables
+  (0x710057d3f0, 0x7100594a20, 0x7100595cc0, 240 bytes each) don't need the
+  definition.
+- `Unk_57d4e0` and `Unk_594b10` have leafgen's names of functions without
+  arguments but read `this`: they can't be written under those names.
+
+Traced, not written: `SiOSKernel`, which is `SiMathKernel` with four more
+reference-counted pointers (`field_30` to `field_48`): the getter
+0x7100595960, the constructor 0x71005959e0, the destructors 0x7100595aa0 and
+0x7100595bb0, the shutdown they call 0x7100595ae0, the initialisation
+0x7100595c00, slots 5, 8, 9 and 11 (0x7100595db0, 0x7100595e20, 0x7100595e90,
+0x7100595ef0), SiOS's initialisation and exit (0x7100595810, 0x7100595880) and
+their static initialiser (0x71005958c0).
 
 Not written yet, by translation unit: SiGfxNXCommandList and
 SiGfxNXDrawContext (45 KB), SiGfxPrimitiveDrawHelper (26 KB, float code),
-the rest of SiGfxShaderEffectPackage (its effects' data, 15 KB),
 SiGfxShaderEffectVariationList (17 KB), SiGfxShaderEffect (17 KB),
 SiGfxFreeTypeFaceCache (16 KB), SiGfxNXTexture and its pool (22 KB),
 SiGfxNXDevice (14 KB), SiGfxImage and the DDS loader (19 KB),
-SiGfxNXCanvas (10 KB), SiIOBinaryArchive (9 KB), the CSV document's parser
-and writer, and the small NX resource classes. `SiPool`'s slots 2, 3 and 5
-(three instances each) and the quad tree nodes' reserve need their element
-types' assignments.
+SiGfxNXCanvas (10 KB), the CSV document's parser and writer, the small NX
+resource classes, and of SiGfxShaderEffectPackage: slot 13 (0x7100568e60),
+`Unk_56ca20`, `Unk_56d320` (needs the map's erase, 0x7100566f10),
+`Unk_56ce60`, `Unk_56d040`, slot 21 (0x710056c880), the sort 0x71005692a0,
+`ShaderEffectData`'s destructor (0x7100566cc0) and the program map's
+(0x710056d950).
