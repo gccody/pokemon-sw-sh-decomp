@@ -58,6 +58,8 @@ public:
     // deleting destructor is a trap).
     class ChunkHandler {
     public:
+        // 0x710057a3a0
+        explicit ChunkHandler(ISiAllocator* pAllocator);
         virtual ~ChunkHandler() {
             while (field_88.m_count != 0) {
                 ChunkHandler* handler = field_88.m_pHead;
@@ -69,15 +71,30 @@ public:
         }
         UNK_REFCOUNT_DECLARE;
         virtual u32 vf4();
-        virtual void vf5() = 0;
+        virtual const char* vf5() = 0;  // its type's name
         virtual bool vf6(ISiIOBinaryArchive* archive, ISiIOStream* stream) = 0;
-        virtual bool vf7(ISiIOBinaryArchive* archive, Unk_ChunkHeader* header, SiString<char>* error) = 0;
+        // 0x710057a580: whether a header's version is its own
+        virtual bool vf7(ISiIOBinaryArchive* archive, Unk_ChunkHeader* header, SiString<char>* error);
         virtual bool vf8(ISiIOBinaryArchive* archive, Unk_ChunkHeader* header, ISiIOStream* stream) = 0;
         virtual bool vf9(ISiIOBinaryArchive* archive, Unk_ChunkHeader* header, ISiIOStream* stream) = 0;
 
+        // Its links are one member that the constructor value-initialises
+        // (it zeroes the 16 bytes together, before the header's version):
+        // field_18 is that member, and the list's names for the two links
+        // are the same bytes.
+        struct Unk_Links {
+            ChunkHandler* m_pPrev;
+            ChunkHandler* m_pNext;
+        };
+
         Unk_4bf660 field_8;
-        ChunkHandler* m_pPrev;
-        ChunkHandler* m_pNext;
+        union {
+            Unk_Links field_18;
+            struct {
+                ChunkHandler* m_pPrev;
+                ChunkHandler* m_pNext;
+            };
+        };
         Unk_ChunkHeader field_28;
         SiDirectLinkedList<ChunkHandler*> field_88;
         s32 field_b0;  // the number of the archive it was read from

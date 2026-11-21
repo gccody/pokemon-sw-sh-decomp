@@ -57,6 +57,20 @@ public:
     // frees the buffer and empties the string (inline in every caller:
     // placeholder name)
     void Unk_Clear();
+    // makes the string a view of s, which isn't copied (inline in its
+    // caller: placeholder name)
+    void Unk_SetExternal(const T* s) {
+        if (s != nullptr && *s != 0) {
+            m_pBuffer = const_cast<T*>(s);
+            size_t length = 0;
+            while (s[length] != 0) {
+                length++;
+            }
+            field_10 = length;
+            field_20 = 0;
+            field_28 |= 1;
+        }
+    }
 
     ISiAllocator* m_pAllocator;
     T* m_pBuffer;
