@@ -23,7 +23,6 @@ void Unk_34d6a0(void* self);
 void Unk_34fc00(void* self);
 void Unk_34fc50(void* self);
 void Unk_34fdc0(void* self);
-void Unk_3518d0(void* self);
 void Unk_3549e0(void* self);
 void Unk_35d580(void* self);
 void Unk_360ba0(void* self);
@@ -112,16 +111,6 @@ void Unk_341c90(void* self) {
 // 0x710034b260
 void Unk_34b260(void* self) {
     Unk_3b3970(static_cast<u8*>(self) + 0x18);
-}
-
-// 0x710034d770
-void Unk_34d770(void* self) {
-    Unk_3518d0(static_cast<u8*>(self) - 0x18);
-}
-
-// 0x7100351ea0
-void Unk_351ea0(void* self) {
-    Unk_3518d0(static_cast<u8*>(self) - 0x18);
 }
 
 // 0x7100354bc0

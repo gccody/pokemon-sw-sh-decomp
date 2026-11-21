@@ -62,6 +62,7 @@ public:
     u32 vf17() override { return 8; }
     void vf19(Unk_NodeArg19* a1) override;
     u32 vf71(Unk_NodeArg71* a1) override;
+    u32 p_vf1(Unk_2382098* child) override;  // slot 75, 0x7100307f00: not written
     Unk_310160_T* vf76(void* a1, void* a2, void* a3, bool a4) override;
 
     // The destructors, and their copies for the vtable at 0x18:

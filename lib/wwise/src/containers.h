@@ -220,6 +220,18 @@ struct Unk_Array {
         field_8--;
     }
 
+    void RemoveSwap(const T& item) {
+        Iterator it = FindEx(item);
+        if (it != End())
+            EraseSwap(it);
+    }
+
+    void Remove(const T& item) {
+        Iterator it = FindEx(item);
+        if (it != End())
+            Erase(it);
+    }
+
     bool Resize(u32 size) {
         u32 length = Length();
         if (size < length) {
@@ -479,7 +491,10 @@ struct Unk_List2 {
 // Not inline: the executable has it out of line.
 template <class T>
 void Unk_List2<T>::Term() {
-    RemoveAll();
+    // Not RemoveAll(): with one call of Term() in a file, the inliner would
+    // then keep RemoveAll() out of Term() to inline Term() itself.
+    while (field_0 != nullptr)
+        RemoveFirst();
     for (Item* p = field_10; p != nullptr;) {
         Item* next = p->next;
         if (!IsPreallocated(p))
@@ -491,7 +506,7 @@ void Unk_List2<T>::Term() {
         field_18 = nullptr;
     }
     field_20 = 0;
-    field_10 = nullptr;
     field_0 = nullptr;
     field_8 = nullptr;
+    field_10 = nullptr;
 }

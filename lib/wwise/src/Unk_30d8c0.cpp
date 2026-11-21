@@ -56,6 +56,7 @@ public:
     void vf19(Unk_NodeArg19* a1) override;
     void vf20(Unk_NodeArg19* a1) override;
     u32 vf71(Unk_NodeArg71* a1) override;
+    u32 p_vf1(Unk_2382098* child) override;  // slot 75, 0x710030e250: not written
     Unk_310160_T* vf76(void* a1, void* a2, void* a3, bool a4) override;
     Unk_310160_T* Unk_30e1a0(void* a1, void* a2, void* a3, bool a4);
 
