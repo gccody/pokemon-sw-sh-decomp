@@ -212,3 +212,105 @@ bool Unk_4c5c60(SiSDK3::SiString<wchar_t>* self, const char* s) {
     self->m_pBuffer[length] = 0;
     return true;
 }
+
+// 0x71004c4e80: wide characters to UTF-8 (those over 0xfffe are skipped)
+char* Unk_4c4e80(const wchar_t* s, char* dst, s64 size) {
+    char* end = dst;
+    if (s != nullptr) {
+        s64 count = 0;
+        for (; *s != 0; s++) {
+            wchar_t c = *s;
+            if (c <= 0x7f) {
+                if (count >= size) {
+                    break;
+                }
+                dst[count] = static_cast<char>(c);
+                count += 1;
+            } else if (c <= 0x7ff) {
+                if (count + 1 >= size) {
+                    break;
+                }
+                dst[count] = static_cast<char>(0xc0 | (c >> 6));
+                dst[count + 1] = static_cast<char>(0x80 | (c & 0x3f));
+                count += 2;
+            } else if (c <= 0xfffe) {
+                if (count + 2 >= size) {
+                    break;
+                }
+                dst[count] = static_cast<char>(0xe0 | (c >> 12));
+                dst[count + 1] = static_cast<char>(0x80 | ((c >> 6) & 0x3f));
+                dst[count + 2] = static_cast<char>(0x80 | (c & 0x3f));
+                count += 3;
+            }
+        }
+        end = dst + count;
+    }
+    *end = 0;
+    return dst;
+}
+
+// 0x71004c51e0: Latin-1 to UTF-8
+char* Unk_4c51e0(const char* s, char* dst, s64 size) {
+    char* end = dst;
+    if (s != nullptr) {
+        s64 count = 0;
+        for (; *s != 0; s++) {
+            u8 c = *s;
+            if (static_cast<s8>(c) >= 0) {
+                if (count >= size) {
+                    break;
+                }
+                dst[count] = c;
+                count += 1;
+            } else {
+                if (count + 1 >= size) {
+                    break;
+                }
+                dst[count] = 0xc0 | (c >> 6);
+                dst[count + 1] = 0x80 | (c & 0x3f);
+                count += 2;
+            }
+        }
+        end = dst + count;
+    }
+    *end = 0;
+    return dst;
+}
+
+// 0x71004c4d90: UTF-8 to wide characters, at most size of them (a four-byte
+// sequence makes none)
+// NON_MATCHING: the original clears the count's register once, before the
+// test of size, for both early exits; here they share a block that clears it
+// (one instruction more, the rest is the same).
+wchar_t* Unk_4c4d90(const char* s, wchar_t* dst, s64 size) {
+    wchar_t* end = dst;
+    if (s != nullptr) {
+        s64 count = 0;
+        if (size >= 1 && s[0] != 0) {
+            s64 i = 0;
+            do {
+                wchar_t c = static_cast<u8>(s[i]);
+                if (c < 0x80) {
+                    dst[count] = c;
+                    i += 1;
+                } else if (c <= 0xdf) {
+                    dst[count] = ((c & 0x1f) << 6) | (s[i + 1] & 0x3f);
+                    i += 2;
+                } else if (c <= 0xef) {
+                    dst[count] = ((c & 0xf) << 12) | ((s[i + 1] & 0x3f) << 6) | (s[i + 2] & 0x3f);
+                    i += 3;
+                } else {
+                    count--;
+                    i += 4;
+                }
+                count++;
+                if (count >= size) {
+                    break;
+                }
+            } while (s[i] != 0);
+        }
+        end = dst + count;
+    }
+    *end = 0;
+    return dst;
+}
