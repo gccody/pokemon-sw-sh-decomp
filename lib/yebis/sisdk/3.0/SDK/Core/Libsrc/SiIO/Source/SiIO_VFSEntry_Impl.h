@@ -25,7 +25,7 @@ public:
     virtual u64 vf6();
     virtual u64 vf7();
     virtual u64 vf8();
-    virtual const u8* vf9();
+    virtual SiString<char>* vf9();  // the name
     virtual const u8* vf10();
     virtual bool vf11();  // whether it's a directory
     virtual s64 vf12();                    // the number of entries in field_c8
@@ -34,7 +34,7 @@ public:
     virtual s64 vf15();  // the number of entries in field_118
     virtual SiIOVFSEntry* vf16(s64 index);  // one of them
     virtual SiIOVFSEntry* vf17(s64 index);
-    virtual u64 vf18();
+    virtual s64 vf18();  // a file's size
     virtual ISiIOStream* vf19();  // a file's stream
     virtual bool vf20(const char* name);  // makes it a directory
     virtual bool vf21(SiIOVFSEntry* entry);  // adds to field_c8
