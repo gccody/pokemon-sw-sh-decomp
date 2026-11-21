@@ -120,8 +120,27 @@ PKMN_SIZE_ASSERT(Unk_36fa70_Key0, 0x30);
         Child field_18;                                                                           \
     }
 
-// A node of the levels that have nodes below: `Below` is what Remove takes.
-#define UNK_36FA70_NODE(Name, Base, Value, Key, Child, Below, Size)                               \
+// What a node's RemoveAll does: the same for the nodes below, then its array.
+#define UNK_36FA70_REMOVEALL_BELOW(self)                                                          \
+    for (auto it = (self)->field_18.Begin(), end = (self)->field_18.End(); it != end; ++it)       \
+        (*it).RemoveAll();                                                                        \
+    (self)->field_18.Term();
+
+// The second tree's first level: its RemoveAll (0x710039f8e0) has the name
+// that Unk_3babc0.h, which calls it, gave it. (That header can't be included
+// here: its sorted_array.h has another Unk_SortedKeyArray.) The same for the
+// root's Remove (0x710039a100) and Set (0x710039c830).
+struct Unk_2382c60_Item;
+struct Unk_2382c60;
+struct Unk_3babc0_Key;
+void Unk_39f8e0(Unk_2382c60_Item* self);
+void Unk_39a100(Unk_2382c60* self, const Unk_3babc0_Key& key);
+u32* Unk_39c830(Unk_2382c60* self, const Unk_3babc0_Key& key);
+#define UNK_36FA70_REMOVEALL_39F8E0(self) Unk_39f8e0(reinterpret_cast<Unk_2382c60_Item*>(self));
+
+// A node of the levels that have nodes below: `Below` is what Remove takes,
+// `REMOVEALL` one of the two above.
+#define UNK_36FA70_NODE(Name, Base, Value, Key, Child, Below, Size, REMOVEALL)                    \
     UNK_36FA70_BASE(Base, Value, Child);                                                          \
     struct Name : Base {                                                                          \
         ~Name() override;                                                                         \
@@ -131,11 +150,7 @@ PKMN_SIZE_ASSERT(Unk_36fa70_Key0, 0x30);
             Base::Transfer(other);                                                                \
         }                                                                                         \
                                                                                                   \
-        void RemoveAll() {                                                                        \
-            for (auto it = this->field_18.Begin(), end = this->field_18.End(); it != end; ++it)   \
-                (*it).RemoveAll();                                                                \
-            this->field_18.Term();                                                                \
-        }                                                                                         \
+        void RemoveAll() { REMOVEALL(this) }                                                      \
                                                                                                   \
         void Remove(const Below& below);                                                          \
         void RemoveAll(const Below& below);                                                       \
@@ -354,25 +369,33 @@ PKMN_SIZE_ASSERT(Unk_36fa70_Key0, 0x30);
 // The tree of 0x710036fa70 (nodes of 0x30 bytes).
 UNK_36FA70_LAST(Unk_23818a8, Unk_23818c8, Unk_36fa70_Value, u8, 0x30);
 UNK_36FA70_NODE(Unk_2381868, Unk_2381888, Unk_36fa70_Value, u8, Unk_23818a8_Array,
-                Unk_36fa70_Key4, 0x30);
+                Unk_36fa70_Key4, 0x30,
+                UNK_36FA70_REMOVEALL_BELOW);
 UNK_36FA70_NODE(Unk_2381828, Unk_2381848, Unk_36fa70_Value, u32, Unk_2381868_Array,
-                Unk_36fa70_Key3, 0x30);
+                Unk_36fa70_Key3, 0x30,
+                UNK_36FA70_REMOVEALL_BELOW);
 UNK_36FA70_NODE(Unk_23817e8, Unk_2381808, Unk_36fa70_Value, u32, Unk_2381828_Array,
-                Unk_36fa70_Key2, 0x30);
+                Unk_36fa70_Key2, 0x30,
+                UNK_36FA70_REMOVEALL_BELOW);
 UNK_36FA70_NODE(Unk_23817a8, Unk_23817c8, Unk_36fa70_Value, u64, Unk_23817e8_Array,
-                Unk_36fa70_Key1, 0x30);
+                Unk_36fa70_Key1, 0x30,
+                UNK_36FA70_REMOVEALL_BELOW);
 UNK_36FA70_ROOT(Unk_36b160_Root, Unk_36fa70_Value, Unk_23817a8_Array);
 
 // The tree of 0x71003a1830 (nodes of 0x28 bytes).
 UNK_36FA70_LAST(Unk_2382da0, Unk_2382dc0, Unk_3a1830_Value, u8, 0x28);
 UNK_36FA70_NODE(Unk_2382d60, Unk_2382d80, Unk_3a1830_Value, u8, Unk_2382da0_Array,
-                Unk_36fa70_Key4, 0x28);
+                Unk_36fa70_Key4, 0x28,
+                UNK_36FA70_REMOVEALL_BELOW);
 UNK_36FA70_NODE(Unk_2382d20, Unk_2382d40, Unk_3a1830_Value, u32, Unk_2382d60_Array,
-                Unk_36fa70_Key3, 0x28);
+                Unk_36fa70_Key3, 0x28,
+                UNK_36FA70_REMOVEALL_BELOW);
 UNK_36FA70_NODE(Unk_2382ce0, Unk_2382d00, Unk_3a1830_Value, u32, Unk_2382d20_Array,
-                Unk_36fa70_Key2, 0x28);
+                Unk_36fa70_Key2, 0x28,
+                UNK_36FA70_REMOVEALL_BELOW);
 UNK_36FA70_NODE(Unk_2382ca0, Unk_2382cc0, Unk_3a1830_Value, u64, Unk_2382ce0_Array,
-                Unk_36fa70_Key1, 0x28);
+                Unk_36fa70_Key1, 0x28,
+                UNK_36FA70_REMOVEALL_39F8E0);
 UNK_36FA70_ROOT(Unk_39a100_Root, Unk_3a1830_Value, Unk_2382ca0_Array);
 
 #define UNK_36FA70_LEVEL(Name, Key)                                                               \
@@ -446,8 +469,30 @@ UNK_36FA70_REMOVE(Unk_2382d60, Unk_36fa70_Key4)
 
 // 0x710036b160 (and 0x710036e680, the RemoveAll of the first level)
 UNK_36FA70_REMOVE(Unk_36b160_Root, Unk_36fa70_Key0)
-// 0x710039a100 (and 0x710039f8e0)
-UNK_36FA70_REMOVE(Unk_39a100_Root, Unk_36fa70_Key0)
+// 0x710039f8e0
+void Unk_39f8e0(Unk_2382c60_Item* self) {
+    Unk_2382ca0* node = reinterpret_cast<Unk_2382ca0*>(self);
+    UNK_36FA70_REMOVEALL_BELOW(node)
+}
+
+// 0x710039a100
+void Unk_39a100(Unk_2382c60* self, const Unk_3babc0_Key& key) {
+    Unk_39a100_Root* root = reinterpret_cast<Unk_39a100_Root*>(self);
+    const Unk_36fa70_Key0& below = reinterpret_cast<const Unk_36fa70_Key0&>(key);
+    if (below.IsAny()) {
+        if (root->field_10)
+            root->field_10 = 0;
+        return;
+    }
+    Unk_2382ca0* child = root->field_18.Exists(below.field_0);
+    if (child != nullptr) {
+        child->Remove(below.field_8);
+        if (!child->field_10 && child->field_18.IsEmpty()) {
+            child->RemoveAll();
+            root->field_18.Unset(below.field_0);
+        }
+    }
+}
 
 // NON_MATCHING: 0x710036b090, 0x7100370110 and 0x710039c830. The original
 // has the code that sets a node's value once for all the levels inlined in a
@@ -464,10 +509,12 @@ Unk_36fa70_Value* Unk_36b160_Root::Set(const Unk_36fa70_Key0& below) {
 }
 
 // 0x710039c830 (and 0x71003a1ec0)
-Unk_3a1830_Value* Unk_39a100_Root::Set(const Unk_36fa70_Key0& below) {
+u32* Unk_39c830(Unk_2382c60* self, const Unk_3babc0_Key& key) {
+    Unk_39a100_Root* root = reinterpret_cast<Unk_39a100_Root*>(self);
+    const Unk_36fa70_Key0& below = reinterpret_cast<const Unk_36fa70_Key0&>(key);
     if (below.IsAny())
-        return this->SetValue();
-    Unk_2382ca0* child = this->field_18.Set(below.field_0);
+        return root->SetValue();
+    Unk_2382ca0* child = root->field_18.Set(below.field_0);
     if (child == nullptr)
         return nullptr;
     return child->Set(below.field_8);
