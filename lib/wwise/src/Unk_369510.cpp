@@ -77,7 +77,9 @@ struct Unk_3d45c0 {
     u8 _80[0x10];
     u8 field_90;
 };
-void Unk_3d4550(Unk_3d45c0* self, Unk_369950_T* context);
+// The same object by the name Unk_3d4550's file has for it.
+struct Unk_24df148_Bus;
+void Unk_3d4550(Unk_24df148_Bus* self, void* context);
 
 // The contexts, by the first one.
 struct Unk_3697a0_List {
@@ -127,7 +129,7 @@ static inline void Unk_3697a0_Init(Unk_369950_T* self, Unk_3d08c0_Self* a1, Unk_
     self->field_2a4_1 = a5;
     self->field_2a4_2 = false;
     self->field_c8 = a2->field_70 != 0 ? a2->field_78 : a1->vf2();
-    Unk_3d4550(a2, self);
+    Unk_3d4550(reinterpret_cast<Unk_24df148_Bus*>(a2), self);
 }
 
 // 0x71003697a0: a new context at the front of the list, null without memory.
