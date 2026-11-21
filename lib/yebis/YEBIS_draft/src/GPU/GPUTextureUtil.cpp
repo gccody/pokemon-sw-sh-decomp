@@ -1868,6 +1868,55 @@ s32 CTextureUtil::Unk_474d00(f32 sigma, f32 arg2, f32 arg3, CRenderTexture* sour
     return result;
 }
 
+// 0x71004768b0: `count` textures (1 to 16), each times a colour, with the
+// technique for that many textures or the nearest one that exists
+s32 CTextureUtil::Unk_4768b0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, s32 count,
+                             Unk_GPUTexture** textures, const Unk_Float4* colors, s32 index, u32 flags) {
+    if (count < 1 || count > 16) {
+        return -4;
+    }
+    s32 technique;
+    s32 used;
+    if (Unk_442c50_get(reinterpret_cast<u64>(field_20))) {
+        used = count - 1;
+        do {
+            technique = field_30.field_48a8[used][index];
+            used++;
+        } while (used < 16 && technique == 0);
+    } else {
+        used = count + 1;
+        do {
+            technique = field_30.field_48a8[used - 2][index];
+            used--;
+        } while (used > 0 && technique == 0);
+    }
+    if (technique == 0) {
+        return -4;
+    }
+    field_30.field_0->vf29(technique);
+    Unk_Float4 values[16];
+    if (colors != nullptr) {
+        for (s32 i = 0; i < count; i++) {
+            values[i] = colors[i];
+        }
+    } else {
+        for (s32 i = 0; i < count; i++) {
+            values[i] = Unk_Float4(1.0f, 1.0f, 1.0f, 1.0f);
+        }
+    }
+    for (s32 i = count; i < used; i++) {
+        values[i] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+    }
+    field_30.field_0->vf22(field_30.field_d0, values, used);
+    for (s32 i = 0; i < count; i++) {
+        field_30.field_0->vf26(GetHandle_tex2D_aTexture(i), textures[i]);
+    }
+    for (s32 i = count; i < used; i++) {
+        field_30.field_0->vf26(GetHandle_tex2D_aTexture(i), nullptr);
+    }
+    return Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
+}
+
 // DRAWRECTGPU_END
 
 // 0x71004708b0: releases what the device made

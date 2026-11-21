@@ -3,6 +3,9 @@
 // GPUTextureUtil.cpp name the classes). Placeholder members: field_<offset>.
 #pragma once
 
+// YEBIS keeps its asserts (the build defines NDEBUG for everything)
+#undef NDEBUG
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -13,6 +16,9 @@
 #include <yebis/YEBIS_draft/src/GPU/GPURenderTexturePool.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUResourceManage.h>
 
+// 0x7100442c50 (lib/yebis/leaf has it with a u32 result; its callers here
+// test bit 0 and lay their blocks out as for a bool)
+bool Unk_442c50_get(u64 device);
 // 0x7100446620: the device of an IGPUResource (with a reference)
 void Unk_446620(void* resource, PPFX::IGPUDevice** device);
 
@@ -867,6 +873,14 @@ public:
                    f32 arg11, const Unk_Float2* direction, Unk_GPUTexture* texture, s32 taps, u32 flags);
     s32 Unk_474d00(f32 sigma, f32 arg2, f32 arg3, CRenderTexture* source, CRenderTexture* target, bool horizontal,
                    s32 taps, bool clear);
+    s32 Unk_4768b0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, s32 count,
+                   Unk_GPUTexture** textures, const Unk_Float4* colors, s32 index, u32 flags);
+    // The handle of a texture stage (inline; its name and line are its assert's)
+    s32 GetHandle_tex2D_aTexture(s32 stage) {
+#line 3059
+        assert(stage >= 0 && stage < 16);
+        return field_30.field_10[stage];
+    }
     s32 Unk_470860(s32 value);  // 0x7100470860
     s32 Unk_470880();           // 0x7100470880
     s32 Unk_4708a0(void* arg);  // 0x71004708a0
