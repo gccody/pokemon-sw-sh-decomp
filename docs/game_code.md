@@ -2606,6 +2606,38 @@ the class `vf14` makes is emitted with the first vtable, where the original
 reaches four classes before it through the first class's `vf7`; their
 statics are one place off until that `vf7` is written.
 
+**The second family** (2026-11-21): `Unk_2423ec8` (0x80 bytes, D2
+`0x7101216dc0`, `src/unsorted/Unk_2423ec8.h`) has 23 classes on it of the
+same kind, in three TUs: `Unk_1234dd0.cpp` (7 classes), `Unk_1238d90.cpp`
+(12: the states of a cooking request) and `Unk_1240830.cpp` (4). Twelve of
+them are written, those a function of their own makes: 132 functions with
+the next paragraph's, 21 KB. The others are made inside `vf8`s and a shared
+`vf17` that aren't decompiled, so they have nothing to be emitted for; the
+getters of the classes after a missing one are `m` (their statics are off by
+the missing classes).
+
+**Messages by name** (`src/unsorted/Unk_1127d00.h`): the classes send and
+take messages by the 64-bit FNV-1a hash of their name (basis
+`0xcbf29ce484222645`), kept with a callable in an object of the owner's that
+has sixteen entries and a lock. What a state does with a name is one function
+template per kind (keep an empty callable, keep one with a flag, take one
+out), instantiated per size of name: `0x7101286ed0` gets the three names of 14
+characters of its TU, `0x7101287c80` the one of 15, so the name is taken as
+`const char (&)[N]`. Seven instances match; the three that take a name out
+are `m` (two registers swapped).
+
+- **An instance, not a function.** With the instance that keeps a flag
+  written as a plain function, its caller changed: LLVM learns from a plain
+  function's body that the flag's address isn't kept, and makes the caller's
+  last call a tail call. It learns nothing from a template's instance (the
+  linker may keep another TU's), and the original's caller has no tail call:
+  the helpers are instances of templates with external linkage.
+- **A temporary's slot is used again.** The flag is passed as a temporary
+  (`const bool&`): in the callers its stack slot is the one the next
+  temporaries use. A named local keeps a slot of its own.
+- **Releasing a lock twice.** The function that takes a name out releases the
+  lock on each way out; a guard object's destructor comes out once.
+
 ### Destructors in the unplaced areas (hand-written, 2026-11-19)
 
 Classes in `game/unk_133d350`, `unk_12ed1a0`, `unk_14b14a0`, `unk_143a7a0`,

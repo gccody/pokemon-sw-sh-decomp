@@ -16,12 +16,19 @@
 #include "unsorted/Unk_24284d0_Make.h"
 
 // Not decompiled yet: 0x7101266170 and 0x7101269880 (two tests without
-// arguments), 0x7101286ed0 and 0x7101287c80 (304 bytes each: what an object
-// does with a message's name).
+// arguments).
 bool Unk_1266170();
 bool Unk_1269880();
+
+// What an object does with a message's name (src/unsorted/Unk_1127d00.h),
+// an instance per size of name: "NoBerryMessage", "OnJoinSelected" and
+// "OnQuitSelected" (0x7101286ed0), "OnMessageClosed" (0x7101287c80),
+// "OnCookingRequestCanceled" (0x7101288770), "OnCookingRequestClosed"
+// (0x71012889b0). Local to the TU in the original.
 void Unk_1286ed0(Unk_24284d0* self, const char* name, bool arg2);
 void Unk_1287c80(Unk_24284d0* self, const char* name, bool arg2);
+bool Unk_1288770(Unk_24284d0* self, const char* name);
+bool Unk_12889b0(Unk_24284d0* self, const char* name);
 
 // A reference to a new object of one of the classes: its constructor makes
 // the object on the allocator. One per class that several functions make.
@@ -355,4 +362,27 @@ void Unk_128fa10(Unk_24284d0** captured) {
     Unk_1287c80(self, "OnMessageClosed", false);
     Unk_Assign(self->field_70,
                Unk_239a418_Ref<Unk_239a418>(Unk_Create<Unk_242aca8>(self->field_8)));
+}
+
+// 0x7101286ed0
+void Unk_1286ed0(Unk_24284d0* self, const char* name, bool arg2) {
+    Unk_1127d00_Send<15>(self->Unk_126aca0(), name, arg2);
+}
+
+// 0x7101287c80
+void Unk_1287c80(Unk_24284d0* self, const char* name, bool arg2) {
+    Unk_1127d00_Send<16>(self->Unk_126aca0(), name, arg2);
+}
+
+// 0x7101288770
+// NON_MATCHING (and 0x71012889b0): the registers of the hash and of the name
+// (then the owner's object) are the other way round (x19 and x20); the
+// instructions are the same.
+bool Unk_1288770(Unk_24284d0* self, const char* name) {
+    return Unk_1127d00_Take<25>(self->Unk_126aca0(), name);
+}
+
+// 0x71012889b0
+bool Unk_12889b0(Unk_24284d0* self, const char* name) {
+    return Unk_1127d00_Take<23>(self->Unk_126aca0(), name);
 }
