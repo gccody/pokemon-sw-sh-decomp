@@ -24,7 +24,7 @@ struct Unk_363570_T {
     virtual void vf7();
     virtual void vf8();
     virtual void vf9();
-    virtual void vf10();
+    virtual u32 vf10(Unk_366110_Node* child);
     virtual u32 vf11(u32 id);  // add a child
     virtual void vf12();
     virtual void vf13();
@@ -159,4 +159,28 @@ Unk_363570_T* Unk_363ef0(u32 id) {
         }
     }
     return self;
+}
+
+void Unk_367750(Unk_366110_T* self, u32 id);
+
+// An ID and whether it is the one of a bus.
+struct Unk_363cb0_Id {
+    u32 field_0;
+    bool field_4;
+};
+
+// 0x7100363cb0
+u32 Unk_363cb0(Unk_363570_T* self, Unk_363cb0_Id id_) {
+    u32 id = id_.field_0;
+    if (id == 0)
+        return 0xe;
+    Unk_366110_Node* child = Unk_3351b0(Unk_24bbbb8, id, 0);
+    if (child == nullptr)
+        return 0xf;
+    u32 result = self->vf10(child);
+    if (result != 1)
+        return result;
+    for (auto it = self->field_d8.Begin(), end = self->field_d8.End(); it != end; ++it)
+        Unk_367750(*it, id);
+    return 1;
 }
