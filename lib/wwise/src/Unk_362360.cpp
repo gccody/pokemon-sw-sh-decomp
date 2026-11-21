@@ -107,3 +107,75 @@ void Unk_362680(Unk_3624a0_T* self) {
     Unk_362610_Dtor(self);
     operator delete(self);
 }
+
+// 0x7100361e80
+template Unk_362360_Item*
+Unk_GrowArray<Unk_362360_Item, Unk_PoolDefault, 2>::AddLast(const Unk_362360_Item&);
+
+void Unk_361fa0(Unk_362360_T* self, u32 parameter, f32 value);
+
+// 0x7100361c80
+// NON_MATCHING: after the item is added, the value and the total are loaded
+// in the other order (4 instructions).
+void Unk_361c80(Unk_362360_T* self, u32 a1, u32 a2, u32 parameter, u32 mode, f32 value) {
+    if (self->field_8 == nullptr)
+        return;
+    Unk_362360_Sink* sink = reinterpret_cast<Unk_362360_Sink*>(self->field_8);
+    if (mode == 1) {
+        sink->vf2(parameter, &value, 4);
+        return;
+    }
+    f32 total = mode == 3 ? 1.0f : 0.0f;
+    auto found = self->field_48.End();
+    for (auto it = self->field_48.Begin(); it != self->field_48.End(); ++it) {
+        if ((*it).field_8 == parameter) {
+            if ((*it).field_0 == a1 && (*it).field_4 == a2) {
+                found = it;
+                (*it).field_c = value;
+            }
+            if (mode != 4 || (*it).field_0 != 0)
+                total = mode != 3 ? total + (*it).field_c : total * (*it).field_c;
+        }
+    }
+    if (found == self->field_48.End()) {
+        Unk_362360_Item item;
+        item.field_0 = a1;
+        item.field_4 = a2;
+        item.field_8 = parameter;
+        item.field_c = value;
+        if (self->field_48.AddLast(item) != nullptr)
+            total = mode != 3 ? total + value : total * value;
+    }
+    reinterpret_cast<Unk_362360_Sink*>(self->field_8)->vf2(parameter, &total, 4);
+}
+
+// 0x71003625d0
+void Unk_3625d0(Unk_362360_T* self, u32 parameter, u32 a2, u32 mode, f32 value) {
+    Unk_361c80(self, 1, a2, parameter, mode, value);
+}
+
+// 0x71003625f0
+void Unk_3625f0(Unk_362360_T* self, u32 parameter, u32 a2, u32 mode, f32 value) {
+    Unk_361c80(self, 1, a2, parameter, mode, value);
+}
+
+// 0x7100360ba0
+void Unk_360ba0(void* self_) {
+    Unk_360c20_T* self = static_cast<Unk_360c20_T*>(self_);
+    for (Unk_362360_T* p = self->field_70.field_0; p != nullptr; p = p->field_58) {
+        p->field_48.field_8 = 0;
+        if (p->field_10 != nullptr) {
+            for (auto it = p->field_10->field_60.Begin(); it != p->field_10->field_60.End(); ++it) {
+                if ((*it).field_2)
+                    Unk_361fa0(p, (*it).field_0, (*it).field_4);
+            }
+        }
+    }
+}
+
+// 0x7100362bf0
+void Unk_362bf0(Unk_2380c68* base, u16 parameter, u32 mode, u32 a3, f32, f32 value) {
+    Unk_360c20_T* self = &static_cast<Unk_360c20_T&>(*base);
+    for (Unk_362360_T* p = self->field_70.field_0; p != nullptr; p = p->field_58)
+        Unk_361c80(p, 2, a3, parameter, mode, value);
+}

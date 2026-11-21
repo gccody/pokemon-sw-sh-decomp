@@ -200,11 +200,25 @@ PKMN_OFFSET_ASSERT(Unk_360c20_T, field_30, 0x30);
 PKMN_OFFSET_ASSERT(Unk_360c20_T, field_50, 0x50);
 PKMN_SIZE_ASSERT(Unk_360c20_T, 0x78);
 
+// A value of a parameter of an Unk_362360_T, and where it comes from.
 struct Unk_362360_Item {
-    u64 field_0;
+    Unk_362360_Item() : field_0(0), field_4(0), field_8(0), field_c(0) {}
+
+    u32 field_0;
+    u32 field_4;
     u16 field_8;  // the parameter
+    f32 field_c;
 };
 PKMN_SIZE_ASSERT(Unk_362360_Item, 0x10);
+
+struct Unk_362360_Sink {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2(u32 parameter, const f32* value, u32 size);
+    virtual void vf3();
+    virtual u32 vf4(void* allocator, const void* data, u32 size);
+    virtual void vf5(void* allocator);
+};
 
 // An object that refers to an Unk_360c20_T.
 struct Unk_362360_T {
@@ -227,7 +241,7 @@ struct Unk_362360_T {
     u8 field_38;
     u8 _39[7];
     u64 field_40;
-    Unk_GrowArray<Unk_362360_Item> field_48;
+    Unk_GrowArray<Unk_362360_Item, Unk_PoolDefault, 2> field_48;
     Unk_362360_T* field_58;  // next
 };
 PKMN_OFFSET_ASSERT(Unk_362360_T, field_28, 0x28);
