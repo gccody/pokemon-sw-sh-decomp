@@ -230,6 +230,7 @@ u32 Unk_237ff98::Unk_352df0(Unk_352df0_Out* out, Unk_NodeKey* key) {
     return 1;
 }
 
+// NON_MATCHING: 8 bytes short; the search of field_58 and the walk up the parents differ
 // 0x7100353330
 f32 Unk_237ff98::Unk_353330(Unk_NodeKey key, u32 prop) {
     f32 value = 0.0f;
