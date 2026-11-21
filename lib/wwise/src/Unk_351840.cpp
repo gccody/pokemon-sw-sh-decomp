@@ -860,7 +860,10 @@ struct Unk_3bdd90_Params {
     bool field_21;
     bool field_22;
 };
-void* Unk_3bdd90(void* self, Unk_3bdd90_Params* params, bool a2, bool a3);
+// Defined in Unk_3bdca0.cpp (the transition manager and a transition).
+struct Unk_3bdca0;
+struct Unk_3bd6b0;
+Unk_3bd6b0* Unk_3bdd90(Unk_3bdca0* self, Unk_3bdd90_Params* params, bool paused, u32 kind);
 
 // Starts taking the item's value back to 0: over a2 (with what changes it,
 // or a new change), or at once.
@@ -898,7 +901,7 @@ void Unk_237ff98::Unk_355510(u32 id, u32 a2, u32 a3, u32 prop) {
                     params.field_20 = true;
                     params.field_21 = true;
                     params.field_22 = false;
-                    item.field_8.field_10 = Unk_3bdd90(Unk_24bbbe8, &params, true, false);
+                    item.field_8.field_10 = Unk_3bdd90(static_cast<Unk_3bdca0*>(Unk_24bbbe8), &params, true, 0);
                 } else {
                     user->vf0(prop, 0.0f, true);
                 }
@@ -954,7 +957,7 @@ void Unk_237ff98::Unk_3552e0(u32 id, f32 target, u32 a3, u32 a4, u32 prop) {
         params.field_20 = true;
         params.field_21 = true;
         params.field_22 = false;
-        item->field_10 = Unk_3bdd90(Unk_24bbbe8, &params, true, false);
+        item->field_10 = Unk_3bdd90(static_cast<Unk_3bdca0*>(Unk_24bbbe8), &params, true, 0);
     } else {
         item->vf0(prop, target, true);
     }
