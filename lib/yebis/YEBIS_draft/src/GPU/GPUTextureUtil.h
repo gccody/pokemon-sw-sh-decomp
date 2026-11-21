@@ -322,10 +322,8 @@ public:
     s32 field_842c[2][8][22];  // ...CompositeBlurredLevelsFrontBlur(_USNORM)_Tn
     s32 field_89ac[2][8][8][22];  // tech_DepthOfField_CompositeBlurLevelsFrontBlur(_USNORM)_TSn_n: [USNORM][n][n]
     s32 field_b5ac[2][8][8][22];  // ...CompositeMaskedBlurLevels(_USNORM)_TSn_n
-    s32 field_e1ac[25][22];
-    s32 field_ea44[25][22];
-    s32 field_f2dc[25][22];
-    s32 field_fb74[25][22];
+    s32 field_e1ac[2][25][22];  // tech_DepthOfField_BackgroundLayerMaskT1(_USNORM)_Sn: [USNORM][n - 1]
+    s32 field_f2dc[2][25][22];  // tech_DepthOfField_ForegroundLayerMaskT1(_USNORM)_Sn
     s32 field_1040c[17];
     u8 pad_10450[0x40];
     s32 field_10490[17];
@@ -898,6 +896,14 @@ public:
                    Unk_GPUTexture** textures, const Unk_Float4* color, const Unk_Float* weights, s32 index, u32 flags);
     s32 Unk_477d80(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 power, s32 count,
                    Unk_GPUTexture** textures, const Unk_Float4* color, const Unk_Float* weights, s32 index, u32 flags);
+    // 0x71004738e0: up to `max` vectors for one parameter and the rest, less
+    // the first one, for the next (`total` vectors in all, zeros after `count`)
+    void Unk_4738e0(s32 count, const Unk_Float4* values, s32 total, s32 max);
+    // 0x710047b2a0 (its log line names it)
+    s32 DrawRectGPU_DepthOfFieldLayerMask(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1,
+                                          bool background, bool arg2, s32 count, const Unk_Float4* values,
+                                          const Unk_Float2* arg5, const Unk_Float2* arg6, Unk_GPUTexture* texture,
+                                          s32 arg8, s32 index, u32 flags);
     // The handle of a texture stage (inline; its name and line are its assert's)
     s32 GetHandle_tex2D_aTexture(s32 stage) {
 #line 3059
