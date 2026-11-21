@@ -12,6 +12,8 @@
 
 namespace SiSDK3 {
 
+class ISiIOStream;
+
 class SiGfxShaderEffectVariation {
 public:
     // An item of its lists (RTTI: the arrays' element): 0x24 bytes, with no
@@ -20,8 +22,22 @@ public:
         u32 field_0[9];
     };
 
+    // 0x7100574710
+    explicit SiGfxShaderEffectVariation(ISiAllocator* pAllocator);
     virtual ~SiGfxShaderEffectVariation();
     UNK_REFCOUNT_DECLARE;
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual bool vf14(ISiIOStream* stream);  // writes it
+    virtual bool vf15(ISiIOStream* stream);  // reads it
 
     // 0x7100574a20: empties the lists and the strings after them
     void Unk_574a20();
@@ -33,8 +49,9 @@ public:
     u64 field_c8;
     SiArray<VariationItem> field_d0;
     SiString<char> field_120;
+    u64 field_150;
 };
-PKMN_SIZE_ASSERT(SiGfxShaderEffectVariation, 0x150);
+PKMN_SIZE_ASSERT(SiGfxShaderEffectVariation, 0x158);
 
 }  // namespace SiSDK3
 

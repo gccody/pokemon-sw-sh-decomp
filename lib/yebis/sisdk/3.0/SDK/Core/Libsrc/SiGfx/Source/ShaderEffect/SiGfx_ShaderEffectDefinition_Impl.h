@@ -33,6 +33,8 @@ public:
 
 class SiGfxShaderEffectDefinition {
 public:
+    // 0x710056fd60
+    explicit SiGfxShaderEffectDefinition(ISiAllocator* pAllocator);
     virtual ~SiGfxShaderEffectDefinition();
     UNK_REFCOUNT_DECLARE;
     virtual u32 vf4();

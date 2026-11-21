@@ -28,8 +28,6 @@ struct Unk_4fb4b0;
 struct Unk_536a10;
 struct Unk_542aa0;
 struct Unk_54f7e0;
-struct Unk_56ed60;
-struct Unk_56ef00;
 struct Unk_56f0a0;
 struct Unk_56f240;
 struct Unk_56f3e0;
@@ -418,10 +416,11 @@ template bool SiSDK3::SiArray<Unk_536a10*, 16>::Unk_4bf190(size_t, bool);
 template bool SiSDK3::SiArray<Unk_542aa0*, 16>::Unk_4bf190(size_t, bool);
 // 0x710054f7e0
 template bool SiSDK3::SiArray<Unk_54f7e0*, 16>::Unk_4bf190(size_t, bool);
-// 0x710056ed60
-template bool SiSDK3::SiArray<Unk_56ed60*, 16>::Unk_4bf190(size_t, bool);
+// 0x710056ed60 (SiGfxShaderEffectPackage's functions call it on its array of
+// definitions, and the next one on its array of variations)
+template bool SiSDK3::SiArray<SiSDK3::ISiGfxShaderEffectDefinition*, 16>::Unk_4bf190(size_t, bool);
 // 0x710056ef00
-template bool SiSDK3::SiArray<Unk_56ef00*, 16>::Unk_4bf190(size_t, bool);
+template bool SiSDK3::SiArray<SiSDK3::ISiGfxShaderEffectVariation*, 16>::Unk_4bf190(size_t, bool);
 // 0x710056f0a0
 template bool SiSDK3::SiArray<Unk_56f0a0*, 16>::Unk_4bf190(size_t, bool);
 // 0x710056f240

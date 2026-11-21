@@ -8,7 +8,10 @@
 
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_StringFuncs.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiIO/SiIO_Stream.h>
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/ShaderEffect/SiGfx_ShaderEffectDefinition_Impl.h>
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/ShaderEffect/SiGfx_ShaderEffectVariation_Impl.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/ShaderEffect/SiGfx_ShaderEffect_Impl.h>
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiIO/Source/SiIO_Kernel_Impl.h>
 
 // 0x7100582f10, 0x7100582f70: skip to, and fill up to, a multiple of alignment
 s64 Unk_582f10(SiSDK3::ISiIOStream* stream, s64 alignment);
@@ -18,6 +21,8 @@ void Unk_4c5520(char* dst, size_t size, const char* src, s64 count);
 s64 Unk_4c5630(const char* a, const char* b, bool);
 // 0x71004cbc40: compares two versions
 s32 Unk_4cbc40(s32, s32, s32, s32, s32, s32, s32, s32);
+// 0x710057d030: SiIO's kernel as a number (leafgen's name and type)
+u64 Unk_57d030_get();
 // 0x7100570d00 (leafgen's name and type): the variation list's initialisation
 u64 Unk_570d00_get(u64 list);
 // 0x710056ca20 (leafgen's name): whether an effect may be added
@@ -96,10 +101,10 @@ bool SiGfxShaderEffectPackage::vf12(const Unk_567750_Desc* desc) {
 }
 
 // 0x71005693e0
-bool SiGfxShaderEffectPackage::vf14(u64 value108, void* valueBe8, u32 value104, const SiArray<ISiGfxShader*>* shaders0,
-                                    const SiArray<ISiGfxShader*>* shaders1, const SiArray<ISiGfxShader*>* shaders2,
-                                    const SiArray<ISiGfxShader*>* shaders3, const SiArray<ISiGfxShader*>* shaders4,
-                                    const SiArray<ISiGfxShader*>* shaders5) {
+bool SiGfxShaderEffectPackage::vf14(s64 value108, void* valueBe8, u32 value104, const SiArray<Unk_5693e0>* shaders0,
+                                    const SiArray<Unk_5693e0>* shaders1, const SiArray<Unk_5693e0>* shaders2,
+                                    const SiArray<Unk_5693e0>* shaders3, const SiArray<Unk_5693e0>* shaders4,
+                                    const SiArray<Unk_5693e0>* shaders5) {
     field_be8 = valueBe8;
     field_a0.field_68 = value108;
     field_a0.field_64 = value104;
@@ -133,6 +138,76 @@ bool SiGfxShaderEffectPackage::vf15(ISiGfxShaderEffectPackage::ShaderEffectData*
 // 0x7100569520
 void SiGfxShaderEffectPackage::vf16(const Unk_567b80* options) {
     field_2d0 = *options;
+}
+
+// 0x71005695a0
+bool SiGfxShaderEffectPackage::vf10(const char* path, u32 byteOrder) {
+    ISiIOStream* stream = reinterpret_cast<SiIOKernel*>(Unk_57d030_get())->vf9(path, 0x15, nullptr);
+    if (stream == nullptr) {
+        return false;
+    }
+    {
+        Unk_5697b0(stream, byteOrder);
+        Unk_582f70(stream, 0x10, 0);
+        for (s64 i = 0; i < static_cast<s32>(field_230.m_itemCount); i++) {
+            if (field_230.m_pData[i] != nullptr) {
+                field_230.m_pData[i]->vf14(stream);
+            }
+        }
+        Unk_582f70(stream, 0x10, 0);
+        for (s64 i = 0; i < static_cast<s32>(field_280.m_itemCount); i++) {
+            if (field_280.m_pData[i] != nullptr) {
+                field_280.m_pData[i]->vf14(stream);
+            }
+        }
+        Unk_582f70(stream, 0x10, 0);
+        stream->vf50(field_2d0.field_e8, true);
+        stream->vf50(field_2d0.field_ec, true);
+        stream->vf54(field_2d0.field_f0, true);
+        Unk_569c40(stream);
+        Unk_582f70(stream, 0x10, 0);
+        for (s64 i = 0; i < static_cast<s32>(field_140.m_itemCount); i++) {
+            Unk_569dd0(stream, field_140.m_pData[i]);
+        }
+        Unk_582f70(stream, 0x10, 0);
+        for (s64 i = 0; i < static_cast<s32>(field_190.m_itemCount); i++) {
+            stream->vf50(field_190.m_pData[i]->field_3c, true);
+        }
+        Unk_StringAssign(&field_48, path);
+        stream->vf3();
+    }
+    return true;
+}
+
+// 0x7100569c40
+bool SiGfxShaderEffectPackage::Unk_569c40(ISiIOStream* stream) {
+    if (stream == nullptr) {
+        return false;
+    }
+    if (field_a0.field_68 >= 1) {
+        Unk_582f70(stream, field_a0.field_64, 0);
+        stream->vf44(field_be8, field_a0.field_68, true);
+    }
+    Unk_582f70(stream, 0x10, 0);
+    if (field_a0.field_80 >= 1) {
+        stream->vf44(field_bf8[0], static_cast<s64>(field_a0.field_80) * sizeof(Unk_5693e0), true);
+    }
+    if (field_a0.field_84 >= 1) {
+        stream->vf44(field_bf8[1], static_cast<s64>(field_a0.field_84) * sizeof(Unk_5693e0), true);
+    }
+    if (field_a0.field_88 >= 1) {
+        stream->vf44(field_bf8[2], static_cast<s64>(field_a0.field_88) * sizeof(Unk_5693e0), true);
+    }
+    if (field_a0.field_8c >= 1) {
+        stream->vf44(field_bf8[3], static_cast<s64>(field_a0.field_8c) * sizeof(Unk_5693e0), true);
+    }
+    if (field_a0.field_90 >= 1) {
+        stream->vf44(field_bf8[4], static_cast<s64>(field_a0.field_90) * sizeof(Unk_5693e0), true);
+    }
+    if (field_a0.field_94 >= 1) {
+        stream->vf44(field_bf8[5], static_cast<s64>(field_a0.field_94) * sizeof(Unk_5693e0), true);
+    }
+    return true;
 }
 
 // 0x71005697b0
@@ -180,6 +255,40 @@ bool SiGfxShaderEffectPackage::Unk_5697b0(ISiIOStream* stream, u32 byteOrder) {
     stream->vf50(field_a0.field_8c, true);
     stream->vf50(field_a0.field_90, true);
     stream->vf50(field_a0.field_94, true);
+    return true;
+}
+
+// 0x710056a770
+bool SiGfxShaderEffectPackage::vf8(const char* path) {
+    ISiIOStream* stream = reinterpret_cast<SiIOKernel*>(Unk_57d030_get())->vf9(path, 9, nullptr);
+    if (stream == nullptr) {
+        return false;
+    }
+    {
+        Unk_567750_Header header;
+        if (!Unk_56a960(stream, &header)) {
+            stream->vf3();
+            return false;
+        }
+        field_a0 = header;
+        field_bf0 = true;
+        Unk_56ae10(stream, &header);
+        Unk_56b000(stream, &header);
+        Unk_582f10(stream, 0x10);
+        field_2d0.field_e8 = stream->vf27(true);
+        field_2d0.field_ec = stream->vf27(true);
+        field_2d0.field_f0 = stream->vf31(true);
+        Unk_56b230(stream, &header);
+        Unk_56b8a0(stream, &header);
+        field_190.Unk_SetCount(header.field_7c);
+        Unk_582f10(stream, 0x10);
+        for (s64 i = 0; i < static_cast<s32>(field_190.m_itemCount); i++) {
+            s32 index = stream->vf27(true);
+            field_190.m_pData[i] = field_140.m_pData[index];
+        }
+        stream->vf3();
+        Unk_StringAssign(&field_48, path);
+    }
     return true;
 }
 
@@ -236,6 +345,48 @@ bool SiGfxShaderEffectPackage::Unk_56a960(ISiIOStream* stream, Unk_567750_Header
         }
     }
     return result;
+}
+
+// 0x710056ae10
+bool SiGfxShaderEffectPackage::Unk_56ae10(ISiIOStream* stream, Unk_567750_Header* header) {
+    if (stream == nullptr) {
+        return false;
+    }
+    Unk_582f10(stream, 0x10);
+    field_230.Unk_ReserveAtLeast(header->field_70);
+    for (s32 i = 0; i < header->field_70; i++) {
+#line 1510
+        SiGfxShaderEffectVariation* variation = UNK_SI_NEW(field_8.m_pAllocator, 0x10) SiGfxShaderEffectVariation(field_8.m_pAllocator);
+        if (variation->vf15(stream)) {
+            field_230.Unk_Add(reinterpret_cast<ISiGfxShaderEffectVariation*>(variation));
+        } else if (variation != nullptr) {
+            variation->vf3();
+        }
+    }
+    return true;
+}
+
+// 0x710056b000
+bool SiGfxShaderEffectPackage::Unk_56b000(ISiIOStream* stream, Unk_567750_Header* header) {
+    if (stream == nullptr) {
+        return false;
+    }
+    Unk_582f10(stream, 0x10);
+    field_280.Unk_ReserveAtLeast(header->field_78);
+    for (s32 i = 0; i < header->field_78; i++) {
+#line 1544
+        SiGfxShaderEffectDefinition* definition = UNK_SI_NEW(field_8.m_pAllocator, 0x10) SiGfxShaderEffectDefinition(field_8.m_pAllocator);
+        if (definition->vf15(stream)) {
+            s32 index = definition->vf8();
+            if (index >= 0 && index < static_cast<s32>(field_230.m_itemCount)) {
+                definition->vf16(reinterpret_cast<Unk_570680*>(field_230.m_pData[index]));
+            }
+            field_280.Unk_Add(reinterpret_cast<ISiGfxShaderEffectDefinition*>(definition));
+        } else if (definition != nullptr) {
+            definition->vf3();
+        }
+    }
+    return true;
 }
 
 // 0x710056ba50
