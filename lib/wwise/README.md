@@ -435,12 +435,24 @@ What the classes after it showed (`Unk_2383b58.cpp`, `Unk_3bdca0.cpp`,
   of `0x71023841b0` (`Unk_23841b0.h`: a sorted array of what it plays into,
   a list of what plays into it). It has four effects of 0x80 bytes at 0xc8,
   their four buffers at 0x2c8 and one more effect object at 0x328.
+- **A value read from a bitfield of a 16-bit word is shifted in 16 bits and
+  then widened**, a 16-bit member shifted by hand is widened first. The
+  widening is what puts it second in a product (`mul w11, w12, w11` in
+  `Unk_3ddff0`: the position times `field_210_6`).
+- **Two tests of one number in an `if`/`else if` become a switch, whose
+  cases are then tested in the order of their likelihood.** With the other
+  condition first (`else if (arg2 && arg1 == 1)`) they stay two tests in
+  the order written (`Unk_3de050`).
 - The sources: `Unk_3dd7b0.h` is the class of `0x7102384dd0` (what a sound's
   samples come from, with its playing context at 0x18), `0x7102383f80` and
   `0x7102384ec0` are on it.
 
 Open:
 
+- `Unk_3dcac0` (`m`) and `0x71003dd4a0`: after their last call the original
+  compares the result with 1 and returns it either way (`cmp w0, #1` that
+  nothing reads; the call is not a tail call). A source that returns 1 for 1
+  is folded to returning the result before code is generated.
 - `Unk_2383f80`'s constructor (`0x71003cbc30`): the table of functions has
   it without a parameter, and the matched constructors of the classes on it
   (`src/unsorted/ctor/Unk_3cd300.cpp`) call it that way. It passes the
