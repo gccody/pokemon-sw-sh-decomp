@@ -300,6 +300,56 @@ void SiIOVFS::Unk_586750(SiArray<SiIOVFSEntry*>* list, SiIOVFSEntry* entry) {
     }
 }
 
+// 0x7100586910
+// NON_MATCHING: x19, x20 and x21 hold the entries, the count and `this` instead of the count,
+// `this` and the entries (three live ranges of nearly the same size).
+bool Unk_586910::Unk_586910_Sort(s64 count, SiIOVFSEntry** entries) {
+    if (count > 1) {
+        s64 pivot = 0;
+        s64 middle = count / 2;
+        if (middle < count) {
+            SiIOVFSEntry* t = entries[0];
+            entries[0] = entries[middle];
+            entries[middle] = t;
+            SiIOVFSEntry* key = entries[0];
+            s64 i = 1;
+            s64 j = count - 1;
+            do {
+                // (each scan tests its first element before the loop: only this
+                // spelling keeps the original's two copies of the test)
+                if (key->field_88 > entries[i]->field_88) {
+                    do {
+                        i++;
+                        if (i >= j) {
+                            break;
+                        }
+                    } while (key->field_88 > entries[i]->field_88);
+                }
+                if (key->field_88 <= entries[j]->field_88) {
+                    do {
+                        j--;
+                        if (j <= i) {
+                            break;
+                        }
+                    } while (key->field_88 <= entries[j]->field_88);
+                }
+                if (i < j) {
+                    t = entries[i];
+                    entries[i] = entries[j];
+                    entries[j] = t;
+                }
+            } while (i <= j);
+            pivot = i - 1;
+            t = entries[0];
+            entries[0] = entries[pivot];
+            entries[pivot] = t;
+        }
+        Unk_586910_Sort(pivot, entries);
+        Unk_586910_Sort(count - pivot - 1, entries + pivot + 1);
+    }
+    return true;
+}
+
 // 0x7100586260
 s32 SiIOVFS::Unk_586260(SiIOVFSEntry* entry) {
     s32 count = static_cast<s32>(entry->vf15() + entry->vf12());
