@@ -47,8 +47,6 @@ Unk_360c20_T* Unk_361160(u32 id) {
 }
 
 // 0x71003627c0
-// NON_MATCHING: the loads of field_50's items and length before the loop are
-// in the other order.
 void Unk_3627c0(void* self_) {
     Unk_360c20_T* self = static_cast<Unk_360c20_T*>(self_);
     Unk_SetVtable(self, Unk_2380888);

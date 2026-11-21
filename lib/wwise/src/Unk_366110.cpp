@@ -32,8 +32,6 @@ static inline void Unk_366110_Unsubscribe(Unk_366110_T* self, u32 id) {
 }
 
 // 0x7100366110
-// NON_MATCHING: the loads of field_18's items and length before the loop are
-// in the other order, as in Unk_3627c0.
 void Unk_366110(void* self_) {
     Unk_366110_T* self = static_cast<Unk_366110_T*>(self_);
     Unk_SetVtable(self, Unk_2381450);
