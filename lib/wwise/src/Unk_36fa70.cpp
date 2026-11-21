@@ -19,40 +19,62 @@ typedef u32 Unk_3a1830_Value;
 struct Unk_36fa70_Key5 {
     u64 field_0;
 
+    static u64 Any() { return 0; }
     bool IsAnyHere() const { return field_0 == 0; }
     bool IsAny() const { return field_0 == 0; }
+    // Whether a key is any where the other one isn't (both by value).
+    static bool IsWider(Unk_36fa70_Key5 other, Unk_36fa70_Key5 key) {
+        return other.field_0 != 0 && key.field_0 == 0;
+    }
 };
 
 struct Unk_36fa70_Key4 {
     u8 field_0;
     Unk_36fa70_Key5 field_8;
 
+    static u8 Any() { return 0xff; }
     bool IsAnyHere() const { return field_0 == 0xff; }
     bool IsAny() const { return field_0 == 0xff && field_8.IsAny(); }
+    bool IsWider(const Unk_36fa70_Key4& other) const {
+        return Unk_36fa70_Key5::IsWider(other.field_8, field_8) ||
+               (other.field_0 != 0xff && field_0 == 0xff);
+    }
 };
 
 struct Unk_36fa70_Key3 {
     u8 field_0;
     Unk_36fa70_Key4 field_8;
 
+    static u8 Any() { return 0xff; }
     bool IsAnyHere() const { return field_0 == 0xff; }
     bool IsAny() const { return field_0 == 0xff && field_8.IsAny(); }
+    bool IsWider(const Unk_36fa70_Key3& other) const {
+        return field_8.IsWider(other.field_8) || (other.field_0 != 0xff && field_0 == 0xff);
+    }
 };
 
 struct Unk_36fa70_Key2 {
     u32 field_0;
     Unk_36fa70_Key3 field_8;
 
+    static u32 Any() { return 0; }
     bool IsAnyHere() const { return field_0 == 0; }
     bool IsAny() const { return field_0 == 0 && field_8.IsAny(); }
+    bool IsWider(const Unk_36fa70_Key2& other) const {
+        return field_8.IsWider(other.field_8) || (other.field_0 != 0 && field_0 == 0);
+    }
 };
 
 struct Unk_36fa70_Key1 {
     u32 field_0;
     Unk_36fa70_Key2 field_8;
 
+    static u32 Any() { return 0; }
     bool IsAnyHere() const { return field_0 == 0; }
     bool IsAny() const { return field_0 == 0 && field_8.IsAny(); }
+    bool IsWider(const Unk_36fa70_Key1& other) const {
+        return field_8.IsWider(other.field_8) || (other.field_0 != 0 && field_0 == 0);
+    }
 };
 PKMN_SIZE_ASSERT(Unk_36fa70_Key1, 0x28);
 
@@ -60,18 +82,23 @@ struct Unk_36fa70_Key0 {
     u64 field_0;
     Unk_36fa70_Key1 field_8;
 
+    static u64 Any() { return 0; }
     bool IsAnyHere() const { return field_0 == 0; }
     bool IsAny() const { return field_0 == 0 && field_8.IsAny(); }
+    bool IsWider(const Unk_36fa70_Key0& other) const {
+        return field_8.IsWider(other.field_8) || (other.field_0 != 0 && field_0 == 0);
+    }
 };
 PKMN_SIZE_ASSERT(Unk_36fa70_Key0, 0x30);
 
 // A node: `Key` is the type of its key, `Child` what its array holds. The
 // value and the array are a base class's (`Base`, with a vtable of its own).
 #define UNK_36FA70_BASE(Base, Value, Child)                                                       \
-    struct Base { \
-        typedef bool (*Callback)(Value*, const Unk_36fa70_Key0&, void*); \
-\
-        Base() : field_8(), field_10(0), field_18() {} \
+    struct Base {                                                                                 \
+        typedef bool (*Callback)(Value*, const Unk_36fa70_Key0&, void*);                          \
+        typedef void (*Visitor)(Value*, const Unk_36fa70_Key0&, void*);                           \
+                                                                                                  \
+        Base() : field_8(), field_10(0), field_18() {}                                            \
         virtual ~Base();                                                                          \
                                                                                                   \
         void Transfer(Base& other) {                                                              \
@@ -110,12 +137,43 @@ PKMN_SIZE_ASSERT(Unk_36fa70_Key0, 0x30);
             this->field_18.Term();                                                                \
         }                                                                                         \
                                                                                                   \
-        void Remove(const Below& below); \
-        void RemoveAll(const Below& below); \
-\
+        void Remove(const Below& below);                                                          \
+        void RemoveAll(const Below& below);                                                       \
+                                                                                                  \
+        bool Has(const Below& key, const Below& orig) {                                           \
+            if (orig.IsAnyHere())                                                                 \
+                return false;                                                                     \
+            auto* child = this->field_18.Exists(orig.field_0);                                    \
+            if (child == nullptr)                                                                 \
+                child = this->field_18.Exists(Below::Any());                                      \
+            bool all = key.IsAny();                                                               \
+            bool result = child != nullptr && all;                                                \
+            if (child != nullptr && !all)                                                         \
+                result = child->Has(key.field_8, orig.field_8);                                   \
+            return result;                                                                        \
+        }                                                                                         \
+                                                                                                  \
         bool ForEach(typename Base::Callback cb, const Unk_36fa70_Key0& a2, Below* below, void* a4); \
-        bool ForEach(typename Base::Callback cb, const Below& filter, const Unk_36fa70_Key0& a3, \
-                     Below* below, void* a5, bool here); \
+        bool ForEach(typename Base::Callback cb, const Below& filter, const Unk_36fa70_Key0& a3,  \
+                     Below* below, void* a5, bool here);                                          \
+                                                                                                  \
+        inline void Visit(typename Base::Visitor cb, const Below& filter,                         \
+                          const Unk_36fa70_Key0& a3, Below* below, void* a5, bool here) {         \
+            if (here && this->field_10)                                                           \
+                cb(&this->field_8, a3, a5);                                                       \
+            if (filter.IsAnyHere()) {                                                             \
+                for (auto it = this->field_18.Begin(); it != this->field_18.End(); ++it) {        \
+                    below->field_0 = (*it).key;                                                   \
+                    (*it).Visit(cb, filter.field_8, a3, &below->field_8, a5, true);               \
+                }                                                                                 \
+            } else {                                                                              \
+                auto* child = this->field_18.Exists(filter.field_0);                              \
+                if (child != nullptr) {                                                           \
+                    below->field_0 = filter.field_0;                                              \
+                    child->Visit(cb, filter.field_8, a3, &below->field_8, a5, true);              \
+                }                                                                                 \
+            }                                                                                     \
+        }                                                                                         \
                                                                                                   \
         Value* Set(const Below& below) {                                                          \
             if (below.IsAny())                                                                    \
@@ -173,21 +231,48 @@ PKMN_SIZE_ASSERT(Unk_36fa70_Key0, 0x30);
                 this->field_18.Term();                                                            \
         }                                                                                         \
                                                                                                   \
-        void RemoveAll(const Unk_36fa70_Key5& below) { \
-            if (below.IsAny()) { \
-                if (this->field_10) \
-                    this->field_10 = 0; \
-                RemoveAll(); \
-            } else { \
-                this->field_18.Unset(below.field_0); \
-            } \
-        } \
-\
-        bool ForEach(typename Base::Callback cb, const Unk_36fa70_Key5& filter, \
-                     const Unk_36fa70_Key0& a3, Unk_36fa70_Key5* below, void* a5); \
-\
+        bool Has(const Unk_36fa70_Key5& key, const Unk_36fa70_Key5& orig) {                       \
+            if (!key.IsAny())                                                                     \
+                return false;                                                                     \
+            if (orig.IsAnyHere())                                                                 \
+                return false;                                                                     \
+            return this->field_18.Exists(orig.field_0) != nullptr;                                \
+        }                                                                                         \
+                                                                                                  \
+        void RemoveAll(const Unk_36fa70_Key5& below) {                                            \
+            if (below.IsAny()) {                                                                  \
+                if (this->field_10)                                                               \
+                    this->field_10 = 0;                                                           \
+                RemoveAll();                                                                      \
+            } else {                                                                              \
+                this->field_18.Unset(below.field_0);                                              \
+            }                                                                                     \
+        }                                                                                         \
+                                                                                                  \
+        bool ForEach(typename Base::Callback cb, const Unk_36fa70_Key5& filter,                   \
+                     const Unk_36fa70_Key0& a3, Unk_36fa70_Key5* below, void* a5);                \
+                                                                                                  \
+        inline void Visit(typename Base::Visitor cb, const Unk_36fa70_Key5& filter,               \
+                          const Unk_36fa70_Key0& a3, Unk_36fa70_Key5* below, void* a5,            \
+                          bool here) {                                                            \
+            if (here && this->field_10)                                                           \
+                cb(&this->field_8, a3, a5);                                                       \
+            if (filter.IsAnyHere()) {                                                             \
+                for (auto it = this->field_18.Begin(); it != this->field_18.End(); ++it) {        \
+                    below->field_0 = (*it).key;                                                   \
+                    cb(&(*it).field_0, a3, a5);                                                   \
+                }                                                                                 \
+            } else {                                                                              \
+                Name##_Item* item = this->field_18.Exists(filter.field_0);                        \
+                if (item != nullptr) {                                                            \
+                    below->field_0 = filter.field_0;                                              \
+                    cb(&item->field_0, a3, a5);                                                   \
+                }                                                                                 \
+            }                                                                                     \
+        }                                                                                         \
+                                                                                                  \
         bool ForEach(typename Base::Callback cb, const Unk_36fa70_Key0& a2, Unk_36fa70_Key5* below, \
-                     void* a4) { \
+                     void* a4) {                                                                  \
             if (this->field_10) {                                                                 \
                 if (cb(&this->field_8, a2, a4)) {                                                 \
                     if (this->field_10)                                                           \
@@ -203,7 +288,7 @@ PKMN_SIZE_ASSERT(Unk_36fa70_Key0, 0x30);
             }                                                                                     \
             if (this->field_18.IsEmpty())                                                         \
                 this->field_18.Term();                                                            \
-            return !this->field_10 && this->field_18.IsEmpty();                                 \
+            return !this->field_10 && this->field_18.IsEmpty();                                   \
         }                                                                                         \
                                                                                                   \
         Value* Set(const Unk_36fa70_Key5& below) {                                                \
@@ -222,11 +307,14 @@ PKMN_SIZE_ASSERT(Unk_36fa70_Key0, 0x30);
 #define UNK_36FA70_ROOT(Name, Value, Child)                                                       \
     UNK_36FA70_BASE(Name##_Base, Value, Child);                                                   \
     struct Name : Name##_Base {                                                                   \
-        void Remove(const Unk_36fa70_Key0& below); \
-        bool ForEach(typename Name##_Base::Callback cb, const Unk_36fa70_Key0& a2, \
-                     Unk_36fa70_Key0* below, void* a4); \
-        bool ForEach(typename Name##_Base::Callback cb, const Unk_36fa70_Key0& filter, \
-                     const Unk_36fa70_Key0& a3, Unk_36fa70_Key0* below, void* a5, bool here); \
+        void Remove(const Unk_36fa70_Key0& below);                                                \
+        bool Has(const Unk_36fa70_Key0& key, const Unk_36fa70_Key0& orig);                        \
+        bool ForEach(typename Name##_Base::Callback cb, const Unk_36fa70_Key0& a2,                \
+                     Unk_36fa70_Key0* below, void* a4);                                           \
+        bool ForEach(typename Name##_Base::Callback cb, const Unk_36fa70_Key0& filter,            \
+                     const Unk_36fa70_Key0& a3, Unk_36fa70_Key0* below, void* a5, bool here);     \
+        void Visit(typename Name##_Base::Visitor cb, const Unk_36fa70_Key0& filter,               \
+                   const Unk_36fa70_Key0& a3, Unk_36fa70_Key0* below, void* a5, bool here);       \
         Value* Set(const Unk_36fa70_Key0& below);                                                 \
     }
 
@@ -361,7 +449,7 @@ template Unk_2382da0_Item* Unk_SortedKeyArray<u64, Unk_2382da0_Item>::Set(u64);
 // there, removes the values the function says to, and the nodes left with
 // nothing; true when the node itself is left with nothing.
 #define UNK_36FA70_FOREACH(Name, Value, Below)                                                    \
-    bool Name::ForEach(Callback cb, const Unk_36fa70_Key0& a2, Below* below, void* a4) { \
+    bool Name::ForEach(Callback cb, const Unk_36fa70_Key0& a2, Below* below, void* a4) {          \
         if (this->field_10) {                                                                     \
             if (cb(&this->field_8, a2, a4)) {                                                     \
                 if (this->field_10)                                                               \
@@ -377,7 +465,7 @@ template Unk_2382da0_Item* Unk_SortedKeyArray<u64, Unk_2382da0_Item>::Set(u64);
                 ++it;                                                                             \
             }                                                                                     \
         }                                                                                         \
-        return !this->field_10 && this->field_18.Length() == 0;                                       \
+        return !this->field_10 && this->field_18.Length() == 0;                                   \
     }
 
 // 0x710036e2a0
@@ -436,36 +524,36 @@ UNK_36FA70_REMOVEALL(Unk_2382d60, Unk_36fa70_Key4)
 
 // The same for the values a key says: a key that is any stands for every
 // node of its level. `here` is whether the node's own value is one of them.
-#define UNK_36FA70_FOREACH_KEY(Name, Below, HERE) \
+#define UNK_36FA70_FOREACH_KEY(Name, Below, HERE)                                                 \
     bool Name::ForEach(Callback cb, const Below& filter, const Unk_36fa70_Key0& a3, Below* below, \
-                       void* a5, bool here) { \
-        if (here && this->field_10) { \
-            if (cb(&this->field_8, a3, a5)) { \
-                if (this->field_10) \
-                    this->field_10 = 0; \
-            } \
-        } \
-        if (filter.IsAnyHere()) { \
-            for (auto it = this->field_18.Begin(); it != this->field_18.End();) { \
-                below->field_0 = (*it).key; \
-                if ((*it).ForEach(cb, filter.field_8, a3, &below->field_8, a5 HERE)) { \
-                    (*it).RemoveAll(); \
-                    it = this->field_18.Erase(it); \
-                } else { \
-                    ++it; \
-                } \
-            } \
-        } else { \
-            auto* child = this->field_18.Exists(filter.field_0); \
-            if (child != nullptr) { \
-                below->field_0 = filter.field_0; \
-                if (child->ForEach(cb, filter.field_8, a3, &below->field_8, a5 HERE)) { \
-                    child->RemoveAll(); \
-                    this->field_18.Unset(filter.field_0); \
-                } \
-            } \
-        } \
-        return !this->field_10 && this->field_18.IsEmpty(); \
+                       void* a5, bool here) {                                                     \
+        if (here && this->field_10) {                                                             \
+            if (cb(&this->field_8, a3, a5)) {                                                     \
+                if (this->field_10)                                                               \
+                    this->field_10 = 0;                                                           \
+            }                                                                                     \
+        }                                                                                         \
+        if (filter.IsAnyHere()) {                                                                 \
+            for (auto it = this->field_18.Begin(); it != this->field_18.End();) {                 \
+                below->field_0 = (*it).key;                                                       \
+                if ((*it).ForEach(cb, filter.field_8, a3, &below->field_8, a5 HERE)) {            \
+                    (*it).RemoveAll();                                                            \
+                    it = this->field_18.Erase(it);                                                \
+                } else {                                                                          \
+                    ++it;                                                                         \
+                }                                                                                 \
+            }                                                                                     \
+        } else {                                                                                  \
+            auto* child = this->field_18.Exists(filter.field_0);                                  \
+            if (child != nullptr) {                                                               \
+                below->field_0 = filter.field_0;                                                  \
+                if (child->ForEach(cb, filter.field_8, a3, &below->field_8, a5 HERE)) {           \
+                    child->RemoveAll();                                                           \
+                    this->field_18.Unset(filter.field_0);                                         \
+                }                                                                                 \
+            }                                                                                     \
+        }                                                                                         \
+        return !this->field_10 && this->field_18.IsEmpty();                                       \
     }
 
 #define UNK_36FA70_HERE , true
@@ -510,4 +598,61 @@ bool Unk_23818a8::ForEach(Callback cb, const Unk_36fa70_Key5& filter, const Unk_
             this->field_18.Term();
     }
     return !this->field_10 && this->field_18.IsEmpty();
+}
+
+// A node calls a function with the values a key says, removing nothing.
+// 0x710036f050 (and 0x710036f3d0 and 0x710036f750, two levels each)
+void Unk_36b160_Root::Visit(Visitor cb, const Unk_36fa70_Key0& filter, const Unk_36fa70_Key0& a3,
+                            Unk_36fa70_Key0* below, void* a5, bool here) {
+    if (here && this->field_10)
+        cb(&this->field_8, a3, a5);
+    if (filter.IsAnyHere()) {
+        for (auto it = this->field_18.Begin(); it != this->field_18.End(); ++it) {
+            below->field_0 = (*it).key;
+            (*it).Visit(cb, filter.field_8, a3, &below->field_8, a5, true);
+        }
+    } else {
+        Unk_23817a8* child = this->field_18.Exists(filter.field_0);
+        if (child != nullptr) {
+            below->field_0 = filter.field_0;
+            child->Visit(cb, filter.field_8, a3, &below->field_8, a5, true);
+        }
+    }
+}
+
+// Whether the second tree has something for a key, where a node whose key is
+// any stands in for one that is missing.
+// 0x71003a3690 (and 0x71003a37e0 and 0x71003a3930, the first and second
+// level; the third is inlined in the second)
+// NON_MATCHING: 0x71003a3bb0, the fourth level with the last one inlined.
+// The original compares the node found with null before it combines the
+// two tests of the key; here the two are combined first (three instructions
+// in another order).
+bool Unk_39a100_Root::Has(const Unk_36fa70_Key0& key, const Unk_36fa70_Key0& orig) {
+    if (orig.IsAnyHere())
+        return false;
+    Unk_2382ca0* child = this->field_18.Exists(orig.field_0);
+    if (child == nullptr)
+        child = this->field_18.Exists(Unk_36fa70_Key0::Any());
+    bool all = key.IsAny();
+    bool result = child != nullptr && all;
+    if (child != nullptr && !all)
+        result = child->Has(key.field_8, orig.field_8);
+    return result;
+}
+
+struct Unk_2382df0 {
+    virtual bool vf0(const Unk_36fa70_Key0& other);
+
+    const Unk_36fa70_Key0* field_8;
+    Unk_39a100_Root* field_10;
+};
+
+// 0x71003a3600
+bool Unk_2382df0::vf0(const Unk_36fa70_Key0& other) {
+    Unk_39a100_Root* root = field_10;
+    const Unk_36fa70_Key0* key = field_8;
+    if (key->IsWider(other))
+        return root->Has(*key, other);
+    return false;
 }
