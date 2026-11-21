@@ -3145,6 +3145,19 @@ s32 CTextureUtil::Unk_474e70(f32 arg9, f32 arg10, f32 arg11, CRenderTexture* tar
     return result < 0 ? result : 0;
 }
 
+// 0x7100478880
+f32 Unk_478880(f32 arg1, f32 arg2) {
+    return arg1 / arg2;
+}
+
+// 0x710047dfa0: 0x710047d960 into a render texture
+s32 CTextureUtil::Unk_47dfa0(f32 arg1, f32 arg2, f32 arg3, f32 arg4, void* arg5, CRenderTexture* target, u32 arg8,
+                             void* arg9, s32 arg10, bool arg11, bool clear, s32 arg13, const Unk_Float4* arg14,
+                             void* arg15, s32 arg16) {
+    return Unk_47d960(arg1, arg2, arg3, arg4, arg5, target, nullptr, arg8, arg9, arg10, arg11, clear, arg13, arg14,
+                      arg15, arg16);
+}
+
 // DRAWRECTGPU_END
 
 // 0x71004708b0: releases what the device made

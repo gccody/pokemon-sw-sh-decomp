@@ -944,6 +944,11 @@ public:
                    CRenderTexture* source0, CRenderTexture* source1, s32 arg20, CRenderTexture* source2, bool im,
                    const Unk_Vector3* arg19, s32 mode, CRenderTexture* source3, const Unk_Vector3* arg22,
                    const Unk_Vector3* arg23, s32 linear, bool clear);
+    s32 Unk_47d960(f32 arg1, f32 arg2, f32 arg3, f32 arg4, void* arg5, CRenderTexture* target,
+                   Unk_GPUTexture* targetTexture, u64 arg8, void* arg9, s32 arg10, bool arg11, bool clear, s32 arg13,
+                   const Unk_Float4* arg14, void* arg15, s32 arg16);
+    s32 Unk_47dfa0(f32 arg1, f32 arg2, f32 arg3, f32 arg4, void* arg5, CRenderTexture* target, u32 arg8, void* arg9,
+                   s32 arg10, bool arg11, bool clear, s32 arg13, const Unk_Float4* arg14, void* arg15, s32 arg16);
     // The handle of a texture stage (inline; its name and line are its assert's)
     s32 GetHandle_tex2D_aTexture(s32 stage) {
 #line 3059
