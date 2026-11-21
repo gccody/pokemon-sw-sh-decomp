@@ -71,7 +71,7 @@ struct Unk_463fd0_Effect {
     virtual s32 vf15(const char* name);  // a technique's handle
     virtual void vf16();
     virtual void vf17();
-    virtual void vf18();
+    virtual void vf18(s32 parameter, f32 value);  // a float
     virtual void vf19();
     virtual void vf20(s32 parameter, const f32* value);
     virtual void vf21();
@@ -874,6 +874,8 @@ public:
     s32 Unk_474d00(f32 sigma, f32 arg2, f32 arg3, CRenderTexture* source, CRenderTexture* target, bool horizontal,
                    s32 taps, bool clear);
     s32 Unk_4768b0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, s32 count,
+                   Unk_GPUTexture** textures, const Unk_Float4* colors, s32 index, u32 flags);
+    s32 Unk_476bc0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 power, s32 count,
                    Unk_GPUTexture** textures, const Unk_Float4* colors, s32 index, u32 flags);
     // The handle of a texture stage (inline; its name and line are its assert's)
     s32 GetHandle_tex2D_aTexture(s32 stage) {
