@@ -659,6 +659,8 @@ public:
     s32 Unk_46e360(s32 width, s32 height, s32 format);  // 0x710046e360: the colour bars
     s32 Unk_46e740(s32 width, s32 height, s32 format);  // 0x710046e740: the chromaticity diagrams
     s32 Unk_46ea80(s32 width, s32 height);              // 0x710046ea80: the waveform monitor
+    s32 Unk_46ec80(u32 width, u32 height);              // 0x710046ec80: all of the colour chart's
+    void Unk_471410();                                  // 0x7100471410
 
     // the members as the constructor leaves them (inline in Unk_46dc60 and vf3)
     inline void Unk_Clear() {

@@ -61,9 +61,9 @@ public:
     virtual void vf37();
     virtual void vf38();
     virtual void vf39();
-    virtual void vf40();
+    virtual void vf40(s32 arg);
     virtual void vf41();
-    virtual void vf42();
+    virtual void vf42(s32 arg);
     virtual void vf43();
     virtual void vf44();
     virtual void vf45();
