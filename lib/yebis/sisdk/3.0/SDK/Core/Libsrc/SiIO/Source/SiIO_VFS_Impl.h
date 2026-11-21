@@ -77,7 +77,7 @@ public:
     // 0x7100584750: reads the entries
     bool Unk_584750(ISiIOStream* stream, Unk_Header* header);
     // 0x71005848c0: reads an entry
-    void Unk_5848c0(ISiIOStream* stream, Unk_Header* header, SiIOVFSEntry* entry);
+    bool Unk_5848c0(ISiIOStream* stream, Unk_Header* header, SiIOVFSEntry* entry);
     // 0x7100586260: the number of entries below a directory
     s32 Unk_586260(SiIOVFSEntry* entry);
     // 0x7100586310

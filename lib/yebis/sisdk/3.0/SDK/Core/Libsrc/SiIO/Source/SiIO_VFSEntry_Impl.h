@@ -27,11 +27,11 @@ public:
     virtual u64 vf8();
     virtual const u8* vf9();
     virtual const u8* vf10();
-    virtual u8 vf11();  // whether it's a directory
-    virtual s32 vf12();                    // the number of directories in a directory
+    virtual bool vf11();  // whether it's a directory
+    virtual s64 vf12();                    // the number of entries in field_c8
     virtual SiIOVFSEntry* vf13(s64 index);  // one of them
     virtual u64 vf14();
-    virtual s64 vf15();  // the number of files in a directory
+    virtual s64 vf15();  // the number of entries in field_118
     virtual u64 vf16();
     virtual u64 vf17();
     virtual u64 vf18();
@@ -55,8 +55,8 @@ public:
     u32 field_b0;
     u64 field_b8;
     s64 field_c0;                        // its index in the archive
-    SiArray<SiIOVFSEntry*> field_c8;     // a directory's files
-    SiArray<SiIOVFSEntry*> field_118;    // and directories
+    SiArray<SiIOVFSEntry*> field_c8;   // a directory's entries, of one kind
+    SiArray<SiIOVFSEntry*> field_118;  // and of the other
     u64 field_168;
 };
 PKMN_SIZE_ASSERT(SiIOVFSEntry, 0x170);

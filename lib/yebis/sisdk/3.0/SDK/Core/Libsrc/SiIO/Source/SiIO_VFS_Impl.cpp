@@ -161,6 +161,51 @@ bool SiIOVFS::Unk_584750(ISiIOStream* stream, Unk_Header* header) {
     return true;
 }
 
+// 0x71005848c0
+// NON_MATCHING: w23 and w24 are swapped (the value for field_88 and the directory flag): three
+// long values are evicted to the stack for them, and the allocator picks them in another order.
+bool SiIOVFS::Unk_5848c0(ISiIOStream* stream, Unk_Header* header, SiIOVFSEntry* entry) {
+    s64 offset = stream->vf28(true);
+    s64 size = stream->vf28(true);
+    s64 index = stream->vf28(true);
+    s64 count118 = stream->vf28(true);
+    s64 countC8 = stream->vf28(true);
+    s64 valueA0 = stream->vf28(true);
+    s32 valueB0 = stream->vf27(true);
+    u32 value88 = stream->vf31(true);
+    u8 directory = stream->vf29(true);
+    stream->vf29(true);
+    stream->vf29(true);
+    stream->vf29(true);
+    stream->vf37(&entry->field_28, true);
+    entry->field_8c = directory != 0;
+    entry->field_c0 = index;
+    entry->field_a0 = valueA0;
+    entry->field_b0 = valueB0;
+    entry->field_88 = value88;
+    entry->field_90 = header->field_28 + offset;
+    entry->field_98 = size;
+    entry->field_a8 = field_20->vf10() + entry->field_90;
+    field_148.m_pData[entry->field_c0] = entry;
+    if (entry->vf11()) {
+        entry->field_118.Unk_SetCount(count118);
+        entry->field_c8.Unk_SetCount(countC8);
+        for (s64 i = 0; i < entry->vf15(); i++) {
+            SiIOVFSEntry* child = &field_f8.m_pData[stream->vf27(true)];
+            child->field_20 = entry;
+            entry->field_118.m_pData[i] = child;
+            child->vf2();
+        }
+        for (s64 i = 0; i < entry->vf12(); i++) {
+            SiIOVFSEntry* child = &field_f8.m_pData[stream->vf27(true)];
+            child->field_20 = entry;
+            entry->field_c8.m_pData[i] = child;
+            child->vf2();
+        }
+    }
+    return true;
+}
+
 // 0x7100584c30
 void SiIOVFS::vf6() {
     Unk_Release(field_e8);
@@ -215,7 +260,7 @@ bool SiIOVFS::vf24() {
 // 0x7100586260
 s32 SiIOVFS::Unk_586260(SiIOVFSEntry* entry) {
     s32 count = static_cast<s32>(entry->vf15() + entry->vf12());
-    for (s64 i = 0; i < entry->vf12(); i++) {
+    for (s32 i = 0; i < static_cast<s32>(entry->vf12()); i++) {
         count += Unk_586260(entry->vf13(i));
     }
     return count;
