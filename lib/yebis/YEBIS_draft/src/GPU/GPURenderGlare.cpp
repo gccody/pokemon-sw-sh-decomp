@@ -82,6 +82,60 @@ s32 CRenderGlare::vf0(IGPUDevice* device) {
     return result < 0 ? result : 0;
 }
 
+// 0x7100456190: lets go of the device's resources
+s32 CRenderGlare::vf1() {
+    field_2f0->vf1();
+    field_318->vf1();
+    field_398->vf1();
+    if (field_3a0 != nullptr) {
+        field_3a0->vf1();
+    }
+    if (field_3a8 != nullptr) {
+        field_3a8->vf1();
+    }
+    if (field_3b0 != nullptr) {
+        field_3b0->vf1();
+    }
+    if (field_3b8 != nullptr) {
+        field_3b8->vf1();
+    }
+    s32 count = field_b0.field_18[5];
+    for (s32 i = 0; i < count; i++) {
+        field_310[i]->vf1();
+    }
+    if (field_328 != nullptr) {
+        field_328->vf1();
+    }
+    if (field_330 != nullptr) {
+        field_330->vf1();
+    }
+    if (field_338 != nullptr) {
+        field_338->vf1();
+    }
+    if (field_340 != nullptr) {
+        field_340->vf1();
+    }
+    if (field_390 != nullptr) {
+        field_390->vf1();
+    }
+    if (field_350 != nullptr) {
+        for (u32 i = 0; i < field_b0.field_4c; i++) {
+            field_350[i]->vf1();
+        }
+    }
+    if (field_3c0 != nullptr) {
+        field_3c0->vf1();
+    }
+    if (field_3d0 != nullptr) {
+        field_3d0->vf1();
+    }
+    if (field_3c8 != nullptr) {
+        field_3c8->vf1();
+    }
+    PPFX_SAFE_RELEASE_INTERFACE(field_348);
+    return CGPUResourceManage::vf1();
+}
+
 // 0x7100456380
 s32 CRenderGlare::vf2() {
     s32 result = CGPUResourceManage::vf2();
