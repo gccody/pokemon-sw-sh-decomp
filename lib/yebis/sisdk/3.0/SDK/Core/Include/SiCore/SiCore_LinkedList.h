@@ -110,12 +110,13 @@ public:
         m_count--;
     }
 
+    // (the empty list's case first: SiIOKernel's 0x710057d9a0 shows the order)
     void AddTail(T node) {
-        if (m_pHead != nullptr) {
+        if (m_pHead == nullptr) {
+            m_pHead = node;
+        } else {
             m_pTail->m_pNext = node;
             node->m_pPrev = m_pTail;
-        } else {
-            m_pHead = node;
         }
         m_pTail = node;
         m_count++;
@@ -159,11 +160,11 @@ public:
         if (node == nullptr) {
             return nullptr;
         }
-        if (m_pHead != nullptr) {
+        if (m_pHead == nullptr) {
+            m_pHead = node;
+        } else {
             m_pTail->m_pNext = node;
             node->m_pPrev = m_pTail;
-        } else {
-            m_pHead = node;
         }
         m_pTail = node;
         m_count++;

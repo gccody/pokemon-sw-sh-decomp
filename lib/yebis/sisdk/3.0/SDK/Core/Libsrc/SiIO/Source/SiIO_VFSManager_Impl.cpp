@@ -18,9 +18,8 @@ SiIOVFSManager::SiIOVFSManager(ISiAllocator* pAllocator) : field_8(pAllocator), 
 SiIOVFSManager::~SiIOVFSManager() {}
 
 // 0x7100583980
-// NON_MATCHING: the same instructions, but two pairs of independent stores are scheduled the other
-// way round (the new node's links' zeros before its list and previous node, and `add x8, x19, #0x28`
-// before the head's store).
+// NON_MATCHING: the same instructions, but the new node's stores come the other way round (the
+// original stores its list and previous node first and the zeros of its other two links last).
 SiIOVFS* SiIOVFSManager::Unk_583980(ISiAllocator* pAllocator) {
 #line 56
     SiIOVFS* pVFS = UNK_SI_NEW(pAllocator, 0x10) SiIOVFS(pAllocator);
