@@ -328,8 +328,13 @@ void Unk_368ff0() {
 // A table of strings: 0x71003690b0 allocates it, 0x7100369110 frees it and
 // 0x71003691b0 sets one.
 struct Unk_3690b0_T {
+    // What an item is known by: an ID and a position.
+    struct Head {
+        u32 field_0;
+        u32 field_4;
+    };
     struct Item {
-        u64 field_0;
+        Head field_0;
         char* field_8;
     };
 
@@ -374,4 +379,111 @@ u32 Unk_3691b0(Unk_3690b0_T* self, u32 index, const char* string, u32 length) {
     copy[length] = 0;
     self->field_8[index].field_8 = copy;
     return 1;
+}
+
+// What 0x7100369240 fills: the items of a stretch of positions.
+struct Unk_369240_Ctx {
+    u64 field_0;
+    u8 field_8;
+};
+
+struct Unk_369240_Out {
+    struct Item {
+        Unk_369240_Ctx* field_0;
+        u32 field_8;
+        Unk_3690b0_T::Item field_10;
+    };
+
+    u8 _0[0x12];
+    u16 field_12;  // the length of the stretch
+    u16 field_14;  // the number of items
+    Item* field_18;
+};
+PKMN_SIZE_ASSERT(Unk_369240_Out::Item, 0x20);
+PKMN_OFFSET_ASSERT(Unk_369240_Out, field_18, 0x18);
+
+// 0x7100369240
+void Unk_369240(Unk_3690b0_T* self, Unk_369240_Ctx* ctx, Unk_369240_Out* out, u32 start) {
+    if (self->field_8 == nullptr || !(ctx->field_8 & 4))
+        return;
+    u32 length = out->field_12;
+    out->field_18 = nullptr;
+    out->field_14 = 0;
+    for (u32 i = 0; i < self->field_0; i++) {
+        if (self->field_8[i].field_0.field_4 >= start &&
+            self->field_8[i].field_0.field_4 < start + length)
+            out->field_14++;
+    }
+    if (out->field_14 == 0)
+        return;
+    out->field_18 = static_cast<Unk_369240_Out::Item*>(
+        Unk_3045e0(Unk_2381488, sizeof(Unk_369240_Out::Item) * out->field_14));
+    if (out->field_18 == nullptr) {
+        out->field_14 = 0;
+        return;
+    }
+    Unk_369240_Out::Item* item = out->field_18;
+    for (u32 i = 0; i < self->field_0; i++) {
+        if (self->field_8[i].field_0.field_4 >= start &&
+            self->field_8[i].field_0.field_4 < start + length) {
+            item->field_0 = ctx;
+            item->field_8 = self->field_8[i].field_0.field_4 - start;
+            item->field_10 = self->field_8[i];
+            item++;
+        }
+    }
+}
+
+extern void* Unk_24bbc08;
+void Unk_38f380(void* manager, Unk_369240_Ctx* ctx, Unk_3690b0_T::Item* item);
+
+// 0x7100369380
+void Unk_369380(Unk_3690b0_T* self, Unk_369240_Ctx* ctx, u32 start, u32 end) {
+    if (self->field_8 == nullptr || !(ctx->field_8 & 4))
+        return;
+    for (u32 i = 0; i < self->field_0; i++) {
+        if (self->field_8[i].field_0.field_4 >= start && self->field_8[i].field_0.field_4 < end)
+            Unk_38f380(Unk_24bbc08, ctx, &self->field_8[i]);
+    }
+}
+
+// 0x7100369430: the item closest to a position.
+Unk_3690b0_T::Item* Unk_369430(Unk_3690b0_T* self, u32 position) {
+    u32 distance = 0;
+    Unk_3690b0_T::Item* closest = nullptr;
+    for (u32 i = 0; i < self->field_0; i++) {
+        s32 d = self->field_8[i].field_0.field_4 - position;
+        if (d < 0)
+            d = -d;
+        if (closest == nullptr || static_cast<u32>(d) < distance) {
+            distance = d;
+            closest = &self->field_8[i];
+        }
+    }
+    return closest;
+}
+
+extern "C" float sqrtf(float);
+
+struct Unk_3694a0_Vec {
+    f32 field_0;
+    f32 field_4;
+    f32 field_8;
+};
+
+// 0x71003694a0
+f32 Unk_3694a0(const Unk_3694a0_Vec* a, const Unk_3694a0_Vec* b) {
+    f32 x = a->field_0 - b->field_0;
+    f32 y = a->field_4 - b->field_4;
+    f32 z = a->field_8 - b->field_8;
+    return sqrtf(x * x + y * y + z * z);
+}
+
+// 0x71003694d0: the value at `x` on the line from (x0, y0) to (x1, y1).
+f32 Unk_3694d0(f32 x0, f32 y0, f32 x1, f32 y1, f32 x) {
+    if (x <= x0)
+        return y0;
+    if (x >= x1)
+        return y1;
+    return y0 + (x - x0) / (x1 - x0) * (y1 - y0);
 }
