@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include <miniz/miniz_yebis.h>
+#include <yebis/YEBIS_draft/include/PPFX/Unk_Primaries.h>
 #include <yebis/YEBIS_draft/src/GPU/TinyEffect/TFXString.h>
 
 // the empty string every empty Unk_TFXString points at
@@ -321,3 +322,5 @@ Unk_TFXString Unk_TFXString::operator+(const char* text) const {
 }
 
 }  // namespace PPFX
+
+// 0x7100452e70: _GLOBAL__sub_I_TFXString.cpp, the static objects of Unk_Primaries.h
