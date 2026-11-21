@@ -5,24 +5,6 @@
 #include "Unk_366110.h"
 #include "Unk_BankRead.h"
 
-// The key of a subscription to a game parameter.
-struct Unk_366f90_Key {
-    u64 field_0;
-    u32 field_8;
-    u32 _c;
-    u32 field_10;
-    u32 _14;
-    u8 field_18;
-    u8 _19[7];
-    u8 field_20;
-    u8 _21[7];
-    u64 field_28;
-
-    Unk_366f90_Key()
-        : field_0(0), field_8(0), field_10(0), field_18(0xff), field_20(0xff), field_28(0) {}
-};
-PKMN_SIZE_ASSERT(Unk_366f90_Key, 0x30);
-
 extern void* Unk_2381450[];
 extern void* Unk_24bbbf8;
 
@@ -254,4 +236,87 @@ u32 Unk_367120(Unk_366110_T* self, u32 id, const Unk_35f3b0_Point* points, u32 c
     if (child->field_8 != nullptr)
         child->field_8->vf48(0);
     return result;
+}
+
+// Whether a node plays.
+static inline bool Unk_366110_IsActive(Unk_366110_Node* node) {
+    return node != nullptr && node->field_70 != nullptr && node->field_70->field_90 > 0;
+}
+
+// 0x7100366380
+// NON_MATCHING: two instructions before the loop are in the other order.
+void Unk_366380(Unk_366110_T* self, bool a1) {
+    for (auto it = self->field_18.Begin(); it != self->field_18.End(); ++it) {
+        Unk_366110_Node* node = (*it).item.field_8;
+        if (Unk_366110_IsActive(node))
+            node->vf48(a1);
+    }
+}
+
+// 0x7100366d40
+bool Unk_366d40(Unk_366110_T* self) {
+    for (auto it = self->field_18.Begin(), end = self->field_18.End(); it != end; ++it) {
+        if (Unk_366110_IsActive((*it).item.field_8))
+            return true;
+    }
+    return false;
+}
+
+struct Unk_366b00_Info {
+    u32 field_0;
+    Unk_366f90_Key field_8;
+    bool field_38;
+    void* field_40;
+    f32 field_48;
+};
+PKMN_SIZE_ASSERT(Unk_366b00_Info, 0x50);
+
+// 0x7100366b00
+u32 Unk_366b00(Unk_366110_T* self, void*, u32 a2, void*, const Unk_366f90_Key* key, void* a5,
+               f32 a6, f32 a7) {
+    f32 delta = a6 - a7;
+    Unk_366b00_Info info;
+    info.field_0 = a2;
+    info.field_38 = false;
+    info.field_8 = *key;
+    info.field_48 = delta;
+    info.field_40 = a5;
+    for (auto it = self->field_18.Begin(); it != self->field_18.End(); ++it) {
+        Unk_366110_Node* node = (*it).item.field_8;
+        if (Unk_366110_IsActive(node))
+            node->vf23(&info);
+    }
+    return 1;
+}
+
+// A value from a game parameter, for 0x71003784f0 to fill.
+struct Unk_366540_Value {
+    f32 field_0;
+    f32 field_4;
+    u32 field_8;
+
+    Unk_366540_Value() : field_0(0.0f), field_4(1.0f), field_8(0x39) {}
+};
+PKMN_SIZE_ASSERT(Unk_366540_Value, 0xc);
+
+extern void* Unk_24bbc18;
+bool Unk_3784f0(void* self, Unk_366110_T* owner, u32 parameter, u32 a3, void* a4,
+                Unk_366540_Value* value);
+
+// 0x7100366540
+template Unk_366540_Value* Unk_GrowArray<Unk_366540_Value>::AddLast(const Unk_366540_Value&);
+
+// 0x7100366460
+u32 Unk_366460(Unk_366110_T* self, Unk_GrowArray<Unk_366540_Value>* out, u32 a2, void* a3) {
+    if (self->field_28 & 1) {
+        Unk_366540_Value value;
+        if (Unk_3784f0(Unk_24bbc18, self, 0, a2, a3, &value))
+            out->AddLast(value);
+    }
+    if (self->field_28 & 0x80) {
+        Unk_366540_Value value;
+        if (Unk_3784f0(Unk_24bbc18, self, 7, a2, a3, &value))
+            out->AddLast(value);
+    }
+    return 1;
 }

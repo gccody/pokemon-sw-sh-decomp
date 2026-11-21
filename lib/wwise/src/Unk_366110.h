@@ -67,7 +67,7 @@ struct Unk_366110_Node {
     virtual void vf20();
     virtual void vf21();
     virtual void vf22();
-    virtual void vf23();
+    virtual void vf23(void* info);
     virtual void vf24();
     virtual void vf25();
     virtual void vf26();
@@ -138,3 +138,21 @@ inline u32 Unk_366110_Child::Term(Unk_366110_T* self) {
     field_10.Unset();
     return result;
 }
+
+// The key of a subscription to a game parameter.
+struct Unk_366f90_Key {
+    u64 field_0;
+    u32 field_8;
+    u32 _c;
+    u32 field_10;
+    u32 _14;
+    u8 field_18;
+    u8 _19[7];
+    u8 field_20;
+    u8 _21[7];
+    u64 field_28;
+
+    Unk_366f90_Key()
+        : field_0(0), field_8(0), field_10(0), field_18(0xff), field_20(0xff), field_28(0) {}
+};
+PKMN_SIZE_ASSERT(Unk_366f90_Key, 0x30);
