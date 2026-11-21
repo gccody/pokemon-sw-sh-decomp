@@ -123,9 +123,8 @@ public:
     };
 };
 PKMN_SIZE_ASSERT(ISiGfxShaderEffectVariationList::ShaderEffectData, 0x48);
-// (The quad tree nodes' copy, 0x71005329e0, isn't instantiated: it copies a
-// node as two runs of bytes, its links and index and then the rest, which a
-// trivially copyable class's assignment doesn't.)
+// (The quad tree nodes' copy, 0x71005329e0, is in SiPool_QuadNode.cpp, with
+// the node's two base classes.)
 
 // SiGfx's FreeType glyph, a pool's item: its constructor (0x710050ae10) and
 // its destructor (0x710050ae50) are out of line.
