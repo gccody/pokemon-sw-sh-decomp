@@ -846,3 +846,63 @@ u32 Unk_237ff98::vf65(u8*& data) {
     field_98_12 = 0x1f;
     return result;
 }
+
+// What starts a change of a value over time.
+struct Unk_3bdd90_Params {
+    Unk_237ff98_Item28_8* field_0;  // who is told the value
+    u64 field_8;
+    f32 field_10;  // from
+    f32 field_14;  // to
+    u32 field_18;
+    u32 field_1c;
+    bool field_20;
+    bool field_21;
+    bool field_22;
+};
+void* Unk_3bdd90(void* self, Unk_3bdd90_Params* params, bool a2, bool a3);
+
+// Starts taking the item's value back to 0: over a2 (with what changes it,
+// or a new change), or at once.
+// 0x7100355510
+void Unk_237ff98::Unk_355510(u32 id, u32 a2, u32 a3, u32 prop) {
+    Unk_List2<Unk_237ff98_Item28>* list;
+    switch (prop) {
+    case 0:
+        list = &field_100;
+        break;
+    case 5:
+        list = &field_128;
+        break;
+    default:
+        list = nullptr;
+        break;
+    }
+    for (auto it = list->Begin(); it != list->End(); ++it) {
+        if ((*it).field_0 == id) {
+            Unk_237ff98_Item28& item = *it;
+            void* change = item.field_18;
+            item.field_24 = true;
+            if (change != nullptr) {
+                Unk_3be290(Unk_24bbbe8, change, prop, a2, a3, 0, 0.0f);
+            } else {
+                Unk_237ff98_Item28_8* user = item.User();
+                if (a2 != 0 && item.field_20 != 0.0f) {
+                    Unk_3bdd90_Params params;
+                    params.field_0 = user;
+                    params.field_8 = prop;
+                    params.field_10 = item.field_20;
+                    params.field_14 = 0.0f;
+                    params.field_18 = a2;
+                    params.field_1c = a3;
+                    params.field_20 = true;
+                    params.field_21 = true;
+                    params.field_22 = false;
+                    item.field_18 = Unk_3bdd90(Unk_24bbbe8, &params, true, false);
+                } else {
+                    user->vf0(prop, 0.0f, true);
+                }
+            }
+            return;
+        }
+    }
+}

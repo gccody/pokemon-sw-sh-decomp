@@ -484,6 +484,17 @@ throughout.
   `0x7100352440`), and `0x71003552e0`, `0x7100355510` (what a node does to
   another's value). Its fields so far are in `Unk_237ff98.h`; the slots not
   written have placeholder signatures.
+- `0x71003552e0` (556 bytes), read but not written: `Unk_355510`'s counterpart
+  that starts a change towards a value. It looks the item up in the list,
+  adds one at the end when there is none (the item's object, vtable at
+  `0x71023806c0`, is constructed when a new list item is allocated), then
+  `Unk_35c6f0_update(user, this)`, `0x71003a48c0` on `field_150` with the
+  property's parameter, and the same three ways as `Unk_355510`
+  (`Unk_3be290` with 2 as its sixth argument).
+- **A 64-bit parameter shows in the copy.** `mov w1, w4` for a `u32` passed
+  on is a register copy, placed after the constants of the call;
+  for a `u32` widened to a 64-bit parameter it is an instruction of its own
+  and comes first (`Unk_237ff98_Item28_8::vf0`, `Unk_3be290`'s `prop`).
 - **Locals of an inline getter.** Two defaults read through an inline
   function (`Unk_2382098::GetProp`) have their stack slots in the other order
   than two locals of the caller: an inlined call's locals go in front of the
