@@ -320,6 +320,26 @@ struct Unk_567b80 {
 };
 PKMN_SIZE_ASSERT(Unk_567b80, 0x918);
 
+// What a technique's shaders are asked from (placeholder name): slot 11 takes
+// the package's description, a stage, the stage's two strings and a program's
+// two keys.
+class Unk_56d630_Target {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11(u32, u32, const Unk_567750_Pair*, u32, u32, const Unk_567750_Pair*, s32 stage, const char*,
+                      const char*, SiGfxShaderEffectKey*, SiGfxShaderEffectKey*, void*);
+};
+
 class SiGfxShaderEffectPackage {
 public:
     explicit SiGfxShaderEffectPackage(ISiAllocator* pAllocator);
@@ -332,7 +352,7 @@ public:
     virtual bool vf8(const char* path);  // reads a file
     virtual void vf9();  // releases what it holds
     virtual bool vf10(const char* path, u32 byteOrder);  // writes a file
-    virtual bool vf11();
+    virtual bool vf11();  // reads its file again
     virtual bool vf12(const Unk_567750_Desc* desc);
     virtual bool vf13(ISiIOStream* stream);
     virtual bool vf14(s64 value108, void* valueBe8, u32 value104, const SiArray<Unk_5693e0>* shaders0,
@@ -351,7 +371,7 @@ public:
     virtual void vf24(bool value);
     virtual u8 vf25();
     virtual void vf26(bool value);
-    virtual u8 vf27();
+    virtual bool vf27();
     virtual bool vf28();
 
     // 0x71005686f0: releases the effects' data, definitions and variations
@@ -391,6 +411,12 @@ public:
     // 0x71005697b0: writes the file's header, 0x710056a960: reads it
     bool Unk_5697b0(ISiIOStream* stream, u32 byteOrder);
     bool Unk_56a960(ISiIOStream* stream, Unk_567750_Header* header);
+    // 0x710056d630: asks for the shaders of a program's technique, one call
+    // for each stage it has
+    void Unk_56d630(Unk_56d630_Target* target, ISiGfxShaderEffectPackage::ShaderEffectData* data, u32 stages,
+                    SiGfxShaderEffectKey* key0, SiGfxShaderEffectKey* key1);
+    // 0x710056d100: releases the shaders
+    void Unk_56d100();
     // 0x710056d320
     bool Unk_56d320();
 

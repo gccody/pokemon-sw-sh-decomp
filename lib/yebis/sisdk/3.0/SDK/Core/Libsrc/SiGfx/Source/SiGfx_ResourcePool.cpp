@@ -104,7 +104,7 @@ void SiGfxResourcePool::vf13(Unk_534460_Resource* resource) {
     if (!field_170) {
         ResourceItem* item = field_48.Unk_Get(resource->vf7());
         item->field_20 = nullptr;
-        field_48.Unk_4ff090(item);
+        field_48.Unk_4be3f0(item);
     }
 }
 

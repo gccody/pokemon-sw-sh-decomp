@@ -50,6 +50,8 @@ public:
     // A pool's item (SiCore_Pool.h): its links, its index in the pool,
     // whether it's in use, and its resource.
     struct ResourceItem {
+        ResourceItem() : m_pPrev(nullptr), m_pNext(nullptr), field_10(-1), field_18(false), field_20(nullptr) {}
+
         ResourceItem* m_pPrev;
         ResourceItem* m_pNext;
         size_t field_10;
