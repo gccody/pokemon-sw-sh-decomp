@@ -60,12 +60,52 @@ public:
     // An effect's data (RTTI: the pointee of the package's arrays), as far
     // as the package's functions written so far read it.
     struct ShaderEffectData {
+        // What field_58 is, as the package uses it: slot 5 is its name.
+        class Unk_Object {
+        public:
+            virtual ~Unk_Object();
+            virtual u32 vf2();
+            virtual u32 vf3();
+            virtual void vf4();
+            virtual SiString<char>* vf5();
+        };
+        // One of its field_60's (placeholder name)
+        struct Unk_Item;
+
         u64 field_0;
-        SiString<char> field_8;
+        SiString<char> field_8;  // its name
         u32 field_38;
-        s32 field_3c;
+        s32 field_3c;  // its index among the package's
+        s32 field_40;
+        u32 field_44;
+        u64 field_48;
+        u64 field_50;
+        Unk_Object* field_58;
+        SiArray<Unk_Item*> field_60;
     };
 };
+
+// A table of 64 entries and four numbers (placeholder name): the package
+// writes and reads them (and its options end with the same members).
+struct Unk_56a350 {
+    struct Unk_Entry {
+        s32 field_0;
+        s32 field_4;
+        s32 field_8;
+        s32 field_c;
+        s32 field_10;
+        s32 field_14;
+        s32 field_18;
+        s32 field_1c;
+    };
+
+    s32 field_0;  // the number of entries
+    Unk_Entry field_4[0x40];
+    s32 field_804;  // the number of field_808's
+    s32 field_808[4];
+    s32 field_818;
+};
+PKMN_SIZE_ASSERT(Unk_56a350, 0x81c);
 
 // A shader's code as vf14 is given it (placeholder name): 16 bytes.
 struct Unk_5693e0 {
@@ -227,6 +267,12 @@ public:
     // 0x7100569c40: writes the shaders' code, 0x7100569dd0: an effect's data
     bool Unk_569c40(ISiIOStream* stream);
     bool Unk_569dd0(ISiIOStream* stream, ISiGfxShaderEffectPackage::ShaderEffectData* data);
+    // 0x7100569f40: writes one of an effect's field_60's
+    bool Unk_569f40(ISiIOStream* stream, ISiGfxShaderEffectPackage::ShaderEffectData* data,
+                    ISiGfxShaderEffectPackage::ShaderEffectData::Unk_Item* item);
+    // 0x710056a350: writes a table, 0x710056c480: reads one
+    bool Unk_56a350_(ISiIOStream* stream, Unk_56a350* table);
+    bool Unk_56c480(ISiIOStream* stream, Unk_56a350* table);
     // 0x710056ae10, 0x710056b000, 0x710056b230, 0x710056b8a0: read the parts
     // of a file after its header
     bool Unk_56ae10(ISiIOStream* stream, Unk_567750_Header* header);
