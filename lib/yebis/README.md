@@ -351,3 +351,145 @@ From CTextureUtil's rectangles and the DrawRectGPU functions that draw them
   exist before a later call's arguments are lowered.
 - `-(offset * dx)` is `fnmul`; `-offset * dx` with the negation used twice is
   `fneg` and two `fmul`.
+
+## SiSDK3's SiIO, SiOS and SiGfx classes (0x71004ed630 to 0x7100596d20)
+
+The hand-written classes of this range are under `sisdk/3.0/SDK/Core/Libsrc`,
+each in the files its `__FILE__` names (`SiIO/Source/SiIO_VFS_Impl.cpp`, ...);
+where a translation unit's name isn't in the executable the file is a
+placeholder named after its first function (`SiOS/Source/Unk_596410.cpp`,
+`SiGfx/Source/NX/Unk_Pools.cpp`).
+
+### What every class has
+
+- After the vtable pointer comes `Unk_4bf660` (`Include/SiCore/Unk_4bf660.h`):
+  the allocator that made the object and its reference count, with an
+  out-of-line constructor (0x71004bf660) and an empty out-of-line destructor
+  (0x71004bf6a0, which leafgen had named `Unk_4bf6a0_update`). It's a member
+  (`field_8`), not a base: a class with a second base has its own at another
+  offset.
+- The reference counts (`UNK_REFCOUNT_DEFINE`) are compiled only in the
+  class's own translation unit, which defines `UNK_<CLASS>_IMPL` before it
+  includes the header. Other code can then include the header for the layout.
+- An object is made with `UNK_SI_NEW(allocator, 0x10) T(...)` (the allocator's
+  slot 7, with `__FILE__` and `__LINE__`: a `#line` before each keeps the
+  original's line), bytes with `UNK_ALLOC`/`UNK_FREE` (`Unk_Alloc.h`, slots 8
+  and 9). PPFX's code has a `UNK_NEW` of its own, hence the name.
+- A function that leafgen had named keeps that name. Where it's really a
+  constructor or destructor, the class's own one is inline and the named
+  function calls it (`Unk_596410`, SiOSCriticalSection's constructor), and a
+  class that has such an object as a member holds a wrapper that calls the
+  named function (`Unk_CriticalSection`, `Unk_596640`'s destructor).
+- `check.py` reads the base variant of a constructor (C2) out of a C1 name
+  only without template arguments, so the row of `SiPool<ResourceItem>`'s
+  constructor has the C1 name its callers use.
+
+### Containers
+
+- `SI_NEW_ARRAY` is a statement: it allocates, then constructs each element
+  of a class that has a constructor, the test for one decided at compile time
+  (`__has_trivial_constructor`). The original's code shows both halves: with a
+  constructor the caller's null test is threaded through the macro's (one
+  test right after the allocation, then the loop's own first test, which an
+  inline function would have merged before it was inlined); without one no
+  test is left at all (an empty loop's would have been threaded the same way).
+- `SiArray<T>::Unk_4bf190` (the reserve) then matches for class elements too.
+  `instances/SiArray_Elements.cpp` has 17 more copies; a copy that no caller
+  ties to a type has a placeholder element type named after it, with the size
+  it allocates and the constructor its loop shows (a trivially copyable class
+  is copied as bytes, so nothing else of it shows). Copies whose callers are
+  written are instantiated by their callers' translation units, under their
+  RTTI names (`SiIOVFSEntry`, `SiGfxShaderEffectVariation::VariationItem`, the
+  package's arrays of definitions and variations).
+- The inline members the callers show are placeholders in `SiCore_Array.h`:
+  `Unk_SetCount`, `Unk_Reserve`, `Unk_ReserveAtLeast` (which also clamps the
+  count), `Unk_Add` (grows by `field_40` elements, or to twice the room).
+  Their failure paths store the count, then the two range pointers.
+- `SiArray`'s assignment (`operator=`, it returns nothing) is written but one
+  address away in all four copies (`m`): the original computes `&field_30`
+  where its loop starts and stores through `this` before it.
+- `SiString`: the default constructor takes the kernel's allocator, the
+  assignment is out of line (0x71004c8020), `Unk_Clear` frees and empties
+  (line 344), `Unk_StringCStr` is the buffer or the empty string
+  (0x71024e9360). `Unk_StringFuncs.h` declares the string's out-of-line
+  functions as SiIO and SiGfx call them.
+- `SiPool<T>`: a constructor (allocator, flag), slot 2 makes room, `Unk_Get`
+  is the item of an index; written as quotient, then remainder, then the two
+  lookups, which is the order the original computes them in.
+- `SiLinkedList<T>` (`SiCore_LinkedList.h`) is the list with allocated nodes.
+
+### Idioms that decided matches here
+
+- A destructor that reads the object's allocator has to read it through an
+  inline getter of the class (`Unk_Allocator()`), not as
+  `field_8.m_pAllocator`: read directly, the address is the one `field_8`'s
+  destructor is called with at the end, so clang keeps it in a register across
+  the body's calls; through a getter (already optimised when it's inlined) the
+  two addresses are different expressions and the original's code comes out.
+- `return false` for a null stream or object and `return true` at the end: the
+  original's `cbz x0` to the epilogue (x0 is the null pointer) with
+  `mov w0, #1` only on the other path. A function that always returned true
+  has the `mov` after both.
+- `if (a == nullptr || b == nullptr) return false;` as one condition gives the
+  one `mov w22, wzr` before both tests; a test that needs a load of something
+  that isn't `this` is a statement of its own.
+- A `while` loop whose body ends in two `continue`s has two back edges, which
+  LoopSimplify turns into nested loops (the header isn't rotated then); an
+  `if`/`else if` chain reaches the header through one block and is rotated.
+  Which of the two becomes the inner loop follows the order the loop's
+  variables are declared in (SiGfxShaderEffectDefinition::vf11).
+- An unsigned count (`u32 count = field_ac; s32 high = count - 1;`) keeps the
+  subtraction in 32 bits (`subs w10, w20, #1`); a signed one is widened for
+  the index it becomes. A test against 1 rather than of `high == 0` puts the
+  equal case first.
+- `(s32)array.m_itemCount` in a loop's test, with a 64-bit index, gives the
+  reload and `cmp x22, w8, sxtw` of the loops over a package's arrays.
+- A loop of constructors is fully unrolled when the unrolled body is under
+  the threshold (300 at -O3) and then deleted if a `memset` follows; the
+  original's surviving loop of two elements per iteration (interleaved by the
+  vectoriser) showed that the array had 64 elements of 0x20 bytes, not 32 of
+  0x40 (`Unk_567b80`).
+- A helper that's inlined in every caller and also has an out-of-line copy
+  isn't `inline`: it's defined in the .cpp (SiGfxResourcePool's
+  `Unk_534810`/`Unk_534870`).
+- `if (item->field_20 != nullptr && item->field_20->f() == hash) return
+  item->field_20;` reloads the member after the call, which needs one
+  callee-saved register less than a local for it.
+- A struct copy of 0x24 bytes is `ldp`/`ldp`/`ldr w`; member-by-member copies
+  of {u32, u32, pair} halves give the 16-byte steps of the package's header
+  writer, and field by field ones the 4/4/8 steps of its reader.
+- Byte swaps written as swaps of the two halves, `va_end`, the widths of
+  virtual functions' returns, `(s32)fwrite(...) == 1`, flag reads before the
+  stores that follow: see the comments in `SiIO_NX_FileStream_Impl.cpp` and
+  `SiIO_MemoryStream_Impl.cpp`.
+
+### How it was done
+
+A class's destructor gives its members (strings, arrays and their RTTI
+element types, sub-objects with out-of-line destructors), its constructor
+their initial values and the sizes in between; the translation unit is then
+written in address order from a symbolic trace of each function (calls with
+arguments, stores, branches) and checked function by function with a partial
+build. Template instances were found by their first instructions (the reserve
+compares `m_reservedCount`, the assignment copies `field_40`).
+
+### Near misses (`m`) and what's left
+
+The `m` functions each have their `NON_MATCHING` reason: register choices of
+the allocator (SiIOVFS's entry reader and sort, two file stream functions),
+the order of independent stores (SiIOVFSManager's mount, the variation's
+release), a return block shared instead of duplicated or the reverse
+(SiIOCSVDocument::vf15, SiGfxShaderEffectDefinition::vf11, the package's
+vf15), a tail call where the original has a call (`Unk_55bc90`), four bytes of
+frame (SiIOCSVDocument's constructor and vf17).
+
+Not written yet, by translation unit: SiGfxNXCommandList and
+SiGfxNXDrawContext (45 KB), SiGfxPrimitiveDrawHelper (26 KB, float code),
+the rest of SiGfxShaderEffectPackage (its effects' data, 15 KB),
+SiGfxShaderEffectVariationList (17 KB), SiGfxShaderEffect (17 KB),
+SiGfxFreeTypeFaceCache (16 KB), SiGfxNXTexture and its pool (22 KB),
+SiGfxNXDevice (14 KB), SiGfxImage and the DDS loader (19 KB),
+SiGfxNXCanvas (10 KB), SiIOBinaryArchive (9 KB), the CSV document's parser
+and writer, and the small NX resource classes. `SiPool`'s slots 2, 3 and 5
+(three instances each) and the quad tree nodes' reserve need their element
+types' assignments.
