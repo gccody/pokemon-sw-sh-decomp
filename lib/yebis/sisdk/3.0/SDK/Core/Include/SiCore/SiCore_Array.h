@@ -54,6 +54,31 @@ public:
         return true;
     }
 
+    // appends an element, growing by field_40 elements or to twice the
+    // room (inline in every caller: placeholder name)
+    bool Unk_Add(const T& value) {
+        if (m_itemCount >= m_reservedCount) {
+            size_t step = field_40;
+            size_t count;
+            if (step != 0) {
+                count = step + m_reservedCount;
+            } else {
+                count = m_reservedCount * 2 != 0 ? m_reservedCount * 2 : 1;
+            }
+            if (!Unk_4bf190(count, true)) {
+                m_itemCount = 0;
+                field_30 = nullptr;
+                field_38 = nullptr;
+                return false;
+            }
+        }
+        m_pData[m_itemCount] = value;
+        m_itemCount++;
+        field_30 = m_pData;
+        field_38 = m_pData + m_itemCount;
+        return true;
+    }
+
     // 0x71004bf190 (8-byte elements): makes room for count elements, keeping
     // the first ones if keep
     bool Unk_4bf190(size_t count, bool keep);

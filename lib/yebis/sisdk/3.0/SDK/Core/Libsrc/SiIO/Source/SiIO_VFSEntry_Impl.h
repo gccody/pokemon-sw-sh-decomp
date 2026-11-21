@@ -30,16 +30,19 @@ public:
     virtual bool vf11();  // whether it's a directory
     virtual s64 vf12();                    // the number of entries in field_c8
     virtual SiIOVFSEntry* vf13(s64 index);  // one of them
-    virtual u64 vf14();
+    virtual SiIOVFSEntry* vf14(s64 index);
     virtual s64 vf15();  // the number of entries in field_118
-    virtual u64 vf16();
-    virtual u64 vf17();
+    virtual SiIOVFSEntry* vf16(s64 index);  // one of them
+    virtual SiIOVFSEntry* vf17(s64 index);
     virtual u64 vf18();
     virtual ISiIOStream* vf19();  // a file's stream
-    virtual void vf20();
-    virtual void vf21();
-    virtual void vf22();
-    virtual void vf23();
+    virtual bool vf20(const char* name);  // makes it a directory
+    virtual bool vf21(SiIOVFSEntry* entry);  // adds to field_c8
+    virtual bool vf22(SiIOVFSEntry* entry);  // adds to field_118
+    virtual bool vf23(const char* name, s32 valueB0, u64 value168, s64 size, s64 valueA0);  // makes it a file
+
+    // 0x7100587520: releases the entries below it
+    void Unk_587520();
 
     Unk_4bf660 field_8;
     SiIOVFS* field_18;        // the archive
@@ -48,13 +51,17 @@ public:
     SiString<char> field_58;
     u32 field_88;
     bool field_8c;
+    bool field_8d;
+    bool field_8e;
+    bool field_8f;
     s64 field_90;  // where the data starts in the archive's stream
     s64 field_98;
     s64 field_a0;
     s64 field_a8;
-    u32 field_b0;
-    u64 field_b8;
-    s64 field_c0;                        // its index in the archive
+    s32 field_b0;
+    s32 field_b4;
+    s64 field_b8;  // its index in the archive's entries
+    s64 field_c0;                      // its index in the archive's pointers
     SiArray<SiIOVFSEntry*> field_c8;   // a directory's entries, of one kind
     SiArray<SiIOVFSEntry*> field_118;  // and of the other
     u64 field_168;
