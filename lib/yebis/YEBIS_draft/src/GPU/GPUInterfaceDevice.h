@@ -95,7 +95,7 @@ public:
     virtual void vf55();
     virtual void vf56();
     virtual void vf57();
-    virtual void vf58(s32 primitive, s32 count, s32 arg3, s32 arg4, s32 arg5);  // draws
+    virtual s32 vf58(s32 primitive, s32 count, s32 arg3, s32 arg4, s32 arg5);  // draws
     virtual void vf59();
     virtual void vf60();
     virtual void vf61();

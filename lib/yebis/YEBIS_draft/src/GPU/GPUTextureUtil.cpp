@@ -48,6 +48,11 @@ const char* Unk_446df0(s32 result);
         }                                                                                                   \
     } while (0)
 
+// 0x71024e4a18 and 0x71024e4c18: this file's scratch vectors (statics: the
+// code takes their addresses directly), written just before the effect reads them
+extern PPFX::Unk_Float4 Unk_24e4a18[] __attribute__((visibility("hidden")));
+extern PPFX::Unk_Float4 Unk_24e4c18[] __attribute__((visibility("hidden")));
+
 namespace PPFX {
 
 // the bokeh kernels' sample counts
@@ -1372,7 +1377,7 @@ void CTextureUtil::Unk_471410() {
 // other floating-point registers (the height's half and scale in s3 and s5
 // in the original, s2 and s5 here): no order of these eight statements gave
 // the original's allocation.
-void CTextureUtil::Unk_471960(u32 flags, f32 x, f32 y, f32 width, f32 height) {
+s32 CTextureUtil::Unk_471960(f32 x, f32 y, f32 width, f32 height, u32 flags) {
     if (!(flags & 0x40000)) {
         field_20->vf41(-1, 1);
     }
@@ -1416,17 +1421,19 @@ void CTextureUtil::Unk_471960(u32 flags, f32 x, f32 y, f32 width, f32 height) {
     vertices[3][0] = scaleX * (x1 + offset);
     vertices[3][1] = scaleY * (y0 + offset);
     field_30.Unk_Layout1();
-    Unk_DrawVertices(vertices, count, sizeof(vertices[0]), 0);
+    s32 result = Unk_DrawVertices(vertices, count, sizeof(vertices[0]), 0);
     if (!(flags & 0x20000)) {
         field_30.field_0->vf36();
-        field_30.field_0->vf34();
+        result = field_30.field_0->vf34();
     }
+    return result;
 }
 
 // 0x7100471c50 to 0x7100472cd0: a rectangle with 1 to 6 rectangles of
-// texture coordinates (`from` and `to` are their opposite corners).
+// texture coordinates (`from` and `to` are their opposite corners). The
+// result is the last call's, and the flags are the last parameter.
 // 0x7100471c50
-void CTextureUtil::Unk_471c50(u32 flags, f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0) {
+s32 CTextureUtil::Unk_471c50(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, u32 flags) {
     if ((flags & 0x40000) == 0) {
         field_20->vf41(-1, 1);
     }
@@ -1446,15 +1453,16 @@ void CTextureUtil::Unk_471c50(u32 flags, f32 x, f32 y, f32 width, f32 height, f3
         vertices[i] = Unk_RectVertex<1>(positions[i], coords, i);
     }
     field_30.Unk_46cfe0();
-    Unk_DrawVertices(vertices, count, sizeof(vertices[0]), 1);
+    s32 result = Unk_DrawVertices(vertices, count, sizeof(vertices[0]), 1);
     if ((flags & 0x20000) == 0) {
         field_30.field_0->vf36();
-        field_30.field_0->vf34();
+        result = field_30.field_0->vf34();
     }
+    return result;
 }
 
 // 0x7100471f60
-void CTextureUtil::Unk_471f60(u32 flags, f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1) {
+s32 CTextureUtil::Unk_471f60(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1, u32 flags) {
     if ((flags & 0x40000) == 0) {
         field_20->vf41(-1, 1);
     }
@@ -1474,15 +1482,16 @@ void CTextureUtil::Unk_471f60(u32 flags, f32 x, f32 y, f32 width, f32 height, f3
         vertices[i] = Unk_RectVertex<2>(positions[i], coords, i);
     }
     field_30.Unk_46d0c0();
-    Unk_DrawVertices(vertices, count, sizeof(vertices[0]), 2);
+    s32 result = Unk_DrawVertices(vertices, count, sizeof(vertices[0]), 2);
     if ((flags & 0x20000) == 0) {
         field_30.field_0->vf36();
-        field_30.field_0->vf34();
+        result = field_30.field_0->vf34();
     }
+    return result;
 }
 
 // 0x7100472250
-void CTextureUtil::Unk_472250(u32 flags, f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1, f32 u2, f32 v2, f32 s2, f32 t2) {
+s32 CTextureUtil::Unk_472250(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1, f32 u2, f32 v2, f32 s2, f32 t2, u32 flags) {
     if ((flags & 0x40000) == 0) {
         field_20->vf41(-1, 1);
     }
@@ -1502,15 +1511,16 @@ void CTextureUtil::Unk_472250(u32 flags, f32 x, f32 y, f32 width, f32 height, f3
         vertices[i] = Unk_RectVertex<3>(positions[i], coords, i);
     }
     field_30.Unk_46d1b0();
-    Unk_DrawVertices(vertices, count, sizeof(vertices[0]), 3);
+    s32 result = Unk_DrawVertices(vertices, count, sizeof(vertices[0]), 3);
     if ((flags & 0x20000) == 0) {
         field_30.field_0->vf36();
-        field_30.field_0->vf34();
+        result = field_30.field_0->vf34();
     }
+    return result;
 }
 
 // 0x7100472590
-void CTextureUtil::Unk_472590(u32 flags, f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1, f32 u2, f32 v2, f32 s2, f32 t2, f32 u3, f32 v3, f32 s3, f32 t3) {
+s32 CTextureUtil::Unk_472590(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1, f32 u2, f32 v2, f32 s2, f32 t2, f32 u3, f32 v3, f32 s3, f32 t3, u32 flags) {
     if ((flags & 0x40000) == 0) {
         field_20->vf41(-1, 1);
     }
@@ -1530,15 +1540,16 @@ void CTextureUtil::Unk_472590(u32 flags, f32 x, f32 y, f32 width, f32 height, f3
         vertices[i] = Unk_RectVertex<4>(positions[i], coords, i);
     }
     field_30.Unk_46d2a0();
-    Unk_DrawVertices(vertices, count, sizeof(vertices[0]), 4);
+    s32 result = Unk_DrawVertices(vertices, count, sizeof(vertices[0]), 4);
     if ((flags & 0x20000) == 0) {
         field_30.field_0->vf36();
-        field_30.field_0->vf34();
+        result = field_30.field_0->vf34();
     }
+    return result;
 }
 
 // 0x7100472900
-void CTextureUtil::Unk_472900(u32 flags, f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1, f32 u2, f32 v2, f32 s2, f32 t2, f32 u3, f32 v3, f32 s3, f32 t3, f32 u4, f32 v4, f32 s4, f32 t4) {
+s32 CTextureUtil::Unk_472900(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1, f32 u2, f32 v2, f32 s2, f32 t2, f32 u3, f32 v3, f32 s3, f32 t3, f32 u4, f32 v4, f32 s4, f32 t4, u32 flags) {
     if ((flags & 0x40000) == 0) {
         field_20->vf41(-1, 1);
     }
@@ -1558,18 +1569,16 @@ void CTextureUtil::Unk_472900(u32 flags, f32 x, f32 y, f32 width, f32 height, f3
         vertices[i] = Unk_RectVertex<5>(positions[i], coords, i);
     }
     field_30.Unk_46d3a0();
-    Unk_DrawVertices(vertices, count, sizeof(vertices[0]), 5);
+    s32 result = Unk_DrawVertices(vertices, count, sizeof(vertices[0]), 5);
     if ((flags & 0x20000) == 0) {
         field_30.field_0->vf36();
-        field_30.field_0->vf34();
+        result = field_30.field_0->vf34();
     }
+    return result;
 }
 
 // 0x7100472cd0
-// NON_MATCHING: the same instructions, but six of the texture coordinates
-// that arrive on the stack are kept in other callee-saved floating-point
-// registers (s8, s9, s10, s13, s14 and s15 are permuted).
-void CTextureUtil::Unk_472cd0(u32 flags, f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1, f32 u2, f32 v2, f32 s2, f32 t2, f32 u3, f32 v3, f32 s3, f32 t3, f32 u4, f32 v4, f32 s4, f32 t4, f32 u5, f32 v5, f32 s5, f32 t5) {
+s32 CTextureUtil::Unk_472cd0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1, f32 u2, f32 v2, f32 s2, f32 t2, f32 u3, f32 v3, f32 s3, f32 t3, f32 u4, f32 v4, f32 s4, f32 t4, f32 u5, f32 v5, f32 s5, f32 t5, u32 flags) {
     if ((flags & 0x40000) == 0) {
         field_20->vf41(-1, 1);
     }
@@ -1589,12 +1598,114 @@ void CTextureUtil::Unk_472cd0(u32 flags, f32 x, f32 y, f32 width, f32 height, f3
         vertices[i] = Unk_RectVertex<6>(positions[i], coords, i);
     }
     field_30.Unk_46d4b0();
-    Unk_DrawVertices(vertices, count, sizeof(vertices[0]), 6);
+    s32 result = Unk_DrawVertices(vertices, count, sizeof(vertices[0]), 6);
     if ((flags & 0x20000) == 0) {
         field_30.field_0->vf36();
-        field_30.field_0->vf34();
+        result = field_30.field_0->vf34();
     }
+    return result;
 }
+
+// DRAWRECTGPU_BEGIN
+// 0x7100473d90
+s32 CTextureUtil::Unk_473d90(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg9, f32 arg10,
+                             f32 arg11, f32 arg12, f32 arg13, const Unk_Float4* arg1, const Unk_Float4* arg2,
+                             const Unk_Float4* matrix, Unk_GPUTexture* texture, u32 flags) {
+    field_30.field_0->vf29(field_30.field_1b32c);
+    if (matrix != nullptr) {
+        for (s32 i = 0; i < 4; i++) {
+            Unk_24e4c18[i] = matrix[i];
+        }
+    } else {
+        memset(Unk_24e4c18, 0, sizeof(Unk_Float4) * 4);
+    }
+    field_30.field_0->vf22(field_30.field_c4, Unk_24e4c18, 4);
+    field_30.field_0->vf22(field_30.field_c8, Unk_24e4c18, 0);
+    Unk_24e4c18[0] = Unk_Float4(arg9, 1.0f / arg9, arg10, arg11);
+    Unk_24e4c18[1] = *arg1;
+    Unk_24e4c18[2] = *arg2;
+    Unk_24e4c18[3].field_0[0] = arg12;
+    Unk_24e4c18[3].field_0[1] = arg13;
+    field_30.field_0->vf22(field_30.field_d0, Unk_24e4c18, 4);
+    if (texture != nullptr) {
+        field_30.field_0->vf26(field_30.field_8, texture);
+        s32 filter = texture->vf16();
+        texture->vf17(1);
+        s32 result = Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
+        texture->vf15(filter);
+        return result;
+    }
+    return Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
+}
+
+// 0x7100475150
+s32 CTextureUtil::Unk_475150(CRenderTexture* source, CRenderTexture* target, bool clear) {
+    if (clear) {
+        Unk_471410();
+    }
+    f32 u1;
+    f32 v1;
+    Unk_GetCoords(source, &u1, &v1);
+    f32 width = static_cast<f32>(static_cast<u32>(target->field_54));
+    f32 height = static_cast<f32>(static_cast<u32>(target->field_58));
+    s32 result = target->Unk_49d250(0, 0, 1, 0, 0);
+    if (result >= 0) {
+        CRenderTexture::Unk_49cf50(nullptr, nullptr);
+        Unk_GPUTexture* texture = Unk_GetTexture(source);
+        field_30.field_0->vf29(field_30.field_7dac);
+        field_30.field_0->vf26(field_30.field_10[0], texture);
+        Unk_24e4c18[0].field_0[0] = source->field_88;
+        Unk_24e4c18[0].field_0[1] = source->field_8c;
+        Unk_24e4c18[0].field_0[2] = 0.0f;
+        Unk_24e4c18[0].field_0[3] = 0.0f;
+        field_30.field_0->vf22(field_30.field_d4, Unk_24e4c18, 1);
+        s32 filter = texture->vf16();
+        texture->vf15(5);
+        result = Unk_471c50(0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, 0);
+        texture->vf15(filter);
+        result = result < 0 ? result : 0;
+    }
+    return result;
+}
+
+// 0x7100475320
+// NON_MATCHING: the flags' mask (`and w, w, #1`) is before the loop that finds
+// the source's texture here and after it in the original, and the registers
+// of the parameters follow from that.
+s32 CTextureUtil::Unk_475320(f32 arg8, f32 arg9, CRenderTexture* source, CRenderTexture* target,
+                             const Unk_Float4* arg3, const Unk_Float4* arg4, const Unk_Float4* arg5,
+                             const Unk_Float4* arg6, u32 flags) {
+    if (flags & 1) {
+        Unk_471410();
+    }
+    f32 u1;
+    f32 v1;
+    Unk_GetCoords(source, &u1, &v1);
+    f32 width = static_cast<f32>(static_cast<u32>(target->field_54));
+    f32 height = static_cast<f32>(static_cast<u32>(target->field_58));
+    s32 result = target->Unk_49d250(0, 0, 1, 0, 0);
+    if (result >= 0) {
+        CRenderTexture::Unk_49cf50(nullptr, nullptr);
+        Unk_GPUTexture* texture = Unk_GetTexture(source);
+        field_30.field_0->vf29(field_30.field_7da8);
+        Unk_24e4a18[0] = *arg3;
+        Unk_24e4a18[1] = *arg4;
+        Unk_24e4a18[2] = *arg5;
+        Unk_24e4a18[3] = *arg6;
+        field_30.field_0->vf22(field_30.field_d0, Unk_24e4a18, 4);
+        Unk_Float4 value(arg8, arg9, 0.0f, 0.0f);
+        field_30.field_0->vf20(field_30.field_f8, &value.field_0[0].field_0);
+        field_30.field_0->vf26(field_30.field_10[0], texture);
+        s32 filter = texture->vf16();
+        texture->vf15(5);
+        result = Unk_471c50(0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, flags & 1);
+        texture->vf15(filter);
+        result = result < 0 ? result : 0;
+    }
+    return result;
+}
+
+// DRAWRECTGPU_END
 
 // 0x71004708b0: releases what the device made
 s32 CTextureUtil::Unk_4708b0(void* arg) {
