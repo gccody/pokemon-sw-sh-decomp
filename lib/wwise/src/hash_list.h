@@ -1,10 +1,11 @@
 #pragma once
-// A hash table of items chained through a `next` member, by a `key` member.
-// The table's size is one of Unk_HashPrimes. Placeholder names.
+// Unk_HashListBare (Unk_HashList.h) for the tables that allocate from another
+// pool than the default one: A is the pool, P says where an item has its key
+// and its link. Placeholder names.
 #include "containers.h"
 
-template <class T, class A = Unk_PoolDefault>
-struct Unk_HashListBare {
+template <class T, class P, class A>
+struct Unk_PoolHashListBare {
     Unk_Array<T*, A> field_0;  // buckets
     u32 field_10;  // number of items
 
@@ -13,8 +14,8 @@ struct Unk_HashListBare {
     u32 Reserve(u32 size);
 };
 
-template <class T, class A>
-u32 Unk_HashListBare<T, A>::Reserve(u32 size) {
+template <class T, class P, class A>
+u32 Unk_PoolHashListBare<T, P, A>::Reserve(u32 size) {
     u32 prime = 0;
     for (u32 i = 0; i < sizeof(Unk_HashPrimes) / sizeof(Unk_HashPrimes[0]); i++) {
         if (size < Unk_HashPrimes[i]) {
@@ -32,9 +33,9 @@ u32 Unk_HashListBare<T, A>::Reserve(u32 size) {
         for (u32 i = 0; i < old.Length(); i++) {
             T* item = old.field_0[i];
             while (item != nullptr) {
-                T* next = item->next;
-                u32 bucket = item->key % prime;
-                item->next = field_0.field_0[bucket];
+                T* next = P::Next(item);
+                u32 bucket = P::Key(item) % prime;
+                P::Next(item) = field_0.field_0[bucket];
                 field_0.field_0[bucket] = item;
                 item = next;
             }
