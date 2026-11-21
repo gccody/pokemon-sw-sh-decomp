@@ -26,6 +26,13 @@ struct Unk_SortedKeyArray : Unk_GrowArray<T, A, kGrowBy, const T&, M> {
         return this->field_0 != nullptr ? this->field_0 + top : nullptr;
     }
 
+    // The item with the key, or null.
+    T* Exists(K key) const {
+        bool found;
+        T* item = BinarySearch(key, found);
+        return found ? item : nullptr;
+    }
+
     // Removes the item with the key, if there is one.
     bool Unset(K key) {
         bool found;
