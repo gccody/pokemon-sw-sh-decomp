@@ -65,14 +65,15 @@ public:
 
     Unk_4bf660 field_8;
     ISiAllocator* field_18;
-    u32 field_20;  // how many times it was initialised
+    volatile u32 field_20;  // how many times it was initialised (read again after it's stored)
     u64 field_28;
     u64 field_30;
     u64 field_38;
     SiIOVFSManager* field_40;
     SiIOCodecZLib* field_48;
-    // 0x710057d2a0: its initialisation
+    // 0x710057d2a0: its initialisation, 0x710057d3f0: a part of it
     bool Unk_57d2a0(ISiAllocator* pAllocator);
+    bool Unk_57d3f0();
 
     // the chunk handler type of an identifier (inline in its callers:
     // placeholder name)
