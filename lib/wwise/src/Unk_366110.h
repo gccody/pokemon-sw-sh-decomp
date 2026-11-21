@@ -41,6 +41,8 @@ PKMN_SIZE_ASSERT(Unk_366110_T, 0x40);
 struct Unk_366110_NodeInfo {
     u8 _0[0x90];
     s16 field_90;
+    s16 field_92;
+    s16 field_94;
 };
 
 struct Unk_366110_Node {
@@ -63,7 +65,7 @@ struct Unk_366110_Node {
     virtual void vf16();
     virtual void vf17();
     virtual void vf18();
-    virtual void vf19();
+    virtual void vf19(void* action);
     virtual void vf20();
     virtual void vf21();
     virtual void vf22();
@@ -97,7 +99,8 @@ struct Unk_366110_Node {
     u8 _8[0x68];
     Unk_366110_NodeInfo* field_70;
     void* field_78;  // owner
-    u8 _80[0x28];
+    void* field_80;
+    u8 _88[0x20];
     Unk_GrowArray<Unk_366110_T*, Unk_PoolDefault, 4>* field_a8;
 };
 

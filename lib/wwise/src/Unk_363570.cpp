@@ -13,6 +13,25 @@ Unk_366110_T* Unk_366280(u32 id);
 void Unk_367630(Unk_366110_T* self, void* owner);
 u32 Unk_366d90(Unk_366110_T* self, u8** data, u32* size);
 
+// What the object plays, in a list.
+struct Unk_3643f0_Item {
+    Unk_3643f0_Item* field_0;  // next
+    void* field_8;
+    u8 _10[0x3c];
+    u32 field_4c;
+    u32 field_50;
+};
+PKMN_OFFSET_ASSERT(Unk_3643f0_Item, field_4c, 0x4c);
+
+// What an action does, and to what.
+struct Unk_3643f0_Action {
+    u32 field_0;  // 0 and 3 stop, 1 pause, 2 resume
+    void* field_8;
+    u32 field_10;
+    u8 _14[0xc];
+    bool field_20;
+};
+
 struct Unk_363570_T {
     virtual void vf0();
     virtual void vf1();
@@ -39,11 +58,13 @@ struct Unk_363570_T {
     void** field_18;
     u8 _20[0x10];
     void** field_30;
-    u8 _38[0x80];
-    Unk_GrowArray<u64> field_b8;  // children
+    u8 _38[0x38];
+    Unk_366110_NodeInfo* field_70;
+    u8 _78[0x40];
+    Unk_GrowArray<Unk_366110_Node*> field_b8;  // children
     u8 _c8[0x10];
     Unk_GrowArray<Unk_366110_T*, Unk_PoolDefault, 4> field_d8;
-    u64 field_e8;
+    Unk_3643f0_Item* field_e8;  // first
     bool field_f0;
 };
 PKMN_OFFSET_ASSERT(Unk_363570_T, field_b8, 0xb8);
@@ -183,4 +204,64 @@ u32 Unk_363cb0(Unk_363570_T* self, Unk_363cb0_Id id_) {
     for (auto it = self->field_d8.Begin(), end = self->field_d8.End(); it != end; ++it)
         Unk_367750(*it, id);
     return 1;
+}
+
+void Unk_3641b0(Unk_363570_T* self, void* object, u32 id);
+void Unk_34b7c0(Unk_363570_T* self, Unk_3643f0_Action* action);
+
+static inline bool Unk_3643f0_Matches(Unk_3643f0_Item* item, void* object, u32 id) {
+    return (object == nullptr || item->field_8 == object) && (id == 0 || item->field_4c == id);
+}
+
+static inline void Unk_3643f0_Pause(Unk_363570_T* self, void* object, u32 id) {
+    for (Unk_3643f0_Item* item = self->field_e8; item != nullptr; item = item->field_0) {
+        if (Unk_3643f0_Matches(item, object, id))
+            item->field_50 = 1;
+    }
+}
+
+static inline void Unk_3643f0_Resume(Unk_363570_T* self, void* object, u32 id) {
+    for (Unk_3643f0_Item* item = self->field_e8; item != nullptr; item = item->field_0) {
+        if (Unk_3643f0_Matches(item, object, id))
+            item->field_50 = 0;
+    }
+}
+
+// 0x71003643f0
+void Unk_3643f0(Unk_363570_T* self, Unk_3643f0_Action* action) {
+    switch (action->field_0) {
+    case 0:
+        Unk_3641b0(self, action->field_8, action->field_10);
+        break;
+    case 1:
+        Unk_3643f0_Pause(self, action->field_8, action->field_10);
+        break;
+    case 2:
+        Unk_3643f0_Resume(self, action->field_8, action->field_10);
+        break;
+    }
+    Unk_34b7c0(self, action);
+}
+
+// 0x7100363fa0
+void Unk_363fa0(Unk_363570_T* self, Unk_3643f0_Action* action) {
+    switch (action->field_0) {
+    case 0:
+    case 3:
+        Unk_3641b0(self, action->field_8, action->field_10);
+        break;
+    case 1:
+        Unk_3643f0_Pause(self, action->field_8, action->field_10);
+        break;
+    case 2:
+        Unk_3643f0_Resume(self, action->field_8, action->field_10);
+        break;
+    }
+    if (self->field_70 != nullptr && (self->field_70->field_90 > 0 || self->field_70->field_94 > 0)) {
+        for (u32 i = self->field_b8.Length(); i > 0; i--) {
+            Unk_366110_Node* child = self->field_b8.field_0[i - 1];
+            if (!action->field_20 || child->field_80 == nullptr)
+                child->vf19(action);
+        }
+    }
 }
