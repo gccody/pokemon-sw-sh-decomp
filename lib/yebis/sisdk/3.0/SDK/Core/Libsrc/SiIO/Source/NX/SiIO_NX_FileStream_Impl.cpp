@@ -21,7 +21,7 @@ void Unk_582d70(FILE* file);
 SiSDK3::SiString<char> Unk_4e4400(SiSDK3::SiString<char>* path, bool);
 void Unk_4c8020(SiSDK3::SiString<char>* self, const SiSDK3::SiString<char>* other);
 // 0x71004c4c40: a wide string to a character buffer
-void Unk_4c4c40(const wchar_t* s, char* dst, s32 size);
+void Unk_4c4c40(const wchar_t* s, char* dst, s64 size);
 
 namespace SiSDK3 {
 

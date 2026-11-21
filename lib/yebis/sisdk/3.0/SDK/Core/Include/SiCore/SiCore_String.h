@@ -2,6 +2,8 @@
 // the implementation is SiCore_String.inl (its __FILE__). Placeholder members.
 #pragma once
 
+#include <string.h>
+
 #include "SiCore_Memory.h"
 
 // 0x71004bc690: the kernel's allocator, or null without a kernel
@@ -38,6 +40,12 @@ public:
     // frees the buffer unless it isn't the string's own (inline in every
     // caller: placeholder name)
     void Unk_Release();
+    // frees the buffer, unless it isn't the string's own; that and no
+    // characters; that and no capacity (inline: placeholder names). The last
+    // is Unk_Clear in three steps, which is how the capacity setters have it.
+    void Unk_FreeBuffer();
+    void Unk_Empty();
+    void Unk_EmptyAll();
     // frees the buffer and empties the string (inline in every caller:
     // placeholder name)
     void Unk_Clear();
