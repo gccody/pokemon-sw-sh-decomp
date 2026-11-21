@@ -43,13 +43,13 @@ public:
     virtual bool vf8();
     virtual const u8* vf9();
     virtual u64 vf10();
-    virtual u64 vf11();
+    virtual Unk_ChunkHeader* vf11();
     virtual u8* vf12(Unk_ChunkHeader* header);
-    virtual u8* vf13(Unk_ChunkHeader* header);
-    virtual u8* vf14(Unk_ChunkHeader* header);
-    virtual void vf15();
-    virtual void vf16();
-    virtual void vf17();
+    virtual Unk_ChunkHeader* vf13(Unk_ChunkHeader* header);
+    virtual Unk_ChunkHeader* vf14(Unk_ChunkHeader* header);
+    virtual Unk_ChunkHeader* vf15(const Unk_Id* id, Unk_ChunkHeader* start, bool inside);
+    virtual Unk_ChunkHeader* vf16(s32 count, const Unk_Id* ids, Unk_ChunkHeader* start, bool inside);
+    virtual bool vf17(Unk_ChunkHeader* header, ChunkHandler* handler);
     virtual const u8* vf18();
     virtual bool vf19();
     virtual u32 vf20();
@@ -68,6 +68,9 @@ public:
     virtual void vf33();
     virtual u32 vf34();
 
+    // reads the header from the file's bytes (inline in its callers:
+    // placeholder name)
+    bool Unk_ReadHeader(u32 platform);
     // 0x710057b7d0: writes the header, 0x710057bb60: the chunk types
     bool Unk_57b7d0(ISiIOStream* stream);
     bool Unk_57bb60(ISiIOStream* stream);
@@ -83,7 +86,7 @@ public:
     Unk_Header field_30;
     u32 field_e0;
     u8* field_e8;   // the file's bytes
-    u8* field_f0;
+    Unk_ChunkHeader* field_f0;  // its first chunk
     bool field_f8;  // whether field_e8 is the archive's own
     bool field_f9;  // whether field_100 is
     u8 field_fa[5];
