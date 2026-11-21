@@ -50,6 +50,8 @@ struct Unk_GPUTexture {
     u8 pad_8[0x44];
     u32 field_4c;  // its size
     u32 field_50;
+    u8 pad_54[0x30];
+    u32 field_84;  // and its depth
 };
 
 // PPFX::IGPUEffect, as this file calls it
@@ -904,6 +906,20 @@ public:
                                           bool background, bool arg2, s32 count, const Unk_Float4* values,
                                           const Unk_Float2* arg5, const Unk_Float2* arg6, Unk_GPUTexture* texture,
                                           s32 arg8, s32 index, u32 flags);
+    s32 DrawRectGPU_MadCocT2_Sn(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, s32 count,
+                                const Unk_Float4* values, const Unk_Float4* colors, const Unk_Float4* arg4,
+                                Unk_GPUTexture* texture0, Unk_GPUTexture* texture1, s32 arg7, u32 flags);
+    s32 Unk_476580(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, s32 count,
+                   const Unk_Float4* values, const Unk_Float4* colors, Unk_GPUTexture* texture1,
+                   Unk_GPUTexture* texture0, s32 index, u32 flags);
+    s32 Unk_475560(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, s32 count,
+                   const Unk_Float4* values, const Unk_Float4* colors, Unk_GPUTexture* texture, Unk_GPUTexture* lut,
+                   s32 index, u32 flags);
+    s32 DrawRectGPU_MadT1_Sn(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, s32 count,
+                             const Unk_Float4* values, const Unk_Float4* colors, Unk_GPUTexture* texture, s32 index,
+                             u32 flags);
+    s32 Unk_475d80(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, s32 count,
+                   const Unk_Float4* values, const f32* weights, Unk_GPUTexture* texture, s32 index, u32 flags);
     // The handle of a texture stage (inline; its name and line are its assert's)
     s32 GetHandle_tex2D_aTexture(s32 stage) {
 #line 3059
