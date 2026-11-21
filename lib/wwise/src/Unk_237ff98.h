@@ -139,9 +139,9 @@ public:
     void vf38(bool a1) override;
     void vf41(void* a1, void* a2, bool a3) override;
     void vf42() override;
-    void vf43() override;
-    void vf45() override;
-    void vf47() override;
+    void vf43(f32 a1, u32 a2, void* a3, u32 a4, u32 a5, u32 a6) override;
+    void vf45(void* a1, u32 a2, u32 a3) override;
+    void vf47(u32 a1, u32 a2) override;
     void vf48(bool a1) override;
     void vf52() override;
     void vf55() override;
@@ -151,7 +151,7 @@ public:
     void vf60() override;
     void vf64() override;
     void vf65() override;
-    void vf68() override;
+    void* vf68(void* a1) override;
     u32 p_vf0() override { return children.field_8 + field_b8.field_8; }  // 0x710034dc10
     u32 p_vf1(Unk_2382098* child) override;
     // Slots 73 to 76 are those of the base at 0x18.
@@ -166,6 +166,19 @@ public:
     void c_vf2(bool a1, u32 a2) override;
 
     void Unk_351b20();
+
+    // Tells the node (slot 25) the value of its property 0xb, or `value`.
+    void Unk_351b20_Tell(f32 value) {
+        Unk_237ff98_Arg25 arg;
+        arg.field_8 = true;
+        arg.field_0 = this;
+        if (field_50 != nullptr) {
+            Unk_PropValue16* prop = field_50->field_18.FindProp(0xb);
+            if (prop != nullptr)
+                value = prop->field_0;
+        }
+        vf25(&arg, true, value);
+    }
     f32 Unk_352da0(u32 a1);
     u32 Unk_352df0(Unk_352df0_Out* out, Unk_NodeKey* key);
     f32 Unk_353010(Unk_NodeKey key, f32* out);
@@ -174,6 +187,10 @@ public:
     void Unk_355510(u32 id, u32 a2, u32 a3, u32 prop);
     void Unk_3552e0(u32 id, f32 a2, u32 a3, u32 a4, u32 a5);
     void Unk_355640();
+    bool Unk_356720(u32 a1, void* a2);
+    u32 Unk_357310();
+    void Unk_357370(f32* value);
+    void Unk_357650(u32 a1);
     void Unk_355690(u32 id);
 
     // Ends what the item does to the value of `prop`.
@@ -231,3 +248,4 @@ extern Unk_Array<Unk_237ff98*> Unk_24bca98;
 extern nn::os::MutexType Unk_24bcac0;
 extern nn::os::MutexType Unk_24bbc90;
 extern bool Unk_24bcab9;
+extern bool Unk_24bcab8;
