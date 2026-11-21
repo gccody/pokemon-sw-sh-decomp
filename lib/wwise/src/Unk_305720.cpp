@@ -155,7 +155,6 @@ void Unk_332890(bool (*callback)(u32, u32));
 void Unk_3328a0(u32 (*callback)(u8*, void*, u32));
 void Unk_3328b0(void (*callback)(void*));
 
-void Unk_31b540(Unk_24bb9a0_T* self);
 u32 Unk_31b580(Unk_24bb9a0_T* self, u32 id);
 void Unk_31b860(Unk_24bb9a0_T* self, u32 id);
 void Unk_31b7b0(Unk_24bb9a0_T* self, u32 id, void* data);
@@ -236,3 +235,80 @@ void Unk_306fb0(u32 id, Unk_305720_Iterator& it) {
     Unk_305720_Purge();
 }
 
+
+struct Unk_31b540;
+void Unk_31b540_call(Unk_31b540* self);
+
+// 0x7100305920
+void Unk_305920() {
+    Unk_305720_Inst* inst = Unk_24bb988;
+    if (inst == nullptr)
+        return;
+    for (Unk_305720_Obj* o = Unk_24bb990.field_8; o != nullptr;) {
+        Unk_305720_Obj* next = o->next;
+        Unk_309250_Arg arg;
+        arg.field_0 = 0;
+        arg.field_4 = 4;
+        arg.field_8 = false;
+        Unk_309250(o, &arg, 0);
+        o = next;
+    }
+    Unk_316000();
+    Unk_24bb990.field_0 = nullptr;
+    Unk_24bb990.field_8 = nullptr;
+    Unk_31b540_call(reinterpret_cast<Unk_31b540*>(&Unk_24bb9a0));
+    Unk_305c20(&Unk_24bb9d0);
+    int pool = Unk_237e820;
+    Unk_24bb988 = nullptr;
+    Unk_3047c0(pool, inst);
+}
+
+// 0x71003069c0
+u32 Unk_3069c0(u64, Unk_305720_Obj* obj, Unk_3069c0_Arg* a2, void* a3, bool a4) {
+    Unk_305720_Ctx* ctx = static_cast<Unk_305720_Ctx*>(Unk_3045e0(Unk_237e820, 0x88));
+    if (ctx == nullptr)
+        return 2;
+    Unk_30bc20(ctx, obj, a2, a3, a4);
+    Unk_305720_Owner* owner = obj->vf22();
+    if (owner != nullptr) {
+        if (owner->vf37(1)) {
+            Unk_24bb990.AddFirst(obj);
+            Unk_30adf0_set(reinterpret_cast<Unk_30adf0*>(obj), reinterpret_cast<u64>(ctx));
+            if (a2->field_14 == 0)
+                return 2;
+            u32 flags = 0;
+            u32 result = Unk_38fae0(Unk_24bbc08, a2->field_14, &obj->field_18, &flags);
+            Unk_30b000_set(reinterpret_cast<Unk_30b000*>(obj), flags);
+            if (flags & 0x200000) {
+                if (Unk_31b580(&Unk_24bb9a0, a2->field_14) != 1)
+                    Unk_30b000_set(reinterpret_cast<Unk_30b000*>(obj), flags & ~0x200000);
+            }
+            Unk_38f170(Unk_24bbc08, a2->field_14);
+            return result;
+        }
+        owner->vf38(1);
+    }
+    int pool = Unk_237e820;
+    Unk_30bcf0(ctx);
+    Unk_3047c0(pool, ctx);
+    return 2;
+}
+
+// 0x7100306b40
+void Unk_306b40(u64, Unk_305720_Obj* obj) {
+    Unk_24bb990.RemoveEx(obj);
+    Unk_305720_Ctx* ctx = obj->field_60;
+    if (ctx == nullptr)
+        return;
+    if (ctx->field_2c != 0) {
+        u8* member = &obj->field_18;
+        if (obj->field_22_5)
+            Unk_31b860(&Unk_24bb9a0, ctx->field_2c);
+        Unk_38fb90(Unk_24bbc08, ctx->field_2c, member);
+        if (obj->vf22() != nullptr)
+            obj->vf22()->vf38(1);
+    }
+    int pool = Unk_237e820;
+    Unk_30bcf0(ctx);
+    Unk_3047c0(pool, ctx);
+}
