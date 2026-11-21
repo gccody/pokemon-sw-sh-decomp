@@ -429,10 +429,10 @@ s32 TEXSHADERSET::CreateEffect(void* device) {
     Unk_GetTechs(field_7eac[1], "tech_DepthOfField_CompositeBlurredLevels_USNORM_Tn", 8);
     Unk_GetTechs(field_842c[0], "tech_DepthOfField_CompositeBlurredLevelsFrontBlur_Tn", 8);
     Unk_GetTechs(field_842c[1], "tech_DepthOfField_CompositeBlurredLevelsFrontBlur_USNORM_Tn", 8);
-    Unk_463340(field_89ac, "tech_DepthOfField_CompositeBlurLevelsFrontBlur_TSn_n");
-    Unk_463340(field_9fac, "tech_DepthOfField_CompositeBlurLevelsFrontBlur_USNORM_TSn_n");
-    Unk_463340(field_b5ac, "tech_DepthOfField_CompositeMaskedBlurLevels_TSn_n");
-    Unk_463340(field_cbac, "tech_DepthOfField_CompositeMaskedBlurLevels_USNORM_TSn_n");
+    Unk_463340(field_89ac[0], "tech_DepthOfField_CompositeBlurLevelsFrontBlur_TSn_n");
+    Unk_463340(field_89ac[1], "tech_DepthOfField_CompositeBlurLevelsFrontBlur_USNORM_TSn_n");
+    Unk_463340(field_b5ac[0], "tech_DepthOfField_CompositeMaskedBlurLevels_TSn_n");
+    Unk_463340(field_b5ac[1], "tech_DepthOfField_CompositeMaskedBlurLevels_USNORM_TSn_n");
     Unk_GetTechs(field_e1ac, "tech_DepthOfField_BackgroundLayerMaskT1_Sn", 25);
     Unk_GetTechs(field_ea44, "tech_DepthOfField_BackgroundLayerMaskT1_USNORM_Sn", 25);
     Unk_GetTechs(field_f2dc, "tech_DepthOfField_ForegroundLayerMaskT1_Sn", 25);
@@ -2027,8 +2027,7 @@ s32 CTextureUtil::Unk_47ac50(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
 s32 CTextureUtil::Unk_47ae50(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 u2, f32 v2,
                              f32 u3, f32 v3, s32 arg1, s32 arg2, Unk_GPUTexture** textures,
                              const Unk_Float2* weights, s32 arg5, s32 index, u32 flags) {
-    // field_89ac and the three tables after it are one of [4][8][8][22]
-    s32 technique = (&field_30.field_89ac)[arg5][arg1][arg2][index];
+    s32 technique = field_30.field_89ac[arg5][arg1][arg2][index];
     if (technique == 0) {
         return -4;
     }
@@ -2041,6 +2040,35 @@ s32 CTextureUtil::Unk_47ae50(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
     }
     field_30.field_0->vf22(field_30.field_b4, values, count);
     for (s32 i = 0; i <= last; i++) {
+        field_30.field_0->vf26(GetHandle_tex2D_aTexture(i), textures[i]);
+    }
+    return Unk_471f60(x, y, width, height, u0, v0, u1, v1, u2, v2, u3, v3, flags);
+}
+
+// 0x710047b040: the same with the textures of both counts, and a pair of
+// values for the effect
+s32 CTextureUtil::Unk_47b040(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 u2, f32 v2,
+                             f32 u3, f32 v3, s32 arg1, s32 arg2, Unk_GPUTexture** textures,
+                             const Unk_Float2* weights, const Unk_Float2* value, s32 arg6, s32 index, u32 flags) {
+    s32 count = arg1 + 1 + arg2;
+    s32 technique = field_30.field_b5ac[arg6][arg1][arg2][index];
+    bool arg = Unk_442c50_get(reinterpret_cast<u64>(field_20));
+    if (technique == 0 && !arg) {
+        technique = field_30.field_b5ac[arg6][arg1][6][index];
+        if (technique == 0) {
+            return -4;
+        }
+    }
+    field_30.field_0->vf29(technique);
+    Unk_Float4 values[16];
+    for (s32 i = 0; i < count; i++) {
+        values[i] = Unk_Float4(weights[i].field_0[0], weights[i].field_0[1], 0.0f, 0.0f);
+    }
+    field_30.field_0->vf22(field_30.field_b4, values, count);
+    Unk_24e4c18[0].field_0[0] = value->field_0[0];
+    Unk_24e4c18[0].field_0[1] = value->field_0[1];
+    field_30.field_0->vf22(field_30.field_d0, Unk_24e4c18, 1);
+    for (s32 i = 0; i < count; i++) {
         field_30.field_0->vf26(GetHandle_tex2D_aTexture(i), textures[i]);
     }
     return Unk_471f60(x, y, width, height, u0, v0, u1, v1, u2, v2, u3, v3, flags);
