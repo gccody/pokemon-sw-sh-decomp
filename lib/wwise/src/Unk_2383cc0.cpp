@@ -7,10 +7,38 @@
 Unk_2383cc0::Unk_2383cc0() {
     Unk_2383cc0_SetVptr(this, Unk_2383cc0_Vtable);
     field_8.first = nullptr;
-    field_10 = 0;
-    field_18 = 0;
-    field_20 = 0;
-    field_28 = 0;
+    field_10.field_0 = nullptr;
+    field_10.field_8 = 0;
+    field_10.field_c = 0;
+    field_20.last = nullptr;
+    field_20.first = nullptr;
+}
+
+// 0x71003c2cd0
+// NON_MATCHING: the array's part is the original's. In the loop that empties
+// the list, the original goes on with the next item it saved and only
+// compares it with the list's first one (a trap when they differ); here the
+// first one, read again, is what goes on, and the trap's block is merged (8
+// bytes less).
+Unk_2383cc0::~Unk_2383cc0() {
+    Unk_2383cc0_SetVptr(this, Unk_2383cc0_Vtable);
+    auto it = field_10.Begin();
+    while (it != field_10.End()) {
+        if ((*it).item.first == nullptr)
+            it = field_10.Erase(it);
+        else
+            ++it;
+    }
+    field_10.Term();
+    for (Unk_3c44e0_Use* p = field_20.first; p != nullptr;) {
+        Unk_3c44e0_Use* next = p->next;
+        Unk_3c44e0_T* object = p->field_10;
+        field_20.RemoveItem(p, nullptr);
+        object->field_10 = nullptr;
+        Unk_3c5180(p);
+        Unk_3c4880(p);
+        p = next;
+    }
 }
 
 // 0x71003c2ec0
@@ -43,4 +71,58 @@ void Unk_3c2f40(Unk_2383c58_T* object, Unk_3c2490_Pair* events, u32 count) {
         Unk_3047c0(pool, event);
     }
     Unk_3c33f0(self, count);
+}
+
+// 0x71003c3e40: the use of a node goes out of the list
+void Unk_3c3e40(Unk_2383cc0* self, Unk_3c44e0_T* key) {
+    for (auto it = self->field_20.BeginEx(); it != self->field_20.End(); ++it) {
+        if ((*it)->field_10 == key) {
+            Unk_3c44e0_Use* use = *it;
+            self->field_20.Erase(it);
+            key->field_10 = nullptr;
+            Unk_3c4880(use);
+            return;
+        }
+    }
+}
+
+// The uses of a node, or the end of the array.
+static inline Unk_Array<Unk_2383cc0_Entry>::Iterator Unk_2383cc0_Find(Unk_2383cc0* self,
+                                                                       Unk_23837d0_Node* key) {
+    auto it = self->field_10.Begin();
+    for (auto end = self->field_10.End(); it != end; ++it) {
+        if ((*it).key == key)
+            break;
+    }
+    return it;
+}
+
+// 0x71003c3eb0: for the uses of an item
+void Unk_3c3eb0(Unk_2383cc0* self, Unk_2383c58_Item* item) {
+    auto it = Unk_2383cc0_Find(self, item->field_40);
+    if (it != self->field_10.End()) {
+        for (Unk_3c44e0_Use* use = (*it).item.first; use != nullptr; use = use->next) {
+            if (use->field_18 == item)
+                Unk_3c51e0(use);
+        }
+    }
+    for (Unk_3c44e0_Use* use = self->field_20.first; use != nullptr; use = use->next) {
+        if (use->field_18 == item)
+            Unk_3c51e0(use);
+    }
+}
+
+// 0x71003c3f90: the same with the other function
+void Unk_3c3f90(Unk_2383cc0* self, Unk_2383c58_Item* item) {
+    auto it = Unk_2383cc0_Find(self, item->field_40);
+    if (it != self->field_10.End()) {
+        for (Unk_3c44e0_Use* use = (*it).item.first; use != nullptr; use = use->next) {
+            if (use->field_18 == item)
+                Unk_3c5260(use);
+        }
+    }
+    for (Unk_3c44e0_Use* use = self->field_20.first; use != nullptr; use = use->next) {
+        if (use->field_18 == item)
+            Unk_3c5260(use);
+    }
 }
