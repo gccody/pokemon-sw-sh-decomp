@@ -2015,11 +2015,22 @@ alignment to the allocator and aren't written.
 
 `Unk_Lock<T>(handle)` (`src/gflib3/Unk_Lock.h`): a reference to the handle's
 object if the handle still counts references and the object's type is `T` or
-derives from it. 62 instances of one shape (452 bytes each, 28,024 bytes)
-match in both games, each a file of its own in `src/unsorted/locks`: their
-`T` is a class on the object itself, so `T::Unk_GetType()` holds the
-object's type and the function has three guarded statics (T's, the object's,
-the root's). `T` is named after its type's static in `data_symbols.csv`.
+derives from it. 77 instances match in both games (34,832 bytes), each a
+file of its own in `src/unsorted/locks`. A candidate reads the count of the
+handle in `x0` first and has one exclusive load and store; its type getters
+are read from the guards its GOT loads name, T's first:
+
+- 70 of 452 bytes: `T` is a class on the object itself, so
+  `T::Unk_GetType()` holds the object's type and the function has three
+  guarded statics (T's, the object's, the root's). 62 are on gflib3's
+  object; 8 have the handle's interface at `+0x8` or `+0x58` of `T` rather
+  than `+0x50` (the `sub` after the handle's `+0x60` is read): their `T` is
+  declared with a base of that size before the interface;
+- 7 of 456 bytes: `T`, two parents whose getters are inlined, then a call
+  of the next parent's getter (named in `functions.csv`).
+
+A type is named after its static in `data_symbols.csv`, an unnamed `T`
+after its static's address.
 
 The source that matches:
 
@@ -2050,11 +2061,12 @@ or `for (;;)` with the zero test returning (a `while (count != 0)` with
 reference (a helper that adopts the pointer adds a copy). The orderings and
 the local reference don't matter.
 
-Not written yet: 14 instances of 456 bytes whose `T` is on another class
-(the parent's getter is called, `0x7100b3aee0`), 6 whose statics are
-`0x27715a0`'s (`0x71005b4a50`), 2 of another shape (`0x71008d2a20`), and the
-instances that take the handle from somewhere else than `x0`. About 360 KB
-of other functions inline this lock: they need this spelling.
+Not written yet: 7 instances of 456 bytes with a parent type that has no
+name (its guard can't be told from its static: `0x7100b424e0`), and the
+functions that inline the lock after reading the handle from a weak
+reference (`0x7100946e90`, 404 bytes, 8 of its shape; `0x7100b35720`, 364
+bytes, 4; `0x710110c4f0`, 420 bytes, 5). 831 functions that aren't matched
+(836 KB) have this lock in them: they need this spelling.
 
 ### Copies of type-erased callables (`tools/clonegen.py`, 2026-11-19)
 
