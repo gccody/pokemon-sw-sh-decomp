@@ -155,6 +155,32 @@ public:
         }
     }
 
+    // appends an element made by its default constructor, growing like
+    // Unk_Add (inline in its caller: placeholder name; the element's bytes
+    // are stored as constants, which a reference to a temporary isn't)
+    bool Unk_AddNew() {
+        if (m_itemCount >= m_reservedCount) {
+            size_t step = field_40;
+            size_t count;
+            if (step != 0) {
+                count = step + m_reservedCount;
+            } else {
+                count = m_reservedCount * 2 != 0 ? m_reservedCount * 2 : 1;
+            }
+            if (!Unk_4bf190(count, true)) {
+                m_itemCount = 0;
+                field_30 = nullptr;
+                field_38 = nullptr;
+                return false;
+            }
+        }
+        m_pData[m_itemCount] = T();
+        m_itemCount++;
+        field_30 = m_pData;
+        field_38 = m_pData + m_itemCount;
+        return true;
+    }
+
     // empties the array, keeping its room (inline in every caller:
     // placeholder name)
     void Unk_Clear() {

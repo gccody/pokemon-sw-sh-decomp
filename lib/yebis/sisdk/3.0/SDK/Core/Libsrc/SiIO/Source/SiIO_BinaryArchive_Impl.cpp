@@ -481,6 +481,32 @@ ISiIOBinaryArchive::ChunkTypeInfo* SiIOBinaryArchive::vf32(const Unk_Id* id) {
     return nullptr;
 }
 
+// 0x710057c1c0
+bool SiIOBinaryArchive::vf33(SiArray<Unk_Id>* ids, SiArray<Unk_567750_Version>* versions) {
+    SiString<char> name(field_18.m_pAllocator);
+    Unk_567750_Version version;
+    if (reinterpret_cast<const Unk_Header*>(vf9())->field_78 >= 1 && static_cast<s64>(vf30()) < 1) {
+        return false;
+    }
+    for (s64 i = 0; i < static_cast<s32>(vf30()); i++) {
+        ChunkTypeInfo* info = vf31(i);
+        if (info == nullptr) {
+            continue;
+        }
+        if (!reinterpret_cast<SiIOKernel*>(Unk_57d030_get())->vf21(info, &name, &version)) {
+            ids->Unk_Add(info->field_0);
+            versions->Unk_AddNew();
+            return false;
+        }
+        if (info->field_10.field_0 != version.field_0 || info->field_10.field_4 != version.field_4 ||
+            info->field_10.field_8 != version.field_8 || info->field_10.field_c != version.field_c) {
+            ids->Unk_Add(info->field_0);
+            versions->Unk_Add(info->field_10);
+        }
+    }
+    return ids->m_itemCount == 0;
+}
+
 // 0x710057c090
 void SiIOBinaryArchive::Unk_57c090(ChunkHandler* handler) {
     if (Unk_FindType(field_170.m_pData, field_170.m_itemCount, &handler->field_28.field_0) < 0) {
