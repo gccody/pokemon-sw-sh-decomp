@@ -431,6 +431,7 @@ struct Unk_List2 {
             Item* p = static_cast<Item*>(Unk_3045e0(Unk_237e820, sizeof(Item)));
             if (p == nullptr)
                 return nullptr;
+            new (&p->item, Unk_Placement()) T;
             p->next = field_10;
             field_10 = p;
         }
@@ -449,6 +450,23 @@ struct Unk_List2 {
         field_24++;
         return &p->item;
     }
+
+    // A new item at the end: the first free one.
+    T* AddLast() {
+        if (AllocItem() == nullptr)
+            return nullptr;
+        if (field_8 == nullptr)
+            field_0 = field_10;
+        else
+            field_8->next = field_10;
+        field_8 = field_10;
+        field_10 = field_8->next;
+        field_8->next = nullptr;
+        field_24++;
+        return &field_8->item;
+    }
+
+    T& Last() { return field_8->item; }
 
     void RemoveItem(Item* p, Item* prev) {
         if (p == field_0)

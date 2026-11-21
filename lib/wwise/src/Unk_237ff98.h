@@ -33,27 +33,50 @@ PKMN_SIZE_ASSERT(Unk_237ff98_Item18, 0x18);
 struct Unk_35c6b0;
 void Unk_35c6b0_get(Unk_35c6b0* self);
 
-// What an item of the lists at 0x100 and 0x128 has at 8: an object that is
-// told a value.
+// What a node of the class does to another's value: an object that is told
+// the value as it changes (the class with the vtable at 0x71023806c0).
 struct Unk_237ff98_Item28_8 {
     virtual void vf0(u64 a1, f32 a2, bool a3);
 
     u64 field_8;
+    void* field_10;  // what changes the value over time
+    f32 field_18;  // the value
+    bool field_1c;
 };
+PKMN_SIZE_ASSERT(Unk_237ff98_Item28_8, 0x20);
 
-// An item of the lists at 0x100 and 0x128: what another node of the class
-// (field_0, its ID) does to this one's value.
+// An item of the lists at 0x100 and 0x128: the other node's ID, and that.
 struct Unk_237ff98_Item28 {
     // The object as its users see it: a pointer, so that the call is virtual.
     Unk_237ff98_Item28_8* User() { return &field_8; }
 
     u32 field_0;
     Unk_237ff98_Item28_8 field_8;  // an Unk_35c6b0
-    void* field_18;  // what changes the value over time
-    f32 field_20;  // the value
-    bool field_24;
 };
 PKMN_SIZE_ASSERT(Unk_237ff98_Item28, 0x28);
+
+// The lists at 0x100 and 0x128, by the other node's ID.
+struct Unk_237ff98_List : Unk_List2<Unk_237ff98_Item28> {
+    Unk_237ff98_Item28_8* Exists(u32 id) {
+        for (auto it = Begin(); it != End(); ++it) {
+            if ((*it).field_0 == id)
+                return &(*it).field_8;
+        }
+        return nullptr;
+    }
+
+    Unk_237ff98_Item28_8* Set(u32 id) {
+        Unk_237ff98_Item28_8* found = Exists(id);
+        if (found != nullptr)
+            return found;
+        if (AddLast() != nullptr) {
+            Unk_237ff98_Item28& last = Last();
+            last.field_0 = id;
+            return &last.field_8;
+        }
+        return nullptr;
+    }
+};
 
 // The argument of slot 25 when the node calls it for itself.
 struct Unk_237ff98_Arg25 {
@@ -196,7 +219,7 @@ public:
     f32 Unk_353330(Unk_NodeKey key, u32 prop);
     bool Unk_3536a0();
     void Unk_355510(u32 id, u32 a2, u32 a3, u32 prop);
-    void Unk_3552e0(u32 id, f32 a2, u32 a3, u32 a4, u32 a5);
+    void Unk_3552e0(u32 id, f32 target, u32 a3, u32 a4, u32 prop);
     void Unk_355640();
     bool Unk_356720(u32 a1, void* a2);
     u32 Unk_357310();
@@ -206,9 +229,9 @@ public:
 
     // Ends what the item does to the value of `prop`.
     void Unk_355690_End(Unk_237ff98_Item28& item, u32 prop) {
-        f32 value = item.field_20;
-        void* change = item.field_18;
-        item.field_24 = false;
+        f32 value = item.field_8.field_18;
+        void* change = item.field_8.field_10;
+        item.field_8.field_1c = false;
         if (change != nullptr)
             Unk_3be290(Unk_24bbbe8, change, prop, 0, 4, 1, value);
         else
@@ -237,8 +260,8 @@ public:
     Unk_237ff98_c8 field_c8;
     f32 field_d0;
     Unk_List2<Unk_237ff98_Item18> field_d8;
-    Unk_List2<Unk_237ff98_Item28> field_100;
-    Unk_List2<Unk_237ff98_Item28> field_128;
+    Unk_237ff98_List field_100;
+    Unk_237ff98_List field_128;
     Unk_2382e40 field_150;
     u32 field_160;
     u8 field_164_0 : 3;
