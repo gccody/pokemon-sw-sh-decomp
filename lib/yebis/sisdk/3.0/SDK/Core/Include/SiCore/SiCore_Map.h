@@ -23,6 +23,13 @@ public:
         Unk_Node* m_pRight;
     };
 
+    // with an allocator, or the kernel's for a null one (inline in every
+    // caller)
+    explicit SiMap(ISiAllocator* pAllocator) : m_pAllocator(pAllocator), m_count(0), m_pRoot(nullptr) {
+        if (m_pAllocator == nullptr) {
+            m_pAllocator = Unk_4bc640();
+        }
+    }
     virtual ~SiMap();
 
     ISiAllocator* m_pAllocator;

@@ -155,6 +155,16 @@ public:
         }
     }
 
+    // empties the array, keeping its room (inline in every caller:
+    // placeholder name)
+    void Unk_Clear() {
+        if (m_itemCount != 0) {
+            m_itemCount = 0;
+            field_30 = nullptr;
+            field_38 = nullptr;
+        }
+    }
+
     // 0x71004bf190 (8-byte elements): makes room for count elements, keeping
     // the first ones if keep
     bool Unk_4bf190(size_t count, bool keep);
@@ -254,6 +264,27 @@ void SiArray<T, ALIGN>::Unk_4e3050() {
     field_30 = nullptr;
     field_38 = nullptr;
     field_48 = 0;
+}
+
+// 0x7100566a00 (ISiGfxShaderEffectPackage::ShaderProgramData): deletes the
+// objects an array of pointers holds, then empties the array, keeping its
+// room if keep (a function of this header: its delete has the header's
+// __FILE__).
+template <class T, int ALIGN>
+void Unk_566a00(ISiAllocator* pAllocator, SiArray<T*, ALIGN>* array, bool keep) {
+    for (s64 i = 0; i < static_cast<s32>(array->m_itemCount); i++) {
+        T* item = array->m_pData[i];
+        if (item != nullptr) {
+            array->m_pData[i] = nullptr;
+#line 1685
+            SI_DELETE(pAllocator, item);
+        }
+    }
+    if (keep) {
+        array->Unk_Clear();
+    } else {
+        array->Unk_4e3050();
+    }
 }
 
 }  // namespace SiSDK3
