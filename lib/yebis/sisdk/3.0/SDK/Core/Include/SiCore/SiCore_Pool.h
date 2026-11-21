@@ -21,8 +21,13 @@ public:
         SiArray<T, ALIGN> m_items;
     };
 
+    // 0x7100534070 (SiGfxResourcePool::ResourceItem; its row has the complete
+    // constructor's name, C1, which its callers use: check.py reads the base
+    // variant only out of names without template arguments)
+    SiPool(ISiAllocator* pAllocator, bool flag);
     virtual ~SiPool();
-    virtual void vf2();
+    // 0x71004fe710 (SiGfxResourcePool::ResourceItem): makes room for count T's
+    virtual bool vf2(size_t count);
     // 0x71004be7d0: frees every block but the first, and empties the lists
     // (not written yet: its loop keeps other base registers than this
     // reconstruction does)

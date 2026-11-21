@@ -1,6 +1,6 @@
-// SiGfx's NX resource pools (RTTI names the classes), as far as their
-// constructors and the device that makes them show them: a placeholder file
-// for the twelve, whose own headers' names aren't known. Eleven derive from
+// SiGfx's NX resource pools (RTTI names the classes), as far as their small
+// functions and the device that makes them show them: a placeholder file for
+// the twelve, whose own headers' names aren't known. Eleven derive from
 // SiGfxResourcePool and add the device; the shader programs' derives from
 // SiGfxShaderProgramPoolBase.
 #pragma once
@@ -17,6 +17,8 @@ class SiGfxNXDevice;
     public:                                            \
         explicit Class(SiGfxNXDevice* pDevice);        \
         ~Class() override;                             \
+        bool vf5(s32 count) override;                  \
+        void vf6() override;                           \
                                                        \
         SiGfxNXDevice* field_178;                      \
     };                                                 \
@@ -44,7 +46,7 @@ public:
     virtual u32 vf2();
     virtual u32 vf3();
     virtual void vf4();
-    virtual void vf5(u32 count);
+    virtual bool vf5(s32 count);
 
     u8 field_8[0x180];
     SiString<char> field_188;
