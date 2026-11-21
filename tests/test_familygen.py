@@ -265,6 +265,58 @@ def test_adder_candidates():
     assert F.adder_candidates(m) == {seed: 0x4000, other: 0x5000}
 
 
+def test_steps():
+    members = [F.Member(0x68, "pair", 0), F.Member(0x78, "u64", None, 0), F.Member(0x80, "u32", 1)]
+    f = F.ObjectFactory(0x1054340, "Unk_240b658", 0x88, 8, 6, True,
+                        [F.Param("pair", True, True), F.Param("u32", False, False)], members)
+    owner = F.STEP_OWNERS[0x1054690]
+    funcs = {"vf7": 0x1054610, "vf9": 0x1054660, "vf10": 0x1054690, "vf11": 0x1054750,
+             "t9": 0x1054AE0, "t10": 0x1054B10, "t11": 0x1054BD0}
+    s = F.Step("Unk_240b658", funcs, owner, 0x1054D30, 0x1053F20)
+    # the class declares the interface it overrides
+    text = F.object_class(f, s)
+    assert "public Unk_1085320_Step<const Unk_1085320_Optional<u32>*> {" in text
+    assert "    virtual u64 vf7();" in text and "    void vf11() override;" in text
+    assert "    void vf10(const Unk_1085320_Optional<u32>* code) override;" in text
+    assert "public Unk_1085320_Interface {" in F.object_class(f)
+    # names: the four functions, the interface's thunks, and the two callees
+    rows = {a: SimpleNamespace(name="") for a in (0x1054D30, 0x1053F20)}
+    names = F.step_names(SimpleNamespace(rows=rows), s)
+    assert names[0x1054610] == "_ZN11Unk_240b6583vf7Ev"
+    assert names[0x1054690] == "_ZN11Unk_240b6584vf10EPK20Unk_1085320_OptionalIjE"
+    assert names[0x1054B10] == "_ZThn96_N11Unk_240b6584vf10EPK20Unk_1085320_OptionalIjE"
+    assert names[0x1054BD0] == "_ZThn96_N11Unk_240b6584vf11Ev"
+    assert names[0x1054D30] == "_Z11Unk_1054d30P11Unk_240b658Pv"
+    assert names[0x1053F20] == "_Z11Unk_1053f20P17Unk_1050c60_Owner"
+    # a callee someone named otherwise: the step isn't written
+    rows[0x1053F20].name = "_Z5otherv"
+    assert F.step_names(SimpleNamespace(rows=rows), s) == "0x7101053f20 is named otherwise"
+    # the functions, each with its thunk's address, and the owner's kind
+    body = F.step_functions(s)
+    assert "// 0x7101054690\n// 0x7101054b10\nvoid Unk_240b658::vf10(const Unk_1085320_Optional<u32>* code) {" in body
+    assert "Unk_WeakGet<Unk_1054690_Owner>(field_68))\n        owner->Unk_Fail(*code);" in body
+    assert "field_78 = Unk_1054d30(this, &field_80);" in body
+    header = F.step_header([s])
+    assert "class Unk_1054690_Owner : public Unk_1050c60_Owner {" in header
+    assert "Unk_1056d00_Owner" not in header
+    assert "u64 Unk_1054d30(Unk_240b658* self, void* arg);" in header
+    # a kind whose failure is a u64, by value
+    by_value = F.Step("Unk_240bd60", funcs, F.STEP_OWNERS[0x1059AA0], 0x1054D30, 0x1053F20)
+    assert "owner->Unk_Fail(code);" in F.step_functions(by_value)
+    assert F.step_names(SimpleNamespace(rows={}), by_value) == "0x7101054d30 isn't a function"
+    # not a step: no weak reference first, or no interface
+    f.params[0] = F.Param("ref", True, True)
+    assert F.parse_step(None, f) == "not a class with a weak reference and the interface"
+
+
+def test_calls():
+    # bl targets, and b targets outside the function (tail calls)
+    at = 0x1000
+    words = [bl(at, 0x4000), 0x14000002, 0xD65F03C0, 0x14000000 | (((0x5000 - (at + 12)) >> 2) & 0x3FFFFFF)]
+    m = fake_module(at, words, {})
+    assert F._calls(m, at) == ([0x4000], [0x5000])
+
+
 def test_copied_reference_is_ref2():
     # a reference copied from the factory's const& argument: kept as Unk_239a418_Ref2
     f = F.ObjectFactory(0, "Unk_5000", 0x68, 8, 0, False, [F.Param("ref", True, False)],
