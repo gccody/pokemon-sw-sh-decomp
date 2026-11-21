@@ -2,55 +2,9 @@
 // Families of Wwise functions with the same code except for constants (index
 // offsets, adjustments, field offsets): one template per family, and each
 // instance with the original's constants. Placeholder names.
-#include <nn/os.h>
-#include "containers.h"
+#include "Unk_Indexed.h"
 
 void operator delete(void* ptr) noexcept;
-
-// An object kept in an index (Unk_Index) of the global object at 0x71024bbbb8.
-struct Unk_Indexed {
-    virtual ~Unk_Indexed();
-
-    Unk_Indexed* field_8;  // next in the hash chain
-    u32 field_10;  // key
-    u32 field_14;  // reference count
-};
-PKMN_OFFSET_ASSERT(Unk_Indexed, field_14, 0x14);
-
-struct Unk_Index {
-    nn::os::MutexType field_0;
-    Unk_Array<Unk_Indexed*> field_20;  // buckets
-    u32 field_30;  // number of objects
-
-    void Remove(u32 key) {
-        nn::os::LockMutex(&field_0);
-        if (field_20.Length() != 0) {
-            u32 index = key % field_20.Length();
-            Unk_Indexed** bucket = &field_20.field_0[index];
-            Unk_Indexed* prev = nullptr;
-            for (Unk_Indexed* p = *bucket; p != nullptr; prev = p, p = p->field_8) {
-                if (p->field_10 == key) {
-                    if (prev == nullptr)
-                        *bucket = p->field_8;
-                    else
-                        prev->field_8 = p->field_8;
-                    field_30--;
-                    break;
-                }
-            }
-        }
-        nn::os::UnlockMutex(&field_0);
-    }
-};
-PKMN_OFFSET_ASSERT(Unk_Index, field_20, 0x20);
-PKMN_OFFSET_ASSERT(Unk_Index, field_30, 0x30);
-
-extern u8* Unk_24bbbb8;
-
-template <u32 Offset>
-static inline Unk_Index* Unk_GetIndex() {
-    return reinterpret_cast<Unk_Index*>(Unk_24bbbb8 + Offset);
-}
 
 template <u32 Offset>
 static inline u32 Unk_IndexedAddRef(Unk_Indexed* self) {
