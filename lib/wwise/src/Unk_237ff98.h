@@ -105,6 +105,44 @@ struct Unk_NodeTarget {
     u32 field_14;
 };
 
+extern u8* Unk_24bbbb8;
+
+// A reference to an object of one of the indices, and 16 bits about it.
+struct Unk_237ff98_Ref {
+    void Set(Unk_NodeA* object) {
+        Unk_NodeA* old = field_0;
+        field_0 = object;
+        if (old != nullptr)
+            old->vf3();
+    }
+
+    Unk_NodeA* field_0;
+    u16 field_8;
+};
+
+// The object with this key in the index at `Offset` of the object at
+// 0x71024bbbb8, with one more reference, or null.
+template <u32 Offset>
+static inline Unk_NodeA* Unk_237ff98_Find(u32 key) {
+    u8* index = Unk_24bbbb8 + Offset;
+    nn::os::MutexType* lock = reinterpret_cast<nn::os::MutexType*>(index);
+    nn::os::LockMutex(lock);
+    Unk_Array<Unk_NodeA*>* table = reinterpret_cast<Unk_Array<Unk_NodeA*>*>(index + 0x20);
+    Unk_NodeA* object = nullptr;
+    if (table->Length() != 0) {
+        u32 slot = key % table->Length();
+        for (object = table->field_0[slot]; object != nullptr;
+             object = static_cast<Unk_NodeA*>(object->field_8)) {
+            if (object->field_10 == key) {
+                object->field_14++;
+                break;
+            }
+        }
+    }
+    nn::os::UnlockMutex(lock);
+    return object;
+}
+
 // What field_b0 points at: 0xc bytes.
 struct Unk_237ff98_b0 {
     Unk_237ff98_b0() : field_0(0), field_4(0), field_9(true) {}
@@ -222,6 +260,7 @@ public:
     void Unk_3552e0(u32 id, f32 target, u32 a3, u32 a4, u32 prop);
     void Unk_355640();
     bool Unk_356720(u32 a1, void* a2);
+    void Unk_356a90(Unk_237ff98_Ref* out);
     u32 Unk_357310();
     void Unk_357370(f32* value);
     void Unk_357650(u32 a1);
