@@ -25,6 +25,12 @@ s64 Unk_4c5630(const char* a, const char* b, bool);
 
 namespace SiSDK3 {
 
+// 0x7100586910: sorts entries by field_88 (a member of an empty class: its
+// caller passes the address of a local)
+struct Unk_586910 {
+    bool Unk_586910_Sort(s64 count, SiIOVFSEntry** entries);
+};
+
 namespace {
 
 // SiIO's kernel: slot 11 makes a mapped file.
@@ -233,6 +239,31 @@ SiIOVFSEntry* SiIOVFS::vf21() {
     return entry;
 }
 
+// 0x7100585ca0
+void SiIOVFS::Unk_585ca0(SiArray<SiIOVFSEntry*>* list) {
+    if (field_e8 == nullptr) {
+        return;
+    }
+    list->Unk_Add(field_e8);
+    Unk_586750(list, field_e8);
+    for (s32 i = 0; i < static_cast<s32>(list->m_itemCount); i++) {
+        list->m_pData[i]->field_b8 = i;
+    }
+}
+
+// 0x7100585d70
+void SiIOVFS::Unk_585d70(SiArray<SiIOVFSEntry*>* list, SiArray<SiIOVFSEntry*>* sorted) {
+    sorted->Unk_SetCount(list->m_itemCount);
+    for (s32 i = 0; i < static_cast<s32>(list->m_itemCount); i++) {
+        sorted->m_pData[i] = list->m_pData[i];
+    }
+    Unk_586910 sorter;
+    sorter.Unk_586910_Sort(static_cast<s32>(sorted->m_itemCount), sorted->m_pData);
+    for (s32 i = 0; i < static_cast<s32>(sorted->m_itemCount); i++) {
+        sorted->m_pData[i]->field_c0 = i;
+    }
+}
+
 // 0x71005861a0
 bool SiIOVFS::vf23() {
     if (field_1c++ != 0) {
@@ -255,6 +286,18 @@ bool SiIOVFS::vf24() {
     }
     field_1c--;
     return true;
+}
+
+// 0x7100586750
+void SiIOVFS::Unk_586750(SiArray<SiIOVFSEntry*>* list, SiIOVFSEntry* entry) {
+    for (s32 i = 0; i < static_cast<s32>(entry->vf15()); i++) {
+        list->Unk_Add(entry->vf16(i));
+    }
+    for (s32 i = 0; i < static_cast<s32>(entry->vf12()); i++) {
+        SiIOVFSEntry* child = entry->vf13(i);
+        list->Unk_Add(child);
+        Unk_586750(list, child);
+    }
 }
 
 // 0x7100586260
