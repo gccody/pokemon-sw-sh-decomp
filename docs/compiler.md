@@ -2064,14 +2064,15 @@ swapped.
 
 **Result: Wwise 2017.2, built with upstream clang 6.0.x (like PhysX, not the
 game's 7.0.1) at `-O2` or `-O3`, with the game's codegen flags. That means
-strict aliasing off, unlike PhysX. Floating-point contraction is on (see
-"Floating-point contraction").**
+strict aliasing off, unlike PhysX. Its floating-point code is built with
+`-ffast-math`, which includes contraction (see "Floating-point contraction"
+and "Fast math").**
 
 ```
 clang 6.0.0 or 6.0.1  --target=aarch64-none-elf -mcpu=cortex-a57+fp+simd+crypto+crc
   -O3 (or -O2) -DNDEBUG -D__ELF__ -funwind-tables -mno-implicit-float -fPIC
   -fno-omit-frame-pointer -fno-strict-aliasing -ffunction-sections -fdata-sections
-  -ffp-contract=on (or fast)
+  -ffast-math
   C++: -fno-exceptions -fno-rtti (from the binary, not from the corpus)
 ```
 
@@ -2254,8 +2255,9 @@ clang 6 and 7 don't contract `a * b + c` in C++ unless asked
 full of floating-point code, have no fused instruction at all. (Game code's,
 mostly vector ones, haven't been looked at; with the game's flags they can
 only come from explicit fused-multiply-add calls or intrinsics.) So Wwise was
-built with contraction, and `pkmn_library_settings(lib/wwise ...)` adds
-`-ffp-contract=on`. The Wwise resampler loops (`0x71003d81b0`,
+built with contraction: `pkmn_library_settings(lib/wwise ...)` had
+`-ffp-contract=on` for it, and now `-ffast-math`, which implies
+`-ffp-contract=fast` (see "Fast math"). The Wwise resampler loops (`0x71003d81b0`,
 `0x71003d8320`: linear interpolation, `location * (b - a) + a`) only come
 out with an `fmadd` with it. `on` (fusing within one expression, the
 operands in source order) and `fast` (fusing in the backend, across
@@ -2263,6 +2265,37 @@ statements) aren't told apart by a matched function yet: `on` keeps the
 `fmadd` operands in the order the source writes them, which is what the
 resampler's two loops show for the same expression written twice. TLSF and
 the matched integer code compile the same either way.
+
+### Fast math
+
+Contraction isn't the only mark: Wwise's float sums and maxima are what
+`-ffast-math` gives, and what no source gives without it.
+
+- **The operands of an accumulating add.** LLVM's Reassociate pass orders the
+  two operands of a commutative operation by rank. For one it may not
+  reassociate (a float add without fast-math flags) `canonicalizeOperands`
+  puts the lower rank first, which in a loop is the accumulator's PHI before
+  the value loaded in the body. For one it may reassociate, `RewriteExprTree`
+  writes the operands highest rank first: the loaded value, then the
+  accumulator. Wwise's loops add `value + sum`. `0x7100352da0` (a sum over a
+  list) and `0x7100352bd0` (four adds: a property, the values of a list, a
+  call's result, the total) come out byte for byte with `-ffast-math`. Without
+  it, `-mllvm -print-after-all` shows Reassociate swapping the operands
+  whatever order the source has, with every clang from 5.0.1 to 9.0.1.
+- **`fmaxnm` from a comparison.** `0x7100352da0` ends with `fmaxnm`. Written
+  as `a > b ? a : b`, that takes the no-NaNs flag (otherwise `fcmp` and
+  `fcsel`). Written as `fmaxf()` it is `fmaxnm` without fast-math, but then
+  the sum before it has the wrong operand order, and with fast-math it is
+  `fmax`.
+- **No function already matched changes.** Compiling every `lib/wwise` source
+  with and without the flag: the 1,270 functions that matched still match,
+  and the two above are added. After the switch the check has 1,258 named
+  Wwise rows matching in both games, none regressed.
+
+The parts of the flag alone don't do it: `-fassociative-math -fno-signed-zeros
+-fno-trapping-math`, `-funsafe-math-optimizations` and `-ffinite-math-only`
+each leave `0x7100352bd0` different. `-Ofast` (`-O3 -ffast-math`) isn't told
+apart from `-O3 -ffast-math`.
 
 ### Reproducing
 
@@ -2342,7 +2375,9 @@ give no hit with clang 6.0.1 or 7.0.1, as C or as C++ (`-x c++
   and no other public code in Wwise compiles to the same instructions.
 - **`-g`.** Undetermined: no `ldr` pair in the `stackinuse` order, but 11
   unexplained unpaired loads in the other order (fingerprint above).
-- **`-ffp-contract=on` vs `fast`** (see "Floating-point contraction").
+- **`-ffp-contract=on` vs `fast`** (see "Floating-point contraction"):
+  `-ffast-math` implies `fast`, and no matched function tells an explicit
+  `-ffp-contract=on` after it apart.
 - **Whether every Wwise library used the same configuration.** Only the
   memory manager's TLSF was compiled. The plugin-registration stubs and the
   codecs are separate libraries in the Wwise SDK.
