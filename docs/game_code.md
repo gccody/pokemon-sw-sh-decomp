@@ -1986,17 +1986,16 @@ inlines it into vf_type, the original didn't: deferred there, with callers
 we don't have), and 33 kind tests whose type isn't named or whose chain
 isn't one this tool spells.
 
-Two more families of the same shape groups are worked out but don't match
-yet, both on register allocation alone (same instructions):
+Two more families of the same shape groups were worked out but didn't match,
+both on register allocation alone (same instructions). The first does now
+(2026-11-21, `tools/lockgen.py`, below):
 
 - the lock-and-cast of a weak handle (`Unk_239a418_Handle`: count at +0x54,
   type at +0x58, object at +0x60 through its +0x50 interface), about 150
   instances (404-492 bytes, 70 KB; 0x710000e840 is one) plus 360 KB of
   functions that inline it: a relaxed load of the count, a
   `compare_exchange_weak` loop, the kind test inlined, the object adopted
-  into the returned reference. Written with the loop as `do ... while`, two
-  null returns and a named result copied out, registers match and only the
-  copy is extra; every spelling without the copy permutes them.
+  into the returned reference.
 - 188 wrappers like 0x7100790140 (54 KB) around a per-type creator (the
   function right after each): take `self->field_58` when the argument's
   reference is null, call the creator with a copy, and hand the result to
@@ -2011,6 +2010,51 @@ allocator, keyed by u64 (37) or u32 (14), match by explicit instantiation
 with a placeholder mapped type (`src/unsorted/Unk_597350.cpp`: their code
 doesn't read it). Two more groups of `__rehash` (24 instances) pass another
 alignment to the allocator and aren't written.
+
+### The locks of weak handles (`tools/lockgen.py`, 2026-11-21)
+
+`Unk_Lock<T>(handle)` (`src/gflib3/Unk_Lock.h`): a reference to the handle's
+object if the handle still counts references and the object's type is `T` or
+derives from it. 62 instances of one shape (452 bytes each, 28,024 bytes)
+match in both games, each a file of its own in `src/unsorted/locks`: their
+`T` is a class on the object itself, so `T::Unk_GetType()` holds the
+object's type and the function has three guarded statics (T's, the object's,
+the root's). `T` is named after its type's static in `data_symbols.csv`.
+
+The source that matches:
+
+```cpp
+s32 count = handle->field_54.load(std::memory_order_relaxed);
+if (count == 0)
+    return Unk_239a418_Ref<T>();
+do {
+    if (!Unk_IsKind<T>(handle->field_58))      // an inline function: T's getter, then the chain
+        return Unk_239a418_Ref<T>();
+    if (handle->field_54.compare_exchange_weak(count, count + 1, std::memory_order_relaxed)) {
+        Unk_239a418_Ref<T> result;
+        result.m_ptr = static_cast<T*>(handle->field_60);   // through the +0x50 interface
+        return result;
+    }
+} while (count != 0);
+return Unk_239a418_Ref<T>();
+```
+
+Every spelling gives the same instructions; what changes is which of
+`x11`-`x14` hold the count, its address, the type being walked and T's type.
+A sweep of 72 combinations (loop form, one or two orderings on the exchange,
+the count through a local reference, the type test as a call or written out,
+how the result is made) found 16 that match: the loop must be `do ... while`
+or `for (;;)` with the zero test returning (a `while (count != 0)` with
+`break` permutes the registers), the type test must be the inline function
+(written out in the loop it permutes them too), and the result a named
+reference (a helper that adopts the pointer adds a copy). The orderings and
+the local reference don't matter.
+
+Not written yet: 14 instances of 456 bytes whose `T` is on another class
+(the parent's getter is called, `0x7100b3aee0`), 6 whose statics are
+`0x27715a0`'s (`0x71005b4a50`), 2 of another shape (`0x71008d2a20`), and the
+instances that take the handle from somewhere else than `x0`. About 360 KB
+of other functions inline this lock: they need this spelling.
 
 ### Copies of type-erased callables (`tools/clonegen.py`, 2026-11-19)
 
