@@ -12,6 +12,7 @@
 
 #include <miniz/miniz_yebis.h>
 #include <types.h>
+#include <yebis/YEBIS_draft/src/GPU/GPUInterfaceEffect.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUTextureUtil.h>
 #include <yebis/YEBIS_draft/src/GPU/TinyEffect/TFXString.h>
 
@@ -1365,6 +1366,76 @@ void CTextureUtil::Unk_471410() {
     field_20->vf39();
     field_20->vf40(-1);
     field_20->vf42(0);
+}
+
+// 0x7100471960
+// NON_MATCHING: the same instructions, but the corners' temporaries are in
+// other floating-point registers (the height's half and scale in s3 and s5
+// in the original, s2 and s5 here): no order of these eight statements gave
+// the original's allocation.
+void CTextureUtil::Unk_471960(u32 flags, f32 x, f32 y, f32 width, f32 height) {
+    if (!(flags & 0x40000)) {
+        field_20->vf41(-1, 1);
+    }
+    if (!(flags & 0x20000)) {
+        u8 passes[0x20];
+        field_30.field_0->vf33(passes, flags & 0xffff);
+        field_30.field_0->vf35(0);
+    }
+    f32 targetWidth;
+    f32 targetHeight;
+    {
+        Unk_Viewport viewport;
+        field_20->vf17(&viewport);
+        targetWidth = static_cast<f32>(viewport.field_8);
+        targetHeight = static_cast<f32>(viewport.field_c);
+    }
+    f32 halfWidth = targetWidth * 0.5f;
+    f32 halfHeight = targetHeight * 0.5f;
+    f32 scaleX = 2.0f / targetWidth;
+    f32 scaleY = 2.0f / targetHeight;
+    f32 x0 = x - halfWidth;
+    f32 x1 = x0 + width;
+    f32 y0 = y - halfHeight;
+    f32 y1 = y0 + height;
+    s32 count;
+    if (flags & 0x10000) {
+        count = 4;
+    } else {
+        x1 = x0 + (x1 - x0) * 2.0f;
+        y0 = y1 + (y0 - y1) * 2.0f;
+        count = 3;
+    }
+    const f32 offset = 0.0f;
+    f32 vertices[4][2];
+    vertices[0][0] = scaleX * (x0 + offset);
+    vertices[0][1] = scaleY * (y1 + offset);
+    vertices[1][0] = scaleX * (x0 + offset);
+    vertices[1][1] = scaleY * (y0 + offset);
+    vertices[2][0] = scaleX * (x1 + offset);
+    vertices[2][1] = scaleY * (y1 + offset);
+    vertices[3][0] = scaleX * (x1 + offset);
+    vertices[3][1] = scaleY * (y0 + offset);
+    field_30.Unk_Layout1();
+    u32 size = count * 8;
+    u32 start = field_29bb8;
+    bool wrap = start + size >= field_29bbc;
+    if (wrap) {
+        start = 0;
+        field_29bb8 = 0;
+    }
+    field_29bb8 = start + size;
+    IGPUBuffer* buffer = static_cast<IGPUBuffer*>(field_29bc8[0]);
+    memcpy(buffer->Map(wrap ? 6 : 2, start, size), vertices, size);
+    static_cast<IGPUBuffer*>(field_29bc8[0])->Unmap();
+    field_30.field_0->vf42(field_30.field_299b8[0], static_cast<IGPUBuffer*>(field_29bc8[0]), start, 0, 0, 1);
+    field_20->vf9(field_29bc8[1], 0);
+    reinterpret_cast<IGPUEffect*>(field_30.field_0)->SetupGraphicsPipelineState();
+    field_20->vf58(5, count, 0, 0, count - 1);
+    if (!(flags & 0x20000)) {
+        field_30.field_0->vf36();
+        field_30.field_0->vf34();
+    }
 }
 
 // 0x71004708b0: releases what the device made

@@ -52,13 +52,16 @@ struct Unk_463fd0_Effect {
     virtual void vf30();
     virtual void vf31();
     virtual void vf32();
-    virtual void vf33();
-    virtual void vf34();
-    virtual void vf35();
-    virtual void vf36();
+    virtual void vf33(void* passes, u32 technique);  // begins a technique
+    virtual void vf34();  // ends it
+    virtual void vf35(s32 pass);  // begins a pass
+    virtual void vf36();  // ends it
     virtual void* vf37(s32 arg);
     virtual void vf38();
     virtual s32 vf39(s32 arg);
+    virtual void vf40();
+    virtual void vf41();
+    virtual void vf42(IGPUInterface* layout, IGPUBuffer* vertices, u32 offset, s32 arg4, s32 arg5, s32 arg6);
 };
 
 // 0x710049a300: "IGPUEffect::CreateEffectFromFile()" in the log
@@ -86,6 +89,25 @@ public:
     s32 CreateEffect(void* device);  // 0x7100463fd0
     s32 InitializeDevice(IGPUDevice* device, bool keepEffect);  // 0x710046d7e0
     s32 Unk_46d990(void* arg);       // 0x710046d990: releases the effect
+
+    // the layout of a position alone (inline in the DrawRect functions)
+    void Unk_Layout1() {
+        if (field_0 == nullptr) {
+            return;
+        }
+        IGPUDevice* device;
+        Unk_InputElement elements[1] = {
+            Unk_InputElement(0, 0, 0x10),
+        };
+        if (field_299b8[0] != nullptr) {
+            return;
+        }
+        Unk_446620(field_0, &device);
+        device->vf1();
+        void* arg3 = field_0->vf37(0);
+        s32 arg4 = field_0->vf39(0);
+        device->vf70(elements, 1, arg3, arg4, &field_299b8[0]);
+    }
     // 0x710046cfe0 to 0x710046d6f0: the vertex layouts (a position and 1 to 6
     // texture coordinates; 5 of another format; 2 with another position)
     s32 Unk_46cfe0();
@@ -709,6 +731,8 @@ public:
     ~CTextureUtil() override;     // 0x710046e110, 0x710046e1c0
 
     s32 Unk_4708b0(void* arg);  // 0x71004708b0
+    // 0x7100471960: draws a rectangle (or the triangle that covers it) in the current target
+    void Unk_471960(u32 flags, f32 x, f32 y, f32 width, f32 height);
     s32 Unk_470860(s32 value);  // 0x7100470860
     s32 Unk_470880();           // 0x7100470880
     s32 Unk_4708a0(void* arg);  // 0x71004708a0
@@ -746,7 +770,7 @@ public:
     u32 field_29bb8;
     u32 field_29bbc;
     u8 pad_29bc0[0x8];
-    IGPUInterface* field_29bc8[7];
+    IGPUInterface* field_29bc8[7];  // the vertex buffer the rectangles go through, the index buffer, ...
     s32 field_29c00;
     s32 field_29c04;
     // UNK_FIELDS_END
