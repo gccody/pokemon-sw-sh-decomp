@@ -38,6 +38,9 @@ public:
     // frees the buffer unless it isn't the string's own (inline in every
     // caller: placeholder name)
     void Unk_Release();
+    // frees the buffer and empties the string (inline in every caller:
+    // placeholder name)
+    void Unk_Clear();
 
     ISiAllocator* m_pAllocator;
     T* m_pBuffer;

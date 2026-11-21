@@ -17,4 +17,19 @@ inline void SiString<T>::Unk_Release() {
     }
 }
 
+template <class T>
+inline void SiString<T>::Unk_Clear() {
+    if (!(field_28 & 1) && m_pBuffer != nullptr) {
+        if (m_pAllocator != nullptr) {
+#line 344
+            SI_FREE(m_pAllocator, m_pBuffer);
+        }
+        m_pBuffer = nullptr;
+    }
+    m_pBuffer = nullptr;
+    field_10 = 0;
+    field_20 = 0;
+    field_28 = 0;
+}
+
 }  // namespace SiSDK3
