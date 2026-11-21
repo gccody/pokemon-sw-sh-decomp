@@ -13,6 +13,7 @@
 #include <miniz/miniz_yebis.h>
 #include <types.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUTextureUtil.h>
+#include <yebis/YEBIS_draft/src/Unk_415f40.h>
 #include <yebis/YEBIS_draft/src/GPU/TinyEffect/TFXString.h>
 
 extern "C" int mz_uncompress(unsigned char* pDest, unsigned long* pDest_len, const unsigned char* pSource,
@@ -439,22 +440,22 @@ s32 TEXSHADERSET::CreateEffect(void* device) {
     Unk_GetTechs(field_e1ac[1], "tech_DepthOfField_BackgroundLayerMaskT1_USNORM_Sn", 25);
     Unk_GetTechs(field_f2dc[0], "tech_DepthOfField_ForegroundLayerMaskT1_Sn", 25);
     Unk_GetTechs(field_f2dc[1], "tech_DepthOfField_ForegroundLayerMaskT1_USNORM_Sn", 25);
-    Unk_463220(field_1040c, "tech_DepthOfField_BackgroundLayerMaskMakeColorT1_Sn", 17);
-    Unk_463220(field_10490, "tech_DepthOfField_BackgroundLayerMaskMakeColorT1_USNORM_Sn", 17);
-    Unk_463220(field_1061c, "tech_DepthOfField_ForegroundLayerMaskMakeColorT1_Sn", 17);
-    Unk_463220(field_106a0, "tech_DepthOfField_ForegroundLayerMaskMakeColorT1_USNORM_Sn", 17);
-    Unk_463220(field_1082c, "tech_DepthOfField_BackgroundLayerMaskMakeColorMaskT1_Sn", 17);
-    Unk_463220(field_108b0, "tech_DepthOfField_BackgroundLayerMaskMakeColorMaskT1_USNORM_Sn", 17);
-    Unk_463220(field_10a3c, "tech_DepthOfField_ForegroundLayerMaskMakeColorMaskT1_Sn", 17);
-    Unk_463220(field_10ac0, "tech_DepthOfField_ForegroundLayerMaskMakeColorMaskT1_USNORM_Sn", 17);
-    Unk_463220(field_10514, "tech_DepthOfField_BackgroundLayerMaskMakeColorDenseT1_Sn", 33);
-    Unk_463220(field_10598, "tech_DepthOfField_BackgroundLayerMaskMakeColorDenseT1_USNORM_Sn", 33);
-    Unk_463220(field_10724, "tech_DepthOfField_ForegroundLayerMaskMakeColorDenseT1_Sn", 33);
-    Unk_463220(field_107a8, "tech_DepthOfField_ForegroundLayerMaskMakeColorDenseT1_USNORM_Sn", 33);
-    Unk_463220(field_10934, "tech_DepthOfField_BackgroundLayerMaskMakeColorDenseMaskT1_Sn", 33);
-    Unk_463220(field_109b8, "tech_DepthOfField_BackgroundLayerMaskMakeColorDenseMaskT1_USNORM_Sn", 33);
-    Unk_463220(field_10b44, "tech_DepthOfField_ForegroundLayerMaskMakeColorDenseMaskT1_Sn", 33);
-    Unk_463220(field_10bc8, "tech_DepthOfField_ForegroundLayerMaskMakeColorDenseMaskT1_USNORM_Sn", 33);
+    Unk_463220(field_1040c[0][0], "tech_DepthOfField_BackgroundLayerMaskMakeColorT1_Sn", 17);
+    Unk_463220(field_1040c[0][1], "tech_DepthOfField_BackgroundLayerMaskMakeColorT1_USNORM_Sn", 17);
+    Unk_463220(field_1061c[0][0], "tech_DepthOfField_ForegroundLayerMaskMakeColorT1_Sn", 17);
+    Unk_463220(field_1061c[0][1], "tech_DepthOfField_ForegroundLayerMaskMakeColorT1_USNORM_Sn", 17);
+    Unk_463220(field_1082c[0][0], "tech_DepthOfField_BackgroundLayerMaskMakeColorMaskT1_Sn", 17);
+    Unk_463220(field_1082c[0][1], "tech_DepthOfField_BackgroundLayerMaskMakeColorMaskT1_USNORM_Sn", 17);
+    Unk_463220(field_10a3c[0][0], "tech_DepthOfField_ForegroundLayerMaskMakeColorMaskT1_Sn", 17);
+    Unk_463220(field_10a3c[0][1], "tech_DepthOfField_ForegroundLayerMaskMakeColorMaskT1_USNORM_Sn", 17);
+    Unk_463220(field_1040c[1][0], "tech_DepthOfField_BackgroundLayerMaskMakeColorDenseT1_Sn", 33);
+    Unk_463220(field_1040c[1][1], "tech_DepthOfField_BackgroundLayerMaskMakeColorDenseT1_USNORM_Sn", 33);
+    Unk_463220(field_1061c[1][0], "tech_DepthOfField_ForegroundLayerMaskMakeColorDenseT1_Sn", 33);
+    Unk_463220(field_1061c[1][1], "tech_DepthOfField_ForegroundLayerMaskMakeColorDenseT1_USNORM_Sn", 33);
+    Unk_463220(field_1082c[1][0], "tech_DepthOfField_BackgroundLayerMaskMakeColorDenseMaskT1_Sn", 33);
+    Unk_463220(field_1082c[1][1], "tech_DepthOfField_BackgroundLayerMaskMakeColorDenseMaskT1_USNORM_Sn", 33);
+    Unk_463220(field_10a3c[1][0], "tech_DepthOfField_ForegroundLayerMaskMakeColorDenseMaskT1_Sn", 33);
+    Unk_463220(field_10a3c[1][1], "tech_DepthOfField_ForegroundLayerMaskMakeColorDenseMaskT1_USNORM_Sn", 33);
     field_7da4 = field_0->vf15("tech_ValidatePixel");
     field_7da8 = field_0->vf15("tech_ValidatePixelEx");
     field_7dac = field_0->vf15("tech_MedianFilter_Separablex3x3");
@@ -515,10 +516,10 @@ s32 TEXSHADERSET::CreateEffect(void* device) {
     field_159a4 = field_0->vf15("tech_DepthOfField_BlurFactorAlphaFromDepthTextureTypeCastLut_RGBA8");
     field_1a6bc = field_0->vf15("tech_DepthOfField_NormalizeBackgroundBlurFactor");
     field_1a6c0 = field_0->vf15("tech_DepthOfField_NormalizeBackgroundBlurFactor_USNORM");
-    field_1a6c4 = field_0->vf15("tech_DepthOfField_FrontBlurBlendFactor");
-    field_1a6cc = field_0->vf15("tech_DepthOfField_FrontBlurBlendFactorMask");
-    field_1a6c8 = field_0->vf15("tech_DepthOfField_FrontBlurBlendFactorDilation");
-    field_1a6d0 = field_0->vf15("tech_DepthOfField_FrontBlurBlendFactorDilationMask");
+    field_1a6c4[0][0] = field_0->vf15("tech_DepthOfField_FrontBlurBlendFactor");
+    field_1a6c4[1][0] = field_0->vf15("tech_DepthOfField_FrontBlurBlendFactorMask");
+    field_1a6c4[0][1] = field_0->vf15("tech_DepthOfField_FrontBlurBlendFactorDilation");
+    field_1a6c4[1][1] = field_0->vf15("tech_DepthOfField_FrontBlurBlendFactorDilationMask");
     Unk_GetTechs(field_1a6d4, "tech_MadCocT2_Sn", 25);
     memset(&field_1af6c, 0, sizeof(field_1af6c));
     field_1af6c.field_0[0] = field_0->vf15("tech_ScatterCoc");
@@ -2825,6 +2826,104 @@ s32 CTextureUtil::Unk_475d80(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
         field_30.field_0->vf26(field_30.field_8, texture);
     }
     return Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
+}
+
+// 0x710047b560: the layer mask that also makes the colour
+// (tech_DepthOfField_..LayerMaskMakeColor..), with or without a mask texture
+s32 CTextureUtil::Unk_47b560(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, bool background,
+                             s32 count, const Unk_Float4* values, const Unk_Float2* arg4, Unk_GPUTexture* texture,
+                             Unk_GPUTexture* mask, s32 usnorm, s32 bits, s32 dense, u32 flags) {
+    s32 technique = mask != nullptr ? (background ? field_30.field_1082c[dense][usnorm][count - 1]
+                                                  : field_30.field_10a3c[dense][usnorm][count - 1])
+                                    : (background ? field_30.field_1040c[dense][usnorm][count - 1]
+                                                  : field_30.field_1061c[dense][usnorm][count - 1]);
+    if (technique == 0) {
+        return -4;
+    }
+    field_30.field_0->vf29(technique);
+    Unk_Float4 first(0.50251257f, 0.0f, 0.0f, 0.0f);
+    field_30.field_0->vf22(field_30.field_d0, &first, 1);
+    Unk_Float4 second(arg4->field_0[0], arg4->field_0[1], 0.0f, 0.0f);
+    field_30.field_0->vf22(field_30.field_b4, &second, 1);
+    f32 bias;
+    if (bits < 0 ? usnorm == 1 : bits != 0) {
+        bool low;
+        if (bits < 0) {
+            low = texture != nullptr && Unk_47b560_Format(texture->field_44);
+        } else {
+            low = bits >= 8 && bits <= 14;
+        }
+        bias = low ? 0.01f : 0.0004f;
+    } else {
+        bias = usnorm == 1 ? 0.001f : 0.0f;
+    }
+    f32 value = background ? bias : -bias;
+    field_30.field_0->vf18(field_30.field_bc, value);
+    Unk_4738e0(count, values, 0, 0);
+    s32 filter = -1;
+    if (texture != nullptr) {
+        field_30.field_0->vf26(field_30.field_10[0], texture);
+        filter = texture->vf16();
+        texture->vf15(9);
+    }
+    s32 maskFilter = -1;
+    if (mask != nullptr) {
+        field_30.field_0->vf26(field_30.field_10[1], mask);
+        maskFilter = mask->vf16();
+        mask->vf15(5);
+    }
+    s32 result = Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
+    if (texture != nullptr) {
+        texture->vf15(filter);
+    }
+    if (mask != nullptr) {
+        mask->vf15(maskFilter);
+    }
+    return result;
+}
+
+// 0x710047b8e0: the depth of field's front blur blend factor
+// (tech_DepthOfField_FrontBlurBlendFactor..), dilated or not, with or
+// without a mask
+s32 CTextureUtil::Unk_47b8e0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1,
+                             const Unk_Float4* arg1, const Unk_Float4* arg2, bool dilation, Unk_GPUTexture* texture,
+                             Unk_GPUTexture* mask, u32 flags) {
+    Unk_24e45d0.field_448[0] = *arg1;
+    Unk_24e45d0.field_448[1] = *arg2;
+    field_30.field_0->vf22(field_30.field_d0, Unk_24e45d0.field_448, 2);
+    if (texture != nullptr) {
+        field_30.field_0->vf26(field_30.field_8, texture);
+    }
+    s32 technique;
+    if (mask != nullptr) {
+        field_30.field_0->vf26(field_30.field_10[1], mask);
+        technique = dilation ? field_30.field_1a6c4[1][1] : field_30.field_1a6c4[1][0];
+    } else {
+        technique = dilation ? field_30.field_1a6c4[0][1] : field_30.field_1a6c4[0][0];
+    }
+    field_30.field_0->vf29(technique);
+    if (dilation) {
+        Unk_412cd0(1.0f, texture->field_4c, texture->field_50, Unk_24e45d0.field_648);
+        field_30.field_0->vf22(field_30.field_c4, Unk_24e45d0.field_648, 5);
+        field_30.field_0->vf22(field_30.field_c8, Unk_24e45d0.field_648, 0);
+    }
+    return Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
+}
+
+// 0x710047e000
+void CTextureUtil::Unk_47e000(s32* arg1, s32* arg2, s32* arg3, s32* arg4) {
+    if (arg1 != nullptr) {
+        *arg1 = field_29b58[0];
+    }
+    if (arg2 != nullptr) {
+        *arg2 = field_29b58[1];
+    }
+    if (arg3 != nullptr) {
+        *arg3 = field_29b58[2];
+    }
+    if (arg4 != nullptr) {
+        *arg4 = field_29b58[3];
+    }
 }
 
 // DRAWRECTGPU_END
