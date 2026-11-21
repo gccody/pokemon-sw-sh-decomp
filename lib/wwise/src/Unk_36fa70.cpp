@@ -194,6 +194,23 @@ u32* Unk_39c830(Unk_2382c60* self, const Unk_3babc0_Key& key);
             return nullptr;                                                                       \
         }                                                                                         \
                                                                                                   \
+        Value* FindBest(Below* below) {                                                           \
+            if (!below->IsAny()) {                                                                \
+                auto* child = this->field_18.Exists(below->field_0);                              \
+                if (child == nullptr && !below->IsAnyHere()) {                                    \
+                    below->field_0 = Below::Any();                                                \
+                    child = this->field_18.Exists(Below::Any());                                  \
+                }                                                                                 \
+                if (child != nullptr) {                                                           \
+                    Value* value = child->FindBest(&below->field_8);                              \
+                    if (value != nullptr)                                                         \
+                        return value;                                                             \
+                }                                                                                 \
+            }                                                                                     \
+            below->field_8 = decltype(below->field_8)();                                          \
+            return this->field_10 ? &this->field_8 : nullptr;                                     \
+        }                                                                                         \
+                                                                                                  \
         bool Has(const Below& key, const Below& orig) {                                           \
             if (orig.IsAnyHere())                                                                 \
                 return false;                                                                     \
@@ -301,6 +318,16 @@ u32* Unk_39c830(Unk_2382c60* self, const Unk_3babc0_Key& key);
             return item != nullptr ? &item->field_0 : nullptr;                                    \
         }                                                                                         \
                                                                                                   \
+        Value* FindBest(Unk_36fa70_Key5* below) {                                                 \
+            if (!below->IsAny()) {                                                                \
+                Name##_Item* item = this->field_18.Exists(below->field_0);                        \
+                if (item != nullptr)                                                              \
+                    return &item->field_0;                                                        \
+            }                                                                                     \
+            *below = Unk_36fa70_Key5();                                                           \
+            return this->field_10 ? &this->field_8 : nullptr;                                     \
+        }                                                                                         \
+                                                                                                  \
         bool Has(const Unk_36fa70_Key5& key, const Unk_36fa70_Key5& orig) {                       \
             if (!key.IsAny())                                                                     \
                 return false;                                                                     \
@@ -374,19 +401,19 @@ u32* Unk_39c830(Unk_2382c60* self, const Unk_3babc0_Key& key);
     typedef Unk_SortedKeyArray<Key, Name, Unk_PoolDefault, 1, Unk_TransferMove<Name>> Name##_Array
 
 // The root of a tree: a node without a key.
-#define UNK_36FA70_ROOT(Name, Value, Child)                                                       \
-    UNK_36FA70_BASE(Name##_Base, Value, Child);                                                   \
-    struct Name : Name##_Base {                                                                   \
+#define UNK_36FA70_ROOT(Name, RootBase, Value, Child)                                             \
+    UNK_36FA70_BASE(RootBase, Value, Child);                                                      \
+    struct Name : RootBase {                                                                      \
         void Remove(const Unk_36fa70_Key0& below);                                                \
         void RemoveAll() { UNK_36FA70_REMOVEALL_BELOW(this) }                                     \
         void RemoveAll(const Unk_36fa70_Key0& below);                                             \
         bool Has(const Unk_36fa70_Key0& key, const Unk_36fa70_Key0& orig);                        \
         Value* Find(const Unk_36fa70_Key0& below, Value** closest, bool* hasMore);                \
-        bool ForEach(typename Name##_Base::Callback cb, const Unk_36fa70_Key0& a2,                \
+        bool ForEach(typename RootBase::Callback cb, const Unk_36fa70_Key0& a2,                   \
                      Unk_36fa70_Key0* below, void* a4);                                           \
-        bool ForEach(typename Name##_Base::Callback cb, const Unk_36fa70_Key0& filter,            \
+        bool ForEach(typename RootBase::Callback cb, const Unk_36fa70_Key0& filter,               \
                      const Unk_36fa70_Key0& a3, Unk_36fa70_Key0* below, void* a5, bool here);     \
-        void Visit(typename Name##_Base::Visitor cb, const Unk_36fa70_Key0& filter,               \
+        void Visit(typename RootBase::Visitor cb, const Unk_36fa70_Key0& filter,                  \
                    const Unk_36fa70_Key0& a3, Unk_36fa70_Key0* below, void* a5, bool here);       \
         Value* Set(const Unk_36fa70_Key0& below);                                                 \
     }
@@ -405,7 +432,7 @@ UNK_36FA70_NODE(Unk_23817e8, Unk_2381808, Unk_36fa70_Value, u32, Unk_2381828_Arr
 UNK_36FA70_NODE(Unk_23817a8, Unk_23817c8, Unk_36fa70_Value, u64, Unk_23817e8_Array,
                 Unk_36fa70_Key1, 0x30,
                 UNK_36FA70_REMOVEALL_BELOW);
-UNK_36FA70_ROOT(Unk_36b160_Root, Unk_36fa70_Value, Unk_23817a8_Array);
+UNK_36FA70_ROOT(Unk_36b160_Root, Unk_36b160_Root_Base, Unk_36fa70_Value, Unk_23817a8_Array);
 
 // The tree of 0x71003a1830 (nodes of 0x28 bytes).
 UNK_36FA70_LAST(Unk_2382da0, Unk_2382dc0, Unk_3a1830_Value, u8, 0x28);
@@ -421,7 +448,9 @@ UNK_36FA70_NODE(Unk_2382ce0, Unk_2382d00, Unk_3a1830_Value, u32, Unk_2382d20_Arr
 UNK_36FA70_NODE(Unk_2382c60_Item, Unk_2382cc0, Unk_3a1830_Value, u64, Unk_2382ce0_Array,
                 Unk_36fa70_Key1, 0x28,
                 UNK_36FA70_REMOVEALL_39F8E0);
-UNK_36FA70_ROOT(Unk_39a100_Root, Unk_3a1830_Value, Unk_2382c60_Item_Array);
+// Its root's base class has the name Unk_3babc0.h has for it too (its vtable
+// is at 0x7102382c60).
+UNK_36FA70_ROOT(Unk_39a100_Root, Unk_2382c60, Unk_3a1830_Value, Unk_2382c60_Item_Array);
 
 #define UNK_36FA70_LEVEL(Name, Key)                                                               \
     template Name*                                                                                \
@@ -501,7 +530,7 @@ void Unk_39f8e0(Unk_2382c60_Item* self) {
 
 // 0x710039a100
 void Unk_39a100(Unk_2382c60* self, const Unk_3babc0_Key& key) {
-    Unk_39a100_Root* root = reinterpret_cast<Unk_39a100_Root*>(self);
+    Unk_2382c60* root = self;
     const Unk_36fa70_Key0& below = reinterpret_cast<const Unk_36fa70_Key0&>(key);
     if (below.IsAny()) {
         if (root->field_10)
@@ -534,7 +563,7 @@ Unk_36fa70_Value* Unk_36b160_Root::Set(const Unk_36fa70_Key0& below) {
 
 // 0x710039c830 (and 0x71003a1ec0)
 u32* Unk_39c830(Unk_2382c60* self, const Unk_3babc0_Key& key) {
-    Unk_39a100_Root* root = reinterpret_cast<Unk_39a100_Root*>(self);
+    Unk_2382c60* root = self;
     const Unk_36fa70_Key0& below = reinterpret_cast<const Unk_36fa70_Key0&>(key);
     if (below.IsAny())
         return root->SetValue();
@@ -1009,4 +1038,29 @@ u32 Unk_36b2a0(Unk_36b350_T* self, const Unk_36fa70_Key0& filter) {
 void Unk_36b920(Unk_36b350_T* self) {
     Unk_36fa70_Key0 key;
     self->field_38.ForEach(Unk_36a6b0, key, &key, self);
+}
+
+// The value that fits a key best in the second tree: where the tree has no
+// node for a part of the key, the node for any is taken, and the key is
+// changed to what was found.
+u32* Unk_3657c0(Unk_2382c60* self, const Unk_3babc0_Key* key);
+
+// 0x71003657c0 (and 0x7100365920, 0x7100365a70, 0x7100365bb0 and 0x7100365d00)
+u32* Unk_3657c0(Unk_2382c60* self, const Unk_3babc0_Key* key) {
+    Unk_2382c60* root = self;
+    Unk_36fa70_Key0* below = reinterpret_cast<Unk_36fa70_Key0*>(const_cast<Unk_3babc0_Key*>(key));
+    if (!below->IsAny()) {
+        Unk_2382c60_Item* child = root->field_18.Exists(below->field_0);
+        if (child == nullptr && !below->IsAnyHere()) {
+            below->field_0 = Unk_36fa70_Key0::Any();
+            child = root->field_18.Exists(Unk_36fa70_Key0::Any());
+        }
+        if (child != nullptr) {
+            u32* value = child->FindBest(&below->field_8);
+            if (value != nullptr)
+                return value;
+        }
+    }
+    below->field_8 = Unk_36fa70_Key1();
+    return root->field_10 ? &root->field_8 : nullptr;
 }
