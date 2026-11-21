@@ -6,7 +6,7 @@
 
 // Unk_Array with an AddLast that grows the array by kGrowBy items when it is
 // full.
-template <class T, class A = Unk_PoolDefault, u32 kGrowBy = 1>
+template <class T, class A = Unk_PoolDefault, u32 kGrowBy = 1, class ArgT = const T&>
 struct Unk_GrowArray : Unk_Array<T, A> {
     struct Iterator {
         T* item;
@@ -43,8 +43,10 @@ struct Unk_GrowArray : Unk_Array<T, A> {
             return false;
         size_t length = this->Length();
         if (this->field_0 != nullptr && this->field_0 != items) {
-            for (size_t i = 0; i < length; i++)
+            for (size_t i = 0; i < length; i++) {
+                Unk_PlacementNew(items + i) T;
                 Move(items[i], this->field_0[i]);
+            }
             A::Free(this->field_0);
         }
         this->field_0 = items;
@@ -59,8 +61,35 @@ struct Unk_GrowArray : Unk_Array<T, A> {
                 return nullptr;
         }
         if (length < this->field_c)
-            return new (this->field_0 + this->field_8++) T;
+            return Unk_PlacementNew(this->field_0 + this->field_8++) T;
         return nullptr;
+    }
+
+    // Removes the item, moving the ones after it down.
+    Iterator Erase(Iterator& it) {
+        T* last = this->field_0 + this->field_8 - 1;
+        for (T* item = it.item; item < last; item++)
+            Move(item[0], item[1]);
+        this->field_8--;
+        return it;
+    }
+
+    T* AddLast(ArgT item) {
+        T* added = AddLast();
+        if (added != nullptr)
+            *added = item;
+        return added;
+    }
+
+    // Room for `count` items in an empty array: 1, or 0x34 without memory.
+    u32 Reserve(u32 count) {
+        if (count != 0) {
+            this->field_0 = static_cast<T*>(A::Alloc(sizeof(T) * count));
+            if (this->field_0 == nullptr)
+                return 0x34;
+            this->field_c = count;
+        }
+        return 1;
     }
 };
 
