@@ -40,6 +40,15 @@ public:
     // src/unsorted/registry, which don't match for the same reason. A loop
     // spelled out (for, while, do-while, with indices or a count) doesn't
     // give it either.
+    //
+    // Read from the original: its loop is this one rotated once more. Here
+    // the loop is `load, compare, advance, test the end`, after a test for an
+    // empty table. There it is `advance, test the end, load, compare`, after
+    // `empty || first == this`, and its exit at the end of the table still
+    // goes through the `it != end` test (`mov x0, x9; cmp x9, x0`), which
+    // here is threaded away. Not tried: what makes LLVM's later LoopRotate
+    // run on the loop a second time (it does so only when the loop's latch
+    // doesn't leave the loop, or was just folded into the block before it).
     ~Unk_236d228() {
         Unk_2778770* lock = Unk_65f110();
         lock->Lock();
