@@ -34,6 +34,15 @@ public:
     virtual void Unk_4be7d0();
     virtual void Unk_4bd7e0();
 
+    // 0x71004ff090 (SiGfxResourcePool::ResourceItem): takes a T back
+    void Unk_4ff090(T* item);
+    // the T of an index (inline in every caller: placeholder name)
+    T* Unk_Get(size_t index) {
+        size_t block = index / field_110;
+        size_t offset = index % field_110;
+        return &m_blocks.m_pData[block]->m_items.m_pData[offset];
+    }
+
     ISiAllocator* m_pAllocator;
     SiDirectLinkedList<T*> m_freeList;
     SiDirectLinkedList<T*> m_usedList;

@@ -12,6 +12,27 @@
 
 namespace SiSDK3 {
 
+// A resource as its pool uses it (placeholder name): slot 3 releases it, slot
+// 7 is its index in the pool, slots 9 to 14 are what the pool's slots 7 to 12
+// call on every resource.
+class Unk_534460_Resource {
+public:
+    virtual ~Unk_534460_Resource();
+    virtual u32 vf2();
+    virtual u32 vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual size_t vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+};
+
 class SiGfxResourcePool {
 public:
     // A pool's item (SiCore_Pool.h): its links, its index in the pool,
@@ -21,7 +42,7 @@ public:
         ResourceItem* m_pNext;
         size_t field_10;
         bool field_18;
-        u64 field_20;
+        Unk_534460_Resource* field_20;
     };
 
     explicit SiGfxResourcePool(ISiAllocator* pAllocator);
@@ -30,6 +51,25 @@ public:
     virtual void vf4();
     virtual bool vf5(s32 count);  // makes room for count resources
     virtual void vf6();           // releases the resources
+    virtual void vf7();           // these six call a slot of every resource
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13(Unk_534460_Resource* resource);  // takes a resource's item back
+
+    // the first resource in use and the one after another (inline in their
+    // callers: placeholder names)
+    Unk_534460_Resource* Unk_First() {
+        Unk_596640 lock(field_18.Unk_Get(), true);
+        return field_48.m_usedList.m_count != 0 ? field_48.m_usedList.m_pHead->field_20 : nullptr;
+    }
+    Unk_534460_Resource* Unk_Next(Unk_534460_Resource* resource) {
+        Unk_596640 lock(field_18.Unk_Get(), true);
+        ResourceItem* next = field_48.Unk_Get(resource->vf7())->m_pNext;
+        return next != nullptr ? next->field_20 : nullptr;
+    }
 
     // 0x7100534420 (leafgen's name and type): what the pools' vf5 call first
     u32 vf5();
