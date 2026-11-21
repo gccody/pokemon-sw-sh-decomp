@@ -24,8 +24,28 @@ struct Unk_Rect {
 PKMN_SIZE_ASSERT(Unk_Rect, 0x10);
 
 struct Unk_4a5d10_Self;
-struct Unk_45eb90_Self;
 struct Unk_4aa5a0_Self;
+// CRenderGlare, as this file reads it
+struct Unk_45eb90_Self {
+    u8 pad_0[0x108];
+    bool field_108;
+    u8 pad_109[0x7];
+    bool field_110;
+    u8 pad_111[0x1db];
+    s32 field_2ec;
+};
+// a view's light shaft and light ghost settings
+struct Unk_423990_Item {
+    u8 pad_0[0x60];
+    bool field_60;
+    u8 pad_61[0x7];
+};
+PKMN_SIZE_ASSERT(Unk_423990_Item, 0x68);
+struct Unk_423ba0_Item {
+    bool field_0;
+    u8 pad_1[0x33];
+};
+PKMN_SIZE_ASSERT(Unk_423ba0_Item, 0x34);
 
 }  // namespace PPFX
 
@@ -54,12 +74,21 @@ inline s32 Unk_SetViewport(Unk_RenderTexture* texture, f32 width, f32 height, f3
 class CPostEffect {
 public:
     s32 Unk_426a50();  // 0x7100426a50
+    s32 Unk_423630(bool enable);        // 0x7100423630
+    s32 SetAntialiasType(s32 type);     // 0x7100423850
+    s32 SetLightShaftEnable(bool enable);  // inline in Unk_423990
+    s32 SetLightGhostEnable(bool enable);  // inline in Unk_423ba0
 
     // field_190's viewport (inline, and by reference: the function takes the
     // fractions' addresses before it reads field_190, and reads them after)
     s32 Unk_SetViewport190(const f32& width, const f32& height, const f32& x, const f32& y) {
         return Unk_4a5d10(field_190, 0x7fffffff, width, height, x, y);
     }
+
+    // per-view records (inline: the callers read the index before the array)
+    s32 Unk_Frame(s32 view) const { return field_290[view]; }
+    Unk_423990_Item& Unk_LightShaft(s32 view) { return field_858[view]; }
+    Unk_423ba0_Item& Unk_LightGhost(s32 view) { return field_868[view]; }
 
     // UNK_FIELDS_BEGIN
     bool field_0;  // between BeginPostEffectScene() and EndPostEffectScene()
@@ -76,7 +105,20 @@ public:
     Unk_4a5d10_Self* field_190;
     Unk_45eb90_Self* field_198;
     Unk_4aa5a0_Self* field_1a0;
-    u8 pad_1a8[0x30];
+    u8 pad_1a8[0x10];
+    bool field_1b8;
+    bool field_1b9;
+    u8 pad_1ba[0x2];
+    bool field_1bc;
+    u8 pad_1bd[0x3];
+    bool field_1c0;
+    u8 pad_1c1[0x5];
+    bool field_1c6;
+    u8 pad_1c7[0x1];
+    bool field_1c8;
+    u8 pad_1c9[0x1];
+    bool field_1ca;
+    u8 pad_1cb[0xd];
     Unk_RenderTexture* field_1d8;
     Unk_4a5d10_Self* field_1e0;
     Unk_4a5d10_Self* field_1e8;
@@ -94,9 +136,13 @@ public:
     s32 field_280;
     u8 pad_284[0x4];
     Unk_RenderTexture** field_288;
-    u8 pad_290[0x8];
+    s32* field_290;  // each view's frame number
     s32 field_298;  // the active view
-    u8 pad_29c[0x2b4];
+    u8 pad_29c[0x164];
+    s32 field_400;
+    u8 pad_404[0x140];
+    u32 field_544;
+    u8 pad_548[0x8];
     Unk_RenderTexture** field_550;
     s32 field_558;
     u8 pad_55c[0x5c];
@@ -109,10 +155,31 @@ public:
     Unk_Rect field_814;
     Unk_Rect field_824;
     Unk_Rect field_834;
-    u8 pad_844[0x4f4];
+    u8 pad_844[0x14];
+    Unk_423990_Item* field_858;
+    s32 field_860;
+    u8 pad_864[0x4];
+    Unk_423ba0_Item* field_868;
+    s32 field_870;
+    u8 pad_874[0x21];
+    bool field_895;
+    u8 pad_896[0x337];
+    bool field_bcd;
+    bool field_bce;
+    u8 pad_bcf[0x15];
+    bool field_be4;
+    u8 pad_be5[0x95];
+    bool field_c7a;
+    u8 pad_c7b[0x6a];
+    bool field_ce5;
+    u8 pad_ce6[0x52];
     Unk_RenderTexture* field_d38;
     u8 pad_d40[0xb0];
     Unk_RenderTexture* field_df0;
+    u8 pad_df8[0x140];
+    bool field_f38;
+    u8 pad_f39[0xb];
+    s32 field_f44;
     // UNK_FIELDS_END
 };
 
