@@ -143,6 +143,30 @@ terms is only said here, as a guess.
   address with a pointer; the address is a cast of a byte offset there, and
   InstCombine moves casts to the right of a compare (m, one instruction).
 
+**More that the compiler does (fourth batch)**
+
+- **A call of a function in the same file is inlined when it is small**,
+  whatever the original did: `Unk_368a60` (92 bytes, seven callers) is in a
+  file of its own because the list's teardown next to it would inline it.
+- **`Alloc(size)` through a policy evaluates the size first; a direct
+  `Unk_3045e0(pool, size)` loads the pool first** (`Unk_3690b0`,
+  `Unk_368b20`).
+- **A value read before two stores and used after them** stays where it is
+  read: InstCombine sinks a single-use load into the block that uses it only
+  when nothing after it in its block writes memory (`Unk_369240`: the length
+  is read before the output's fields are cleared).
+- **The order of two locals' declarations** decides the order of their
+  registers' moves and selects in a loop (`Unk_369430`).
+- **A clamp as two `?:`** (`v < hi ? v : hi`, then `> lo`) reuses the
+  register; as two `if`s that assign, the second value got a new one
+  (`Unk_369d10`, with `-ffast-math` both are `fminnm`/`fmaxnm`).
+- **A bit-field's load is as wide as the bit-fields declared around it**:
+  two 2-bit fields alone are read with `ldrb`; with the rest of the 16 bits
+  declared, with `ldrh` where more than one field is used (`Unk_369cd0`).
+- **Another class named for the existing signature**: the second tree's
+  root base is `Unk_2382c60` (as `Unk_3babc0.h` has it), so that
+  `Unk_3657c0(Unk_2382c60*, ...)` uses its parameter without a cast.
+
 **The two five-level trees (`Unk_36fa70.cpp`)**: sorted arrays of nodes
 (vptr, value, flag, the next level's array, key; 0x30 bytes at
 `0x710036fa70`, 0x28 at `0x71003a1830` where the value is a `u32`), the last
@@ -203,6 +227,13 @@ needed:
 - `0x71003641b0`, `0x71003637d0` (the list of playing items returned to a
   pool of 0x3c00-byte chunks): heavy register shuffling, not tried.
 - `0x7100391040` (972 bytes, a bank reader that sets bitfields): not tried.
+- `0x7100368b20` (M): sets or removes a buffer in the keyed array of
+  `0x71024bcc18`; the original keeps two blocks for the failure's result.
+- `0x7100369c50` (M): returns the result of a test where the original
+  branches on it.
+- `0x710036a200` and the four members that use it (`0x7100369d80`...): a
+  sorted set with room for one item in the object; needs an array template
+  whose allocator is part of the object.
 - `0x7100394850` (M): the stream write of `Unk_23829b0`. The original sets the
   failure's result before the first, third and fourth write only (the
   writes of two bytes, whose size is the same constant); here before the
