@@ -71,6 +71,9 @@ public:
     u64 field_38;
     SiIOVFSManager* field_40;
     SiIOCodecZLib* field_48;
+    // 0x710057d2a0: its initialisation
+    bool Unk_57d2a0(ISiAllocator* pAllocator);
+
     // the chunk handler type of an identifier (inline in its callers:
     // placeholder name)
     ChunkHandlerTypeInfo* Unk_FindType(const ISiIOBinaryArchive::Unk_Id* id);
