@@ -24,6 +24,7 @@ struct Unk_Float {
 
 // two elements
 struct Unk_Float2 {
+    Unk_Float2() {}
     Unk_Float2(const Unk_Float& x, const Unk_Float& y) {
         field_0[0] = x;
         field_0[1] = y;

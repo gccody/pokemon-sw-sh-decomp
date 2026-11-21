@@ -12,7 +12,6 @@
 
 #include <miniz/miniz_yebis.h>
 #include <types.h>
-#include <yebis/YEBIS_draft/src/GPU/GPUInterfaceEffect.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUTextureUtil.h>
 #include <yebis/YEBIS_draft/src/GPU/TinyEffect/TFXString.h>
 
@@ -1417,22 +1416,181 @@ void CTextureUtil::Unk_471960(u32 flags, f32 x, f32 y, f32 width, f32 height) {
     vertices[3][0] = scaleX * (x1 + offset);
     vertices[3][1] = scaleY * (y0 + offset);
     field_30.Unk_Layout1();
-    u32 size = count * 8;
-    u32 start = field_29bb8;
-    bool wrap = start + size >= field_29bbc;
-    if (wrap) {
-        start = 0;
-        field_29bb8 = 0;
-    }
-    field_29bb8 = start + size;
-    IGPUBuffer* buffer = static_cast<IGPUBuffer*>(field_29bc8[0]);
-    memcpy(buffer->Map(wrap ? 6 : 2, start, size), vertices, size);
-    static_cast<IGPUBuffer*>(field_29bc8[0])->Unmap();
-    field_30.field_0->vf42(field_30.field_299b8[0], static_cast<IGPUBuffer*>(field_29bc8[0]), start, 0, 0, 1);
-    field_20->vf9(field_29bc8[1], 0);
-    reinterpret_cast<IGPUEffect*>(field_30.field_0)->SetupGraphicsPipelineState();
-    field_20->vf58(5, count, 0, 0, count - 1);
+    Unk_DrawVertices(vertices, count, sizeof(vertices[0]), 0);
     if (!(flags & 0x20000)) {
+        field_30.field_0->vf36();
+        field_30.field_0->vf34();
+    }
+}
+
+// 0x7100471c50 to 0x7100472cd0: a rectangle with 1 to 6 rectangles of
+// texture coordinates (`from` and `to` are their opposite corners).
+// 0x7100471c50
+void CTextureUtil::Unk_471c50(u32 flags, f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0) {
+    if ((flags & 0x40000) == 0) {
+        field_20->vf41(-1, 1);
+    }
+    if ((flags & 0x20000) == 0) {
+        u8 passes[0x20];
+        field_30.field_0->vf33(passes, flags & 0xffff);
+        field_30.field_0->vf35(0);
+    }
+    s32 count;
+    Unk_RectPosition positions[4];
+    Unk_Float2 from[1] = {Unk_Float2(u0, v0)};
+    Unk_Float2 to[1] = {Unk_Float2(s0, t0)};
+    Unk_Float2 coords[1][4];
+    Unk_471470(1, from, to, flags, &count, positions, coords, x, y, width, height);
+    Unk_RectVertex<1> vertices[4];
+    for (s32 i = 0; i < 4; i++) {
+        vertices[i] = Unk_RectVertex<1>(positions[i], coords, i);
+    }
+    field_30.Unk_46cfe0();
+    Unk_DrawVertices(vertices, count, sizeof(vertices[0]), 1);
+    if ((flags & 0x20000) == 0) {
+        field_30.field_0->vf36();
+        field_30.field_0->vf34();
+    }
+}
+
+// 0x7100471f60
+void CTextureUtil::Unk_471f60(u32 flags, f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1) {
+    if ((flags & 0x40000) == 0) {
+        field_20->vf41(-1, 1);
+    }
+    if ((flags & 0x20000) == 0) {
+        u8 passes[0x20];
+        field_30.field_0->vf33(passes, flags & 0xffff);
+        field_30.field_0->vf35(0);
+    }
+    s32 count;
+    Unk_RectPosition positions[4];
+    Unk_Float2 from[2] = {Unk_Float2(u0, v0), Unk_Float2(u1, v1)};
+    Unk_Float2 to[2] = {Unk_Float2(s0, t0), Unk_Float2(s1, t1)};
+    Unk_Float2 coords[2][4];
+    Unk_471470(2, from, to, flags, &count, positions, coords, x, y, width, height);
+    Unk_RectVertex<2> vertices[4];
+    for (s32 i = 0; i < 4; i++) {
+        vertices[i] = Unk_RectVertex<2>(positions[i], coords, i);
+    }
+    field_30.Unk_46d0c0();
+    Unk_DrawVertices(vertices, count, sizeof(vertices[0]), 2);
+    if ((flags & 0x20000) == 0) {
+        field_30.field_0->vf36();
+        field_30.field_0->vf34();
+    }
+}
+
+// 0x7100472250
+void CTextureUtil::Unk_472250(u32 flags, f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1, f32 u2, f32 v2, f32 s2, f32 t2) {
+    if ((flags & 0x40000) == 0) {
+        field_20->vf41(-1, 1);
+    }
+    if ((flags & 0x20000) == 0) {
+        u8 passes[0x20];
+        field_30.field_0->vf33(passes, flags & 0xffff);
+        field_30.field_0->vf35(0);
+    }
+    s32 count;
+    Unk_RectPosition positions[4];
+    Unk_Float2 from[3] = {Unk_Float2(u0, v0), Unk_Float2(u1, v1), Unk_Float2(u2, v2)};
+    Unk_Float2 to[3] = {Unk_Float2(s0, t0), Unk_Float2(s1, t1), Unk_Float2(s2, t2)};
+    Unk_Float2 coords[3][4];
+    Unk_471470(3, from, to, flags, &count, positions, coords, x, y, width, height);
+    Unk_RectVertex<3> vertices[4];
+    for (s32 i = 0; i < 4; i++) {
+        vertices[i] = Unk_RectVertex<3>(positions[i], coords, i);
+    }
+    field_30.Unk_46d1b0();
+    Unk_DrawVertices(vertices, count, sizeof(vertices[0]), 3);
+    if ((flags & 0x20000) == 0) {
+        field_30.field_0->vf36();
+        field_30.field_0->vf34();
+    }
+}
+
+// 0x7100472590
+void CTextureUtil::Unk_472590(u32 flags, f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1, f32 u2, f32 v2, f32 s2, f32 t2, f32 u3, f32 v3, f32 s3, f32 t3) {
+    if ((flags & 0x40000) == 0) {
+        field_20->vf41(-1, 1);
+    }
+    if ((flags & 0x20000) == 0) {
+        u8 passes[0x20];
+        field_30.field_0->vf33(passes, flags & 0xffff);
+        field_30.field_0->vf35(0);
+    }
+    s32 count;
+    Unk_RectPosition positions[4];
+    Unk_Float2 from[4] = {Unk_Float2(u0, v0), Unk_Float2(u1, v1), Unk_Float2(u2, v2), Unk_Float2(u3, v3)};
+    Unk_Float2 to[4] = {Unk_Float2(s0, t0), Unk_Float2(s1, t1), Unk_Float2(s2, t2), Unk_Float2(s3, t3)};
+    Unk_Float2 coords[4][4];
+    Unk_471470(4, from, to, flags, &count, positions, coords, x, y, width, height);
+    Unk_RectVertex<4> vertices[4];
+    for (s32 i = 0; i < 4; i++) {
+        vertices[i] = Unk_RectVertex<4>(positions[i], coords, i);
+    }
+    field_30.Unk_46d2a0();
+    Unk_DrawVertices(vertices, count, sizeof(vertices[0]), 4);
+    if ((flags & 0x20000) == 0) {
+        field_30.field_0->vf36();
+        field_30.field_0->vf34();
+    }
+}
+
+// 0x7100472900
+void CTextureUtil::Unk_472900(u32 flags, f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1, f32 u2, f32 v2, f32 s2, f32 t2, f32 u3, f32 v3, f32 s3, f32 t3, f32 u4, f32 v4, f32 s4, f32 t4) {
+    if ((flags & 0x40000) == 0) {
+        field_20->vf41(-1, 1);
+    }
+    if ((flags & 0x20000) == 0) {
+        u8 passes[0x20];
+        field_30.field_0->vf33(passes, flags & 0xffff);
+        field_30.field_0->vf35(0);
+    }
+    s32 count;
+    Unk_RectPosition positions[4];
+    Unk_Float2 from[5] = {Unk_Float2(u0, v0), Unk_Float2(u1, v1), Unk_Float2(u2, v2), Unk_Float2(u3, v3), Unk_Float2(u4, v4)};
+    Unk_Float2 to[5] = {Unk_Float2(s0, t0), Unk_Float2(s1, t1), Unk_Float2(s2, t2), Unk_Float2(s3, t3), Unk_Float2(s4, t4)};
+    Unk_Float2 coords[5][4];
+    Unk_471470(5, from, to, flags, &count, positions, coords, x, y, width, height);
+    Unk_RectVertex<5> vertices[4];
+    for (s32 i = 0; i < 4; i++) {
+        vertices[i] = Unk_RectVertex<5>(positions[i], coords, i);
+    }
+    field_30.Unk_46d3a0();
+    Unk_DrawVertices(vertices, count, sizeof(vertices[0]), 5);
+    if ((flags & 0x20000) == 0) {
+        field_30.field_0->vf36();
+        field_30.field_0->vf34();
+    }
+}
+
+// 0x7100472cd0
+// NON_MATCHING: the same instructions, but six of the texture coordinates
+// that arrive on the stack are kept in other callee-saved floating-point
+// registers (s8, s9, s10, s13, s14 and s15 are permuted).
+void CTextureUtil::Unk_472cd0(u32 flags, f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1, f32 t1, f32 u2, f32 v2, f32 s2, f32 t2, f32 u3, f32 v3, f32 s3, f32 t3, f32 u4, f32 v4, f32 s4, f32 t4, f32 u5, f32 v5, f32 s5, f32 t5) {
+    if ((flags & 0x40000) == 0) {
+        field_20->vf41(-1, 1);
+    }
+    if ((flags & 0x20000) == 0) {
+        u8 passes[0x20];
+        field_30.field_0->vf33(passes, flags & 0xffff);
+        field_30.field_0->vf35(0);
+    }
+    s32 count;
+    Unk_RectPosition positions[4];
+    Unk_Float2 from[6] = {Unk_Float2(u0, v0), Unk_Float2(u1, v1), Unk_Float2(u2, v2), Unk_Float2(u3, v3), Unk_Float2(u4, v4), Unk_Float2(u5, v5)};
+    Unk_Float2 to[6] = {Unk_Float2(s0, t0), Unk_Float2(s1, t1), Unk_Float2(s2, t2), Unk_Float2(s3, t3), Unk_Float2(s4, t4), Unk_Float2(s5, t5)};
+    Unk_Float2 coords[6][4];
+    Unk_471470(6, from, to, flags, &count, positions, coords, x, y, width, height);
+    Unk_RectVertex<6> vertices[4];
+    for (s32 i = 0; i < 4; i++) {
+        vertices[i] = Unk_RectVertex<6>(positions[i], coords, i);
+    }
+    field_30.Unk_46d4b0();
+    Unk_DrawVertices(vertices, count, sizeof(vertices[0]), 6);
+    if ((flags & 0x20000) == 0) {
         field_30.field_0->vf36();
         field_30.field_0->vf34();
     }
