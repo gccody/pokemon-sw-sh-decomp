@@ -6,6 +6,7 @@
 // which leave the namespace out as they do for PPFX::IGPUEffect; everything
 // else is a placeholder. CreateEffect's body is the list of the effect's
 // parameters and techniques: field_<offset> is where each handle goes.
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -1272,6 +1273,34 @@ s32 CTextureUtil::Unk_46ea80(s32 width, s32 height) {
     return result;
 }
 
+// the power of two that isn't less than `value`
+static inline f64 Unk_PowerOfTwo(s32 value) {
+    f64 exponent = log(static_cast<f64>(value)) / log(2.0);
+    s32 whole = static_cast<s32>(exponent);
+    if (exponent != static_cast<f64>(whole)) {
+        whole = static_cast<s32>(exponent + 1.0);
+    }
+    return ldexp(1.0, whole);
+}
+
+// 0x710046ec80: the colour chart's textures for a target of that size
+s32 CTextureUtil::Unk_46ec80(u32 width, u32 height) {
+    s32 barWidth = static_cast<s32>(Unk_PowerOfTwo(width >> 1));
+    u32 barHeight = static_cast<u32>(barWidth) >> 3;
+    barHeight = barHeight > 0x80 ? barHeight : 0x80;
+    f64 diagram = Unk_PowerOfTwo(height >> 1);
+    f64 waveform = Unk_PowerOfTwo(width >> 1);
+    s32 result = Unk_46e360(barWidth, barHeight, 0xa);
+    if (result < 0) {
+        return result;
+    }
+    result = Unk_46e740(static_cast<s32>(diagram), static_cast<s32>(diagram), 0xa);
+    if (result < 0) {
+        return result;
+    }
+    return Unk_46ea80(static_cast<s32>(waveform), static_cast<s32>(waveform));
+}
+
 // 0x710046d990: releases the effect's objects, and with no argument the
 // effect and its file too
 s32 TEXSHADERSET::Unk_46d990(void* arg) {
@@ -1329,6 +1358,13 @@ s32 CTextureUtil::Unk_470880() {
 // 0x71004708a0
 s32 CTextureUtil::Unk_4708a0(void* arg) {
     return field_29a58->Unk_49fed0(arg);
+}
+
+// 0x7100471410
+void CTextureUtil::Unk_471410() {
+    field_20->vf39();
+    field_20->vf40(-1);
+    field_20->vf42(0);
 }
 
 // 0x71004708b0: releases what the device made
