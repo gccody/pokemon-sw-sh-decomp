@@ -2068,6 +2068,51 @@ reference (`0x7100946e90`, 404 bytes, 8 of its shape; `0x7100b35720`, 364
 bytes, 4; `0x710110c4f0`, 420 bytes, 5). 831 functions that aren't matched
 (836 KB) have this lock in them: they need this spelling.
 
+### Static initialisers that store constants (`tools/initgen.py`, 2026-11-21)
+
+A TU's static initialiser is one function, and for many TUs it only stores
+constants: the three addresses of the `nn::ldn` header (Batch 33 wrote the
+initialisers that do nothing else), numbers, vectors of four floats (camera
+and placement constants), tables of hashed names (the hash, the string, its
+length and an empty reference per entry) and a destructor handed to
+`__cxa_atexit`. `tools/initgen.py` reads such a function and writes it as
+`void Unk_<addr>_init()` in `src/unsorted/init/Unk_<addr>.cpp`, the way
+leafgen writes the others: the statics it sets are one placeholder struct at
+the address the code uses (clang merged the TU's statics into one object and
+addresses them from one register), `extern` with hidden visibility.
+
+356 functions have the shape (89.6 KB); 247 are written and match in both
+games (55.2 KB). What decided the matches:
+
+- **A vector is stored with a NEON store.** Four `float` assignments, or an
+  aggregate assignment, are merged into two 64-bit integer stores
+  (`mov`/`movk` + `stur x`). The originals load the 16 bytes from the literal
+  pool (`ldr q0, [literal]` + `stur q0`): `vst1q_f32` of a `float32x4_t`
+  built from the four floats gives that, so the math library's vector is a
+  NEON one and its constants were built from floats.
+- **The order of the statements.** The stores between two calls don't depend
+  on each other, and the compiler emits them in an order that follows from
+  the statements' order without being it. Five orders are tried; the file
+  says which it was written in (`// Order:`) and is written again with it:
+  `split` (integers and pointers as the original has them, then the vectors
+  by address: 195), `delay` (the original's order, each integer after the
+  next vector: 30), `address` (every store by address: 12, tables), `wide`
+  (stores under 8 bytes as the original has them, then the rest by address:
+  9, the header's statics and then a table) and `asm` (1).
+- **A struct starts where its fields are aligned.** The register may point 4
+  bytes into the merged object (`0x27e9e74`): the struct is declared at the
+  aligned address below it, with the fields that much further in.
+- **`__cxa_atexit`'s function** is declared by the name its row has, or
+  given the placeholder `Unk_<addr>(void*)` (26 of them, not written yet:
+  the tables' array destructors, 42 of 360 bytes at `0x7100b2cdf0` among
+  them, which need the statics these files now name).
+
+Not written: 54 with another call (constructors that aren't inlined), 34
+whose `__cxa_atexit` function is a named destructor (`_ZN..D1Ev`: it has to
+be declared as a member of its class), a few with byte stores or loads
+through pointers, and 7 that are written but whose order none of the five
+gives (`0x7100919c10`, 872 bytes, is the largest).
+
 ### Copies of type-erased callables (`tools/clonegen.py`, 2026-11-19)
 
 vtables.py writes the simple slots of the `std::function` model classes (D2,
