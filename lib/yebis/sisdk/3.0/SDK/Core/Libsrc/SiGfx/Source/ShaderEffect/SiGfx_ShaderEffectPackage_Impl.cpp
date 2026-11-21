@@ -127,12 +127,11 @@ bool SiGfxShaderEffectPackage::vf14(s64 value108, void* valueBe8, u32 value104, 
 // NON_MATCHING: the original has one `mov w0, wzr` before the two tests and one return for them;
 // this has a copy of the return for each test (28 bytes more).
 bool SiGfxShaderEffectPackage::vf15(ISiGfxShaderEffectPackage::ShaderEffectData* data) {
-    bool result = false;
-    if (data != nullptr && field_138 >= 1) {
-        field_140.Unk_Add(data);
-        result = true;
+    if (data == nullptr || field_138 < 1) {
+        return false;
     }
-    return result;
+    field_140.Unk_Add(data);
+    return true;
 }
 
 // 0x7100569520
@@ -255,6 +254,51 @@ bool SiGfxShaderEffectPackage::Unk_5697b0(ISiIOStream* stream, u32 byteOrder) {
     stream->vf50(field_a0.field_8c, true);
     stream->vf50(field_a0.field_90, true);
     stream->vf50(field_a0.field_94, true);
+    return true;
+}
+
+// 0x7100569dd0
+bool SiGfxShaderEffectPackage::Unk_569dd0(ISiIOStream* stream, ISiGfxShaderEffectPackage::ShaderEffectData* data) {
+    if (stream == nullptr || data == nullptr) {
+        return false;
+    }
+    if (data->field_58 == nullptr) {
+        return false;
+    }
+    Unk_582f70(stream, 0x10, 0);
+    stream->vf58(Unk_StringCStr(&data->field_8), true);
+    Unk_582f70(stream, 0x10, 0);
+    stream->vf54(data->field_38, true);
+    stream->vf58(Unk_StringCStr(data->field_58->vf5()), true);
+    Unk_582f70(stream, 0x10, 0);
+    stream->vf50(data->field_40, true);
+    stream->vf50(data->field_60.m_itemCount, true);
+    for (s64 i = 0; i < static_cast<s32>(data->field_60.m_itemCount); i++) {
+        Unk_569f40(stream, data, data->field_60.m_pData[i]);
+    }
+    return true;
+}
+
+// 0x710056a350 = _ZN6SiSDK324SiGfxShaderEffectPackage11Unk_56a350_EPNS_11ISiIOStreamEPNS_10Unk_56a350E
+bool SiGfxShaderEffectPackage::Unk_56a350_(ISiIOStream* stream, Unk_56a350* table) {
+    if (stream == nullptr) {
+        return false;
+    }
+    Unk_582f70(stream, 0x10, 0);
+    stream->vf50(table->field_0, true);
+    stream->vf50(table->field_804, true);
+    stream->vf50(table->field_818, true);
+    for (s64 i = 0; i < table->field_0; i++) {
+        stream->vf50(table->field_4[i].field_0, true);
+        stream->vf50(table->field_4[i].field_4, true);
+        stream->vf50(table->field_4[i].field_8, true);
+        stream->vf50(table->field_4[i].field_c, true);
+        stream->vf50(table->field_4[i].field_10, true);
+        stream->vf50(table->field_4[i].field_14, true);
+    }
+    for (s64 i = 0; i < table->field_804; i++) {
+        stream->vf50(table->field_808[i], true);
+    }
     return true;
 }
 
@@ -393,6 +437,28 @@ bool SiGfxShaderEffectPackage::Unk_56b000(ISiIOStream* stream, Unk_567750_Header
 bool SiGfxShaderEffectPackage::vf9() {
     field_1e0.Unk_4e3050();
     return Unk_5686f0();
+}
+
+// 0x710056c480
+bool SiGfxShaderEffectPackage::Unk_56c480(ISiIOStream* stream, Unk_56a350* table) {
+    if (stream == nullptr) {
+        return false;
+    }
+    table->field_0 = stream->vf27(true);
+    table->field_804 = stream->vf27(true);
+    table->field_818 = stream->vf27(true);
+    for (s64 i = 0; i < table->field_0; i++) {
+        table->field_4[i].field_0 = stream->vf27(true);
+        table->field_4[i].field_4 = stream->vf27(true);
+        table->field_4[i].field_8 = stream->vf27(true);
+        table->field_4[i].field_c = stream->vf27(true);
+        table->field_4[i].field_10 = stream->vf27(true);
+        table->field_4[i].field_14 = stream->vf27(true);
+    }
+    for (s64 i = 0; i < table->field_804; i++) {
+        table->field_808[i] = stream->vf27(true);
+    }
+    return true;
 }
 
 // 0x710056c870
