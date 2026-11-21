@@ -20,7 +20,6 @@ SiIOMemoryStream::SiIOMemoryStream(ISiAllocator* pAllocator)
 // 0x71005805a0 (D2), 0x7100580610 (D0)
 SiIOMemoryStream::~SiIOMemoryStream() {
     SiIOMemoryStream::vf9();
-    UNK_4BF660_DESTROY(field_8);
 }
 
 // 0x7100580690
