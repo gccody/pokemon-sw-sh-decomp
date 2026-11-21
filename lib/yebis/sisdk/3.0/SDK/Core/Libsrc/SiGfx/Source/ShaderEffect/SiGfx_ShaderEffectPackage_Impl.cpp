@@ -26,6 +26,13 @@ s32 Unk_4cbc40(s32, s32, s32, s32, s32, s32, s32, s32);
 u64 Unk_57d030_get();
 // 0x7100570d00 (leafgen's name and type): the variation list's initialisation
 u64 Unk_570d00_get(u64 list);
+// 0x7100578b10: what an effect does before its package is read again;
+// 0x7100578bc0 (leafgen's name and type): what it does after
+void Unk_578b10(SiSDK3::SiGfxShaderEffect* effect);
+struct Unk_578bc0;
+void Unk_578bc0_call(Unk_578bc0* self);
+// 0x7100582d80: whether a file exists
+bool Unk_582d80(const char* path, bool searchArchives);
 // 0x710056ca20 (leafgen's name): whether an effect may be added
 bool Unk_56ca20(void* package, void* effect);
 
@@ -164,6 +171,30 @@ SiGfxShaderEffectPackage::~SiGfxShaderEffectPackage() {
 void SiGfxShaderEffectPackage::vf5(const char* name) {
     Unk_StringAssign(&field_18, name);
     field_e38.field_50 = *vf6();
+}
+
+// 0x7100568570
+bool SiGfxShaderEffectPackage::vf11() {
+    vf28();
+    if (!vf27()) {
+        return true;
+    }
+    for (s64 i = 0; i < static_cast<s32>(field_1e0.m_itemCount); i++) {
+        Unk_578b10(field_1e0.m_pData[i]);
+    }
+    SiString<char> path(field_8.m_pAllocator);
+    path = field_48;
+    if (path.field_10 == 0 || !Unk_582d80(Unk_StringCStr(&path), true)) {
+        return false;
+    }
+    Unk_5686f0();
+    if (!vf8(Unk_StringCStr(&path))) {
+        return false;
+    }
+    for (s64 i = 0; i < static_cast<s32>(field_1e0.m_itemCount); i++) {
+        Unk_578bc0_call(reinterpret_cast<Unk_578bc0*>(field_1e0.m_pData[i]));
+    }
+    return true;
 }
 
 // 0x71005686f0
@@ -945,12 +976,91 @@ bool SiGfxShaderEffectPackage::vf22(SiGfxShaderEffect* effect) {
     return true;
 }
 
+// 0x710056d100
+void SiGfxShaderEffectPackage::Unk_56d100() {
+    for (s64 i = 0; i < static_cast<s32>(field_c58[0].m_itemCount); i++) {
+        if (field_c58[0].m_pData[i] != nullptr) {
+            field_c58[0].m_pData[i]->vf3();
+            field_c58[0].m_pData[i] = nullptr;
+        }
+    }
+    for (s64 i = 0; i < static_cast<s32>(field_c58[1].m_itemCount); i++) {
+        if (field_c58[1].m_pData[i] != nullptr) {
+            field_c58[1].m_pData[i]->vf3();
+            field_c58[1].m_pData[i] = nullptr;
+        }
+    }
+    for (s64 i = 0; i < static_cast<s32>(field_c58[2].m_itemCount); i++) {
+        if (field_c58[2].m_pData[i] != nullptr) {
+            field_c58[2].m_pData[i]->vf3();
+            field_c58[2].m_pData[i] = nullptr;
+        }
+    }
+    for (s64 i = 0; i < static_cast<s32>(field_c58[3].m_itemCount); i++) {
+        if (field_c58[3].m_pData[i] != nullptr) {
+            field_c58[3].m_pData[i]->vf3();
+            field_c58[3].m_pData[i] = nullptr;
+        }
+    }
+    for (s64 i = 0; i < static_cast<s32>(field_c58[4].m_itemCount); i++) {
+        if (field_c58[4].m_pData[i] != nullptr) {
+            field_c58[4].m_pData[i]->vf3();
+            field_c58[4].m_pData[i] = nullptr;
+        }
+    }
+    for (s64 i = 0; i < static_cast<s32>(field_c58[5].m_itemCount); i++) {
+        if (field_c58[5].m_pData[i] != nullptr) {
+            field_c58[5].m_pData[i]->vf3();
+            field_c58[5].m_pData[i] = nullptr;
+        }
+    }
+}
+
 // 0x710056d2c0
 bool SiGfxShaderEffectPackage::vf28() {
     for (s32 i = 0; i < static_cast<s32>(field_1e0.m_itemCount); i++) {
         field_1e0.m_pData[i]->vf20();
     }
     return Unk_56d320();
+}
+
+// 0x710056d630
+void SiGfxShaderEffectPackage::Unk_56d630(Unk_56d630_Target* target, ISiGfxShaderEffectPackage::ShaderEffectData* data,
+                                          u32 stages, SiGfxShaderEffectKey* key0, SiGfxShaderEffectKey* key1) {
+    s32 index = key0->field_8;
+    ISiGfxShaderEffectPackage::TechniqueData* technique = data->field_60.m_pData[index];
+    const Unk_567750_Pair* pair0 = &field_78.field_0.field_8;
+    const Unk_567750_Pair* pair1 = &field_78.field_10.field_8;
+    if (stages & 1) {
+        target->vf11(field_78.field_0.field_0, field_78.field_0.field_4, pair0, field_78.field_10.field_0,
+                     field_78.field_10.field_4, pair1, 1,
+                     Unk_StringCStr(&technique->field_10), Unk_StringCStr(&technique->field_40), key0, key1, nullptr);
+    }
+    if (stages & 2) {
+        target->vf11(field_78.field_0.field_0, field_78.field_0.field_4, pair0, field_78.field_10.field_0,
+                     field_78.field_10.field_4, pair1, 2,
+                     Unk_StringCStr(&technique->field_70), Unk_StringCStr(&technique->field_a0), key0, key1, nullptr);
+    }
+    if (stages & 4) {
+        target->vf11(field_78.field_0.field_0, field_78.field_0.field_4, pair0, field_78.field_10.field_0,
+                     field_78.field_10.field_4, pair1, 3,
+                     Unk_StringCStr(&technique->field_d0), Unk_StringCStr(&technique->field_100), key0, key1, nullptr);
+    }
+    if (stages & 0x10) {
+        target->vf11(field_78.field_0.field_0, field_78.field_0.field_4, pair0, field_78.field_10.field_0,
+                     field_78.field_10.field_4, pair1, 5,
+                     Unk_StringCStr(&technique->field_130), Unk_StringCStr(&technique->field_160), key0, key1, nullptr);
+    }
+    if (stages & 8) {
+        target->vf11(field_78.field_0.field_0, field_78.field_0.field_4, pair0, field_78.field_10.field_0,
+                     field_78.field_10.field_4, pair1, 4,
+                     Unk_StringCStr(&technique->field_190), Unk_StringCStr(&technique->field_1c0), key0, key1, nullptr);
+    }
+    if (stages & 0x20) {
+        target->vf11(field_78.field_0.field_0, field_78.field_0.field_4, pair0, field_78.field_10.field_0,
+                     field_78.field_10.field_4, pair1, 6,
+                     Unk_StringCStr(&technique->field_1f0), Unk_StringCStr(&technique->field_220), key0, key1, nullptr);
+    }
 }
 
 }  // namespace SiSDK3

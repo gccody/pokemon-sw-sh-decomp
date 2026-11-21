@@ -73,8 +73,6 @@ public:
         return item;
     }
 
-    // 0x71004ff090 (SiGfxResourcePool::ResourceItem): takes a T back
-    void Unk_4ff090(T* item);
     // the T of an index (inline in every caller: placeholder name)
     T* Unk_Get(size_t index) {
         size_t block = index / field_110;
@@ -116,6 +114,19 @@ void SiPool<T, ALIGN>::Unk_4bd7e0() {
 // The member functions that make and number T's need the whole of T: only
 // for the files that ask (they define T; the others give T only its links).
 #ifdef UNK_SIPOOL_WHOLE_ELEMENT
+
+template <class T, int ALIGN>
+SiPool<T, ALIGN>::SiPool(ISiAllocator* pAllocator, bool flag)
+    : m_pAllocator(pAllocator), m_freeList(pAllocator), m_usedList(pAllocator), m_blocks(pAllocator),
+      m_firstBlock(pAllocator), field_110(0), field_118(0), field_120(false) {
+    field_121[0] = flag;
+    for (int i = 1; i < 7; i++) {
+        field_121[i] = false;
+    }
+    if (pAllocator == nullptr) {
+        m_pAllocator = Unk_4bc640();
+    }
+}
 
 template <class T, int ALIGN>
 bool SiPool<T, ALIGN>::vf2(size_t count) {

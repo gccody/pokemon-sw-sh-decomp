@@ -410,8 +410,6 @@ template bool SiSDK3::SiArray<Unk_4ea9b0*, 16>::Unk_4bf190(size_t, bool);
 template bool SiSDK3::SiArray<Unk_4f6f70*, 16>::Unk_4bf190(size_t, bool);
 // 0x71004fb4b0
 template bool SiSDK3::SiArray<Unk_4fb4b0*, 16>::Unk_4bf190(size_t, bool);
-// 0x7100536a10
-template bool SiSDK3::SiArray<Unk_536a10*, 16>::Unk_4bf190(size_t, bool);
 // 0x7100542aa0
 template bool SiSDK3::SiArray<Unk_542aa0*, 16>::Unk_4bf190(size_t, bool);
 // 0x710054f7e0
