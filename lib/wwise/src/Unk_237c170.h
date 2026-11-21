@@ -81,6 +81,8 @@ struct Unk_NodeArg71 {
 PKMN_OFFSET_ASSERT(Unk_NodeArg71, field_18, 0x18);
 
 struct Unk_310160_T;
+struct Unk_NodeB_16;
+struct Unk_NodeKey;
 class Unk_2382098;
 class Unk_2381d78;
 
@@ -183,8 +185,8 @@ struct Unk_NodeB {
     virtual ~Unk_NodeB() {}
     virtual void b_vf2();
     virtual void b_vf3();
-    virtual void b_vf4();
-    virtual void b_vf5();
+    virtual bool b_vf4(u32 a1);
+    virtual bool b_vf5(u32 a1);
     virtual void b_vf6();
     virtual Unk_NodeB_28_20* b_vf7() { return field_28; }  // 0x710034c1f0
     virtual void b_vf8();
@@ -195,7 +197,7 @@ struct Unk_NodeB {
     virtual void b_vf13();
     virtual void b_vf14();
     virtual void b_vf15();
-    virtual void b_vf16();
+    virtual Unk_NodeB_16* b_vf16();
 
     u64 field_20;
     Unk_NodeB_28* field_28;
@@ -203,9 +205,9 @@ struct Unk_NodeB {
 
 // The base at 0x30.
 struct Unk_NodeC {
-    virtual void c_vf0();
-    virtual void c_vf1();
-    virtual void c_vf2();
+    virtual void c_vf0(u32 a1, Unk_NodeKey* a2, void* a3, f32 a4, f32 a5);  // 0x71003a4ca0
+    virtual void c_vf1(bool a1, u32 a2);  // 0x71003a53a0
+    virtual void c_vf2(bool a1, u32 a2);  // 0x71003a5410
 };
 
 // A node's children, sorted by ID.
@@ -244,17 +246,18 @@ void Unk_381d40(void* self);
 void Unk_37e0e0(void* self);
 void Unk_3820f0(void* self);
 
-// A set of properties: the number of them in a byte, their IDs (a byte each),
-// then, aligned to 4 bytes, their values.
-template <class T>
+// A set of properties: the number of them (an Id), their IDs, then, aligned
+// to 4 bytes, their values.
+template <class T, class Id = u8>
 struct Unk_PropBundle {
     u8* field_0;
 
-    T* FindProp(u8 id) const {
+    T* FindProp(Id id) const {
         if (field_0 != nullptr) {
-            u8 count = field_0[0];
-            T* values = reinterpret_cast<T*>(field_0 + ((count + 4) & ~3));
-            u8* ids = field_0 + 1;
+            Id count = *reinterpret_cast<Id*>(field_0);
+            T* values = reinterpret_cast<T*>(
+                field_0 + ((sizeof(Id) + count * sizeof(Id) + 3) & ~3));
+            Id* ids = reinterpret_cast<Id*>(field_0) + 1;
             u32 i = 0;
             do {
                 if (ids[i] == id)
@@ -264,23 +267,101 @@ struct Unk_PropBundle {
         }
         return nullptr;
     }
+
+    // The property's value, or `def` when the set doesn't have it.
+    T& GetProp(Id id, T& def) const {
+        T* value = FindProp(id);
+        return value != nullptr ? *value : def;
+    }
 };
+
+// A property's value.
+union Unk_PropValue {
+    f32 f;
+    s32 i;
+};
+
+// A value of the sets with 16 bytes for each.
+struct Unk_PropValue16 {
+    f32 field_0;
+    u8 _4[0xc];
+};
+
+// What says which instance of a node a value is for: 0x30 bytes.
+struct Unk_NodeKey {
+    void* field_0;
+    u32 field_8;
+    u32 _c;
+    u32 field_10;
+    u32 _14;
+    u8 field_18;
+    u8 _19[7];
+    u8 field_20;
+    u8 _21[7];
+    void* field_28;
+};
+PKMN_SIZE_ASSERT(Unk_NodeKey, 0x30);
+
+// The properties' defaults (0x71024bceb8) and the IDs of the parameters that
+// change them (0x7101b1d654).
+extern Unk_PropValue Unk_24bceb8[];
+extern const u32 Unk_1b1d654[];
 
 // What field_38 of a node points at (the field is the base at 0x30's).
 struct Unk_2382098_38 {
-    u64 field_0;  // a bit for each property with something attached
+    bool Has(u32 param) const { return (field_0 & (1ULL << param)) != 0; }
+
+    u64 field_0;  // a bit for each parameter with something attached
     u8 _8[0x18];
     bool field_20;
 };
 
 // What field_50 of a node points at.
-struct Unk_2382098_50_Value {
-    f32 field_0;
-    u8 _4[0xc];
-};
 struct Unk_2382098_50 {
     u8 _0[0x18];
-    Unk_PropBundle<Unk_2382098_50_Value> field_18;
+    Unk_PropBundle<Unk_PropValue16> field_18;
+};
+
+// What field_58 of a node points at: Unk_2382098_50 objects by key.
+struct Unk_2382098_58_Item {
+    void* field_0;
+    Unk_2382098_50* field_8;
+};
+struct Unk_2382098_58 {
+    Unk_2382098_58_Item* field_0;
+    u32 field_8;
+
+    Unk_2382098_58_Item* Begin() const { return field_0; }
+    Unk_2382098_58_Item* End() const { return field_0 + field_8; }
+    Unk_2382098_58_Item* FindEx(void* key) const {
+        Unk_2382098_58_Item* it = Begin();
+        for (Unk_2382098_58_Item* end = End(); it != end; ++it) {
+            if (it->field_0 == key)
+                break;
+        }
+        return it;
+    }
+};
+
+// What field_60 of a node points at.
+struct Unk_2382098_60_Item {
+    u32 field_0;
+    u32 field_4;
+};
+struct Unk_2382098_60 {
+    Unk_2382098_60_Item field_0[4];
+};
+
+// What slot 16 of the base at 0x18 returns: a list of objects with a set of
+// values by parameter.
+struct Unk_NodeB_16_Item {
+    u8 _0[0x10];
+    Unk_NodeB_16_Item* field_10;
+    u8 _18[8];
+    Unk_PropBundle<Unk_PropValue16, u16> field_20;
+};
+struct Unk_NodeB_16 {
+    Unk_NodeB_16_Item* field_0;
 };
 
 struct Unk_2381d78_70 {
@@ -315,19 +396,28 @@ public:
 
     u32 vf11(u32 id) override;  // 0x710034b310, inline
 
+    // 0x7100352bd0, inline: adds a property's value to *out, with what its
+    // parameter changes it by.
+    inline void Unk_352bd0(f32* out, u32 prop, const Unk_NodeKey* key);
+
     Unk_2382098_38* field_38;
     u8 _40[0x10];
     Unk_2382098_50* field_50;
-    u8 _58[0x18];
+    Unk_2382098_58* field_58;
+    Unk_2382098_60* field_60;
+    u8 _68[8];
     Unk_2381d78_70* field_70;
     Unk_2382098* field_78;  // parent
     void* field_80;
     u32* field_88;
-    Unk_PropBundle<f32> field_90;
+    Unk_PropBundle<Unk_PropValue> field_90;
     u32 field_98_0 : 1;
     u32 field_98_1 : 11;
     u32 field_98_12 : 5;
-    u32 field_98_17 : 4;
+    u32 field_98_17 : 1;
+    u32 field_98_18 : 1;
+    u32 field_98_19 : 1;
+    u32 field_98_20 : 1;
     u32 field_98_21 : 1;
     u32 field_98_22 : 1;
     u32 field_98_23 : 1;
@@ -339,7 +429,11 @@ public:
     u32 : 0;
     u32 field_9c_0 : 17;
     u32 field_9c_17 : 1;
-    u32 field_9c_18 : 14;
+    u32 field_9c_18 : 1;
+    u32 field_9c_19 : 1;
+    u32 field_9c_20 : 4;
+    u32 field_9c_24 : 1;
+    u32 field_9c_25 : 7;
 };
 PKMN_SIZE_ASSERT(Unk_2382098, 0xa0);
 PKMN_OFFSET_ASSERT(Unk_2382098, field_78, 0x78);

@@ -11,7 +11,7 @@ void Unk_3c58d0(u32 id);
 
 // 0x7100351840
 Unk_237ff98::Unk_237ff98(u32 id)
-    : Unk_NodeActiveParent<Unk_NodeParent<Unk_2382098>>(id), field_b0(nullptr), field_b8(), field_c8(0),
+    : Unk_NodeActiveParent<Unk_NodeParent<Unk_2382098>>(id), field_b0(nullptr), field_b8(), field_c8(),
       field_d0(-96.3f) {
     field_160 = 0xffffffff;
     field_164_0 = 0;
@@ -85,7 +85,7 @@ void Unk_237ff98::Unk_351b20() {
         arg.field_0 = this;
         f32 value = 1.0f;
         if (field_50 != nullptr) {
-            Unk_2382098_50_Value* prop = field_50->field_18.FindProp(0xb);
+            Unk_PropValue16* prop = field_50->field_18.FindProp(0xb);
             if (prop != nullptr)
                 value = prop->field_0;
         }
@@ -180,7 +180,6 @@ void Unk_237ff98::vf27(f32 a1, u32 a2, void* a3, void* a4) {
         Unk_3c58d0(field_10);
 }
 
-// NON_MATCHING: the operands of the sum's fadd are the other way round (the item's value first)
 // 0x7100352da0
 f32 Unk_237ff98::Unk_352da0(u32 a1) {
     Unk_List2<Unk_237ff98_Item28>* list;
@@ -198,5 +197,125 @@ f32 Unk_237ff98::Unk_352da0(u32 a1) {
     f32 sum = 0.0f;
     for (auto it = list->Begin(); it != list->End(); ++it)
         sum += (*it).field_20;
-    return fmaxf(sum, field_d0);
+    return sum > field_d0 ? sum : field_d0;
+}
+
+// 0x7100352df0
+u32 Unk_237ff98::Unk_352df0(Unk_352df0_Out* out, Unk_NodeKey* key) {
+    out->field_0 = Unk_353010(*key, &out->field_28);
+    out->field_2c = Unk_353330(*key, 0x1a);
+    out->field_30 = Unk_353330(*key, 0x19);
+    if (field_88 != nullptr) {
+        Unk_352bd0(&out->field_34[0], 0x13, key);
+        Unk_352bd0(&out->field_34[1], 0x14, key);
+        Unk_352bd0(&out->field_34[2], 0x15, key);
+        Unk_352bd0(&out->field_34[3], 0x16, key);
+        Unk_352bd0(&out->field_34[4], 0x3c, key);
+        Unk_352bd0(&out->field_34[5], 0x3d, key);
+        Unk_352bd0(&out->field_34[6], 0x3e, key);
+        Unk_352bd0(&out->field_34[7], 0x3f, key);
+        Unk_352bd0(&out->field_34[8], 0x40, key);
+        Unk_352bd0(&out->field_34[9], 0x41, key);
+        Unk_352bd0(&out->field_34[10], 0x42, key);
+        Unk_352bd0(&out->field_34[11], 0x43, key);
+        out->field_64[0] = field_88[0];
+        out->field_64[1] = field_88[1];
+        out->field_64[2] = field_88[2];
+        out->field_64[3] = field_88[3];
+    }
+    out->field_80 = field_9c_18;
+    Unk_352bd0(&out->field_74, 0x17, key);
+    Unk_352bd0(&out->field_78, 0x44, key);
+    Unk_352bd0(&out->field_7c, 0x45, key);
+    return 1;
+}
+
+// 0x7100353330
+f32 Unk_237ff98::Unk_353330(Unk_NodeKey key, u32 prop) {
+    f32 value = 0.0f;
+    Unk_352bd0(&value, prop, &key);
+    if (field_50 != nullptr) {
+        Unk_PropValue16* own = field_50->field_18.FindProp(prop);
+        if (own != nullptr)
+            value += own->field_0;
+    }
+    if (field_58 != nullptr) {
+        Unk_2382098_58_Item* it = field_58->FindEx(key.field_0);
+        if (it != field_58->End()) {
+            Unk_PropValue16* other = it->field_8->field_18.FindProp(prop);
+            if (other != nullptr)
+                value += other->field_0;
+        }
+    }
+    Unk_237ff98* parent = static_cast<Unk_237ff98*>(field_80);
+    if (parent != nullptr && !parent->Unk_3536a0())
+        value += static_cast<Unk_237ff98*>(field_80)->Unk_353330(key, prop);
+    return value;
+}
+
+// Whether the node does something to the sound that passes through it: what
+// goes up the parents stops at such a node.
+// 0x71003536a0
+bool Unk_237ff98::Unk_3536a0() {
+    if (field_60 != nullptr) {
+        for (u32 i = 0; i < 4; i++) {
+            if (field_60->field_0[i].field_4 != 0)
+                return true;
+        }
+    }
+    if (vf17() == 10)
+        return true;
+    if (field_c8.field_4)
+        return true;
+    if (field_9c_19 || field_9c_24)
+        return true;
+    if (field_80 == nullptr)
+        return true;
+    if (field_98_17 || field_98_18 || field_98_19)
+        return true;
+    if (field_b0 != nullptr)
+        return true;
+    if (field_88 != nullptr)
+        return true;
+    if (field_9c_18)
+        return true;
+    if (field_38 == nullptr)
+        return false;
+    return field_38->Has(5) || field_38->Has(43) || field_38->Has(45) || field_38->Has(44);
+}
+
+// Slot 78 and its copy for the vtable at 0x30:
+// 0x7100353b30 (_ZN11Unk_237ff985c_vf0EjP11Unk_NodeKeyPvff)
+// 0x7100353b70 (_ZThn48_N11Unk_237ff985c_vf0EjP11Unk_NodeKeyPvff)
+void Unk_237ff98::c_vf0(u32 a1, Unk_NodeKey* a2, void* a3, f32 a4, f32 a5) {
+    switch (a1) {
+    case 0x23:
+        field_164_4 = 1;
+        break;
+    case 0x22:
+    case 0x24:
+        field_164_5 = 1;
+        break;
+    default:
+        Unk_NodeC::c_vf0(a1, a2, a3, a4, a5);
+        break;
+    }
+}
+
+// Slot 79 and its copy for the vtable at 0x30:
+// 0x7100353bc0 (_ZN11Unk_237ff985c_vf1Ebj)
+// 0x7100353be0 (_ZThn48_N11Unk_237ff985c_vf1Ebj)
+void Unk_237ff98::c_vf1(bool a1, u32 a2) {
+    field_164_4 = 1;
+    field_164_5 = 1;
+    Unk_NodeC::c_vf1(a1, a2);
+}
+
+// Slot 80 and its copy for the vtable at 0x30:
+// 0x7100353c00 (_ZN11Unk_237ff985c_vf2Ebj)
+// 0x7100353c20 (_ZThn48_N11Unk_237ff985c_vf2Ebj)
+void Unk_237ff98::c_vf2(bool a1, u32 a2) {
+    field_164_4 = 1;
+    field_164_5 = 1;
+    Unk_NodeC::c_vf2(a1, a2);
 }

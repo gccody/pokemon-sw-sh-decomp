@@ -242,3 +242,31 @@ void Unk_NodeActiveParent<P>::vf48(bool a1) {
             child->vf48(a1);
     }
 }
+
+struct Unk_3b33a0;
+bool Unk_3b33a0_check(const Unk_3b33a0* self);
+f32 Unk_39d140(void* self, Unk_NodeC* owner, u32 param, const Unk_NodeKey* key);
+extern void* Unk_24bbbf8;
+
+inline void Unk_2382098::Unk_352bd0(f32* out, u32 prop, const Unk_NodeKey* key) {
+    Unk_PropValue def = Unk_24bceb8[prop];
+    *out += field_90.GetProp(prop, def).f;
+
+    u32 param = Unk_1b1d654[prop];
+    Unk_NodeB* base = this;
+    f32 total = 0.0f;
+    if (base->b_vf4(param) && Unk_3b33a0_check(reinterpret_cast<Unk_3b33a0*>(base)) &&
+        base->b_vf5(param)) {
+        Unk_NodeB_16* list = base->b_vf16();
+        if (list != nullptr) {
+            for (Unk_NodeB_16_Item* p = list->field_0; p != nullptr; p = p->field_10) {
+                Unk_PropValue16* value = p->field_20.FindProp(param);
+                if (value != nullptr)
+                    total += value->field_0;
+            }
+        }
+    }
+    if (field_38 != nullptr && field_38->Has(param))
+        total += Unk_39d140(Unk_24bbbf8, this, param, key);
+    *out += total;
+}
