@@ -458,7 +458,25 @@ throughout.
   pointer; this keeps a second pointer to the length across the loop (the
   header's GEP is shared with the body's before the loop is rotated). Slot 30,
   the same walk with a test in the body, matches.
-- `0x7100353330` (`M`): 8 bytes short, not looked into.
-- The rest of `Unk_237ff98` (about 60 functions, 19 KB, from `0x7100353010`):
-  not written. Its fields so far are in `Unk_237ff98.h`; slots 10 to 68 are
-  declared with placeholder signatures.
+- `0x7100353010` (`M`): two property lookups in a row on one set. This keeps
+  the pointer to the values for the second (GVN's scalar PRE through the PHI
+  of the count, new in LLVM 6); the original computes it again. clang 5.0.2
+  doesn't give the original either.
+- `0x7100355690` (`M`): the list item is in `x0` here and in `x8` in the
+  original.
+- `0x7100355880` (240 bytes): creates an `Unk_2380608`, whose constructor
+  takes two arguments here (`0x1820`, 0) but has the name of one without
+  (`Unk_2380608::Unk_2380608()`, from the generated constructors).
+- `0x710034b0a0`, `0x7100354be0`, `0x71003550b0`, `0x7100357770`,
+  `0x71003578d0` and the three slot-75 functions above: binary searches over
+  the sorted children, which match with clang 5.0.2 and not 6.0.1 (LICM's
+  clone of the item's address).
+- The rest of `Unk_237ff98` (about 35 functions, 15 KB): not written. The
+  larger ones are slot 42 (`0x7100352830`), 52 (`0x7100353820`), 23
+  (`0x7100353c40`), 77 (`0x7100356100`), the two static walks over all nodes
+  of the class (`0x71003521d0`, `0x7100352440`), and `0x71003552e0`,
+  `0x7100355510` (what a node does to another's value). Its fields so far are
+  in `Unk_237ff98.h`; the slots not written have placeholder signatures.
+- An object held by value is called through a pointer where the original's
+  call is virtual (`Unk_237ff98_Item28::User()`): clang calls a member
+  object's virtual function directly.
