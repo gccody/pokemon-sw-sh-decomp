@@ -2525,6 +2525,59 @@ member of the base.
 - Left: the base's own virtual functions (slots 4 to 25, 1.7 KB, emitted
   with the first class), the 34 objects' constructors, and the switch.
 
+### The camp's classes with internal linkage (`src/unsorted/Unk_127dd90.cpp`, 2026-11-21)
+
+`Unk_24284d0` (#70) has 25 classes on it in game/pokecamp and
+game/unk_1290e40 that `vtables.py` can't write: they're in anonymous
+namespaces (vptrs stored with `adrp`+`add`, types that are local statics),
+and clang emits such a class only in a TU that uses it. So they're written by
+hand, a TU at a time, as one file per TU: check.py finds a local symbol by its
+file's stem (`_ZN12_GLOBAL__N_111Unk_2429af0D0Ev@Unk_127dd90`).
+
+The first TU (`0x710127dd90` to its initialiser at `0x7101285150`) has eight
+of them: 83 functions, 19.5 KB, match in both games. Per class: the D0 and
+the four destructor thunks (copies of `Unk_24284d0`'s D2: none has a member
+to destroy), `vf_type` and its two thunks, the small `vf8`/`vf9`, and the
+function that makes it. What decided the matches:
+
+- **A class between them and the base.** Every class's type has the same
+  parent, a static of the TU, and seven share one `vf10`: a class of the TU
+  (`Unk_127dd90_Base`) that all eight derive from. It overrides `vf_type`
+  too: its vtable is emitted before the first class's getter is, which puts
+  its type's static first in the merged statics (it isn't in the binary: its
+  vptr stores are dead).
+- **`inline` on `Unk_24284d0::Unk_GetType`.** The getters inline five levels
+  into `vf_type` (340 bytes). The base's getter costs 285 with its two
+  parents inlined: over the 250 a member function defined in its class gets,
+  under the 325 of one declared `inline`. With the keyword the chain inlines
+  as the original's does, and the thunks call `vf_type` (and return the
+  type's address: its return value is known).
+- **The base is value-initialized.** Seven constructors zero the first 0x3c0
+  bytes before `Unk_24284d0`'s constructor runs, also in the class of 0x3d0
+  bytes: `: Unk_127dd90_Base()` in the constructor, with the base's
+  constructor implicit. One (`Unk_2429bc0`) doesn't.
+- **The allocation is tested as a `T*`.** The makers have the constructor's
+  call twice, once with a null pointer after the allocator's failure hook
+  (`mov x0, xzr ; bl memset ; mov x0, xzr ; bl Unk_24284d0::Unk_24284d0`).
+  That is LLVM's call site splitting, which needs the tested value to be the
+  call's argument itself: `T* p = static_cast<T*>(allocator->vf2(...))`, where
+  `Unk_New::Create` tests a `void*` (its instances have too much before the
+  call to be split).
+- **The order the classes are emitted in.** The types' statics are merged
+  into one object in the order their getters are emitted, and `vf_type`
+  addresses them from the first (`add x0, x8, #0x18`). The original's order
+  is the classes' (a depth-first walk from the first function: a `vf7`'s
+  callable makes the next class). Here the makers are defined in that order.
+- Two callables (`0x7101280790`, `0x7101282400`, 520 bytes) make a class
+  after registering an empty callable with the owner's object locked
+  (`Unk_2399590_Lock`): one function template.
+
+Not written: the eight `vf7`s (48 bytes to 840: they set the object's
+callables up, with lambdas of their own), three larger `vf8`/`vf10`s, the
+lambdas, and `Unk_2429a08`'s functions at the start of the TU. They're
+declared, so the object has undefined local symbols (a clang warning).
+The next TU (`0x71012851f0`) has twelve more of these classes.
+
 ### Destructors in the unplaced areas (hand-written, 2026-11-19)
 
 Classes in `game/unk_133d350`, `unk_12ed1a0`, `unk_14b14a0`, `unk_143a7a0`,

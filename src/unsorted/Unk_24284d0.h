@@ -34,11 +34,26 @@ struct Unk_24284d0_Callables {
 };
 static_assert(sizeof(Unk_24284d0_Callables) == 0x280, "Unk_24284d0_Callables");
 
+// What Unk_24284d0::Unk_126aca0 finds.
+class Unk_1127d00_Owner;
+struct Unk_126aca0_Result {
+    u8 _0[0x60];
+    Unk_1127d00_Owner* field_60;
+    u8 _68[0x8];
+    u32 field_70;
+};
+
+// What Unk_24284d0::Unk_126b5b0 gives a reference to.
+class Unk_126b5b0_Object : public Unk_239a418 {
+public:
+    void Unk_126d2f0();  // 0x710126d2f0
+};
+
 class Unk_24284d0 : public Unk_239a418 {
 public:
     // Its type, whose parent is the object's. Inlined into vf_type and into
     // the getters of the classes on it.
-    static const Unk_239a418_Type* Unk_GetType() {
+    static inline const Unk_239a418_Type* Unk_GetType() {
         static Unk_239a418_Type type(Unk_239a418_GetType());
         return &type;
     }
@@ -52,6 +67,13 @@ public:
     // Overrides the interfaces' type getter, so it also gets slot 6 of the
     // primary vtable.
     const Unk_239a418_Type* vf_type() override { return Unk_GetType(); }
+    // Not decompiled yet: 0x710126b1f0 (960 bytes); 0x710126aca0, something
+    // of its owner's found through field_68 (156 bytes); 0x710126b5b0, a
+    // reference its owner holds.
+    void Unk_126b1f0();
+    Unk_126aca0_Result* Unk_126aca0();
+    Unk_239a418_Ref<Unk_126b5b0_Object> Unk_126b5b0();
+
     virtual void vf7(u64 arg);
     // field_70, or a reference to itself when that's empty.
     virtual Unk_239a418_Ref<Unk_239a418> vf8();
@@ -72,6 +94,9 @@ public:
     u64 field_328;
     Unk_23d4470_Callable field_330;
     u32 field_3b0;
+    // Its data goes up to 0x3c0: a class on it (Unk_2429e30, 0x7101281520) has
+    // its first member there, and a value-initialized base is zeroed that far.
+    u8 _3b4[0xc];
 };
 static_assert(sizeof(Unk_24284d0) == 0x3c0, "Unk_24284d0");  // its callables are 16-byte aligned
 static_assert(__builtin_offsetof(Unk_24284d0, field_70) == 0x70, "Unk_24284d0::field_70");
