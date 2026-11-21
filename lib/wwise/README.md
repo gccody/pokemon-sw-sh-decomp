@@ -266,6 +266,58 @@ needed:
 - The destructor of the member's base is called by the name its row has, a
   constructor's (`_ZN11Unk_2384190C2Ev`, an asm label on the declaration).
 
+**Seventh batch: the first tree's owner, its objects, lists of values by key**
+(`Unk_36a820.cpp`, `Unk_36fa70.h`, `Unk_396ba0.cpp`, `Unk_3969e0.cpp`,
+`Unk_374020.cpp`)
+
+- The trees' classes are in `Unk_36fa70.h` now: the owner's functions call
+  small ones of `Unk_36fa70.cpp` (`Unk_36b350`), which the same file would
+  inline.
+- **Common stores of two branches are sunk into the block they join**
+  (late SimplifyCFG), with a phi for what differs, when the last
+  instructions of both are the same operations and need one phi each. The
+  create function `0x710036a820` keeps a store of the vptr and of the kind
+  in each branch: the base's part stores the kind first (0, dead), which
+  leaves the address computation in front of the `memset`s, so the last
+  store needs two phis and nothing is sunk. In `0x710036b520` the member
+  stores of one class come after its vptr store, and the two ends differ.
+- **A function that always returns the same constant** has that constant
+  put into its callers in the same file (IPSCCP), which then return it after
+  the call instead of tail-calling: `0x7100396d50`/`0x7100396d70` return
+  nothing.
+- **Stack slots**: an inlined function's locals come before the caller's
+  (`Unk_36abf0_Visit`'s all-covering key is above the caller's filter);
+  a local whose lifetime is over shares the slot of a later one of the first
+  big enough (the property's default, read in an inline function, with that
+  key); an 8-byte local fills the gap next to an odd callee-saved register.
+  A reference taken before a copy (`root = self->field_38`) is computed
+  there, and `self` needn't be kept.
+- **Where a byte is widened** (again): `u32 scaling = Unk_ReadBank<u8>()`
+  loads it in order, `u8 scaling` passed as `u32` loads it after the next
+  read. A temporary key passed by reference (`Unk_366f90_Key()`) is
+  constructed after the arguments before it, which puts the manager's GOT
+  load first and decides two callee-saved registers. The order of an inline
+  function's parameters is the order of the loads (`Unk_3969e0_Report`).
+- **A cursor passed by pointer** (`u8** data, u32* size` as `Unk_366f90`
+  has it) leaves the skip of a list's last part at the top of the next
+  round, behind the loop's test (`0x710036a9f0`); a local cursor computes it
+  before the test.
+- **`new` in an inline function** keeps the second null test of what it
+  returns (`Unk_36b520_New`): written in place, the paths are threaded past
+  it. The base's destructor is inline (`~Unk_373fd0()` calls `Unk_3739f0`),
+  which gives the two classes' deleting destructors and the base's own.
+- Jump tables: `0x7100374020` and `0x7100374140` are the two classes'
+  third virtual function (a parameter's number, a value); the cases are in
+  the order of the numbers.
+- `Unk_36a820` has the name its callers gave it (a `bool` parameter) through
+  an asm label: it tells 0, 1 and the rest apart.
+- Near misses: `0x710036b520` (m: three callee-saved registers),
+  `0x710036a530` (M: `size / 2` folded with the multiplication),
+  `0x7100396f70` (M: block layout, 8 bytes), `0x7100396ba0`/`0x7100396d90`
+  (M: the original has the resize call twice, split by the argument's two
+  sources (the count, or the list's length) and threaded past the test of
+  the count on one side; here the calls are merged again at the end).
+
 **Left out, and why**
 
 - `0x710035f4e0`, `0x710035f550` (destructor pair of the object of
