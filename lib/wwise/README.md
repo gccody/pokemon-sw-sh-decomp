@@ -384,9 +384,68 @@ What the classes after it showed (`Unk_2383b58.cpp`, `Unk_3bdca0.cpp`,
   `Unk_2383da8_T` (a list of counted nodes at 0x10, `Unk_3c9550_Term`), and
   `Unk_3ca240_T` is a bus with a number and a counted object that forwards to
   the bus's slots 57/58 or clears what it is given.
+- **Two callee-saved registers swapped and nothing else** is the order the
+  register allocator took their values in: the longer live range first, and
+  for two of the same length the earlier value (a parameter before a later
+  one). The lengths are in instructions *before* allocation: `-mllvm
+  -print-after-all` (scratch `pa.py`) shows them after "Machine Instruction
+  Scheduler", every instruction 16 apart. A value that is cast in a block and
+  then merged with others after it (a typed pointer set to null on another
+  path) is copied at the top of that block, which makes everything live
+  there one instruction longer. `Unk_3d35f0` keeps what the allocator gave
+  as `void*` until it is used: no copy, the two parameters are the same
+  length, and the first one gets the lower register.
+- **A small structure passed or returned by value is a 64-bit number.** The
+  four bytes that say which channels a buffer has (`Unk_24df148_Config`) come
+  back from an accessor (`GetConfig()`) widened before the values of two
+  paths are merged (`mov x0, x8`); read as a member they are merged first and
+  widened after (`mov w0, w8`). Forwarding functions mask them again
+  (`and x2, x2, #0xffffffff`), and a structure changed in place through a
+  reference is widened where it is passed, not where it was changed.
+- **The bus's second base (0xc0) finds the bus by subtracting a number**
+  (`Unk_24df148_Outer`: `reinterpret_cast<u64>(self) - 0xc0`). As pointer
+  arithmetic the offset of a member is added to it at once (`sub x0, x22,
+  #0x50`); as a number the bus's address stays a value of its own
+  (`sub x8, x22, #0xc0` ... `add x0, x8, #0x70`). Every function of the
+  second base is the bus's own function again, inlined.
+- **Output parameters that are references** make `!a || !b` one `orr` of two
+  `cset`: what a reference refers to can be read without a branch.
+- **Loads follow stores they come after, stores of different places don't
+  follow each other.** A load written after a store is emitted after it; two
+  stores are ordered by how long the computation of what they store is. So
+  `bus->changed = (value != 0) != (field != 0); field = value;` reads the
+  flags before the field's store and still stores the field first
+  (`Unk_3d2290`), and values read into locals before a structure is filled
+  are all loaded first (`Unk_3cbde0`).
+- **An address that a load and a call in one block share becomes a
+  pre-indexed load** (`mov x20, x19; ldr x8, [x20, #0xc8]!`), and the other
+  addresses of that block are then written from it (`[x20, #0x200]` for
+  `bus + 0x2c8`). It needs the address computed in that block: an effect of
+  the bus is a structure whose first member has the functions, and the
+  member is named (through a reference, or the call is devirtualised) where
+  they are called (`Unk_3d1930`).
+- **A function read from a table of functions is read once before a loop of
+  calls only when the table has a size** (`extern void* const
+  Unk_2380be8[8]`): without one the load is not known to be safe before the
+  first call (the destructors of the bus's four effects, `Unk_3d17f0`).
+- A call through a cast to a type with fewer parameters passes null for the
+  missing ones: a parameter can't be left out that way.
+- The lower engine's bus (`Unk_24df148.h`, vtable `0x71023844d0` with a
+  second one at 0xc0) is on the class of `0x71023842a8`, which is on the one
+  of `0x71023841b0` (`Unk_23841b0.h`: a sorted array of what it plays into,
+  a list of what plays into it). It has four effects of 0x80 bytes at 0xc8,
+  their four buffers at 0x2c8 and one more effect object at 0x328.
+- The sources: `Unk_3dd7b0.h` is the class of `0x7102384dd0` (what a sound's
+  samples come from, with its playing context at 0x18), `0x7102383f80` and
+  `0x7102384ec0` are on it.
 
 Open:
 
+- `Unk_2383f80`'s constructor (`0x71003cbc30`): the table of functions has
+  it without a parameter, and the matched constructors of the classes on it
+  (`src/unsorted/ctor/Unk_3cd300.cpp`) call it that way. It passes the
+  playing context it is given on to the base class's constructor
+  (`Unk_3dd7b0`), which a function without the parameter can't do.
 - `Unk_2383cc0`'s destructor (`0x71003c2cd0`, `m`): its loop over the uses
   keeps the reloaded head of the list where the original keeps the next
   pointer it saved before the release.
