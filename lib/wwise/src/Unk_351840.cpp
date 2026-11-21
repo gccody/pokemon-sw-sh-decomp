@@ -699,3 +699,74 @@ void Unk_357520() {
         nn::os::UnlockMutex(&Unk_24bcac0);
     }
 }
+
+void Unk_3c56b0(u32 id);
+void Unk_399350(void* self, Unk_2382098* node);
+u16 Unk_385e80(Unk_2382098* self, u32 a1, void* a2);
+extern void* Unk_24bbbd8;
+
+// NON_MATCHING: the four flags are computed in the other order, and stored before the vtable
+// pointer and the owner in the original
+// 0x7100356fa0
+void* Unk_237ff98::vf68(void* a1) {
+    if (a1 != nullptr)
+        return Unk_2382098::vf68(a1);
+    Unk_399350(Unk_24bbbd8, this);
+    if (field_50 == nullptr) {
+        u16 a = Unk_385e80(this, 0, nullptr);
+        u16 b = Unk_385e80(this, 1, nullptr);
+        u16 c = Unk_385e80(this, 2, nullptr);
+        u16 d = Unk_385e80(this, 3, nullptr);
+        field_50 = new (Unk_237e820) Unk_2382098_50(this, a != 0, b != 0, c != 0, d != 0);
+    }
+    return field_50;
+}
+
+// NON_MATCHING: register allocation (`this` and the pointer to the children swapped)
+// 0x71003570c0
+void Unk_237ff98::vf48(bool a1) {
+    if (Unk_3536a0()) {
+        field_164_4 = 1;
+        Unk_3c56b0(field_10);
+    }
+    if (field_70 == nullptr)
+        return;
+    for (Iterator it = Begin(); !IsEnd(it); Next(it)) {
+        Unk_2382098* child = *it;
+        if (child->field_70 != nullptr &&
+            (child->field_70->field_90 > 0 || child->field_70->field_94 > 0))
+            child->vf48(a1);
+    }
+}
+
+void Unk_382ac0(Unk_2382098* self, void* a1, u32 a2, u32 a3, u32 a4);
+
+// NON_MATCHING: 12 bytes short. The original keeps the new object's pointer in x8 and sets the
+// result before the last test; the structure of the returns isn't found
+// 0x7100356d50
+u32 Unk_237ff98::vf55(u32 a1, bool a2, s32 a3) {
+    if (a1 != 0 && field_b0 == nullptr) {
+        field_b0 = static_cast<Unk_237ff98_b0*>(Unk_3045e0(Unk_237e820, sizeof(Unk_237ff98_b0)));
+        if (field_b0 != nullptr)
+            new (field_b0, Unk_Placement()) Unk_237ff98_b0;
+        if (field_b0 == nullptr)
+            return 2;
+    }
+    if (field_b0 != nullptr) {
+        if (field_b0->field_0 > a3)
+            return 1;
+        field_b0->field_0 = a3;
+        if (field_b0 == nullptr)
+            return 1;
+        if (field_b0->field_9 != a2 || field_b0->field_4 != a1) {
+            field_b0->field_9 = a2;
+            field_b0->field_4 = a1;
+            Unk_382ac0(this, nullptr, 0, 0, 4);
+        }
+    }
+    if (a1 == 0 && field_b0 != nullptr) {
+        Unk_3047c0(Unk_237e820, field_b0);
+        field_b0 = nullptr;
+    }
+    return 1;
+}

@@ -155,7 +155,7 @@ struct Unk_NodeA {
     virtual void vf52();
     virtual void vf53(u32 a1, u8 a2);
     virtual void vf54();
-    virtual void vf55();
+    virtual u32 vf55(u32 a1, bool a2, s32 a3);
     virtual void vf56();
     virtual void vf57();
     virtual void vf58();
@@ -257,6 +257,8 @@ void Unk_3820f0(void* self);
 // to 4 bytes, their values.
 template <class T, class Id = u8>
 struct Unk_PropBundle {
+    Unk_PropBundle() : field_0(nullptr) {}
+
     u8* field_0;
 
     T* FindProp(Id id) const {
@@ -323,7 +325,14 @@ struct Unk_2382098_38 {
 };
 
 // What field_50 of a node points at.
+// (The class with the vtable at 0x7102383030, 0x28 bytes.)
 struct Unk_2382098_50 {
+    Unk_2382098_50(Unk_2382098* owner, bool a1, bool a2, bool a3, bool a4)
+        : field_8(owner), field_10(nullptr), field_18(), field_20_0(a1), field_20_1(a2),
+          field_20_2(a3), field_20_3(a4), field_20_4(0) {}
+
+    virtual void vf0();
+
     // Adds its values of the properties 5 and 0x18.
     void Unk_353010_Get(f32* a, f32* b) {
         Unk_PropValue16* value = field_18.FindProp(5);
@@ -334,9 +343,16 @@ struct Unk_2382098_50 {
             *b += value->field_0;
     }
 
-    u8 _0[0x18];
+    Unk_2382098* field_8;
+    void* field_10;
     Unk_PropBundle<Unk_PropValue16> field_18;
+    u8 field_20_0 : 1;
+    u8 field_20_1 : 1;
+    u8 field_20_2 : 1;
+    u8 field_20_3 : 1;
+    u8 field_20_4 : 4;
 };
+PKMN_SIZE_ASSERT(Unk_2382098_50, 0x28);
 
 // What field_58 of a node points at: Unk_2382098_50 objects by key.
 typedef Unk_KeyArray<void*, Unk_2382098_50*> Unk_2382098_58;
