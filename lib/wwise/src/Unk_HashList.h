@@ -7,14 +7,6 @@
 // An array that doesn't grow by itself.
 template <class T, class A = Unk_PoolDefault>
 struct Unk_FixedArray : Unk_GrowArray<T, A, 0> {
-    T* AddLast() { return Unk_GrowArray<T, A, 0>::AddLast(); }
-
-    T* AddLast(const T& item) {
-        T* added = AddLast();
-        if (added != nullptr)
-            *added = item;
-        return added;
-    }
 
     // Takes the other array's items, which it loses.
     void Transfer(Unk_FixedArray& other) {
