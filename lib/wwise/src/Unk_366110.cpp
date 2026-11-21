@@ -220,3 +220,38 @@ u32 Unk_3807d0(Unk_366110_Node* self, Unk_366110_T* a1) {
     }
     return result;
 }
+
+// 0x7100367120
+u32 Unk_367120(Unk_366110_T* self, u32 id, const Unk_35f3b0_Point* points, u32 count) {
+    Unk_366110_Child* child = self->field_18.Exists(id);
+    if (child == nullptr) {
+        child = self->field_18.Set(id);
+        if (child == nullptr)
+            return 0x34;
+        child->field_0 = id;
+        if (child->field_8 == nullptr) {
+            u32 result = child->UpdateChild(self);
+            if (result != 1) {
+                self->field_18.Unset(id);
+                return result;
+            }
+        }
+    }
+    u32 result;
+    if (count == 0) {
+        child->field_10.Unset();
+        result = 1;
+    } else {
+        result = child->field_10.Set(points, count, 0);
+    }
+    if (result == 1 && child->field_10.field_8 > 1) {
+        child->field_20 = child->field_10.field_0[0].field_0;
+        child->field_24 = child->field_10.field_0[child->field_10.field_8 - 1].field_0;
+    } else {
+        child->field_20 = -3.4028235e38f;
+        child->field_24 = 3.4028235e38f;
+    }
+    if (child->field_8 != nullptr)
+        child->field_8->vf48(0);
+    return result;
+}

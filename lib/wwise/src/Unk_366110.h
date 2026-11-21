@@ -15,10 +15,13 @@ struct Unk_366110_Child {
     u32 field_0;  // the ID of the child
     Unk_366110_Node* field_8;  // the child, when it has the same owner
     Unk_35f3b0_Table field_10;
-    u64 field_20;
+    f32 field_20;  // where the table starts
+    f32 field_24;  // and ends
+
+    Unk_366110_Child() : field_0(0), field_8(nullptr), field_20(-3.4028235e38f), field_24(3.4028235e38f) {}
 
     inline u32 ClearChild(Unk_366110_T* self);
-    inline void UpdateChild(Unk_366110_T* self);
+    inline u32 UpdateChild(Unk_366110_T* self);
     inline u32 Term(Unk_366110_T* self);
 };
 PKMN_SIZE_ASSERT(Unk_366110_Child, 0x28);
@@ -107,17 +110,25 @@ inline u32 Unk_366110_Child::ClearChild(Unk_366110_T* self) {
     return 1;
 }
 
-inline void Unk_366110_Child::UpdateChild(Unk_366110_T* self) {
+// 1, or 2 when the node has another owner, or what adding the object to the
+// node gave.
+inline u32 Unk_366110_Child::UpdateChild(Unk_366110_T* self) {
     Unk_366110_Node* node = Unk_3351b0(Unk_24bbbb8, field_0, 0);
-    if (node != nullptr) {
-        if (self->field_30 != nullptr && node->field_78 != nullptr &&
-            node->field_78 == self->field_30) {
+    if (node == nullptr)
+        return 1;
+    u32 result = 1;
+    if (self->field_30 != nullptr && node->field_78 != nullptr) {
+        if (node->field_78 == self->field_30) {
             field_8 = node;
-            if (Unk_3807d0(node, self) != 1)
+            result = Unk_3807d0(node, self);
+            if (result != 1)
                 field_8 = nullptr;
+        } else {
+            result = 2;
         }
-        node->vf3();
     }
+    node->vf3();
+    return result;
 }
 
 inline u32 Unk_366110_Child::Term(Unk_366110_T* self) {
