@@ -56,6 +56,9 @@ struct Unk_2384c90_T {
     virtual void vf11();
     virtual void vf12();
     virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void* vf16();
 
     Unk_2384c90_Prev* field_8;
     void* field_10;
@@ -85,3 +88,23 @@ static inline void Unk_2380be8_Dtor(Unk_24df148_SlotCtx* self) {
     *reinterpret_cast<void* const**>(self) = Unk_2380be8 + 2;
     reinterpret_cast<void (*)(Unk_24df148_SlotCtx*)>(Unk_2380be8[7])(self);
 }
+
+// A playing context from what the source has of it (its part at 0x18).
+struct Unk_3dcd40_First {
+    u8 _0[0x18];
+};
+struct Unk_3dcd40_Second {
+    u8 _0[0xe4];
+    u16 field_e4;  // 0xfc of the context: no effect is used when it is set
+};
+struct Unk_3dcd40_Playing : Unk_3dcd40_First, Unk_3dcd40_Second {};
+
+// What the effect node is made for.
+struct Unk_3dcd40_Ctx {
+    u8 _0[0x20];
+    Unk_3dcd40_Second* field_20;
+};
+struct Unk_3dcd40_Desc {
+    u8 _0[0x30];
+    u32 field_30;
+};

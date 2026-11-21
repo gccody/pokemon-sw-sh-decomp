@@ -25,3 +25,29 @@ void Unk_3cd530(Unk_2384190* self, Unk_3cd530_Arg* arg) {
     if (self->field_c0.field_a0 != nullptr)
         Unk_3cdcc0(arg, &self->field_180, &self->field_c0);
 }
+
+// What gives the filters their memory, called.
+struct Unk_3cd470_Alloc {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3(void* memory);
+};
+extern u8 Unk_2380d10;
+
+static inline Unk_3cd470_Alloc* Unk_3cd470_GetAlloc() {
+    return reinterpret_cast<Unk_3cd470_Alloc*>(&Unk_2380d10);
+}
+
+// 0x71003cd470: the memory of the filters is given back
+void Unk_3cd470(void* object) {
+    Unk_2384190* self = static_cast<Unk_2384190*>(object);
+    if (self->field_10.field_a0 != nullptr) {
+        Unk_3cd470_GetAlloc()->vf3(self->field_10.field_a0);
+        self->field_10.field_a0 = nullptr;
+    }
+    if (self->field_c0.field_a0 != nullptr) {
+        Unk_3cd470_GetAlloc()->vf3(self->field_c0.field_a0);
+        self->field_c0.field_a0 = nullptr;
+    }
+}

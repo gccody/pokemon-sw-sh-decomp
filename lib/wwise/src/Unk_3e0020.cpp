@@ -2,6 +2,7 @@
 // A source whose samples an effect makes (on the class of 0x7102384dd0):
 // the effect at 0xf0, an array of what it was given at 0x78 and a buffer at
 // 0x38. Written from the executable. Placeholder names.
+#include "Unk_FastMath.h"
 #include "Unk_3dd7b0.h"
 #include "containers.h"
 
@@ -21,7 +22,7 @@ struct Unk_3e0020_Plugin {
     virtual void vf6();
     virtual void vf7();
     virtual f32 vf8();
-    virtual void vf9();
+    virtual f32 vf9();
     virtual u32 vf10();
     virtual void vf11();
     virtual u32 vf12(u32* count);
@@ -203,4 +204,11 @@ bool Unk_3e0360(Unk_3e0020_T* self, void* key) {
             return true;
     }
     return false;
+}
+
+// 0x71003e0120
+f32 Unk_3e0120(Unk_3e0020_T* self) {
+    if (self->field_f0 == nullptr)
+        return 0.0f;
+    return Unk_ToDecibels(self->field_f0->vf9());
 }

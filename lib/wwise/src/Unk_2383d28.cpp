@@ -3,6 +3,7 @@
 // 0x7102383da8 (an array of 0x20-byte items it releases) and 0x7102383e40.
 // Written from the executable. Placeholder names.
 #include "Unk_23837d0.h"
+#include "Unk_FastMath.h"
 #include "Unk_Indexed.h"
 #include "block_pool.h"
 
@@ -114,6 +115,17 @@ u32 Unk_3c9e80(Unk_2383e40_T* self, u32* result) {
         return 2;
     *result = Unk_369910_get(static_cast<const Unk_369910*>(found));
     return 1;
+}
+
+// What it is the context of, as far as its volume.
+struct Unk_3c9e00_Owner {
+    u8 _0[0x3c];
+    f32 field_3c;  // decibels
+};
+
+// 0x71003c9e00: how loud what it belongs to is
+f32 Unk_3c9e00(Unk_2383e40_T* self) {
+    return Unk_FromDecibels(static_cast<Unk_3c9e00_Owner*>(self->field_20)->field_3c);
 }
 
 // The class with the vtable 0x7102383ed8: the same with 16 bytes more.
@@ -286,6 +298,11 @@ u64 Unk_3d2f40(void* arg0, u32 arg1, u64 arg2, u64 arg3);
 // 0x71003ca130
 u64 Unk_3ca130(Unk_2383e40_T* self, u64 arg1, u64 arg2) {
     return Unk_3d2f40(self->field_20, self->field_8, arg1, arg2);
+}
+
+// 0x71003ca150
+f32 Unk_3ca150(Unk_2383e40_T* self) {
+    return Unk_FromDecibels(static_cast<Unk_3c9e00_Owner*>(self->field_20)->field_3c);
 }
 
 // What the next functions ask (slot 33 of its vtable).

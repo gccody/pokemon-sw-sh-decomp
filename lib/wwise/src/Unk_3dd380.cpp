@@ -38,6 +38,9 @@ struct Unk_3dd380_T {
     u8 _a0[8];
     Unk_3dd7b0_Buffer field_a8;  // what it gets
     Unk_3dd7b0_Buffer field_e0;  // what it gives
+    u8 _118[8];
+    u32 field_120;  // samples it got
+    u32 field_124;  // samples the effect was asked for
 };
 PKMN_OFFSET_ASSERT(Unk_3dd380_T, field_a8, 0xa8);
 PKMN_OFFSET_ASSERT(Unk_3dd380_T, field_e0, 0xe0);
@@ -90,4 +93,38 @@ u32 Unk_3dd6e0(Unk_3dd380_T* self) {
     Unk_390440_set(reinterpret_cast<Unk_390440*>(&self->field_a8));
     self->field_a8.Clear();
     return 1;
+}
+
+// The effect, asked for samples.
+struct Unk_3dd600_Plugin {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual u32 vf9(u32* count);
+};
+
+extern u16 Unk_2382e78;  // the samples of a buffer
+
+// 0x71003dd600: what the effect needs is taken from what it gets its samples from
+u32 Unk_3dd600(Unk_3dd380_T* self, u32* count) {
+    if (self->field_88)
+        return 0x11;
+    u32 left = *count;
+    u32 result = reinterpret_cast<Unk_3dd600_Plugin*>(self->field_98)->vf9(&left);
+    self->field_124 += left;
+    left = self->field_124 - self->field_120;
+    while (left >= Unk_2382e78 && result == 0x2d) {
+        u32 taken = Unk_2382e78;
+        result = self->field_8->vf4(&taken);
+        left -= taken;
+        self->field_120 += taken;
+        self->field_88 = result == 0x11;
+    }
+    return result;
 }

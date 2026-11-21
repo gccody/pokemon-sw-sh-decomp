@@ -28,7 +28,9 @@ struct Unk_3dd7b0_Ctx {
     u8 field_a_4 : 1;
     u8 _b[0x1d];
     Unk_3dd7b0_Node* field_28;
-    u8 _30[0x1a8];
+    u8 _30[0x13c];
+    u16 field_16c;
+    u8 _16e[0x6a];
     u32 field_1d8;
     u8 _1dc[0x2c];
     u32 field_208;
@@ -45,14 +47,18 @@ struct Unk_3dd7b0_Ctx {
         u64 field_26b_22 : 1;
         u64 field_26b_23 : 1;
         u64 field_26b_24 : 1;
-        u64 field_26b_25 : 4;
+        u64 field_26b_25 : 1;
+        u64 field_26b_26 : 1;
+        u64 field_26b_27 : 1;
+        u64 field_26b_28 : 1;
         u64 field_26b_29 : 1;
-        u64 field_26b_30 : 10;
+        u64 field_26b_30 : 3;
+        u64 field_26b_33 : 7;
     };
     f32 field_270;
     u8 _274[0x1c];
     u8* field_290;  // the data of the sound
-    u8 _298[4];
+    u32 field_298;  // and how much of it there is
     u32 field_29c;
 
     // Where to go to is known (or there is nowhere to go to any more).
@@ -84,6 +90,7 @@ struct Unk_3dd7b0_Buffer {
     u32 field_28;
     u32 field_2c;
     u32 field_30;  // result
+    bool field_34;
 
     // No samples (what they were is not changed).
     void Clear() {
@@ -128,11 +135,11 @@ struct Unk_3dd7b0_T {
     virtual void vf11();
     virtual void vf12(Unk_3dd7b0_Buffer* buffer);
     virtual void vf13();
-    virtual void vf14();
+    virtual u32 vf14();
     virtual void vf15();
     virtual void vf16();
-    virtual void vf17();
-    virtual void vf18();
+    virtual bool vf17(void* arg1);
+    virtual bool vf18(void* arg1);
     virtual void vf19();
     virtual void vf20();
     virtual void vf21();

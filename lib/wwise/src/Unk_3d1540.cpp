@@ -2,6 +2,8 @@
 // A bus of the lower engine: what its effects and its second base (0xc0)
 // ask it. The second base's functions are the bus's own ones again.
 // Written from the executable. Placeholder names.
+#include "Unk_23847d8.h"
+#include "Unk_FastMath.h"
 #include "Unk_24df148.h"
 #include "Unk_Indexed.h"
 
@@ -38,6 +40,7 @@ void Unk_3ca400(Unk_3ca240_T* self, u32 key, u32* result);
 void Unk_3cfa80(Unk_24df148_Bus* self);
 void Unk_3d2050(Unk_24df148_Bus* self);
 void Unk_3d23e0(Unk_24df148_Bus* self);
+extern u32 Unk_2382e68;
 void Unk_3d4470(Unk_24df148_Bus* self);
 
 extern void* Unk_2380d10;  // what the effects are created from and freed to
@@ -152,6 +155,53 @@ void Unk_3d2290(Unk_24df148_Bus* bus, u32 bits, u32 mask) {
         Unk_3d2290_Set(bus, bus->field_340, (bits >> 4) & 1);
 }
 
+u32 Unk_3d25c0(Unk_23847d8_T* self, u32 rate, u32 what);
+
+// The samples that leave the bus: those of the last effect that is used.
+static inline Unk_24df148_Buffer* Unk_3d23e0_Output(Unk_24df148_Bus* self) {
+    for (s32 i = 3; i >= 0; i--) {
+        if (self->field_2c8[i].field_0 != nullptr && self->field_c8[i].field_78 == 0 &&
+            self->field_340 == 0)
+            return &self->field_2c8[i];
+    }
+    return &self->field_88;
+}
+
+static inline void Unk_3d23e0_Delete(Unk_23847d8_T* meter) {
+    if (meter != nullptr) {
+        int pool = Unk_2381488;
+        reinterpret_cast<Unk_24df148_Object*>(meter)->vf0();
+        Unk_3047c0(pool, meter);
+    }
+}
+
+// 0x71003d23e0: what measures the bus is there when something is to measure
+// NON_MATCHING: one instruction is elsewhere: the original has the address of the bus's own
+// samples (0x88) before the first test of the last effect, here it follows the three tests.
+void Unk_3d23e0(Unk_24df148_Bus* self) {
+    u8 what = self->field_b8_2 | self->field_b9_0;
+    Unk_24df148_Buffer* buffer = Unk_3d23e0_Output(self);
+    Unk_23847d8_T* meter = reinterpret_cast<Unk_23847d8_T*>(self->field_a8);
+    if (meter != nullptr &&
+        (meter->field_44 != what ||
+         *reinterpret_cast<u32*>(&meter->field_8) != *reinterpret_cast<u32*>(&buffer->field_8))) {
+        Unk_3d23e0_Delete(meter);
+        meter = nullptr;
+        self->field_a8 = nullptr;
+    }
+    if (what != 0 && self->field_a8 == nullptr) {
+        void* memory = Unk_3045e0(Unk_2381488, sizeof(Unk_23847d8_T));
+        if (memory != nullptr) {
+            Unk_23847d8_T* made = new (memory) Unk_23847d8_T(buffer->field_8);
+            self->field_a8 = reinterpret_cast<Unk_24df148_Object*>(made);
+            if (Unk_3d25c0(made, Unk_2382e68, what) == 1)
+                return;
+            Unk_3d23e0_Delete(reinterpret_cast<Unk_23847d8_T*>(self->field_a8));
+        }
+        self->field_a8 = nullptr;
+    }
+}
+
 // 0x71003d2b60: the channels of what the last used effect gives
 Unk_24df148_Config Unk_3d2b60(Unk_24df148_Bus* self) {
     Unk_24df148_Config result = self->field_88.GetConfig();
@@ -234,6 +284,16 @@ void Unk_3d2f40(void* arg0, u32 index, u64 arg1, u64 arg2) {
     Unk_24df148_SlotCtx& ctx = self->field_c8[index].field_0;
     Unk_368ee0(id, number, ctx.vf2(), reinterpret_cast<void**>(arg1),
                reinterpret_cast<u32*>(arg2));
+}
+
+// 0x71003d3010: how loud it is
+f32 Unk_3d3010(Unk_24df148_Bus* self) {
+    return Unk_FromDecibels(self->field_3c);
+}
+
+// 0x71003d3090
+f32 Unk_3d3090(Unk_24df148_Sub* self) {
+    return Unk_3d3010(Unk_24df148_Outer(self));
 }
 
 // 0x71003d3110: the channels of what plays into the bus
