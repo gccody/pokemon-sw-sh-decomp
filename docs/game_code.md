@@ -2005,6 +2005,37 @@ both on register allocation alone (same instructions). The first does now
   calls either. The wrapper keeps the target's adjusted pointer between its
   AddRef and its Release, where the original recomputes it.
 
+  What decides it (2026-11-21, read from clang's IR after every pass:
+  `-mllvm -print-after-all -mllvm -filter-print-funcs=<mangled name>`): the
+  original's IR has two blocks that add the reference (one for the target
+  given, one for `field_70`'s) and one block with the call and the release
+  after them, which computes the interface pointer (`+0x48`) again; the call
+  for a null target is a fourth block. Three things have to hold for that:
+
+  - the call's block is duplicated for the null target by the *second*
+    jump threading. Duplicated by the first (the block costs 5, the limit
+    is 6), the next GVN finds the release's `+0x48` in both blocks before it
+    and replaces it by a phi of theirs (partial redundancy elimination of a
+    GEP): one register kept over the call, our 292 bytes for 288;
+  - the function's passes run once. They run a second time, GVN included,
+    when the call graph looks devirtualized: fewer indirect calls and more
+    direct ones than before the passes ran. A reference assigned to with a
+    self-assignment check keeps its stack slot until InstCombine (the first
+    jump threading can't see through it, the second can), which gives
+    exactly the original's IR after one run; but the assignment's release
+    of the old, null pointer is an indirect call that goes away, the
+    duplicated call is a direct one more, and the second run undoes it;
+  - the second jump threading has to see the null test: with a cast between
+    the tested pointer and the one in the phi (the callee's class written as
+    another struct than the reference's), it doesn't thread at all (276
+    bytes, one call, the test kept).
+
+  So the source wanted is one where the target's reference is made in two
+  places, nothing is assigned to (no dead release), and the first jump
+  threading is held off by two instructions in the call's block that are gone
+  by the second. Not found yet: 16 more variants tried (the scratch sweep
+  `variants.py` with `vdef_wrap3.py`/`vdef_wrap4.py`).
+
 libc++'s `rehash`/`__rehash` of 51 unordered_maps on Unk_2771620's
 allocator, keyed by u64 (37) or u32 (14), match by explicit instantiation
 with a placeholder mapped type (`src/unsorted/Unk_597350.cpp`: their code
