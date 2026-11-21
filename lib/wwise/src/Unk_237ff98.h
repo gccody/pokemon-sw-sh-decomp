@@ -82,6 +82,17 @@ struct Unk_NodeTarget {
     u32 field_14;
 };
 
+// What field_b0 points at: 0xc bytes.
+struct Unk_237ff98_b0 {
+    Unk_237ff98_b0() : field_0(0), field_4(0), field_9(true) {}
+
+    s32 field_0;
+    u32 field_4;
+    u8 field_8;
+    bool field_9;
+};
+PKMN_SIZE_ASSERT(Unk_237ff98_b0, 0xc);
+
 // What 0x7100352df0 fills in.
 struct Unk_352df0_Out {
     f32 field_0;
@@ -144,7 +155,7 @@ public:
     void vf47(u32 a1, u32 a2) override;
     void vf48(bool a1) override;
     void vf52() override;
-    void vf55() override;
+    u32 vf55(u32 a1, bool a2, s32 a3) override;
     void vf57() override;
     void vf58() override;
     void vf59() override;
@@ -221,7 +232,7 @@ public:
         }
     }
 
-    void* field_b0;
+    Unk_237ff98_b0* field_b0;
     Unk_NodeChildren field_b8;  // the children of this class
     Unk_237ff98_c8 field_c8;
     f32 field_d0;
