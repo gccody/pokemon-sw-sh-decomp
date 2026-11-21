@@ -48,13 +48,6 @@ const char* Unk_446df0(s32 result);
         }                                                                                                   \
     } while (0)
 
-// 0x71024e4a18 and 0x71024e4c18: this file's scratch vectors (statics: the
-// code takes their addresses directly), written just before the effect reads
-// them. The sizes matter: the compiler only folds an element's offset into the
-// address it materialises when the offset is inside the object.
-extern PPFX::Unk_Float4 Unk_24e4a18[32] __attribute__((visibility("hidden")));
-extern PPFX::Unk_Float4 Unk_24e4c18[32] __attribute__((visibility("hidden")));
-
 namespace PPFX {
 
 // the bokeh kernels' sample counts
@@ -81,9 +74,18 @@ struct Unk_24e45d0_Statics {
     u8 _1e0[0x318 - 0x1e0];
     const char* field_318[16];  // Unk_463500's
     const char* field_398[22];  // Unk_462fe0's
+    // 0x71024e4a18 and 0x71024e4c18: the DrawRectGPU functions' scratch
+    // vectors, written just before the effect reads them. They are in this
+    // block (an element with a variable index is addressed from its start),
+    // and their sizes matter: the compiler folds an element's constant offset
+    // into the address it materialises only when it is inside the object.
+    Unk_Float4 field_448[32];
+    Unk_Float4 field_648[32];
 };
 PKMN_OFFSET_ASSERT(Unk_24e45d0_Statics, field_160, 0x160);
 PKMN_OFFSET_ASSERT(Unk_24e45d0_Statics, field_398, 0x398);
+PKMN_OFFSET_ASSERT(Unk_24e45d0_Statics, field_448, 0x448);
+PKMN_OFFSET_ASSERT(Unk_24e45d0_Statics, field_648, 0x648);
 extern Unk_24e45d0_Statics Unk_24e45d0 __attribute__((visibility("hidden")));
 
 // 0x7100462fe0: the technique `name` for each pair of HDR formats
@@ -1616,19 +1618,19 @@ s32 CTextureUtil::Unk_473d90(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
     field_30.field_0->vf29(field_30.field_1b32c);
     if (matrix != nullptr) {
         for (s32 i = 0; i < 4; i++) {
-            Unk_24e4c18[i] = matrix[i];
+            Unk_24e45d0.field_648[i] = matrix[i];
         }
     } else {
-        memset(Unk_24e4c18, 0, sizeof(Unk_Float4) * 4);
+        memset(Unk_24e45d0.field_648, 0, sizeof(Unk_Float4) * 4);
     }
-    field_30.field_0->vf22(field_30.field_c4, Unk_24e4c18, 4);
-    field_30.field_0->vf22(field_30.field_c8, Unk_24e4c18, 0);
-    Unk_24e4c18[0] = Unk_Float4(arg9, 1.0f / arg9, arg10, arg11);
-    Unk_24e4c18[1] = *arg1;
-    Unk_24e4c18[2] = *arg2;
-    Unk_24e4c18[3].field_0[0] = arg12;
-    Unk_24e4c18[3].field_0[1] = arg13;
-    field_30.field_0->vf22(field_30.field_d0, Unk_24e4c18, 4);
+    field_30.field_0->vf22(field_30.field_c4, Unk_24e45d0.field_648, 4);
+    field_30.field_0->vf22(field_30.field_c8, Unk_24e45d0.field_648, 0);
+    Unk_24e45d0.field_648[0] = Unk_Float4(arg9, 1.0f / arg9, arg10, arg11);
+    Unk_24e45d0.field_648[1] = *arg1;
+    Unk_24e45d0.field_648[2] = *arg2;
+    Unk_24e45d0.field_648[3].field_0[0] = arg12;
+    Unk_24e45d0.field_648[3].field_0[1] = arg13;
+    field_30.field_0->vf22(field_30.field_d0, Unk_24e45d0.field_648, 4);
     if (texture != nullptr) {
         field_30.field_0->vf26(field_30.field_8, texture);
         s32 filter = texture->vf16();
@@ -1656,11 +1658,11 @@ s32 CTextureUtil::Unk_475150(CRenderTexture* source, CRenderTexture* target, boo
         Unk_GPUTexture* texture = Unk_GetTexture(source);
         field_30.field_0->vf29(field_30.field_7dac);
         field_30.field_0->vf26(field_30.field_10[0], texture);
-        Unk_24e4c18[0].field_0[0] = source->field_88;
-        Unk_24e4c18[0].field_0[1] = source->field_8c;
-        Unk_24e4c18[0].field_0[2] = 0.0f;
-        Unk_24e4c18[0].field_0[3] = 0.0f;
-        field_30.field_0->vf22(field_30.field_d4, Unk_24e4c18, 1);
+        Unk_24e45d0.field_648[0].field_0[0] = source->field_88;
+        Unk_24e45d0.field_648[0].field_0[1] = source->field_8c;
+        Unk_24e45d0.field_648[0].field_0[2] = 0.0f;
+        Unk_24e45d0.field_648[0].field_0[3] = 0.0f;
+        field_30.field_0->vf22(field_30.field_d4, Unk_24e45d0.field_648, 1);
         s32 filter = texture->vf16();
         texture->vf15(5);
         result = Unk_471c50(0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, 0);
@@ -1690,11 +1692,11 @@ s32 CTextureUtil::Unk_475320(f32 arg8, f32 arg9, CRenderTexture* source, CRender
         CRenderTexture::Unk_49cf50(nullptr, nullptr);
         Unk_GPUTexture* texture = Unk_GetTexture(source);
         field_30.field_0->vf29(field_30.field_7da8);
-        Unk_24e4a18[0] = *arg3;
-        Unk_24e4a18[1] = *arg4;
-        Unk_24e4a18[2] = *arg5;
-        Unk_24e4a18[3] = *arg6;
-        field_30.field_0->vf22(field_30.field_d0, Unk_24e4a18, 4);
+        Unk_24e45d0.field_448[0] = *arg3;
+        Unk_24e45d0.field_448[1] = *arg4;
+        Unk_24e45d0.field_448[2] = *arg5;
+        Unk_24e45d0.field_448[3] = *arg6;
+        field_30.field_0->vf22(field_30.field_d0, Unk_24e45d0.field_448, 4);
         Unk_Float4 value(arg8, arg9, 0.0f, 0.0f);
         field_30.field_0->vf20(field_30.field_f8, &value.field_0[0].field_0);
         field_30.field_0->vf26(field_30.field_10[0], texture);
@@ -1809,7 +1811,7 @@ s32 CTextureUtil::Unk_473fd0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
     field_30.field_0->vf29(field_30.field_7e28[n - 2]);
     f32 scale = -1.0f / (2.0f * sigma * sigma);
     f32 limit = sigma * 1.4823039f;
-    Unk_24e4c18[0] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+    Unk_24e45d0.field_648[0] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
     bool nearest = limit <= static_cast<f32>(n);
     f32 offset = 0.0f;
     for (s32 i = 0; i < n; i++) {
@@ -1823,13 +1825,13 @@ s32 CTextureUtil::Unk_473fd0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
         f32 dx = offset * direction->field_0[0].field_0;
         f32 dy = offset * direction->field_0[1].field_0;
         f32 weight = offset * (scale * offset);
-        Unk_24e4c18[1 + i * 2] = Unk_Float4(dx, dy, weight, 0.0f);
-        Unk_24e4c18[2 + i * 2] = Unk_Float4(-dx, -dy, weight, 0.0f);
+        Unk_24e45d0.field_648[1 + i * 2] = Unk_Float4(dx, dy, weight, 0.0f);
+        Unk_24e45d0.field_648[2 + i * 2] = Unk_Float4(-dx, -dy, weight, 0.0f);
     }
-    field_30.field_0->vf22(field_30.field_c8, Unk_24e4c18, count);
-    field_30.field_0->vf22(field_30.field_c4, Unk_24e4c18, count < 8 ? count : 8);
-    Unk_24e4c18[0] = Unk_Float4(0.0f, -1.0f / (2.0f * arg10 * arg10), -1.0f / (2.0f * arg11 * arg11), 0.0f);
-    field_30.field_0->vf22(field_30.field_cc, Unk_24e4c18, 1);
+    field_30.field_0->vf22(field_30.field_c8, Unk_24e45d0.field_648, count);
+    field_30.field_0->vf22(field_30.field_c4, Unk_24e45d0.field_648, count < 8 ? count : 8);
+    Unk_24e45d0.field_648[0] = Unk_Float4(0.0f, -1.0f / (2.0f * arg10 * arg10), -1.0f / (2.0f * arg11 * arg11), 0.0f);
+    field_30.field_0->vf22(field_30.field_cc, Unk_24e45d0.field_648, 1);
     field_30.field_0->vf26(field_30.field_10[0], texture);
     if (static_cast<f32>(texture->field_4c) != width || static_cast<f32>(texture->field_50) != height) {
         nearest = true;
@@ -1978,8 +1980,8 @@ s32 CTextureUtil::Unk_4772f0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
 s32 CTextureUtil::Unk_47aa60(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1,
                              const Unk_Float4* value, Unk_GPUTexture* texture, void* arg3, u32 flags) {
     field_30.field_0->vf29(field_30.field_20728);
-    Unk_24e4c18[0] = *value;
-    field_30.field_0->vf22(field_30.field_d4, Unk_24e4c18, 1);
+    Unk_24e45d0.field_648[0] = *value;
+    field_30.field_0->vf22(field_30.field_d4, Unk_24e45d0.field_648, 1);
     if (texture != nullptr) {
         s32 filter = texture->vf16();
         texture->vf15(4);
@@ -2065,9 +2067,9 @@ s32 CTextureUtil::Unk_47b040(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
         values[i] = Unk_Float4(weights[i].field_0[0], weights[i].field_0[1], 0.0f, 0.0f);
     }
     field_30.field_0->vf22(field_30.field_b4, values, count);
-    Unk_24e4c18[0].field_0[0] = value->field_0[0];
-    Unk_24e4c18[0].field_0[1] = value->field_0[1];
-    field_30.field_0->vf22(field_30.field_d0, Unk_24e4c18, 1);
+    Unk_24e45d0.field_648[0].field_0[0] = value->field_0[0];
+    Unk_24e45d0.field_648[0].field_0[1] = value->field_0[1];
+    field_30.field_0->vf22(field_30.field_d0, Unk_24e45d0.field_648, 1);
     for (s32 i = 0; i < count; i++) {
         field_30.field_0->vf26(GetHandle_tex2D_aTexture(i), textures[i]);
     }
@@ -2080,10 +2082,10 @@ s32 CTextureUtil::Unk_47a850(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
                              const Unk_Float4* value, Unk_GPUTexture* texture0, Unk_GPUTexture* texture1,
                              Unk_GPUTexture* texture2, s32 arg5, u32 flags) {
     field_30.field_0->vf29(field_30.field_20724);
-    Unk_24e4c18[0] = *value;
-    Unk_24e4c18[1].field_0[0] = 1.0f / arg18;
-    Unk_24e4c18[1].field_0[1] = -arg17 / arg18;
-    field_30.field_0->vf22(field_30.field_d4, Unk_24e4c18, 2);
+    Unk_24e45d0.field_648[0] = *value;
+    Unk_24e45d0.field_648[1].field_0[0] = 1.0f / arg18;
+    Unk_24e45d0.field_648[1].field_0[1] = -arg17 / arg18;
+    field_30.field_0->vf22(field_30.field_d4, Unk_24e45d0.field_648, 2);
     s32 filter = -1;
     if (texture0 != nullptr) {
         filter = texture0->vf16();
@@ -2127,26 +2129,26 @@ s32 CTextureUtil::Unk_47a030(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
     f32 near = arg1->field_2c;
     Unk_Float4 planes(near, far, far * near, far - near);
     field_30.field_0->vf20(field_30.field_a4, &planes.field_0[0].field_0);
-    Unk_24e4c18[0].field_0[0] = arg3->field_0[0];
-    Unk_24e4c18[0].field_0[1] = arg3->field_0[1];
-    Unk_24e4c18[0].field_0[2] = arg4->field_0[0];
-    Unk_24e4c18[0].field_0[3] = arg4->field_0[1];
-    Unk_24e4c18[2].field_0[0].field_0 = 1.0f / arg3->field_0[0].field_0;
-    Unk_24e4c18[2].field_0[1].field_0 = 1.0f / arg3->field_0[1].field_0;
+    Unk_24e45d0.field_648[0].field_0[0] = arg3->field_0[0];
+    Unk_24e45d0.field_648[0].field_0[1] = arg3->field_0[1];
+    Unk_24e45d0.field_648[0].field_0[2] = arg4->field_0[0];
+    Unk_24e45d0.field_648[0].field_0[3] = arg4->field_0[1];
+    Unk_24e45d0.field_648[2].field_0[0].field_0 = 1.0f / arg3->field_0[0].field_0;
+    Unk_24e45d0.field_648[2].field_0[1].field_0 = 1.0f / arg3->field_0[1].field_0;
     f32 scale = arg5->field_0[0].field_0;
     f32 offset = arg5->field_0[1].field_0;
-    Unk_24e4c18[2].field_0[2].field_0 = 1.0f / scale;
-    Unk_24e4c18[2].field_0[3].field_0 = -offset / scale;
-    Unk_24e4c18[1].field_0[0] = arg7->field_0[0];
-    Unk_24e4c18[1].field_0[1] = arg7->field_0[1];
+    Unk_24e45d0.field_648[2].field_0[2].field_0 = 1.0f / scale;
+    Unk_24e45d0.field_648[2].field_0[3].field_0 = -offset / scale;
+    Unk_24e45d0.field_648[1].field_0[0] = arg7->field_0[0];
+    Unk_24e45d0.field_648[1].field_0[1] = arg7->field_0[1];
     if (hasFalloff) {
-        Unk_24e4c18[1].field_0[2].field_0 = falloff->field_0[0].field_0 / 0.99609375f;
-        Unk_24e4c18[1].field_0[3].field_0 = falloff->field_0[1].field_0 - 0.00390625f;
+        Unk_24e45d0.field_648[1].field_0[2].field_0 = falloff->field_0[0].field_0 / 0.99609375f;
+        Unk_24e45d0.field_648[1].field_0[3].field_0 = falloff->field_0[1].field_0 - 0.00390625f;
     } else {
-        Unk_24e4c18[1].field_0[2].field_0 = 0.0f;
-        Unk_24e4c18[1].field_0[3].field_0 = 0.0f;
+        Unk_24e45d0.field_648[1].field_0[2].field_0 = 0.0f;
+        Unk_24e45d0.field_648[1].field_0[3].field_0 = 0.0f;
     }
-    field_30.field_0->vf22(field_30.field_d0, Unk_24e4c18, 3);
+    field_30.field_0->vf22(field_30.field_d0, Unk_24e45d0.field_648, 3);
     field_30.field_0->vf25(field_30.field_114, arg2, 1);
     Unk_Float4 one(1.0f, 0.0f, 1.0f, 0.0f);
     field_30.field_0->vf20(field_30.field_c0, &one.field_0[0].field_0);
@@ -2168,16 +2170,16 @@ s32 CTextureUtil::Unk_4773e0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
                              const Unk_Float4* arg1, const Unk_Float4* arg2, const Unk_Float4* arg3,
                              const Unk_Float4* rect, bool arg5, const Unk_Float4* arg6, Unk_GPUTexture* texture,
                              s32 index, u32 flags) {
-    Unk_24e4a18[0] = *arg2;
+    Unk_24e45d0.field_448[0] = *arg2;
     if (arg3 != nullptr) {
-        Unk_24e4a18[1] = arg3[0];
-        Unk_24e4a18[2] = arg3[1];
+        Unk_24e45d0.field_448[1] = arg3[0];
+        Unk_24e45d0.field_448[2] = arg3[1];
     } else {
-        Unk_24e4a18[1] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
-        Unk_24e4a18[2] = Unk_Float4(64512.0f, 64512.0f, 64512.0f, 64512.0f);
+        Unk_24e45d0.field_448[1] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+        Unk_24e45d0.field_448[2] = Unk_Float4(64512.0f, 64512.0f, 64512.0f, 64512.0f);
     }
     field_30.field_0->vf22(field_30.field_d0, arg1, 1);
-    field_30.field_0->vf22(field_30.field_d4, Unk_24e4a18, 3);
+    field_30.field_0->vf22(field_30.field_d4, Unk_24e45d0.field_448, 3);
     if (texture != nullptr) {
         field_30.field_0->vf26(field_30.field_8, texture);
     }
@@ -2281,6 +2283,56 @@ s32 CTextureUtil::Unk_477350(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
     }
     return Unk_476f40(x, y, width, height, u0, v0, u1, v1, power, color, rect, count, textures, Unk_GetTexture(extra),
                       colors, index, flags);
+}
+
+// 0x71004776f0: `count` textures with their colours in the scratch vectors,
+// and three more vectors for the effect (defaults when there are none)
+s32 CTextureUtil::Unk_4776f0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, s32 count,
+                             Unk_GPUTexture** textures, const Unk_Float4* colors, const Unk_Float4* arg4, s32 index,
+                             u32 flags) {
+    if (count < 1 || count > 16) {
+        return -4;
+    }
+    s32 technique;
+    s32 last = count - 1;
+    for (;; last++) {
+        technique = field_30.field_5928[last][index];
+        if (last >= 15 || technique != 0) {
+            break;
+        }
+    }
+    if (technique == 0) {
+        return -4;
+    }
+    field_30.field_0->vf29(technique);
+    if (colors != nullptr) {
+        for (s32 i = 0; i < count; i++) {
+            Unk_24e45d0.field_448[i] = colors[i];
+        }
+    } else {
+        for (s32 i = 0; i < count; i++) {
+            Unk_24e45d0.field_448[i] = Unk_Float4(1.0f, 1.0f, 1.0f, 1.0f);
+        }
+    }
+    s32 used = last + 1;
+    for (s32 i = count; i <= last; i++) {
+        Unk_24e45d0.field_448[i] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+    }
+    if (arg4 == nullptr) {
+        Unk_24e45d0.field_448[16] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+        Unk_24e45d0.field_448[17] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+        Unk_24e45d0.field_448[18] = Unk_Float4(64512.0f, 64512.0f, 64512.0f, 64512.0f);
+        arg4 = &Unk_24e45d0.field_448[16];
+    }
+    field_30.field_0->vf22(field_30.field_d0, Unk_24e45d0.field_448, used);
+    field_30.field_0->vf22(field_30.field_d4, arg4, 3);
+    for (s32 i = 0; i < count; i++) {
+        field_30.field_0->vf26(GetHandle_tex2D_aTexture(i), textures[i]);
+    }
+    for (s32 i = count; i <= last; i++) {
+        field_30.field_0->vf26(GetHandle_tex2D_aTexture(i), nullptr);
+    }
+    return Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
 }
 
 // DRAWRECTGPU_END
