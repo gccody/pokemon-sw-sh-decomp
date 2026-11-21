@@ -14,7 +14,37 @@ namespace SiSDK3 {
 template <class T>
 class SiDirectLinkedList {
 public:
+    SiDirectLinkedList() : field_8(nullptr), m_pHead(nullptr), m_pTail(nullptr), m_count(0) {
+        field_8 = Unk_4bc640();
+    }
     virtual ~SiDirectLinkedList() { RemoveAll(); }
+
+    // empties the list for another allocator (the kernel's for a null pointer)
+    void Unk_SetAllocator(ISiAllocator* pAllocator) {
+        field_8 = pAllocator != nullptr ? pAllocator : Unk_4bc640();
+        m_pHead = nullptr;
+        m_pTail = nullptr;
+        m_count = 0;
+    }
+
+    // unlinks the head, if there is one, and returns it
+    T RemoveHead() {
+        T node = m_pHead;
+        if (node != nullptr) {
+            T next = node->m_pNext;
+            if (next != nullptr) {
+                next->m_pPrev = nullptr;
+                m_pHead = next;
+            } else {
+                m_pHead = nullptr;
+                m_pTail = nullptr;
+            }
+            node->m_pPrev = nullptr;
+            node->m_pNext = nullptr;
+            m_count--;
+        }
+        return node;
+    }
 
     // unlinks every element, from the head
     void RemoveAll() {
@@ -39,6 +69,9 @@ public:
 
     // unlinks node, if it's in the list
     void Remove(T node) {
+        if (node == nullptr) {
+            return;
+        }
         T prev = node->m_pPrev;
         T next = node->m_pNext;
         if (prev != nullptr) {
