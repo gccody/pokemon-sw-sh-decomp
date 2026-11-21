@@ -2219,6 +2219,70 @@ s32 CTextureUtil::Unk_4773e0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
     return Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
 }
 
+// 0x7100476f40: `count` textures and one more with its own colour and its
+// own rectangle of texture coordinates (`rect`: scale and offset)
+s32 CTextureUtil::Unk_476f40(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 power,
+                             Unk_Float4 color, Unk_Float4 rect, s32 count, Unk_GPUTexture** textures,
+                             Unk_GPUTexture* extra, const Unk_Float4* colors, s32 index, u32 flags) {
+    if (count < 1 || count > 16) {
+        return -4;
+    }
+    s32 technique;
+    s32 last = count;
+    for (;; last++) {
+        technique = field_30.field_53a8[last][index];
+        if (last >= 15 || technique != 0) {
+            break;
+        }
+    }
+    s32 used = last + 1;
+    if (technique == 0) {
+        return -4;
+    }
+    field_30.field_0->vf29(technique);
+    Unk_Float4 values[16];
+    if (colors != nullptr) {
+        for (s32 i = 0; i < count; i++) {
+            values[i] = colors[i];
+        }
+    } else {
+        for (s32 i = 0; i < count; i++) {
+            values[i] = Unk_Float4(1.0f, 1.0f, 1.0f, 1.0f);
+        }
+    }
+    values[count] = color;
+    for (s32 i = count + 1; i <= last; i++) {
+        values[i] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+    }
+    field_30.field_0->vf22(field_30.field_d0, values, used);
+    field_30.field_0->vf18(field_30.field_fc, 1.0f / power);
+    for (s32 i = 0; i < count; i++) {
+        field_30.field_0->vf26(GetHandle_tex2D_aTexture(i), textures[i]);
+    }
+    extra->vf17(0);
+    extra->vf18(3);
+    field_30.field_0->vf26(GetHandle_tex2D_aTexture(count), extra);
+    for (s32 i = count + 1; i <= last; i++) {
+        field_30.field_0->vf26(GetHandle_tex2D_aTexture(i), nullptr);
+    }
+    return Unk_471f60(x, y, width, height, u0, v0, u1, v1, -rect.field_0[2].field_0 / rect.field_0[0].field_0,
+                      -rect.field_0[3].field_0 / rect.field_0[1].field_0,
+                      (1.0f - rect.field_0[2].field_0) / rect.field_0[0].field_0,
+                      (1.0f - rect.field_0[3].field_0) / rect.field_0[1].field_0, flags);
+}
+
+// 0x7100477350: the same from render textures
+s32 CTextureUtil::Unk_477350(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 power,
+                             Unk_Float4 color, Unk_Float4 rect, s32 count, CRenderTexture** sources,
+                             CRenderTexture* extra, const Unk_Float4* colors, s32 index, u32 flags) {
+    Unk_GPUTexture* textures[16];
+    for (s32 i = 0; i < count; i++) {
+        textures[i] = Unk_GetTexture(sources[i]);
+    }
+    return Unk_476f40(x, y, width, height, u0, v0, u1, v1, power, color, rect, count, textures, Unk_GetTexture(extra),
+                      colors, index, flags);
+}
+
 // DRAWRECTGPU_END
 
 // 0x71004708b0: releases what the device made

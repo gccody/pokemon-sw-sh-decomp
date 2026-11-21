@@ -45,6 +45,7 @@ struct Unk_GPUTexture {
     virtual void vf15(s32 filter);  // sets what vf16 gives
     virtual s32 vf16();
     virtual void vf17(s32 arg);
+    virtual void vf18(s32 arg);
 
     u8 pad_8[0x44];
     u32 field_4c;  // its size
@@ -885,6 +886,12 @@ public:
     s32 Unk_4773e0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, const Unk_Float4* arg1,
                    const Unk_Float4* arg2, const Unk_Float4* arg3, const Unk_Float4* rect, bool arg5,
                    const Unk_Float4* arg6, Unk_GPUTexture* texture, s32 index, u32 flags);
+    s32 Unk_476f40(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 power, Unk_Float4 color,
+                   Unk_Float4 rect, s32 count, Unk_GPUTexture** textures, Unk_GPUTexture* extra,
+                   const Unk_Float4* colors, s32 index, u32 flags);
+    s32 Unk_477350(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 power, Unk_Float4 color,
+                   Unk_Float4 rect, s32 count, CRenderTexture** sources, CRenderTexture* extra,
+                   const Unk_Float4* colors, s32 index, u32 flags);
     // The handle of a texture stage (inline; its name and line are its assert's)
     s32 GetHandle_tex2D_aTexture(s32 stage) {
 #line 3059
