@@ -109,12 +109,52 @@ terms is only said here, as a guess.
   (`Unk_39b730_call`, `Unk_3b1cc0`): through a function pointer cast, and a
   comment.
 
-**The five-level tree (`Unk_36fa70.cpp`)**: sorted arrays of nodes (0x30
-bytes: vptr, value, flag, the next level's array, key), `Set` by binary
-search, `Insert`, `GrowArray` with a move policy that hands over the child
-array (`Unk_TransferMove`). `Set` and `Insert` match for all levels; the
-`GrowArray` instances don't (M). The same template is at
-`0x71003a1b40`-`0x71003a3600` (`2x488`, `2x440`, `2x336`: not tried yet).
+**The two five-level trees (`Unk_36fa70.cpp`)**: sorted arrays of nodes
+(vptr, value, flag, the next level's array, key; 0x30 bytes at
+`0x710036fa70`, 0x28 at `0x71003a1830` where the value is a `u32`), the last
+level an array of 16-byte items. One set of macros writes every level of
+both (`UNK_36FA70_NODE`, `_LAST`, `_ROOT`), and the functions are members
+that call the same member of the level below: `Set`/`Insert`/`GrowArray`/
+`Unset` of the arrays, `Remove` and `RemoveAll` of a key, `ForEach` (a
+callback for every value, which says what to drop), `ForEach` and `Visit`
+by a key with wildcards, `Has` and `Find`. 87 functions, 40 KB. What they
+needed:
+
+- **A node is a base class with the fields and a derived class with the
+  key**, each with a vtable, so that the vptr is stored after the members.
+  The value is a class around a pointer in the first tree and a plain `u32`
+  in the second; the last level's array has a constructor of its own. All
+  three change which address GVN keeps across the placement new's null test.
+- **Which accessor reads the length decides an operand order.** The visits
+  end with "no value and no nodes left". With `IsEmpty()` the length's load
+  is merged early with the loop's `End()` (same accessor class), it ranks
+  below the flag's load and Reassociate puts it first (`orr w8, w8, w9`);
+  with `Length() == 0` (the base class's accessor, another GEP) the merge
+  comes after Reassociate and the flag stays first, as in the original.
+- **The order of an `if`/`else` in the source decides block placement
+  ties.** `if (filter.IsAnyHere()) { loop } else { one node }` matches all
+  five levels of the visit by a key; with the branches swapped one level's
+  loop test is duplicated instead of the final test.
+- **An explicit `inline`** on `Visit` (three functions, two levels each):
+  the level below is inlined at a cost between 250 and 325.
+- **`if (flag) return &value; return nullptr;` is not `return flag ? &value
+  : nullptr;`.** The first leaves a conditional branch to the return block,
+  which SimplifyCFG turns into a return of its own for that path; the
+  function's other returns are then all null and share one block
+  (`cbz x0` to `mov x0, xzr; ret`). With `?:` the return block keeps a phi,
+  the null check's edge gets a block of its own for the copy, and AArch64's
+  redundant-copy pass deletes `mov x0, xzr` after `cbz x0` (a bare `ret`).
+- **Two values compared by value are both loaded first**: the functor's
+  test of the last level is `cmp`/`ccmp` (`Unk_36fa70_Key5::IsWider(other,
+  key)`, both structs by value), the levels above it branch after each load
+  (members with a reference).
+- Near misses left: `0x71003a0510` (M: the original reads the last level's
+  key again in every iteration, here GVN's load PRE keeps the read before
+  the loop for the first one), `0x71003a3bb0`/`0x710036e100` (m: `cset`
+  and `and` in the other order), `0x710039f290`/`0x710036d790` (m: a null
+  check branches to the other of two `ret`s) and the `Set` paths
+  `0x7100370110`/`0x710036b090`/`0x710039c830` (M: the original shares the
+  block that sets a node's value between the inlined levels).
 
 **Left out, and why**
 
