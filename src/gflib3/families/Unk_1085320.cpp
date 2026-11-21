@@ -2557,3 +2557,229 @@ static_assert(sizeof(Unk_24184a0) == 0x88, "Unk_24184a0");
 template Unk_24184a0* Unk_New::Create<Unk_24184a0>(Unk_239a418_Allocator*,
                                                    Unk_239a418_RefPair&&,
                                                    const Unk_Ref&);
+
+// The adders. An owner of such objects (a class on the object, with its
+// allocator at +0x60 and a list of references at +0xb0) makes one with a weak
+// reference to itself (its handle and itself) and what it is given, keeps a
+// reference to it in the list and returns a reference to itself: one member
+// template, an instance per class. A set flag (+0x110, through the leaf getter
+// 0x71006ce100) skips the rest. The list's emplace (0x7101054f70) isn't
+// decompiled.
+struct Unk_6ce100;
+u32 Unk_6ce100_getField110(const Unk_6ce100* self);
+
+struct Unk_1054f70_List {
+    void Unk_1054f70(Unk_Ref&& ref);
+
+    u8 _0[0x60];
+};
+
+// A weak reference to an object: its handle, and the object itself.
+inline Unk_239a418_RefPair Unk_Weak(Unk_239a418* object) {
+    if (object == nullptr)
+        return Unk_239a418_RefPair{Unk_Ref(), 0};
+    Unk_239a418_Ref<Unk_239a418_Handle> handle(object->m_handle);
+    return Unk_239a418_RefPair{Unk_Ref(reinterpret_cast<Unk_239a418*>(handle.m_ptr)),
+                               reinterpret_cast<u64>(object)};
+}
+
+class Unk_1050c60_Owner : public Unk_239a418 {
+public:
+    template <class T, class... Args>
+    Unk_Ref Unk_Add(const Args&... args) {
+        if (Unk_6ce100_getField110(reinterpret_cast<const Unk_6ce100*>(this)))
+            return Unk_Ref(this);
+        Unk_239a418_Allocator* allocator = field_60;
+        Unk_Ref object(Unk_New().Create<T>(allocator, Unk_Weak(this), args...));
+        field_b0.Unk_1054f70(Unk_Ref(object));
+        return Unk_Ref(this);
+    }
+
+    Unk_239a418_Allocator* field_60;
+    u8 _68[0x48];
+    Unk_1054f70_List field_b0;
+};
+PKMN_OFFSET_ASSERT(Unk_1050c60_Owner, field_b0, 0xb0);
+
+// 0x7101050c60
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240b658>(const u32&);
+
+// 0x71010519e0
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240b970>(const u32&);
+
+// 0x7101052410
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240bc60>(const u32&);
+
+// 0x7101052590
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240bd60>(const Unk_1085320_Words3&);
+
+// 0x7101052df0
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240be88>();
+
+// 0x710107c6f0
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240d540>(const Unk_Ref&);
+
+// 0x710107c870
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240d668>(const Unk_Ref&);
+
+// 0x710107d200
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240d8f0>(const Unk_Ref&);
+
+// 0x710107db80
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240dc40>(const u32&);
+
+// 0x710107dd00
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240dd68>(const Unk_Ref&);
+
+// 0x710107e610
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240dfc8>(const Unk_Ref&);
+
+// 0x710107e790
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240e0f0>(const Unk_Ref&);
+
+// 0x710107f090
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240e350>(const Unk_Ref&);
+
+// 0x710107fa20
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240e6a0>(const Unk_Ref&);
+
+// 0x710107fba0
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240e7c8>(const Unk_Ref&);
+
+// 0x7101080530
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240eba0>(const Unk_Ref&);
+
+// 0x71010806b0
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240ecc8>(const Unk_Ref&);
+
+// 0x7101080f80
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240ef28>(const Unk_Ref&);
+
+// 0x7101081860
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240f1b0>(const Unk_Ref&);
+
+// 0x7101082150
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240f388>(const Unk_Ref&);
+
+// 0x71010832c0
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240f840>(const Unk_Ref&);
+
+// 0x7101083440
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240f968>(const Unk_Ref&);
+
+// 0x7101083d10
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_240fbc8>(const Unk_Ref&);
+
+// 0x71010aacf0
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_24117b0>();
+
+// 0x71010aae70
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_24118b0>();
+
+// 0x71010aaff0
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_24119b0>();
+
+// 0x71010abac0
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2411ab0>();
+
+// 0x71010abc40
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2411bb0>();
+
+// 0x71010abdc0
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2411cb0>();
+
+// 0x71010abf40
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2411db0>(const Unk_1085320_Words2&);
+
+// 0x71010ac0c0
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2411ed8>();
+
+// 0x71010ac240
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2411fd8>(const u32&);
+
+// 0x71010ace90
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2412100>(const u32&);
+
+// 0x71010ad010
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2412228>(const Unk_1085320_Words2&);
+
+// 0x71010ad190
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2412328>();
+
+// 0x71010ad310
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2412428>();
+
+// 0x71010ad490
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2412528>();
+
+// 0x71010bab80
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2412c88>(const Unk_Ref&);
+
+// 0x71010bb510
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2412f10>(const Unk_Ref&);
+
+// 0x71010bbe90
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2413198>(const Unk_Ref&);
+
+// 0x71010bc820
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2413370>(const Unk_Ref&);
+
+// 0x71010c6090
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2413d48>(const Unk_Ref&);
+
+// 0x71010c6a40
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2413fd0>(const Unk_Ref&);
+
+// 0x71010ce480
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2414608>();
+
+// 0x71010cedf0
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_24147b8>();
+
+// 0x71010cef70
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_24148b8>(const Unk_Ref&);
+
+// 0x71010d43f0
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2414d00>(const Unk_Ref&);
+
+// 0x71010d4d90
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2415100>(const Unk_Ref&);
+
+// 0x71010d4f10
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2415228>(const Unk_Ref&);
+
+// 0x71010dc800
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2415868>(const Unk_Ref&);
+
+// 0x71010dd1a0
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2415a40>(const Unk_Ref&);
+
+// 0x71010ddab0
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2415b68>(const u64&);
+
+// 0x71010de430
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2415df0>(const Unk_Ref&);
+
+// 0x71010e5530
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2416438>(const Unk_Ref&);
+
+// 0x71010e5ec0
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_24166c0>(const Unk_Ref&);
+
+// 0x71010e67d0
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_24167e8>(const u64&);
+
+// 0x71010ebd60
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2416cc8>(const Unk_1085320_Words5&);
+
+// 0x71010ec6f0
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_24170c8>(const Unk_Ref&);
+
+// 0x71010ec870
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_24171f0>(const Unk_Ref&);
+
+// 0x71010f2b30
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_2417870>(const Unk_Ref&);
+
+// 0x7101101cd0
+template Unk_Ref Unk_1050c60_Owner::Unk_Add<Unk_24184a0>(const Unk_Ref&);

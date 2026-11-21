@@ -2641,6 +2641,31 @@ check and null references skipped) rather than by fixed offsets:
   with members that call (creator-like, `0x7101005a30`), 9 creators with
   other vptr layouts, and the creators' wrappers (`0x7100790140`).
 
+### The objects' adders (`familygen.py`, 2026-11-20)
+
+65 functions of the network requests (`0x7101050c60` and 51 of its shape,
+380 bytes; `0x7101052df0` and 12 of its shape, 372 bytes) call one of the
+object factories above each, and nothing else differs between them: a member
+template of the objects' owner, `Unk_1050c60_Owner::Unk_Add<T>(const
+Args&...)`, written in the objects' file after the classes
+(`src/gflib3/families/Unk_1085320.cpp`). Unless the owner's flag at `+0x110`
+is set, it makes a `T` from the owner's allocator (`+0x60`) with a weak
+reference to the owner and its arguments, keeps a reference to it in the
+owner's list (`+0xb0`) and returns a reference to the owner. 61 match (23 KB);
+the other 4 call factories that aren't written.
+
+What decided the match:
+
+- the weak reference is the factories' `Unk_239a418_RefPair`: the object's
+  handle (`m_handle`, copied through a temporary, so a reference is added
+  twice and dropped once) and the object. A null object gives an empty pair
+  (`stp xzr, xzr`), a null handle a pair of a null reference and the object
+  (`stp xzr, x19`): no test of the handle in the source, the copy's own;
+- the list's emplace is a member call on `field_b0` with a temporary
+  reference: the object expression is evaluated first, so `this + 0xb0` is
+  in a callee-saved register across the temporary's `vf4`. Passing the list
+  to a free function computes it after.
+
 Still left from the list above:
 
 - the 118 lookups (`0x7100795bc0`): everything but the loop's block
