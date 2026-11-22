@@ -4,9 +4,8 @@
 #define UNK_ISIIO_BINARYARCHIVE_IMPL
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiIO/SiIO_BinaryArchive.h>
 
-// Their destructors (inline, in the header; the deleting ones of these
-// abstract classes are traps).
-// 0x710057a440 = _ZN6SiSDK318ISiIOBinaryArchive12ChunkHandlerD2Ev
+// Their destructors (the archive's is inline, in the header; the deleting
+// ones of these abstract classes are traps).
 // 0x710057a570 = _ZN6SiSDK318ISiIOBinaryArchive12ChunkHandlerD0Ev
 // 0x710057c680 = _ZN6SiSDK318ISiIOBinaryArchiveD2Ev
 // 0x710057c6a0 = _ZN6SiSDK318ISiIOBinaryArchiveD0Ev
@@ -29,6 +28,18 @@ ISiIOBinaryArchive::ChunkHandler::ChunkHandler(ISiAllocator* pAllocator)
     field_28.field_10.field_4 = 1;
     field_28.field_10.field_8 = 0;
     field_28.field_10.field_c = 0;
+}
+
+// 0x710057a440 = _ZN6SiSDK318ISiIOBinaryArchive12ChunkHandlerD2Ev: releases
+// the chunks inside it
+ISiIOBinaryArchive::ChunkHandler::~ChunkHandler() {
+    while (field_88.m_count != 0) {
+        ChunkHandler* handler = field_88.m_pHead;
+        if (handler != nullptr) {
+            field_88.Remove(handler);
+            handler->vf3();
+        }
+    }
 }
 
 // 0x710057a580

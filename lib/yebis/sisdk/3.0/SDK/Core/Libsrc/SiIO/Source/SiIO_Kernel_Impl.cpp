@@ -24,6 +24,12 @@ void Unk_4c5930(char* dst, size_t size, u64 value);
 bool Unk_583970_get(u64 manager);
 
 
+// 0x7100587be0: SiIO's texts for a language
+const void* Unk_587be0(const Unk_4ca820_arg0& language);
+
+// 0x7101f01a50: the id of SiIO's string table
+extern const u8 Unk_1f01a50[] __attribute__((visibility("hidden")));
+
 // 0x7102770648: the kernel (this translation unit's own variable in the
 // original; its getter, 0x710057d030, is in lib/yebis/leaf, which declares it
 // the same way)
@@ -42,7 +48,7 @@ namespace SiSDK3 {
 // (the kernel's allocator is asked for each time it's used: a macro's argument)
 #define UNK_ALLOCATOR Unk_GetKernel()->vf12()
 SiIOKernel::SiIOKernel()
-    : field_8(UNK_ALLOCATOR), field_18(nullptr), field_20(0), field_28(0), field_30(0), field_38(0), field_40(nullptr),
+    : field_8(UNK_ALLOCATOR), field_18(nullptr), field_20(0), field_28(0), field_30(nullptr), field_38(0), field_40(nullptr),
       field_48(nullptr), field_50(UNK_ALLOCATOR) {
     Unk_2770648 = this;
     if (UNK_ALLOCATOR != nullptr) {
@@ -86,6 +92,45 @@ bool SiIOKernel::Unk_57d2a0(ISiAllocator* pAllocator) {
     char total[0x80];
     Unk_4c5930(total, sizeof(total), info.field_28);
     return true;
+}
+
+// 0x710057d3f0
+bool SiIOKernel::Unk_57d3f0() {
+    field_30 = Unk_GetKernel()->vf23(nullptr);
+    field_30->vf8();
+    field_30->vf11(Unk_4ca820_arg0(), Unk_587be0(Unk_4ca820_arg0()));
+    field_30->vf11(*Unk_GetKernel()->vf24(), Unk_587be0(*Unk_GetKernel()->vf24()));
+    field_30->vf9();
+    Unk_GetKernel()->vf26(Unk_1f01a50, field_30);
+    return true;
+}
+
+// 0x710057d4e0
+void SiIOKernel::Unk_57d4e0() {
+    if (field_20 == 0) {
+        return;
+    }
+    field_20--;
+    if (field_20 != 0) {
+        return;
+    }
+    if (field_48 != nullptr) {
+        field_48->vf3();
+        field_48 = nullptr;
+    }
+    if (field_40 != nullptr) {
+        field_40->vf3();
+        field_40 = nullptr;
+    }
+    Unk_GetKernel()->vf27(field_30);
+    if (field_30 != nullptr) {
+        field_30->vf3();
+        field_30 = nullptr;
+    }
+    if (field_18 != nullptr) {
+        field_18->vf3();
+        field_18 = nullptr;
+    }
 }
 
 // 0x710057d590

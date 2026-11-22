@@ -60,15 +60,9 @@ public:
     public:
         // 0x710057a3a0
         explicit ChunkHandler(ISiAllocator* pAllocator);
-        virtual ~ChunkHandler() {
-            while (field_88.m_count != 0) {
-                ChunkHandler* handler = field_88.m_pHead;
-                if (handler != nullptr) {
-                    field_88.Remove(handler);
-                    handler->vf3();
-                }
-            }
-        }
+        // 0x710057a440: out of line (SiGfxTextureChunkHandler's destructors
+        // call it, where an inline one of its size would have been inlined)
+        virtual ~ChunkHandler();
         UNK_REFCOUNT_DECLARE;
         virtual u32 vf4();
         virtual const char* vf5() = 0;  // its type's name

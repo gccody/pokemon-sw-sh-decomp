@@ -52,24 +52,6 @@ struct Unk_559360 {
 };
 PKMN_OFFSET_ASSERT(Unk_559360, field_120, 0x120);
 
-struct Unk_559190 {
-    u8 _0[0x30];
-    u8 field_30;
-};
-PKMN_OFFSET_ASSERT(Unk_559190, field_30, 0x30);
-
-struct Unk_5591b0 {
-    u8 _0[0x60];
-    u32 field_60;
-};
-PKMN_OFFSET_ASSERT(Unk_5591b0, field_60, 0x60);
-
-struct Unk_5591a0 {
-    u8 _0[0x28];
-    u8 field_28;
-};
-PKMN_OFFSET_ASSERT(Unk_5591a0, field_28, 0x28);
-
 namespace SiSDK3 {
 class SiGfxNXSampler {
 public:
@@ -89,29 +71,8 @@ public:
     const u8* vf17();
     const u8* vf18();
     u32 vf19();
-    const u8* vf21();
-    u32 vf22();
-    const u8* vf3();
 };
 }  // namespace SiSDK3
-
-// 0x7100559190
-const u8* SiSDK3::SiGfxNXSampler::vf21() {
-    const Unk_559190* self = reinterpret_cast<const Unk_559190*>(this);
-    return &self->field_30;
-}
-
-// 0x71005591a0
-const u8* SiSDK3::SiGfxNXSampler::vf3() {
-    const Unk_5591a0* self = reinterpret_cast<const Unk_5591a0*>(this);
-    return &self->field_28;
-}
-
-// 0x71005591b0
-u32 SiSDK3::SiGfxNXSampler::vf22() {
-    const Unk_5591b0* self = reinterpret_cast<const Unk_5591b0*>(this);
-    return self->field_60;
-}
 
 // 0x71005591d0
 u64 SiSDK3::SiGfxNXSampler::vf5() {

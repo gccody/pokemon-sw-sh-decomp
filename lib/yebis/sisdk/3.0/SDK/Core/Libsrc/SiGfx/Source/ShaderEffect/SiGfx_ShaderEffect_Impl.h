@@ -16,14 +16,21 @@ struct SiMapCompareLess;
 
 class SiGfxShaderEffect {
 public:
+    // What a compile request calls when it is done (slot 5): it tells the
+    // effect.
     class CompileRequestCallback {
     public:
-        virtual ~CompileRequestCallback();
+        virtual ~CompileRequestCallback() {}  // 0x71005792d0, 0x71005792f0
         UNK_REFCOUNT_DECLARE;
+        virtual u32 vf4();
+        virtual void vf5();  // 0x71005793e0
 
-        SiSDK3::ISiAllocator* field_8;
-        u32 field_10;
+        Unk_4bf660 field_8;
+        SiGfxShaderEffect* field_18;
     };
+
+    // 0x7100578c30
+    void Unk_578c30();
 
     // A program's key in the map and what the map holds for it (RTTI: the
     // map's arguments). The key is the 0x18 bytes between a node's map and
@@ -74,6 +81,12 @@ public:
     u32 field_10;
 };
 
+inline void SiGfxShaderEffect::CompileRequestCallback::vf5() {
+    if (field_18 != nullptr) {
+        field_18->Unk_578c30();
+    }
+}
+
 }  // namespace SiSDK3
 
 #ifdef UNK_SIGFX_SHADEREFFECT_IMPL
@@ -87,5 +100,5 @@ UNK_REFCOUNT_DEFINE(SiSDK3::SiGfxShaderEffect, field_8, field_10)
 
 // 0x7100579330 (vf2), 0x7100579350 (vf3)
 #line 626
-UNK_REFCOUNT_DEFINE(SiSDK3::SiGfxShaderEffect::CompileRequestCallback, field_8, field_10)
+UNK_REFCOUNT_DEFINE(SiSDK3::SiGfxShaderEffect::CompileRequestCallback, field_8.m_pAllocator, field_8.m_count)
 #endif

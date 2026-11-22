@@ -7,6 +7,7 @@
 
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_4bf660.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_RefCount.h>
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_StringFuncs.h>
 
 namespace SiSDK3 {
 
@@ -24,12 +25,14 @@ public:
     // 0x7100594960: its initialisation, 0x7100594a20: a part of it
     bool Unk_594960(ISiAllocator* pAllocator);
     bool Unk_594a20();
+    // 0x7100594b10: the reverse of its initialisation
+    void Unk_594b10();
 
     Unk_4bf660 field_8;
     ISiAllocator* field_18;
     volatile u32 field_20;  // how many times it was initialised (read again after it's stored)
     u64 field_28;
-    u64 field_30;
+    Unk_StringTableInterface* field_30;  // its string table
 };
 PKMN_SIZE_ASSERT(SiMathKernel, 0x38);
 

@@ -4,11 +4,21 @@
 #pragma once
 
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_RefCount.h>
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiGfx/SiGfx_Kernel.h>
 
 namespace SiSDK3 {
 
 class SiGfxPrimitiveDrawHelper {
 public:
+    // what the helper gives the kernel (slots 5 and 6, 0x71005467d0 and
+    // 0x71005468b0, aren't decompiled yet)
+    class GfxEventHandler : public ISiGfxKernel::EventHandler {
+    public:
+        ~GfxEventHandler() override;  // 0x7100546770, 0x7100546790
+        void vf5() override;
+        void vf6() override;
+    };
+
     virtual ~SiGfxPrimitiveDrawHelper();
     UNK_REFCOUNT_DECLARE;
 

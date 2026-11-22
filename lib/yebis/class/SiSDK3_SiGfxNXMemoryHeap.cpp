@@ -47,24 +47,6 @@ struct Unk_553040 {
 };
 PKMN_OFFSET_ASSERT(Unk_553040, field_80, 0x80);
 
-struct Unk_552b80 {
-    u8 _0[0x28];
-    u8 field_28;
-};
-PKMN_OFFSET_ASSERT(Unk_552b80, field_28, 0x28);
-
-struct Unk_552ba0 {
-    u8 _0[0x58];
-    u32 field_58;
-};
-PKMN_OFFSET_ASSERT(Unk_552ba0, field_58, 0x58);
-
-struct Unk_552b90 {
-    u8 _0[0x20];
-    u8 field_20;
-};
-PKMN_OFFSET_ASSERT(Unk_552b90, field_20, 0x20);
-
 namespace SiSDK3 {
 class SiGfxNXMemoryHeap {
 public:
@@ -79,29 +61,8 @@ public:
     void vf14();
     void vf15();
     const u8* vf16();
-    const u8* vf18();
-    u32 vf19();
-    const u8* vf3();
 };
 }  // namespace SiSDK3
-
-// 0x7100552b80
-const u8* SiSDK3::SiGfxNXMemoryHeap::vf18() {
-    const Unk_552b80* self = reinterpret_cast<const Unk_552b80*>(this);
-    return &self->field_28;
-}
-
-// 0x7100552b90
-const u8* SiSDK3::SiGfxNXMemoryHeap::vf3() {
-    const Unk_552b90* self = reinterpret_cast<const Unk_552b90*>(this);
-    return &self->field_20;
-}
-
-// 0x7100552ba0
-u32 SiSDK3::SiGfxNXMemoryHeap::vf19() {
-    const Unk_552ba0* self = reinterpret_cast<const Unk_552ba0*>(this);
-    return self->field_58;
-}
 
 // 0x7100552bc0
 u64 SiSDK3::SiGfxNXMemoryHeap::vf5() {

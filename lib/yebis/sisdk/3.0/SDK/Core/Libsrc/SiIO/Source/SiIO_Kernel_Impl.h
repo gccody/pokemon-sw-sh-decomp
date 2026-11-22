@@ -9,6 +9,7 @@
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_String.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_4bf660.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_RefCount.h>
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_StringFuncs.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiIO/SiIO_BinaryArchive.h>
 
 namespace SiSDK3 {
@@ -67,13 +68,15 @@ public:
     ISiAllocator* field_18;
     volatile u32 field_20;  // how many times it was initialised (read again after it's stored)
     u64 field_28;
-    u64 field_30;
+    Unk_StringTableInterface* field_30;  // its string table
     u64 field_38;
     SiIOVFSManager* field_40;
     SiIOCodecZLib* field_48;
     // 0x710057d2a0: its initialisation, 0x710057d3f0: a part of it
     bool Unk_57d2a0(ISiAllocator* pAllocator);
     bool Unk_57d3f0();
+    // 0x710057d4e0: the reverse of its initialisation
+    void Unk_57d4e0();
 
     // the chunk handler type of an identifier (inline in its callers:
     // placeholder name)

@@ -61,6 +61,8 @@ PKMN_OFFSET_ASSERT(Unk_573470, field_48, 0x48);
 namespace SiSDK3 {
 class SiGfxShaderEffectVariationList {
 public:
+    u64 vf12(s32 index);
+    u8* vf15(s32 index);
     u32 vf4();
     u64 vf8();
     u64 vf9();
@@ -124,4 +126,29 @@ u64 SiSDK3::SiGfxShaderEffectVariationList::vf21() {
 u32 SiSDK3::SiGfxShaderEffectVariationList::vf4() {
     const Unk_573770* self = reinterpret_cast<const Unk_573770*>(this);
     return self->field_10;
+}
+
+// Written by hand in leafgen's style (it doesn't write indexed reads).
+struct Unk_5725c0 {
+    u8 _0[0xd0];
+    u64* field_d0;
+};
+struct Unk_573350_Item {
+    u8 _0[0x48];
+};
+struct Unk_573350 {
+    u8 _0[0x120];
+    Unk_573350_Item* field_120;
+};
+
+// 0x71005725c0
+u64 SiSDK3::SiGfxShaderEffectVariationList::vf12(s32 index) {
+    const Unk_5725c0* self = reinterpret_cast<const Unk_5725c0*>(this);
+    return self->field_d0[index];
+}
+
+// 0x7100573350
+u8* SiSDK3::SiGfxShaderEffectVariationList::vf15(s32 index) {
+    const Unk_573350* self = reinterpret_cast<const Unk_573350*>(this);
+    return reinterpret_cast<u8*>(&self->field_120[index]);
 }

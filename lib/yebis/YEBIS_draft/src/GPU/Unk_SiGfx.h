@@ -120,8 +120,8 @@ struct Unk_SiGfxDrawContext {
     virtual void vf8();
     virtual void vf9();
     virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
+    virtual void vf11(void* target, const void* clearValues);  // begins drawing to a target
+    virtual void vf12();  // ends what the device began
     virtual void vf13();
     virtual void vf14();
     virtual void vf15();
@@ -129,17 +129,17 @@ struct Unk_SiGfxDrawContext {
     virtual void vf17();
     virtual void vf18();
     virtual void vf19();
-    virtual void vf20();
-    virtual void vf21();
+    virtual void vf20(void* buffer, s32 format);  // sets the index buffer
+    virtual void vf21(const void* color);  // sets the blend colour
     virtual void vf22();
     virtual void vf23();
-    virtual void vf24();
-    virtual void vf25();
+    virtual void vf24(u32 arg1, u32 arg2, u32 instances, u32 arg4);  // draws
+    virtual void vf25(u32 arg1, u32 arg2, u32 arg3, u32 instances, u32 arg5);  // draws with indices
     virtual void vf26();
     virtual void vf27();
     virtual void vf28();
     virtual void vf29();
-    virtual void vf30();
+    virtual void vf30(void* resource, u32 from, u32 to);  // changes a resource's state
     virtual void vf31();
     virtual void vf32();
     virtual void vf33();
@@ -175,6 +175,11 @@ struct Unk_SiGfxDrawContext {
     virtual void vf63();
     virtual bool vf64(Unk_SiGfxQuery* query, s32 wait);  // "ISiGfxQuery::CollectQueryData()"
     virtual u32* vf65(Unk_SiGfxQuery* query);  // "ISiGfxQuery::GetQueryData()"
+    virtual void vf66();
+    virtual void vf67();
+    virtual void vf68();
+    virtual void vf69();
+    virtual void vf70(void* buffer, void* info);  // unmaps a buffer
 };
 
 }  // namespace PPFX

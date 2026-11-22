@@ -5,25 +5,22 @@
 
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_Memory.h>
 
-// 0x7102771490: the counts
-extern SiSDK3::Unk_2771490_t Unk_2771490;
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_Reflection.h>
+
+// 0x7102771418
+static SiSDK3::SiReflectionPropertyHandle Unk_2771418;
+
+// 0x7102771490: the counts, in an object the TU's static initialiser
+// (0x71005966e0, _GLOBAL__sub_I_Unk_596410.cpp) clears
+SiSDK3::Unk_2771490_t Unk_2771490;
 
 namespace SiSDK3 {
 
-// (inline: its one copy is the function below, which leafgen had named)
-inline SiOSCriticalSection::SiOSCriticalSection(u32 value) : field_28(value), field_2c(0) {
+// 0x7100596410
+SiOSCriticalSection::SiOSCriticalSection(u32 value) : field_28(value), field_2c(0) {
     nn::os::InitializeMutex(&field_8, true, 0);
     Unk_2771490.field_0++;
 }
-
-}  // namespace SiSDK3
-
-// 0x7100596410 (leafgen's name and type): SiOSCriticalSection's constructor
-void Unk_596410(void* self, u32 value) {
-    new (Unk_Placement(), self) SiSDK3::SiOSCriticalSection(value);
-}
-
-namespace SiSDK3 {
 
 // 0x7100596460 (D2), 0x7100596490 (D0)
 SiOSCriticalSection::~SiOSCriticalSection() {

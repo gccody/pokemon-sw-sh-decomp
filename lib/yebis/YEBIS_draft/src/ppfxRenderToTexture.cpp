@@ -3,10 +3,10 @@
 // is the __FILE__ of its log lines, which name Initialize and Uninitialize).
 // The TU's statics are the ones every src/GPU TU has (Unk_Statics.h), which
 // its static initialiser, 0x71004ba330 (_GLOBAL__sub_I_ppfxRenderToTexture.cpp),
-// sets up. Its destructor isn't here: the base's destructor it ends with
-// (0x71004b97f0) has a constructor's name in src/unsorted/ctor.
+// sets up.
 #include <yebis/YEBIS_draft/src/GPU/GPUResourceManage.h>
 #include <yebis/YEBIS_draft/src/GPU/Unk_Statics.h>
+#include <yebis/YEBIS_draft/src/Unk_4b9860.h>
 
 // log switches: PPFX_LOG's and PPFX_ERROR's
 extern s32 Unk_24e0008;
@@ -40,14 +40,11 @@ const u8* Unk_4b9840_get(const Unk_4b9840* self);
 
 namespace PPFX {
 
-class IPfxBaseRenderToTexture {
+class IPfxBaseRenderToTexture : public IPfxInterface {
 public:
-    virtual void vf0();
-    virtual void vf1();
-    virtual void vf2();
-    virtual ~IPfxBaseRenderToTexture();  // 0x71004b9b60, 0x71004b9cd0
-    virtual void vf5();
-    virtual s32 vf6();          // 0x71004b9d00
+    IPfxBaseRenderToTexture() : field_18(nullptr) {}
+    ~IPfxBaseRenderToTexture() override;  // 0x71004b9b60, 0x71004b9cd0
+    virtual s32 vf6();           // 0x71004b9d00
     virtual s32 Uninitialize();  // 0x71004ba140
 
     // 0x71004ba020
@@ -59,10 +56,34 @@ public:
             const_cast<u8*>(Unk_4b9840_get(reinterpret_cast<const Unk_4b9840*>(this))));
     }
 
-    u32 field_8;
-    CGPUBaseResourceManage* field_10;
     void* field_18;  // the context
 };
+PKMN_SIZE_ASSERT(IPfxBaseRenderToTexture, 0x20);
+
+// RTTI: PPFX::IPfxRenderToTexture_Nvn. Its deleting destructor is 0x71004ba2a0.
+class IPfxRenderToTexture_Nvn : public IPfxBaseRenderToTexture {
+public:
+    ~IPfxRenderToTexture_Nvn() override {}
+};
+
+// 0x71004b9b60
+IPfxBaseRenderToTexture::~IPfxBaseRenderToTexture() {
+#line 58
+    UNK_LOG("==== IPfxBaseRenderToTexture::~IPfxBaseRenderToTexture() ====\n");
+    const u8* state = nullptr;
+    if (field_18 != nullptr)
+        state = *reinterpret_cast<const u8* const*>(Unk_4b9840_get(static_cast<const Unk_4b9840*>(field_18)));
+    CGPUBaseResourceManage*& slot = *Unk_Util();
+    if (slot != nullptr) {
+        if (*state) {
+#line 69
+            UNK_ERROR("IPfxBaseRenderToTexture::~IPfxBaseRenderToTexture(): IPfxBaseRenderToTexture::Uninitialize() implicitly called while BeginPostEffectScene() and EndPostEffectScene().\n");
+        }
+        UNK_RELEASE_COUNTED(slot);
+    }
+#line 105
+    UNK_LOG("==== IPfxBaseRenderToTexture::~IPfxBaseRenderToTexture() succeeded. ====\n");
+}
 
 // 0x71004ba020
 s32 IPfxBaseRenderToTexture::Initialize(void* context, CGPUBaseResourceManage* util) {
@@ -98,6 +119,14 @@ s32 IPfxBaseRenderToTexture::Uninitialize() {
 #line 347
     UNK_LOG("==== IPfxBaseRenderToTexture::Uninitialize() succeeded. ====\n");
     return 0;
+}
+
+// 0x71004ba2d0: "IPfxRenderToTexture::Instantiate()" is the name its
+// allocation is made under.
+IPfxRenderToTexture_Nvn* Unk_4ba2d0() {
+#line 114
+    return new (Unk_4b99a0(Unk_238d5f8, sizeof(IPfxRenderToTexture_Nvn), __FILE__, __LINE__,
+                           const_cast<char*>("IPfxRenderToTexture::Instantiate()"))) IPfxRenderToTexture_Nvn;
 }
 
 }  // namespace PPFX

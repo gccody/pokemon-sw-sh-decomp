@@ -11,6 +11,7 @@
 
 #include <yebis/YEBIS_draft/include/PPFX/ppfxTypes.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUInterface.h>
+#include <yebis/YEBIS_draft/src/GPU/GPUInterfaceBuffer.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUInterfaceDevice.h>
 #include <yebis/YEBIS_draft/src/GPU/GPURenderTexture.h>
 #include <yebis/YEBIS_draft/src/GPU/GPURenderTexturePool.h>
@@ -20,7 +21,7 @@
 // test bit 0 and lay their blocks out as for a bool)
 bool Unk_442c50_get(u64 device);
 // 0x7100446620: the device of an IGPUResource (with a reference)
-void Unk_446620(void* resource, PPFX::IGPUDevice** device);
+s32 Unk_446620(void* resource, PPFX::IGPUDevice** device);
 
 namespace PPFX {
 

@@ -46,7 +46,8 @@ public:
     virtual u32 vf2();
     virtual u32 vf3();
     virtual void vf4();
-    virtual bool vf5(s32 count);
+    virtual bool vf5(s32 count);  // 0x7100535310
+    virtual void vf6();           // 0x7100535330: releases the programs
 
     u8 field_8[0x180];
     SiString<char> field_188;
@@ -58,7 +59,9 @@ PKMN_SIZE_ASSERT(SiGfxShaderProgramPoolBase, 0x248);
 class SiGfxNXShaderProgramPool : public SiGfxShaderProgramPoolBase {
 public:
     explicit SiGfxNXShaderProgramPool(SiGfxNXDevice* pDevice);
-    ~SiGfxNXShaderProgramPool() override;
+    ~SiGfxNXShaderProgramPool() override;  // 0x71005597d0, 0x7100559820
+    bool vf5(s32 count) override;          // 0x7100559880
+    void vf6() override;                   // 0x71005598a0
 
     void* field_248;
     u64 field_250;

@@ -2,6 +2,7 @@
 // Small virtual functions of a library class (tools/leafgen.py members): placeholder
 // member names vf<slot>, placeholder structs. The class's name is its RTTI's.
 // RTTI: N6SiSDK319SiGfxNXVertexFormatE
+// (The class's other functions are SiGfx_NX_VertexFormat_Impl.cpp's.)
 #include <types.h>
 
 struct Unk_5654d0 {
@@ -128,24 +129,6 @@ struct Unk_5653e0 {
 };
 PKMN_OFFSET_ASSERT(Unk_5653e0, field_7c, 0x7c);
 
-struct Unk_5649e0 {
-    u8 _0[0x30];
-    u8 field_30;
-};
-PKMN_OFFSET_ASSERT(Unk_5649e0, field_30, 0x30);
-
-struct Unk_564a00 {
-    u8 _0[0x60];
-    u32 field_60;
-};
-PKMN_OFFSET_ASSERT(Unk_564a00, field_60, 0x60);
-
-struct Unk_5649f0 {
-    u8 _0[0x28];
-    u8 field_28;
-};
-PKMN_OFFSET_ASSERT(Unk_5649f0, field_28, 0x28);
-
 namespace SiSDK3 {
 class SiGfxNXVertexFormat {
 public:
@@ -169,29 +152,8 @@ public:
     u32 vf25();
     bool vf30();
     const u8* vf32();
-    const u8* vf36();
-    u32 vf37();
-    const u8* vf3();
 };
 }  // namespace SiSDK3
-
-// 0x71005649e0
-const u8* SiSDK3::SiGfxNXVertexFormat::vf36() {
-    const Unk_5649e0* self = reinterpret_cast<const Unk_5649e0*>(this);
-    return &self->field_30;
-}
-
-// 0x71005649f0
-const u8* SiSDK3::SiGfxNXVertexFormat::vf3() {
-    const Unk_5649f0* self = reinterpret_cast<const Unk_5649f0*>(this);
-    return &self->field_28;
-}
-
-// 0x7100564a00
-u32 SiSDK3::SiGfxNXVertexFormat::vf37() {
-    const Unk_564a00* self = reinterpret_cast<const Unk_564a00*>(this);
-    return self->field_60;
-}
 
 // 0x7100564a20
 u64 SiSDK3::SiGfxNXVertexFormat::vf5() {

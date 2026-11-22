@@ -4,6 +4,7 @@
 // allocation), and its instance of SiSDK3::SiPool.
 #include <stdlib.h>
 
+#define UNK_SIFIXEDHEAPALLOCATOR2_IMPL
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_FixedHeapAllocator2.h>
 
 // 0x71004c54a0, 0x71004c5520: string copies

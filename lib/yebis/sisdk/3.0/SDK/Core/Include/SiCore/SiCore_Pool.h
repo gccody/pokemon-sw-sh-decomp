@@ -51,6 +51,11 @@ public:
     void Unk_4bcfa0(ISiAllocator* pAllocator);
     // 0x71004be3f0: returns a T to the free list
     void Unk_4be3f0(T* item);
+    // 0x71004fef10 (SiGfxResourcePool::ResourceItem, its only instance): takes
+    // the T of an index out of the free list, after making room for it; null
+    // if it's in use (declared for the resource pools that call it; not
+    // written yet)
+    T* Unk_4fef10(size_t index);
 
     // a free T, after making room for more if there's none (inline in every
     // caller: placeholder name)

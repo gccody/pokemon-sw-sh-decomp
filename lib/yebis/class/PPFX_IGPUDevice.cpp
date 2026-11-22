@@ -28,7 +28,6 @@ public:
     u32 vf40();
     u32 vf53();
     u32 vf56();
-    u32 vf72();
 };
 }  // namespace PPFX
 
@@ -137,7 +136,3 @@ u32 PPFX::IGPUDevice::vf56() {
     return 0;
 }
 
-// 0x7100442a20
-u32 PPFX::IGPUDevice::vf72() {
-    return 0xffffffff;
-}

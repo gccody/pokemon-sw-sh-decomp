@@ -3,6 +3,10 @@
 
 #include "SiCore_Array.h"
 #include "SiCore_String.h"
+#include "Unk_4bf660.h"
+
+struct Unk_4cf870_arg1;
+struct Unk_4cf890_arg1;
 
 namespace SiSDK3 {
 
@@ -68,6 +72,70 @@ public:
 
     u8 field_80[0x38];
     bool field_b8;
+};
+
+// An event's handler that calls a method of a T (RTTI:
+// SiSDK3::SiReflectionEventHandlerClassMethod<T>). It is reference counted,
+// with the count's functions in this header (their __FILE__, at the
+// original's line); slots 4 to 6 are lib/yebis/class's for the instance the
+// executable has, declared here with that file's placeholder argument types.
+// Placeholder members.
+template <class T>
+class SiReflectionEventHandlerClassMethod {
+public:
+    virtual ~SiReflectionEventHandlerClassMethod() {}
+    virtual u32 vf2();
+    virtual u32 vf3();
+    virtual u32 vf4();
+    virtual void vf5(::Unk_4cf870_arg1* value, bool arg2);
+    virtual void vf6(::Unk_4cf890_arg1* value, bool arg2);
+
+    Unk_4bf660 field_8;
+};
+
+template <class T>
+u32 SiReflectionEventHandlerClassMethod<T>::vf2() {
+    return __atomic_add_fetch(&field_8.m_count, 1, __ATOMIC_SEQ_CST);
+}
+
+template <class T>
+u32 SiReflectionEventHandlerClassMethod<T>::vf3() {
+    u32 n = __atomic_sub_fetch(&field_8.m_count, 1, __ATOMIC_SEQ_CST);
+    if (n == 0) {
+        ISiAllocator* pAllocator = field_8.m_pAllocator;
+        this->~SiReflectionEventHandlerClassMethod();
+        if (pAllocator != nullptr && static_cast<void*>(pAllocator) != this) {
+#line 731
+            SI_FREE(pAllocator, this);
+        }
+    }
+    return n;
+}
+
+// What turns an enumeration's values into names and back (RTTI:
+// SiSDK3::SiEnumConverter<T>): two functions, either of which may be missing.
+// Placeholder members.
+template <class T>
+class SiEnumConverter {
+public:
+    virtual ~SiEnumConverter() {}
+    virtual const char* vf2(T value) {
+        if (field_18 != nullptr) {
+            return field_18(value);
+        }
+        return nullptr;
+    }
+    virtual T vf3(const char* name) {
+        if (field_20 != nullptr) {
+            return field_20(name);
+        }
+        return static_cast<T>(0);
+    }
+
+    u64 field_8;
+    u64 field_10;
+    const char* (*field_18)(T value);
+    T (*field_20)(const char* name);
 };
 
 }  // namespace SiSDK3

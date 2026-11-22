@@ -2,6 +2,7 @@
 // Small virtual functions of a library class (tools/leafgen.py members): placeholder
 // member names vf<slot>, placeholder structs. The class's name is its RTTI's.
 // RTTI: N6SiSDK314SiGfxNXTextureE
+// (The class's other functions are SiGfx_NX_Texture_Impl.cpp's.)
 #include <types.h>
 
 struct Unk_5624e0 {
@@ -139,24 +140,6 @@ struct Unk_561db0 {
 };
 PKMN_OFFSET_ASSERT(Unk_561db0, field_338, 0x338);
 
-struct Unk_55f2c0 {
-    u8 _0[0x38];
-    u8 field_38;
-};
-PKMN_OFFSET_ASSERT(Unk_55f2c0, field_38, 0x38);
-
-struct Unk_55f2e0 {
-    u8 _0[0xa8];
-    u32 field_a8;
-};
-PKMN_OFFSET_ASSERT(Unk_55f2e0, field_a8, 0xa8);
-
-struct Unk_55f2d0 {
-    u8 _0[0x30];
-    u8 field_30;
-};
-PKMN_OFFSET_ASSERT(Unk_55f2d0, field_30, 0x30);
-
 namespace SiSDK3 {
 class SiGfxNXTexture {
 public:
@@ -173,7 +156,6 @@ public:
     void vf14();
     void vf15(u32 value);
     u32 vf16();
-    u8* vf18();
     const u8* vf19();
     u64 vf20();
     u64 vf21();
@@ -186,29 +168,8 @@ public:
     u64 vf40();
     u64 vf41();
     u32 vf43();
-    const u8* vf46();
-    u32 vf47();
-    const u8* vf3();
 };
 }  // namespace SiSDK3
-
-// 0x710055f2c0
-const u8* SiSDK3::SiGfxNXTexture::vf46() {
-    const Unk_55f2c0* self = reinterpret_cast<const Unk_55f2c0*>(this);
-    return &self->field_38;
-}
-
-// 0x710055f2d0
-const u8* SiSDK3::SiGfxNXTexture::vf3() {
-    const Unk_55f2d0* self = reinterpret_cast<const Unk_55f2d0*>(this);
-    return &self->field_30;
-}
-
-// 0x710055f2e0
-u32 SiSDK3::SiGfxNXTexture::vf47() {
-    const Unk_55f2e0* self = reinterpret_cast<const Unk_55f2e0*>(this);
-    return self->field_a8;
-}
 
 // 0x710055f300
 u64 SiSDK3::SiGfxNXTexture::vf5() {
@@ -343,11 +304,6 @@ const u8* SiSDK3::SiGfxNXTexture::vf38() {
 u32 SiSDK3::SiGfxNXTexture::vf4() {
     const Unk_5624e0* self = reinterpret_cast<const Unk_5624e0*>(this);
     return self->field_20;
-}
-
-// 0x7100562510
-u8* SiSDK3::SiGfxNXTexture::vf18() {
-    return &Unk_1f0028c;
 }
 
 // 0x7100562520

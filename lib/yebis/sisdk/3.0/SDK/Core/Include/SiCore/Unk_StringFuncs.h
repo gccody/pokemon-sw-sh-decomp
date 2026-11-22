@@ -23,8 +23,28 @@ public:
     virtual const s64* vf5();
 };
 
+// A string table as the other libraries' kernels use theirs (ISiStringTable's
+// slots: 3 drops a reference, 8 and 9 start and end changes, 11 adds a
+// language's texts).
+class Unk_StringTableInterface {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual bool vf11(const Unk_4ca820_arg0& language, const void* items);
+};
+
 // The kernel as SiIO's and SiGfx's code uses it: slot 12 is its allocator,
-// slot 15 its system info, slot 24 its language.
+// slot 15 its system info, slot 23 makes a string table, slot 24 is its
+// language, slots 26 and 27 add a string table under an id and remove it.
 class Unk_KernelInterface {
 public:
     virtual void vf0();
@@ -50,8 +70,11 @@ public:
     virtual void vf20();
     virtual void vf21();
     virtual void vf22();
-    virtual void vf23();
+    virtual Unk_StringTableInterface* vf23(ISiAllocator* pAllocator);
     virtual const Unk_4ca820_arg0* vf24();
+    virtual void vf25();
+    virtual bool vf26(const void* id, Unk_StringTableInterface* table);
+    virtual bool vf27(Unk_StringTableInterface* table);
 };
 inline Unk_KernelInterface* Unk_GetKernel() {
     return reinterpret_cast<Unk_KernelInterface*>(Unk_4bf7b0_get());
@@ -148,6 +171,23 @@ inline void Unk_StringAppend(SiString<T>* self, T c) {
     self->m_pBuffer[length] = c;
     self->field_10++;
     self->m_pBuffer[length + 1] = 0;
+}
+
+// Appends a string (nothing for a null or empty one). The capacity is set
+// whatever it was.
+template <class T>
+inline void Unk_StringAppend(SiString<T>* self, const T* s) {
+    if (s != nullptr && *s != 0) {
+        size_t count = 0;
+        while (s[count] != 0) {
+            count++;
+        }
+        Unk_StringSetCapacity(self, self->field_10 + count + 1, true);
+        size_t length = self->field_10;
+        memcpy(self->m_pBuffer + length, s, count * sizeof(T));
+        self->field_10 += count;
+        self->m_pBuffer[length + count] = 0;
+    }
 }
 
 }  // namespace SiSDK3
