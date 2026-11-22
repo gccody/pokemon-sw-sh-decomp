@@ -3018,24 +3018,49 @@ could pin with it):
 | `CURLINFO_LONG + 50`, the 7.58.0 and 7.61.1 fixes, `Curl_wait_ms` | 375 |
 | The resolver threads | 390 |
 | The backend's recv and send | 392 |
+| The backend's connect and close, the thread creation | 395 |
 
-The 392 are 159,844 bytes (110,172 with 356, 22,444 at first). The other
-three are `M` (2,540 bytes, below).
+All 395 match, 162,384 bytes (159,844 with 392, 110,172 with 356, 22,444 at
+first).
 
-#### What doesn't match
+#### The last three
 
-Three of Nintendo's functions, reconstructed, with the same calls and tests
-as the originals but laid out or allocated differently. They're in files
-that aren't upstream's, so each has a `NON_MATCHING` comment:
+Three of Nintendo's functions, which had the same calls and tests as the
+originals but were laid out or allocated differently. What made them match,
+with what each says about Nintendo's source:
 
-- **The backend's connect** (`Unk_1777650`, 1,940 bytes): the would-block
-  handshake jumps straight to the `CURLE_OK` return, where the original goes
-  through the error dispatch, and the frame is 0xa0 bytes (0x90).
-- **The backend's close** (`Unk_1777df0`, 220 bytes): the original computes
-  `&conn->ssl[sockindex]` again for `field_118` after storing `state`.
-- **The thread creation** (`Unk_1778b10`, 380 bytes): the original tests the
-  result before the handle in the cleanup, and copies the allocation into
-  the handle when it's NULL.
+- **The backend's close** (`Unk_1777df0`, 220 bytes) resets `state` only
+  after it has destroyed a connection. That's the store the original
+  reaches through its own `&conn->ssl[sockindex]`. The connect's failures
+  inline the same code (0x7101777cc4), but `Unk_1777df0` costs 405 to the
+  inliner against a threshold of 250, so the connect calls a static copy
+  that nothing else calls (`close_connection`, which gets the last-call
+  bonus).
+- **The thread creation** (`Unk_1778b10`, 380 bytes): the handle is the
+  allocation itself (so it's NULL when `malloc` fails), and a second pointer
+  is the thread being set up. The handle is declared before the result:
+  Reassociate orders the cleanup's two tests (the result's failure, then
+  the handle) by the rank of their phis, which follows the declarations.
+- **The backend's connect** (`Unk_1777650`, 1,940 bytes):
+  - The handshake's locals (the certificates' size and count, the 7 bytes
+    copied into the callback's struct) are declared in a block that ends
+    right before the `CURLE_OK` test. LLVM 7's jump threading counts each
+    `lifetime.end` in a block's duplication cost (threshold 6), so it no
+    longer takes the would-block `CURLE_AGAIN` straight to the return. The
+    original tests it (`mov w21, #0x51; cbnz w21`).
+  - The setup's failures set the result inside the setup's block and leave
+    it with `goto fail`: `CURLE_SSL_CONNECT_ERROR` is set once, before
+    `nnsslConnectionCreate`. Each failure then reaches the `CURLE_AGAIN`
+    test through the phi of clang's cleanup switch, as in the original,
+    instead of being threaded to the close.
+  - The callback reads `result == CURLE_OK`, `conn->data` and its
+    `field_38` before filling the struct it's passed. That's the post-RA
+    scheduler's order.
+  - Two values were wrong: the host name passed to
+    `nnsslConnectionSetHostName` is `conn->host.dispname` (+0xe0), and the
+    verify error that gives `CURLE_SSL_CACERT` is 0x2687b (0x25a7b + 0xe00,
+    not 0x2947b). The last `else` of the verify mapping is gone: it set the
+    result to the value it already had and became a `csel`.
 
 #### Names and `check.py`
 
