@@ -224,7 +224,7 @@ SiSDK3's core library starts YEBIS's second half. Its TUs, in address order
 | 0x4c6090-0x4c8620 | `SiCore_StringTable_Impl.cpp` | `SiStringTable` and its `Entry` |
 | 0x4c86a0-0x4c8840 | `Unk_4c86a0.cpp` | `SiCoreCriticalSection`, the scoped lock |
 | 0x4c88c0-0x4c8ef0 | `SiCore_SystemInfo_Impl.cpp` | `SiSystemInfo` |
-| 0x4c8f70-0x4ca620 | `Unk_4c8f70.cpp` | ids (`SI_GUID`), the tick's period, noise; a report function, languages (not written) |
+| 0x4c8f70-0x4ca620 | `SiCore_Utility.cpp` (the default allocator callback's `__FILE__`) | ids (`SI_GUID`), the tick's period, noise, a string's formatting, names of numbers, the default allocator's callback; a report function, languages (not written) |
 | 0x4ca6a0-0x4ca7a0 | `Unk_4ca6a0.cpp` | the noise's tables |
 
 What decided matches here, beyond the list above:
@@ -758,23 +758,9 @@ Tried and not written:
   instance is 0x71004be7d0): the reconstruction keeps `&m_pData` in a register
   across the loop and clears 24 bytes with one `memset`, where the original
   has a store and a `memset` of 16.
-- Each library's table for a locale (0x7100579c60, 0x7100587be0,
-  0x71005952e0, 0x71005967f0, 1192 bytes each; SiCore's is 0x71004ca820): two
-  strings in 64-character buffers on the stack, the locale's language and
-  country from 0x71004c9390, "neutral" for an empty one, then three pairs of
-  comparisons without case ("neutral"/"neutral", "en"/"neutral",
-  "ja"/"neutral") that pick one of three tables. The comparison is inline
-  (`tolower` of each character, less: differs, greater: differs, then the next
-  two characters; at the end the strings are equal if the first has ended and
-  both characters are 0). The original keeps `b.lo` and `b.hi` as two branches
-  to the same block and tests `(b | a) | a` at the end, which says that the
-  branches were merged after the last InstCombine. Every form tried gives one
-  `eor`/`tst`/`b.ne`: early returns of -1 and 1, a result variable with
-  `break`, the result in the loop's condition with `continue`, a character
-  compare of its own, a `bool`. The same comparison is in 0x71004f5100,
-  0x7100571c00 and 0x7100573480. The kernels' functions that call the tables
-  (0x710057d3f0, 0x7100594a20, 0x7100595cc0, 240 bytes each) don't need the
-  definition.
+- Each library's table for a locale is written now (see the next section):
+  the same comparison is in 0x71004f5100, 0x7100571c00 and 0x7100573480,
+  which aren't.
 - `Unk_57d4e0` and `Unk_594b10` have leafgen's names of functions without
   arguments but read `this`: they can't be written under those names.
 
@@ -797,3 +783,268 @@ resource classes, and of SiGfxShaderEffectPackage: slot 13 (0x7100568e60),
 `Unk_56ce60`, `Unk_56d040`, slot 21 (0x710056c880), the sort 0x71005692a0,
 `ShaderEffectData`'s destructor (0x7100566cc0) and the program map's
 (0x710056d950).
+
+## Later round: NX resources (0x710055b740 to 0x7100566070), locale tables, the canvas
+
+Written in this round: `SiGfxNXVolume`, `SiGfxNXVertexFormat`,
+`SiGfxNXSurface`, `SiGfxNXFont` (each in `Libsrc/SiGfx/Source/NX/SiGfx_NX_<Class>_Impl.*`,
+names from their `__FILE__`s), the small accessors of `SiGfxNXCanvas`, the
+NX number tables (`Unk_562ee0.cpp`), the five locale tables
+(`Unk_LocaleTable.h`), `SiGfxNXRootSignature`'s destructors.
+
+### Idioms that decided matches here
+
+- **The comparison without case is rotated on its own**
+  (`Unk_StringCompare.h`). Its lowered characters are declared before the
+  loop: declared in it, the returns in the loop leave a scope and the loop's
+  end is merged with them before LoopRotate runs, and the loop is only rotated
+  later, in its caller. The locale tables compare with constant strings and
+  show the difference: the constant's first character isn't tested, an empty
+  string jumps past all three comparisons, and the constant's end is a test of
+  the index (`cmp x24, #7`).
+- **`SiArray`'s clear has the array delete written out**, not a call of the
+  inline `Unk_FreeData`: for an element with a large destructor
+  (`SiGfxNXRootSignature`'s parameters, 0x71005581e0) the original has the
+  delete's loop inline in the clear and the clear out of line. With the call,
+  clang keeps `Unk_FreeData` out of line and inlines the clear.
+- **A destructor that empties its arrays itself** (`field.Unk_FreeAll()` in
+  the body, then the members' own destructors) has each array's vtable stored
+  after its buffer is freed. `SiGfxNXRootSignature` and the object that holds
+  a parameter's ranges do that.
+- **A block zeroed by assigning a value-initialised struct**
+  (`field_78 = Unk_78();`) stays apart from the zero stores next to it. With
+  `memset`, MemCpyOpt merges a neighbouring zero store into it and the stores
+  come out in another order (`SiGfxNXVolume::Unk_565c10`,
+  `SiGfxNXSurface::Unk_55c9a0`).
+- **Constructors value-initialise the resource's info and what follows it**
+  (`field_60(0), field_64(), field_78()`) and assign the kind in the body:
+  the hash's zero and the info's become one 64-bit zero store at 0x60, and the
+  kind's store follows it.
+- **The name's getters go with the class's translation unit.** leafgen had
+  named the second vtable's slot 3 `vf3` in `lib/yebis/class`: it is the
+  `_ZThn8_` thunk of the name's getter, and the class's own `vf3` is the
+  reference count's. The getter and the hash's getter are defined with the
+  class, which emits their thunks.
+- **A loop over the elements with two limits** is
+  `for (s32 i = 0; i < count && i < 32; i++)`: with an `int` counter the
+  member's load is the second condition's only extra instruction, the two
+  conditions become one block before the loop is rotated, and both tests end
+  up at the loop's end (`cmp x21, #0x1f ; b.hi` then the count).
+- **Switches that became tables** (`Unk_562ee0.cpp`): the cases are the
+  original's table's entries; the first and last entries are
+  never the default (LLVM wouldn't have included them), holes are left to the
+  default, and cases that return their own value become a linear map or a
+  mask test.
+- **A member read into a local before a test of two pointers**
+  (`Cache* p = field_268; if (text == nullptr || p == nullptr) return false;`)
+  makes the two tests one block: the result is set before the first test
+  (`mov w0, wzr ; cbz x1`) and every path shares one return
+  (`SiGfxNXFont::vf21`). With the member read in the second test, each early
+  return gets an epilogue of its own.
+- **Two limits tested without a short circuit** (`(index > 3) | (index >=
+  count)`, after `if (index < 0) return nullptr;`) keep the sign's test apart
+  from the comparison with 3 (`tbnz ; cmp w1, #3 ; b.gt`): the count is read
+  before either limit is tested, so their block can't be merged with the
+  sign's. With `||`, InstCombine sinks the count's load behind the first
+  limit, whose test then joins the sign's as one unsigned comparison. The
+  index is a `const s32&` there: `SiGfxNXCanvas`'s slots that pass a member
+  compare index and count in the order of two loads as written.
+- **A function that stores through a class is a member of it.** With the
+  object as an untyped pointer its member accesses are byte offsets, and two
+  stores to different members at the ends of two branches are merged into one
+  store with a computed offset (`SiGfxNXSurface::Unk_55cd70`).
+- **A string with its buffer in itself** (`Unk_NXFontString<N>`: a
+  `SiString<char>` followed by `char[N]`) has the buffer's address computed
+  from the string's (`mov x8, sp ; add x8, x8, #0x30`), where a separate
+  array's is one `add` from `sp`.
+- **A thunk of a function that always returns the same value** calls it and
+  loads the value itself (`bl ; mov w0, #1`) when the function is too large
+  to be inlined into the thunk (`SiGfxNXFont`'s name setter).
+- **Flags kept in a byte** have their masks as bytes (`and w9, w8, #0xf8`
+  where an `u32` gives `#0xfffffff8`).
+
+### Near misses and what's left
+
+- The five locale tables (`m`): two registers exchanged in the loop that
+  compares the language with "en". The two live ranges are within half an
+  instruction of each other when registers are assigned.
+- `SiArray<RootParameterEntry>::Unk_4e3050` (`m`): `subs`/`add` exchanged at
+  the end of the loop over the parameters.
+- `SiGfxNXVertexFormat`: `Unk_564cd0`, slots 17 and 20 (`M`). The elements'
+  loops are the original's; the fill of the two tables before them and the
+  second loop's loads aren't (notes in the file).
+- `Unk_562f40` (`M`): the cases are the original's, the way they share code
+  isn't. `Unk_563620` (`m`): the last select.
+
+Traced, not written: `SiGfxNXTexture` (three bases: ISiInterface, the named
+object at 8 and an interface with a GUID at 0x10, whose slots are the class's
+17 and 18; `Unk_538d70` at 0x18, the device at 0x28, the name in a
+64-character buffer of its own at 0x38, its hash at 0xa8, the kind at 0x1d4,
+the levels and layers at 0x22c and 0x230, the surfaces' array's data at 0x260
+and the volumes' at 0x2b0, the NVN texture at 0x328, the views at 0x370);
+`SiGfxNXSurface`'s `Unk_55cd70` (its description from the NVN texture and the
+texture it is part of: written since); `SiGfxNXCanvas`'s constructor,
+destructor and the functions that make it; `SiGfxNXFont`'s slot 18, which
+makes the face.
+
+## Later round: draw context, buffer and texture slots, SiCore_Utility.cpp, format helpers, the utilities, PPFX's resources
+
+Written in this round: `SiGfxNXDrawContext`'s forwarders and draw slots,
+`SiGfxNXBuffer`, `SiGfxNXTexture`'s accessors (`NX/SiGfx_NX_<Class>_Impl.*`);
+`SiCore_Utility.cpp` (the file's name is its allocator callback's
+`__FILE__`) and `Unk_4cad50.cpp` with their static initialisers; the event
+handler and enumeration converter templates of `SiCore_Reflection.h`; the
+format helpers of `Libsrc/SiGfx/Source/Unk_4ed060.cpp` (names of the
+graphics interfaces and shader languages, bits and block bytes of a pixel
+format, mip counters, pixel and index writers, the formatted append);
+`SiGfxImageUtility`, `SiGfxDisplayUtility` and the constructors and
+destructors of `SiGfxGeometryUtility` and `SiGfxTextureUtility`
+(`SiGfx_<Class>_Impl.*`); PPFX's `IGPUResource` (`GPUInterfaceResource.*`)
+and `IGPUPixelContainer` (`Unk_4460c0.cpp`).
+
+### Idioms that decided matches here
+
+- **A draw slot keeps the command list in a local** (`Unk_NXDrawCommandList*
+  pList = field_28;`) and tests the instance count as `if (instances <= 1)
+  { arrays } else { instanced }`.
+- **The order of an expression's operands is the order of its loads**:
+  `static_cast<s64>(field_8d4) * first + field_8c8`, `field_38 * field_30`.
+  An index read into a local first (`s32 index = field_150; data[index]`) is
+  loaded before the pointer it indexes. A call's result kept in a local
+  before the next call (`void* font = field_18->vf56(index);
+  field_3780.Unk_544010(font);`) is two statements in the original too.
+- **A member read into a local before a test of several things**
+  (`u32 kind = field_1d4; if (level < 0 || kind == 3) return nullptr;`)
+  gives the texture accessors' single block.
+- **The order two loop variables are declared in is the order of their
+  phis**, and that decides more than their registers: `s32 i; u32 result =
+  0; for (i = 0; ...)` for the bit reader of `SiCore_Utility.cpp`; and the
+  mip counters copy their parameters to locals (`s32 n = 0; s32 w = width;
+  s32 h = height;`), because Reassociate orders `w > 0 || h > 0` by the
+  phis, whatever order the source has the two tests in.
+- **A static object with a zeroing constructor keeps its store in the static
+  initialiser only if some function of the TU changes it**
+  (`Unk_4cad50.cpp`'s counter: the writer isn't in the executable and is
+  listed in `data/absent_functions.csv`).
+- **Tables of strings in `.data`** are zero in the image: their pointers are
+  relocations (`check.Original("sword").dyn.slots[address - BASE]`). A table
+  indexed without a range test is an array in the source (the interface and
+  language names); with one it is a switch.
+- **A switch compiled to a table keeps explicit cases that return the
+  default's value** when they are at an end of the range: the bits per pixel
+  table goes to case 104 because 94 to 104 are written out returning 0.
+  `gen_lut.py`-style generation has to emit those cases.
+- **Two cases that differ in one bit**: `switch (x) { case 44: case 45: }`
+  gives `(x & ~1) == 44`; `x == 44 || x == 45` gives `(x | 1) == 45`.
+- **The order of a switch's cases decides which case's last block shares the
+  function's return** (the index writer's cases are 2, 4, 3, 5).
+- **A clamp that stays in front of the branch it shares a test with**:
+  `size_t length = static_cast<u32>(n < 0 ? 0 : n); if (!(n < 0)) { ... }`.
+  Widened where it is declared, the select has a use in its own block and
+  isn't sunk into the `if`; with the same test as the `if`, the compare has
+  two uses and the select isn't turned into a maximum (`bic`).
+- **Counting an array down**: `for (s32 i = static_cast<s32>(count - 1); i >=
+  0; i--)` (the subtraction in `size_t`, then truncated) gives `subs ; b.mi`
+  and a 64-bit index whose sign is tested in 32 bits (the image utility's
+  searches); `static_cast<s32>(count) - 1` gives `cmp #1 ; b.lt`
+  (`SiArray::Unk_RemoveValue`).
+- **Appending a C string to a `SiString`** (`Unk_StringAppend` in
+  `Unk_StringFuncs.h`) sets the capacity without comparing it first.
+- **The utilities** have an `Unk_4bf660` at 8 and arrays of pointers after
+  it: `: field_8(pAllocator), field_18(pAllocator)` and a destructor whose
+  body is `Unk_ReleaseAll(&field_18);`. Their reference counts are at
+  `#line 32` of their headers (`SiGfxDisplayUtility`: 33).
+- **An abstract class's complete and deleting destructors are traps** (clang
+  emits `brk` for them: `IGPUPixelContainer`'s slot 3). Its base destructor
+  is a function of its own (`b ~IGPUResource`) only when the destructor is
+  defined in the .cpp; an implicit one is replaced by the base's in the
+  vtable.
+- **`push_back` of an lvalue compares the end with `!=`, of an rvalue with
+  `<`** (libc++ 7): `IGPUResource* self = this; list.push_back(self);`.
+- **A chain of `if (x & bit) flags |= other;`** is ordered by Reassociate:
+  the order of the source's tests showed only in the registers. Trying the
+  120 orders found `IGPUResource::vf4`'s; the member tested last was read
+  into a local first.
+
+### Near misses and what's left
+
+- `SiGfxNXDrawContext`: slot 15 (`m`) and slot 20 (`M`); `SiGfxNXTexture`:
+  slots 27 and 28 (`M`). Notes in the files.
+- `IGPUResource`'s base destructor (`m`): one branch. For an empty list the
+  original goes straight to the end, the source's `std::find` and `erase`
+  to the test after the search. The deleting destructor, which has it
+  inline, matches. An `empty()` test around it, a loop by hand and the range
+  `erase` were tried.
+- `IGPUPixelContainer`'s slot 7 (`m`): where -6 is put in `w0` (its note).
+- `SiGfxImageUtility`'s slot 18 and the three functions it calls
+  (0x71004d1a70, 0x71004d2110, 0x71004d2280), `SiGfxPerformanceUtility`
+  (traced: its constructor's members are in the notes below),
+  `SiGfxShaderUtility`, the rest of the format helpers' TU (0x71004ed720,
+  0x71004ed850 to 0x71004ee870) aren't written.
+- `SiGfxPerformanceUtility` (0x2a0 bytes): `Unk_4bf660` at 8; 0x20 two
+  bools (true, false); floats 60, 14, 5, 10, 0.5 from 0x34, `u32` 1 at 0x48,
+  -1 at 0x4c; arrays of `RenderPerfBarSegmentData` (12 bytes) at 0x60 and
+  `RenderPerfBarTextData` (0x88 bytes) at 0xb0; an object destroyed by
+  0x71004e2120 at 0x108 (its count of pairs of interfaces at 0x11c, 4 at
+  first); arrays of `RollingPerfData<float>` and `<int>` (0x68 bytes) at
+  0x160, 0x1b0, 0x200 and 0x250.
+- PPFX's resource classes (0x71004437f0 to 0x7100449de0), by RTTI:
+  `IGPUSurface : IGPUPixelContainer`; `IGPUTexture` and `IGPUVolumeTexture :
+  IGPUBaseTexture : IGPUPixelContainer`; `IGPUVertexBuffer` and
+  `IGPUIndexBuffer : IGPUBuffer : IGPUResource` (`GPUInterfaceSurface.*`,
+  `GPUInterfaceTexture.*`, `GPUInterfaceBuffer.*`). Written: the surface's
+  destructors, slots 12 and 13 and the function that wraps a SiGfx render
+  target (0x7100445620); all of `IGPUBaseTexture`'s small slots (the rows
+  leafgen had named after `IGPUVolumeTexture`, whose vtable comes first),
+  the textures' destructors and `IGPUTexture`'s slots 10, 23 and 24;
+  `IGPUBuffer`'s destructors and `Unmap`. What decided them:
+  - the surface's constructor is inline in the functions that make one; a
+    member it assigns in its body rather than its initialiser list
+    (`field_80`) is stored after the ones the list has;
+  - `IGPUBaseTexture`'s deleting destructor (a trap) isn't in the
+    executable, nothing keeps the abstract class's vtable: it is in
+    `data/absent_functions.csv`;
+  - the textures' destructors call the bytes-per-pixel helper before they
+    multiply (`Unk_446ae0(format) * width * height`);
+  - slot 21's two paths that store the applied state share the store
+    (`if (check) { ...; if (state == applied) return 1; } else { field_78 =
+    state; } field_7c = state;`);
+  - `Unmap` reads the buffers' array and the index into locals before the
+    device.
+- Left there: the surface's slots 10, 11, 14 to 16 and the functions that
+  make surfaces (0x7100443920 to 0x7100445740); `IGPUBaseTexture`'s slot 9
+  (0x7100447320, the lock) and the textures' slots 11 and 22 and their
+  makers; `IGPUBuffer::Map`, the buffers' builders and makers (the vertex
+  and index buffers' deleting destructors come with those: their vtables
+  are only emitted where a buffer is constructed). `IGPUBuffer`'s base
+  destructor is `m`: the two reloads after the loop's calls are exchanged.
+  `IGPUBuffer`'s constructor, as the makers have it inline: 0x44 and 0x48
+  zero, the array at 0x50 null, the map information at 0x60 (3, 0, -1, 0,
+  false, four zero words), 0x58 zero, the two bools at 0x5d zero, 0xa0
+  null, 0xa8 the address of 0x50; then the base's `field_20 = false`, the
+  kind (8, 6 for a vertex buffer), the usage, and the flags without 0x300
+  when the usage has 0x800.
+- Small functions leafgen doesn't write, added by hand in its style
+  (`lib/yebis/leaf/Unk_455350.cpp`, and two generated class files): setters
+  that select between a float and a default (`if (value <= 0.0f) value =
+  64.0f;` gives `fcsel ..., hi`; `value > 0.0f ? value : 64.0f` gives
+  `gt`), copies of two- and four-float structures, comparators for sorts.
+- `CPostEffect`'s setters whose floats the generated API wrappers of
+  `lib/yebis/leaf/Unk_4182e0.cpp` had dropped (0x7100423780, 0x7100423b50,
+  0x7100423cd0, 0x71004253e0): the wrappers pass the floats now, and both
+  rows are renamed. Two floats stored as one 64-bit word (`fmov ; bfi ;
+  stur x8`) are a two-float structure built first and then assigned
+  (`Unk_Float2 value(a, b); s32 view = field_860; field_858[view].field_44 =
+  value;`): the value before the index, the index before the array.
+- `SiYebisAllocator` (`GPUMemoryAllocator.*`): its block has the address
+  handed out and the element count in front, and the distance back to the
+  block in the eight bytes before the address. Its free computes the block
+  before it reads PPFX's allocator.
+- `ISiGfxKernel::EventHandler` and the draw helpers' handlers: the base's
+  destructor is inline (its deleting one a trap); a handler's destructor
+  defined in its .cpp is a function of its own with the base's inline (it
+  stores the base's vtable), where an inline one is replaced by the base's.
+  The base's reference counts are defined only for the TU that asks
+  (`UNK_SIGFX_KERNEL_EVENTHANDLER_DEFINE`), now that other headers include
+  it.
+
