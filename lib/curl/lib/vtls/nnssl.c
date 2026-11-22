@@ -100,21 +100,56 @@ struct Unk_1777650_Handshake {
 };
 _Static_assert(sizeof(struct Unk_1777650_Handshake) == 0x18, "Handshake");
 
+/* curlssl_close()'s body (Unk_1777df0) again, for the connect's failures.
+   The connect inlines its own copy: Unk_1777df0 itself costs 405 to the
+   inliner (threshold 250), so only a static function the connect alone
+   calls (the last-call bonus) is inlined. */
+static void close_connection(struct connectdata *conn, int sockindex)
+{
+  struct ssl_connect_data *connssl = &conn->ssl[sockindex];
+  uint64_t id = 0;
+  nnResult result;
+  result = nnsslConnectionGetConnectionId(connssl->field_10, &id);
+  if(!nnResultIsFailure(result) && id) {
+    result = nnsslConnectionDestroy(connssl->field_10);
+    if(nnResultIsFailure(result)) {
+      /* nothing in a release build */
+    }
+    connssl->state = ssl_connection_none;
+  }
+  if(!connssl->field_118) {
+    void *context = connssl->field_110;
+    id = 0;
+    if(context) {
+      bool failed;
+      result = nnsslContextGetContextId(context, &id);
+      failed = nnResultIsFailure(result);
+      if(id && !failed) {
+        result = nnsslContextDestroy(connssl->field_110);
+        if(nnResultIsFailure(result)) {
+          /* nothing in a release build */
+        }
+      }
+    }
+  }
+}
+
 /* Sword 0x7101777650: curlssl_connect_nonblocking(). The CURLcodes 0x5d,
-   0x5e, 0x5f and 0x61 are Nintendo's (curl 7.55.1's end at 92). */
-/* NON_MATCHING: the same calls and tests, laid out differently: this
-   jumps from the would-block handshake straight to the CURLE_OK return,
-   where the original goes through the error dispatch, and spills more (a
-   0xa0-byte frame, the original's is 0x90). */
+   0x5e, 0x5f and 0x61 are Nintendo's (curl 7.55.1's end at 92).
+
+   What the layout says about the source: the setup's failures all leave
+   its block with result set (the original's connect error goes through
+   the CURLE_AGAIN test like the others), and the handshake's locals end
+   their lifetimes right before the CURLE_OK test, which keeps jump
+   threading from taking the would-block result straight to the return.
+   The callback's first and third arguments are read before the handshake
+   struct is filled. */
 CURLcode Unk_1777650(struct connectdata *conn, int sockindex, bool *done)
 {
   CURLcode result = (CURLcode)0x61;
   struct ssl_connect_data *connssl;
   struct Curl_easy *data;
   nnResult nnresult;
-  uint32_t certCount;
-  uint32_t certSize;
-  unsigned char unknown[7];
 
   if(!conn || !done)
     return result;
@@ -167,22 +202,24 @@ CURLcode Unk_1777650(struct connectdata *conn, int sockindex, bool *done)
       result = (CURLcode)0x5e;
       goto fail;
     }
+    result = CURLE_SSL_CONNECT_ERROR;
     if(nnResultIsFailure(nnsslConnectionCreate(connssl->field_10,
                                                connssl->field_110)))
-      goto connect_error;
+      goto fail;
     nnsocketFcntl(conn->sock[sockindex], F_SETFL, 0);
     if(nnResultIsFailure(nnsslConnectionSetOption(connssl->field_10, 0,
                                                   TRUE)))
-      goto connect_error;
+      goto fail;
     if(nnResultIsFailure(nnsslConnectionSetSocketDescriptor(
          connssl->field_10, conn->sock[sockindex])))
-      goto connect_error;
+      goto fail;
     if(nnResultIsFailure(nnsslConnectionSetHostName(
-         connssl->field_10, conn->host.name, strlen(conn->host.name))))
-      goto connect_error;
+         connssl->field_10, conn->host.dispname,
+         strlen(conn->host.dispname))))
+      goto fail;
     if(nnResultIsFailure(nnsslConnectionSetOption(
          connssl->field_10, 2, conn->data->set.ssl.primary.field_40)))
-      goto connect_error;
+      goto fail;
     verify = conn->data->set.ssl.primary.verifypeer;
     if(conn->data->set.ssl.primary.verifyhost)
       verify |= 2;
@@ -190,10 +227,10 @@ CURLcode Unk_1777650(struct connectdata *conn, int sockindex, bool *done)
       verify |= 4;
     if(nnResultIsFailure(nnsslConnectionSetVerifyOption(connssl->field_10,
                                                         verify)))
-      goto connect_error;
+      goto fail;
     if(nnResultIsFailure(nnsslConnectionSetSessionCacheMode(
          connssl->field_10, conn->data->set.ssl.primary.sessionid)))
-      goto connect_error;
+      goto fail;
     if(conn->data->set.ssl.primary.field_28 &&
        ((int (*)(struct Curl_easy *, void *, void *))
         conn->data->set.ssl.primary.field_28)(
@@ -213,35 +250,42 @@ CURLcode Unk_1777650(struct connectdata *conn, int sockindex, bool *done)
     result = CURLE_OPERATION_TIMEDOUT;
     goto close;
   }
-  data->set.ssl.primary.field_20 = NULL;
-  data->set.ssl.certverifyresult = 0;
-  certCount = 0;
-  certSize = 0;
-  memset(unknown, 0, sizeof(unknown));
-  nnresult = nnsslConnectionDoHandshakeWithCertBuffer(connssl->field_10,
-                                                      &certSize, &certCount);
-  result = CURLE_OK;
-  if(nnResultIsFailure(nnresult)) {
-    if(result_is(nnresult, UNK_RESULT_WOULD_BLOCK))
-      result = CURLE_AGAIN;
-    else {
-      data->set.ssl.primary.field_20 = (void *)(uintptr_t)nnresult.value;
-      result = result_is(nnresult, UNK_RESULT_WOULD_BLOCK + 0x600) ?
-               CURLE_PEER_FAILED_VERIFICATION : CURLE_SSL_CONNECT_ERROR;
+  {
+    unsigned char unknown[7];
+    uint32_t certSize;
+    uint32_t certCount;
+    data->set.ssl.primary.field_20 = NULL;
+    data->set.ssl.certverifyresult = 0;
+    memset(unknown, 0, sizeof(unknown));
+    certSize = 0;
+    certCount = 0;
+    nnresult = nnsslConnectionDoHandshakeWithCertBuffer(connssl->field_10,
+                                                        &certSize, &certCount);
+    result = CURLE_OK;
+    if(nnResultIsFailure(nnresult)) {
+      if(result_is(nnresult, UNK_RESULT_WOULD_BLOCK))
+        result = CURLE_AGAIN;
+      else {
+        data->set.ssl.primary.field_20 = (void *)(uintptr_t)nnresult.value;
+        result = result_is(nnresult, UNK_RESULT_WOULD_BLOCK + 0x600) ?
+                 CURLE_PEER_FAILED_VERIFICATION : CURLE_SSL_CONNECT_ERROR;
+      }
     }
-  }
-  if(result != CURLE_AGAIN && data->set.ssl.primary.field_30) {
-    struct Unk_1777650_Handshake handshake;
-    handshake.field_0 = result == CURLE_OK;
-    memcpy(handshake.field_1, unknown, sizeof(unknown));
-    handshake.field_8 = certSize;
-    handshake.field_10 = certCount;
-    if(((int (*)(struct Curl_easy *, void *, void *,
-                 struct Unk_1777650_Handshake *))
-        data->set.ssl.primary.field_30)(
-         conn->data, connssl->field_10, conn->data->set.ssl.primary.field_38,
-         &handshake))
-      result = CURLE_ABORTED_BY_CALLBACK;
+    if(result != CURLE_AGAIN && data->set.ssl.primary.field_30) {
+      bool ok = result == CURLE_OK;
+      struct Curl_easy *easy = conn->data;
+      void *userp = easy->set.ssl.primary.field_38;
+      struct Unk_1777650_Handshake handshake;
+      handshake.field_0 = ok;
+      memcpy(handshake.field_1, unknown, sizeof(unknown));
+      handshake.field_8 = certSize;
+      handshake.field_10 = certCount;
+      if(((int (*)(struct Curl_easy *, void *, void *,
+                   struct Unk_1777650_Handshake *))
+          data->set.ssl.primary.field_30)(easy, connssl->field_10, userp,
+                                          &handshake))
+        result = CURLE_ABORTED_BY_CALLBACK;
+    }
   }
   if(!result) {
     *done = TRUE;
@@ -253,8 +297,6 @@ CURLcode Unk_1777650(struct connectdata *conn, int sockindex, bool *done)
   }
   goto fail;
 
-connect_error:
-  result = CURLE_SSL_CONNECT_ERROR;
 fail:
   if(result == CURLE_AGAIN)
     return CURLE_OK;
@@ -268,17 +310,15 @@ fail:
         result = CURLE_PEER_FAILED_VERIFICATION;
       else if(result_is(error, 0x2867b))
         result = CURLE_SSL_CERTPROBLEM;
-      else if(result_is(error, 0x2947b))
+      else if(result_is(error, 0x2687b))
         result = CURLE_SSL_CACERT;
       else if(result_is(error, 0xbca7b) || result_is(error, 0xbd07b) ||
               result_is(error, 0xbce7b))
         result = CURLE_SSL_CERTPROBLEM;
-      else
-        result = CURLE_PEER_FAILED_VERIFICATION;
     }
   }
 close:
-  Unk_1777df0(conn, sockindex);
+  close_connection(conn, sockindex);
   return result;
 }
 
@@ -325,10 +365,9 @@ bool Unk_1777f50(const struct connectdata *conn, int sockindex)
   return nnResultIsSuccess(result) & (pending > 0);
 }
 
-/* Sword 0x7101777df0: curlssl_close(). It destroys the connection, and the
-   context unless field_118 says it isn't the backend's. */
-/* NON_MATCHING: the original computes &conn->ssl[sockindex] again for
-   field_118 after storing state (two madds), where this reuses it. */
+/* Sword 0x7101777df0: curlssl_close(). It destroys the connection (and
+   only then resets the state), and the context unless field_118 says it
+   isn't the backend's. */
 void Unk_1777df0(struct connectdata *conn, int sockindex)
 {
   struct ssl_connect_data *connssl;
@@ -338,14 +377,14 @@ void Unk_1777df0(struct connectdata *conn, int sockindex)
     return;
   connssl = &conn->ssl[sockindex];
   id = 0;
-  result = nnsslConnectionGetConnectionId((void *)connssl->field_10, &id);
+  result = nnsslConnectionGetConnectionId(connssl->field_10, &id);
   if(!nnResultIsFailure(result) && id) {
-    result = nnsslConnectionDestroy((void *)connssl->field_10);
+    result = nnsslConnectionDestroy(connssl->field_10);
     if(nnResultIsFailure(result)) {
       /* nothing in a release build */
     }
+    connssl->state = ssl_connection_none;
   }
-  connssl->state = ssl_connection_none;
   if(!connssl->field_118) {
     void *context = connssl->field_110;
     id = 0;

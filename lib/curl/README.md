@@ -69,11 +69,10 @@ short:
   nor the files' names are known, so they're `Unk_<addr>` (Sword
   addresses).
 
-The named functions that don't match have status `M` in `data/functions.csv`.
-All three are Nintendo's (the backend's connect and close, the resolver's
-thread creation), in files that aren't upstream's, and have a
-`NON_MATCHING` comment there. The section in `docs/compiler.md` has the
-details.
+All 395 functions of the libcurl area match, in both games. The last three
+were Nintendo's (the backend's connect and close, the resolver's thread
+creation): the section in `docs/compiler.md` ("The last three") has what
+made them match.
 
 The compiled functions that have no original identified in the binary are in
 `data/unidentified_functions.csv`: some may be in the binary, changed beyond

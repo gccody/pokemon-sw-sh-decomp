@@ -87,26 +87,27 @@ static void free_thread(struct Unk_1778b10_Thread *t)
   free(t);
 }
 
-/* Sword 0x7101778b10 */
-// NON_MATCHING: the same instructions but for the cleanup's two tests:
-// the original tests the result's failure before the handle, and copies the
-// allocation into the handle on the malloc failure path, where this keeps
-// NULL.
+/* Sword 0x7101778b10. The handle is the allocation itself (it's NULL
+   when malloc fails), t the thread being set up. hnd is declared before
+   result: the order of their phis decides which of the cleanup's two tests
+   comes first (Reassociate ranks them). */
 struct Unk_1778b10_Thread *Unk_1778b10(size_t stackSize,
                                        unsigned int (*func)(void *),
                                        void *arg)
 {
+  struct Unk_1778b10_Thread *hnd = malloc(sizeof(*hnd));
+  struct Unk_1778b10_Thread *t = NULL;
   nnResult result = { (uint32_t)-1 };
-  struct Unk_1778b10_Thread *hnd = NULL;
-  struct Unk_1778b10_Thread *t = malloc(sizeof(*t));
-  if(t) {
+  if(hnd) {
     void *stack;
+    t = hnd;
     memset(t, 0, sizeof(*t));
     stack = Unk_1778380(0x1000, stackSize);
     t->stack = stack;
     if(!stack) {
       free(t);
       t = NULL;
+      hnd = NULL;
       result.value = (uint32_t)-1;
     }
     else {
@@ -120,12 +121,9 @@ struct Unk_1778b10_Thread *Unk_1778b10(size_t stackSize,
         nnosSetThreadCoreMask((nnosThreadType *)t->thread, core, mask);
         nnosSetThreadNamePointer((nnosThreadType *)t->thread,
                                  "LibcurlResolver");
-        hnd = t;
-        hnd->func = func;
-        hnd->arg = arg;
+        t->func = func;
+        t->arg = arg;
       }
-      else
-        hnd = t;
     }
   }
   if(nnResultIsFailure(result) && hnd) {
