@@ -4,6 +4,7 @@
 #pragma once
 
 #include <types.h>
+#include <yebis/YEBIS_draft/include/PPFX/ppfxTypes.h>
 
 namespace PPFX {
 
@@ -36,15 +37,32 @@ struct Unk_45eb90_Self {
 };
 // a view's light shaft and light ghost settings
 struct Unk_423990_Item {
-    u8 pad_0[0x60];
+    u8 pad_0[0x44];
+    Unk_Float2 field_44;
+    u8 pad_4c[0x14];
     bool field_60;
     u8 pad_61[0x7];
 };
 PKMN_SIZE_ASSERT(Unk_423990_Item, 0x68);
 struct Unk_423ba0_Item {
     bool field_0;
-    u8 pad_1[0x33];
+    u8 pad_1[0x13];
+    Unk_Float2 field_14;
+    u8 pad_1c[0x18];
 };
+// a view's settings of two more kinds, as 0x7100429da0 and 0x7100429e60 read them
+struct Unk_429da0_Item {
+    u8 pad_0[0x60];
+    f32 field_60;
+    u8 pad_64[0x14];
+};
+PKMN_SIZE_ASSERT(Unk_429da0_Item, 0x78);
+struct Unk_429e60_Item {
+    u8 pad_0[0x38];
+    f32 field_38;
+    u8 pad_3c[0x14];
+};
+PKMN_SIZE_ASSERT(Unk_429e60_Item, 0x50);
 PKMN_SIZE_ASSERT(Unk_423ba0_Item, 0x34);
 
 }  // namespace PPFX
@@ -73,6 +91,8 @@ inline s32 Unk_SetViewport(Unk_RenderTexture* texture, f32 width, f32 height, f3
 
 class CPostEffect {
 public:
+    ~CPostEffect();              // 0x7100419550
+    s32 Unk_419690(void* arg);   // 0x7100419690: its uninitialisation
     s32 Unk_426a50();  // 0x7100426a50
     s32 Unk_423630(bool enable);        // 0x7100423630
     s32 SetAntialiasType(s32 type);     // 0x7100423850
@@ -138,14 +158,22 @@ public:
     Unk_RenderTexture** field_288;
     s32* field_290;  // each view's frame number
     s32 field_298;  // the active view
-    u8 pad_29c[0x164];
+    u8 pad_29c[0x4];
+    Unk_429da0_Item* field_2a0;  // one per view
+    Unk_429e60_Item* field_2a8;  // one per view
+    u8 pad_2b0[0x150];
     s32 field_400;
     u8 pad_404[0x140];
     u32 field_544;
     u8 pad_548[0x8];
     Unk_RenderTexture** field_550;
     s32 field_558;
-    u8 pad_55c[0x5c];
+    u8 pad_55c[0x48];
+    f32 field_5a4;
+    f32 field_5a8;
+    f32 field_5ac;
+    f32 field_5b0;
+    u8 pad_5b4[0x4];
     Unk_RenderTexture* field_5b8;
     Unk_RenderTexture* field_5c0;
     u8 pad_5c8[0x238];
@@ -170,7 +198,12 @@ public:
     bool field_be4;
     u8 pad_be5[0x95];
     bool field_c7a;
-    u8 pad_c7b[0x6a];
+    u8 pad_c7b[0x1];
+    Unk_Rect field_c7c;
+    f32 field_c8c;
+    bool field_c90;
+    bool field_c91;
+    u8 pad_c92[0x53];
     bool field_ce5;
     u8 pad_ce6[0x52];
     Unk_RenderTexture* field_d38;
@@ -180,6 +213,8 @@ public:
     bool field_f38;
     u8 pad_f39[0xb];
     s32 field_f44;
+    u8 pad_f48[0x280];
+    bool field_11c8;
     // UNK_FIELDS_END
 };
 

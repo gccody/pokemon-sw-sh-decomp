@@ -2,6 +2,7 @@
 // Small virtual functions of a library class (tools/leafgen.py members): placeholder
 // member names vf<slot>, placeholder structs. The class's name is its RTTI's.
 // RTTI: N6SiSDK313SiGfxNXCanvasE
+// (The class's other functions are SiGfx_NX_Canvas_Impl.cpp's.)
 #include <types.h>
 
 struct Unk_4fe110 {
@@ -157,24 +158,6 @@ struct Unk_4fe120 {
 };
 PKMN_OFFSET_ASSERT(Unk_4fe120, field_198, 0x198);
 
-struct Unk_4fcb20 {
-    u8 _0[0x38];
-    u8 field_38;
-};
-PKMN_OFFSET_ASSERT(Unk_4fcb20, field_38, 0x38);
-
-struct Unk_4fcb40 {
-    u8 _0[0x68];
-    u32 field_68;
-};
-PKMN_OFFSET_ASSERT(Unk_4fcb40, field_68, 0x68);
-
-struct Unk_4fcb30 {
-    u8 _0[0x30];
-    u8 field_30;
-};
-PKMN_OFFSET_ASSERT(Unk_4fcb30, field_30, 0x30);
-
 namespace SiSDK3 {
 class SiGfxNXCanvas {
 public:
@@ -206,29 +189,8 @@ public:
     u32 vf46();
     u32 vf47();
     u64 vf48();
-    const u8* vf52();
-    u32 vf53();
-    const u8* vf3();
 };
 }  // namespace SiSDK3
-
-// 0x71004fcb20
-const u8* SiSDK3::SiGfxNXCanvas::vf52() {
-    const Unk_4fcb20* self = reinterpret_cast<const Unk_4fcb20*>(this);
-    return &self->field_38;
-}
-
-// 0x71004fcb30
-const u8* SiSDK3::SiGfxNXCanvas::vf3() {
-    const Unk_4fcb30* self = reinterpret_cast<const Unk_4fcb30*>(this);
-    return &self->field_30;
-}
-
-// 0x71004fcb40
-u32 SiSDK3::SiGfxNXCanvas::vf53() {
-    const Unk_4fcb40* self = reinterpret_cast<const Unk_4fcb40*>(this);
-    return self->field_68;
-}
 
 // 0x71004fcb60
 u64 SiSDK3::SiGfxNXCanvas::vf5() {

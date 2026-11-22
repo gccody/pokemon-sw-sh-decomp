@@ -2,6 +2,7 @@
 // Directly called leaf functions between two static initialisers (one or more
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiOS/Source/Unk_596410.h>
 
 struct Unk_5518d0 {
     u64 field_0;
@@ -28,7 +29,6 @@ PKMN_OFFSET_ASSERT(Unk_5518d0, field_68, 0x68);
 PKMN_OFFSET_ASSERT(Unk_5518d0, field_70, 0x70);
 PKMN_OFFSET_ASSERT(Unk_5518d0, field_74, 0x74);
 
-void Unk_596410(void*, u32);
 
 // 0x71005518d0
 void Unk_5518d0_call(Unk_5518d0* self) {
@@ -80,7 +80,6 @@ PKMN_OFFSET_ASSERT(Unk_5520b0, field_68, 0x68);
 PKMN_OFFSET_ASSERT(Unk_5520b0, field_70, 0x70);
 PKMN_OFFSET_ASSERT(Unk_5520b0, field_74, 0x74);
 
-void Unk_596410(void*, u32);
 
 // 0x71005520b0
 void Unk_5520b0_call(Unk_5520b0* self) {

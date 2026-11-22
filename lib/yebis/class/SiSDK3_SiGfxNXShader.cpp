@@ -52,24 +52,6 @@ struct Unk_55b6b0 {
 };
 PKMN_OFFSET_ASSERT(Unk_55b6b0, field_90, 0x90);
 
-struct Unk_55b190 {
-    u8 _0[0x30];
-    u8 field_30;
-};
-PKMN_OFFSET_ASSERT(Unk_55b190, field_30, 0x30);
-
-struct Unk_55b1b0 {
-    u8 _0[0x60];
-    u32 field_60;
-};
-PKMN_OFFSET_ASSERT(Unk_55b1b0, field_60, 0x60);
-
-struct Unk_55b1a0 {
-    u8 _0[0x28];
-    u8 field_28;
-};
-PKMN_OFFSET_ASSERT(Unk_55b1a0, field_28, 0x28);
-
 namespace SiSDK3 {
 class SiGfxNXShader {
 public:
@@ -89,29 +71,8 @@ public:
     const u8* vf17();
     bool vf20();
     const u8* vf21();
-    const u8* vf23();
-    u32 vf24();
-    const u8* vf3();
 };
 }  // namespace SiSDK3
-
-// 0x710055b190
-const u8* SiSDK3::SiGfxNXShader::vf23() {
-    const Unk_55b190* self = reinterpret_cast<const Unk_55b190*>(this);
-    return &self->field_30;
-}
-
-// 0x710055b1a0
-const u8* SiSDK3::SiGfxNXShader::vf3() {
-    const Unk_55b1a0* self = reinterpret_cast<const Unk_55b1a0*>(this);
-    return &self->field_28;
-}
-
-// 0x710055b1b0
-u32 SiSDK3::SiGfxNXShader::vf24() {
-    const Unk_55b1b0* self = reinterpret_cast<const Unk_55b1b0*>(this);
-    return self->field_60;
-}
 
 // 0x710055b1d0
 u64 SiSDK3::SiGfxNXShader::vf5() {

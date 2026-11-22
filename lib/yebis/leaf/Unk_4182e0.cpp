@@ -76,11 +76,11 @@ void Unk_418380_call(void* /*unused*/, void* value) {
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_423b50(u64);
+void Unk_423b50(u64, f32, f32);
 
 // 0x7100418390
-void Unk_418390_call() {
-    Unk_423b50(Unk_24e00e0);
+void Unk_418390_call(f32 a, f32 b) {
+    Unk_423b50(Unk_24e00e0, a, b);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
@@ -220,11 +220,14 @@ void Unk_418550_call(void* /*unused*/, bool value) {
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_423780(u64, u64, u32, u32);
+namespace PPFX {
+struct Unk_Rect;
+}
+void Unk_423780(u64, const PPFX::Unk_Rect*, bool, bool, f32);
 
 // 0x7100418560
-void Unk_418560_call(void* /*unused*/, u64 value, bool arg2, bool arg3) {
-    Unk_423780(Unk_24e00e0, value, arg2, arg3);
+void Unk_418560_call(void* /*unused*/, const PPFX::Unk_Rect* value, bool arg2, bool arg3, f32 arg4) {
+    Unk_423780(Unk_24e00e0, value, arg2, arg3, arg4);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
@@ -260,11 +263,11 @@ void Unk_4185c0_call() {
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_4253e0(u64);
+void Unk_4253e0(u64, f32, f32, f32, f32);
 
 // 0x71004185d0
-void Unk_4185d0_call() {
-    Unk_4253e0(Unk_24e00e0);
+void Unk_4185d0_call(f32 a, f32 b, f32 c, f32 d) {
+    Unk_4253e0(Unk_24e00e0, a, b, c, d);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
@@ -284,11 +287,11 @@ void Unk_418710_call(void* /*unused*/, void* value, u32 arg2, u32 arg3) {
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_423cd0(u64);
+void Unk_423cd0(u64, f32, f32);
 
 // 0x7100418720
-void Unk_418720_call() {
-    Unk_423cd0(Unk_24e00e0);
+void Unk_418720_call(f32 a, f32 b) {
+    Unk_423cd0(Unk_24e00e0, a, b);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));

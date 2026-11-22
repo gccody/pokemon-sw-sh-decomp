@@ -181,5 +181,9 @@ PKMN_OFFSET_ASSERT(SiFixedHeapAllocator2, field_240, 0x240);
 }  // namespace SiSDK3
 
 // 0x71004be9d0 (vf2), 0x71004be9f0 (vf3)
+// (only in the class's own translation unit, which defines
+// UNK_SIFIXEDHEAPALLOCATOR2_IMPL: other code includes the header for the layout)
+#ifdef UNK_SIFIXEDHEAPALLOCATOR2_IMPL
 #line 42
 UNK_REFCOUNT_DEFINE(SiSDK3::SiFixedHeapAllocator2, field_8.m_pAllocator, field_8.m_count)
+#endif

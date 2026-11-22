@@ -190,7 +190,10 @@ extern void* (*Unk_27fc9a0)(const void* pool);  // nvnMemoryPoolMap
 inline void* nvnMemoryPoolMap(const void* pool) {
     return Unk_27fc9a0(pool);
 }
-extern NvnProc Unk_27fc9a8;  // nvnMemoryPoolFlushMappedRange
+extern void (*Unk_27fc9a8)(const void* pool, s64 offset, s64 size);  // nvnMemoryPoolFlushMappedRange
+inline void nvnMemoryPoolFlushMappedRange(const void* pool, s64 offset, s64 size) {
+    Unk_27fc9a8(pool, offset, size);
+}
 extern NvnProc Unk_27fc9b0;  // nvnMemoryPoolInvalidateMappedRange
 extern NvnProc Unk_27fc9b8;  // nvnMemoryPoolGetBufferAddress
 extern NvnProc Unk_27fc9c0;  // nvnMemoryPoolMapVirtual
@@ -422,7 +425,10 @@ extern void (*Unk_27fccc0)(void* texture);  // nvnTextureFinalize
 inline void nvnTextureFinalize(void* texture) {
     Unk_27fccc0(texture);
 }
-extern NvnProc Unk_27fccc8;  // nvnTextureSetDebugLabel
+extern void (*Unk_27fccc8)(void* texture, const char* label);  // nvnTextureSetDebugLabel
+inline void nvnTextureSetDebugLabel(void* texture, const char* label) {
+    Unk_27fccc8(texture, label);
+}
 extern NvnProc Unk_27fccd0;  // nvnTextureGetStorageClass
 extern NvnProc Unk_27fccd8;  // nvnTextureGetViewOffset
 extern NvnProc Unk_27fcce0;  // nvnTextureGetFlags
@@ -442,12 +448,18 @@ extern int (*Unk_27fcd00)(const void* texture);  // nvnTextureGetDepth
 inline int nvnTextureGetDepth(const void* texture) {
     return Unk_27fcd00(texture);
 }
-extern NvnProc Unk_27fcd08;  // nvnTextureGetLevels
+extern int (*Unk_27fcd08)(const void* texture);  // nvnTextureGetLevels
+inline int nvnTextureGetLevels(const void* texture) {
+    return Unk_27fcd08(texture);
+}
 extern int (*Unk_27fcd10)(const void* texture);  // nvnTextureGetFormat
 inline int nvnTextureGetFormat(const void* texture) {
     return Unk_27fcd10(texture);
 }
-extern NvnProc Unk_27fcd18;  // nvnTextureGetSamples
+extern int (*Unk_27fcd18)(const void* texture);  // nvnTextureGetSamples
+inline int nvnTextureGetSamples(const void* texture) {
+    return Unk_27fcd18(texture);
+}
 extern NvnProc Unk_27fcd20;  // nvnTextureGetSwizzle
 extern NvnProc Unk_27fcd28;  // nvnTextureGetDepthStencilMode
 extern NvnProc Unk_27fcd30;  // nvnTextureGetStride
@@ -459,9 +471,18 @@ extern NvnProc Unk_27fcd58;  // nvnTextureReadTexels
 extern NvnProc Unk_27fcd60;  // nvnTextureReadTexelsStrided
 extern NvnProc Unk_27fcd68;  // nvnTextureFlushTexels
 extern NvnProc Unk_27fcd70;  // nvnTextureInvalidateTexels
-extern NvnProc Unk_27fcd78;  // nvnTextureGetMemoryPool
-extern NvnProc Unk_27fcd80;  // nvnTextureGetMemoryOffset
-extern NvnProc Unk_27fcd88;  // nvnTextureGetStorageSize
+extern void* (*Unk_27fcd78)(const void* texture);  // nvnTextureGetMemoryPool
+inline void* nvnTextureGetMemoryPool(const void* texture) {
+    return Unk_27fcd78(texture);
+}
+extern s64 (*Unk_27fcd80)(const void* texture);  // nvnTextureGetMemoryOffset
+inline s64 nvnTextureGetMemoryOffset(const void* texture) {
+    return Unk_27fcd80(texture);
+}
+extern size_t (*Unk_27fcd88)(const void* texture);  // nvnTextureGetStorageSize
+inline size_t nvnTextureGetStorageSize(const void* texture) {
+    return Unk_27fcd88(texture);
+}
 extern NvnProc Unk_27fcd90;  // nvnTextureCompare
 extern NvnProc Unk_27fcd98;  // nvnTextureGetDebugID
 extern NvnProc Unk_27fcda0;  // nvnTextureGetRawStorageClass
@@ -831,7 +852,10 @@ inline void nvnCommandBufferDrawElementsInstanced(void* commandBuffer, int mode,
     Unk_27fd308(commandBuffer, mode, type, count, indexBuffer, baseVertex, baseInstance, instanceCount);
 }
 extern NvnProc Unk_27fd310;  // nvnCommandBufferDrawArraysIndirect
-extern NvnProc Unk_27fd318;  // nvnCommandBufferDrawElementsIndirect
+extern void (*Unk_27fd318)(void* commandBuffer, int mode, int type, u64 indexBuffer, u64 indirectBuffer);  // nvnCommandBufferDrawElementsIndirect
+inline void nvnCommandBufferDrawElementsIndirect(void* commandBuffer, int mode, int type, u64 indexBuffer, u64 indirectBuffer) {
+    Unk_27fd318(commandBuffer, mode, type, indexBuffer, indirectBuffer);
+}
 extern NvnProc Unk_27fd320;  // nvnCommandBufferMultiDrawArraysIndirectCount
 extern NvnProc Unk_27fd328;  // nvnCommandBufferMultiDrawElementsIndirectCount
 extern NvnProc Unk_27fd330;  // nvnCommandBufferClearColor
@@ -950,7 +974,10 @@ extern void (*Unk_27fd488)(void* commandBuffer, int counter, u64 address);  // n
 inline void nvnCommandBufferReportCounter(void* commandBuffer, int counter, u64 address) {
     Unk_27fd488(commandBuffer, counter, address);
 }
-extern NvnProc Unk_27fd490;  // nvnCommandBufferResetCounter
+extern void (*Unk_27fd490)(void* commandBuffer, int counter);  // nvnCommandBufferResetCounter
+inline void nvnCommandBufferResetCounter(void* commandBuffer, int counter) {
+    Unk_27fd490(commandBuffer, counter);
+}
 extern NvnProc Unk_27fd498;  // nvnCommandBufferReportValue
 extern NvnProc Unk_27fd4a0;  // nvnCommandBufferSetRenderEnable
 extern NvnProc Unk_27fd4a8;  // nvnCommandBufferSetRenderEnableConditional
@@ -972,7 +999,10 @@ inline void nvnCommandBufferBarrier(void* commandBuffer, int barrier) {
     Unk_27fd4e8(commandBuffer, barrier);
 }
 extern NvnProc Unk_27fd4f0;  // nvnCommandBufferWaitSync
-extern NvnProc Unk_27fd4f8;  // nvnCommandBufferFenceSync
+extern void (*Unk_27fd4f8)(void* commandBuffer, void* sync, int condition, int flags);  // nvnCommandBufferFenceSync
+inline void nvnCommandBufferFenceSync(void* commandBuffer, void* sync, int condition, int flags) {
+    Unk_27fd4f8(commandBuffer, sync, condition, flags);
+}
 extern void (*Unk_27fd500)(void* commandBuffer, const void* pool);  // nvnCommandBufferSetTexturePool
 inline void nvnCommandBufferSetTexturePool(void* commandBuffer, const void* pool) {
     Unk_27fd500(commandBuffer, pool);
@@ -1008,10 +1038,16 @@ extern NvnProc Unk_27fd598;  // nvnCommandBufferPopDebugGroup
 extern NvnProc Unk_27fd5a0;  // nvnCommandBufferPopDebugGroupId
 extern NvnProc Unk_27fd5a8;  // nvnCommandBufferInsertDebugMarkerStatic
 extern NvnProc Unk_27fd5b0;  // nvnCommandBufferInsertDebugMarkerDynamic
-extern NvnProc Unk_27fd5b8;  // nvnCommandBufferInsertDebugMarker
+extern void (*Unk_27fd5b8)(void* commandBuffer, const char* description);  // nvnCommandBufferInsertDebugMarker
+inline void nvnCommandBufferInsertDebugMarker(void* commandBuffer, const char* description) {
+    Unk_27fd5b8(commandBuffer, description);
+}
 extern NvnProc Unk_27fd5c0;  // nvnCommandBufferGetMemoryCallback
 extern NvnProc Unk_27fd5c8;  // nvnCommandBufferGetMemoryCallbackData
-extern NvnProc Unk_27fd5d0;  // nvnCommandBufferIsRecording
+extern NvnBoolean (*Unk_27fd5d0)(const void* commandBuffer);  // nvnCommandBufferIsRecording
+inline NvnBoolean nvnCommandBufferIsRecording(const void* commandBuffer) {
+    return Unk_27fd5d0(commandBuffer);
+}
 extern NvnBoolean (*Unk_27fd5d8)(void* sync, void* device);  // nvnSyncInitialize
 inline NvnBoolean nvnSyncInitialize(void* sync, void* device) {
     return Unk_27fd5d8(sync, device);

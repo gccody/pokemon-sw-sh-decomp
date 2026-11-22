@@ -332,9 +332,20 @@ void SiArray<T, ALIGN>::Unk_FreeData() {
     }
 }
 
+// (The delete is written out here, not a call of Unk_FreeData: for an element
+// with a large destructor, SiGfxNXRootSignature's parameters at
+// 0x71005581e0, the original has the delete's loop inline in this function
+// and this function out of line, where clang would keep Unk_FreeData out of
+// line and inline this.)
 template <class T, int ALIGN>
 void SiArray<T, ALIGN>::Unk_4e3050() {
-    Unk_FreeData();
+    if (!(field_48 & 1) && m_pData != nullptr) {
+        ISiAllocator* pAllocator = m_pAllocator;
+        T* pData = m_pData;
+#line 1522
+        SI_DELETE_ARRAY(pAllocator, pData);
+        m_pData = nullptr;
+    }
     m_itemCount = 0;
     m_reservedCount = 0;
     m_pData = nullptr;

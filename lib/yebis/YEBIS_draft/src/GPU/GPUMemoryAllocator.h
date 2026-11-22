@@ -5,17 +5,44 @@
 
 #include <miniz/miniz_yebis.h>
 #include <yebis/YEBIS_draft/src/GPU/Unk_Array.h>
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_4bf660.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_RefCount.h>
 
 namespace PPFX {
 
 class SiYebisAllocator {
 public:
-    virtual ~SiYebisAllocator();
-    UNK_REFCOUNT_DECLARE;
+    // what is in front of each allocation: the address handed out, the
+    // number of elements, and room up to the address; the eight bytes before
+    // the address are its distance from this
+    struct Unk_Block {
+        u8* field_0;
+        size_t field_8;
+    };
 
-    SiSDK3::ISiAllocator* field_8;
-    u32 field_10;
+    virtual ~SiYebisAllocator() {}  // 0x710041af50, 0x710043c100
+    UNK_REFCOUNT_DECLARE;
+    // slots 4 to 6 and 11 to 20 are lib/yebis/class's
+    virtual u32 vf4();
+    virtual u32 vf5(u32 value);
+    virtual u32 vf6();
+    virtual void* vf7(size_t size, s32 alignment, const char* file, int line);                        // 0x710043c210
+    virtual void* vf8(size_t elementSize, size_t count, s32 alignment, const char* file, int line);  // 0x710043c230
+    virtual void vf9(void* p);                                                                       // 0x710043c2d0
+    virtual size_t vf10(void* p);                                                                    // 0x710043c2f0
+    virtual void vf11();
+    virtual void vf12();
+    virtual u64 vf13();
+    virtual void vf14();
+    virtual u64 vf15();
+    virtual u64 vf16();
+    virtual u64 vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual u64 vf20();
+
+    Unk_4bf660 field_8;
+    s32 field_18;  // the alignment of an allocation that names none
 };
 
 // The allocator of PPFX's libc++ containers (its allocate is this header's
@@ -69,5 +96,5 @@ inline bool operator!=(const Unk_StlAllocator<T>&, const Unk_StlAllocator<U>&) {
 // for them (GPUMemoryAllocator.cpp), since they aren't inline here.
 #ifdef UNK_SIYEBISALLOCATOR_DEFINE
 #line 486
-UNK_REFCOUNT_DEFINE(PPFX::SiYebisAllocator, field_8, field_10)
+UNK_REFCOUNT_DEFINE(PPFX::SiYebisAllocator, field_8.m_pAllocator, field_8.m_count)
 #endif

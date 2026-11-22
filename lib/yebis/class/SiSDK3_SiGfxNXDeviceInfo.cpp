@@ -43,6 +43,7 @@ PKMN_OFFSET_ASSERT(Unk_539640, field_a0, 0xa0);
 namespace SiSDK3 {
 class SiGfxNXDeviceInfo {
 public:
+    f32 vf21();
     u32 vf4();
     u64 vf5();
     u64 vf6();
@@ -175,4 +176,9 @@ const u8* SiSDK3::SiGfxNXDeviceInfo::vf26() {
 u32 SiSDK3::SiGfxNXDeviceInfo::vf4() {
     const Unk_5397b0* self = reinterpret_cast<const Unk_5397b0*>(this);
     return self->field_10;
+}
+
+// 0x71005395f0 (written by hand: leafgen doesn't write float constants)
+f32 SiSDK3::SiGfxNXDeviceInfo::vf21() {
+    return 0.0f;
 }

@@ -2,6 +2,7 @@
 // Small virtual functions of a library class (tools/leafgen.py members): placeholder
 // member names vf<slot>, placeholder structs. The class's name is its RTTI's.
 // RTTI: N6SiSDK313SiGfxNXBufferE
+// (The class's other functions are SiGfx_NX_Buffer_Impl.cpp's.)
 #include <types.h>
 
 struct Unk_538ae0 {
@@ -114,24 +115,6 @@ struct Unk_538980 {
 };
 PKMN_OFFSET_ASSERT(Unk_538980, field_148, 0x148);
 
-struct Unk_537640 {
-    u8 _0[0x30];
-    u8 field_30;
-};
-PKMN_OFFSET_ASSERT(Unk_537640, field_30, 0x30);
-
-struct Unk_537660 {
-    u8 _0[0xa0];
-    u32 field_a0;
-};
-PKMN_OFFSET_ASSERT(Unk_537660, field_a0, 0xa0);
-
-struct Unk_537650 {
-    u8 _0[0x28];
-    u8 field_28;
-};
-PKMN_OFFSET_ASSERT(Unk_537650, field_28, 0x28);
-
 namespace SiSDK3 {
 class SiGfxNXBuffer {
 public:
@@ -157,29 +140,8 @@ public:
     u64 vf27();
     u32 vf28();
     u64 vf29();
-    const u8* vf31();
-    u32 vf32();
-    const u8* vf3();
 };
 }  // namespace SiSDK3
-
-// 0x7100537640
-const u8* SiSDK3::SiGfxNXBuffer::vf31() {
-    const Unk_537640* self = reinterpret_cast<const Unk_537640*>(this);
-    return &self->field_30;
-}
-
-// 0x7100537650
-const u8* SiSDK3::SiGfxNXBuffer::vf3() {
-    const Unk_537650* self = reinterpret_cast<const Unk_537650*>(this);
-    return &self->field_28;
-}
-
-// 0x7100537660
-u32 SiSDK3::SiGfxNXBuffer::vf32() {
-    const Unk_537660* self = reinterpret_cast<const Unk_537660*>(this);
-    return self->field_a0;
-}
 
 // 0x7100537680
 u64 SiSDK3::SiGfxNXBuffer::vf5() {

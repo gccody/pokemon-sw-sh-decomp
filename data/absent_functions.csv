@@ -110,6 +110,7 @@ _Z10SetNbShapePN5physx22PxSimulationStatisticsENS_14PxGeometryType4EnumEj,"PhysX
 _Z12PxGetPhysicsv,"PhysX: not in the executable (inlined into every caller, or unreferenced and dropped by the linker)"
 _Z13GetNbCCDPairsPKN5physx22PxSimulationStatisticsENS_14PxGeometryType4EnumES4_,"PhysX: not in the executable (inlined into every caller, or unreferenced and dropped by the linker)"
 _Z13SetNbCCDPairsPN5physx22PxSimulationStatisticsENS_14PxGeometryType4EnumES3_j,"PhysX: not in the executable (inlined into every caller, or unreferenced and dropped by the linker)"
+_Z15Unk_276ccc0_addv,not in the executable: a stand-in for the function the linker dropped that changed SiCore's static counter 0x710276ccc0 (lib/yebis/sisdk/3.0/SDK/Core/Libsrc/SiCore/Source/Unk_4cad50.cpp); the static initialiser 0x71004cadf0 only keeps the counter's store with one
 _Z16PxInitExtensionsRN5physx9PxPhysicsEPNS_5PxPvdE,"PhysX: not in the executable (inlined into every caller, or unreferenced and dropped by the linker)"
 _Z16getPxScene_FlagsPKN5physx7PxSceneE,"PhysX: not in the executable (inlined into every caller, or unreferenced and dropped by the linker)"
 _Z17GetNbTriggerPairsPKN5physx22PxSimulationStatisticsENS_14PxGeometryType4EnumES4_,"PhysX: not in the executable (inlined into every caller, or unreferenced and dropped by the linker)"
@@ -1062,6 +1063,7 @@ _ZN3btl3net5watch16protocol_buffers9WatchBody21InitAsDefaultInstanceEv,"Game Fre
 _ZN3btl3net5watch16protocol_buffers9WatchBody4SwapEPS3_,"Game Freak's protoc 3.0.0 output: not in the executable (unreferenced and dropped by the linker, or inlined into every caller; every original in its .pb.cc's code has a name)"
 _ZN3btl3net5watch16protocol_buffers9WatchBodyC1ERKS3_,"Game Freak's protoc 3.0.0 output: not in the executable (unreferenced and dropped by the linker, or inlined into every caller; every original in its .pb.cc's code has a name)"
 _ZN3btl3net5watch16protocol_buffers9WatchBodyC2ERKS3_,"Game Freak's protoc 3.0.0 output: not in the executable (unreferenced and dropped by the linker, or inlined into every caller; every original in its .pb.cc's code has a name)"
+_ZN4PPFX15IGPUBaseTextureD0Ev,YEBIS (PPFX::IGPUBaseTexture): the deleting destructor of an abstract class (a trap); nothing keeps the class's vtable in the executable
 _ZN5physx10NpMaterial17getBinaryMetaDataERNS_14PxOutputStreamE,"PhysX: not in the executable (inlined into every caller, or unreferenced and dropped by the linker)"
 _ZN5physx10PxGetGroupERKNS_7PxActorE,"PhysX: not in the executable (inlined into every caller, or unreferenced and dropped by the linker)"
 _ZN5physx10PxSetGroupERNS_7PxActorEt,"PhysX: not in the executable (inlined into every caller, or unreferenced and dropped by the linker)"

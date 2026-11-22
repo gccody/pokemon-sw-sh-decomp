@@ -34,8 +34,10 @@ public:
 };
 // Its second base (RTTI: ISiNamedObject is one of a resource's bases, at
 // offset 8): slot 4 is its name's hash. (Its slots' placeholder names say
-// which vtable they're in, the resource's first base having the plain ones.)
-class ISiNamedObject {
+// which vtable they're in, the resource's first base having the plain ones.
+// The class has a placeholder name here so that this header can be included
+// with Unk_Interface.h, which has ISiNamedObject as SiStringTable shows it.)
+class Unk_534460_NamedObject {
 public:
     virtual void named_vf0();
     virtual void named_vf1();
@@ -43,7 +45,7 @@ public:
     virtual void named_vf3();
     virtual u32 named_vf4();
 };
-class Unk_534460_Resource : public Unk_534460_ResourceBase, public ISiNamedObject {};
+class Unk_534460_Resource : public Unk_534460_ResourceBase, public Unk_534460_NamedObject {};
 
 class SiGfxResourcePool {
 public:

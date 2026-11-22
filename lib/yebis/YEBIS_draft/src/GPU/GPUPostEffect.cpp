@@ -350,3 +350,65 @@ s32 Unk_423e20(u64 self_, u32 enable_) {
     self->field_bce = enable;
     return result;
 }
+
+// 0x7100423780
+s32 Unk_423780(u64 self_, const PPFX::Unk_Rect* value, bool a, bool b, f32 c) {
+    PPFX::CPostEffect* self = reinterpret_cast<PPFX::CPostEffect*>(self_);
+    self->field_c7c = *value;
+    self->field_c8c = c;
+    self->field_c90 = a;
+    self->field_c91 = b;
+    return 0;
+}
+
+// 0x7100423b50: two numbers of the light shaft that is being set
+s32 Unk_423b50(u64 self_, f32 a, f32 b) {
+    PPFX::CPostEffect* self = reinterpret_cast<PPFX::CPostEffect*>(self_);
+    PPFX::Unk_Float2 value(a, b);
+    s32 view = self->field_860;
+    self->field_858[view].field_44 = value;
+    return 0;
+}
+
+// 0x7100423cd0: the same of the light ghost
+s32 Unk_423cd0(u64 self_, f32 a, f32 b) {
+    PPFX::CPostEffect* self = reinterpret_cast<PPFX::CPostEffect*>(self_);
+    PPFX::Unk_Float2 value(a, b);
+    s32 view = self->field_870;
+    self->field_868[view].field_14 = value;
+    return 0;
+}
+
+// 0x71004253e0: two scales (1 for none) and two more numbers
+s32 Unk_4253e0(u64 self_, f32 a, f32 b, f32 c, f32 d) {
+    PPFX::CPostEffect* self = reinterpret_cast<PPFX::CPostEffect*>(self_);
+    self->field_5a4 = a == 0.0f ? 1.0f : a;
+    self->field_5a8 = b == 0.0f ? 1.0f : b;
+    self->field_5ac = c;
+    self->field_5b0 = d;
+    return 0;
+}
+
+// 0x7100429da0: a number of a view's settings (-1: the active view)
+f32 Unk_429da0(u64 self_, s32 view) {
+    PPFX::CPostEffect* self = reinterpret_cast<PPFX::CPostEffect*>(self_);
+    if (view == -1) {
+        view = self->field_298;
+    }
+    return self->field_2a0[view].field_60;
+}
+
+// 0x7100429e60
+f32 Unk_429e60(u64 self_, u32 view_) {
+    PPFX::CPostEffect* self = reinterpret_cast<PPFX::CPostEffect*>(self_);
+    s32 view = view_;
+    if (view == -1) {
+        view = self->field_298;
+    }
+    return self->field_2a8[view].field_38;
+}
+
+// 0x710043b580
+void Unk_43b580(u64 self_, bool value) {
+    reinterpret_cast<PPFX::CPostEffect*>(self_)->field_11c8 = value;
+}

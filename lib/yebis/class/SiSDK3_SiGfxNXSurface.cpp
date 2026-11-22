@@ -2,6 +2,7 @@
 // Small virtual functions of a library class (tools/leafgen.py members): placeholder
 // member names vf<slot>, placeholder structs. The class's name is its RTTI's.
 // RTTI: N6SiSDK314SiGfxNXSurfaceE
+// (The class's other functions are SiGfx_NX_Surface_Impl.cpp's.)
 #include <types.h>
 
 struct Unk_55d500 {
@@ -196,25 +197,6 @@ PKMN_OFFSET_ASSERT(Unk_55d420, field_e0, 0xe0);
 PKMN_OFFSET_ASSERT(Unk_55d420, field_e8, 0xe8);
 PKMN_OFFSET_ASSERT(Unk_55d420, field_10c, 0x10c);
 
-void Unk_55cd70(void*, u32, u32, u32);
-
-struct Unk_55cb20 {
-    u8 _0[0x30];
-    u8 field_30;
-};
-PKMN_OFFSET_ASSERT(Unk_55cb20, field_30, 0x30);
-
-struct Unk_55cb40 {
-    u8 _0[0x60];
-    u32 field_60;
-};
-PKMN_OFFSET_ASSERT(Unk_55cb40, field_60, 0x60);
-
-struct Unk_55cb30 {
-    u8 _0[0x28];
-    u8 field_28;
-};
-PKMN_OFFSET_ASSERT(Unk_55cb30, field_28, 0x28);
 
 namespace SiSDK3 {
 class SiGfxNXSurface {
@@ -243,29 +225,10 @@ public:
     u64 vf25();
     u64 vf26();
     u32 vf27(u64 value, u64 arg2);
-    const u8* vf29();
-    u32 vf30();
-    const u8* vf3();
+    // 0x710055cd70 (SiGfx_NX_Surface_Impl.cpp)
+    void Unk_55cd70(u32 a1, u32 level, u32 layer);
 };
 }  // namespace SiSDK3
-
-// 0x710055cb20
-const u8* SiSDK3::SiGfxNXSurface::vf29() {
-    const Unk_55cb20* self = reinterpret_cast<const Unk_55cb20*>(this);
-    return &self->field_30;
-}
-
-// 0x710055cb30
-const u8* SiSDK3::SiGfxNXSurface::vf3() {
-    const Unk_55cb30* self = reinterpret_cast<const Unk_55cb30*>(this);
-    return &self->field_28;
-}
-
-// 0x710055cb40
-u32 SiSDK3::SiGfxNXSurface::vf30() {
-    const Unk_55cb40* self = reinterpret_cast<const Unk_55cb40*>(this);
-    return self->field_60;
-}
 
 // 0x710055cc20
 u64 SiSDK3::SiGfxNXSurface::vf5() {
@@ -389,7 +352,7 @@ u32 SiSDK3::SiGfxNXSurface::vf27(u64 value, u64 arg2) {
     self->field_c8 = 0;
     self->field_d0 = 0;
     self->field_10c = 0;
-    Unk_55cd70(self, 3, 0, 0);
+    Unk_55cd70(3, 0, 0);
     return 1;
 }
 

@@ -151,24 +151,6 @@ struct Unk_556c60 {
 };
 PKMN_OFFSET_ASSERT(Unk_556c60, field_348, 0x348);
 
-struct Unk_555bd0 {
-    u8 _0[0x30];
-    u8 field_30;
-};
-PKMN_OFFSET_ASSERT(Unk_555bd0, field_30, 0x30);
-
-struct Unk_555bf0 {
-    u8 _0[0x60];
-    u32 field_60;
-};
-PKMN_OFFSET_ASSERT(Unk_555bf0, field_60, 0x60);
-
-struct Unk_555be0 {
-    u8 _0[0x28];
-    u8 field_28;
-};
-PKMN_OFFSET_ASSERT(Unk_555be0, field_28, 0x28);
-
 namespace SiSDK3 {
 class SiGfxNXRenderTarget {
 public:
@@ -196,29 +178,8 @@ public:
     const u8* vf37();
     u64 vf38();
     u64 vf39();
-    const u8* vf41();
-    u32 vf42();
-    const u8* vf3();
 };
 }  // namespace SiSDK3
-
-// 0x7100555bd0
-const u8* SiSDK3::SiGfxNXRenderTarget::vf41() {
-    const Unk_555bd0* self = reinterpret_cast<const Unk_555bd0*>(this);
-    return &self->field_30;
-}
-
-// 0x7100555be0
-const u8* SiSDK3::SiGfxNXRenderTarget::vf3() {
-    const Unk_555be0* self = reinterpret_cast<const Unk_555be0*>(this);
-    return &self->field_28;
-}
-
-// 0x7100555bf0
-u32 SiSDK3::SiGfxNXRenderTarget::vf42() {
-    const Unk_555bf0* self = reinterpret_cast<const Unk_555bf0*>(this);
-    return self->field_60;
-}
 
 // 0x7100555c10
 u64 SiSDK3::SiGfxNXRenderTarget::vf5() {

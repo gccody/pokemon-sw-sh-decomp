@@ -2,6 +2,7 @@
 // Small virtual functions of a library class (tools/leafgen.py members): placeholder
 // member names vf<slot>, placeholder structs. The class's name is its RTTI's.
 // RTTI: N6SiSDK311SiGfxNXFontE
+// (The class's other functions are SiGfx_NX_Font_Impl.cpp's.)
 #include <types.h>
 
 struct Unk_4ffce0 {
@@ -69,24 +70,6 @@ struct Unk_4ffaf0 {
 };
 PKMN_OFFSET_ASSERT(Unk_4ffaf0, field_240, 0x240);
 
-struct Unk_4ff830 {
-    u8 _0[0x30];
-    u8 field_30;
-};
-PKMN_OFFSET_ASSERT(Unk_4ff830, field_30, 0x30);
-
-struct Unk_4ff850 {
-    u8 _0[0x60];
-    u32 field_60;
-};
-PKMN_OFFSET_ASSERT(Unk_4ff850, field_60, 0x60);
-
-struct Unk_4ff840 {
-    u8 _0[0x28];
-    u8 field_28;
-};
-PKMN_OFFSET_ASSERT(Unk_4ff840, field_28, 0x28);
-
 namespace SiSDK3 {
 class SiGfxNXFont {
 public:
@@ -105,29 +88,8 @@ public:
     u32 vf16();
     const u8* vf17();
     const u8* vf20();
-    const u8* vf26();
-    u32 vf27();
-    const u8* vf3();
 };
 }  // namespace SiSDK3
-
-// 0x71004ff830
-const u8* SiSDK3::SiGfxNXFont::vf26() {
-    const Unk_4ff830* self = reinterpret_cast<const Unk_4ff830*>(this);
-    return &self->field_30;
-}
-
-// 0x71004ff840
-const u8* SiSDK3::SiGfxNXFont::vf3() {
-    const Unk_4ff840* self = reinterpret_cast<const Unk_4ff840*>(this);
-    return &self->field_28;
-}
-
-// 0x71004ff850
-u32 SiSDK3::SiGfxNXFont::vf27() {
-    const Unk_4ff850* self = reinterpret_cast<const Unk_4ff850*>(this);
-    return self->field_60;
-}
 
 // 0x71004ff870
 u64 SiSDK3::SiGfxNXFont::vf5() {

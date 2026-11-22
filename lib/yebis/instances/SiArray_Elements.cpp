@@ -11,37 +11,8 @@
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_Array.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_String.h>
 
-struct Unk_4f4850 {
-    Unk_4f4850() : field_0(0), field_8(0), field_10(0), field_18(0) {}
-    u64 field_0;
-    u64 field_8;
-    u64 field_10;
-    u32 field_18;
-};
-PKMN_SIZE_ASSERT(Unk_4f4850, 0x20);
-
-// Zero from its constructor.
-struct Unk_4f4b30 {
-    Unk_4f4b30() : field_0(0), field_8(0), field_10(0), field_18(0) {}
-    u64 field_0;
-    u64 field_8;
-    u64 field_10;
-    u64 field_18;
-};
-struct Unk_4f4d90 {
-    Unk_4f4d90() : field_0(0), field_8(0), field_10(0), field_18(0), field_20(0) {}
-    u64 field_0;
-    u64 field_8;
-    u64 field_10;
-    u64 field_18;
-    u64 field_20;
-};
-
 struct Unk_53ad10 {
     u64 field_0[10];
-};
-struct Unk_53af60 {
-    u64 field_0[2];
 };
 
 struct Unk_5461d0 {
@@ -65,16 +36,6 @@ struct Unk_546490 {
     u32 field_10;
 };
 PKMN_SIZE_ASSERT(Unk_546490, 0x14);
-
-struct Unk_54ee60 {
-    Unk_54ee60() : field_0(0), field_8(0), field_10(false), field_18(0), field_20(0) {}
-    u64 field_0;
-    u64 field_8;
-    bool field_10;
-    u64 field_18;
-    u64 field_20;
-};
-PKMN_SIZE_ASSERT(Unk_54ee60, 0x28);
 
 struct Unk_557e60 {
     Unk_557e60() : field_0(1), field_4(0), field_8(0), field_c(0), field_10(0) {}
@@ -142,26 +103,20 @@ PKMN_SIZE_ASSERT(SiGfxFreeTypeGlyph, 0x98);
 
 using namespace SiSDK3;
 
-// 0x71004f4850 = _ZN6SiSDK37SiArrayI10Unk_4f4850Li16EE10Unk_4bf190Emb
-template bool SiArray<Unk_4f4850, 16>::Unk_4bf190(size_t, bool);
-// 0x71004f4b30 = _ZN6SiSDK37SiArrayI10Unk_4f4b30Li16EE10Unk_4bf190Emb
-template bool SiArray<Unk_4f4b30, 16>::Unk_4bf190(size_t, bool);
-// 0x71004f4d90 = _ZN6SiSDK37SiArrayI10Unk_4f4d90Li16EE10Unk_4bf190Emb
-template bool SiArray<Unk_4f4d90, 16>::Unk_4bf190(size_t, bool);
+// (0x71004f4850, 0x71004f4b30 and 0x71004f4d90 are the arrays of SiGfxImage's
+// ImageData1D, ImageData2D and ImageData3D: SiGfx_Image.cpp instantiates them.)
 // 0x71004ff210 = _ZN6SiSDK37SiArrayINS_17SiGfxResourcePool12ResourceItemELi16EE10Unk_4bf190Emb
 template bool SiArray<SiGfxResourcePool::ResourceItem, 16>::Unk_4bf190(size_t, bool);
 // 0x7100501930 = _ZN6SiSDK37SiArrayINS_18SiGfxFreeTypeGlyphELi16EE10Unk_4bf190Emb
 template bool SiArray<SiGfxFreeTypeGlyph, 16>::Unk_4bf190(size_t, bool);
 // 0x710053ad10 = _ZN6SiSDK37SiArrayI10Unk_53ad10Li16EE10Unk_4bf190Emb
 template bool SiArray<Unk_53ad10, 16>::Unk_4bf190(size_t, bool);
-// 0x710053af60 = _ZN6SiSDK37SiArrayI10Unk_53af60Li16EE10Unk_4bf190Emb
-template bool SiArray<Unk_53af60, 16>::Unk_4bf190(size_t, bool);
+// (0x710053af60 is SiArray<SiGfxNXCommandList::OverwrittenEntry>'s: SiGfx_NX_CommandList_Impl.cpp instantiates it.
+// 0x710053ad10 above is SiArray<SiGfxNXCommandList::DiscontinuedEntry>'s, for when that file's Unk_53a790 is written.)
 // 0x71005461d0 = _ZN6SiSDK37SiArrayI10Unk_5461d0Li16EE10Unk_4bf190Emb
 template bool SiArray<Unk_5461d0, 16>::Unk_4bf190(size_t, bool);
 // 0x7100546490 = _ZN6SiSDK37SiArrayI10Unk_546490Li16EE10Unk_4bf190Emb
 template bool SiArray<Unk_546490, 16>::Unk_4bf190(size_t, bool);
-// 0x710054ee60 = _ZN6SiSDK37SiArrayI10Unk_54ee60Li16EE10Unk_4bf190Emb
-template bool SiArray<Unk_54ee60, 16>::Unk_4bf190(size_t, bool);
 // 0x7100557e60 = _ZN6SiSDK37SiArrayI10Unk_557e60Li16EE10Unk_4bf190Emb
 template bool SiArray<Unk_557e60, 16>::Unk_4bf190(size_t, bool);
 // 0x7100562770 = _ZN6SiSDK37SiArrayI10Unk_562770Li16EE10Unk_4bf190Emb

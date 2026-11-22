@@ -13,11 +13,18 @@ PKMN_OFFSET_ASSERT(Unk_4f10c0, field_10, 0x10);
 extern u64 Unk_2391358;
 
 namespace SiSDK3 {
+class ISiIOStream;
+class ISiIOBinaryArchive {
+public:
+    struct Unk_ChunkHeader;
+};
 class SiGfxTextureChunkHandler {
 public:
     u32 vf4();
     u64 vf5();
-    u32 vf9();
+    // (the parameters are the ones of the chunk handlers' slot 9, which the
+    // class overrides: SiGfx_BinaryChunk_Texture.h)
+    u32 vf9(ISiIOBinaryArchive* archive, ISiIOBinaryArchive::Unk_ChunkHeader* header, ISiIOStream* stream);
 };
 }  // namespace SiSDK3
 
@@ -33,6 +40,7 @@ u64 SiSDK3::SiGfxTextureChunkHandler::vf5() {
 }
 
 // 0x710057a640
-u32 SiSDK3::SiGfxTextureChunkHandler::vf9() {
+u32 SiSDK3::SiGfxTextureChunkHandler::vf9(ISiIOBinaryArchive* /*archive*/, ISiIOBinaryArchive::Unk_ChunkHeader* /*header*/,
+                                          ISiIOStream* /*stream*/) {
     return 1;
 }

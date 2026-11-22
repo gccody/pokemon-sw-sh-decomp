@@ -11,8 +11,11 @@ namespace SiSDK3 {
 
 // How many of each there are (placeholder name): 0x7102771490.
 struct Unk_2771490_t {
+    Unk_2771490_t() : field_0(0), field_4(0), field_8(0) {}
+
     s32 field_0;  // critical sections
     s32 field_4;  // mutexes
+    u64 field_8;
 };
 
 class SiOSSyncObject {
@@ -54,14 +57,19 @@ PKMN_SIZE_ASSERT(SiOSMutex, 0x28);
 
 }  // namespace SiSDK3
 
-// 0x7100596410 (leafgen's name and type): SiOSCriticalSection's constructor
-void Unk_596410(void* self, u32 value);
+// SiOSCriticalSection's constructor (0x7100596410) under the name and type
+// leafgen had given it, for the callers written with that name.
+inline void* operator new(size_t, SiSDK3::SiOSCriticalSection* p) {
+    return p;
+}
+inline void Unk_596410(void* self, u32 value) {
+    new (static_cast<SiSDK3::SiOSCriticalSection*>(self)) SiSDK3::SiOSCriticalSection(value);
+}
 
 namespace SiSDK3 {
 
-// A critical section as another class's member (placeholder name): its
-// constructor is the function above, under leafgen's name, so the member is
-// this wrapper, which calls it by that name.
+// A critical section as another class's member (placeholder name, from when
+// the constructor only had leafgen's name).
 struct Unk_CriticalSection {
     explicit Unk_CriticalSection(u32 value) { Unk_596410(this, value); }
     ~Unk_CriticalSection() { Unk_Get()->SiOSCriticalSection::~SiOSCriticalSection(); }
