@@ -266,7 +266,9 @@ bool SiGfxImage::Unk_4f3680() {
     return true;
 }
 
-// NON_MATCHING: 8 bytes longer, other registers: the loops are unswitched as
+// The rows' and slices' sizes are s32 locals (as the members are), read
+// before the data's address.
+// NON_MATCHING: 28 bytes shorter, other registers: the loops are unswitched as
 // the original's are (on the index, then on the level where the index is
 // negative), but where the index isn't negative the original tests the level
 // without a branch (`cset; orr; ccmp`) and keeps the level on the stack in
@@ -297,8 +299,8 @@ bool SiGfxImage::Unk_4f3700(s32 channel, s32 value, s32 index, s32 level) {
             }
             if (level < 0 || i % field_58.field_14 == level) {
                 ImageData2D* data = &field_e0.m_pData[i];
+                s32 rowSize = data->field_1c;
                 u8* row = data->field_0;
-                s64 rowSize = data->field_1c;
                 for (s32 y = 0; y < data->field_18; y++) {
                     u8* pixel = row + offset;
                     for (s32 x = 0; x < data->field_14; x++) {
@@ -313,9 +315,9 @@ bool SiGfxImage::Unk_4f3700(s32 channel, s32 value, s32 index, s32 level) {
         for (s32 i = 0; i < static_cast<s32>(field_130.m_itemCount); i++) {
             if (level < 0 || i % field_58.field_14 == level) {
                 ImageData3D* data = &field_130.m_pData[i];
+                s32 rowSize = data->field_20;
+                s32 sliceSize = data->field_24;
                 u8* slice = data->field_0;
-                s64 rowSize = data->field_20;
-                s64 sliceSize = data->field_24;
                 for (s32 z = 0; z < data->field_1c; z++) {
                     u8* row = slice;
                     for (s32 y = 0; y < data->field_18; y++) {

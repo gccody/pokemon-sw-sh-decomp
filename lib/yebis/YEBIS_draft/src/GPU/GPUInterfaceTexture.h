@@ -30,6 +30,8 @@ public:
     virtual u32 vf19();                                   // 0x71004476c0
     virtual u32 vf20();                                   // 0x7100447700
     virtual s32 vf21(s32 state, bool check);              // 0x7100447710
+    // 0x7100447790: the device's sampler for its sampler state
+    Unk_SiGfxInterface* Unk_447790() const;
 
     Unk_SiGfxInterface** field_70;
     u32 field_78;  // the sampler state

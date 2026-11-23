@@ -32,7 +32,7 @@
 // 0x7100440d50 (lib/yebis/leaf)
 u32 Unk_440d50_get(u64 device, u32 arg);
 // 0x710049e3a0 (GPURenderTexture.cpp)
-void Unk_49e3a0(u32 arg0, s32 arg1, s32 arg2, void* arg3, void* arg4, s32 arg5, void* arg6, void* arg7, f32 arg8);
+s32 Unk_49e3a0(u32 arg0, s32 arg1, s32 arg2, void* arg3, void* arg4, s32 arg5, void* arg6, void* arg7, f32 arg8);
 
 // 0x710049ca70 (GPURenderTexture.cpp)
 void Unk_49ca70(void* self, void* arg1, u32 arg2);

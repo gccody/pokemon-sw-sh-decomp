@@ -133,7 +133,8 @@ SiGfxNXRootSignature::SiGfxNXRootSignature(ISiAllocator* pAllocator, SiGfxNXDevi
 // file instantiates): the same code, but in the loop over the parameters the
 // original counts down before it advances the pointer (`subs ; add`), and
 // this advances first. The samplers' array has the original's order with the
-// same array delete.
+// same array delete. (Tried: the entry's destructor with a local pointer, an
+// early return, a helper.)
 // 0x7100556db0 (D2), 0x7100556fb0 (D0)
 SiGfxNXRootSignature::~SiGfxNXRootSignature() {
     field_28.Unk_FreeAll();
@@ -241,7 +242,11 @@ bool SiGfxNXRootSignature::vf9() {
 // 0x71005581e0, where SiCore_Array.h's frees the buffer and empties the array
 // itself: the reserve is specialised for the parameters with that call. The
 // samplers' array's reserve, 0x7100558530, is SiCore_Array.h's and NON_MATCHING
-// for the order of three of its constructor's stores.)
+// for the order of three of its constructor's stores: the original stores
+// the sampler pointer, then the description's last words, then its first
+// (tried: the pointer set in the body or first, the description assigned in
+// the body, its loop counting down, unsigned, through a pointer, unrolled, a
+// memset or value-initialised).)
 // 0x7100557430
 bool SiGfxNXRootSignature::vf10(s32 count) {
     if (!field_25) {
@@ -251,12 +256,15 @@ bool SiGfxNXRootSignature::vf10(s32 count) {
     return true;
 }
 
-// NON_MATCHING (and slot 13): the original sets up its frame before the
+// NON_MATCHING: the original sets up its frame before the
 // tests and has every early return go through its one epilogue (`mov w0,
 // wzr` first); here the tests come before the frame, each with a return of
 // its own, and slot 12's test of the kind is made before the flag is read.
 // Tried: the flag in an int-sized local, a result variable, the tests as one
-// condition and one by one.
+// condition and one by one; (round 12) slot 13's form (a result variable,
+// `field_25 && index >= 0`, which matches there) with the kind's test in the
+// outer condition, an inner if, its own return or a switch: the kind's test
+// is always hoisted before the flag's.
 // 0x71005574f0
 bool SiGfxNXRootSignature::vf12(s32 index, u32 kind, u32 a3, u32 a4, u32 a5) {
     if (index < 0) {
@@ -283,7 +291,7 @@ bool SiGfxNXRootSignature::vf12(s32 index, u32 kind, u32 a3, u32 a4, u32 a5) {
 // 0x7100557660
 bool SiGfxNXRootSignature::vf13(s32 index, u32 a2, u32 a3, u32 a4, u32 a5) {
     bool result = false;
-    if (index >= 0 && field_25) {
+    if (field_25 && index >= 0) {
         if (index < static_cast<s32>(field_28.m_itemCount)) {
             RootParameterEntry& entry = field_28.m_pData[index];
             entry.Unk_Reset();
@@ -298,25 +306,29 @@ bool SiGfxNXRootSignature::vf13(s32 index, u32 a2, u32 a3, u32 a4, u32 a5) {
     return result;
 }
 
-// NON_MATCHING: like slots 12 and 13 (the frame before the tests, `mov w0,
-// wzr` before the first two, a return block of its own for the third).
+// NON_MATCHING: the original keeps the count known to be zero after the
+// ranges' constructor in one register through the default allocator's call
+// (`mov x8, xzr`, then the reload); here the null allocator's path is
+// threaded into a copy of the count's test. With the parameter stored
+// before the count is set, the code is the original's but for that store's
+// place. Tried: every single-line move.
 // 0x71005577e0
 bool SiGfxNXRootSignature::vf14(s32 index, u32 a2, s32 count) {
-    if (index < 0 || !field_25) {
-        return false;
-    }
-    if (static_cast<s32>(field_28.m_itemCount) <= index) {
-        return false;
-    }
-    RootParameterEntry& entry = field_28.m_pData[index];
-    entry.Unk_Reset();
-    entry.field_0 = 5;
-    entry.field_4 = a2;
+    bool result = false;
+    if (field_25 && index >= 0) {
+        if (index < static_cast<s32>(field_28.m_itemCount)) {
+            RootParameterEntry& entry = field_28.m_pData[index];
+            entry.Unk_Reset();
+            entry.field_0 = 5;
+            entry.field_4 = a2;
 #line 547
-    Unk_Ranges* ranges = UNK_SI_NEW(field_8.m_pAllocator, 0x10) Unk_Ranges(field_8.m_pAllocator);
-    ranges->field_8.Unk_SetCount(count);
-    entry.field_20 = ranges;
-    return true;
+            Unk_Ranges* ranges = UNK_SI_NEW(field_8.m_pAllocator, 0x10) Unk_Ranges(field_8.m_pAllocator);
+            ranges->field_8.Unk_SetCount(count);
+            entry.field_20 = ranges;
+            result = true;
+        }
+    }
+    return result;
 }
 
 // 0x7100557aa0

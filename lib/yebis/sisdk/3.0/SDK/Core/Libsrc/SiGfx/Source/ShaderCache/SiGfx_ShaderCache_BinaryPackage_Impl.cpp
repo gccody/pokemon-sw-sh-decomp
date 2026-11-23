@@ -112,12 +112,7 @@ struct Unk_EntryCompare {
 // package's entries, their names and code in one block, sorted by name
 // The name's offset is read into a local before its copy (that gives the
 // original's registers for the block and the offset).
-// NON_MATCHING: the sorter's test of its room is `cmp x8, #1 ; b.lt` in the
-// original and `cmp x8, #0 ; b.le` here: the IR has an empty block for the
-// test's skip (the stack's address for the destructor's phi), laid out next,
-// so the branch is inverted. Tried: every spelling of the test, the reserve as
-// `>= 1`/`> 0` around the allocation, its count as size_t, a stack local,
-// a bool result, the capacity set after the allocation.
+// The sorter is made with the count (see SiCore_QSorter.h).
 void SiGfxShaderBinaryCachePackage::vf6() {
     if (static_cast<s32>(field_158) <= 0) {
         return;
@@ -321,7 +316,10 @@ inline s32 SiGfxShaderBinaryCachePackage::Unk_FindEntry(u32 hash) {
 // compared. Written with an index set by the search and a break, the entry is
 // read again but the not-found result becomes a select (`csel`), which the
 // original doesn't have: it seems the not-found path was threaded to the null
-// return only after GVN there.
+// return only after GVN there. (Here the first JumpThreading unfolds the
+// search's `select (high's test), high, -1` before GVN, so every path into the
+// read has the entry loaded; tried the index as s64, an index test of `== -1`,
+// the read before the test, the end tests through a result variable.)
 void* SiGfxShaderBinaryCachePackage::vf10(const void* a1, void* a2) {
     if (a2 == nullptr) {
         return nullptr;

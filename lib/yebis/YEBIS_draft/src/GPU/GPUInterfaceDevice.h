@@ -75,6 +75,18 @@ struct Unk_SiGfxInterface {
     virtual void vf3();
 };
 
+// ISiGfxPipelineState (SiSDK3::SiGfxNXPipelineState's interface): slot 10
+// gives its description, which slot 9 makes the NVN states of
+struct Unk_SiGfxPipelineState : Unk_SiGfxInterface {
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual u32 vf8();
+    virtual bool vf9();
+    virtual void* vf10();
+};
+
 // SiGfx's render target as the device uses it: slot 10 gives its resource
 struct Unk_SiGfxRenderTarget {
     virtual void vf0();
@@ -259,16 +271,31 @@ struct Unk_PipelineDesc {
         u8 field_1c[4];
     };
     struct Unk_VertexElement {
+        bool operator==(const Unk_VertexElement& other) const {
+            return field_0 == other.field_0 && field_4 == other.field_4 && field_8 == other.field_8 &&
+                   field_c == other.field_c && field_10 == other.field_10 && field_14 == other.field_14 &&
+                   field_18 == other.field_18;
+        }
+
         u32 field_0;
         s32 field_4;
         u32 field_8;
         s32 field_c;
         s32 field_10;
-        u8 field_14[8];
+        u32 field_14;
+        u32 field_18;
     };
-    // what SetupSiGfxDrawContext copies from the input attribute
+    // the vertex attributes: what SetupSiGfxDrawContext copies from the
+    // vertex format the effect set
+    struct Unk_VertexLayout {
+        Unk_VertexElement field_0[32];
+        s32 field_380;  // how many there are
+    };
+    // what SetupSiGfxDrawContext copies from the first render target's
+    // resource
     struct Unk_4ec {
-        u32 field_0[10];
+        s32 field_0;  // how many of field_4 there are
+        s32 field_4[9];
     };
 
     inline Unk_PipelineDesc() {
@@ -330,8 +357,7 @@ struct Unk_PipelineDesc {
     Unk_Blend field_60[8];
     u32 field_160;  // what is drawn
     u8 field_164[4];
-    Unk_VertexElement field_168[32];
-    s32 field_4e8;
+    Unk_VertexLayout field_168;
     Unk_4ec field_4ec;
     u32 field_514;
     u32 field_518;
@@ -438,39 +464,16 @@ public:
     // 0x710043e780: what the log lines call it
     s32 SetupSiGfxDrawContext(s32 primitive);
 
-    // RTTI: SiSDK3::SiArray<PPFX::IGPUDevice::PipelineStateData, 16>. A
-    // pipeline state SiGfx made, after 0x120 bytes that tell which.
-    struct PipelineStateData {
-        PipelineStateData() : field_0(0), field_8(0) {}
-
-        u64 field_0;
-        u64 field_8;
-        u8 field_10[0x110];
-        Unk_SiGfxInterface* field_120;
-    };
-    typedef SiSDK3::SiArray<PipelineStateData, 16> Unk_PipelineStates;
     // what the states are kept by (0x120 bytes; placeholder names)
     struct Unk_PipelineKey {
-        struct Unk_Element {
-            bool operator==(const Unk_Element& other) const {
-                return field_0 == other.field_0 && field_4 == other.field_4 && field_8 == other.field_8 &&
-                       field_c == other.field_c && field_10 == other.field_10 && field_14 == other.field_14 &&
-                       field_18 == other.field_18;
-            }
+        typedef Unk_PipelineDesc::Unk_VertexElement Unk_Element;
 
-            u32 field_0;
-            u32 field_4;
-            u32 field_8;
-            u32 field_c;
-            u32 field_10;
-            u32 field_14;
-            u32 field_18;
-        };
+        Unk_PipelineKey() : field_0(0), field_8(0) {}
 
         bool operator==(const Unk_PipelineKey& other) const;  // 0x710043e640
 
         u64 field_0;  // the hash, which is all the table compares
-        u8 pad_8[0x8];
+        void* field_8;  // the shaders
         void* field_10;
         u32 field_18;
         Unk_Element field_1c[8];
@@ -481,8 +484,15 @@ public:
         void* field_118;
     };
     static_assert(sizeof(Unk_PipelineKey) == 0x120, "Unk_PipelineKey");
+    // RTTI: SiSDK3::SiArray<PPFX::IGPUDevice::PipelineStateData, 16>. A
+    // pipeline state SiGfx made and what it was made for.
+    struct PipelineStateData {
+        Unk_PipelineKey field_0;
+        Unk_SiGfxInterface* field_120;
+    };
+    typedef SiSDK3::SiArray<PipelineStateData, 16> Unk_PipelineStates;
     struct Unk_PipelineKeyHash {
-        size_t operator()(const Unk_PipelineKey& key) const;
+        size_t operator()(const Unk_PipelineKey& key) const { return key.field_0; }
     };
     struct Unk_PipelineKeyEqual {
         bool operator()(const Unk_PipelineKey& a, const Unk_PipelineKey& b) const { return a.field_0 == b.field_0; }

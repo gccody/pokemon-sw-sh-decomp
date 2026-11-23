@@ -328,8 +328,8 @@ ISiIOBinaryArchive::ChunkHandler* SiGfxTextureUtility::vf18(SiGfxImage* image, u
             init->field_14 = 0;
             s32 size;
             if (Unk_4ed120(format)) {
-                s32 blocksWide = data->field_14 < 1 ? 1 : (data->field_14 + 3) / 4;
                 s32 blocksHigh = data->field_18 < 1 ? 1 : (data->field_18 + 3) / 4;
+                s32 blocksWide = data->field_14 < 1 ? 1 : (data->field_14 + 3) / 4;
                 init->field_10 = Unk_4ed0f0(format) * blocksWide;
                 init->field_14 = init->field_10 * blocksHigh;
                 size = init->field_14 * depth;

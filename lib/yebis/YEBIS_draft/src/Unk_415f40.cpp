@@ -46,6 +46,81 @@ void Unk_40f660(MATRIXT44* out, const Unk_Vector3* scale, const Unk_Vector3* tra
     }
 }
 
+void Unk_40f980(const MATRIXT44* matrix, f32* x, f32* y);
+
+// 0x710040f6e0: a perspective projection's planes and angles (`arg1`: a
+// depth range of -1 to 1, not 0 to 1); each output may be null
+void Unk_40f6e0(const MATRIXT44* m, bool arg1, bool* arg2, f32* left, f32* right, f32* bottom, f32* top, f32* near,
+                f32* far, f32* arg9, f32* arg10, f32* arg11, f32* arg12, f32* arg13, f32* arg14, f32* arg15) {
+    bool positive = m->field_0[2][3] > 0.0f;
+    f32 sign = positive ? 1.0f : -1.0f;
+    f32 b = -m->field_0[3][2];
+    f32 a = sign * m->field_0[2][2];
+    f32 n = arg1 ? b / (a + 1.0f) : b / a;
+    f32 f;
+    if (arg1) {
+        f = m->field_0[3][2] / (1.0f - a);
+    } else {
+        f = b / (a - 1.0f);
+    }
+    f32 width = (n + n) / m->field_0[0][0];
+    f32 height = (n + n) / m->field_0[1][1];
+    f32 x = sign * m->field_0[2][0];
+    f32 y = sign * m->field_0[2][1];
+    f32 l = width * (x + 1.0f) * -0.5f;
+    f32 r = width * (1.0f - x) * 0.5f;
+    f32 bo = height * (y + 1.0f) * -0.5f;
+    f32 t = height * (1.0f - y) * 0.5f;
+    f32 rx;
+    f32 ry;
+    Unk_40f980(m, &rx, &ry);
+    f32 ax = atanf(rx);
+    f32 ay = atanf(ry);
+    f32 aspect = rx * m->field_0[1][1];
+    if (arg2 != nullptr) {
+        *arg2 = positive;
+    }
+    if (left != nullptr) {
+        *left = l;
+    }
+    if (right != nullptr) {
+        *right = r;
+    }
+    if (bottom != nullptr) {
+        *bottom = bo;
+    }
+    if (top != nullptr) {
+        *top = t;
+    }
+    if (near != nullptr) {
+        *near = n;
+    }
+    if (far != nullptr) {
+        *far = f;
+    }
+    if (arg9 != nullptr) {
+        *arg9 = rx;
+    }
+    if (arg10 != nullptr) {
+        *arg10 = ry;
+    }
+    if (arg11 != nullptr) {
+        *arg11 = ax * 2.0f;
+    }
+    if (arg12 != nullptr) {
+        *arg12 = ay * 2.0f;
+    }
+    if (arg13 != nullptr) {
+        *arg13 = aspect;
+    }
+    if (arg14 != nullptr) {
+        *arg14 = width;
+    }
+    if (arg15 != nullptr) {
+        *arg15 = height;
+    }
+}
+
 // 0x710040f8d0: an off-centre perspective projection
 void Unk_40f8d0(MATRIXT44* out, bool arg1, bool arg2, f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far) {
     f32 sign = arg2 ? 1.0f : -1.0f;
@@ -82,31 +157,22 @@ void Unk_40f980(const MATRIXT44* matrix, f32* x, f32* y) {
 }
 
 // 0x710040f9b0: a perspective projection rebuilt (with Unk_40f8d0's depth
-// range of -1 to 1) from one with a depth range of 0 to 1 (the two atanf calls
-// are the fields of view, which nothing uses)
+// range of -1 to 1) from one with a depth range of 0 to 1 (Unk_40f6e0 inlined:
+// its two atanf calls stay, nothing uses them)
 // NON_MATCHING: register allocation only: the left edge's product and the
 // constant -0.5 are in s6 and s7 here, s7 and s16 in the original (and far
 // times -2 in s3, not s6)
 MATRIXT44* Unk_40f9b0(MATRIXT44* out, const MATRIXT44* m, bool flip) {
-    f32 sign = m->field_0[2][3] > 0.0f ? 1.0f : -1.0f;
-    f32 b = -m->field_0[3][2];
-    f32 a = sign * m->field_0[2][2];
-    f32 near = b / a;
-    f32 far = b / (a - 1.0f);
-    f32 width = (near + near) / m->field_0[0][0];
-    f32 height = (near + near) / m->field_0[1][1];
-    f32 x = sign * m->field_0[2][0];
-    f32 y = sign * m->field_0[2][1];
-    f32 left = width * (x + 1.0f) * -0.5f;
-    f32 right = width * (1.0f - x) * 0.5f;
-    f32 bottom = height * (y + 1.0f) * -0.5f;
-    f32 top = height * (1.0f - y) * 0.5f;
-    f32 rx;
-    f32 ry;
-    Unk_40f980(m, &rx, &ry);
-    atanf(rx);
-    atanf(ry);
-    Unk_40f8d0(out, true, sign > 0.0f && !flip, left, right, bottom, top, near, far);
+    bool positive;
+    f32 left;
+    f32 right;
+    f32 bottom;
+    f32 top;
+    f32 near;
+    f32 far;
+    Unk_40f6e0(m, false, &positive, &left, &right, &bottom, &top, &near, &far, nullptr, nullptr, nullptr, nullptr,
+               nullptr, nullptr, nullptr);
+    Unk_40f8d0(out, true, positive && !flip, left, right, bottom, top, near, far);
     return out;
 }
 

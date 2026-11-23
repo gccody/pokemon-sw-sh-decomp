@@ -8,6 +8,7 @@
 namespace PPFX {
 
 struct Unk_SiGfxInterface;
+struct Unk_SiGfxPipelineState;
 struct Unk_SiGfxRenderTarget;
 struct Unk_SiGfxTexture;
 struct Unk_SiGfxVertexFormat;
@@ -68,7 +69,7 @@ struct Unk_SiGfxDevice {
     virtual void vf22();
     virtual void vf23();
     virtual void vf24();
-    virtual void vf25();
+    virtual Unk_SiGfxPipelineState* vf25(u32 arg1, u32 arg2, void* allocator);  // makes a pipeline state
     virtual void vf26();
     virtual void vf27();
     virtual void vf28();
@@ -159,16 +160,16 @@ struct Unk_SiGfxDrawContext {
     virtual void vf11(void* target, const void* clearValues);  // begins drawing to a target
     virtual void vf12();  // ends what the device began
     virtual void vf13();
-    virtual void vf14();
-    virtual void vf15();
-    virtual void vf16();
-    virtual void vf17();
+    virtual void vf14(u32 count, const void* viewports);  // sets the viewports
+    virtual void vf15(u32 count, const void* rects);  // sets the scissor rectangles
+    virtual void vf16(Unk_SiGfxInterface* pipeline);  // sets the pipeline state
+    virtual void vf17(void* shaders);  // sets the shaders
     virtual void vf18();
-    virtual void vf19();
+    virtual void vf19(u32 arg1, u32 count, const u64* arg3, const u32* arg4, const u32* arg5);  // sets the resources
     virtual void vf20(void* buffer, s32 format);  // sets the index buffer
     virtual void vf21(const void* color);  // sets the blend colour
     virtual void vf22();
-    virtual void vf23();
+    virtual void vf23(void* arg);
     virtual void vf24(u32 arg1, u32 arg2, u32 instances, u32 arg4);  // draws
     virtual void vf25(u32 arg1, u32 arg2, u32 arg3, u32 instances, u32 arg5);  // draws with indices
     virtual void vf26();

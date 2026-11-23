@@ -92,11 +92,8 @@ SiGfxNXPipelineState::SiGfxNXPipelineState(ISiAllocator* pAllocator, SiGfxNXDevi
 // (The loop over the vertex attributes counts in 32 bits: IndVarSimplify
 // widens it, which leaves the copy without the semantic flag no test against
 // -1 and a 64-bit compare of the count.)
-// NON_MATCHING: two instructions: before the blend loop the original zeroes
-// the 32-bit index (`mov w23, wzr`) before the 64-bit offset, this the other
-// way round. Tried: the blend loop's index as s32/u32/u64, the blend state
-// through a pointer, the colour state's pointer after the channel mask's
-// defaults, every single-line move of the function.
+// (The blend states are stepped through with a pointer of their own beside
+// the index: indexed, the 64-bit offset is zeroed before the index.)
 // 0x71005536e0
 bool SiGfxNXPipelineState::vf9() {
     if (field_24 < 1) {
@@ -133,14 +130,15 @@ bool SiGfxNXPipelineState::vf9() {
     u32* color = &field_5c0;
     nvnChannelMaskStateSetDefaults(&field_5c4);
     nvnColorStateSetDefaults(color);
-    for (s64 i = 0; i < 8; i++) {
+    u64* state = field_558;  // NVNblendState
+    for (s64 i = 0; i < 8; i++, state++) {
         const Unk_Blend& blend = field_28.field_60[i];
         nvnColorStateSetBlendEnable(color, i, blend.field_0);
-        nvnBlendStateSetDefaults(&field_558[i]);
-        nvnBlendStateSetBlendTarget(&field_558[i], i);
-        nvnBlendStateSetBlendFunc(&field_558[i], Unk_5630e0(blend.field_4, false), Unk_5630e0(blend.field_8, false),
+        nvnBlendStateSetDefaults(state);
+        nvnBlendStateSetBlendTarget(state, i);
+        nvnBlendStateSetBlendFunc(state, Unk_5630e0(blend.field_4, false), Unk_5630e0(blend.field_8, false),
                                   Unk_5630e0(blend.field_10, true), Unk_5630e0(blend.field_14, true));
-        nvnBlendStateSetBlendEquation(&field_558[i], Unk_563150(blend.field_c), Unk_563150(blend.field_18));
+        nvnBlendStateSetBlendEquation(state, Unk_563150(blend.field_c), Unk_563150(blend.field_18));
         nvnChannelMaskStateSetChannelMask(&field_5c4, i, blend.field_1c[0], blend.field_1c[1], blend.field_1c[2],
                                           blend.field_1c[3]);
     }

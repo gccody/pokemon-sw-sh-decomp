@@ -44,10 +44,29 @@ inline void Unk_StringSetEmpty(SiString<T>* self) {
     self->field_10 = 0;
 }
 
-// Makes room for capacity characters, without keeping the contents: by
-// field_18 characters more, or twice the capacity.
+// No characters, whether the buffer is the string's own or not (inline:
+// placeholder name). The two sides are the same code: the callers keep the
+// load of the flags, whose branch goes only when the blocks are merged after
+// register allocation (0x71004c42b0, 0x71004c4700, 0x71004c8020).
 template <class T>
-inline void Unk_StringGrow(SiString<T>* self, size_t length) {
+inline void Unk_StringSetEmptyAny(SiString<T>* self) {
+    if (self->field_28 & 1) {
+        if (self->m_pBuffer != nullptr) {
+            self->m_pBuffer[0] = 0;
+        }
+        self->field_10 = 0;
+    } else {
+        Unk_StringSetEmpty(self);
+    }
+}
+
+// Makes room for capacity characters, without keeping the contents: by
+// field_18 characters more, or twice the capacity. The length is a
+// reference: as a value (an argument when the function is simplified before
+// it is inlined) it is compared second, `cmp x9, x8 ; csel lo` for the
+// original's `cmp x8, x9 ; csel hi`.
+template <class T>
+inline void Unk_StringGrow(SiString<T>* self, const size_t& length) {
     size_t step = self->field_18;
     size_t capacity;
     if (step != 0) {

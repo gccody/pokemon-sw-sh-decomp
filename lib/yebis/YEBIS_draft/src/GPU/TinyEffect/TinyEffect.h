@@ -22,6 +22,7 @@ extern u32 Unk_24e273c;
 namespace PPFX {
 
 class CTinyEffect;
+struct Unk_SiGfxInterface;
 
 // what vf20 and vf21 return: a pass's three device objects
 struct Unk_TinyResult {
@@ -45,6 +46,8 @@ PKMN_SIZE_ASSERT(Unk_TinyResult, 0x18);
 
 // a technique (field_2f8's elements)
 struct Unk_TinyTechnique {
+    Unk_TinyTechnique(CTinyEffect* effect) : field_0(effect), field_8(""), field_18(false) {}
+
     CTinyEffect* field_0;
     Unk_TFXString field_8;  // the name
     bool field_18;
@@ -53,11 +56,77 @@ struct Unk_TinyTechnique {
 };
 PKMN_SIZE_ASSERT(Unk_TinyTechnique, 0x20);
 
-// what a pass keeps in field_70 (placeholder)
-struct Unk_TinyPassItem {
-    u64 field_0;
-    Unk_TFXString field_8;
+struct Unk_TinyParam;
+struct Unk_TinyPass;
+
+class CManualProgramParameterTable {
+public:
+    // a parameter of the programs (field_10's elements)
+    struct Unk_Item {
+        Unk_Item(CTinyEffect* effect)
+            : field_0(effect), field_8(""), field_18(false), field_1c(-1), field_20(0), field_24(0), field_28(-1),
+              field_2c(-1), field_30(-1), field_38(0), field_3c(0), field_40(0), field_44(0) {}
+
+        CTinyEffect* field_0;
+        Unk_TFXString field_8;  // the name
+        bool field_18;          // referenced
+        u8 pad_19[0x3];
+        s32 field_1c;  // its index in field_10
+        s32 field_20;  // the kind (1 to 4 the effect's, 10 a texture's sampler)
+        s32 field_24;
+        s32 field_28;
+        s32 field_2c;
+        s32 field_30;
+        s32 field_34;
+        s32 field_38;
+        s32 field_3c;
+        s32 field_40;
+        u32 field_44;  // the stages that use it (bits)
+    };
+    typedef std::vector<Unk_Item*, Unk_StlAllocator<Unk_Item*>> Unk_Items;
+
+    CManualProgramParameterTable() : field_8(1), field_28(0), field_2c(), field_34(), field_40(), field_240() {}
+    virtual ~CManualProgramParameterTable();  // 0x710044fb30, 0x710044fbf0
+    s32 Unk_44fca0(Unk_TinyPass* pass);       // 0x710044fca0: reads the pass's programs
+
+    s32 field_8;  // references
+    u8 pad_c[0x4];
+    Unk_Items field_10;
+    s32 field_28;     // whether it has constants
+    s32 field_2c[2];  // the number of field_40's, by stage
+    s32 field_34[2];  // the number of field_240's, by stage
+    u8 pad_3c[0x4];
+    Unk_Item* field_40[2][32];
+    Unk_Item* field_240[2][32];
 };
+PKMN_SIZE_ASSERT(CManualProgramParameterTable, 0x440);
+PKMN_SIZE_ASSERT(CManualProgramParameterTable::Unk_Item, 0x48);
+PKMN_OFFSET_ASSERT(CManualProgramParameterTable, field_10, 0x10);
+
+
+// what a pass keeps in field_70 (placeholder): a parameter of its programs
+// that the effect has
+struct Unk_TinyPassItem {
+    Unk_TinyPassItem(CTinyEffect* effect)
+        : field_0(effect), field_8(""), field_18(false), field_20(nullptr), field_30(nullptr), field_38(0) {}
+
+    CTinyEffect* field_0;
+    Unk_TFXString field_8;  // the name
+    bool field_18;
+    u8 pad_19[0x7];
+    CManualProgramParameterTable::Unk_Item* field_20;
+    s32 field_28;    // the effect's parameter (its index)
+    u8 pad_2c[0x4];
+    Unk_TinyParam* field_30;  // the effect's parameter
+    s32 field_38;  // how many of its elements are referenced
+    bool field_3c;  // an array
+    u8 pad_3d[0x3];
+    s32 field_40;
+    u32 field_44;  // its first resource (m_iResourceIndex, the log's)
+    s32 field_48;  // where it goes in the constants (or the textures)
+    u8 pad_4c[0x4];
+};
+PKMN_SIZE_ASSERT(Unk_TinyPassItem, 0x50);
 
 // an entry of field_370 (placeholder): a name and two numbers as text
 struct Unk_TinyEntry {
@@ -66,31 +135,6 @@ struct Unk_TinyEntry {
     char field_f0[0x10];  // a size
 };
 PKMN_SIZE_ASSERT(Unk_TinyEntry, 0x100);
-
-// a resource of a pass's program, as CreateSiGfxProgramResources reads it
-// (placeholder)
-struct Unk_TinyBinding {
-    u8 pad_0[0x24];
-    s32 field_24;
-    u8 pad_28[0x4];
-    s32 field_2c;
-};
-
-// an object passes share, counted (placeholder): their program's resources
-struct Unk_TinyShared {
-    virtual ~Unk_TinyShared();
-    s32 field_8;
-    u8 pad_c[0x1c];
-    s32 field_28;  // whether it has constants
-    s32 field_2c;  // the number of field_40's
-    s32 field_30;  // the number of field_140's
-    s32 field_34;
-    s32 field_38;
-    u8 pad_3c[0x4];
-    Unk_TinyBinding* field_40[32];
-    Unk_TinyBinding* field_140[32];
-};
-PKMN_OFFSET_ASSERT(Unk_TinyShared, field_140, 0x140);
 
 // what a pass is made from (placeholder): its programs' names and objects,
 // the base of a pass (the part CreateProgram fills in)
@@ -142,7 +186,7 @@ struct Unk_TinyPass : Unk_TinyProgram {
     bool field_68;
     u8 pad_69[0x7];
     std::vector<Unk_TinyPassItem*, Unk_StlAllocator<Unk_TinyPassItem*>> field_70;
-    Unk_TinyShared* field_88;
+    CManualProgramParameterTable* field_88;
     SiSDK3::ISiInterface* field_90;
     SiSDK3::ISiInterface* field_98;
     // the device objects made for it
@@ -203,12 +247,16 @@ struct Unk_TinyInputs {
     void* field_0[16];
     u32 field_80[16];
     u32 field_c0[16];
-    u8 field_100[0xa4];
+    // the samplers Unk_44eac0 sets, by stage
+    Unk_SiGfxInterface* field_100[4];
+    Unk_SiGfxInterface* field_120[16];
+    u32 field_1a0;
     u32 field_1a4;
     u32 field_1a8;
     u32 field_1ac;
 };
 PKMN_SIZE_ASSERT(Unk_TinyInputs, 0x1b0);
+PKMN_OFFSET_ASSERT(Unk_TinyInputs, field_100, 0x100);
 
 // the device an effect is made for, as it uses it (placeholder)
 struct Unk_TinyDevice {
@@ -218,6 +266,96 @@ struct Unk_TinyDevice {
     virtual void vf3();
     virtual void vf4();
     virtual u64 vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+    virtual void vf25();
+    virtual void vf26();
+    virtual void vf27();
+    virtual void vf28();
+    virtual void vf29();
+    virtual void vf30(Unk_SiGfxInterface* texture, s32 arg1, s32 arg2);
+    virtual void vf31();
+    virtual void vf32();
+    virtual void vf33();
+    virtual void vf34();
+    virtual void vf35();
+    virtual void vf36();
+    virtual void vf37();
+    virtual void vf38();
+    virtual void vf39();
+    virtual void vf40();
+    virtual void vf41();
+    virtual void vf42();
+    virtual void vf43();
+    virtual void vf44();
+    virtual void vf45();
+    virtual void vf46();
+    virtual void vf47();
+    virtual void vf48();
+    virtual void vf49();
+    virtual void vf50();
+    virtual void vf51();
+    virtual void vf52();
+    virtual void vf53();
+    virtual void vf54();
+    virtual void vf55();
+    virtual void vf56();
+    virtual void vf57();
+    virtual void vf58();
+    virtual void vf59();
+    virtual void vf60();
+    virtual void vf61();
+    virtual void vf62();
+    virtual void vf63();
+    virtual void vf64();
+    virtual void vf65();
+    virtual void vf66();
+    virtual void vf67();
+    virtual void vf68();
+    virtual void vf69();
+    virtual void vf70();
+    virtual void vf71();
+    virtual char* vf72(s32 arg1, s32 arg2, s32 arg3, s32 size);  // memory for `size` bytes of constants
+    virtual void vf73();                                // and its end
+    virtual void vf74();
+    virtual void vf75();
+    virtual void vf76();
+    virtual void vf77();
+    virtual void vf78();
+    virtual void vf79();
+    virtual void vf80();
+    virtual void vf81();
+    virtual void vf82();
+    virtual void vf83();
+    virtual void vf84();
+    virtual void vf85();
+    virtual void vf86();
+    virtual void vf87();
+    virtual void vf88();
+    virtual void vf89();
+    virtual void vf90();
+    virtual void vf91();
+    virtual void vf92();
+    virtual void vf93();
+    virtual void vf94();
+    virtual void vf95(s32 arg1, s32 arg2, s32 arg3, u32* value);
 };
 
 // The bases RTTI names (__CTinyEffect, CInheritanceTypedReferenceManager<
@@ -280,7 +418,10 @@ public:
     void Unk_44def0();                                 // 0x710044def0: releases the passes' objects
     // 0x710044dbc0 (its log line names it); `share`: field_348 is `data` itself
     s32 CreateFromMemory(const void* data, Unk_TinyDevice* device, bool share);
-    s32 Unk_44cbd0();  // 0x710044cbd0: reads the effect
+    s32 BuildEffect();  // 0x710044cbd0 (its log line names it): reads the effect
+    // 0x710044b4d0 (its log lines name it): the pass's parameters that the
+    // effect has
+    s32 CreateParameter(Unk_TinyPass* pass, s32 programIndex);
     // 0x710044c060 (its log lines name it)
     s32 CreateSiGfxProgramResources(Unk_TinyPass* pass);
     // 0x710044bbd0 (its log line names it): `elements` parameters (one if
@@ -290,7 +431,7 @@ public:
     s32 CreateProgram(Unk_TinyProgram* program);
     // 0x710044c920: the pass that runs `code` (a new one unless `objects` are
     // already made), its index
-    s32 Unk_44c920(const Unk_TFXString& name, const Unk_TFXString& code, u32 arg, const Unk_TinyResult* objects);
+    s32 Unk_44c920(const Unk_TFXString& name, const Unk_TFXString& code, u32 arg, Unk_TinyResult objects);
     // the pass that runs `code` (-1 if none)
     s32 Unk_FindPass(const char* code) const {
         s32 index = -1;
@@ -313,10 +454,17 @@ public:
     Unk_TFXString field_40;
     Unk_TFXString field_50;
     Unk_TFXString field_60;
-    u8 pad_70[0x8];
+    u8 field_70;  // the parameters' arrays count as one (a byte the code
+                  // tests against 0, not a bool)
+    u8 pad_71[0x7];
     Unk_TinyDevice* field_78;
     u64 field_80;
-    u64 field_88[0x15];
+    // the pass that is applied and its textures, by stage
+    struct Unk_Applied {
+        Unk_TinyPass* field_0;
+        Unk_SiGfxInterface* field_8[4];
+        Unk_SiGfxInterface* field_28[16];
+    } field_88;
     void* field_130;  // the vertex inputs' layout (its SiGfx object)
     u32 field_138;    // the number of vertex buffers
     u32 field_13c;    // the first one
@@ -351,24 +499,12 @@ public:
     u8 pad_3d1[0x7];
 };
 PKMN_SIZE_ASSERT(CTinyEffect, 0x3d8);
+PKMN_OFFSET_ASSERT(CTinyEffect, field_88, 0x88);
+PKMN_OFFSET_ASSERT(CTinyEffect, field_130, 0x130);
 PKMN_OFFSET_ASSERT(CTinyEffect, field_2f8, 0x2f8);
 PKMN_OFFSET_ASSERT(CTinyEffect, field_328, 0x328);
 PKMN_OFFSET_ASSERT(CTinyEffect, field_380, 0x380);
 PKMN_OFFSET_ASSERT(CTinyEffect, field_3b0, 0x3b0);
 
-class CManualProgramParameterTable {
-public:
-    struct Unk_Item {
-        u64 field_0;
-        Unk_TFXString field_8;
-    };
-    typedef std::vector<Unk_Item*, Unk_StlAllocator<Unk_Item*>> Unk_Items;
-
-    virtual ~CManualProgramParameterTable();  // 0x710044fb30, 0x710044fbf0
-
-    u64 field_8;
-    Unk_Items field_10;
-};
-PKMN_OFFSET_ASSERT(CManualProgramParameterTable, field_10, 0x10);
 
 }  // namespace PPFX

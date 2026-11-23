@@ -22,6 +22,11 @@
 bool Unk_442c50_get(u64 device);
 // 0x7100446620: the device of an IGPUResource (with a reference)
 s32 Unk_446620(void* resource, PPFX::IGPUDevice** device);
+// 0x7100428030 (GPUPostEffect.cpp): whether a texture format is one of
+// those it lists
+bool Unk_428030(s32 format);
+// 0x710049e3a0 (GPURenderTexture.cpp)
+s32 Unk_49e3a0(u32 mask, s32 flags, s32 arg2, void* arg3, void* arg4, s32 arg5, void* arg6, void* arg7, f32 arg8);
 // a colour space (Unk_410f90.h)
 struct Unk_410f90;
 
@@ -368,22 +373,29 @@ public:
     u8 pad_7e44[0x4];
     s32 field_7e48;
     s32 field_7e4c[2][3];  // tech_UpsampleSsao(_LN)(_MC(_Mask)): [LN][none, MC, MC and Mask]
-    s32 field_7e64;
-    s32 field_7e68;
-    s32 field_7e6c;
-    s32 field_7e70;
-    s32 field_7e74;
-    s32 field_7e78;
-    s32 field_7e7c;
-    u8 pad_7e80[0x8];
-    s32 field_7e88;
-    s32 field_7e8c;
-    s32 field_7e90;
-    s32 field_7e94;
-    s32 field_7e98;
-    s32 field_7e9c;
-    s32 field_7ea0;
-    u8 pad_7ea4[0x8];
+    union {
+        struct {
+            s32 field_7e64;
+            s32 field_7e68;
+            s32 field_7e6c;
+            s32 field_7e70;
+            s32 field_7e74;
+            s32 field_7e78;
+            s32 field_7e7c;
+            u8 pad_7e80[0x8];
+            s32 field_7e88;
+            s32 field_7e8c;
+            s32 field_7e90;
+            s32 field_7e94;
+            s32 field_7e98;
+            s32 field_7e9c;
+            s32 field_7ea0;
+            u8 pad_7ea4[0x8];
+        };
+        // tech_TemporalAntialias(_Tonemap)(_DynamicPixel(_Depth<channel>)):
+        // [Tonemap][none, DynamicPixel, DepthR, G, B, A, RGBA8]
+        s32 field_7e64_table[2][9];
+    };
     s32 field_7eac[2][8][22];  // tech_DepthOfField_CompositeBlurredLevels(_USNORM)_Tn: [USNORM][textures - 1]
     s32 field_842c[2][8][22];  // ...CompositeBlurredLevelsFrontBlur(_USNORM)_Tn
     s32 field_89ac[2][8][8][22];  // tech_DepthOfField_CompositeBlurLevelsFrontBlur(_USNORM)_TSn_n: [USNORM][n][n]
@@ -829,6 +841,37 @@ void Unk_412560(u32 width, u32 height, Unk_Float4* offsets, f32* weights, f32 sc
 void Unk_412940(u32 width, u32 height, Unk_Float4* offsets, f32* weights, bool large, f32 scale);
 void Unk_412400(u32 width, u32 height, Unk_Float4* offsets, f32* weights, f32 scale);
 
+// 0x71004134d0 (Unk_415f40.cpp's TU; placeholder signature, from its caller):
+// the offsets and weights of a 3x3 Gaussian of `sigma`
+void Unk_4134d0(u32 width, u32 height, Unk_Float4* offsets, f32* weights, bool arg4, f32 sigma, f32 scale);
+// 0x7100413860 (Unk_415f40.cpp's TU; placeholder signature, from its caller):
+// the same for a 5x5 one
+void Unk_413860(u32 width, u32 height, Unk_Float4* offsets, f32* weights, bool arg4, f32 sigma, f32 scale);
+
+// 0x710040ffc0 (Unk_415f40.cpp): a row vector times a matrix
+void Unk_40ffc0(Unk_Float4* out, const Unk_Float4* v, const MATRIXT44* m);
+
+// 0x7100413330 (Unk_415f40.cpp): a 3x3 Gaussian as five bilinear samples
+void Unk_413330(u32 width, u32 height, Unk_Float4* offsets, f32* weights, bool normalize, f32 sigma, f32 scale);
+// 0x7100413730 (Unk_415f40.cpp): the nine samples of a 3x3 Gaussian
+void Unk_413730(u32 width, u32 height, Unk_Float4* offsets, f32* weights, bool normalize, f32 sigma, f32 scale);
+
+// what CTextureUtil::Unk_484f50 hands Unk_47a030 as its first object: a
+// view's rotation (Unk_4628f0's quaternion), its translation and
+// Unk_40f6e0's values of a projection (placeholder; Unk_47a030_Arg1 is the
+// part Unk_47a030 reads)
+struct Unk_484f50_View {
+    Unk_Float4 field_0;
+    Unk_Vector3 field_10;
+    f32 field_1c;
+    f32 field_20;
+    f32 field_24;
+    f32 field_28;
+    f32 field_2c;
+    f32 field_30;
+};
+PKMN_SIZE_ASSERT(Unk_484f50_View, 0x34);
+
 class CTextureUtil : public CGPUResourceManage {
 public:
     CTextureUtil(const char* name);  // 0x710046db60
@@ -1236,6 +1279,14 @@ public:
                    const Unk_Float4* arg14, void* arg15, s32 arg16);
     s32 Unk_47dfa0(f32 arg1, f32 arg2, f32 arg3, f32 arg4, void* arg5, CRenderTexture* target, u32 arg8, void* arg9,
                    s32 arg10, bool arg11, bool clear, s32 arg13, const Unk_Float4* arg14, void* arg15, s32 arg16);
+    // 0x7100497b20, 0x7100499250 (placeholder signatures, from
+    // CPostEffect::Unk_432ca0's calls)
+    s32 Unk_497b20(f32 arg0, f32 arg1, CRenderTexture* arg2, CRenderTexture* arg3, CRenderTexture* arg4,
+                   const Unk_Float4* color, s32 arg6, const Unk_Float4* arg7, s32 arg8, bool arg9, bool arg10,
+                   s32 arg11, s32 arg12);
+    s32 Unk_499250(f32 arg0, f32 arg1, f32 arg2, CRenderTexture* arg3, CRenderTexture* arg4, CRenderTexture* arg5,
+                   CRenderTexture* arg6, const Unk_Float4* color, s32 arg8, const Unk_Float4* arg9, s32 count,
+                   void* list, s32 arg12, bool arg13, bool arg14, bool arg15, s32 arg16, s32 arg17);
     // The handle of a texture stage (inline; its name and line are its assert's)
     s32 GetHandle_tex2D_aTexture(s32 stage) {
 #line 3059
@@ -1275,6 +1326,22 @@ public:
     // 0x710048e4e0: 0x710048e710 from `source` into `target`
     s32 Unk_48e4e0(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, f32 arg6, CRenderTexture* target,
                    CRenderTexture* source, const Unk_Float2* center, const f32* color, bool clear);
+    // 0x7100490020: tech_TemporalAntialias(...) of three textures (and a
+    // depth texture)
+    s32 Unk_490020(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 s0, f32 t0, f32 u1, f32 v1, f32 s1,
+                   f32 t1, f32 u2, f32 v2, f32 s2, f32 t2, Unk_GPUTexture* texture0, Unk_GPUTexture* texture2,
+                   Unk_GPUTexture* texture1, Unk_GPUTexture* depth, const Unk_Float2* size,
+                   const Unk_Float2* arg21, const Unk_Float2* arg22, f32 arg23, f32 tonemap, bool dynamic,
+                   f32 arg26, f32 arg27, s32 arg28, const Unk_Float2* arg29, s32 channel, const Unk_Float2* arg31,
+                   const Unk_Float2* arg32, f32 arg33, f32 arg34, f32 arg35, f32 arg36, f32 arg37, f32 arg38,
+                   f32 arg39, f32 arg40, const Unk_Float4* arg41, const Unk_Float4* arg42, u32 flags);
+    // 0x710048fb40: Unk_490020 from `source`, `history`, `arg11` (and
+    // `depth`) into `target`
+    s32 Unk_48fb40(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, f32 arg6, f32 arg7,
+                   CRenderTexture* target, CRenderTexture* source, CRenderTexture* history, CRenderTexture* arg11,
+                   CRenderTexture* depth, bool dynamic, s32 arg14, const Unk_Float2* arg15, s32 channel,
+                   const Unk_Float2* arg17, const Unk_Float2* arg18, f32 arg19, f32 arg20, f32 arg21, f32 arg22,
+                   const Unk_Float4* color, const Unk_Float4* arg24, bool clear);
     // 0x7100490780 (not written yet; placeholder signature, from its callers)
     s32 Unk_490780(f32 scale, CRenderTexture* source, CRenderTexture* target, CRenderTexture* arg3, s32 count,
                    const f32* weights, s32 arg6, s32 arg7, const Unk_Float4* color, bool clear, s32 arg10,
@@ -1324,6 +1391,27 @@ public:
     s32 Unk_48de50(f32 width, f32 height, f32 x, f32 y, f32 arg4, f32 amount, f32 low, f32 high, CRenderTexture* source,
                    CRenderTexture* other, CRenderTexture* target, const Unk_Float4* scale, const Unk_410f90* space,
                    const MATRIXT44* matrix, bool clear, f32 arg16, f32 arg17, u32 flags);
+    // 0x71004870b0: a Gaussian of `sigma` (one per channel unless all four are
+    // the same)
+    s32 Unk_4870b0(CRenderTexture* source, CRenderTexture* target, f32 scale, const Unk_Float4* sigma, s32 mode,
+                   const Unk_Float4* color, bool arg6, bool clear, bool arg8, s32 arg9, s32 arg10);
+    // 0x7100489690: tech_GlareGhost_PointSymmetryT3_S8 `index` from `a`, `b`
+    // and `c` into `target`
+    s32 Unk_489690(CRenderTexture* a, CRenderTexture* b, CRenderTexture* c, CRenderTexture* target,
+                   const Unk_Float4* params, const Unk_Float4* colors, f32 scale, s32 index, u32 flags);
+    // 0x7100486a80: 0x71004870b0 with a 3x3 Gaussian
+    s32 Unk_486a80(CRenderTexture* source, CRenderTexture* target, f32 scale, const Unk_Float4* sigma, s32 mode,
+                   const Unk_Float4* color, bool arg6, bool clear, bool arg8, s32 arg9, s32 arg10);
+    // 0x7100484f50
+    s32 Unk_484f50(f32 scale, CRenderTexture* source, CRenderTexture* target, CRenderTexture* depth,
+                   const MATRIXT44* view, const MATRIXT44* previous, const MATRIXT44* projection,
+                   const MATRIXT44* arg7, s32 index, const Unk_Float2* arg9, const Unk_Float2* falloff, s32 mode,
+                   const Unk_Float2* range, bool clear, s32* outMode);
+    // 0x7100488d90: tech_GlareGhost_PointSymmetry(DistScale)T4_S8_TrimT1_S8
+    // `index` from `a` to `d` (and `trim`) into `target`
+    s32 Unk_488d90(CRenderTexture* a, CRenderTexture* b, CRenderTexture* c, CRenderTexture* d,
+                   Unk_GPUTexture* trim, CRenderTexture* target, const Unk_Float4* params, const Unk_Float4* colors,
+                   f32 scale, s32 index, u32 flags);
     // UNK_FIELDS_BEGIN
     TEXSHADERSET field_30;
     CRenderTexturePool* field_29a58;
@@ -1356,7 +1444,8 @@ public:
     void* field_29bb0;
     u32 field_29bb8;
     u32 field_29bbc;
-    u8 pad_29bc0[0x8];
+    u32 field_29bc0;  // the index buffer's ring, as field_29bb8
+    u32 field_29bc4;
     IGPUInterface* field_29bc8[7];  // the vertex buffer the rectangles go through, the index buffer, ...
     s32 field_29c00;
     s32 field_29c04;

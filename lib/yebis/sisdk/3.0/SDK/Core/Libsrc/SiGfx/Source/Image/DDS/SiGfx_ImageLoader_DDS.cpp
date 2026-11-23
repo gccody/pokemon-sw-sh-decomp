@@ -66,9 +66,12 @@ inline s64 Unk_FindLastOf(const SiString<char>* self, const char* set) {
 // The last position of a character in a string, or -1 (inline: placeholder
 // name). It counts the characters of a set of the one character, as the
 // other does, but compares with the character itself: the original's search
-// for the dot has the count's loop and test and no loop over the set.
+// for the dot has the count's loop and test and no loop over the set. The
+// set is zeroed before the character is stored (as `{c, 0}` GVN folds the
+// count).
 inline s64 Unk_FindLastOf(const SiString<char>* self, char c) {
-    char set[] = {c, 0};
+    char set[2] = {};
+    set[0] = c;
     if (self->field_10 == 0) {
         return -1;
     }
@@ -107,8 +110,9 @@ inline void Unk_CopyChars(char* dst, const char* src, s64 count) {
 }
 
 // Makes a string the characters of another from start on (inline:
-// placeholder name).
+// placeholder name). The count is computed before the tests.
 inline void Unk_AssignFrom(SiString<char>* self, const SiString<char>* other, size_t start) {
+    size_t count = other->field_10 - start;
     if (other->field_10 == 0) {
         if (self->m_pBuffer != nullptr) {
             self->m_pBuffer[0] = 0;
@@ -119,7 +123,6 @@ inline void Unk_AssignFrom(SiString<char>* self, const SiString<char>* other, si
     if (other->field_10 <= start) {
         return;
     }
-    size_t count = other->field_10 - start;
     if (self->field_20 <= count) {
         size_t length = count + 1;
         size_t capacity;
@@ -136,14 +139,6 @@ inline void Unk_AssignFrom(SiString<char>* self, const SiString<char>* other, si
 
 }  // namespace SiSDK3
 
-// NON_MATCHING: the same size; the search for the separators is the
-// original's (the helper written as SiGfx_ShaderUtility_Impl.cpp's for the
-// directory, 0x71004e4230, which matches), but in the search for the dot
-// clang folds the set's count: the original keeps the count's loop and its
-// `cbz` (here the count is known to be 1). Tried: the count as a pointer
-// difference, `size_t`, an index loop, Unk_StringLength, the null test
-// before or after the count, `count > 0`, the dot's search through the set
-// version (the set's count is folded too).
 // 0x71004f52b0: a path's extension (after the last '.' of its file name)
 inline SiSDK3::SiString<char> Unk_4f52b0(const SiSDK3::SiString<char>& path) {
     SiSDK3::SiString<char> extension(path.m_pAllocator);

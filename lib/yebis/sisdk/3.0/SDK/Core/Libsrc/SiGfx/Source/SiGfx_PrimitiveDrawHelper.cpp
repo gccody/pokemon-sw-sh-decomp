@@ -107,7 +107,8 @@ void SiGfxPrimitiveDrawHelper::Unk_546b00() {
 // NON_MATCHING: the original threads the free's test of a null allocator
 // through the zeroing into the allocation's failure (a second copy of the
 // memset, 544 bytes); here the null allocator path joins the others before
-// the memset (524).
+// the memset (524). Tried: the allocator read again at the allocation, the
+// free's allocator in a local, the free's flag test as an early return.
 // 0x7100546c60
 bool SiGfxPrimitiveDrawHelper::Unk_546c60(Unk_PrimitiveContext* pContext) {
     field_490 = pContext;
@@ -383,7 +384,11 @@ bool SiGfxPrimitiveDrawHelper::Unk_5478f0(const void* pVertex) {
 // original shares those two cases' last store (case 87 branches into case
 // 28's, its products all computed before their conversions); here each case
 // keeps its own. Slots 0x7100547a40 and 0x7100547ca0 match with the same
-// switch.
+// switch. (The two tails are the same instructions here, so BranchFolder
+// isn't what is missing: in the IR the return block has the zero test and
+// the switch as conditional predecessors, which stops SimplifyCFG's sinking.
+// Tried: case 87's products first, the float cases returning, case 2
+// breaking.)
 // 0x7100547930
 bool SiGfxPrimitiveDrawHelper::Unk_547930(u32 row, s32 column, f32 x, f32 y, f32 z, f32 w) {
     u8 format = field_c0[row][column];
@@ -913,6 +918,432 @@ bool SiGfxPrimitiveDrawHelper::Unk_548a70(Unk_PrimitiveTexture* pTexture, const 
 }
 
 
+// The cube's arrays stay in memory as the original's do: the faces' margins
+// and the corners' coordinates are set in loops (unrolled after SROA ran),
+// and the corners' defaults are stored by a loop over the axes (a whole
+// initializer becomes a copy from rodata). The begin, vertex and end calls
+// are inlined here, as in the original.
+// NON_MATCHING: registers only, in the one-face cases: the original spills
+// the destination's bottom in cases 1 and 4 where this spills the texture's
+// top (as both do in case 3), which changes two shared tails (12 bytes
+// short); the offset's last add of each axis has its operands the other way
+// round. Tried: the offsets' four adds in every order and as `x = x + o` or
+// `x = o + x`, the cases in reverse order, the destination's four locals in
+// every order, the texture coordinates declared once before the switch.
+// 0x7100548f70: a cube's six faces unfolded into a cross, or one face
+bool SiGfxPrimitiveDrawHelper::Unk_548f70(Unk_PrimitiveTexture* pTexture, const Unk_PrimitiveTextureDesc* desc,
+                                          const Unk_PrimitiveRect* dest, const Unk_PrimitiveRect* source) {
+    if (!desc->field_54) {
+        return Unk_548a70(pTexture, desc, dest, source);
+    }
+    if (pTexture == nullptr) {
+        return false;
+    }
+    Unk_PrimitiveStates* states = field_490->vf85();
+    states->field_0 = field_820.field_0[4][desc->field_80];
+    states->field_8 = static_cast<Unk_PrimitiveFormat*>(field_820.field_150[4][desc->field_80]);
+    states->field_188 |= 0xffff;
+    Unk_PrimitiveTexelOffset offset = Unk_4ed720(reinterpret_cast<Unk_4ed720_Context*>(pTexture));
+    if (desc->field_54) {
+        f32 faces[6][4] = {};  // each face's left, top, right and bottom
+        f32 width = dest->field_4 - dest->field_0;
+        f32 height = dest->field_c - dest->field_8;
+        f32 cellWidth = width / 4.0f;
+        f32 cellHeight = height / 3.0f;
+        if (cellWidth < cellHeight) {
+            cellHeight = cellWidth;
+        } else if (cellHeight < cellWidth) {
+            cellWidth = cellHeight;
+        }
+        f32 marginX = (width - cellWidth * 4.0f) * 0.5f;
+        f32 marginY = (height - cellHeight * 3.0f) * 0.5f;
+        faces[0][0] = dest->field_0 + cellWidth * 2.0f;
+        faces[0][1] = dest->field_8 + cellHeight;
+        faces[0][2] = dest->field_0 + cellWidth * 3.0f;
+        faces[0][3] = dest->field_8 + cellHeight * 2.0f;
+        faces[1][0] = dest->field_0;
+        faces[1][1] = dest->field_8 + cellHeight;
+        faces[1][2] = dest->field_0 + cellWidth;
+        faces[1][3] = dest->field_8 + cellHeight * 2.0f;
+        faces[2][0] = dest->field_0 + cellWidth;
+        faces[2][1] = dest->field_8;
+        faces[2][2] = dest->field_0 + cellWidth * 2.0f;
+        faces[2][3] = dest->field_8 + cellHeight;
+        faces[3][0] = dest->field_0 + cellWidth;
+        faces[3][1] = dest->field_8 + cellHeight * 2.0f;
+        faces[3][2] = dest->field_0 + cellWidth * 2.0f;
+        faces[3][3] = dest->field_8 + cellHeight * 3.0f;
+        faces[4][0] = dest->field_0 + cellWidth;
+        faces[4][1] = dest->field_8 + cellHeight;
+        faces[4][2] = dest->field_0 + cellWidth * 2.0f;
+        faces[4][3] = dest->field_8 + cellHeight * 2.0f;
+        faces[5][0] = dest->field_0 + cellWidth * 3.0f;
+        faces[5][1] = dest->field_8 + cellHeight;
+        faces[5][2] = dest->field_0 + cellWidth * 4.0f;
+        faces[5][3] = dest->field_8 + cellHeight * 2.0f;
+        for (s32 i = 0; i < 6; i++) {
+            faces[i][0] = marginX + faces[i][0];
+            faces[i][1] = marginY + faces[i][1];
+            faces[i][2] = marginX + faces[i][2];
+            faces[i][3] = marginY + faces[i][3];
+        }
+        // the cube's coordinates at the corners of the faces across each axis:
+        // the lowest and the highest
+        f32 corners[3][2][3];
+        for (s32 axis = 0; axis < 3; axis++) {
+            corners[axis][0][0] = -1.0f;
+            corners[axis][0][1] = -1.0f;
+            corners[axis][0][2] = -1.0f;
+            corners[axis][1][0] = 1.0f;
+            corners[axis][1][1] = 1.0f;
+            corners[axis][1][2] = 1.0f;
+        }
+        if (source != nullptr) {
+            if (source->field_4 - source->field_0 <= 0.0f || source->field_c - source->field_8 <= 0.0f) {
+                return false;
+            }
+            for (s32 axis = 0; axis < 3; axis++) {
+                s32 u = axis == 0 ? 2 : 0;
+                s32 v = axis == 1 ? 2 : 1;
+                corners[axis][0][u] = source->field_0 / static_cast<f32>(pTexture->vf19()->field_14);
+                corners[axis][0][v] = source->field_8 / static_cast<f32>(pTexture->vf19()->field_18);
+                corners[axis][1][u] = source->field_4 / static_cast<f32>(pTexture->vf19()->field_14);
+                corners[axis][1][v] = source->field_c / static_cast<f32>(pTexture->vf19()->field_18);
+                corners[axis][0][u] += offset.field_0;
+                corners[axis][0][v] += offset.field_4;
+                corners[axis][1][u] += offset.field_0;
+                corners[axis][1][v] += offset.field_4;
+            }
+        }
+        Unk_5472d0(5);
+        Unk_547930(0, 0, faces[0][0], faces[0][1], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[0][1][0], corners[0][1][1], corners[0][1][2], 1.0f);
+        Unk_547760();
+        Unk_547930(0, 0, faces[0][2], faces[0][1], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[0][1][0], corners[0][1][1], corners[0][0][2], 1.0f);
+        Unk_547760();
+        Unk_547930(0, 0, faces[0][0], faces[0][3], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[0][1][0], corners[0][0][1], corners[0][1][2], 1.0f);
+        Unk_547760();
+        Unk_547930(0, 0, faces[0][2], faces[0][3], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[0][1][0], corners[0][0][1], corners[0][0][2], 1.0f);
+        Unk_547760();
+        Unk_5474b0();
+        Unk_5472d0(5);
+        Unk_547930(0, 0, faces[1][0], faces[1][1], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[0][0][0], corners[0][1][1], corners[0][0][2], 1.0f);
+        Unk_547760();
+        Unk_547930(0, 0, faces[1][2], faces[1][1], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[0][0][0], corners[0][1][1], corners[0][1][2], 1.0f);
+        Unk_547760();
+        Unk_547930(0, 0, faces[1][0], faces[1][3], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[0][0][0], corners[0][0][1], corners[0][0][2], 1.0f);
+        Unk_547760();
+        Unk_547930(0, 0, faces[1][2], faces[1][3], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[0][0][0], corners[0][0][1], corners[0][1][2], 1.0f);
+        Unk_547760();
+        Unk_5474b0();
+        Unk_5472d0(5);
+        Unk_547930(0, 0, faces[2][0], faces[2][1], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[1][0][0], corners[1][1][1], corners[1][0][2], 1.0f);
+        Unk_547760();
+        Unk_547930(0, 0, faces[2][2], faces[2][1], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[1][1][0], corners[1][1][1], corners[1][0][2], 1.0f);
+        Unk_547760();
+        Unk_547930(0, 0, faces[2][0], faces[2][3], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[1][0][0], corners[1][1][1], corners[1][1][2], 1.0f);
+        Unk_547760();
+        Unk_547930(0, 0, faces[2][2], faces[2][3], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[1][1][0], corners[1][1][1], corners[1][1][2], 1.0f);
+        Unk_547760();
+        Unk_5474b0();
+        Unk_5472d0(5);
+        Unk_547930(0, 0, faces[3][0], faces[3][1], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[1][0][0], corners[1][0][1], corners[1][1][2], 1.0f);
+        Unk_547760();
+        Unk_547930(0, 0, faces[3][2], faces[3][1], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[1][1][0], corners[1][0][1], corners[1][1][2], 1.0f);
+        Unk_547760();
+        Unk_547930(0, 0, faces[3][0], faces[3][3], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[1][0][0], corners[1][0][1], corners[1][0][2], 1.0f);
+        Unk_547760();
+        Unk_547930(0, 0, faces[3][2], faces[3][3], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[1][1][0], corners[1][0][1], corners[1][0][2], 1.0f);
+        Unk_547760();
+        Unk_5474b0();
+        Unk_5472d0(5);
+        Unk_547930(0, 0, faces[4][0], faces[4][1], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[2][0][0], corners[2][1][1], corners[2][1][2], 1.0f);
+        Unk_547760();
+        Unk_547930(0, 0, faces[4][2], faces[4][1], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[2][1][0], corners[2][1][1], corners[2][1][2], 1.0f);
+        Unk_547760();
+        Unk_547930(0, 0, faces[4][0], faces[4][3], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[2][0][0], corners[2][0][1], corners[2][1][2], 1.0f);
+        Unk_547760();
+        Unk_547930(0, 0, faces[4][2], faces[4][3], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[2][1][0], corners[2][0][1], corners[2][1][2], 1.0f);
+        Unk_547760();
+        Unk_5474b0();
+        Unk_5472d0(5);
+        Unk_547930(0, 0, faces[5][0], faces[5][1], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[2][1][0], corners[2][1][1], corners[2][0][2], 1.0f);
+        Unk_547760();
+        Unk_547930(0, 0, faces[5][2], faces[5][1], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[2][0][0], corners[2][1][1], corners[2][0][2], 1.0f);
+        Unk_547760();
+        Unk_547930(0, 0, faces[5][0], faces[5][3], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[2][1][0], corners[2][0][1], corners[2][0][2], 1.0f);
+        Unk_547760();
+        Unk_547930(0, 0, faces[5][2], faces[5][3], 0.0f, 1.0f);
+        Unk_547930(5, 0, corners[2][0][0], corners[2][0][1], corners[2][0][2], 1.0f);
+        Unk_547760();
+        Unk_5474b0();
+    } else {
+        f32 x0 = dest->field_0;
+        f32 x1 = dest->field_4;
+        f32 y0 = dest->field_8;
+        f32 y1 = dest->field_c;
+        switch (desc->field_58) {
+        case 0: {
+            f32 left;
+            f32 top;
+            f32 right;
+            f32 bottom;
+            if (source != nullptr) {
+                if (source->field_4 - source->field_0 <= 0.0f || source->field_c - source->field_8 <= 0.0f) {
+                    return false;
+                }
+                left = source->field_0 / static_cast<f32>(pTexture->vf19()->field_14);
+                top = source->field_8 / static_cast<f32>(pTexture->vf19()->field_18);
+                right = source->field_4 / static_cast<f32>(pTexture->vf19()->field_14);
+                bottom = source->field_c / static_cast<f32>(pTexture->vf19()->field_18);
+            } else {
+                left = -1.0f;
+                top = -1.0f;
+                right = 1.0f;
+                bottom = 1.0f;
+            }
+            left += offset.field_0;
+            right += offset.field_0;
+            top += offset.field_4;
+            bottom += offset.field_4;
+            Unk_5472d0(5);
+            Unk_547930(0, 0, x0, y0, 0.0f, 1.0f);
+            Unk_547930(5, 0, 1.0f, bottom, right, 1.0f);
+            Unk_547760();
+            Unk_547930(0, 0, x1, y0, 0.0f, 1.0f);
+            Unk_547930(5, 0, 1.0f, bottom, left, 1.0f);
+            Unk_547760();
+            Unk_547930(0, 0, x0, y1, 0.0f, 1.0f);
+            Unk_547930(5, 0, 1.0f, top, right, 1.0f);
+            Unk_547760();
+            Unk_547930(0, 0, x1, y1, 0.0f, 1.0f);
+            Unk_547930(5, 0, 1.0f, top, left, 1.0f);
+            Unk_547760();
+            Unk_5474b0();
+            break;
+        }
+        case 1: {
+            f32 left;
+            f32 top;
+            f32 right;
+            f32 bottom;
+            if (source != nullptr) {
+                if (source->field_4 - source->field_0 <= 0.0f || source->field_c - source->field_8 <= 0.0f) {
+                    return false;
+                }
+                left = source->field_0 / static_cast<f32>(pTexture->vf19()->field_14);
+                top = source->field_8 / static_cast<f32>(pTexture->vf19()->field_18);
+                right = source->field_4 / static_cast<f32>(pTexture->vf19()->field_14);
+                bottom = source->field_c / static_cast<f32>(pTexture->vf19()->field_18);
+            } else {
+                left = -1.0f;
+                top = -1.0f;
+                right = 1.0f;
+                bottom = 1.0f;
+            }
+            left += offset.field_0;
+            right += offset.field_0;
+            top += offset.field_4;
+            bottom += offset.field_4;
+            Unk_5472d0(5);
+            Unk_547930(0, 0, x0, y0, 0.0f, 1.0f);
+            Unk_547930(5, 0, -1.0f, bottom, left, 1.0f);
+            Unk_547760();
+            Unk_547930(0, 0, x1, y0, 0.0f, 1.0f);
+            Unk_547930(5, 0, -1.0f, bottom, right, 1.0f);
+            Unk_547760();
+            Unk_547930(0, 0, x0, y1, 0.0f, 1.0f);
+            Unk_547930(5, 0, -1.0f, top, left, 1.0f);
+            Unk_547760();
+            Unk_547930(0, 0, x1, y1, 0.0f, 1.0f);
+            Unk_547930(5, 0, -1.0f, top, right, 1.0f);
+            Unk_547760();
+            Unk_5474b0();
+            break;
+        }
+        case 2: {
+            f32 left;
+            f32 top;
+            f32 right;
+            f32 bottom;
+            if (source != nullptr) {
+                if (source->field_4 - source->field_0 <= 0.0f || source->field_c - source->field_8 <= 0.0f) {
+                    return false;
+                }
+                left = source->field_0 / static_cast<f32>(pTexture->vf19()->field_14);
+                top = source->field_8 / static_cast<f32>(pTexture->vf19()->field_18);
+                right = source->field_4 / static_cast<f32>(pTexture->vf19()->field_14);
+                bottom = source->field_c / static_cast<f32>(pTexture->vf19()->field_18);
+            } else {
+                left = -1.0f;
+                top = -1.0f;
+                right = 1.0f;
+                bottom = 1.0f;
+            }
+            left += offset.field_0;
+            right += offset.field_0;
+            top += offset.field_4;
+            bottom += offset.field_4;
+            Unk_5472d0(5);
+            Unk_547930(0, 0, x0, y0, 0.0f, 1.0f);
+            Unk_547930(5, 0, left, 1.0f, top, 1.0f);
+            Unk_547760();
+            Unk_547930(0, 0, x1, y0, 0.0f, 1.0f);
+            Unk_547930(5, 0, right, 1.0f, top, 1.0f);
+            Unk_547760();
+            Unk_547930(0, 0, x0, y1, 0.0f, 1.0f);
+            Unk_547930(5, 0, left, 1.0f, bottom, 1.0f);
+            Unk_547760();
+            Unk_547930(0, 0, x1, y1, 0.0f, 1.0f);
+            Unk_547930(5, 0, right, 1.0f, bottom, 1.0f);
+            Unk_547760();
+            Unk_5474b0();
+            break;
+        }
+        case 3: {
+            f32 left;
+            f32 top;
+            f32 right;
+            f32 bottom;
+            if (source != nullptr) {
+                if (source->field_4 - source->field_0 <= 0.0f || source->field_c - source->field_8 <= 0.0f) {
+                    return false;
+                }
+                left = source->field_0 / static_cast<f32>(pTexture->vf19()->field_14);
+                top = source->field_8 / static_cast<f32>(pTexture->vf19()->field_18);
+                right = source->field_4 / static_cast<f32>(pTexture->vf19()->field_14);
+                bottom = source->field_c / static_cast<f32>(pTexture->vf19()->field_18);
+            } else {
+                left = -1.0f;
+                top = -1.0f;
+                right = 1.0f;
+                bottom = 1.0f;
+            }
+            left += offset.field_0;
+            right += offset.field_0;
+            top += offset.field_4;
+            bottom += offset.field_4;
+            Unk_5472d0(5);
+            Unk_547930(0, 0, x0, y0, 0.0f, 1.0f);
+            Unk_547930(5, 0, left, -1.0f, bottom, 1.0f);
+            Unk_547760();
+            Unk_547930(0, 0, x1, y0, 0.0f, 1.0f);
+            Unk_547930(5, 0, right, -1.0f, bottom, 1.0f);
+            Unk_547760();
+            Unk_547930(0, 0, x0, y1, 0.0f, 1.0f);
+            Unk_547930(5, 0, left, -1.0f, top, 1.0f);
+            Unk_547760();
+            Unk_547930(0, 0, x1, y1, 0.0f, 1.0f);
+            Unk_547930(5, 0, right, -1.0f, top, 1.0f);
+            Unk_547760();
+            Unk_5474b0();
+            break;
+        }
+        case 4: {
+            f32 left;
+            f32 top;
+            f32 right;
+            f32 bottom;
+            if (source != nullptr) {
+                if (source->field_4 - source->field_0 <= 0.0f || source->field_c - source->field_8 <= 0.0f) {
+                    return false;
+                }
+                left = source->field_0 / static_cast<f32>(pTexture->vf19()->field_14);
+                top = source->field_8 / static_cast<f32>(pTexture->vf19()->field_18);
+                right = source->field_4 / static_cast<f32>(pTexture->vf19()->field_14);
+                bottom = source->field_c / static_cast<f32>(pTexture->vf19()->field_18);
+            } else {
+                left = -1.0f;
+                top = -1.0f;
+                right = 1.0f;
+                bottom = 1.0f;
+            }
+            left += offset.field_0;
+            right += offset.field_0;
+            top += offset.field_4;
+            bottom += offset.field_4;
+            Unk_5472d0(5);
+            Unk_547930(0, 0, x0, y0, 0.0f, 1.0f);
+            Unk_547930(5, 0, left, bottom, 1.0f, 1.0f);
+            Unk_547760();
+            Unk_547930(0, 0, x1, y0, 0.0f, 1.0f);
+            Unk_547930(5, 0, right, bottom, 1.0f, 1.0f);
+            Unk_547760();
+            Unk_547930(0, 0, x0, y1, 0.0f, 1.0f);
+            Unk_547930(5, 0, left, top, 1.0f, 1.0f);
+            Unk_547760();
+            Unk_547930(0, 0, x1, y1, 0.0f, 1.0f);
+            Unk_547930(5, 0, right, top, 1.0f, 1.0f);
+            Unk_547760();
+            Unk_5474b0();
+            break;
+        }
+        case 5: {
+            f32 left;
+            f32 top;
+            f32 right;
+            f32 bottom;
+            if (source != nullptr) {
+                if (source->field_4 - source->field_0 <= 0.0f || source->field_c - source->field_8 <= 0.0f) {
+                    return false;
+                }
+                left = source->field_0 / static_cast<f32>(pTexture->vf19()->field_14);
+                top = source->field_8 / static_cast<f32>(pTexture->vf19()->field_18);
+                right = source->field_4 / static_cast<f32>(pTexture->vf19()->field_14);
+                bottom = source->field_c / static_cast<f32>(pTexture->vf19()->field_18);
+            } else {
+                left = -1.0f;
+                top = -1.0f;
+                right = 1.0f;
+                bottom = 1.0f;
+            }
+            left += offset.field_0;
+            right += offset.field_0;
+            top += offset.field_4;
+            bottom += offset.field_4;
+            Unk_5472d0(5);
+            Unk_547930(0, 0, x0, y0, 0.0f, 1.0f);
+            Unk_547930(5, 0, right, bottom, -1.0f, 1.0f);
+            Unk_547760();
+            Unk_547930(0, 0, x1, y0, 0.0f, 1.0f);
+            Unk_547930(5, 0, left, bottom, -1.0f, 1.0f);
+            Unk_547760();
+            Unk_547930(0, 0, x0, y1, 0.0f, 1.0f);
+            Unk_547930(5, 0, right, top, -1.0f, 1.0f);
+            Unk_547760();
+            Unk_547930(0, 0, x1, y1, 0.0f, 1.0f);
+            Unk_547930(5, 0, left, top, -1.0f, 1.0f);
+            Unk_547760();
+            Unk_5474b0();
+            break;
+        }
+        }
+    }
+    return true;
+}
+
 // 0x710054bb60
 bool SiGfxPrimitiveDrawHelper::Unk_54bb60(Unk_PrimitiveTexture* pTexture, const Unk_PrimitiveTextureDesc* desc,
                                           const Unk_PrimitiveRect* dest, const Unk_PrimitiveRect* source) {
@@ -1108,7 +1539,8 @@ bool SiGfxPrimitiveDrawHelper::Unk_54c070(Unk_PrimitiveTexture* pTexture, const 
 // NON_MATCHING: for a cube's level that isn't a whole number the original
 // gives the copy of the texture into the view's register a block of its own
 // after the call's (a split edge); here it is put before the branch, as for
-// the two tests before it (5 lines).
+// the two tests before it (5 lines). Tried: if/else forms, the tests nested
+// or in one condition, the level's test negated, the call in each branch.
 // 0x7100548640
 bool SiGfxPrimitiveDrawHelper::Unk_548640(Unk_PrimitiveTexture* pTexture, const Unk_PrimitiveTextureDesc* desc,
                                           const Unk_PrimitiveRect* dest, const Unk_PrimitiveRect* source) {

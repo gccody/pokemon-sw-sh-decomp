@@ -10,6 +10,7 @@
 #include <nx_middleware/gfx/nvn.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUClassUtil.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUDepthOfField.h>
+#include <yebis/YEBIS_draft/src/GPU/GPUGlareDef.h>
 #include <yebis/YEBIS_draft/src/GPU/GPURenderTextureArray.h>
 #include <yebis/YEBIS_draft/src/GPU/Unk_Luminance.h>
 #include <yebis/YEBIS_draft/src/GPU/TinyEffect/TinyEffect.h>
@@ -42,6 +43,140 @@ u64 Unk_418e20_get();
 #include <yebis/YEBIS_draft/src/GPU/Unk_Log.h>
 
 namespace PPFX {
+
+// a scale and a number (0x710041afb0's tables of them)
+struct Unk_ScaleLevel {
+    Unk_ScaleLevel(f32 scale, s32 level) : field_0(scale), field_4(level) {}
+
+    Unk_Float field_0;
+    s32 field_4;
+};
+PKMN_SIZE_ASSERT(Unk_ScaleLevel, 0x8);
+
+// 0x71024e0e28, 0x71024e0e68: two tables of eight (0x710041afb0 picks one by
+// the byte at 0x71024e09e0)
+static Unk_ScaleLevel Unk_24e0e28[8] = {
+    Unk_ScaleLevel(0.125f, 4), Unk_ScaleLevel(0.15f, 5), Unk_ScaleLevel(0.2f, 6),  Unk_ScaleLevel(0.25f, 7),
+    Unk_ScaleLevel(0.375f, 8), Unk_ScaleLevel(0.5f, 9),  Unk_ScaleLevel(0.75f, 10), Unk_ScaleLevel(1.0f, 11),
+};
+static Unk_ScaleLevel Unk_24e0e68[8] = {
+    Unk_ScaleLevel(0.125f, 2), Unk_ScaleLevel(0.15f, 3), Unk_ScaleLevel(0.2f, 4),  Unk_ScaleLevel(0.25f, 5),
+    Unk_ScaleLevel(0.375f, 6), Unk_ScaleLevel(0.5f, 7),  Unk_ScaleLevel(0.75f, 8), Unk_ScaleLevel(1.0f, 9),
+};
+
+// the depth of field's settings of a quality (0x710041afb0's table)
+struct Unk_DofQuality {
+    Unk_DofQuality(f32 scale, s32 a, s32 b, s32 c, s32 d, s32 size, f32 e)
+        : field_0(scale), field_4(a), field_8(b), field_c(c), field_10(d), field_14(size), field_18(e) {}
+
+    Unk_Float field_0;
+    s32 field_4;
+    s32 field_8;
+    s32 field_c;
+    s32 field_10;
+    s32 field_14;
+    Unk_Float field_18;
+};
+PKMN_SIZE_ASSERT(Unk_DofQuality, 0x1c);
+
+// 0x71024e1098: the depth of field's settings of each of 20 qualities
+static Unk_DofQuality Unk_24e1098[20] = {
+    Unk_DofQuality(0.25f, 1, 1, 1, 1, 0x80, 0.125f),  Unk_DofQuality(0.25f, 2, 1, 1, 3, 0xa0, 0.125f),
+    Unk_DofQuality(0.375f, 2, 2, 0, 3, 0xa0, 0.125f), Unk_DofQuality(0.5f, 3, 2, 0, 2, 0xa0, 0.125f),
+    Unk_DofQuality(0.5f, 3, 2, 0, 3, 0x140, 0.25f),   Unk_DofQuality(0.5f, 3, 3, 0, 2, 0x140, 0.25f),
+    Unk_DofQuality(0.5f, 3, 3, 0, 3, 0x140, 0.25f),   Unk_DofQuality(0.5f, 4, 3, 0, 4, 0x140, 0.25f),
+    Unk_DofQuality(0.5f, 5, 3, 0, 4, 0x140, 0.4f),    Unk_DofQuality(0.75f, 6, 4, 0, 4, 0x180, 0.4f),
+    Unk_DofQuality(1.0f, 7, 4, 0, 4, 0x180, 0.4f),    Unk_DofQuality(0.5f, 7, 4, 6, 5, 0x180, 0.4f),
+    Unk_DofQuality(0.5f, 7, 4, 7, 5, 0x180, 0.4f),    Unk_DofQuality(0.5f, 7, 4, 5, 5, 0x180, 0.4f),
+    Unk_DofQuality(0.75f, 7, 4, 6, 5, 0x180, 0.4f),   Unk_DofQuality(0.75f, 7, 4, 7, 5, 0x180, 0.4f),
+    Unk_DofQuality(0.75f, 7, 4, 5, 5, 0x180, 0.5f),   Unk_DofQuality(1.0f, 7, 4, 6, 5, 0x180, 0.5f),
+    Unk_DofQuality(1.0f, 7, 4, 7, 5, 0x180, 0.5f),    Unk_DofQuality(1.0f, 7, 4, 5, 5, 0x180, 0.5f),
+};
+
+// two levels (0x710041afb0's table of them)
+struct Unk_LevelPair {
+    Unk_LevelPair(s32 a, s32 b) : field_0(a), field_4(b) {}
+
+    s32 field_0;
+    s32 field_4;
+};
+
+// 0x71024e12c8: the depth of field's level pairs of each of 10 qualities
+// (-1: none)
+static Unk_LevelPair Unk_24e12c8[10][7] = {
+    {Unk_LevelPair(0, 0), Unk_LevelPair(1, 1), Unk_LevelPair(2, 1), Unk_LevelPair(2, 2),
+     Unk_LevelPair(-1, -1), Unk_LevelPair(-1, -1), Unk_LevelPair(-1, -1)},
+    {Unk_LevelPair(0, 0), Unk_LevelPair(1, 1), Unk_LevelPair(1, 2), Unk_LevelPair(2, 2),
+     Unk_LevelPair(-1, -1), Unk_LevelPair(-1, -1), Unk_LevelPair(-1, -1)},
+    {Unk_LevelPair(0, 0), Unk_LevelPair(0, 1), Unk_LevelPair(1, 1), Unk_LevelPair(1, 2),
+     Unk_LevelPair(-1, -1), Unk_LevelPair(-1, -1), Unk_LevelPair(-1, -1)},
+    {Unk_LevelPair(0, 0), Unk_LevelPair(0, 2), Unk_LevelPair(1, 2), Unk_LevelPair(2, 2),
+     Unk_LevelPair(-1, -1), Unk_LevelPair(-1, -1), Unk_LevelPair(-1, -1)},
+    {Unk_LevelPair(0, 0), Unk_LevelPair(0, 1), Unk_LevelPair(0, 2), Unk_LevelPair(1, 2),
+     Unk_LevelPair(-1, -1), Unk_LevelPair(-1, -1), Unk_LevelPair(-1, -1)},
+    {Unk_LevelPair(0, 0), Unk_LevelPair(0, 1), Unk_LevelPair(1, 1), Unk_LevelPair(1, 2),
+     Unk_LevelPair(2, 2), Unk_LevelPair(3, 2), Unk_LevelPair(3, 3)},
+    {Unk_LevelPair(0, 0), Unk_LevelPair(0, 1), Unk_LevelPair(0, 2), Unk_LevelPair(1, 2),
+     Unk_LevelPair(2, 2), Unk_LevelPair(3, 2), Unk_LevelPair(3, 3)},
+    {Unk_LevelPair(0, 0), Unk_LevelPair(0, 1), Unk_LevelPair(0, 2), Unk_LevelPair(1, 2),
+     Unk_LevelPair(2, 2), Unk_LevelPair(2, 3), Unk_LevelPair(-1, -1)},
+    {Unk_LevelPair(0, 0), Unk_LevelPair(0, 1), Unk_LevelPair(0, 2), Unk_LevelPair(1, 2),
+     Unk_LevelPair(1, 3), Unk_LevelPair(-1, -1), Unk_LevelPair(-1, -1)},
+    {Unk_LevelPair(0, 0), Unk_LevelPair(0, 1), Unk_LevelPair(0, 2), Unk_LevelPair(0, 3),
+     Unk_LevelPair(-1, -1), Unk_LevelPair(-1, -1), Unk_LevelPair(-1, -1)},
+};
+
+// The tables below are filled the first time their (inline) functions run.
+// Each one's flag and table are statics of that function, so they are made
+// in the order the functions are first used: the flags at 0x71024e0c38 to
+// 0x71024e0c40 follow it, which is why Unk_DofEdgeBlurType is only declared
+// here and defined after 0x7100427900 (whose table is the third), and why
+// the first users of the later ones (0x7100429460, 0x710042b9f0,
+// 0x710042be10, 0x710042a0f0, 0x7100435ed0) are in that order at the end.
+
+// GetEffectDofEdgeQualityTypeFromEdgeQualityType (its log line names it)
+static inline s32 GetEffectDofEdgeQualityTypeFromEdgeQualityType(s32 quality) {
+    static bool initialised = false;
+    static s32 types[5];
+    if (!initialised) {
+        initialised = true;
+        types[0] = 0;
+        types[1] = 0;
+        types[2] = 2;
+        types[3] = 6;
+        types[4] = 6;
+    }
+    if (static_cast<u32>(quality) >= 5) {
+        if (quality == -1) {
+            return 0x10000000;
+        }
+#line 1008
+        PPFX_WARNING("GetEffectDofEdgeQualityTypeFromEdgeQualityType(): Unsupported EPFX_DOFEDGEQUALITY: %d is specified.\n",
+                     quality);
+    }
+    return types[quality];
+}
+
+// the depth of field's level of a quality (a table set up the first time)
+static inline s32 Unk_DofQualityLevel(s32 quality) {
+    static bool initialised = false;
+    static s32 levels[8];
+    if (!initialised) {
+        initialised = true;
+        levels[0] = 0;
+        levels[1] = 1;
+        levels[2] = 2;
+        levels[3] = 3;
+        levels[4] = 4;
+        levels[5] = 5;
+        levels[6] = 5;
+        levels[7] = 5;
+    }
+    return levels[quality];
+}
+
+// below 0x7100427900
+static inline s32 Unk_DofEdgeBlurType(s32 type);
 
 // 0x7100419550
 CPostEffect::~CPostEffect() {
@@ -1081,6 +1216,78 @@ s32 Unk_4278c0(u64 self_, void* data) {
     return 0;
 }
 
+// 0x71024e5948 (GPUGlareDef.cpp): the glare definitions
+extern PPFX::Unk_4a0b00* Unk_24e5948;
+
+namespace PPFX {
+
+// the glare definition of a glare kind (a table set up the first time)
+static inline u32 Unk_GlareDefinition(s32 kind) {
+    static bool initialised = false;
+    static u32 definitions[14];
+    if (!initialised) {
+        initialised = true;
+        for (u32 i = 0; i < 14; i++) {
+            definitions[i] = i;
+        }
+    }
+    return definitions[kind];
+}
+
+}  // namespace PPFX
+
+// 0x7100427900: the settings of glare definition `index` (0 to 13)
+// NON_MATCHING: only the merged statics: the table is 0x1b6 bytes after its
+// flag in the original (stored through `add` + `str`; until the TU's statics
+// block is complete it is elsewhere and the stores pair up), and the result's
+// `mov x0, x1` is scheduled one load later
+PPFX::Unk_4278c0_Data* Unk_427900(u64 self_, void* data, u32 index) {
+    if (data == nullptr || index > 13) {
+        return nullptr;
+    }
+    u32 definition = PPFX::Unk_GlareDefinition(index);
+    PPFX::Unk_4278c0_Data* out = static_cast<PPFX::Unk_4278c0_Data*>(data);
+    const PPFX::Unk_4a0b00& glare = Unk_24e5948[definition];
+    memcpy(out->field_0, &glare.field_8[0], sizeof(out->field_0));
+    memcpy(out->field_10, &glare.field_8[4], sizeof(out->field_10));
+    out->field_20 = glare.field_28;
+    out->field_24 = glare.field_2c;
+    memcpy(out->field_28, glare.field_30, sizeof(out->field_28));
+    out->field_38 = glare.field_40;
+    out->field_3c = glare.field_44;
+    out->field_40 = glare.field_48;
+    memcpy(out->field_44, glare.field_4c, sizeof(out->field_44));
+    out->field_54 = glare.field_80.field_8;
+    out->field_58 = glare.field_80.field_10;
+    out->field_5c = glare.field_80.field_14;
+    out->field_60 = glare.field_80.field_18;
+    out->field_64 = glare.field_5c;
+    out->field_68 = glare.field_60;
+    out->field_6c = glare.field_64;
+    memcpy(out->field_70, glare.field_6c, sizeof(out->field_70));
+    out->field_80 = glare.field_68;
+    return out;
+}
+
+namespace PPFX {
+
+// the depth of field's edge blur of an edge quality type (a table set up the
+// first time)
+static inline s32 Unk_DofEdgeBlurType(s32 type) {
+    static bool initialised = false;
+    static s32 types[4];
+    if (!initialised) {
+        initialised = true;
+        types[0] = 0;
+        types[1] = 0;
+        types[2] = 1;
+        types[3] = 0;
+    }
+    return types[type];
+}
+
+}  // namespace PPFX
+
 // 0x7100428ec0
 s32 Unk_428ec0(u64 self_, f32 a, f32 b, f32 c) {
     PPFX::CPostEffect* self = reinterpret_cast<PPFX::CPostEffect*>(self_);
@@ -1092,7 +1299,7 @@ s32 Unk_428ec0(u64 self_, f32 a, f32 b, f32 c) {
     }
     self->field_895 = true;
     self->field_8a4 = b;
-    self->field_8a0 = 0.0f;
+    self->field_8a0 = 0;
     self->field_8a8 = PPFX::Unk_Float2(1.0f, 0.78539819f);
     return 0;
 }
@@ -1268,6 +1475,137 @@ s32 Unk_43a840(u64 self_, u32 index, f32 amount) {
     PPFX::MATRIXT44_MatrixMultiply(&m, &saturation, &tone);
     PPFX::MATRIXT44 copy = m;
     Unk_Apply(self, index, &copy);
+    return 0;
+}
+
+namespace PPFX {
+// 0x710043c690 (below)
+Unk_Float4 Unk_43c690(const f32* temperature, const Unk_410f90* space, const f32* tint, const f32* luminance,
+                      const f32* alpha, bool invert, bool planck);
+// 0x71004155f0 (Unk_415f40.cpp): the inverse of a matrix
+void Unk_4155f0(MATRIXT44* out, const MATRIXT44* m);
+}  // namespace PPFX
+
+// a colour space copied unless it is itself (inline)
+static inline void Unk_CopyColorSpace(Unk_410f90* out, const Unk_410f90* space) {
+    if (space != out) {
+        out->field_0 = space->field_0;
+        out->field_8 = space->field_8;
+        out->field_10 = space->field_10;
+        out->field_18 = space->field_18;
+    }
+}
+
+// the XYZ to RGB matrix of a colour space (inline: Unk_4114f0 with the space
+// given)
+static inline PPFX::MATRIXT44* Unk_XyzToRgb(PPFX::MATRIXT44* out, const Unk_410f90* space) {
+    PPFX::MATRIXT44 toXyz;
+    PPFX::Unk_411b00(&toXyz, &space->field_0, &space->field_8, &space->field_10, &space->field_18);
+    PPFX::MATRIXT44 inverse;
+    PPFX::Unk_4155f0(&inverse, &toXyz);
+    *out = inverse;
+    return out;
+}
+
+// 0x710043a970: the white balance of a colour temperature on the daylight
+// locus as a matrix in colour space `from`, scaled in colour space `to`
+// (the static colour space 0xffffffff: `from`)
+PPFX::MATRIXT44* Unk_43a970(PPFX::MATRIXT44* out, const Unk_410f90* from, bool invert, const Unk_410f90* to,
+                            f32 temperature, f32 tint, f32 luminance) {
+    Unk_410f90 space;
+    Unk_CopyColorSpace(&space, to);
+    if (Unk_SameColorSpace(*to, PPFX::Unk_Static_Object0)) {
+        space = *from;
+    }
+    PPFX::Unk_Float4 c;
+    {
+        f32 alpha = 0.0f;
+        c = PPFX::Unk_43c690(&temperature, &space, &tint, &luminance, &alpha, invert, true);
+    }
+    Unk_Scale(out, c.field_0[0].field_0, c.field_0[1].field_0, c.field_0[2].field_0);
+    if (!Unk_SameColorSpace(*to, PPFX::Unk_Static_Object0)) {
+        PPFX::MATRIXT44 fromXyz;
+        PPFX::Unk_411b00(&fromXyz, &from->field_0, &from->field_8, &from->field_10, &from->field_18);
+        PPFX::MATRIXT44 spaceRgb;
+        Unk_XyzToRgb(&spaceRgb, &space);
+        PPFX::MATRIXT44 spaceXyz;
+        PPFX::Unk_411b00(&spaceXyz, &space.field_0, &space.field_8, &space.field_10, &space.field_18);
+        PPFX::MATRIXT44 fromRgb;
+        Unk_XyzToRgb(&fromRgb, from);
+        PPFX::MATRIXT44 m4;
+        PPFX::MATRIXT44 m3;
+        PPFX::MATRIXT44 m2;
+        PPFX::MATRIXT44 m1;
+        PPFX::MATRIXT44_MatrixMultiply(&m1, &fromXyz, &spaceRgb);
+        PPFX::MATRIXT44_MatrixMultiply(&m2, &m1, out);
+        PPFX::MATRIXT44_MatrixMultiply(&m3, &m2, &spaceXyz);
+        PPFX::MATRIXT44_MatrixMultiply(&m4, &m3, &fromRgb);
+        *out = m4;
+    }
+    return out;
+}
+
+// 0x710043ad10: colour matrix `index` times the white balance of a colour
+// temperature, on the Planckian locus (`planck`) or the daylight one, in
+// colour space field_b84 (a member of the colour space type: through a cast
+// of a float array InstCombine puts the stack copy's address first in the
+// copy's `space != out` test)
+s32 Unk_43ad10(u64 self_, s32 index, bool planck, const Unk_410f90* space, f32 temperature, f32 luminance) {
+    PPFX::CPostEffect* self = reinterpret_cast<PPFX::CPostEffect*>(self_);
+    f32 t;
+    f32 tint;
+    f32 l;
+    f32 alpha;
+    Unk_410f90 to;
+    Unk_CopyColorSpace(&to, space);
+    self->Unk_4299a0();
+    Unk_410f90 from;
+    Unk_CopyColorSpace(&from, &self->field_b84);
+    PPFX::MATRIXT44 m;
+    if (planck) {
+        t = temperature;
+        tint = 1.0f;
+        l = luminance;
+        alpha = 0.0f;
+        PPFX::Unk_Float4 c = PPFX::Unk_43c690(&t, &from, &tint, &l, &alpha, false, false);
+        Unk_Scale(&m, c.field_0[0].field_0, c.field_0[1].field_0, c.field_0[2].field_0);
+    } else {
+        if (Unk_SameColorSpace(*space, PPFX::Unk_Static_Object0)) {
+            to = PPFX::Unk_410f90_Object(0x15);
+        }
+        Unk_43a970(&m, &from, false, &to, temperature, 1.0f, luminance);
+    }
+    Unk_Apply(self, index, &m);
+    return 0;
+}
+
+// 0x710043af30: the same inverted (the original repeats the code)
+s32 Unk_43af30(u64 self_, s32 index, bool planck, const Unk_410f90* space, f32 temperature, f32 luminance) {
+    PPFX::CPostEffect* self = reinterpret_cast<PPFX::CPostEffect*>(self_);
+    f32 t;
+    f32 tint;
+    f32 l;
+    f32 alpha;
+    Unk_410f90 to;
+    Unk_CopyColorSpace(&to, space);
+    self->Unk_4299a0();
+    Unk_410f90 from;
+    Unk_CopyColorSpace(&from, &self->field_b84);
+    PPFX::MATRIXT44 m;
+    if (planck) {
+        t = temperature;
+        tint = 1.0f;
+        l = luminance;
+        alpha = 0.0f;
+        PPFX::Unk_Float4 c = PPFX::Unk_43c690(&t, &from, &tint, &l, &alpha, true, false);
+        Unk_Scale(&m, c.field_0[0].field_0, c.field_0[1].field_0, c.field_0[2].field_0);
+    } else {
+        if (Unk_SameColorSpace(*space, PPFX::Unk_Static_Object0)) {
+            to = PPFX::Unk_410f90_Object(0x15);
+        }
+        Unk_43a970(&m, &from, true, &to, temperature, 1.0f, luminance);
+    }
+    Unk_Apply(self, index, &m);
     return 0;
 }
 
@@ -1968,7 +2306,7 @@ template void std::vector<PPFX::CRenderTexture*, PPFX::Unk_StlAllocator<PPFX::CR
     __push_back_slow_path<PPFX::CRenderTexture* const&>(PPFX::CRenderTexture* const&);
 
 // 0x710049e3a0 (GPURenderTexture.cpp)
-void Unk_49e3a0(u32 arg0, s32 arg1, s32 arg2, void* arg3, void* arg4, s32 arg5, void* arg6, void* arg7, f32 arg8);
+s32 Unk_49e3a0(u32 arg0, s32 arg1, s32 arg2, void* arg3, void* arg4, s32 arg5, void* arg6, void* arg7, f32 arg8);
 // 0x710043fc30 (GPUInterfaceDevice.cpp)
 s32 Unk_43fc30(void* device);
 // 0x71004afa90, 0x71004afa70 (GPUDepthOfField.cpp, lib/yebis/leaf)
@@ -2411,6 +2749,157 @@ s32 CPostEffect::Unk_42cba0(bool arg) {
     return 0;
 }
 
+// the sRGB format of a linear one (inline: placeholder name)
+static inline s32 Unk_SrgbFormat(s32 format) {
+    switch (format) {
+    case 2:
+        return 3;
+    case 4:
+        return 5;
+    case 6:
+        return 7;
+    case 8:
+        return 9;
+    case 10:
+        return 11;
+    case 14:
+        return 15;
+    default:
+        return format;
+    }
+}
+
+// whether a matrix is the identity (inline)
+static inline bool Unk_IsIdentity(const MATRIXT44& m) {
+    for (s32 i = 0; i < 4; i++) {
+        for (s32 j = 0; j < 4; j++) {
+            if (m.field_0[i][j] != (i == j ? 1.0f : 0.0f)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+// a function-local matrix (its constructor does nothing, so a static one has
+// a guard without an initialisation)
+struct Unk_StaticMatrix : MATRIXT44 {
+    Unk_StaticMatrix() {}
+    using MATRIXT44::operator=;
+};
+
+// 0x710042df80: what the final pass draws with: the output format, two
+// scales, the dither's amount, the gamma (and whether there is one), and the
+// two colour matrices (null: none; the colour space's conversion and
+// field_1094's are folded into function-local copies)
+// NON_MATCHING: the same tests and arithmetic, but the HDR part's else path
+// (scale3 = scale2 and the gamma's last test) is laid out after the HDR part
+// (the original: before it, with field_59c's test duplicated), one float
+// register fewer is used (the original keeps 1.0 in s11 and scale3 apart from
+// scale2) and x4 to x7 are spilled one by one, not in pairs.
+s32 CPostEffect::Unk_42df80(s32* outFormat, f32* outScale, f32* outScale2, f32* outDither, bool* outHasGamma,
+                            f32* outGamma, MATRIXT44** outMatrix, MATRIXT44** outMatrix2, bool linear, bool keep) {
+    u32 toneMap = field_8c8;
+    s32 format = field_6a4;
+    if (field_106c && field_59c && field_599) {
+        format = Unk_SrgbFormat(format);
+    }
+    if (field_106b) {
+        format = Unk_SrgbFormat(format);
+    }
+    f32 gamma = field_8c4.field_0;
+    f32 dither = Unk_434570() ? 1.0f : 0.0f;
+    f32 divisor = field_8d0;
+    f32 scale = field_8cc;
+    f32 scale2 = 1.0f;
+    if (!field_59d || field_106b) {
+        scale2 = divisor;
+    } else {
+        if ((toneMap & 0xffff0000) == 0x70000 && field_106c) {
+            format = 15;
+        }
+        scale = scale / divisor;
+    }
+    bool hasMatrix = field_b34[0];
+    bool hasMatrix2 = field_b34[1];
+    MATRIXT44* matrix = hasMatrix ? &field_9b4[0] : nullptr;
+    MATRIXT44* matrix2 = hasMatrix2 ? &field_9b4[1] : nullptr;
+    static Unk_StaticMatrix converted2;
+    MATRIXT44 conversion = Unk_429c50(true);
+    if (!Unk_IsIdentity(conversion)) {
+        converted2 = conversion;
+        if (hasMatrix2) {
+            MATRIXT44 m;
+            MATRIXT44_MatrixMultiply(&m, matrix2, &converted2);
+            converted2 = m;
+        }
+        matrix2 = &converted2;
+    }
+    static Unk_StaticMatrix converted;
+    f32 scale3 = scale2;
+    if ((field_96c || Unk_24e09bc != 0) && !linear) {
+        u32 space = field_96c ? (field_97c != 0xffffffff ? field_97c : 1) : 1;
+        if (keep) {
+            if (space == 1) {
+                gamma = field_8c4.field_0 <= 0.0f ? 1.0f : gamma / 2.2f;
+            } else {
+                gamma = 1.0f;
+            }
+        } else {
+            scale3 = 1.0f;
+            f32 value = 1.0f;
+            if (space != 1) {
+                value = field_8c4.field_0 <= 0.0f ? 1.0f : gamma / 2.2f;
+            }
+            format = 0;
+            gamma = value;
+            scale = scale / scale2;
+        }
+        if (!Unk_SameColorSpace(field_b84, field_ba4)) {
+            if (hasMatrix) {
+                if (matrix != &converted) {
+                    converted = *matrix;
+                }
+            } else {
+                Unk_Identity(&converted);
+            }
+            MATRIXT44 inverse;
+            MATRIXT44 m = field_1094;
+            Unk_4155f0(&inverse, &m);
+            MATRIXT44_MatrixMultiply(&converted, &converted, &inverse);
+            matrix = &converted;
+        }
+    }
+    if (!field_59c && !field_96c && Unk_24e09bc == 0 && !linear && field_9ac == 1) {
+        gamma = gamma != 0.0f ? gamma / 2.2f : 1.0f;
+    }
+    if (outFormat != nullptr) {
+        *outFormat = format;
+    }
+    if (outScale != nullptr) {
+        *outScale = scale;
+    }
+    if (outScale2 != nullptr) {
+        *outScale2 = scale3;
+    }
+    if (outDither != nullptr) {
+        *outDither = dither;
+    }
+    if (outHasGamma != nullptr) {
+        *outHasGamma = gamma != 1.0f;
+    }
+    if (outGamma != nullptr) {
+        *outGamma = gamma;
+    }
+    if (outMatrix != nullptr) {
+        *outMatrix = matrix;
+    }
+    if (outMatrix2 != nullptr) {
+        *outMatrix2 = matrix2;
+    }
+    return 0;
+}
+
 // 0x71004280e0: a number by field_1008's mode (tan of half of field_6cc)
 // NON_MATCHING: the default case's multiplication by 0 is merged into the
 // others' (the original keeps its own block that loads field_100c into s0 and
@@ -2508,7 +2997,7 @@ MATRIXT44 CPostEffect::Unk_429c50(bool arg) {
     Unk_Identity(&result);
     if (arg) {
         for (s32 i = 0; i < 8; i++) {
-            if (field_b84[i] != field_ba4[i]) {
+            if (reinterpret_cast<const f32*>(&field_b84)[i] != reinterpret_cast<const f32*>(&field_ba4)[i]) {
                 MATRIXT44 m = field_1094;
                 MATRIXT44_MatrixMultiply(&result, &result, &m);
                 break;
@@ -2568,6 +3057,133 @@ bool CPostEffect::Unk_4297b0() {
 // the smaller of two numbers (std::min's order)
 static inline const Unk_Float& Unk_Min(const Unk_Float& a, const Unk_Float& b) {
     return a.field_0 < b.field_0 ? a : b;
+}
+
+// a device texture as Unk_432ca0 sets its filter (PPFX::IGPUTexture's slots
+// 18 and 20)
+struct Unk_FilteredTexture {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual s32 vf18(u32 filter);
+    virtual void vf19();
+    virtual u32 vf20();
+};
+
+// a render texture's device texture (inline)
+static inline Unk_FilteredTexture* Unk_FilterOf(Unk_RenderTexture* texture) {
+    return reinterpret_cast<Unk_FilteredTexture*>(Unk_GetTexture(reinterpret_cast<CRenderTexture*>(texture)));
+}
+
+// the larger of two numbers (inline)
+static inline const Unk_Float& Unk_Max(const Unk_Float& a, const Unk_Float& b) {
+    return a.field_0 > b.field_0 ? a : b;
+}
+
+// 0x7100432ca0: draws with CTextureUtil (Unk_499250 with field_560's pairs,
+// their filters set too, else Unk_497b20) with the textures' filters set to
+// `filter` (negative: the one of field_c94), the colour's magnitudes (at
+// least 1e-5, the first negated with `negate`) and `scale` (negative:
+// field_c8c), then sets the filters back
+// NON_MATCHING: the same instructions but for the callee-saved registers of
+// `filter`, `list`, `negate`, the count and the first texture's filter (a
+// rotation of w25 to w28: here `filter` takes w25, the original w28; tried
+// the scale test first and the texture utility fetched later). Each element
+// of the colour read where its magnitude is taken (not all four first) gives
+// the original's loads and order.
+s32 CPostEffect::Unk_432ca0(f32 scale, Unk_RenderTexture* arg1, Unk_RenderTexture* arg2, Unk_RenderTexture* arg3,
+                            Unk_RenderTexture* arg4, const Unk_Float4* color, s32 filter, bool list, bool negate) {
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    if (filter < 0) {
+        switch (field_c94) {
+        case 0:
+            filter = 1;
+            break;
+        case 1:
+            filter = 3;
+            break;
+        case 2:
+            filter = 2;
+            break;
+        case 3:
+            filter = 0;
+            break;
+        default:
+            filter = 0x7fffffff;
+            break;
+        }
+    }
+    if (scale < 0.0f) {
+        scale = field_c8c;
+    }
+    Unk_49e3a0(1, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+    reinterpret_cast<CRenderTextureArray*>(field_190)->Unk_4a5ff0(1, 0x7fffffff);
+    u32 filter1 = Unk_FilterOf(arg1)->vf20();
+    u32 filter2 = Unk_FilterOf(arg2)->vf20();
+    u32 filter3 = arg3 != nullptr ? Unk_FilterOf(arg3)->vf20() : 0x7fffffff;
+    Unk_FilterOf(arg1)->vf18(filter);
+    Unk_FilterOf(arg2)->vf18(filter);
+    if (arg3 != nullptr) {
+        Unk_FilterOf(arg3)->vf18(filter);
+    }
+    Unk_Float4 c(color->field_0[0].field_0 > 0.0f ? color->field_0[0].field_0 : -color->field_0[0].field_0,
+                 color->field_0[1].field_0 > 0.0f ? color->field_0[1].field_0 : -color->field_0[1].field_0,
+                 color->field_0[2].field_0 > 0.0f ? color->field_0[2].field_0 : -color->field_0[2].field_0,
+                 color->field_0[3].field_0 > 0.0f ? color->field_0[3].field_0 : -color->field_0[3].field_0);
+    Unk_Float least = 1e-05f;
+    for (s32 i = 0; i < 4; i++) {
+        c.field_0[i] = Unk_Max(c.field_0[i], least);
+    }
+    if (negate) {
+        c.field_0[0].field_0 = -c.field_0[0].field_0;
+    }
+    s32 count = field_568;
+    s32 result;
+    if (count != 0 && list) {
+        u32 saved[16][2];
+        for (s32 i = 0; i < count; i++) {
+            saved[i][0] = Unk_FilterOf(field_560[i].field_0)->vf20();
+            Unk_FilterOf(field_560[i].field_0)->vf18(filter);
+            saved[i][1] = Unk_FilterOf(field_560[i].field_8)->vf20();
+            Unk_FilterOf(field_560[i].field_8)->vf18(filter);
+        }
+        Unk_Float4 ones(1.0f, 1.0f, 1.0f, 1.0f);
+        result = util->Unk_499250(1.0f, scale, 4.0f, reinterpret_cast<CRenderTexture*>(arg1),
+                                  reinterpret_cast<CRenderTexture*>(arg2), reinterpret_cast<CRenderTexture*>(arg3),
+                                  reinterpret_cast<CRenderTexture*>(arg4), &c, 0, &ones, count, field_560, 2, false,
+                                  false, false, 0, 0);
+        for (s32 i = 0; i < count; i++) {
+            Unk_FilterOf(field_560[i].field_0)->vf18(saved[i][0]);
+            Unk_FilterOf(field_560[i].field_8)->vf18(saved[i][1]);
+        }
+    } else {
+        Unk_Float4 ones(1.0f, 1.0f, 1.0f, 1.0f);
+        result = util->Unk_497b20(1.0f, scale, reinterpret_cast<CRenderTexture*>(arg1),
+                                  reinterpret_cast<CRenderTexture*>(arg2), reinterpret_cast<CRenderTexture*>(arg4), &c,
+                                  0, &ones, 0, false, false, 0, 0);
+    }
+    Unk_FilterOf(arg1)->vf18(filter1);
+    Unk_FilterOf(arg2)->vf18(filter2);
+    if (arg3 != nullptr) {
+        Unk_FilterOf(arg3)->vf18(filter3);
+    }
+    return result;
 }
 
 // 0x7100433270: Unk_432ca0 with the textures field_630, field_634 and
@@ -2653,11 +3269,6 @@ f32 CPostEffect::Unk_42f320(f32 value, const MATRIXT44* m, s32 mode) {
     return value;
 }
 
-// field_b84 and field_ba4 as colour spaces
-static inline Unk_410f90& Unk_ColorSpace(f32* p) {
-    return *reinterpret_cast<Unk_410f90*>(p);
-}
-
 // the colour space field_b80 or the default one gives (0 or the one of
 // field_978, for HDR output)
 static inline u32 Unk_DefaultSpace(const CPostEffect* self) {
@@ -2671,18 +3282,18 @@ static inline u32 Unk_DefaultSpace(const CPostEffect* self) {
 // field_b80 name, or, without one, the static colour space 0x19 replaced
 s32 CPostEffect::Unk_4299a0() {
     if (field_b7c != -1) {
-        Unk_ColorSpace(field_b84) = Unk_410f90_Object(field_b7c == 0x19 ? 0 : field_b7c);
-    } else if (Unk_SameColorSpace(Unk_ColorSpace(field_b84), Unk_Static_Object1)) {
-        Unk_ColorSpace(field_b84) = Unk_410f90_Object(0);
+        field_b84 = Unk_410f90_Object(field_b7c == 0x19 ? 0 : field_b7c);
+    } else if (Unk_SameColorSpace(field_b84, Unk_Static_Object1)) {
+        field_b84 = Unk_410f90_Object(0);
     }
     if (field_b80 != -1) {
         u32 space = field_b80;
         if (space == 0x19) {
             space = Unk_DefaultSpace(this);
         }
-        Unk_ColorSpace(field_ba4) = Unk_410f90_Object(space);
-    } else if (Unk_SameColorSpace(Unk_ColorSpace(field_ba4), Unk_Static_Object1)) {
-        Unk_ColorSpace(field_ba4) = Unk_410f90_Object(Unk_DefaultSpace(this));
+        field_ba4 = Unk_410f90_Object(space);
+    } else if (Unk_SameColorSpace(field_ba4, Unk_Static_Object1)) {
+        field_ba4 = Unk_410f90_Object(Unk_DefaultSpace(this));
     }
     return 0;
 }
@@ -2711,7 +3322,7 @@ bool CPostEffect::Unk_434570() {
     if (field_f80 == -1) {
         Unk_410f90 space;
         Unk_410f90_set(&space, 0);
-        if (Unk_Luminance(space, field_f84.field_0) <= 0.0f) {
+        if (Unk_Luminance(space, reinterpret_cast<const Unk_Vector3&>(field_f84.field_0)) <= 0.0f) {
             result = false;
         }
     }
@@ -2844,6 +3455,15 @@ s32 CPostEffect::Unk_426070(s32 view, f32 value) {
 // 0x710043cd40: the Planckian locus in CIE 1960 u and v at a reciprocal
 // colour temperature (in mireds: 0 to 640, every 10 tabulated). Its statics
 // are reached through the GOT: an inline function's.
+// NON_MATCHING: the table and the lookup match; in the lerp at the end the
+// fraction is allocated to s1 (the original: s0, the parameter's register),
+// so the two products come out with other registers. Tried: the lerp written
+// elementwise, through locals, with the far entry read first, `t -= i`, the
+// clamp's division after the join. With the differences and the products as
+// Unk_Float2 temporaries (d, then s = d * f, then lo + s) only the second
+// product's operands are swapped (`fmul s2, s0, s2`): Reassociate ranks the
+// fraction (the phi of t + 4) below the v difference (the 4th table load + 1)
+// and commutes that multiply; the original's fraction outranks both.
 inline Unk_Float2 Unk_43cd40(const f32* mired) {
     static const Unk_Float2 table[65] = {
         Unk_Float2(0.180046f, 0.263577f),
@@ -2918,9 +3538,9 @@ inline Unk_Float2 Unk_43cd40(const f32* mired) {
     f32 f = t - static_cast<f32>(i);
     Unk_Float2 hi = table[next];
     Unk_Float2 lo = table[i];
-    f32 du = hi.field_0[0].field_0 - lo.field_0[0].field_0;
-    f32 dv = hi.field_0[1].field_0 - lo.field_0[1].field_0;
-    return Unk_Float2(lo.field_0[0].field_0 + du * f, lo.field_0[1].field_0 + dv * f);
+    Unk_Float2 d(hi.field_0[0].field_0 - lo.field_0[0].field_0, hi.field_0[1].field_0 - lo.field_0[1].field_0);
+    Unk_Float2 s(d.field_0[0].field_0 * f, d.field_0[1].field_0 * f);
+    return Unk_Float2(lo.field_0[0].field_0 + s.field_0[0].field_0, lo.field_0[1].field_0 + s.field_0[1].field_0);
 }
 
 // 0x710043cae0: a colour (its negative parts cut) scaled to a luminance:
@@ -2957,20 +3577,6 @@ inline Unk_Float3 Unk_43cae0(const Unk_Vector3& color, const f32* luminance, con
         }
     }
     return c;
-}
-
-// 0x71004155f0 (Unk_415f40.cpp): the inverse of a matrix
-void Unk_4155f0(MATRIXT44* out, const MATRIXT44* m);
-
-// the XYZ to RGB matrix of a colour space (inline: Unk_4114f0 with the space
-// given)
-static inline MATRIXT44* Unk_XyzToRgb(MATRIXT44* out, const Unk_410f90* space) {
-    MATRIXT44 toXyz;
-    Unk_411b00(&toXyz, &space->field_0, &space->field_8, &space->field_10, &space->field_18);
-    MATRIXT44 inverse;
-    Unk_4155f0(&inverse, &toXyz);
-    *out = inverse;
-    return out;
 }
 
 // XYZ from x, y and the luminance: Y itself, or (negative) Y over y
@@ -3025,11 +3631,17 @@ static inline Unk_Vector3 Unk_WhiteRGB(f32 temperature, bool planck, const f32* 
     return rgb;
 }
 
+// NON_MATCHING (0x710043c690 below): the same size, layout and calls; only
+// Unk_XYZ's scheduling in its three copies differs (the original computes
+// 1 - x before the luminance's select and subtracts y after the division).
+// Tried: z first, the scale inline, `scale * x`, an if for the select.
 // 0x710043c690: the RGB colour, in a colour space, of white light of a
 // colour temperature (relative to 6500 K's) at a luminance (see Unk_43cae0),
-// optionally inverted, and an alpha
-inline Unk_Float4 Unk_43c690(const f32* temperature, const Unk_410f90* space, const f32* tint, const f32* luminance,
-                             const f32* alpha, bool invert, bool planck) {
+// optionally inverted, and an alpha (an out-of-line function: unlike
+// Unk_43cd40 and Unk_43cae0 nothing shows it inline; its callers are
+// 0x710043a970, 0x710043ad10 and 0x710043af30)
+Unk_Float4 Unk_43c690(const f32* temperature, const Unk_410f90* space, const f32* tint, const f32* luminance,
+                      const f32* alpha, bool invert, bool planck) {
     if (*temperature == 6500.0f) {
         f32 l = *luminance;
         f32 value = l == 0.0f ? 1.0f : (l > 0.0f ? l : -l);
@@ -3084,11 +3696,14 @@ static inline f32 Unk_Sqrt(f32 x) {
     return sqrtf(x);
 }
 
-// NON_MATCHING: written this round, not matching yet (tools/check.py --diff shows
-// what differs).
 // 0x710042a590: what changed since the last frame's view: whether the eye
 // moved further than field_d08, whether it moved, whether the projection and
 // the rotation changed, and whether anything did
+// NON_MATCHING: 24 bytes shorter. The original computes both frustums in the
+// entry block and folds only the first three comparisons into one fccmp
+// chain, the top's with the two NaN tests (orr); here all four fold together
+// and the NaN test of field_6c4 comes first. The rotation and distance parts
+// have the original's shape.
 s32 CPostEffect::Unk_42a590(bool* far, bool* moved, bool* projection, bool* rotation, bool* any) {
     f32 scale = field_6c4;
     f32 w = scale * (field_6d0 * field_420);
@@ -3134,5 +3749,485 @@ s32 CPostEffect::Unk_42a590(bool* far, bool* moved, bool* projection, bool* rota
     }
     return 0;
 }
+
+
+}  // namespace PPFX
+
+// 0x71004534e0, 0x71004534d0 (lib/yebis/leaf/Unk_4534d0.cpp): the glare's
+// light ghost kind, and its custom one
+struct Unk_4534e0;
+struct Unk_4534d0;
+u32 Unk_4534e0_update(Unk_4534e0* self, u32 value);
+u32 Unk_4534d0_update(Unk_4534d0* self, u32 value, u64 arg2);
+
+namespace PPFX {
+
+// the glare's kind of a light ghost kind (-1: a custom one; a table set up
+// the first time)
+static inline s32 Unk_LightGhostKind(s32 kind) {
+    static bool initialised = false;
+    static s32 kinds[20];
+    if (!initialised) {
+        initialised = true;
+        for (s32 i = 0; i < 20; i++) {
+            kinds[i] = i;
+        }
+    }
+    if (kind == -1) {
+        return -1;
+    }
+    return kinds[kind];
+}
+
+// whether a colour has no positive component (inline)
+static inline bool Unk_IsBlack(const Unk_Rect& colour) {
+    return colour.field_0 <= 0.0f && colour.field_4 <= 0.0f && colour.field_8 <= 0.0f;
+}
+
+// NON_MATCHING: written this round, not matching yet (tools/check.py --diff shows
+// what differs).
+// 0x7100429460: the light ghosts handed to the glare (whether there are any)
+bool CPostEffect::Unk_429460() {
+    Unk_45eb90_Self* glare = field_198;
+    field_c6e = false;
+    field_c6f = false;
+    if (glare->field_114 >= 0) {
+        glare->field_200 = 0;
+    }
+    bool none = (field_848 <= 0.0f) & (field_198->field_224.field_0 <= 0.0f) & (field_198->field_224.field_4 <= 0.0f) &
+                (field_198->field_224.field_8 <= 0.0f);
+    s32 count = field_524;
+    s32 drawn = 0;
+    for (s32 i = 0; i < count; i++) {
+        const Unk_423ba0_Item& ghost = field_868[i];
+        if ((none | (ghost.field_0 == 0)) ||
+            (ghost.field_4.field_0 <= 0.0f && ghost.field_4.field_4 <= 0.0f && ghost.field_4.field_8 <= 0.0f)) {
+            field_198->field_208[i].field_0 = false;
+            continue;
+        }
+        f32 offset;
+        f32 scale;
+        f32 depth;
+        if (ghost.field_30 == 7) {
+            Unk_Refresh();
+            f32 near = field_1064;
+            Unk_Refresh();
+            depth = (ghost.field_2c - near) / ghost.field_2c;
+            scale = field_1054;
+            offset = field_1058;
+        } else {
+            f32 factors[4];
+            Unk_428cc0(factors, ghost.field_30, 2, 1.0f, 0.0f);
+            scale = factors[0];
+            offset = factors[1];
+            depth = ghost.field_2c;
+        }
+        Unk_423ba0_Item& out = field_198->field_208[i];
+        out.field_0 = true;
+        out.field_14 = ghost.field_14;
+        out.field_1c = ghost.field_1c;
+        out.field_4 = ghost.field_4;
+        out.field_24 = ghost.field_24;
+        out.field_2c = offset + scale * depth;
+        out.field_28 = ghost.field_28;
+        if (out.field_24 == 1) {
+            field_c6f = true;
+        }
+        drawn++;
+    }
+    if (field_198->field_114 >= drawn) {
+        field_198->field_200 = drawn;
+    }
+    s32 kind = Unk_LightGhostKind(field_874);
+    Unk_4534e0_update(reinterpret_cast<Unk_4534e0*>(field_198), kind);
+    bool known = static_cast<u32>(kind) < 20;
+    if (kind == -1) {
+        Unk_4534d0_update(reinterpret_cast<Unk_4534d0*>(field_198), field_880, field_878);
+        known = field_880 > 0;
+    }
+    field_c6e = drawn > 0 && known;
+    return field_c6e;
+}
+
+
+// the depth of field's kind of a camera mode (a table set up the first time)
+static inline s32 Unk_DofCameraMode(u32 mode) {
+    static bool initialised = false;
+    static s32 modes[4];
+    if (!initialised) {
+        initialised = true;
+        modes[0] = 0;
+        modes[1] = 1;
+        modes[2] = 2;
+        modes[3] = 3;
+    }
+    return modes[mode];
+}
+
+// NON_MATCHING: written this round, not matching yet (tools/check.py --diff shows
+// what differs).
+// 0x710042b9f0: the depth of field's numbers handed to the glare
+s32 CPostEffect::Unk_42b9f0() {
+    if (field_198 != nullptr) {
+        field_198->field_248 = 0.0f;
+        field_198->field_24c = 0.0f;
+        field_198->field_250 = 0.0f;
+        field_198->field_254 = 0.0f;
+        field_198->field_264 = 0.0f;
+        field_198->field_268 = 0.0f;
+    }
+    if (field_198 == nullptr || !reinterpret_cast<CDepthOfField*>(field_1a0)->field_184) {
+        return 1;
+    }
+    CDepthOfField* dof = reinterpret_cast<CDepthOfField*>(field_1a0);
+    f32 size = dof->field_1a8;
+    Unk_Float distance = field_6d0;
+    f32 limit = Unk_4afa90_get(reinterpret_cast<const Unk_4afa90*>(dof));
+    Unk_Float fNumber = reinterpret_cast<CDepthOfField*>(field_1a0)->field_1b4;
+    if (field_884 != 1.0f) {
+        f32 t = tanf(field_888 * 0.5f);
+        distance = t * powf(field_6d0 / t, field_884);
+        f32 fov = atanf(distance.field_0) * 2.0f;
+        f32 focus = field_898;
+        f32 width = field_89c;
+        f32 value = field_8a4;
+        f32 coc;
+        reinterpret_cast<CDepthOfField*>(field_1a0)
+            ->Unk_4af020(Unk_DofCameraMode(field_8a0), fov, focus, width, value, field_8a8.field_0[0].field_0,
+                         field_8a8.field_0[1].field_0, field_8b8.field_0[0].field_0, field_8b8.field_0[1].field_0, &size,
+                         &fNumber, nullptr, &coc, nullptr, nullptr, 0.0f);
+    }
+    if (field_88c > 0.0f) {
+        fNumber = field_88c;
+    }
+    f32 range = field_890 > 0.0f ? field_890 : limit;
+    f32 ratio = size / fNumber.field_0;
+    field_198->field_248 = range > 0.0f ? range / fNumber.field_0 : 0.0f;
+    field_198->field_24c = ratio;
+    field_198->field_250 = size;
+    field_198->field_254 = distance;
+    field_198->field_264 = reinterpret_cast<CDepthOfField*>(field_1a0)->field_1b0;
+    field_198->field_268 = reinterpret_cast<CDepthOfField*>(field_1a0)->field_1b8;
+    return 0;
+}
+
+// 0x7100461d60 (GPUTextureUtil.cpp)
+s32 FXDCT_GetDepthCastTypeFromDepthFormat(s32 format);
+
+// whether a format is a depth format (inline)
+static inline bool Unk_IsDepthFormat(s32 format) {
+    switch (format) {
+    case 20:
+    case 40:
+    case 45:
+    case 55:
+        return true;
+    default:
+        return false;
+    }
+}
+
+// the depth cast type of a depth source (a table set up the first time; -1:
+// none)
+static inline s32 Unk_DepthCastType(s32 source) {
+    static bool initialised = false;
+    static s32 types[4];
+    if (!initialised) {
+        initialised = true;
+        types[0] = 0;
+        types[1] = 1;
+        types[2] = 2;
+        types[3] = 3;
+    }
+    s32 type = types[source];
+    switch (type) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+        return type;
+    default:
+        return -1;
+    }
+}
+
+// NON_MATCHING: written this round, not matching yet (tools/check.py --diff shows
+// what differs).
+// 0x710042be10: the velocity of the scene's depth (once a frame)
+s32 CPostEffect::Unk_42be10() {
+    if (!field_10da || field_10db) {
+        return 0;
+    }
+    MATRIXT44 projection;
+    {
+        f32 scale = field_6c4;
+        f32 w = scale * (field_6d0 * field_420);
+        f32 xw = field_6d4 * w;
+        f32 h = scale * field_6d0;
+        f32 yh = h * field_6d8;
+        Unk_40f8d0(&projection, false, true, xw - w, w + xw, yh - h, h + yh, scale, field_6c8);
+    }
+    MATRIXT44 previous;
+    {
+        f32 scale = field_6c4;
+        f32 w = scale * (field_6e8 * field_420);
+        f32 xw = field_6ec * w;
+        f32 h = scale * field_6e8;
+        f32 yh = h * field_6f0;
+        Unk_40f8d0(&previous, false, true, xw - w, w + xw, yh - h, h + yh, scale, field_6c8);
+    }
+    s32 source = field_58;
+    Unk_RenderTexture* external = field_50;
+    bool own = source == 8 || external != nullptr;
+    Unk_RenderTexture* depth;
+    s32 type;
+    if (source == 8) {
+        depth = field_190->field_80[static_cast<s32>(field_190->field_94)];
+        type = FXDCT_GetDepthCastTypeFromDepthFormat(depth->field_38);
+    } else {
+        depth = own ? external : Unk_TextureAt(field_5e0);
+        if (Unk_IsDepthFormat(depth->field_38)) {
+            type = FXDCT_GetDepthCastTypeFromDepthFormat(depth->field_38);
+        } else {
+            type = Unk_DepthCastType(own ? source : 3);
+        }
+    }
+    f32 scale;
+    f32 bias;
+    if (field_50 != nullptr) {
+        scale = field_60;
+        bias = field_64;
+    } else {
+        scale = 1.0f;
+        bias = 0.0f;
+    }
+    s32 from;
+    if (source == 8) {
+        bias = field_1014 ? 1.0f : bias;
+        scale = field_1014 ? -1.0f : scale;
+        from = 0;
+    } else {
+        bias = own ? bias : 0.0f;
+        scale = own ? scale : 1.0f;
+        from = own ? 6 : 2;
+    }
+    f32 factors[4];
+    Unk_428cc0(factors, from, 0, scale, bias);
+    Unk_Float2 depthScale(factors[0], factors[1]);
+    Unk_Float2 falloff(1.0f, 0.0f);
+    const Unk_Float2* range = nullptr;
+    if (field_ce5 && static_cast<u32>(field_ce8 - 1) < 2) {
+        bool inside = Unk_4622e0(field_6c4, field_6c8, field_d10, field_d14);
+        range = inside ? &field_1084 : nullptr;
+        if (own && inside) {
+            Unk_428cc0(factors, 0, 2, 1.0f, 0.0f);
+            f32 a = depthScale.field_0[1].field_0 * factors[0] + factors[1];
+            f32 b = depthScale.field_0[0].field_0 * factors[0];
+            falloff.field_0[0] = b * range->field_0[0].field_0;
+            falloff.field_0[1] = a * range->field_0[0].field_0 + range->field_0[1].field_0;
+            range = &falloff;
+        }
+    }
+    Unk_RenderTexture* target = field_d70;
+    Unk_RenderTexture* velocity = field_d78;
+    s32 mode;
+    if (field_d2c == 0) {
+        mode = -2;
+    } else if (field_d2c == 1) {
+        mode = field_d30;
+    } else {
+        mode = -1;
+    }
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    s32 result = util->Unk_484f50(field_108c, reinterpret_cast<CRenderTexture*>(depth),
+                                  reinterpret_cast<CRenderTexture*>(target), reinterpret_cast<CRenderTexture*>(velocity),
+                                  &field_6f4, &field_774, &projection, &previous, type, &depthScale, range, mode,
+                                  &field_d64, false, &field_d6c);
+    if (result < 0) {
+        return result;
+    }
+    field_10db = true;
+    return 0;
+}
+
+// the output format of a tone map's low half (a table set up the first time)
+static inline s32 Unk_ToneMapFormat(u32 kind) {
+    static bool initialised = false;
+    static s32 formats[9];
+    if (!initialised) {
+        initialised = true;
+        formats[0] = 0;
+        formats[1] = 1;
+        formats[2] = 10;
+        formats[3] = 2;
+        formats[4] = 4;
+        formats[5] = 6;
+        formats[6] = 8;
+        formats[7] = 14;
+        formats[8] = 1;
+    }
+    return formats[kind];
+}
+
+// the shader number that follows some of the tone map's (inline)
+static inline s32 Unk_ToneMapShader(s32 shader) {
+    switch (shader) {
+    case 1:
+        return 2;
+    case 4:
+        return 5;
+    case 7:
+        return 8;
+    case 10:
+        return 11;
+    case 13:
+        return 14;
+    default:
+        return shader;
+    }
+}
+
+// NON_MATCHING: written this round, not matching yet (tools/check.py --diff shows
+// what differs).
+// 0x710042a0f0: the tone map's output format and shader numbers
+s32 CPostEffect::Unk_42a0f0() {
+    u32 toneMap = field_8c8;
+    bool b598 = field_598;
+    bool b59a = field_59a;
+    if (toneMap == 0xffffffff) {
+        if (field_59e) {
+            toneMap = b59a ? 0x30002 : 0x50005;
+        } else {
+            toneMap = b598 ? (b59a ? 0x30002 : 0x50008) : 2;
+        }
+    }
+    field_8c8 = toneMap;
+    u32 low = toneMap & 0xffff;
+    if (low == 8 && field_599) {
+        toneMap = (toneMap & 0xffff0000) | (toneMap >> 16);
+        field_8c8 = toneMap;
+        low = toneMap >> 16;
+    }
+    u32 high = toneMap >> 16;
+    field_106a = low == high;
+    field_106b = false;
+    bool srgb = false;
+    if (field_59d && low != 8) {
+        field_106b = true;
+        srgb = true;
+    }
+    s32 format;
+    if (srgb && low != high && low != 8) {
+        switch (toneMap) {
+        case 0x30001:
+            format = 12;
+            break;
+        case 0x30002:
+            format = 13;
+            break;
+        default:
+            format = -1;
+            break;
+        }
+    } else {
+        format = Unk_ToneMapFormat(low);
+        if (srgb) {
+            format = Unk_SrgbFormat(format);
+        }
+    }
+    field_6a4 = format;
+    field_688 = 0;
+    field_68c = 0;
+    field_690 = 0;
+    u32 kind = toneMap & 0xffff0000;
+    s32 shader;
+    s32 first;
+    s32 second;
+    switch (high) {
+    case 0:
+        shader = 0;
+        first = 0;
+        second = 0;
+        field_694 = 0;
+        field_688 = 0;
+        field_68c = 0;
+        field_680 = 0;
+        field_684 = 0;
+        break;
+        case 3:
+            shader = field_104d ? 1 : 2;
+            field_688 = shader;
+            field_68c = 3;
+            field_690 = 16;
+            break;
+        case 4:
+            shader = field_104d ? 4 : 5;
+            field_688 = shader;
+            field_68c = 6;
+            field_690 = 17;
+            break;
+        case 5:
+            shader = field_104d ? 7 : 8;
+            field_688 = shader;
+            field_68c = 9;
+            field_690 = 18;
+            break;
+        case 6:
+            shader = field_104d ? 10 : 11;
+            field_688 = shader;
+            field_68c = 12;
+            field_690 = 19;
+            break;
+        default:
+            if (kind == 0x70000) {
+                shader = field_104d ? 13 : 14;
+                field_688 = shader;
+                field_68c = 15;
+                field_690 = 0;
+            } else {
+                shader = 0;
+            }
+            break;
+        }
+    if (high != 0) {
+        first = field_59d ? 0 : shader;
+        second = field_59d ? shader : 0;
+        field_694 = shader;
+        field_680 = first;
+        field_684 = second;
+        if (b598) {
+            if (kind == 0x70000) {
+                field_680 = shader;
+                first = shader;
+            } else {
+                shader = 0;
+                first = 0;
+                second = 0;
+                field_680 = 0;
+                field_684 = 0;
+                field_688 = 0;
+                field_68c = 0;
+            }
+        }
+        if (b59a) {
+            field_680 = 3;
+            field_688 = 3;
+            field_68c = 1;
+            field_690 = 0;
+            shader = 3;
+            first = 3;
+        }
+    }
+    field_698 = Unk_ToneMapShader(first);
+    field_69c = Unk_ToneMapShader(second);
+    field_6a0 = Unk_ToneMapShader(shader);
+    f32 ratio = field_8cc / field_8d0;
+    f32 most = field_59c ? 16.0f : 32.0f;
+    ratio = ratio > most ? most : ratio;
+    field_f70 = ratio < 0.1f ? 0.1f : ratio;
+    return 0;
+}
+
 
 }  // namespace PPFX

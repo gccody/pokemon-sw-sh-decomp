@@ -199,6 +199,246 @@ s32 Unk_43e410(IGPUDevice* self) {
     return 0;
 }
 
+}  // namespace PPFX
+
+// 0x71004cbf40: SiGfx's kernel (leafgen's name and type)
+u64 Unk_4cbf40_get();
+
+namespace PPFX {
+
+// boost's hash_combine (inline)
+static inline void Unk_HashCombine(u64& seed, u64 value) {
+    seed ^= value + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+
+// the first render target's SiGfx resource: slot 35 gives its formats
+struct Unk_SiGfxTargetResource {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+    virtual void vf25();
+    virtual void vf26();
+    virtual void vf27();
+    virtual void vf28();
+    virtual void vf29();
+    virtual void vf30();
+    virtual void vf31();
+    virtual void vf32();
+    virtual void vf33();
+    virtual void vf34();
+    virtual const Unk_PipelineDesc::Unk_4ec* vf35();
+};
+
+// the SiGfx vertex format the effect set (field_14de0): slot 32 gives its
+// vertex attributes
+struct Unk_SiGfxVertexLayoutSource {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+    virtual void vf25();
+    virtual void vf26();
+    virtual void vf27();
+    virtual void vf28();
+    virtual void vf29();
+    virtual void vf30();
+    virtual void vf31();
+    virtual const Unk_PipelineDesc::Unk_VertexLayout* vf32();
+};
+
+// appends a pipeline state, growing the array by field_40 elements or to
+// twice the room (inline: placeholder name; unlike SiCore_Array.h's Unk_Add
+// each way of growing has its own call)
+static inline bool Unk_AddState(IGPUDevice::Unk_PipelineStates* states, const IGPUDevice::PipelineStateData& value) {
+    if (states->m_itemCount >= states->m_reservedCount) {
+        if (states->field_40 != 0) {
+            if (!states->Unk_4bf190(states->field_40 + states->m_reservedCount, true)) {
+                states->m_itemCount = 0;
+                states->field_30 = nullptr;
+                states->field_38 = nullptr;
+                return false;
+            }
+        } else {
+            size_t count = states->m_reservedCount * 2;
+            if (!states->Unk_4bf190(count != 0 ? count : 1, true)) {
+                states->m_itemCount = 0;
+                states->field_30 = nullptr;
+                states->field_38 = nullptr;
+                return false;
+            }
+        }
+    }
+    states->m_pData[states->m_itemCount] = value;
+    states->m_itemCount++;
+    states->field_30 = states->m_pData;
+    states->field_38 = states->m_pData + states->m_itemCount;
+    return true;
+}
+
+// a pipeline state of an array (inline: placeholder name)
+static inline const IGPUDevice::PipelineStateData& Unk_StateAt(const IGPUDevice::Unk_PipelineStates* states,
+                                                               size_t index) {
+    return states->m_pData[index];
+}
+
+// SiGfx's kernel as the device asks it for its allocator (slot 6)
+struct Unk_SiGfxKernel {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual SiSDK3::ISiAllocator* vf6();
+};
+
+// 0x710043e780: hands the draw context the pipeline state of the blend
+// state's description (made the first time, kept by the description's hash
+// in field_60), the shaders, the viewport, the scissor rectangle and the
+// effect's resources. The key it looks the states up with only has its hash
+// when the array is searched (the original's order). The element accessor
+// returns a reference: before it is inlined the state's load is speculated
+// on its dereferenceable result, which gives the loop's select.
+// NON_MATCHING: the same instructions and blocks but for register allocation
+// (the blend state's index, field_14dc8's address and the description's
+// pointer take other callee-saved registers; the original spills
+// &desc->field_8 where it is made and keeps &key.field_8 in x24) and the
+// order of vf19's argument addresses (the original computes field_14e70's and
+// field_14eb0's first).
+s32 IGPUDevice::SetupSiGfxDrawContext(s32 primitive) {
+    Unk_SiGfxDrawContext* context = field_30;
+    if (context == nullptr || !field_14d09) {
+        return -1;
+    }
+    Unk_PipelineDesc* desc = &field_88[field_14dc4];
+    Unk_SiGfxTargetResource* resource;
+    Unk_SiGfxRenderTarget* target;
+    if (field_14f00[0] != nullptr) {
+        resource = reinterpret_cast<Unk_SiGfxTargetResource*>(field_14f00[0]->field_a8);
+        target = field_14f00[0]->field_b8;
+    } else {
+        target = nullptr;
+        resource = nullptr;
+    }
+    desc->field_0 = field_14dc8;
+    desc->field_8 = field_14dd8;
+    if (resource != nullptr) {
+        desc->field_4ec = *resource->vf35();
+    }
+    if (field_14de0 != nullptr) {
+        desc->field_168 = *reinterpret_cast<Unk_SiGfxVertexLayoutSource*>(field_14de0)->vf32();
+    }
+    desc->field_160 = primitive;
+    desc->field_520 = target;
+    u64 hash = 0;
+    Unk_HashCombine(hash, reinterpret_cast<u64>(desc->field_0));
+    Unk_HashCombine(hash, reinterpret_cast<u64>(desc->field_8));
+    Unk_HashCombine(hash, reinterpret_cast<u64>(desc->field_520));
+    Unk_HashCombine(hash, desc->field_4ec.field_4[0]);
+    Unk_PipelineKey key;
+    key.field_0 = hash;
+    Unk_PipelineStates* states;
+    Unk_PipelineStateMap::iterator it = field_60.find(key);
+    if (it != field_60.end()) {
+        states = it->second;
+    } else {
+        SiSDK3::ISiAllocator* allocator = reinterpret_cast<Unk_SiGfxKernel*>(Unk_4cbf40_get())->vf6();
+#line 1270
+        states = UNK_SI_NEW(allocator, -1) Unk_PipelineStates(allocator);
+        states->Unk_ReserveAtLeast(1);
+        field_60.insert(std::make_pair(key, states));
+    }
+    Unk_SiGfxInterface* pipeline;
+    if (states->m_itemCount == 1) {
+        pipeline = states->m_pData[0].field_120;
+    } else {
+        pipeline = nullptr;
+        bool found = false;
+        for (size_t i = 0; !found && i < states->m_itemCount; i++) {
+            const PipelineStateData& data = Unk_StateAt(states, i);
+            found = key == data.field_0;
+            if (found) {
+                pipeline = data.field_120;
+            }
+        }
+        if (pipeline == nullptr) {
+            Unk_SiGfxPipelineState* created = field_38->vf25(1, 0, nullptr);
+            created->vf8();
+            memcpy(created->vf10(), desc, 0x52d);
+            created->vf9();
+            pipeline = created;
+            key.field_8 = desc->field_0;
+            key.field_10 = desc->field_8;
+            key.field_18 = desc->field_160;
+            key.field_118 = desc->field_520;
+            s32 elements = desc->field_168.field_380;
+            key.field_fc = elements;
+            for (s64 i = 0; i < elements; i++) {
+                key.field_1c[i] = desc->field_168.field_0[i];
+            }
+            s32 formats = desc->field_4ec.field_0;
+            key.field_110 = formats;
+            for (s64 i = 0; i < formats; i++) {
+                key.field_100[i] = desc->field_4ec.field_4[i];
+            }
+            PipelineStateData data;
+            data.field_0 = key;
+            data.field_120 = pipeline;
+            Unk_AddState(states, data);
+        }
+    }
+    context->vf16(pipeline);
+    context->vf17(field_14dc8);
+    context->vf23(field_14dd0);
+    context->vf14(1, &field_14d10);
+    context->vf15(1, &field_14d28);
+    context->vf19(field_14de8, field_14dec, field_14df0, field_14e70, field_14eb0);
+    return 0;
+}
+
 // 0x710043f080: releases the pipeline states
 s32 Unk_43f080(IGPUDevice* self) {
     for (IGPUDevice::Unk_PipelineStateMap::iterator it = self->field_60.begin(); it != self->field_60.end(); ++it) {

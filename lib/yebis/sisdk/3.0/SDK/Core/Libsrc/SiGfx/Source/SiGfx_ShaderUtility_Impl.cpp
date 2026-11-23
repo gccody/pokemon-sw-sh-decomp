@@ -408,19 +408,25 @@ void Unk_4e5a60(SiString<char>* path, const char* extension) {
 }
 
 // 0x71004e5f50
-// NON_MATCHING: registers. The original keeps `this` in x21 and the path (then
-// the stream) in x20; here the two are exchanged. The rest is the original's.
-// (The allocator read into a local after the reserve gives the original's
-// registers but hoists its load out of the loop, which the original reloads
-// each time; tried: the loop counter as s64/int/u32/outside, a while loop.)
+// The header's tests are three ifs (read, signature, version), each closing
+// the stream: branch folding merges their blocks only after register
+// allocation, so the stream's longer live range gets its register before
+// `this`.
 bool SiGfxShaderUtility::vf15(const char* path, SiArray<ISiGfxShaderEffectVariationList*>* lists) {
     ISiIOStream* stream = reinterpret_cast<SiIOKernel*>(Unk_57d030_get())->vf9(path, 9, nullptr);
     if (stream == nullptr) {
         return false;
     }
     Unk_4e5f50_Header header;
-    if (!stream->vf21(&header, sizeof(header), true) || Unk_4c5630(header.field_0, "SSKK.ShaderVariationList", true) != 0 ||
-        header.field_28.field_0 != 3 || header.field_28.field_4 != 0 || header.field_28.field_8 != 0 ||
+    if (!stream->vf21(&header, sizeof(header), true)) {
+        stream->vf3();
+        return false;
+    }
+    if (Unk_4c5630(header.field_0, "SSKK.ShaderVariationList", true) != 0) {
+        stream->vf3();
+        return false;
+    }
+    if (header.field_28.field_0 != 3 || header.field_28.field_4 != 0 || header.field_28.field_8 != 0 ||
         header.field_28.field_c != 1) {
         stream->vf3();
         return false;
@@ -696,16 +702,14 @@ void Unk_4e7680(void* self, SiGfxNXDevice* pDevice) {
 // use: they can be replaced at link time (inline, or a template's instance).
 template <class T>
 struct Unk_NameSorter {
-    static int Unk_Compare(T* a, T* b) { return Unk_CompareNoCase(&a->field_10, &b->field_10); }
+    // (64-bit: the comparison's int result widened keeps each end's result a
+    // value the partition tests once)
+    static s64 Unk_Compare(T* a, T* b) { return Unk_CompareNoCase(&a->field_10, &b->field_10); }
     s64 Unk_4e7e40(s64 count, T** items);   // 0x71004e7e40
     bool Unk_4e59e0(s64 count, T** items);  // 0x71004e59e0
 };
 
-// NON_MATCHING: the comparisons' ends. The original keeps each comparison's
-// result as a value (`orr ; cmp ; cset`, `csinv` for the -1) and tests the
-// first string's end before it, and keeps the pivot's length in a loop phi;
-// here the results are folded into branches, the combined end tested first.
-// The scans, swaps and the pivot's selection are the original's.
+// 0x71004e7e40: the partition around the middle element; the index it ends at
 template <class T>
 s64 Unk_NameSorter<T>::Unk_4e7e40(s64 count, T** items) {
     s64 pivot = count < 2 ? 1 : count / 2;

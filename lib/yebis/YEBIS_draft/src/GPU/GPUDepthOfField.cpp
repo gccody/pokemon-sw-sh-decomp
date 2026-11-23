@@ -1,10 +1,7 @@
 // Scope: common
-// NON_MATCHING: the static initialiser 0x71004b72d0 doesn't match yet: the TU's
-// statics aren't all written.
-// PPFX::CDepthOfField (lib/yebis/YEBIS_draft/src/GPU/GPUDepthOfField.h): so
-// far its destructors and three small virtual functions. The TU has statics
-// of its own besides the common ones (its static initialiser, 0x71004b72d0,
-// is 716 bytes), so Unk_Statics.h isn't included until they're known.
+// PPFX::CDepthOfField (lib/yebis/YEBIS_draft/src/GPU/GPUDepthOfField.h). The
+// TU's statics are Unk_Statics.h's and its own (below), which its static
+// initialiser, 0x71004b72d0 (_GLOBAL__sub_I_GPUDepthOfField.cpp), sets up.
 #include <math.h>
 #include <string.h>
 
@@ -1850,10 +1847,13 @@ inline f32 CDepthOfField::Unk_NearPosition(bool far) {
     return 0.0f;
 }
 
-// NON_MATCHING: written this round, not matching yet (tools/check.py --diff shows
-// what differs).
 // 0x71004b1100: the taps' offsets (the points of `count` rings, scaled to the
 // aspect ratio and rotated), as the constants of field_c8
+// NON_MATCHING: the same size and stack layout; the searches' clamps are
+// if-converted to fcsel here (the original keeps a branch to the shared
+// exit), which moves the blocks after them; the scale matrix's third element
+// is stored as a constant merged with its neighbours (the original stores a
+// register), and the near loop walks the points with another register.
 s32 CDepthOfField::Unk_4b1100(bool near, bool far, s32 count, f32 angle) {
     CTextureUtil* util = Unk_GetTextureUtil();
     Unk_ReleaseTextureUtil();
@@ -1940,6 +1940,552 @@ s32 CDepthOfField::Unk_4b1100(bool near, bool far, s32 count, f32 angle) {
     }
     effect->vf22(util->field_30.field_c8, constants, taps);
     return 0;
+}
+
+// 0x71004b19a0: a level's blur by its kind (0 to 5) and the visualisation of
+// the aperture filter's level
+// NON_MATCHING: the same calls with the same arguments, but the blocks and
+// registers differ throughout (the original keeps the target and the list in
+// stack slots, shares the texture filter calls' tails and lays the kinds out
+// in another order).
+s32 CDepthOfField::Unk_4b19a0(s32 level, bool first, CRenderTexture* source, CRenderTexture* target,
+                              CRenderTexture** list, CRenderTexture* extra, s32 mode) {
+    bool flag = first ? (field_154 & 4) != 0 : (field_154 & 8) != 0;
+    Unk_Level* levels = field_4a8;
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    Unk_Float4 colour = field_174 ? Unk_LevelColours[level] : Unk_Float4(1.0f, 1.0f, 1.0f, 1.0f);
+    Unk_Float4 range(1.0f, 0.0f, -3.40282347e+38f, 3.40282347e+38f);
+    range.field_0[0].field_0 = levels[level].field_f0;
+    range.field_0[1].field_0 = levels[level].field_f4;
+    range.field_0[2].field_0 = 0.0f;
+    range.field_0[3].field_0 = 2.0f;
+    if (!first) {
+        range.field_0[2].field_0 = -range.field_0[2].field_0;
+        range.field_0[3].field_0 = -range.field_0[3].field_0;
+    }
+    s32 kind = levels[level].field_10;
+    CRenderTexture* second = kind == 5 ? extra : nullptr;
+    s32 result = -1;
+    bool visualize = false;
+    switch (kind) {
+    case 0: {
+        Unk_Level* item = &levels[level];
+        if (item->field_18 > 9) {
+            CRenderTexture* other = list[0];
+            if (!field_c0.field_6c) {
+                other = list[1];
+                if (other == target)
+                    other = list[2] == target ? list[0] : list[2];
+            }
+            if (source != nullptr)
+                Unk_GetTexture(source)->vf18(2);
+            if (target != nullptr)
+                Unk_GetTexture(target)->vf18(2);
+            if (other != nullptr)
+                Unk_GetTexture(other)->vf18(2);
+            if (list[0] != nullptr)
+                Unk_GetTexture(list[0])->vf18(2);
+            Unk_Float4 white(1.0f, 1.0f, 1.0f, 1.0f);
+            util->Unk_493be0(source, other, target, list[0], 1.0f, true, 0, &white, false, false, 0, 0);
+            result = util->Unk_493f30(1.0f, Unk_Float(0.75f), list[0], target, mode, &colour, false, false, 0, 0);
+            break;
+        }
+        Unk_GetTexture(source)->vf18(2);
+        Unk_GetTexture(target)->vf18(2);
+        result = util->Unk_493e20(1.0f, source, target, item->field_18, mode, &colour, false, false, 0, 0);
+        visualize = item->field_18 == 9;
+        break;
+    }
+    case 1:
+        if (!flag && levels[level].field_1c == 3) {
+            Unk_GetTexture(source)->vf18(2);
+            Unk_GetTexture(target)->vf18(2);
+            result = util->Unk_493f30(1.0f, Unk_Float(1.0f), source, target, mode, &colour, false, false, 0, 0);
+        } else {
+            Unk_GetTexture(source)->vf18(2);
+            Unk_GetTexture(target)->vf18(2);
+            if (list[0] != nullptr)
+                Unk_GetTexture(list[0])->vf18(2);
+            f32 r = static_cast<f32>(levels[level].field_1c) * 0.5f * 0.4f;
+            Unk_Float4 radius(r, r, r, r);
+            result = util->Unk_496b40(1.0f, -static_cast<f32>(levels[level].field_18), source, list[0], target,
+                                      &radius, mode, &colour, 0, false, false, 0, 0);
+        }
+        break;
+    case 2: {
+        f32 angle = field_1bc == -3.40282347e+38f ? 0.39269909f : field_1bc;
+        angle = field_20->field_58 ? -angle : angle;
+        Unk_GetTexture(source)->vf18(2);
+        Unk_GetTexture(target)->vf18(2);
+        if (list[0] != nullptr)
+            Unk_GetTexture(list[0])->vf18(2);
+        s32 size = levels[level].field_18;
+        if (size == 15 || size == 5) {
+            result = util->Unk_4915e0(angle, 0.0f, 1.0f, source, list[0], target, size, mode, &colour, second, &range,
+                                      false, 0, 0);
+        } else {
+            result = util->Unk_491640(angle, 1.0f, source, list[0], target,
+                                      static_cast<s32>(logf(static_cast<f32>(size)) / 1.0986123f), mode, &colour,
+                                      second, &range, false, 0, 0);
+        }
+        break;
+    }
+    case 3: {
+        Unk_GetTexture(source)->vf18(2);
+        Unk_GetTexture(target)->vf18(2);
+        if (list[0] != nullptr)
+            Unk_GetTexture(list[0])->vf18(2);
+        if (list[1] != nullptr)
+            Unk_GetTexture(list[1])->vf18(2);
+        f32 angle = field_1bc == -3.40282347e+38f ? 0.2617994f : field_1bc + 0.5235988f;
+        angle = field_20->field_58 ? -angle : angle;
+        result = util->Unk_4920b0(angle, 1.0f, 1.0f, 0.666667f, source, target, list[0], list[1],
+                                  levels[level].field_18, mode, &colour, second, &range, false, 0, 0);
+        break;
+    }
+    case 4: {
+        f32 angle = field_1bc == -3.40282347e+38f ? 0.2617994f : field_1bc + 0.5235988f;
+        Unk_GetTexture(source)->vf18(2);
+        Unk_GetTexture(target)->vf18(2);
+        if (list[0] != nullptr)
+            Unk_GetTexture(list[0])->vf18(2);
+        if (list[1] != nullptr)
+            Unk_GetTexture(list[1])->vf18(2);
+        angle = field_20->field_58 ? -angle : angle;
+        result = util->Unk_4922a0(angle, 1.0f, 1.0f, source, target, list, levels[level].field_18, mode, &colour,
+                                  second, &range, false, 0, 0);
+        break;
+    }
+    case 5: {
+        bool single = level == 1 && first;
+        if (field_c0.field_70 > 1 || (single && field_c0.field_70 == 1)) {
+            static const s32 taps[4] = {2, 3, 4, 5};
+            s32 index = levels[level].field_18;
+            s32 count = index < 0 ? 0 : taps[index];
+            f32 half = levels[level].field_30 * 0.5f;
+            f32 limit = level < 6 ? half * 2.0f : 3.40282347e+38f;
+            f32 a = half * 0.5f;
+            if (level >= 2 && !first && !(Unk_1b35154 && field_3f0 && field_3f4 * 2.0f != 0.0f))
+                a = a * 2.0f;
+            f32 aspect = 0.5f;
+            f32 width = static_cast<f32>(static_cast<u32>(field_c0.field_0[1]));
+            f32 height = static_cast<f32>(static_cast<u32>(field_c0.field_0[2]));
+            if (width < height)
+                aspect = width / height * 0.5f;
+            f32 b = limit < aspect ? limit : aspect;
+            CRenderTexture* temp = list[0];
+            CRenderTexture* blurred = level == 1 ? temp : target;
+            result = Unk_4b0650(count, !first, source, blurred, extra, &colour, first, field_c0.field_70 < 2, mode, a,
+                                b);
+            if (field_c0.field_10 - 2 <= level) {
+                f32 r = static_cast<f32>(static_cast<u32>(blurred->field_58)) / 9.0f * 0.3f;
+                if (field_c0.field_10 - 1 > level)
+                    r = r * 0.25f;
+                Unk_Float4 white(1.0f, 1.0f, 1.0f, 1.0f);
+                Unk_Float4 radius(r, r, r, r);
+                result = util->Unk_496b40(1.0f, 0.002f, blurred, level == 1 ? target : temp, blurred, &radius, 0,
+                                          &white, 0, false, false, 0, 0);
+            }
+            if (level == 1)
+                result = util->Unk_475150(blurred, target, false);
+            if (!first) {
+                CRenderTexture* other = list[0];
+                field_20->vf45(2);
+                Unk_GetTexture(source)->vf18(2);
+                Unk_GetTexture(other)->vf18(2);
+                f32 r = levels[level].field_30 * static_cast<f32>(levels[level].field_4) * 0.5f * 0.25f;
+                Unk_Float4 white(1.0f, 1.0f, 1.0f, 1.0f);
+                Unk_Float4 radius(r, r, r, r);
+                util->Unk_496b40(1.0f, 0.002f, target, other, target, &radius, 0, &white, 0, false, false, 0, 0);
+                field_20->vf45(0);
+            }
+            return result;
+        }
+        CRenderTexture* temp = list[0];
+        s32 filter = Unk_GetTexture(source)->vf16();
+        s32 tempFilter = Unk_GetTexture(temp)->vf16();
+        Unk_GetTexture(source)->vf15(8);
+        Unk_GetTexture(temp)->vf15(8);
+        if (levels[level].field_18 > 2) {
+            static const f32 radii[4] = {3.15f, 6.3f, 12.6f, 25.2f};
+            f32 r = radii[levels[level].field_18] / 0.95f * 0.5f * 0.4f;
+            const Unk_Float& m = r < 6.0f ? Unk_Float(r) : Unk_Float(6.0f);
+            Unk_Float4 radius(m, m, m, m);
+            result = util->Unk_496b40(1.0f, 0.0001f, source, temp, target, &radius, 0, &colour, 0, false, false, 0, 0);
+        } else {
+            Unk_GetTexture(source)->vf18(2);
+            Unk_GetTexture(target)->vf18(2);
+            s32 size = field_4a8[level].field_1c;
+            if (field_c0.field_6d && !(field_c0.field_70 > 1 || (single && field_c0.field_70 == 1))) {
+                switch (field_4a8[level].field_18) {
+                case 0:
+                    size = 3;
+                    break;
+                case 1:
+                    size = 5;
+                    break;
+                case 2:
+                    size = 9;
+                    break;
+                case 3:
+                    size = 17;
+                    break;
+                }
+            }
+            result = util->Unk_493e20(1.0f, source, target, size, mode, &colour, false, false, 0, 0);
+            visualize = size == 9;
+        }
+        Unk_GetTexture(source)->vf15(filter);
+        Unk_GetTexture(temp)->vf15(tempFilter);
+        break;
+    }
+    }
+    if (visualize && field_174 && !Unk_442c50_get(reinterpret_cast<u64>(field_20))) {
+        if (field_20->field_14ef0) {
+            Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
+            result = util->Unk_47dfa0(0.0f, 0.0f, 0.0f, 1.0f, target, target, 0, &colour, 0, false, false, 1, &zero,
+                                      nullptr, -1);
+        } else {
+            static s32 count = 0;
+            if (++count == 0 || count % 200 == 100) {
+#line 9173
+                PPFX_WARNING("SetApertureFilterLevelVisualize() does not work properly.\n");
+            }
+        }
+    }
+    return result;
+}
+
+// 0x71004b5b40: the levels of the second kind: each one's near and far blur
+// brought back to its level's size and faded into its texture
+// NON_MATCHING: registers (the original keeps the levels and the far target
+// in stack slots and the constant 0x108 in a register across the calls) and
+// 24 bytes more in the original; the blocks are the same.
+s32 CDepthOfField::Unk_4b5b40() {
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    for (s32 i = 0; i < field_208; i++) {
+        if (i < 2 || !field_c0.field_6d)
+            continue;
+        s32 index;
+        switch (i) {
+        case 2:
+        case 3:
+            index = 0;
+            break;
+        case 4:
+        case 5:
+            index = 1;
+            break;
+        case 6:
+            index = 2;
+            break;
+        default:
+            continue;
+        }
+        CRenderTexture* nearSource;
+        CRenderTexture* farSource;
+        Unk_Level* levels = field_4a8;
+        if (field_1dc != 0.0f) {
+            nearSource = field_470[index] != nullptr ? field_470[index] : field_450[index];
+            farSource = field_468[index] != nullptr ? field_468[index] : field_448[index];
+        } else {
+            nearSource = field_450[index];
+            farSource = field_448[index];
+        }
+        f32 scale = field_168 - 1.0f;
+        scale = scale < 1.0f ? 1.0f : std::min(scale, 2.0f);
+        CRenderTexture* farTarget = levels[i].field_a8;
+        // the near blur, then the far one: halved through the lower levels'
+        // first textures (or the level's own) until it is about the source's
+        // size, the source drawn into what that gave, and the result faded
+        // into the level's texture (or copied back)
+        if (i < field_20c) {
+            CRenderTexture* nearTarget = levels[i].field_a0;
+            nearTarget->Unk_49d250(0, 0, 1, 0, 0);
+            CRenderTexture* current = nearTarget;
+            s32 lower = i;
+            while (true) {
+                u32 width = static_cast<u32>(current->field_54);
+                if (width >= static_cast<u32>(nearSource->field_54) &&
+                    static_cast<u32>(current->field_58) >= static_cast<u32>(nearSource->field_58))
+                    break;
+                f32 difference = static_cast<f32>(width) - static_cast<f32>(static_cast<u32>(nearSource->field_54));
+                difference = difference > 0.0f ? difference : -difference;
+                if (difference <= 2.0f)
+                    break;
+                u32 least = width * 2 - 2;
+                u32 most = width * 2 + 2;
+                CRenderTexture* next = field_4a8[lower - 1].field_68[0];
+                lower--;
+                CRenderTexture* other = levels[i].field_b0;
+                if (other != nullptr && static_cast<u32>(other->field_54) >= least &&
+                    static_cast<u32>(other->field_54) <= most)
+                    next = other;
+                if (static_cast<u32>(next->field_54) < least)
+                    continue;
+                s32 filter = Unk_GetTexture(current)->vf16();
+                Unk_GetTexture(current)->vf15(8);
+                Unk_Float4 white(1.0f, 1.0f, 1.0f, 1.0f);
+                Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
+                util->Unk_47dfa0(0.0f, 0.0f, 1.0f, 1.0f, current, next, 0, &white, 0, false, false, 1, &zero, nullptr, -1);
+                Unk_GetTexture(current)->vf15(filter);
+                current = next;
+            }
+            field_20->vf44(2);
+            field_20->vf45(1);
+            f32 u1;
+            f32 v1;
+            Unk_GetCoords(nearSource, &u1, &v1);
+            f32 width = static_cast<f32>(static_cast<u32>(current->field_54));
+            f32 height = static_cast<f32>(static_cast<u32>(current->field_58));
+            Unk_Float4 colour = field_174 ? Unk_LevelColours[i] : Unk_Float4(1.0f, 1.0f, 1.0f, 1.0f);
+            util->DrawRectGPU_MadT1_Sn(0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, 1, nullptr, &colour,
+                                       Unk_GetTexture(nearSource), 0, 0);
+            field_20->vf44(0);
+            field_20->vf45(0);
+            CRenderTexture* other = levels[i].field_b0;
+            if (other != nullptr) {
+                if (current != other) {
+                    s32 filter = Unk_GetTexture(current)->vf16();
+                    Unk_GetTexture(current)->vf15(8);
+                    f32 amount = scale * (field_4a8[i].field_2c * 0.25f + 0.25f);
+                    amount = amount < 0.0f ? 0.0f : std::min(amount, 1.0f);
+                    Unk_Float4 white(1.0f, 1.0f, 1.0f, 1.0f);
+                    Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
+                    util->Unk_47dfa0(0.0f, 0.0f, amount, 1.0f, current, other, 0, &white, 0, false, false, 1, &zero, nullptr,
+                                     -1);
+                    Unk_GetTexture(current)->vf15(filter);
+                }
+            } else if (current != nearTarget) {
+                Unk_Float4 white(1.0f, 1.0f, 1.0f, 1.0f);
+                Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
+                util->Unk_47dfa0(0.0f, 0.0f, 0.0f, 1.0f, current, nearTarget, 0, &white, 0, false, false, 1, &zero, nullptr, -1);
+            }
+        }
+        if (i < field_210) {
+            farTarget->Unk_49d250(0, 0, 1, 0, 0);
+            CRenderTexture* current = farTarget;
+            s32 lower = i;
+            while (true) {
+                u32 width = static_cast<u32>(current->field_54);
+                if (width >= static_cast<u32>(farSource->field_54) &&
+                    static_cast<u32>(current->field_58) >= static_cast<u32>(farSource->field_58))
+                    break;
+                f32 difference = static_cast<f32>(width) - static_cast<f32>(static_cast<u32>(farSource->field_54));
+                difference = difference > 0.0f ? difference : -difference;
+                if (difference <= 2.0f)
+                    break;
+                u32 least = width * 2 - 2;
+                u32 most = width * 2 + 2;
+                CRenderTexture* next = field_4a8[lower - 1].field_68[0];
+                lower--;
+                CRenderTexture* other = levels[i].field_b8;
+                if (other != nullptr && static_cast<u32>(other->field_54) >= least &&
+                    static_cast<u32>(other->field_54) <= most)
+                    next = other;
+                if (static_cast<u32>(next->field_54) < least)
+                    continue;
+                s32 filter = Unk_GetTexture(current)->vf16();
+                Unk_GetTexture(current)->vf15(8);
+                Unk_Float4 white(1.0f, 1.0f, 1.0f, 1.0f);
+                Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
+                util->Unk_47dfa0(0.0f, 0.0f, 1.0f, 1.0f, current, next, 0, &white, 0, false, false, 1, &zero, nullptr, -1);
+                Unk_GetTexture(current)->vf15(filter);
+                current = next;
+            }
+            field_20->vf44(2);
+            field_20->vf45(1);
+            f32 u1;
+            f32 v1;
+            Unk_GetCoords(farSource, &u1, &v1);
+            f32 width = static_cast<f32>(static_cast<u32>(current->field_54));
+            f32 height = static_cast<f32>(static_cast<u32>(current->field_58));
+            Unk_Float4 colour = field_174 ? Unk_LevelColours[i] : Unk_Float4(1.0f, 1.0f, 1.0f, 1.0f);
+            util->DrawRectGPU_MadT1_Sn(0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, 1, nullptr, &colour,
+                                       Unk_GetTexture(farSource), 0, 0);
+            field_20->vf44(0);
+            field_20->vf45(0);
+            CRenderTexture* other = levels[i].field_b8;
+            if (other != nullptr) {
+                if (current != other) {
+                    s32 filter = Unk_GetTexture(current)->vf16();
+                    Unk_GetTexture(current)->vf15(8);
+                    f32 amount = scale * (field_4a8[i].field_2c * 0.25f + 0.25f);
+                    amount = amount < 0.0f ? 0.0f : std::min(amount, 1.0f);
+                    Unk_Float4 white(1.0f, 1.0f, 1.0f, 1.0f);
+                    Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
+                    util->Unk_47dfa0(0.0f, 0.0f, amount, 1.0f, current, other, 0, &white, 0, false, false, 1, &zero, nullptr,
+                                     -1);
+                    Unk_GetTexture(current)->vf15(filter);
+                }
+            } else if (current != farTarget) {
+                Unk_Float4 white(1.0f, 1.0f, 1.0f, 1.0f);
+                Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
+                util->Unk_47dfa0(0.0f, 0.0f, 0.0f, 1.0f, current, farTarget, 0, &white, 0, false, false, 1, &zero, nullptr, -1);
+            }
+        }
+    }
+    return 0;
+}
+
+// 0x71004b29b0: a level of the first six kinds: the near blur, the far
+// blur's source scaled down from the level's source, the far blur, each
+// blur faded into its target when the level's size isn't the target's
+// NON_MATCHING: 68 bytes shorter; the same calls with the same arguments,
+// but the original loads field_38 before the test of field_20c (shared by
+// the scaling and the plain path), keeps more of the level's addresses in
+// stack slots and lays out the mask lookups and fade tails differently.
+s32 CDepthOfField::Unk_4b29b0(s32 level) {
+    Unk_Level* levels = field_4a8;
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    Unk_Level* item = &levels[level];
+    bool same = item->field_0 == static_cast<u32>(item->field_a0->field_54);
+    if (!Unk_442c50_get(reinterpret_cast<u64>(field_20)))
+        same &= field_224 == 0;
+    s32 mode = same ? field_224 : field_220;
+    CRenderTexture* list[7] = {};
+    for (s32 i = 0; i < item->field_60; i++)
+        list[i] = item->field_68[i];
+    s32 result = 0;
+    if ((field_154 & 4) != 0 && field_210 > level) {
+        CRenderTexture* extra = item->field_48[0];
+        if ((field_154 & 8) == 0 && field_20c > level)
+            extra = item->field_38;
+        CRenderTexture* near = item->field_48[1];
+        if (same) {
+            result = Unk_4b19a0(level, true, near, item->field_a8, list, extra, mode);
+        } else {
+            CRenderTexture* target = item->field_48[field_180 == 3 ? 2 : 0];
+            Unk_4b19a0(level, true, near, target, list, extra, mode);
+            if (field_1dc != 0.0f && item->field_28 == 1) {
+                Unk_GetTexture(target)->vf18(2);
+                Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+                Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
+                f32 fade = Unk_Saturate(field_1dc * (item->field_2c * 0.25f + 0.25f));
+                result = util->Unk_47dfa0(0.0f, 0.0f, fade, 1.0f, target, item->field_a8, field_224, &color, 0, false,
+                                          false, 1, &zero, nullptr, -1);
+            } else {
+                Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+                Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
+                result = util->Unk_47dfa0(0.0f, 0.0f, 0.0f, 1.0f, target, item->field_a8, field_224, &color, 0, false,
+                                          false, 1, &zero, nullptr, -1);
+            }
+        }
+    }
+    CRenderTexture* blurred;
+    if ((field_154 & 2) != 0 && field_20c > level) {
+        CRenderTexture* source = item->field_38;
+        CRenderTexture* target;
+        if ((field_c0.field_0[3] & 4) != 0)
+            target = item->field_48[2];
+        else
+            target = item->field_68[item->field_60 + (same ? -1 : -2)];
+        f32 u1 = source->field_88 * static_cast<f32>(static_cast<u32>(source->field_54));
+        f32 v1 = source->field_8c * static_cast<f32>(static_cast<u32>(source->field_58));
+        f32 u0 = source->field_90;
+        f32 v0 = source->field_94;
+        u32 width = target->field_54;
+        u32 height = target->field_58;
+        target->Unk_49d250(0, 0, 1, 0, 0);
+        f32 scale = -item->field_d8;
+        f32 bias = item->field_dc;
+        if (field_16c == 1) {
+            bias = field_1e8.field_0[3].field_0 * scale + item->field_dc;
+            scale = field_1e8.field_0[2].field_0 * scale;
+        }
+        Unk_Float4 values[4] = {
+            Unk_Float4(1.0f, 1.0f, 1.0f, scale),
+            Unk_Float4(0.0f, 0.0f, 0.0f, bias),
+            Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f),
+            Unk_Float4(65500.0f, 65500.0f, 65500.0f, 1.0f),
+        };
+        u32 state = Unk_GetTexture(source)->vf16();
+        Unk_GetTexture(source)->vf15(9);
+        if ((field_154 & 8) == 0) {
+            Unk_GPUTexture* mask = nullptr;
+            if (level >= 2 && field_c0.field_6d) {
+                s32 index;
+                switch (level) {
+                case 2:
+                case 3:
+                    index = 0;
+                    break;
+                case 4:
+                case 5:
+                    index = 1;
+                    break;
+                case 6:
+                    index = 2;
+                    break;
+                default:
+                    index = -1;
+                    break;
+                }
+                CRenderTexture* texture = static_cast<CRenderTexture*>(field_488[index]);
+                if (texture != nullptr)
+                    mask = Unk_GetTexture(texture);
+            }
+            result = util->Unk_47b8e0(0.0f, 0.0f, static_cast<f32>(width), static_cast<f32>(height), 0.0f, 0.0f,
+                                      u1 + u0, v1 + v0, &values[0], &values[1], false, Unk_GetTexture(source), mask,
+                                      0);
+        } else {
+            Unk_Float2 range(scale, bias);
+            if (field_16c == 1)
+                range = Unk_Float2(-item->field_d8, item->field_dc);
+            CRenderTexture* mask = nullptr;
+            if (level >= 2 && field_c0.field_6d) {
+                s32 index;
+                switch (level) {
+                case 2:
+                case 3:
+                    index = 0;
+                    break;
+                case 4:
+                case 5:
+                    index = 1;
+                    break;
+                case 6:
+                    index = 2;
+                    break;
+                default:
+                    index = -1;
+                    break;
+                }
+                mask = static_cast<CRenderTexture*>(field_488[index]);
+            }
+            result = util->Unk_48d020(source, target, mask, item->field_1c, &range, field_16c, field_170, false,
+                                      field_17c, false);
+        }
+        Unk_GetTexture(source)->vf15(state);
+        blurred = target;
+    } else {
+        blurred = item->field_38;
+    }
+    if (((field_154 & 4) != 0 ? field_20c : field_208) > level) {
+        if (same) {
+            result = Unk_4b19a0(level, false, blurred, item->field_a0, list, item->field_38, mode);
+        } else {
+            CRenderTexture* target = item->field_68[item->field_60 - 1];
+            Unk_4b19a0(level, false, blurred, target, list, item->field_38, mode);
+            if (field_1dc != 0.0f && item->field_28 == 1) {
+                Unk_GetTexture(target)->vf18(2);
+                Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+                Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
+                f32 fade = Unk_Saturate(field_1dc * (item->field_2c * 0.25f + 0.25f));
+                result = util->Unk_47dfa0(0.0f, 0.0f, fade, 1.0f, target, item->field_a0, field_224, &color, 0, false,
+                                          false, 1, &zero, nullptr, -1);
+            } else {
+                Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+                Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
+                result = util->Unk_47dfa0(0.0f, 0.0f, 0.0f, 1.0f, target, item->field_a0, field_224, &color, 0, false,
+                                          false, 1, &zero, nullptr, -1);
+            }
+        }
+    }
+    return result;
 }
 
 // 0x71004b3280: a level of the seventh kind: two hexagonal blurs and their

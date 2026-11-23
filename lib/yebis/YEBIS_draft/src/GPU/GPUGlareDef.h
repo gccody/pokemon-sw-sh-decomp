@@ -34,7 +34,7 @@ PKMN_SIZE_ASSERT(Unk_4a0540_Base, 0x20);
 // A star definition: its parameters and its lines
 class Unk_4a0540 : public Unk_4a0540_Base {
 public:
-    Unk_4a0540() { Unk_Clear(); }
+    Unk_4a0540();  // 0x71004a0530
     ~Unk_4a0540() { Unk_4a0680(); }
 
     s32 Unk_4a0540_Copy(const Unk_4a0540& other);  // 0x71004a0540
@@ -99,9 +99,40 @@ PKMN_OFFSET_ASSERT(Unk_4a0b00, field_64, 0x64);
 PKMN_OFFSET_ASSERT(Unk_4a0b00, field_80, 0x80);
 PKMN_SIZE_ASSERT(Unk_4a0b00, 0xa8);
 
-// what 0x71024e5950 holds (0x1b04 bytes each)
-struct Unk_24e5950_Item {
-    u32 field_0[0x1b04 / 4];
+// a line of Unk_4a2be0_Target (0x6c bytes; placeholder)
+struct Unk_4a2be0_Line {
+    Unk_4a2be0_Line()
+        : field_4(0.0f), field_8(1.0f), field_c(0.1f), field_10(0.0f), field_14(1.0f), field_18(1.0f, 1.0f, 1.0f, 1.0f),
+          field_28(1.0f, 1.0f, 1.0f, 1.0f), field_38(1.0f, 1.0f, 1.0f, 1.0f), field_48(0.5f), field_4c(0.8f),
+          field_50(0.2f), field_54(1.0f), field_58(0.4f), field_5c(0.0f, 0.0f), field_64(1.0f, 1.0f) {}
+
+    s32 field_0;
+    f32 field_4;
+    f32 field_8;
+    f32 field_c;
+    f32 field_10;
+    f32 field_14;
+    Unk_Float4 field_18;  // the colour
+    Unk_Float4 field_28;
+    Unk_Float4 field_38;
+    f32 field_48;
+    f32 field_4c;
+    f32 field_50;
+    f32 field_54;
+    f32 field_58;
+    Unk_Float2 field_5c;
+    Unk_Float2 field_64;
 };
+PKMN_OFFSET_ASSERT(Unk_4a2be0_Line, field_18, 0x18);
+PKMN_OFFSET_ASSERT(Unk_4a2be0_Line, field_48, 0x48);
+PKMN_SIZE_ASSERT(Unk_4a2be0_Line, 0x6c);
+
+// what 0x71024e5950 holds, 20 of them (0x1b04 bytes each): a set of lines
+// (placeholder)
+struct Unk_4a2be0_Target {
+    Unk_4a2be0_Line field_0[64];
+    s32 field_1b00;  // how many
+};
+PKMN_SIZE_ASSERT(Unk_4a2be0_Target, 0x1b04);
 
 }  // namespace PPFX
