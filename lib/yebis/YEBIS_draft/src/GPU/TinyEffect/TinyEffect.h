@@ -59,6 +59,54 @@ PKMN_SIZE_ASSERT(Unk_TinyTechnique, 0x20);
 struct Unk_TinyParam;
 struct Unk_TinyPass;
 
+// a program's reflection data as 0x710044fca0 reads it (what a pass's
+// field_58 and field_60 point to; placeholder layout): a uniform block
+struct Unk_ReflBlock {
+    u8 pad_0[0x28];
+    u32 field_28;
+    u32 field_2c;  // its size
+    u8 pad_30[0x3c];
+};
+// a uniform
+struct Unk_ReflUniform {
+    u32 field_0;  // its name, in the strings
+    u32 field_4;  // the name's length
+    u8 pad_8[0x20];
+    u32 field_28;  // its type
+    s32 field_2c;
+    s32 field_30;
+    s32 field_34;
+    u8 pad_38[0xc];
+    u32 field_44;  // whether the program uses it
+    s32 field_48[2];  // its binding, by stage
+    u8 pad_50[0x54];
+};
+// a table of the program's (field_8 3: its uniforms, at field_4 from the start)
+struct Unk_ReflTable {
+    u32 field_0;
+    u32 field_4;
+    u32 field_8;
+    u32 field_c;
+    u8 pad_10[0x1c];
+    u32 field_2c;  // the number of blocks
+    u32 field_30;  // and where they are
+    u32 field_34;  // the number of uniforms
+    u32 field_38;  // and where they are
+    u8 pad_3c[0x2c];
+    u32 field_68;  // the strings
+    u8 pad_6c[0x24];
+};
+struct Unk_ReflProgram {
+    u8 pad_0[0x4c];
+    u32 field_4c;  // the number of tables
+    u8 pad_50[0x40];
+    Unk_ReflTable field_90[1];
+};
+PKMN_SIZE_ASSERT(Unk_ReflBlock, 0x6c);
+PKMN_SIZE_ASSERT(Unk_ReflUniform, 0xa4);
+PKMN_SIZE_ASSERT(Unk_ReflTable, 0x90);
+PKMN_OFFSET_ASSERT(Unk_ReflProgram, field_90, 0x90);
+
 class CManualProgramParameterTable {
 public:
     // a parameter of the programs (field_10's elements)

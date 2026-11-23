@@ -912,16 +912,14 @@ namespace PPFX {
 // 0x71004a2be0: seeds the generator, sets the colours' weights (FLT_MAX:
 // the colour's fourth element), hands it the items and as many empty ones as
 // make `total`
-// NON_MATCHING: scheduling only: the original stores arg7, field_10 and
-// field_18 before the first seed's stores, here they come after them
 void Unk_4a2be0(Unk_4a3cc0_Self* self, u32 seed, Unk_4a2be0_Target* target, Unk_4a2e20_Item* items, s32 count,
                 const Unk_Float4* weights, s32 total, s32 arg7, f32 arg8) {
-    self->field_10 = 0;
-    self->field_3c = arg7;
+    Unk_Seed(self, seed);
     self->field_14 = 0;
     self->field_18 = target;
-    Unk_Seed(self, seed);
+    self->field_3c = arg7;
     self->field_40 = arg8;
+    self->field_10 = 0;
     f32 sum = 0.0f;
     for (s32 i = 0; i < self->field_28; i++) {
         f32 weight = weights->v(i).field_0;

@@ -286,7 +286,7 @@ void SiGfxKernel::vf5(ISiAllocator* pAllocator) {
 }
 
 // 0x71004ce080: the NX devices are the only kind (8) there is
-ISiGfxDevice* SiGfxKernel::vf8(u32 kind) {
+ISiGfxDevice* SiGfxKernel::vf8(u32 kind, u32 arg2) {
     if (kind != 8 || field_2b0 == nullptr) {
         return nullptr;
     }

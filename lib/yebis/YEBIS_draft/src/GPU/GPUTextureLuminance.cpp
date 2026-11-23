@@ -254,9 +254,30 @@ s32 CTextureLuminance::Unk_4b7d60(CRenderTexture* source) {
     return 0;
 }
 
+// the colour read back from the target's buffer into field_90 (inline)
+static inline void Unk_ReadBack(CTextureLuminance* self) {
+    Unk_SiGfxDrawContext* context = self->field_20->field_30;
+    Unk_4b7f40_Resource* resource =
+        reinterpret_cast<Unk_4b7f40_Surface*>(self->field_30->field_b8[self->field_30->field_a0])->field_a8->vf27(0);
+    void* buffer = resource->field_20;
+    IGPUBuffer::Unk_MapInfo info;
+    info.field_8 = 4;
+    info.field_0 = 1;
+    if (context->vf69(buffer, &info)) {
+        u32 value = *reinterpret_cast<const u32*>(info.field_20);
+        u8 b = value;
+        u8 g = value >> 8;
+        u8 r = value >> 16;
+        u8 a = value >> 24;
+        self->field_90[2] = b;
+        self->field_90[0] = r;
+        self->field_90[1] = g;
+        self->field_90[3] = a;
+        context->vf70(buffer, &info);
+    }
+}
+
 // 0x71004b7f40
-// NON_MATCHING: the frame: the colour and the map information share a slot below the
-// zero vector here; in the original the zero vector is below them.
 s32 CTextureLuminance::Unk_4b7f40() {
     CTextureUtil* util = Unk_GetTextureUtil();
     Unk_ReleaseTextureUtil();
@@ -267,8 +288,8 @@ s32 CTextureLuminance::Unk_4b7f40() {
         reinterpret_cast<Unk_4b7a30_Texture*>(field_40)->vf9();
     }
     {
-        Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
         Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+        Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
         util->Unk_47dfa0(0.0f, 0.0f, 0.0f, 1.0f, source, target, 0, &color, 0, false, false, 1, &zero, nullptr, -1);
     }
     Unk_49e3a0(1, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
@@ -286,28 +307,9 @@ s32 CTextureLuminance::Unk_4b7f40() {
             return result;
         break;
     }
-    case 2: {
-        Unk_SiGfxDrawContext* context = field_20->field_30;
-        Unk_4b7f40_Resource* resource =
-            reinterpret_cast<Unk_4b7f40_Surface*>(field_30->field_b8[field_30->field_a0])->field_a8->vf27(0);
-        void* buffer = resource->field_20;
-        IGPUBuffer::Unk_MapInfo info;
-        info.field_8 = 4;
-        info.field_0 = 1;
-        if (context->vf69(buffer, &info)) {
-            u32 value = *reinterpret_cast<const u32*>(info.field_20);
-            u8 b = value;
-            u8 g = value >> 8;
-            u8 r = value >> 16;
-            u8 a = value >> 24;
-            field_90[2] = b;
-            field_90[0] = r;
-            field_90[1] = g;
-            field_90[3] = a;
-            context->vf70(buffer, &info);
-        }
+    case 2:
+        Unk_ReadBack(this);
         break;
-    }
     }
     if (field_60 == 5)
         field_94 = 0;
@@ -379,25 +381,7 @@ s32 CTextureLuminance::Unk_4b8450(bool flag) {
             }
         }
     } else if (mode == 5) {
-        Unk_SiGfxDrawContext* context = field_20->field_30;
-        Unk_4b7f40_Resource* resource =
-            reinterpret_cast<Unk_4b7f40_Surface*>(field_30->field_b8[field_30->field_a0])->field_a8->vf27(0);
-        void* buffer = resource->field_20;
-        IGPUBuffer::Unk_MapInfo info;
-        info.field_8 = 4;
-        info.field_0 = 1;
-        if (context->vf69(buffer, &info)) {
-            u32 value = *reinterpret_cast<const u32*>(info.field_20);
-            u8 b = value;
-            u8 g = value >> 8;
-            u8 r = value >> 16;
-            u8 a = value >> 24;
-            field_90[2] = b;
-            field_90[0] = r;
-            field_90[1] = g;
-            field_90[3] = a;
-            context->vf70(buffer, &info);
-        }
+        Unk_ReadBack(this);
     }
     if (field_74 >= 0.0f) {
         return 0;
@@ -559,9 +543,9 @@ static inline CTextureLuminanceManage::Unk_Value Unk_LerpValue(const CTextureLum
 }
 
 // 0x71004b8b50
-// NON_MATCHING: scheduling and registers: the ratio's address isn't
-// rematerialised in each branch, &field_360[i1] isn't computed before the
-// kind test (the original addresses the history as base + index) and the
+// NON_MATCHING: scheduling and registers: the colour's address is computed
+// before the luminance object's call, &field_360[i1] isn't computed before
+// the kind test (the original addresses the history as base + index) and the
 // history indices' sums are computed in another order.
 s32 CTextureLuminanceManage::Unk_4b8b50() {
     field_58++;
@@ -573,16 +557,16 @@ s32 CTextureLuminanceManage::Unk_4b8b50() {
             field_74[index] = field_58;
             field_1c8[index] = field_40->Unk_GetLuminance();
             memmove(&field_b8[index], field_40->Unk_GetColor(), sizeof(Unk_Value));
-            f32* ratio = &field_20c[index];
             if (field_2c.field_0 == 1) {
                 f32 depth =
                     field_b8[index].field_0[1] * 255.0f / 256.0f + field_b8[index].field_0[2] * 255.0f / 65536.0f;
                 f32 far = field_4b4[index];
                 f32 near = field_470[index];
-                *ratio = -(far * near) / ((far - near) * depth - far);
+                field_20c[index] = -(far * near) / ((far - near) * depth - far);
             } else {
-                *ratio = Unk_4b8ae0(field_1c8[index], field_42c[index], field_3e8[index]);
+                field_20c[index] = Unk_4b8ae0(field_1c8[index], field_42c[index], field_3e8[index]);
             }
+            f32* ratio = &field_20c[index];
             s32 previous = (field_50 + 1) % 17;
             u32 mode = field_2c.field_0;
             f32 t = field_4fc;

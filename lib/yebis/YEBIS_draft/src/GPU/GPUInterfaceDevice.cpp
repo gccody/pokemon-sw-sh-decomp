@@ -545,10 +545,6 @@ s32 Unk_43f200(IGPUDevice* self) {
 // 0x710043f940: IGPUDevice::InitializeDevice_CreateDeviceStates_SamplerStateMode
 // (its log line): the sampler of a mode, bits 0 and 1 the filter and bits 2 and
 // 3 the addressing
-// NON_MATCHING: the stores of the description are scheduled in another
-// order (the original pairs field_8 with field_c and stores field_4 last, and
-// field_18 after the second table's load); every order of the last three
-// statements was tried.
 s32 Unk_43f940(IGPUDevice* self, s32 mode) {
     if (mode < 0 || mode > 15) {
         return -6;
@@ -572,6 +568,7 @@ s32 Unk_43f940(IGPUDevice* self, s32 mode) {
         desc.field_18 = 3.40282347e+38f;
         break;
     }
+    desc.field_c = 3;
     u32 address;
     switch ((mode >> 2) & 3) {
     case 0:
@@ -589,7 +586,6 @@ s32 Unk_43f940(IGPUDevice* self, s32 mode) {
     }
     desc.field_4 = address;
     desc.field_8 = address;
-    desc.field_c = 3;
     Unk_SiGfxInterface* sampler = self->field_38->vf52(&desc, nullptr, 0, nullptr);
     if (sampler == nullptr) {
 #line 3811

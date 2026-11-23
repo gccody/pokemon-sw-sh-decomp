@@ -427,20 +427,13 @@ SiGfxNXSurface* SiGfxNXTexture::vf26(s32 layer, s32 level) {
     return &field_238.m_pData[field_22c * layer + level];
 }
 
-// NON_MATCHING (and slot 28, which has the same tests): the original tests
-// the two signs one after the other (`tbnz w1 ; tbnz w2`) and keeps the
-// result in a register that is zero for those and for the layers' test, with
-// one return for all of them. Here the two signs become one test of both
-// (`orr ; tbnz`) and every early return is a block of its own (100 bytes for
-// 92). Tried: a null result set under the tests (one, nested, or with the
-// levels' test inside), which compiles to the same code.
 // 0x71005610c0
 SiGfxNXSurface* SiGfxNXTexture::vf27(s32 layer, s32 level) {
     if (field_1d4 != 5 && field_1d4 != 2) {
         return nullptr;
     }
     s32 layers = field_230;
-    if (layer < 0 || level < 0 || layers <= layer) {
+    if (layer < 0 || layers <= layer || level < 0) {
         return nullptr;
     }
     if (field_22c <= level) {
@@ -449,20 +442,20 @@ SiGfxNXSurface* SiGfxNXTexture::vf27(s32 layer, s32 level) {
     return &field_238.m_pData[field_22c * layer + level];
 }
 
-// NON_MATCHING: see slot 27
 // 0x7100561120
 SiGfxNXSurface* SiGfxNXTexture::vf28(s32 layer, s32 face, s32 level) {
     if (field_1d4 != 4 && field_1d4 != 6) {
         return nullptr;
     }
     s32 layers = field_230;
-    if (layer < 0 || level < 0 || layers <= layer) {
+    if (layer < 0 || layers <= layer || level < 0) {
         return nullptr;
     }
     if (field_22c <= level) {
         return nullptr;
     }
-    return &field_238.m_pData[field_22c * (layer * 6 + face) + level];
+    s32 index = field_22c * (layer * 6 + face) + level;
+    return &field_238.m_pData[index];
 }
 
 // 0x7100561190

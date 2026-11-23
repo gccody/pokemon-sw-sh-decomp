@@ -491,7 +491,10 @@ inline int nvnTextureGetSamples(const void* texture) {
     return Unk_27fcd18(texture);
 }
 extern NvnProc Unk_27fcd20;  // nvnTextureGetSwizzle
-extern NvnProc Unk_27fcd28;  // nvnTextureGetDepthStencilMode
+extern int (*Unk_27fcd28)(const void* texture);  // nvnTextureGetDepthStencilMode
+inline int nvnTextureGetDepthStencilMode(const void* texture) {
+    return Unk_27fcd28(texture);
+}
 extern NvnProc Unk_27fcd30;  // nvnTextureGetStride
 extern NvnProc Unk_27fcd38;  // nvnTextureGetTextureAddress
 extern NvnProc Unk_27fcd40;  // nvnTextureGetSparseTileLayout

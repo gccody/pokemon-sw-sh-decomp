@@ -1,6 +1,7 @@
 // PPFX::CRenderGlare (C:/workspace/YEBIS_draft/src/GPU/GPURenderGlare.cpp names
-// the class in its log lines; the members are placeholders), as far as the
-// functions written so far read it.
+// the class in its log lines; the members are placeholders, except the
+// m_p... ones that 0x7100453540 (CreateSystemObjects) names in the strings it
+// gives their objects), as far as the functions written so far read it.
 #pragma once
 
 #include <math.h>
@@ -30,16 +31,20 @@ struct Unk_GlarePair {
 struct Unk_45_170 {
     u8 pad_0[0x8];
     Unk_Vector3 field_8;
-    u8 pad_14[0x4];
+    f32 field_14;  // each colour's fourth element
     Unk_Vector3 field_18;
-    u8 pad_24[0xc];
+    f32 field_24;
+    u8 pad_28[0x8];
     Unk_Vector3 field_30;
-    u8 pad_3c[0x10];
+    f32 field_3c;
+    u8 pad_40[0xc];
     Unk_Vector3 field_4c;
-    u8 pad_58[0x10];
+    f32 field_58;
+    u8 pad_5c[0xc];
     f32 field_68;
     Unk_Vector3 field_6c;
-    u8 pad_78[0x10];
+    f32 field_78;
+    u8 pad_7c[0xc];
     s32 field_88;
     u8 pad_8c[0x4];
     f32 field_90;
@@ -54,18 +59,43 @@ struct Unk_453_1f8 {
     f32 field_18;
     f32 field_1c;
     f32 field_20;
-    u8 pad_24[0x38];
+    f32 field_24;
+    f32 field_28;
+    f32 field_2c;
+    f32 field_30;
+    Unk_GlareRect field_34;
+    Unk_Float2 field_44;  // the shaft's centre
+    f32 field_4c[4];
     f32 field_5c;
 };
+PKMN_OFFSET_ASSERT(Unk_453_1f8, field_34, 0x34);
+PKMN_OFFSET_ASSERT(Unk_453_1f8, field_44, 0x44);
 PKMN_SIZE_ASSERT(Unk_453_1f8, 0x60);
+// a light ghost (field_208's elements)
 struct Unk_453_208 {
-    u8 field_0[0x34];
+    bool field_0;
+    u8 pad_1[0x3];
+    f32 field_4[4];     // its colour
+    Unk_Float2 field_14;
+    Unk_Float2 field_1c;
+    s32 field_24;  // its kind (2: field_29a70[4]'s texture)
+    f32 field_28;
+    f32 field_2c;
+    u8 pad_30[0x4];
 };
+PKMN_SIZE_ASSERT(Unk_453_208, 0x34);
+// a light ghost preset (Unk_24e5950's elements, GPUGlareDef.cpp)
+struct Unk_GlareGhostDef {
+    u8 field_0[0x1b00];
+    s32 field_1b00;  // the number of its ghosts
+};
+PKMN_SIZE_ASSERT(Unk_GlareGhostDef, 0x1b04);
 class Unk_4a0540;
 
 // field_320's elements (placeholder): a texture at 0x18
 struct Unk_45_320 {
-    u8 pad_0[0x8];
+    s32 field_0;  // the level's number from the first blurred one, plus 1 (0: not blurred)
+    f32 field_4;  // its scale
     f32 field_8;
     u8 pad_c[0x4];
     CRenderTexture* field_10;
@@ -137,8 +167,17 @@ struct Unk_453_30 {
     s32 field_54;
     bool field_58;
     s32 field_5c;
-    u64 field_60;
-    u64 field_68;
+    union {
+        u64 field_60;
+        struct {
+            bool field_60_b;  // whether there are light ghosts
+            s32 field_64;     // how many
+        };
+    };
+    union {
+        u64 field_68;
+        const s32* field_68_p;  // the same as a pointer (the glare definitions' seeds)
+    };
     bool field_70;
     bool field_71;
     f32 field_74;
@@ -159,9 +198,9 @@ public:
     s32 Unk_4531d0(const char* name);  // 0x71004531d0
     // 0x71004555a0 (its log line names it)
     s32 Initialize(const Unk_453_30* desc);
-    s32 Unk_453540();  // 0x7100453540 (not written yet)
+    s32 CreateSystemObjects();  // 0x7100453540 (its log lines name it)
     s32 Unk_45e980(void* arg);  // 0x710045e980: hands `arg` to every resource
-    s32 Unk_45ca70(CRenderTexture* texture, s32 index);  // 0x710045ca70 (not written yet)
+    s32 Unk_45ca70(CRenderTexture* target, s32 index);  // 0x710045ca70: the light shaft of a view
     s32 Unk_45c880();  // 0x710045c880
     bool Unk_455850();                 // 0x7100455850
     // 0x71004534f0: the field of view (tan(22.5 degrees) for none) and two more numbers
@@ -214,24 +253,24 @@ public:
         field_308 = 0;
         field_300 = nullptr;
         field_2f8 = nullptr;
-        field_2f0 = nullptr;
-        field_340 = nullptr;
-        field_338 = nullptr;
-        field_330 = nullptr;
-        field_328 = nullptr;
+        m_pGlareSource = nullptr;
+        m_pGhostGeneration = nullptr;
+        m_pAnamorphicFlareResult = nullptr;
+        m_pStarResult = nullptr;
+        m_pStarGeneration = nullptr;
         field_320 = nullptr;
-        field_318 = nullptr;
-        field_310 = nullptr;
+        m_pBloomResult = nullptr;
+        m_ppBloomGeneration = nullptr;
         field_358 = nullptr;
-        field_350 = nullptr;
-        field_3d0 = nullptr;
-        field_3c8 = nullptr;
-        field_3c0 = nullptr;
-        field_3b8 = nullptr;
-        field_3b0 = nullptr;
-        field_3a8 = nullptr;
-        field_3a0 = nullptr;
-        field_398 = nullptr;
+        m_ppAfterimageGeneration = nullptr;
+        m_pLightShaftResult = nullptr;
+        m_pLightShaftGeneration = nullptr;
+        m_pLightShaftBlurSource = nullptr;
+        m_pGlareResultUpsample = nullptr;
+        m_pGlareResultAntialias = nullptr;
+        m_pGlareResultLensDistortionFalloff = nullptr;
+        m_pGlareResultChromaticAberration = nullptr;
+        m_pGlareResult = nullptr;
         field_158 = 0.41421357f;
         field_15c = 0;
         field_160 = 0;
@@ -250,7 +289,7 @@ public:
         field_37c.field_4 = 1.0f;
         field_384.field_0 = 0.0f;
         field_384.field_4 = 0.0f;
-        field_390 = nullptr;
+        m_pLightGhostLuminance = nullptr;
         field_348 = nullptr;
     }
 
@@ -263,8 +302,8 @@ public:
     bool Unk_457650();  // 0x7100457650: whether nothing is to be drawn again
     f32 Unk_458420();   // 0x7100458420: the glare's luminance
     f32 Unk_458250();   // 0x7100458250
-    s32 Unk_458720();          // 0x7100458720 (not written yet)
-    s32 Unk_458e20();          // 0x7100458e20: the ghosts' levels added up into field_318
+    s32 Unk_458720();          // 0x7100458720
+    s32 Unk_458e20();          // 0x7100458e20: the ghosts' levels added up into m_pBloomResult
     // field_3d8, at most field_b0.field_18[6] (inline)
     s32 Unk_LevelCount() const {
         s32 count = field_3d8;
@@ -277,13 +316,13 @@ public:
                    CRenderTexture** textures, CRenderTexture** pair, s32 count, bool flag);
     s32 Unk_45a820();          // 0x710045a820 (not written yet)
     s32 GenerateGlare_Afterimage();  // 0x710045c1e0 (its log line names it)
-    void Unk_45d3b0();         // 0x710045d3b0 (not written yet)
+    s32 GenerateGlare_Composite();  // 0x710045d3b0 (its log lines name it)
     // 0x710045ee80: the glare of a frame
     s32 Unk_45ee80(CRenderTexture* source, f32 f0, f32 f1, f32 f2, f32 f3, s32 arg2, f32 f4, u32 index,
                    const Unk_45_170* color, f32 f5, f32 f6, bool flag, s32 arg6, CRenderTexture* arg7);
     f32 Unk_458580();   // 0x7100458580
     s32 Unk_457f00(CRenderTexture* source, s32 arg2, CRenderTexture* arg3);  // 0x7100457f00
-    void Unk_457760(CRenderTexture* source, CRenderTexture* target);  // 0x7100457760 (not written yet)
+    s32 Unk_457760(CRenderTexture* source, CRenderTexture* target);  // 0x7100457760
     // 0x710045f1c0 (its caller's log line names it): `source` and the glare
     // tone mapped into `surface` (`format` -1: copied, `frames` 1: filtered)
     s32 TonemapToSurface(IGPUSurface* surface, bool hasSurface, CRenderTexture* source, bool hasGamma, s32 format,
@@ -303,7 +342,9 @@ public:
     f32 field_13c;
     s32 field_140;
     f32 field_144;
-    u8 pad_148[0xc];
+    s32 field_148;  // the lens dirt
+    f32 field_14c;
+    f32 field_150;
     f32 field_154;
     f32 field_158;
     f32 field_15c;
@@ -332,7 +373,12 @@ public:
     f32 field_1bc;
     f32 field_1c0;
     f32 field_1c4;
-    u8 pad_1c8[0x18];
+    f32 field_1c8;
+    f32 field_1cc;
+    f32 field_1d0;
+    f32 field_1d4;
+    f32 field_1d8;
+    f32 field_1dc;
     f32 field_1e0;
     f32 field_1e4;
     f32 field_1e8;
@@ -353,15 +399,31 @@ public:
     f32 field_23c;
     f32 field_240;
     f32 field_244;
-    u64 field_248;
-    u64 field_250;
+    union {
+        u64 field_248;
+        struct {
+            f32 field_248_f;
+            f32 field_24c;
+        };
+    };
+    union {
+        u64 field_250;
+        struct {
+            f32 field_250_f;
+            f32 field_254;
+        };
+    };
     s32 field_258;
     f32 field_25c;
     s32 field_260;
     s32 field_264;
-    s32 field_268;
-    bool field_26c;
-    u8 pad_26d[0x2f];
+    f32 field_268;
+    bool field_26c;  // the lens distortion
+    u8 pad_26d[0x3];
+    f32 field_270[8];
+    f32 field_290;
+    s32 field_294;
+    f32 field_298;
     bool field_29c;
     u8 pad_29d[0x3];
     s32 field_2a0;
@@ -381,20 +443,20 @@ public:
     s32 field_2e4;
     s32 field_2e8;
     s32 field_2ec;  // the active view
-    CGPUResourceManage* field_2f0;
+    CGPUResourceManage* m_pGlareSource;
     void* field_2f8;
     CRenderTexture** field_300;  // field_308 of them
     s32 field_308;
     u8 pad_30c[0x4];
-    CGPUResourceManage** field_310;
-    CGPUResourceManage* field_318;
+    CGPUResourceManage** m_ppBloomGeneration;
+    CGPUResourceManage* m_pBloomResult;
     Unk_45_320* field_320;
-    CGPUResourceManage* field_328;
-    CGPUResourceManage* field_330;
-    CGPUResourceManage* field_338;
-    CGPUResourceManage* field_340;
+    CGPUResourceManage* m_pStarGeneration;
+    CGPUResourceManage* m_pStarResult;
+    CGPUResourceManage* m_pAnamorphicFlareResult;
+    CGPUResourceManage* m_pGhostGeneration;
     IGPUInterface* field_348;
-    CRenderTextureArray** field_350;  // one per view
+    CRenderTextureArray** m_ppAfterimageGeneration;  // one per view
     f32* field_358;
     u64 field_360;
     bool field_368;
@@ -403,15 +465,15 @@ public:
     Unk_GlarePair field_37c;
     Unk_GlarePair field_384;
     u8 pad_38c[0x4];
-    CGPUResourceManage* field_390;
-    CGPUResourceManage* field_398;
-    CGPUResourceManage* field_3a0;
-    CGPUResourceManage* field_3a8;
-    CGPUResourceManage* field_3b0;
-    CGPUResourceManage* field_3b8;
-    CGPUResourceManage* field_3c0;
-    CGPUResourceManage* field_3c8;
-    CGPUResourceManage* field_3d0;
+    CGPUResourceManage* m_pLightGhostLuminance;
+    CGPUResourceManage* m_pGlareResult;
+    CGPUResourceManage* m_pGlareResultChromaticAberration;
+    CGPUResourceManage* m_pGlareResultLensDistortionFalloff;
+    CGPUResourceManage* m_pGlareResultAntialias;
+    CGPUResourceManage* m_pGlareResultUpsample;
+    CGPUResourceManage* m_pLightShaftBlurSource;
+    CGPUResourceManage* m_pLightShaftGeneration;
+    CGPUResourceManage* m_pLightShaftResult;
     s32 field_3d8;
     f32 field_3dc;
     f32 field_3e0;
@@ -441,6 +503,10 @@ PKMN_OFFSET_ASSERT(CRenderGlare, field_190, 0x190);
 PKMN_OFFSET_ASSERT(CRenderGlare, field_19c, 0x19c);
 PKMN_OFFSET_ASSERT(CRenderGlare, field_1b0, 0x1b0);
 PKMN_OFFSET_ASSERT(CRenderGlare, field_1e8, 0x1e8);
+PKMN_OFFSET_ASSERT(CRenderGlare, field_148, 0x148);
+PKMN_OFFSET_ASSERT(CRenderGlare, field_254, 0x254);
+PKMN_OFFSET_ASSERT(CRenderGlare, field_270, 0x270);
+PKMN_OFFSET_ASSERT(CRenderGlare, field_298, 0x298);
 PKMN_OFFSET_ASSERT(CRenderGlare, field_3fc, 0x3fc);
 PKMN_OFFSET_ASSERT(CRenderGlare, field_411, 0x411);
 PKMN_OFFSET_ASSERT(CRenderGlare, field_428, 0x428);

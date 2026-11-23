@@ -415,6 +415,24 @@ static inline s32 Unk_SetRenderSceneHeightReverse_Gcm(CPostEffect* self, bool re
     return 0;
 }
 
+// 0x71004190f0
+// NON_MATCHING: the instruction schedule (the stores are the original's,
+// merged the same way; their order isn't)
+CPostEffect::CPostEffect()
+    : field_0(false), field_10(0), field_18(nullptr), field_20(0), field_28(nullptr), field_30(nullptr),
+      field_38(nullptr), field_40(nullptr), field_48(0), field_50(nullptr), field_70(nullptr), field_80(nullptr),
+      field_b8(nullptr), field_c8(0), field_178(nullptr), field_190(nullptr), field_198(nullptr), field_1a0(nullptr),
+      field_1a8(nullptr), field_1b0(nullptr), field_1d8(nullptr), field_1e0(nullptr), field_1e8(nullptr),
+      field_1f0(nullptr), field_1f8(nullptr), field_200(nullptr), field_208(nullptr), field_210(nullptr),
+      field_218(nullptr), field_220(nullptr), field_228(nullptr), field_230(nullptr), field_238(nullptr),
+      field_240(nullptr), field_248(nullptr), field_250(nullptr), field_258(nullptr), field_260(nullptr),
+      field_268(nullptr), field_278(nullptr), field_288(nullptr), field_290(nullptr), field_2a0(nullptr),
+      field_2a8(nullptr), field_400_param(), field_550(nullptr), field_558(0), field_560(nullptr), field_568(0),
+      field_570(nullptr), field_578(nullptr), field_580(0), field_588(nullptr), field_590(0), field_5b8(nullptr),
+      field_5c0(nullptr), field_858(nullptr), field_868(nullptr), field_f84(), field_1170(false), field_1198(nullptr),
+      field_11a0(nullptr), field_11a8(nullptr), field_11b0(nullptr), field_11b8(false), field_11c0(nullptr),
+      field_11c8(false), field_11cc(0), field_1200(nullptr), field_1208(0) {}
+
 // 0x710041afb0
 // NON_MATCHING: 31048 of 31268 bytes. Written section by section from the
 // original's order of events and log lines; not compared in detail (the
@@ -439,12 +457,12 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         reuse = field_18->vf4(previous) >= 0;
     }
     if (field_40 == nullptr) {
-        Unk_419690(previous);
+        Uninitialize(previous);
     }
     u64 framebuffer;
     void* deviceArg = desc->field_0;
     if (deviceArg == nullptr) {
-        if (Unk_4229e0(&deviceArg, desc) < 0) {
+        if (CreateInternalResource_SiGfx(&deviceArg, desc) < 0) {
             return 1;
         }
         framebuffer = Unk_423160(desc->field_60, desc->field_68, field_11a8);
@@ -609,7 +627,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 5006
             PPFX_ERROR("CPostEffect::Initialize(): m_pGPUDevice->Reset() failed.\n");
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
     }
@@ -1070,7 +1088,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
     if (result < 0) {
 #line 7085
         PPFX_ERROR("CPostEffect::Initialize(): m_pRenderBuffer->Initialize() failed (0x%x: %s).\n", result, Unk_446df0(result));
-        Unk_419690(nullptr);
+        Uninitialize(nullptr);
         return result;
     }
 #line 7093
@@ -1268,7 +1286,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
     if (result < 0) {
 #line 7675
         PPFX_ERROR("CPostEffect::Initialize(): m_pRenderGlare->Initialize() failed (0x%x: %s).\n", result, Unk_446df0(result));
-        Unk_419690(nullptr);
+        Uninitialize(nullptr);
         return result;
     }
 #line 7682
@@ -1295,7 +1313,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 7744
             PPFX_ERROR("CPostEffect::Initialize(): m_pGlareModulatorWork->Initialize() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
 #line 7752
@@ -1307,7 +1325,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 7781
             PPFX_ERROR("CPostEffect::Initialize(): m_pEffectColorAlphaDestinationWork->Initialize() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
 #line 7789
@@ -1412,7 +1430,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 8186
             PPFX_ERROR("CPostEffect::Initialize(): m_pDepthOfField->Initialize() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
 #line 8193
@@ -1439,7 +1457,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 8231
             PPFX_ERROR("CPostEffect::Initialize(): m_pMotionBlurReducedWork->Initialize() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
 #line 8239
@@ -1472,7 +1490,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 8341
             PPFX_ERROR("CPostEffect::Initialize(): m_pMotionBlurInternalVelocityTexture->Initialize() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
         bool reduced = false;
@@ -1493,7 +1511,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
             if (result < 0) {
 #line 8387
                 PPFX_ERROR("CPostEffect::Initialize(): m_pMotionBlurInternalVelocityReducedWork->Initialize() failed (0x%x: %s).\n", result, Unk_446df0(result));
-                Unk_419690(nullptr);
+                Uninitialize(nullptr);
                 return result;
             }
 #line 8395
@@ -1511,7 +1529,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 8426
             PPFX_ERROR("CPostEffect::Initialize(): m_pAmbientOcclusion_NormalDepthTexture->Initialize() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
     }
@@ -1540,7 +1558,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 8541
             PPFX_ERROR("CPostEffect::Initialize(): m_pAmbientOcclusion_NormalDepthTexture_Reduced->Initialize() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
         s32 resultFormat = p3cc != 0 ? p3cc : 0xa;
@@ -1548,14 +1566,14 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 8558
             PPFX_ERROR("CPostEffect::Initialize(): m_pAmbientOcclusion_Result_Reduced->Initialize() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
         result = reinterpret_cast<CRenderTexture*>(field_210)->Unk_Create(0, aoWidth, aoHeight, resultFormat);
         if (result < 0) {
 #line 8571
             PPFX_ERROR("CPostEffect::Initialize(): m_pAmbientOcclusion_Result_Reduced2->Initialize() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
         if (aoScale < 0.375f) {
@@ -1567,14 +1585,14 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
             if (result < 0) {
 #line 8595
                 PPFX_ERROR("CPostEffect::Initialize(): m_pAmbientOcclusion_NormalDepthTexture_Reduced2->Initialize() failed (0x%x: %s).\n", result, Unk_446df0(result));
-                Unk_419690(nullptr);
+                Uninitialize(nullptr);
                 return result;
             }
             result = reinterpret_cast<CRenderTexture*>(field_218)->Unk_Create(0, aoWidth2, aoHeight2, resultFormat);
             if (result < 0) {
 #line 8608
                 PPFX_ERROR("CPostEffect::Initialize(): m_pAmbientOcclusion_Result_Reduced3->Initialize() failed (0x%x: %s).\n", result, Unk_446df0(result));
-                Unk_419690(nullptr);
+                Uninitialize(nullptr);
                 return result;
             }
         }
@@ -1590,14 +1608,14 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 8638
             PPFX_ERROR("CPostEffect::Initialize(): m_pSmaaEdgeTexture->Initialize() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
         result = reinterpret_cast<CRenderTexture*>(field_230)->Unk_Create(0, width, height, 0x1c);
         if (result < 0) {
 #line 8649
             PPFX_ERROR("CPostEffect::Initialize(): m_pSmaaBlendTexture->Initialize() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
     }
@@ -1622,7 +1640,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
             if (result < 0) {
 #line 8688
                 PPFX_ERROR("CPostEffect::Initialize(): aeparam.m_pQuerySceneLuminance->Initialize() failed (0x%x: %s).\n", result, Unk_446df0(result));
-                Unk_419690(nullptr);
+                Uninitialize(nullptr);
                 return result;
             }
             desc.field_0 = 1;
@@ -1633,7 +1651,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
             if (result < 0) {
 #line 8704
                 PPFX_ERROR("CPostEffect::Initialize(): afaram.m_pQuerySceneDepth->Initialize() failed (0x%x: %s).\n", result, Unk_446df0(result));
-                Unk_419690(nullptr);
+                Uninitialize(nullptr);
                 return result;
             }
         }
@@ -1658,7 +1676,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
             if (result < 0) {
 #line 8786
                 PPFX_ERROR("CPostEffect::Initialize(): m_ppFeedbackBuffer[%d]->Initialize() failed (0x%x: %s).\n", i, result, Unk_446df0(result));
-                Unk_419690(nullptr);
+                Uninitialize(nullptr);
                 return result;
             }
         }
@@ -1671,7 +1689,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
                 if (field_268 == nullptr) {
 #line 8824
                     PPFX_ERROR("CPostEffect::Initialize(): pTexUtil->GetTexturePool()->AllocateTexture(&m_pFeedbackTonemapTexture) failed.\n");
-                    Unk_419690(nullptr);
+                    Uninitialize(nullptr);
                     return result;
                 }
             }
@@ -1705,7 +1723,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (field_278 == nullptr) {
 #line 8933
             PPFX_ERROR("CPostEffect::Initialize(): pTexUtil->GetTexturePool()->AllocateTexture(&m_pTonemapConvolutionTexture) failed.\n");
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
     }
@@ -1727,7 +1745,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
     if (result < 0) {
 #line 9150
         PPFX_ERROR("CPostEffect::Initialize(): m_pRenderBuffer->InitializeDevice() failed (0x%x: %s).\n", result, Unk_446df0(result));
-        Unk_419690(nullptr);
+        Uninitialize(nullptr);
         return result;
     }
 #line 9159
@@ -1737,7 +1755,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 9172
             PPFX_ERROR("CPostEffect::Initialize(): m_pGlareModulatorWork->InitializeDevice() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
 #line 9179
@@ -1748,7 +1766,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 9188
             PPFX_ERROR("CPostEffect::Initialize(): m_pEffectColorAlphaDestinationWork->InitializeDevice() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
 #line 9195
@@ -1758,7 +1776,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
     if (result < 0) {
 #line 9206
         PPFX_ERROR("CPostEffect::Initialize(): m_pRenderGlare->InitializeDevice() failed (0x%x: %s).\n", result, Unk_446df0(result));
-        Unk_419690(nullptr);
+        Uninitialize(nullptr);
         return result;
     }
 #line 9216
@@ -1768,7 +1786,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 9229
             PPFX_ERROR("CPostEffect::Initialize(): m_pDepthOfField->InitializeDevice() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
 #line 9238
@@ -1779,7 +1797,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 9258
             PPFX_ERROR("CPostEffect::Initialize(): m_pMotionBlurInternalVelocityTexture->InitializeDevice() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
 #line 9267
@@ -1790,7 +1808,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 9278
             PPFX_ERROR("CPostEffect::Initialize(): m_pMotionBlurInternalVelocityReducedWork->InitializeDevice() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
 #line 9285
@@ -1801,7 +1819,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 9295
             PPFX_ERROR("CPostEffect::Initialize(): m_pMotionBlurReducedWork->InitializeDevice() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
 #line 9302
@@ -1812,7 +1830,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 9313
             PPFX_ERROR("CPostEffect::Initialize(): m_pAmbientOcclusion_NormalDepthTexture->InitializeDevice() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
 #line 9320
@@ -1823,7 +1841,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 9328
             PPFX_ERROR("CPostEffect::Initialize(): m_pAmbientOcclusion_NormalDepthTexture_Reduced->InitializeDevice() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
 #line 9335
@@ -1834,7 +1852,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 9343
             PPFX_ERROR("CPostEffect::Initialize(): m_pAmbientOcclusion_NormalDepthTexture_Reduced2->InitializeDevice() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
 #line 9350
@@ -1845,7 +1863,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 9358
             PPFX_ERROR("CPostEffect::Initialize(): m_pAmbientOcclusion_Result_Reduced->InitializeDevice() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
 #line 9365
@@ -1856,7 +1874,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 9373
             PPFX_ERROR("CPostEffect::Initialize(): m_pAmbientOcclusion_Result_Reduced2->InitializeDevice() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
 #line 9380
@@ -1867,7 +1885,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 9389
             PPFX_ERROR("CPostEffect::Initialize(): m_pAmbientOcclusion_Result_Reduced3->InitializeDevice() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
 #line 9396
@@ -1878,7 +1896,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 9404
             PPFX_ERROR("CPostEffect::Initialize(): m_pAmbientOcclusion_Result->InitializeDevice() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
 #line 9411
@@ -1894,7 +1912,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
             if (result < 0) {
 #line 9425
                 PPFX_ERROR("CPostEffect::Initialize(): m_ppFeedbackBuffer[%d]->InitializeDevice() failed (0x%x: %s).\n", i, result, Unk_446df0(result));
-                Unk_419690(nullptr);
+                Uninitialize(nullptr);
                 return result;
             }
             for (s32 j = 0; j < reinterpret_cast<CRenderTextureArray*>(field_260[i])->field_30; j++) {
@@ -1915,7 +1933,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
             if (result < 0) {
 #line 9459
                 PPFX_ERROR("CPostEffect::Initialize(): m_pAutoExposureParam[%d].m_pQuerySceneLuminance->InitializeDevice() failed (0x%x: %s).\n", i, result, Unk_446df0(result));
-                Unk_419690(nullptr);
+                Uninitialize(nullptr);
                 return result;
             }
 #line 9468
@@ -1927,7 +1945,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
             if (result < 0) {
 #line 9479
                 PPFX_ERROR("CPostEffect::Initialize(): m_pAutoFocusParam[%d].m_pQuerySceneDepth->InitializeDevice() failed (0x%x: %s).\n", i, result, Unk_446df0(result));
-                Unk_419690(nullptr);
+                Uninitialize(nullptr);
                 return result;
             }
 #line 9488
@@ -1939,7 +1957,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 9499
             PPFX_ERROR("CPostEffect::Initialize(): m_pSmaaEdgeTexture->InitializeDevice() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
 #line 9506
@@ -1950,7 +1968,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         if (result < 0) {
 #line 9514
             PPFX_ERROR("CPostEffect::Initialize(): m_pSmaaBlendTexture->InitializeDevice() failed (0x%x: %s).\n", result, Unk_446df0(result));
-            Unk_419690(nullptr);
+            Uninitialize(nullptr);
             return result;
         }
 #line 9521
@@ -1962,7 +1980,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
             if (result < 0) {
 #line 9536
                 PPFX_ERROR("CPostEffect::Initialize(): m_ppTemporalAntialias_History[%d]->InitializeDevice() failed (0x%x: %s).\n", i, result, Unk_446df0(result));
-                Unk_419690(nullptr);
+                Uninitialize(nullptr);
                 return result;
             }
 #line 9543
@@ -1975,7 +1993,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
             if (result < 0) {
 #line 9562
                 PPFX_ERROR("CPostEffect::Initialize(): m_ppOetfSceneLuminanceBaseWork[%d]->InitializeDevice() failed (0x%x: %s).\n", i, result, Unk_446df0(result));
-                Unk_419690(nullptr);
+                Uninitialize(nullptr);
                 return result;
             }
 #line 9569
@@ -1984,7 +2002,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
             if (result < 0) {
 #line 9576
                 PPFX_ERROR("CPostEffect::Initialize(): m_ppOetfQuerySceneLuminance[%d]->InitializeDevice() failed (0x%x: %s).\n", i, result, Unk_446df0(result));
-                Unk_419690(nullptr);
+                Uninitialize(nullptr);
                 return result;
             }
 #line 9583
@@ -1995,7 +2013,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
             if (result < 0) {
 #line 9616
                 PPFX_ERROR("CPostEffect::Initialize(): m_pppOetfSceneLuminanceResizeWork[%d]->InitializeDevice() failed (0x%x: %s).\n", i, result, Unk_446df0(result));
-                Unk_419690(nullptr);
+                Uninitialize(nullptr);
                 return result;
             }
 #line 9623
@@ -2006,7 +2024,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
     if (result < 0) {
 #line 9637
         PPFX_ERROR("CPostEffect::Initialize(): pTexUtil->InitializeDeviceSharedTexturePool() failed (0x%x: %s).\n", result, Unk_446df0(result));
-        Unk_419690(nullptr);
+        Uninitialize(nullptr);
         return result;
     }
 #line 9643
@@ -2563,7 +2581,7 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         Unk_GetTextureUtil();
         Unk_ReleaseTextureUtil();
     }
-    Unk_426210();
+    EndCommandList_SiGfx();
 #line 10269
     PPFX_LOG("==== CPostEffect::Initialize() succeeded. ====\n");
     return 0;
@@ -2571,7 +2589,62 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
 
 // 0x7100419550
 CPostEffect::~CPostEffect() {
-    Unk_419690(nullptr);
+    Uninitialize(nullptr);
+}
+
+// 0x71024e53e0 (GPURenderTexture.cpp)
+extern void* Unk_24e53e0;
+
+// 0x7100426700: CPostEffect::BeginPostEffectScene (its log line names it)
+// NON_MATCHING: one load: the original reads the texture util's pointer
+// before the user count's store (its acquire's read, kept for the release);
+// here the acquire's read is dead and the release reads it after the store
+s32 CPostEffect::BeginPostEffectScene(u32 clearFlags, const void* clearColor, f32 clearDepth, u32 clearStencil,
+                                      s32 aux) {
+#line 11315
+    PPFX_FN("Frame: %d, View: %d, BeginPostEffectScene(uiClearFlags: %08x, pClearColor: %p, fClearDepth: %f, uiClearStencil: %d, iAuxiliaryRenderBufferIndex: %d);\n",
+            Unk_Frame(field_298), field_298, clearFlags, clearColor, clearDepth, clearStencil, aux);
+    BeginCommandList_SiGfx();
+    s32 result = field_18->vf56();
+    if (aux < 1) {
+        result = Unk_426a50();
+    }
+    field_6b8 = clearFlags;
+    field_6bc = clearDepth;
+    field_6c0 = clearStencil;
+    if (clearDepth < 0.0f) {
+        clearDepth = field_1014 ? 0.0f : 1.0f;
+    }
+    // (the texture util is made, if no one has it, and released again)
+    Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    field_5e8 = field_5d8;
+    if (aux >= 0) {
+        Unk_24e53e0 = nullptr;
+        result = Unk_49e3a0(0x1f, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+        field_5e8 = field_5dc + aux;
+    }
+    field_190->field_90 = field_5e8;
+    reinterpret_cast<CRenderTextureArray*>(field_190)->Unk_4a5ff0(field_6b4, 0x7fffffff);
+    if (field_1d3) {
+        if (field_70 == nullptr) {
+#line 11397
+            PPFX_ERROR("CPostEffect::BeginPostEffectScene(): At least SetEffectSource() must be called if Initialize() was called with PFXINIT_RENDERSCENE_EXTERNAL flag.\n");
+            return -1;
+        }
+    } else {
+        result = reinterpret_cast<CRenderTextureArray*>(field_190)->Unk_4a6070(
+            field_5e8, true, clearFlags, const_cast<void*>(clearColor), clearStencil, 0, 0,
+            (clearFlags & 0xff0) ? 0x30000 : 0x10000, clearDepth);
+    }
+    if (result < 0) {
+#line 11416
+        PPFX_ERROR("CPostEffect::BeginPostEffectScene(): m_pRenderBuffer->SetRenderTarget() failed (0x%x: %s).\n", result,
+                   Unk_446df0(result));
+        return result;
+    }
+    field_0 = true;
+    return 0;
 }
 
 // 0x7100426a50: every render texture's viewport from the viewport's scale
@@ -2707,6 +2780,281 @@ s32 CPostEffect::Unk_426a50() {
         Unk_4aa5a0(field_1a0, field_800.field_0, field_800.field_4, field_800.field_8, field_800.field_c);
     }
     return result;
+}
+
+// what the SiGfx device's slot 69 makes: a texture that wraps a device
+// texture and its memory (placeholder)
+struct Unk_SiGfxWrappedTexture {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();  // releases a reference
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+    virtual void vf25();
+    virtual void vf26();
+    virtual bool vf27(u64 arg1, u64 arg2);  // wraps the two device objects
+};
+
+// what the SiGfx device's slot 72 makes, as 0x7100423160 sets it up
+// (placeholder)
+struct Unk_SiGfxWrappedTarget {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();  // releases a reference
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual bool vf18();  // begins setting it up
+    virtual void vf19();
+    virtual void vf20(u32 index, Unk_SiGfxWrappedTexture* texture);
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+    virtual void vf25();  // ends it
+};
+
+// 0x71004229e0: CPostEffect::CreateInternalResource_SiGfx (its log lines name
+// it): SiGfx, its device, draw context and command list, made the first time
+// NON_MATCHING: the calls, tests and cleanup are the original's; the device
+// description's stores are merged and ordered differently (the original
+// doesn't seem to start from SiGfx's default constructor), and the frame
+// has 16 bytes less below the description (one stack slot is 4 bytes off).
+s32 CPostEffect::CreateInternalResource_SiGfx(void** device, const Unk_417b30_Desc* desc) {
+    if (!field_1170) {
+        Unk_4bc760(Unk_24e0008 == 0 ? ~0ul : (Unk_24e0008 == 1 ? 0 : 3));
+        SiSDK3::ISiAllocator* allocator = reinterpret_cast<SiSDK3::ISiAllocator*>(&field_1178);
+        Unk_4cbd40(allocator);
+        SiSDK3::Unk_4ecbc0 settings(reinterpret_cast<SiSDK3::ISiAllocator*>(reinterpret_cast<SiSDK3::SiGfxKernel*>(Unk_4cbf40_get())->vf6()));
+        settings.field_60 = false;
+        settings.field_61 = false;
+        reinterpret_cast<SiSDK3::SiGfxKernel*>(Unk_4cbf40_get())->vf26(&settings);
+#line 41776
+        PPFX_LOG("IPfxBaseContext::CreateInternalResource_SiGfx(): SiGfxInit() succeeded.\n");
+        field_1208 = 0;
+        if (Unk_24e09c0 != 0) {
+#line 41783
+            SiSDK3::SiFixedHeapAllocator2* heap = UNK_SI_NEW(allocator, 0x10) SiSDK3::SiFixedHeapAllocator2(nullptr);
+            field_1208 = reinterpret_cast<u64>(heap);
+            if (!heap->vf21(allocator, 0x200, reinterpret_cast<u8*>(Unk_24e09c0), Unk_24e09c8)) {
+                Unk_4cbdd0();
+#line 41792
+                PPFX_ERROR("CPostEffect::CreateInternalResource_SiGfx(): m_nvnMemoryPoolStorageAllocator.InitHeap()==false\n");
+                return 1;
+            }
+        }
+        reinterpret_cast<Unk_4cbf40_Object*>(reinterpret_cast<SiSDK3::SiGfxKernel*>(Unk_4cbf40_get())->vf37())
+            ->vf5(reinterpret_cast<SiSDK3::ISiAllocator*>(field_1208));
+        if (field_11a0 != nullptr) {
+            reinterpret_cast<SiSDK3::SiGfxNXDevice*>(field_11a0)->vf3();
+            field_11a0 = nullptr;
+        }
+        SiSDK3::SiGfxNXDevice* sigfx = reinterpret_cast<SiSDK3::SiGfxNXDevice*>(reinterpret_cast<SiSDK3::SiGfxKernel*>(Unk_4cbf40_get())->vf8(8, 0));
+        field_11a0 = reinterpret_cast<Unk_CommandListMaker*>(sigfx);
+        if (sigfx == nullptr) {
+            Unk_4cbdd0();
+            return 1;
+        }
+        sigfx->vf80(false);
+        s32 (*registerTexture)(u64, u64, u64) = reinterpret_cast<s32 (*)(u64, u64, u64)>(desc->field_20);
+        u64 (*registerSampler)(u64, u64) = reinterpret_cast<u64 (*)(u64, u64)>(desc->field_28);
+        u64 (*releaseTexture)(u32, u64) = reinterpret_cast<u64 (*)(u32, u64)>(desc->field_30);
+        u64 (*releaseSampler)(u32, u64) = reinterpret_cast<u64 (*)(u32, u64)>(desc->field_38);
+        void* registerTextureArg = desc->field_40;
+        void* registerSamplerArg = desc->field_48;
+        void* releaseTextureArg = desc->field_50;
+        void* releaseSamplerArg = desc->field_58;
+        if (registerTexture == nullptr && releaseTexture == nullptr) {
+            s32 first = Unk_238c2e4;
+            s32 count = Unk_238c2e8;
+            if (first < 0) {
+                first = reinterpret_cast<s32 (*)(void*)>(Unk_27fca10)(Unk_24e09d0) - count;
+            }
+            int reserved;
+            nvnDeviceGetInteger(desc->field_18, 0x11, &reserved);
+            int size;
+            nvnDeviceGetInteger(desc->field_18, 0x24, &size);
+            field_1210.clear();
+            for (s32 i = 0; i < count; i++) {
+                field_1210.push_back(first + i);
+            }
+            registerTexture = reinterpret_cast<s32 (*)(u64, u64, u64)>(&CPostEffect::DefaultRegisterTextureHandleCallback_Nvn);
+            releaseTexture = reinterpret_cast<u64 (*)(u32, u64)>(&CPostEffect::Unk_43b370);
+            registerTextureArg = nullptr;
+            releaseTextureArg = nullptr;
+        }
+        if (registerSampler == nullptr && releaseSampler == nullptr) {
+            s32 first = Unk_238c2e4;
+            s32 count = Unk_238c2e8;
+            if (first < 0) {
+                first = reinterpret_cast<s32 (*)(void*)>(Unk_27fca50)(Unk_24e09d8) - count;
+            }
+            int reserved;
+            nvnDeviceGetInteger(desc->field_18, 0x12, &reserved);
+            int size;
+            nvnDeviceGetInteger(desc->field_18, 0x25, &size);
+            field_1228.clear();
+            for (s32 i = 0; i < count; i++) {
+                field_1228.push_back(first + i);
+            }
+            registerSampler = reinterpret_cast<u64 (*)(u64, u64)>(&CPostEffect::DefaultRegisterSamplerHandleCallback_Nvn);
+            releaseSampler = reinterpret_cast<u64 (*)(u32, u64)>(&CPostEffect::Unk_43b500);
+            registerSamplerArg = nullptr;
+            releaseSamplerArg = nullptr;
+        }
+        SiSDK3::Unk_4f96c0_Desc deviceDesc;
+        deviceDesc.field_51 = 0;
+        deviceDesc.field_52 = 0;
+        deviceDesc.field_53 = 0;
+        deviceDesc.field_5c = 0;
+        deviceDesc.field_64 = 0;
+        deviceDesc.field_68 = 0;
+        deviceDesc.field_6c = 0x20;
+        deviceDesc.field_70 = 0x400;
+        deviceDesc.field_7c = 0;
+        deviceDesc.field_80 = 0x100;
+        deviceDesc.field_84 = 0;
+        deviceDesc.field_8c = 0;
+        deviceDesc.field_94 = 0;
+        deviceDesc.field_a4 = 0x80000;
+        deviceDesc.field_b5 = 0;
+        if (!reinterpret_cast<SiSDK3::SiGfxNXDevice*>(field_11a0)
+                 ->vf88(&deviceDesc, desc->field_18, 0, registerTexture, registerSampler, releaseTexture,
+                         releaseSampler, reinterpret_cast<u64>(registerTextureArg),
+                         reinterpret_cast<u64>(registerSamplerArg), reinterpret_cast<u64>(releaseTextureArg),
+                         reinterpret_cast<u64>(releaseSamplerArg))) {
+            if (field_11a0 != nullptr) {
+                reinterpret_cast<SiSDK3::SiGfxNXDevice*>(field_11a0)->vf3();
+                field_11a0 = nullptr;
+            }
+            Unk_4cbdd0();
+            return 1;
+        }
+#line 41929
+        PPFX_LOG("CPostEffect::CreateInternalResource_SiGfx(): SiGfxGetKernel()->CreateDevice() succeeded.\n");
+        if (field_11a8 != nullptr) {
+            reinterpret_cast<SiSDK3::ISiInterface*>(field_11a8)->vf3();
+            field_11a8 = nullptr;
+        }
+        {
+            u16 contextDesc = 0;
+            field_11a8 = reinterpret_cast<SiSDK3::SiGfxNXDevice*>(field_11a0)->vf21(1, 0, &contextDesc, nullptr);
+        }
+        if (field_11a8 == nullptr) {
+            if (field_11a0 != nullptr) {
+                reinterpret_cast<SiSDK3::SiGfxNXDevice*>(field_11a0)->vf3();
+                field_11a0 = nullptr;
+            }
+            Unk_4cbdd0();
+            return 1;
+        }
+        *device = field_11a8;
+#line 41946
+        PPFX_LOG("CPostEffect::CreateInternalResource_SiGfx(): ISiGfxDrawContext::CreateDrawContext() succeeded.\n");
+        if (field_1198 != nullptr) {
+            reinterpret_cast<SiSDK3::ISiInterface*>(field_1198)->vf3();
+            field_1198 = nullptr;
+        }
+        field_1198 =
+            reinterpret_cast<Unk_CommandList*>(reinterpret_cast<SiSDK3::SiGfxNXDevice*>(field_11a0)->vf22(1, 0, nullptr));
+        if (field_1198 == nullptr) {
+            if (field_11a0 != nullptr) {
+                reinterpret_cast<SiSDK3::SiGfxNXDevice*>(field_11a0)->vf3();
+                field_11a0 = nullptr;
+            }
+            Unk_4cbdd0();
+            return 1;
+        }
+        if (field_11c0 != nullptr) {
+            reinterpret_cast<SiSDK3::ISiInterface*>(field_11c0)->vf3();
+            field_11c0 = nullptr;
+        }
+#line 41960
+        PPFX_LOG("CPostEffect::CreateInternalResource_SiGfx(): ISiGfxDevice::CreateCommandList() succeeded.\n");
+        field_1170 = true;
+    }
+    return 0;
+}
+
+// 0x7100423160: the render pass of two device objects (made the first time:
+// a texture wrapping them, a render target with it and a render pass with
+// the target)
+// NON_MATCHING: only the emplace's search loop is laid out differently
+// (the same difference as 0x710043b590's)
+u64 CPostEffect::Unk_423160(u64 arg1, u64 arg2, void* context_) {
+    if (arg1 == 0) {
+        return 0;
+    }
+    auto it = field_11e8.find(std::make_pair(arg1, arg2));
+    if (it != field_11e8.end()) {
+        return reinterpret_cast<u64>(it->second.first);
+    }
+    Unk_SiGfxDrawContext* context = static_cast<Unk_SiGfxDrawContext*>(context_);
+    if (context == nullptr) {
+        context = field_18->field_30;
+    }
+    Unk_SiGfxDevice* device = context->vf5();
+    Unk_SiGfxWrappedTexture* texture = device->vf69(nullptr, 0, nullptr);
+    if (texture->vf27(arg1, arg2)) {
+        Unk_SiGfxWrappedTarget* target =
+            reinterpret_cast<Unk_SiGfxWrappedTarget*>(device->vf72(nullptr, 0, nullptr));
+        if (target != nullptr) {
+            target->vf18();
+            target->vf20(0, texture);
+            target->vf25();
+            if (texture != nullptr) {
+                texture->vf3();
+            }
+            Unk_SiGfxRenderTarget* pass = device->vf29(1, 0, nullptr);
+            if (pass == nullptr) {
+                target->vf3();
+                return 0;
+            }
+            pass->vf8();
+            *pass->vf10() = target;
+            pass->vf9();
+            field_11e8.emplace(std::make_pair(arg1, arg2),
+                               std::make_pair(reinterpret_cast<SiSDK3::ISiInterface*>(pass),
+                                              reinterpret_cast<SiSDK3::ISiInterface*>(target)));
+            return reinterpret_cast<u64>(pass);
+        }
+    }
+    if (texture != nullptr) {
+        texture->vf3();
+    }
+    return 0;
 }
 
 // 0x7100423630
@@ -3055,7 +3403,7 @@ s32 PPFX::CPostEffect::EndPostEffectScene(u32 flags, s32 samples) {
         PPFX_ERROR("CPostEffect::EndPostEffectScene(): EndPostEffectScene_Process() failed (0x%x: %s).\n", result,
                    Unk_446df0(result));
     }
-    result = Unk_426210();
+    result = EndCommandList_SiGfx();
     return result < 0 ? result : 0;
 }
 
@@ -3202,6 +3550,85 @@ s32 PPFX::CPostEffect::Unk_4399e0(SiSDK3::ISiInterface* object, void* arg2) {
     return 0;
 }
 
+namespace PPFX {
+
+// what field_f0 maps a device texture to, as the post effect releases it
+// (placeholder)
+struct Unk_43c490 {
+    virtual void vf0();
+    virtual void vf1();  // releases a reference
+};
+
+}  // namespace PPFX
+
+// 0x7100439c10: CPostEffect::UnregisterDeviceTexture (its log lines name it)
+s32 PPFX::CPostEffect::Unk_439c10(SiSDK3::ISiInterface* object, void* arg2) {
+    if (object == nullptr) {
+        return -6;
+    }
+    if (object == arg2) {
+#line 36550
+        PPFX_WARNING("CPostEffect::UnregisterDeviceTexture(): Specified resources gpuTexture and gpuNewTexture are the same.\n");
+        return 1;
+    }
+    if (field_0) {
+#line 36557
+        PPFX_ERROR("CPostEffect::UnregisterDeviceTexture(): Cannot be called between BeginPostEffectScene() and EndPostEffectScene().\n");
+        return -1;
+    }
+    auto it = field_f0.find(reinterpret_cast<u64>(object));
+    if (it == field_f0.end()) {
+        return -6;
+    }
+    if (arg2 != nullptr) {
+#line 36590
+        PPFX_ERROR("CPostEffect::UnregisterDeviceTexture(): Unable to replace the resource.\nThe specified resources are not compatible with each other.");
+        return -6;
+    }
+    Unk_43c490* texture = it->second;
+    if (field_50 != nullptr &&
+        texture == reinterpret_cast<Unk_43c490*>(reinterpret_cast<CRenderTexture*>(field_50)->Unk_Root()->field_a8)) {
+#line 36606
+        PPFX_ERROR("CPostEffect::UnregisterDeviceTexture(): The resource is currently bound for SetDepthFactorSource().\nUnbind the resource before unregistering.\n");
+        return -6;
+    }
+    if (field_70 != nullptr &&
+        texture == reinterpret_cast<Unk_43c490*>(reinterpret_cast<CRenderTexture*>(field_70)->Unk_Root()->field_a8)) {
+#line 36618
+        PPFX_ERROR("CPostEffect::UnregisterDeviceTexture(): The resource is currently bound for SetEffectSource().\nUnbind the resource before unregistering.\n");
+        return -6;
+    }
+    if (field_80 != nullptr &&
+        texture == reinterpret_cast<Unk_43c490*>(reinterpret_cast<CRenderTexture*>(field_80)->Unk_Root()->field_a8)) {
+#line 36630
+        PPFX_ERROR("CPostEffect::UnregisterDeviceTexture(): The resource is currently bound for SetDepthOfFieldDepthRemapLutSource().\nUnbind the resource before unregistering.\n");
+        return -6;
+    }
+    if (field_b8 != nullptr &&
+        texture == reinterpret_cast<Unk_43c490*>(reinterpret_cast<CRenderTexture*>(field_b8)->Unk_Root()->field_a8)) {
+#line 36642
+        PPFX_ERROR("CPostEffect::UnregisterDeviceTexture(): The resource is currently bound for SetGlareModulatorSource().\nUnbind the resource before unregistering.\n");
+        return -6;
+    }
+    if (field_178 == texture) {
+#line 36653
+        PPFX_ERROR("CPostEffect::UnregisterDeviceTexture(): The resource is currently bound for SetColorGradingLutSource().\nUnbind the resource before unregistering.\n");
+        return -6;
+    }
+    auto found = field_108.find(reinterpret_cast<u64>(object));
+    Unk_RenderTexture* renderTexture = found != field_108.end() ? found->second : nullptr;
+    bool release = renderTexture != nullptr;
+    field_f0.erase(it);
+    if (texture != nullptr) {
+        texture->vf1();
+    }
+    if (release) {
+        field_108.erase(found);
+        reinterpret_cast<CRenderTexture*>(renderTexture)->Unk_Release();
+    }
+    return 0;
+}
+
 // 0x7100439630: CPostEffect::ApplyEffects
 s32 Unk_439630(u64 self_, u32 flags) {
     PPFX::CPostEffect* self = reinterpret_cast<PPFX::CPostEffect*>(self_);
@@ -3230,7 +3657,7 @@ s32 Unk_439630(u64 self_, u32 flags) {
         self->field_6b4 = has;
         self->field_190->field_94 = has;
     }
-    self->Unk_426700(0, nullptr, 0, -1, -3.40282347e+38f);
+    self->BeginPostEffectScene(0, nullptr, -3.40282347e+38f, 0, -1);
     s32 result = self->EndPostEffectScene(flags, 0);
     Unk_425240(self_, mode);
     return result < 0 ? result : 0;
@@ -3679,6 +4106,55 @@ static inline s32 Unk_DofEdgeBlurType(s32 type) {
 }
 
 }  // namespace PPFX
+
+namespace PPFX {
+// 0x7100446b20 (Unk_447050.cpp): a format's name
+const char* Unk_446b20(s32 format, char* buffer);
+}  // namespace PPFX
+
+// 0x7100427c10: the device texture and render texture of a device texture
+// (made the first time)
+s32 PPFX::CPostEffect::Unk_427c10(u64 key, u32 arg2, u32 arg3, u32 format, void* arg5, Unk_RenderTexture** out) {
+    if (field_18 == nullptr) {
+        return -1;
+    }
+    Unk_43c490* texture = nullptr;
+    auto it = field_f0.find(key);
+    if (it != field_f0.end()) {
+        texture = it->second;
+    } else {
+        s32 result = field_18->vf62(arg2, arg3, 0, 0, format, reinterpret_cast<void*>(key),
+                                    reinterpret_cast<IGPUInterface**>(&texture));
+        if (result < 0) {
+            return result;
+        }
+        field_f0.insert(std::pair<const u64, Unk_43c490*>(key, texture));
+    }
+    Unk_RenderTexture* renderTexture;
+    auto found = field_108.find(key);
+    if (found != field_108.end()) {
+        renderTexture = found->second;
+    } else {
+        Unk_TFXString name = Unk_TFXString("CRenderTexture::m_mapDeviceTextureRenderTexture[") +
+                             Unk_4525a0(static_cast<s32>(key)) + ":" + Unk_446b20(format, nullptr) + "]";
+        const char* text = name.field_8;
+#line 36257
+        CRenderTexture* made = UNK_NEW(CRenderTexture)(text);
+        s32 result = made->vf6(field_18, reinterpret_cast<Unk_49b230_Object*>(texture));
+        if (result < 0) {
+            return result;
+        }
+        renderTexture = reinterpret_cast<Unk_RenderTexture*>(made);
+        field_108.insert(std::pair<const u64, Unk_RenderTexture*>(key, renderTexture));
+    }
+    if (arg5 != nullptr) {
+        *static_cast<Unk_43c490**>(arg5) = texture;
+    }
+    if (out != nullptr) {
+        *out = renderTexture;
+    }
+    return 0;
+}
 
 // 0x7100428ec0
 s32 Unk_428ec0(u64 self_, f32 a, f32 b, f32 c) {
@@ -4409,14 +4885,181 @@ s32 Unk_4255b0(u64 self_, u32 index_) {
     return 0;
 }
 
+// 0x71004554c0, 0x71004554f0 (lib/yebis/leaf: the glare's vignette, placeholder
+// types)
+u32 Unk_4554c0_set(Unk_455350* self, const Unk_455350_Float4* value, f32 a, f32 b);
+struct Unk_4554f0;
+u32 Unk_4554f0_update(Unk_4554f0* self, f32 fvalue, f32 farg1, f32 farg2);
+
+namespace PPFX {
+
+// 0x7100425750: the vignette handed to the glare, and the target surface
+// (CTextureUtil::Unk_470880 is given field_a: a bool its body doesn't use)
+// NON_MATCHING: the block layout of the optical
+// vignette's `has` (the original shares one block for the false and
+// field_950 paths), case 4's field_960 (a phi of the two loads in the
+// original) and the first select's compare (reused by the branch there).
+s32 CPostEffect::Unk_425750() {
+    Unk_42a0f0();
+    Unk_428220();
+    UpdateParameters_Base();
+    f32 scale = field_91c >= 0.0f ? field_91c : 1.0f;
+    f32 falloff = field_920;
+    if (field_59c && field_91c < 0.0f) {
+        scale = (field_8c8 & 0xffff) == 8 ? 0.0f : 0.85f;
+    }
+    reinterpret_cast<CRenderGlare*>(field_198)->Unk_4534f0(field_6d0, field_6d4, field_6d8);
+    field_198->field_180 = field_918 != 0;
+    field_5a2 = false;
+    switch (field_918) {
+    case 1: {
+        field_198->field_18c = false;
+        Unk_4554c0_set(reinterpret_cast<Unk_455350*>(field_198), reinterpret_cast<const Unk_455350_Float4*>(&field_928),
+                       scale, falloff);
+        f32 amount = field_198->field_180 ? field_198->field_188 : 0.0f;
+        f32 k = amount * (0.41421357f / field_6d0 - 1.0f) + 1.0f;
+        f32 size = field_924 * reinterpret_cast<CRenderGlare*>(field_198)->Unk_45d350() * k;
+        Unk_4554f0_update(reinterpret_cast<Unk_4554f0*>(field_198), 1.0f, size, 0.0f);
+        break;
+    }
+    case 2:
+    case 3: {
+        if (!field_1050) {
+#line 22652
+            PPFX_WARNING("SetVignetteByOptics() requires proper SetDepthOfFieldParameters() and SetRenderScenePerspective() settings.\n");
+            field_198->field_180 = false;
+            break;
+        }
+        field_198->field_18c = true;
+        bool has;
+        if (field_918 == 2) {
+            has = !(field_93c <= 0.0f) && field_948 != 0.0f && ((field_940 != 0.0f) | (field_944 != 0.0f));
+        } else {
+            has = !(field_950 <= 0.0f);
+        }
+        if (field_104f && field_1a0->field_3a8) {
+            reinterpret_cast<CDepthOfField*>(field_1a0)->Unk_4b5ae0();
+        }
+        f32 near = 0.0f;
+        f32 far = -1.0f;
+        if (has) {
+            field_5a2 = true;
+            reinterpret_cast<CDepthOfField*>(field_1a0)->Unk_4afae0(&near, &far);
+            if (!field_5a2 && field_106e && far < 0.0f) {
+                far -= field_1070;
+            }
+            far = fabsf(far);
+            if (!field_94d && !field_104f) {
+                far = 0.0f;
+            }
+            if (field_5a2) {
+                near = 0.0f;
+                far = -1.0f;
+            }
+        }
+        Unk_4554f0_update(reinterpret_cast<Unk_4554f0*>(field_198), field_938, near, far);
+        break;
+    }
+    case 4: {
+        field_198->field_18c = true;
+        f32 radius = field_960;
+        if (field_104f && field_1a0->field_3a8) {
+            reinterpret_cast<CDepthOfField*>(field_1a0)->Unk_4b5ae0();
+        }
+        f32 near;
+        f32 far;
+        if (radius < 0.0f) {
+            near = 0.0f;
+            far = -1.0f;
+        } else {
+            f32 k = 0.41421357f / ((field_6d0 - 0.41421357f) * field_920 + 0.41421357f);
+            f32 inner = field_95c * k;
+            f32 outer = field_960 * k;
+            near = (inner + outer) * 0.5f;
+            far = (outer - inner) * 0.5f;
+        }
+        Unk_4554f0_update(reinterpret_cast<Unk_4554f0*>(field_198), field_938, near, far);
+        break;
+    }
+    }
+    s32 result = 0;
+    if (field_120 != nullptr) {
+        field_1168 = reinterpret_cast<u64>(field_120);
+    } else if (field_128 != 0) {
+        result = reinterpret_cast<IGPUTexture*>(field_128)->vf23(0, reinterpret_cast<IGPUSurface**>(&field_1168));
+        if (result >= 0) {
+            reinterpret_cast<IGPUSurface*>(field_1168)->vf1();
+            result = 0;
+        }
+    } else if (field_130 != 0) {
+        CRenderTexture* texture = reinterpret_cast<CRenderTexture*>(field_130);
+        field_1168 = reinterpret_cast<u64>(*texture->field_d0[texture->field_a0]);
+    } else {
+        field_1168 = field_20;
+    }
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    util->Unk_470880(field_a);
+    return result;
+}
+
+}  // namespace PPFX
+
 // 0x71024e09bc (placeholder)
 extern s32 Unk_24e09bc;
 // 0x71024e09c0, 0x71024e09c8: the memory pool storage buffer and its size
 extern u64 Unk_24e09c0;
 extern s32 Unk_24e09c8;
 
-// 0x710043b590: the key of a device texture (placeholder signature)
-u64 Unk_43b590(void* self, u64 arg1, u64 arg2, u64 arg3);
+// 0x710043b590: the SiGfx texture of an NVN texture and a view of it (made
+// the first time, with a view of the whole texture when there is none)
+// (placeholder signature)
+// NON_MATCHING: register allocation (x22/x23 and x24/x25 swapped) and the
+// emplace's search: the original computes the end node's address again for
+// it (0x7100423160 does that here too) and lays its loop out differently
+u64 Unk_43b590(void* self_, u64 texture_, u64 view_, u64 context_) {
+    PPFX::CPostEffect* self = static_cast<PPFX::CPostEffect*>(self_);
+    if (texture_ == 0) {
+        return 0;
+    }
+    auto it = self->field_11d0.find(std::make_pair(texture_, view_));
+    if (it != self->field_11d0.end()) {
+        return reinterpret_cast<u64>(it->second.first);
+    }
+    PPFX::Unk_SiGfxDrawContext* context = reinterpret_cast<PPFX::Unk_SiGfxDrawContext*>(context_);
+    if (context == nullptr) {
+        context = self->field_18->field_30;
+    }
+    const void* texture = reinterpret_cast<const void*>(texture_);
+    const void* view = reinterpret_cast<const void*>(view_);
+    void* allocation = nullptr;
+    if (view == nullptr) {
+        SiSDK3::ISiAllocator* allocator = SiSDK3::Unk_NXKernel()->vf6();
+#line 42296
+        void* made = allocator->vf7(0x28, -1, __FILE__, __LINE__);
+        if (made == nullptr) {
+            return 0;
+        }
+        nvnTextureViewSetDefaults(made);
+        nvnTextureViewSetLevels(made, 0, nvnTextureGetLevels(texture));
+        nvnTextureViewSetFormat(made, nvnTextureGetFormat(texture));
+        nvnTextureViewSetTarget(made, nvnTextureGetTarget(texture));
+        nvnTextureViewSetDepthStencilMode(made, nvnTextureGetDepthStencilMode(texture));
+        nvnTextureViewSetLayers(made, 0, nvnTextureGetDepth(texture));
+        allocation = made;
+        view = made;
+    }
+    PPFX::Unk_SiGfxTexture* siTexture = context->vf5()->vf49(2, nullptr, 0, nullptr);
+    if (siTexture->vf44(texture, view)) {
+        self->field_11d0.emplace(std::make_pair(texture_, view_),
+                             std::make_pair(reinterpret_cast<SiSDK3::ISiInterface*>(siTexture), allocation));
+        return reinterpret_cast<u64>(siTexture);
+    }
+    if (siTexture != nullptr) {
+        siTexture->vf3();
+    }
+    return 0;
+}
 
 // 0x710043f080
 namespace PPFX {
@@ -4708,6 +5351,270 @@ f32 Unk_4afa90_get(const Unk_4afa90* self);
 f32 Unk_4afa70_get(const Unk_4afa70* self);
 
 namespace PPFX {
+
+// one reference less, and the pointer cleared (UNK_RELEASE_COUNTED: a counted
+// resource, the last reference deletes it)
+#define UNK_RELEASE(object)        \
+    do {                           \
+        if ((object) != nullptr) { \
+            (object)->vf1();       \
+            (object) = nullptr;    \
+        }                          \
+    } while (0)
+#define UNK_RELEASE_COUNTED(object)                                               \
+    do {                                                                          \
+        if ((object) != nullptr) {                                                \
+            reinterpret_cast<CGPUResourceManage*>(object)->Unk_Release();         \
+            (object) = nullptr;                                                   \
+        }                                                                         \
+    } while (0)
+#define UNK_RELEASE_SI(object)                                              \
+    do {                                                                    \
+        if ((object) != nullptr) {                                          \
+            reinterpret_cast<SiSDK3::ISiInterface*>(object)->vf3();         \
+            (object) = nullptr;                                             \
+        }                                                                   \
+    } while (0)
+
+// 0x7100419690: CPostEffect::Uninitialize (its log lines name it); `device`:
+// a device to keep using (the device objects stay then)
+// NON_MATCHING: the same calls and releases in the same order; the register
+// allocation differs (the original keeps the reuse flag on the stack and
+// &field_18 in x26, and rematerialises the texture util's size each time)
+// and so the scheduling of the first block.
+s32 CPostEffect::Uninitialize(void* device) {
+    IGPUDevice* keep = static_cast<IGPUDevice*>(device);
+#line 10387
+    PPFX_LOG("==== CPostEffect::Uninitialize() ====\n");
+    if (field_0) {
+#line 10396
+        PPFX_ERROR("CPostEffect::Uninitialize(): Cannot be called between BeginPostEffectScene() and EndPostEffectScene().\n");
+        return -1;
+    }
+    bool reuse = false;
+    if (field_40 != nullptr) {
+        if (field_40 == keep) {
+            return 0;
+        }
+    } else if (keep != nullptr && field_18 != nullptr && field_18->vf4(keep) >= 0) {
+        reuse = true;
+    }
+    field_40 = nullptr;
+    if (reuse) {
+        field_40 = keep;
+    }
+    if (field_18 != nullptr) {
+        field_18->vf9(nullptr, 0);
+    }
+    if (field_18 != nullptr) {
+        field_18->vf44(0);
+        field_18->vf41(-1, true);
+        Unk_49e3a0(0x1f, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+    }
+    for (auto it = field_d8.begin(); it != field_d8.end(); ++it) {
+        UNK_RELEASE(it->second);
+    }
+    field_d8.clear();
+    for (auto it = field_f0.begin(); it != field_f0.end(); ++it) {
+        UNK_RELEASE(it->second);
+    }
+    field_f0.clear();
+    for (auto it = field_108.begin(); it != field_108.end(); ++it) {
+        UNK_RELEASE_COUNTED(it->second);
+    }
+    field_108.clear();
+    if (field_48 != 0) {
+        reinterpret_cast<IGPUInterface*>(field_48)->vf1();
+        field_48 = 0;
+    }
+    UNK_RELEASE_COUNTED(field_198);
+    UNK_RELEASE_COUNTED(field_1a0);
+    UNK_RELEASE_COUNTED(field_190);
+    UNK_RELEASE_COUNTED(field_1b0);
+    UNK_RELEASE_COUNTED(field_1a8);
+    UNK_RELEASE_COUNTED(field_1d8);
+    UNK_RELEASE_COUNTED(field_1e0);
+    UNK_RELEASE_COUNTED(field_1e8);
+    UNK_RELEASE_COUNTED(field_1f0);
+    UNK_RELEASE_COUNTED(field_1f8);
+    UNK_RELEASE_COUNTED(field_200);
+    UNK_RELEASE_COUNTED(field_208);
+    UNK_RELEASE_COUNTED(field_210);
+    UNK_RELEASE_COUNTED(field_218);
+    for (s32 i = 0; i < field_400; i++) {
+        if (field_260 != nullptr) {
+            UNK_RELEASE_COUNTED(field_260[i]);
+        }
+    }
+    UNK_DELETE_ARRAY(field_260);
+    UNK_RELEASE_COUNTED(field_228);
+    UNK_RELEASE_COUNTED(field_230);
+    for (s32 i = 0; i < field_400; i++) {
+        if (field_238 != nullptr) {
+            UNK_RELEASE_COUNTED(field_238[i]);
+        }
+    }
+    UNK_DELETE_ARRAY(field_238);
+    UNK_DELETE_ARRAY(field_240);
+    UNK_DELETE_ARRAY(field_248);
+    UNK_DELETE_ARRAY(field_250);
+    UNK_DELETE_ARRAY(field_258);
+    if (field_268 != nullptr) {
+        CTextureUtil* util = Unk_GetTextureUtil();
+        Unk_ReleaseTextureUtil();
+        Unk_49fdc0_call(util->field_29a58, reinterpret_cast<u64>(field_268));
+        field_268 = nullptr;
+    }
+    if (field_278 != nullptr) {
+        CTextureUtil* util = Unk_GetTextureUtil();
+        Unk_ReleaseTextureUtil();
+        Unk_49fdc0_call(util->field_29a58, reinterpret_cast<u64>(field_278));
+        field_278 = nullptr;
+    }
+    if (field_288 != nullptr) {
+        CTextureUtil* util = Unk_GetTextureUtil();
+        Unk_ReleaseTextureUtil();
+        Unk_49fc60(util->field_29a58, field_280, field_288);
+        UNK_DELETE_ARRAY(field_288);
+    }
+    for (s32 i = 0; i < field_400; i++) {
+        if (field_2a0 != nullptr) {
+            UNK_RELEASE_COUNTED(field_2a0[i].field_70);
+        }
+        if (field_2a8 != nullptr) {
+            UNK_RELEASE_COUNTED(field_2a8[i].field_48);
+        }
+    }
+    if (!reuse) {
+        UNK_DELETE_ARRAY(field_2a0);
+        UNK_DELETE_ARRAY(field_2a8);
+    }
+    if (field_580 != 0) {
+        CTextureUtil* util = Unk_GetTextureUtil();
+        Unk_ReleaseTextureUtil();
+        for (s32 i = 0; i < field_400; i++) {
+            UNK_RELEASE_COUNTED(field_570[i]);
+            UNK_RELEASE_COUNTED(field_588[i]);
+        }
+        for (s32 i = 0; i < field_580; i++) {
+            Unk_49fdc0_call(util->field_29a58, reinterpret_cast<u64>(field_578[i]));
+        }
+        UNK_DELETE_ARRAY(field_570);
+        UNK_DELETE_ARRAY(field_578);
+        field_580 = 0;
+        UNK_DELETE_ARRAY(field_588);
+    }
+    UNK_DELETE_ARRAY(field_858);
+    UNK_DELETE_ARRAY(field_868);
+    if (field_290 != nullptr) {
+        Unk_4b9a60(Unk_238d5f8, reinterpret_cast<u64*>(field_290) - 1);
+        field_290 = nullptr;
+    }
+    if (Unk_24e0c28 != 0) {
+        CTextureUtil* util = Unk_GetTextureUtil();
+        Unk_ReleaseTextureUtil();
+        if (field_550 != nullptr) {
+            Unk_49fc60(util->field_29a58, field_558, field_550);
+            UNK_DELETE_ARRAY(field_550);
+            field_558 = 0;
+        }
+    }
+    if (Unk_24e0c28 != 0) {
+        CTextureUtil* util = Unk_GetTextureUtil();
+        Unk_ReleaseTextureUtil();
+        if (field_560 != nullptr) {
+            Unk_49fc60(util->field_29a58, field_568 * 2, field_560);
+            if (field_560 != nullptr) {
+                Unk_4b9a60(Unk_238d5f8, reinterpret_cast<u64*>(field_560) - 1);
+                field_560 = nullptr;
+            }
+            field_568 = 0;
+        }
+    }
+    if (reuse) {
+        if (Unk_24e0c28 != 0) {
+            Unk_24e0c30->Unk_4708b0(field_18);
+        }
+    } else if (Unk_24e0c28 != 0) {
+        Unk_ReleaseTextureUtil();
+    }
+    if (field_18 != nullptr) {
+        if (field_20 != 0) {
+            field_18->vf7(0, reinterpret_cast<void*>(field_20), 0);
+        }
+        if (field_28 != nullptr) {
+            field_18->vf8(field_28);
+        }
+    }
+    field_1168 = 0;
+    field_120 = nullptr;
+    field_128 = 0;
+    field_130 = 0;
+    UNK_DELETE(field_30);
+    UNK_DELETE(field_38);
+    if (field_28 != nullptr) {
+        reinterpret_cast<IGPUInterface*>(field_28)->vf1();
+        field_28 = nullptr;
+    }
+    if (field_20 != 0) {
+        reinterpret_cast<IGPUInterface*>(field_20)->vf1();
+        field_20 = 0;
+    }
+    if (field_18 != nullptr && Unk_49eb10_get() != 0) {
+        Unk_49eb20_get(2);
+    }
+    if (reuse) {
+        if (field_18 != nullptr) {
+            Unk_43e2b0(field_18);
+        }
+    } else {
+        UNK_RELEASE(field_18);
+    }
+    for (auto it = field_11d0.begin(); it != field_11d0.end(); ++it) {
+        UNK_RELEASE_SI(it->second.first);
+        if (it->second.second != nullptr) {
+            SiSDK3::ISiAllocator* allocator = reinterpret_cast<SiSDK3::ISiAllocator*>(reinterpret_cast<SiSDK3::SiGfxKernel*>(Unk_4cbf40_get())->vf6());
+            void* p = it->second.second;
+            if (allocator != nullptr && p != nullptr) {
+#line 42359
+                allocator->vf9(p, __FILE__, __LINE__);
+            }
+            it->second.second = nullptr;
+        }
+    }
+    field_11d0.clear();
+    for (auto it = field_11e8.begin(); it != field_11e8.end(); ++it) {
+        UNK_RELEASE_SI(it->second.first);
+        UNK_RELEASE_SI(it->second.second);
+    }
+    field_11e8.clear();
+    if (!reuse && field_1170) {
+        UNK_RELEASE_SI(field_1198);
+        UNK_RELEASE_SI(field_11c0);
+        UNK_RELEASE_SI(field_11a8);
+        UNK_RELEASE_SI(field_11a0);
+        field_1210.clear();
+        field_1228.clear();
+        Unk_4cbdd0();
+        if (field_1208 != 0) {
+            reinterpret_cast<SiSDK3::SiFixedHeapAllocator2*>(field_1208)->vf23();
+#line 11008
+            SI_DELETE(reinterpret_cast<SiSDK3::ISiAllocator*>(&field_1178),
+                      reinterpret_cast<SiSDK3::SiFixedHeapAllocator2*>(field_1208));
+            field_1208 = 0;
+        }
+#line 11013
+        PPFX_LOG("CPostEffect::~CPostEffect(): SiGfxDeinit succeeded.\n");
+        field_1170 = false;
+    }
+#line 11020
+    PPFX_LOG("==== CPostEffect::Uninitialize() succeeded. ====\n");
+    return 0;
+}
+
+#undef UNK_RELEASE
+#undef UNK_RELEASE_COUNTED
+#undef UNK_RELEASE_SI
 
 // 0x7100438510: the end of the scene: the targets set back
 s32 CPostEffect::Unk_438510() {
@@ -5805,7 +6712,7 @@ s32 CPostEffect::InitializeAutoExposure(s32 view, f32 luminance, f32 adjusted) {
             item->field_68 = 5;
         }
     }
-    return Unk_426210();
+    return EndCommandList_SiGfx();
 }
 
 // 0x7100426070: the exposure history reset to `value` (when not positive, the
@@ -5841,7 +6748,96 @@ s32 CPostEffect::Unk_426070(s32 view, f32 value) {
             item->field_40 = 5;
         }
     }
-    return Unk_426210();
+    return EndCommandList_SiGfx();
+}
+
+// 0x7100426210: CPostEffect::EndCommandList_SiGfx (its log line names it; the
+// lazy draw commands' lines name CPostEffect::ExecuteLazyDrawCommand)
+// NON_MATCHING: only the frame and one constant: the original sets up the
+// frame before the count's test (not shrink-wrapped: the -1 return has its
+// own return block there) and moves -1 into w0 after the log line.
+s32 CPostEffect::EndCommandList_SiGfx() {
+    if (--field_11cc != 0) {
+        return 0;
+    }
+    IGPUDevice* device = field_18;
+    Unk_SiGfxDrawContext* context = device->field_30;
+    Unk_SiGfxDevice* sigfx = device->field_38;
+    Unk_CommandListMaker* maker = field_11a0;
+    void* list;
+    if (maker != nullptr) {
+        context->vf10();
+        Unk_43fc30(field_18);
+        if (field_11b8) {
+            for (auto it = device->field_40.begin(); it != device->field_40.end(); ++it) {
+                if (it->Execute(context) < 0) {
+#line 42082
+                    PPFX_ERROR("CPostEffect::ExecuteLazyDrawCommand(): Failed GPUSiGfxLazyDrawCommand::Execute().\n");
+                }
+            }
+        }
+        context->vf9();
+        if (field_11b8) {
+            field_11b8 = false;
+            Unk_SiGfxQueue* queue = sigfx->vf19();
+            queue->vf10(1, &field_11b0);
+            queue->vf13(queue->vf12());
+            for (auto it = device->field_40.begin(); it != device->field_40.end();) {
+                Unk_43dc00_get(reinterpret_cast<Unk_43dc00*>(&*it));
+                it = device->field_40.erase(it);
+            }
+        }
+    }
+    if (!device->field_40.empty()) {
+        if (maker != nullptr) {
+            if (field_11c0 == nullptr) {
+                field_11c0 = sigfx->vf22(1, 0, nullptr);
+            }
+            list = field_11c0;
+            if (!context->vf8(list)) {
+#line 42123
+                PPFX_ERROR("CPostEffect::EndCommandList_SiGfx(): Failed pSiGfxDrawContext->BeginCommandList(pTempCommandList).\n");
+                return -1;
+            }
+            for (auto it = device->field_40.begin(); it != device->field_40.end(); ++it) {
+                if (it->Execute(context) < 0) {
+#line 42133
+                    PPFX_ERROR("CPostEffect::ExecuteLazyDrawCommand(): Failed GPUSiGfxLazyDrawCommand::Execute().\n");
+                }
+            }
+            context->vf9();
+            Unk_SiGfxQueue* queue = sigfx->vf19();
+            queue->vf10(1, &list);
+            queue->vf13(queue->vf12());
+            for (auto it = device->field_40.begin(); it != device->field_40.end();) {
+                Unk_43dc00_get(reinterpret_cast<Unk_43dc00*>(&*it));
+                it = device->field_40.erase(it);
+            }
+        } else {
+            for (auto it = device->field_40.begin(); it != device->field_40.end(); ++it) {
+                if (it->Execute(context) < 0) {
+#line 42164
+                    PPFX_ERROR("CPostEffect::ExecuteLazyDrawCommand(): Failed GPUSiGfxLazyDrawCommand::Execute().\n");
+                }
+            }
+            list = context->vf10();
+            context->vf9();
+            Unk_SiGfxQueue* queue = sigfx->vf19();
+            queue->vf10(1, &list);
+            queue->vf13(queue->vf12());
+            for (auto it = device->field_40.begin(); it != device->field_40.end();) {
+                Unk_43dc00_get(reinterpret_cast<Unk_43dc00*>(&*it));
+                it = device->field_40.erase(it);
+            }
+            context->vf8(list);
+        }
+    }
+    field_11b0 = nullptr;
+    if (field_11c0 != nullptr) {
+        reinterpret_cast<Unk_CommandList*>(field_11c0)->vf3();
+        field_11c0 = nullptr;
+    }
+    return 0;
 }
 
 // 0x710043cd40: the Planckian locus in CIE 1960 u and v at a reciprocal
@@ -6145,6 +7141,115 @@ s32 CPostEffect::Unk_42a590(bool* far, bool* moved, bool* projection, bool* rota
 
 }  // namespace PPFX
 
+// 0x7100455350, 0x71004553a0, 0x710045e900 (lib/yebis/leaf: the glare's,
+// placeholder types)
+struct Unk_455350_Float2 {
+    f32 field_0[2];
+};
+u32 Unk_455350_set(Unk_455350* self, s32 index, const Unk_455350_Float4* value, f32 a, f32 b, f32 c, f32 d);
+u32 Unk_4553a0_set(Unk_455350* self, s32 index, const Unk_455350_Float2* value);
+u32 Unk_45e900_set(Unk_455350* self, s32 index, const Unk_455350_Float4* value);
+
+namespace PPFX {
+
+// 0x71004786d0 (GPUTextureUtil.cpp): where a position of the target is read from
+Unk_Float2 Unk_4786d0(bool flag, const Unk_Float2* position, s32 mode, f32 angle, f32 aspect, f32 value, f32 arg3,
+                      f32 arg4, f32 arg5, f32 arg6, f32 arg7);
+
+// where a light shaft is seen from (inline)
+inline Unk_Float2 Unk_ShaftPosition(const CPostEffect* self, const Unk_Float2* source) {
+    if (!self->field_10d5) {
+        return *source;
+    }
+    f32 distance = self->field_6cc;
+    f32 shift;
+    switch (self->field_c14) {
+    case 0:
+        distance = self->field_c18;
+        shift = 0.0f;
+        break;
+    case 2:
+        shift = self->field_c1c;
+        break;
+    default:
+        shift = 0.0f;
+        break;
+    }
+    return Unk_4786d0(false, source, self->field_c04, distance, self->field_420, self->field_be8, shift,
+                      self->field_c20, self->field_c24, self->field_c28, self->field_c08);
+}
+
+// 0x71004291c0: the light shafts handed to the glare (whether there are any)
+// NON_MATCHING: the loop's induction variable is based at field_64 (the
+// original's at the item), so its addressing modes differ; the rest is the
+// original's
+bool CPostEffect::Unk_4291c0() {
+    Unk_45eb90_Self* glare = field_198;
+    field_c6d = false;
+    if (glare->field_10c >= 0) {
+        glare->field_1f4 = 0;
+    }
+    if (field_8b6) {
+        return false;
+    }
+    s32 count = field_478;
+    s32 drawn = 0;
+    Unk_Float2 at;
+    for (s32 i = 0; i < count; i++) {
+        if (!field_858[i].field_60 || field_848 <= 0.0f) {
+            continue;
+        }
+        if (field_858[i].field_0.field_0 <= 0.0f && field_858[i].field_0.field_4 <= 0.0f &&
+            field_858[i].field_0.field_8 <= 0.0f) {
+            continue;
+        }
+        f32 offset;
+        f32 scale;
+        f32 depth;
+        if (field_858[i].field_64 == 7) {
+            Unk_Refresh();
+            f32 near = field_1064;
+            Unk_Refresh();
+            depth = (field_858[i].field_5c - near) / field_858[i].field_5c;
+            scale = field_1054;
+            offset = field_1058;
+        } else {
+            f32 factors[4];
+            Unk_428cc0(factors, field_858[i].field_64, 2, 1.0f, 0.0f);
+            scale = factors[0];
+            offset = factors[1];
+            depth = field_858[i].field_5c;
+        }
+        f32 position = offset + scale * depth;
+        {
+            Unk_Rect color = field_858[i].field_0;
+            if (field_59c) {
+                color.field_0 = field_8d0 * color.field_0;
+                color.field_4 = field_8d0 * color.field_4;
+                color.field_8 = field_8d0 * color.field_8;
+            }
+            reinterpret_cast<CRenderGlare*>(field_198)->Unk_4552e0(
+                drawn, reinterpret_cast<const Unk_GlareRect*>(&color), field_858[i].field_1c, field_858[i].field_10,
+                position, field_858[i].field_20, field_858[i].field_14, field_858[i].field_18);
+        }
+        Unk_455350_set(reinterpret_cast<Unk_455350*>(field_198), drawn,
+                       reinterpret_cast<const Unk_455350_Float4*>(&field_858[i].field_34), field_858[i].field_24,
+                       field_858[i].field_30, field_858[i].field_28, field_858[i].field_2c);
+        Unk_45e900_set(reinterpret_cast<Unk_455350*>(field_198), drawn,
+                       reinterpret_cast<const Unk_455350_Float4*>(&field_858[i].field_4c));
+        at = Unk_ShaftPosition(this, &field_858[i].field_44);
+        Unk_4553a0_set(reinterpret_cast<Unk_455350*>(field_198), drawn, reinterpret_cast<const Unk_455350_Float2*>(&at));
+        drawn++;
+    }
+    if (field_198->field_10c >= drawn) {
+        field_198->field_1f4 = drawn;
+    }
+    field_c6d = drawn > 0;
+    return field_c6d;
+}
+
+}  // namespace PPFX
+
 // 0x71004534e0, 0x71004534d0 (lib/yebis/leaf/Unk_4534d0.cpp): the glare's
 // light ghost kind, and its custom one
 struct Unk_4534e0;
@@ -6256,6 +7361,276 @@ static inline s32 Unk_DofCameraMode(u32 mode) {
     return modes[mode];
 }
 
+}  // namespace PPFX
+
+// 0x71004aa260, 0x71004aff30 (lib/yebis/leaf): the depth of field's vignette
+// by its numbers and by its range (placeholder types)
+struct Unk_4aa260;
+s32 Unk_4aa260_set(Unk_4aa260* self, f32 a, f32 b);
+struct Unk_4aff30;
+u32 Unk_4aff30_update(Unk_4aff30* self, f32 fvalue, f32 farg1);
+
+namespace PPFX {
+
+// 0x7100428220: the depth of field's camera and the depths it covers this
+// frame (the union of the ranges of the effects that use it), then the
+// depth's scale and bias
+// NON_MATCHING: a draft (2672 of 2720 bytes): the tests, calls and their
+// arguments are the original's; the registers, the stack slots and the
+// block layout are not. The original keeps a stack temporary for field_8f4
+// and field_8f8 in the last clamps (here their own addresses are selected).
+s32 CPostEffect::Unk_428220() {
+    field_895 = false;
+    field_1050 = false;
+    Unk_42b8a0();
+    bool dofIn = false;
+    if (field_ce5 && static_cast<u32>(field_ce8 - 1) < 2) {
+        dofIn = Unk_4622e0(field_6c4, field_6c8, field_d10, field_d14);
+    }
+    bool exposureIn = field_f38 && Unk_4622e0(field_6c4, field_6c8, field_f3c, field_f40);
+    if (field_198->field_10c >= 0) {
+        field_198->field_1f4 = 0;
+    }
+    s32 count = field_478;
+    s32 shafts = 0;
+    for (s32 i = 0; i < count; i++) {
+        if (!field_858[i].field_60 || field_848 <= 0.0f) {
+            continue;
+        }
+        if (field_858[i].field_0.field_0 <= 0.0f && field_858[i].field_0.field_4 <= 0.0f &&
+            field_858[i].field_0.field_8 <= 0.0f) {
+            continue;
+        }
+        shafts += field_858[i].field_60;
+    }
+    Unk_429f20(false, true);
+    field_1078 = -1;
+    if (field_ce5 && !field_8b6) {
+        field_1078 = field_ce8;
+        bool far;
+        bool moved;
+        bool projection;
+        bool rotation;
+        bool any;
+        Unk_42a590(&far, &moved, &projection, &rotation, &any);
+    }
+    bool blur = false;
+    bool blurIn = false;
+    if (field_d80 && field_d84 != 0 && field_d88 != nullptr &&
+        (field_d9c.field_0[0].field_0 != 0.0f || field_d9c.field_0[1].field_0 != 0.0f ||
+         field_d9c.field_0[2].field_0 != 0.0f || field_d9c.field_0[3].field_0 != 0.0f)) {
+        blur = true;
+        blurIn = field_de8 && Unk_4622e0(field_6c4, field_6c8, field_de0, field_de4);
+    }
+    bool other = field_50 != nullptr || field_548;
+    bool fog = !(field_ec0 <= 0.0f || field_ecc <= 0.0f || field_ed0 <= 0.0f) && field_eb8 && !other;
+    bool scatter = field_f08 && (field_f14 < 1.0f || field_f18 != 1.0f);
+    bool fullScreen = field_f0c == 2;
+    const Unk_Float& nearPlane = reinterpret_cast<const Unk_Float&>(field_6c4);
+    const Unk_Float& farPlane = reinterpret_cast<const Unk_Float&>(field_6c8);
+    Unk_Float near = farPlane;
+    Unk_Float far = nearPlane;
+    bool any = false;
+    if (dofIn) {
+        f32 low = field_6c4;
+        f32 high = field_6c8;
+        f32 now = field_d10;
+        f32 before = field_d14;
+        if (Unk_4622e0(low, high, now, before)) {
+            f32 next = now > before ? before : low;
+            low = next > low ? next : low;
+            next = now < before ? before : high;
+            high = next < high ? next : high;
+        }
+        near.field_0 = low < near.field_0 ? low : near.field_0;
+        far.field_0 = high > far.field_0 ? high : far.field_0;
+        any = true;
+    } else if (field_ce5 && field_ce8 == 2) {
+        near = Unk_Min(nearPlane, near);
+        far = Unk_Max(farPlane, far);
+        any = true;
+    }
+    if (blurIn) {
+        f32 low = field_6c4;
+        f32 high = field_6c8;
+        f32 now = field_de0;
+        f32 before = field_de4;
+        if (Unk_4622e0(low, high, now, before)) {
+            f32 next = now > before ? before : low;
+            low = next > low ? next : low;
+            next = now < before ? before : high;
+            high = next < high ? next : high;
+        }
+        near.field_0 = low < near.field_0 ? low : near.field_0;
+        far.field_0 = high > far.field_0 ? high : far.field_0;
+        any = true;
+    } else if (blur) {
+        near = Unk_Min(nearPlane, near);
+        far = Unk_Max(farPlane, far);
+        any = true;
+    }
+    if (exposureIn) {
+        f32 low = field_6c4;
+        f32 high = field_6c8;
+        f32 now = field_f3c;
+        f32 before = field_f40;
+        if (Unk_4622e0(low, high, now, before)) {
+            f32 next = now > before ? before : low;
+            low = next > low ? next : low;
+            next = now < before ? before : high;
+            high = next < high ? next : high;
+        }
+        near.field_0 = low < near.field_0 ? low : near.field_0;
+        far.field_0 = high > far.field_0 ? high : far.field_0;
+        any = true;
+    }
+    bool clamp = true;
+    if (fog) {
+        if (Unk_427ad0()) {
+            f32 low = field_8f4;
+            f32 x = field_90c;
+            if (x > 0.0f) {
+                f32 high = field_8f8;
+                low = x < low ? low : (x > high ? high : x);
+                f32 y = field_910;
+                if (y > 0.0f) {
+                    low = Unk_Less(low, y);
+                }
+            }
+            f32 current = field_6c4;
+            f32 before = field_ef0;
+            f32 now = field_eec;
+            if (Unk_4622e0(current, field_6c8, now, before)) {
+                f32 next = now > before ? before : current;
+                current = next > current ? next : current;
+            }
+            low = low > current ? low : current;
+            f32 high = field_8f8;
+            f32 y = field_910;
+            if (y > 0.0f) {
+                f32 low2 = field_8f4;
+                high = y < low2 ? low2 : (y > high ? high : y);
+                f32 x2 = field_90c;
+                if (x2 > 0.0f) {
+                    high = Unk_Greater(high, x2);
+                }
+            }
+            current = field_6c8;
+            before = field_ef0;
+            now = field_eec;
+            if (Unk_4622e0(field_6c4, current, now, before)) {
+                f32 next = now < before ? before : current;
+                current = Unk_Less(next, current);
+            }
+            high = high < current ? high : current;
+            near.field_0 = low < near.field_0 ? low : near.field_0;
+            far.field_0 = high > far.field_0 ? high : far.field_0;
+        } else {
+            near = Unk_Min(nearPlane, near);
+            far = Unk_Max(farPlane, far);
+        }
+    } else if (shafts > 0 || (!other && scatter && fullScreen)) {
+        if (!any) {
+            near = nearPlane;
+            far = farPlane;
+        }
+    } else if (!any) {
+        near = nearPlane;
+        far = farPlane;
+        clamp = false;
+    }
+    f32 focus = 0.0f;
+    if (clamp) {
+        near = Unk_Max(near, Unk_Float(field_8f4));
+        far = Unk_Min(far, Unk_Float(field_8f8));
+        near = Unk_Max(near, nearPlane);
+        far = Unk_Min(far, farPlane);
+        focus = near.field_0;
+    }
+    s32 result = 0;
+    if (field_1a0 != nullptr) {
+        CDepthOfField* dof = reinterpret_cast<CDepthOfField*>(field_1a0);
+        result = dof->Unk_4afc40(field_6c4, field_6c8, field_6d0, field_6d4, field_6d8, field_898, field_89c, field_8a4,
+                                 Unk_DofCameraMode(field_8a0), field_8a8.field_0[0].field_0,
+                                 field_8a8.field_0[1].field_0, field_8b8.field_0[0].field_0,
+                                 field_8b8.field_0[1].field_0, focus, field_904, field_908);
+        if (field_198 != nullptr && reinterpret_cast<CDepthOfField*>(field_1a0)->field_184) {
+            Unk_42b9f0();
+        }
+        switch (field_918) {
+        case 2: {
+            f32 size = field_948 * (field_944 * (field_94c ? field_89c : 1.0f) +
+                                    reinterpret_cast<CDepthOfField*>(field_1a0)->field_1a8 * field_940);
+            result = Unk_4aa260_set(reinterpret_cast<Unk_4aa260*>(field_1a0),
+                                    fabsf(field_948) * (field_93c * (field_94c ? field_89c : 1.0f)), size);
+            break;
+        }
+        case 3: {
+            f32 scale = 0.41421357f / ((field_6d0 - 0.41421357f) * field_920 + 0.41421357f);
+            f32 size = field_950 * scale;
+            f32 distance = field_954;
+            f32 angle = atanf(field_6d0 * powf(0.41421357f / field_6d0, field_958)) * 2.0f;
+            result = reinterpret_cast<CDepthOfField*>(field_1a0)->Unk_4afd80(size, distance * size, angle);
+            break;
+        }
+        case 4: {
+            f32 a;
+            f32 b;
+            if (field_960 < 0.0f) {
+                a = 0.0f;
+                b = -1.0f;
+            } else {
+                f32 scale = 0.41421357f / ((field_6d0 - 0.41421357f) * field_920 + 0.41421357f);
+                f32 low = field_95c * scale;
+                f32 high = field_960 * scale;
+                f32 sign = field_964 ? -1.0f : 1.0f;
+                a = (low + high) * 0.5f;
+                b = (high - low) * sign * 0.5f;
+            }
+            result = Unk_4aff30_update(reinterpret_cast<Unk_4aff30*>(field_1a0), a, b);
+            break;
+        }
+        }
+        field_1050 = reinterpret_cast<CDepthOfField*>(field_1a0)->field_184;
+        field_1070 = reinterpret_cast<CDepthOfField*>(field_1a0)->Unk_4afaa0(field_c74, 1.0f) * 0.5f;
+    }
+    if (field_8a4 > 0.0f && field_6c4 > 0.0f && field_6c4 < field_6c8 && field_1050) {
+        field_104f = field_bcd;
+    } else {
+        field_104f = false;
+    }
+    if (field_104f) {
+        field_1064 = field_898;
+        memcpy(&field_1054, &reinterpret_cast<CDepthOfField*>(field_1a0)->field_1e8, sizeof(Unk_Float4));
+    } else {
+        field_1064 = near.field_0;
+        field_1054 = 1.0f;
+        field_1058 = 0.0f;
+        s32 index = field_5d8;
+        if (index == -1) {
+            index = field_190->field_90;
+        }
+        Unk_RenderTexture* depth = field_190->field_38[index];
+        index = field_5e0;
+        if (index == -1) {
+            index = field_190->field_90;
+        }
+        Unk_RenderTexture* scene = field_190->field_38[index];
+        if ((Unk_IsFloat32Format(depth->field_38) || Unk_IsFloat16Format(depth->field_38)) &&
+            (Unk_IsFloat32Format(scene->field_38) || Unk_IsFloat16Format(scene->field_38))) {
+            if (field_914) {
+                field_1054 = far.field_0 / (far.field_0 - near.field_0) * 64000.0f;
+                field_1058 = -64000.0f;
+            } else {
+                field_1064 = std::min(field_6c4 * 64000.0f, far.field_0);
+            }
+        }
+    }
+    field_1060 = -field_1058 / field_1054;
+    field_105c = 1.0f / field_1054;
+    return result;
+}
+
 // 0x710042b9f0: the depth of field's numbers handed to the glare
 // NON_MATCHING: only the TU's statics block (its table at 0x71024e0d38): it
 // matches once 0x710041afb0's statics exist (checked with a stand-in
@@ -6320,8 +7695,9 @@ static inline bool Unk_IsDepthFormat(s32 format) {
     }
 }
 
-// the depth cast type of a depth source (a table set up the first time; -1:
-// none)
+// the depth cast type of a depth source (a table set up the first time; one
+// caller, 0x710042cc90, reads it as it is, the others check it with
+// Unk_CheckDepthCastType)
 static inline s32 Unk_DepthCastType(s32 source) {
     static bool initialised = false;
     static s32 types[4];
@@ -6332,16 +7708,7 @@ static inline s32 Unk_DepthCastType(s32 source) {
         types[2] = 2;
         types[3] = 3;
     }
-    s32 type = types[source];
-    switch (type) {
-    case 0:
-    case 1:
-    case 2:
-    case 3:
-        return type;
-    default:
-        return -1;
-    }
+    return types[source];
 }
 
 // 0x710042be10: the velocity of the scene's depth (once a frame)
@@ -6386,7 +7753,7 @@ s32 CPostEffect::Unk_42be10() {
         if (Unk_IsDepthFormat(depth->field_38)) {
             type = FXDCT_GetDepthCastTypeFromDepthFormat(depth->field_38);
         } else {
-            type = Unk_DepthCastType(own ? source : 3);
+            type = Unk_CheckDepthCastType(Unk_DepthCastType(own ? source : 3));
         }
     }
     f32 scale;
@@ -6737,6 +8104,1182 @@ static inline bool Unk_ApplyDepthOfField(CPostEffect* self, s32* result) {
     return self->field_8b6;
 }
 
+// NON_MATCHING: written this round, not matching yet (tools/check.py --diff shows
+// what differs).
+// 0x710042c300: CPostEffect::ApplyEffects_GenerateNormalAndLinearDepth (its
+// log line names it): the normal and linear depth of the scene's depth into
+// texture field_1f0
+s32 CPostEffect::ApplyEffects_GenerateNormalAndLinearDepth() {
+    s32 mode;
+    Unk_Float offset;
+    Unk_Float scale;
+    switch (field_df8_i) {
+    case 0:
+        mode = 2;
+        offset = 0.0f;
+        scale = 1.0f;
+        break;
+    case 1:
+        mode = 3;
+        offset = 0.0f;
+        scale = 1.0f;
+        break;
+    case 2:
+        mode = 0;
+        offset = 0.0f;
+        scale = 1.0f;
+        break;
+    case 3:
+        mode = 1;
+        offset = 0.0f;
+        scale = 1.0f;
+        break;
+    default:
+        if (field_dfc == 1) {
+            mode = 4;
+            offset = -1.0f;
+            scale = 2.0f;
+        } else if (field_dfc == 0) {
+            mode = 4;
+            offset = 0.0f;
+            scale = 1.0f;
+        } else {
+            mode = -1;
+            offset = 0.0f;
+            scale = 1.0f;
+        }
+        break;
+    }
+    s32 source = field_58;
+    Unk_RenderTexture* external = field_50;
+    bool own = source == 8 || external != nullptr;
+    Unk_RenderTexture* depth;
+    if (source == 8) {
+        depth = field_190->field_80[static_cast<s32>(field_190->field_94)];
+    } else {
+        depth = own ? external : Unk_TextureAt(field_5e0);
+    }
+    Unk_RenderTexture* normal = field_df8_i == 4 ? field_df0 : nullptr;
+    Unk_RenderTexture* target = field_1f0;
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    s32 type;
+    if (source == 8 || Unk_IsDepthFormat(depth->field_38)) {
+        type = FXDCT_GetDepthCastTypeFromDepthFormat(depth->field_38);
+    } else {
+        type = Unk_CheckDepthCastType(Unk_DepthCastType(own ? source : 3));
+    }
+    f32 depthScale;
+    f32 depthBias;
+    if (field_50 != nullptr) {
+        depthScale = field_60;
+        depthBias = field_64;
+    } else {
+        depthBias = 0.0f;
+        depthScale = 1.0f;
+    }
+    s32 from;
+    if (source == 8) {
+        if (field_1014) {
+            depthScale = -1.0f;
+            depthBias = 1.0f;
+        }
+        from = 0;
+    } else {
+        depthBias = own ? depthBias : 0.0f;
+        depthScale = own ? depthScale : 1.0f;
+        from = own ? 6 : 2;
+    }
+    Unk_Rect factors = Unk_DepthFactors(from, 0, depthScale, depthBias);
+    f32 nearZ = field_6c4;
+    f32 w = nearZ * (field_6d0 * field_420);
+    f32 h = nearZ * field_6d0;
+    f32 xw = field_6d4 * w;
+    f32 yh = h * field_6d8;
+    Unk_Float2 size((w + xw) - (xw - w), (h + yh) - (yh - h));
+    MATRIXT44 transform;
+    Unk_Identity(&transform);
+    switch (mode) {
+    case 0:
+    case 1:
+    case 2:
+        break;
+    default: {
+        {
+            Unk_Float3 scales(scale, scale, scale);
+            Unk_Float3 offsets(offset, offset, offset);
+            MATRIXT44 m;
+            Unk_40f660(&m, reinterpret_cast<const Unk_Vector3*>(&scales), reinterpret_cast<const Unk_Vector3*>(&offsets));
+            MATRIXT44_MatrixMultiply(&transform, &transform, &m);
+        }
+        if (!Unk_IsIdentity(Unk_E48())) {
+            MATRIXT44_MatrixMultiply(&transform, &transform, &Unk_E48());
+        }
+        if (field_e00) {
+            MATRIXT44 flip;
+            Unk_Identity(&flip);
+            flip.field_0[2][2] = -1.0f;
+            MATRIXT44_MatrixMultiply(&transform, &transform, &flip);
+        }
+        if (Unk_E04() == 1) {
+            MATRIXT44_MatrixMultiply(&transform, &transform, &field_734);
+        }
+        break;
+    }
+    }
+    CRenderTexture* depthTexture = Unk_AsTexture(depth);
+    f32 su = depthTexture->field_88;
+    f32 sv = depthTexture->field_8c;
+    f32 dw = static_cast<f32>(static_cast<u32>(depthTexture->field_54));
+    f32 dh = static_cast<f32>(static_cast<u32>(depthTexture->field_58));
+    f32 u0 = depthTexture->field_90;
+    f32 v0 = depthTexture->field_94;
+    f32 nu = 0.0f;
+    f32 nv = 0.0f;
+    if (normal != nullptr) {
+        Unk_GetCoords(Unk_AsTexture(normal), &nu, &nv);
+    }
+    f32 tw = static_cast<f32>(target->field_54);
+    f32 th = static_cast<f32>(target->field_58);
+    Unk_Float2 texel(depthTexture->field_88, depthTexture->field_8c);
+    Unk_SetTarget(Unk_AsTexture(target));
+    f32 low = field_8f4;
+    f32 x = field_90c;
+    if (x > 0.0f) {
+        f32 high = field_8f8;
+        low = x < low ? low : (x > high ? high : x);
+        f32 y = field_910;
+        if (y > 0.0f) {
+            low = Unk_Less(low, y);
+        }
+    }
+    f32 current = field_6c4;
+    f32 before = field_ef0;
+    f32 now = field_eec;
+    if (Unk_4622e0(current, field_6c8, now, before)) {
+        f32 next = now > before ? before : current;
+        current = Unk_Greater(next, current);
+    }
+    f32 nearPlane = low > current ? low : current;
+    f32 high = field_8f8;
+    f32 y = field_910;
+    if (y > 0.0f) {
+        f32 low2 = field_8f4;
+        high = y < low2 ? low2 : (y > high ? high : y);
+        f32 x2 = field_90c;
+        if (x2 > 0.0f) {
+            high = Unk_Greater(high, x2);
+        }
+    }
+    current = field_6c8;
+    before = field_ef0;
+    now = field_eec;
+    if (Unk_4622e0(field_6c4, current, now, before)) {
+        f32 next = now < before ? before : current;
+        current = next < current ? next : current;
+    }
+    f32 farPlane = high < current ? high : current;
+    f32 u1 = su * dw + u0;
+    f32 v1 = sv * dh + v0;
+    f32 n = field_6c4;
+    f32 f = field_6c8;
+    Unk_GPUTexture* depthGpu = Unk_GetTexture(depthTexture);
+    Unk_GPUTexture* normalGpu = normal != nullptr ? Unk_GetTexture(Unk_AsTexture(normal)) : nullptr;
+    MATRIXT44 projection;
+    if (mode == 2) {
+        f32 pw = n * (field_6d0 * field_420);
+        f32 ph = n * field_6d0;
+        f32 pxw = field_6d4 * pw;
+        f32 pyh = ph * field_6d8;
+        Unk_40f8d0(&projection, false, true, pxw - pw, pw + pxw, pyh - ph, ph + pyh, n, f);
+    } else {
+        Unk_Identity(&projection);
+    }
+    s32 result = util->Unk_48bbc0(0.0f, 0.0f, tw, th, 0.0f, 0.0f, u1, v1, type, mode,
+                                  reinterpret_cast<const Unk_Float2*>(&factors), &size, depthGpu, &texel, normalGpu,
+                                  0.0f, 0.0f, nu, nv, n, f, &projection, &transform, nearPlane, farPlane, 0);
+    if (result < 0) {
+#line 23520
+        PPFX_ERROR("CPostEffect::ApplyEffects_GenerateNormalAndLinearDepth(): pTexUtil->DrawRectGPU_GenerateNormalAndLinearDepth() failed (0x%x: %s).\n", result, Unk_446df0(result));
+        return result;
+    }
+    field_10dd = true;
+    return 0;
+}
+
+// NON_MATCHING: written this round, not matching yet (tools/check.py --diff shows
+// what differs).
+// 0x710042cc90: the depth of field's composite (CTextureUtil::Unk_48b1e0, or
+// Unk_48b280 for a depth factor source) from `source` (null: texture field_5d8)
+// into `target` (null: texture field_5e0), with `mask` (field_80's) and its
+// depth spaces; a negative `view` draws for every view
+s32 CPostEffect::Unk_42cc90(s32 view, bool clear, void* source, void* target, bool keep, void* mask, u32 maskSpace,
+                            u32 depthSpace, u32 flags, f32 offset) {
+    if (!field_1051 && field_50 == nullptr) {
+        return 0;
+    }
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    CRenderTexture* from = static_cast<CRenderTexture*>(source);
+    CRenderTexture* to = static_cast<CRenderTexture*>(target);
+    bool other = from != nullptr && from != to;
+    bool all = view < 0;
+    if (all && !other) {
+        s32 index = field_5d8;
+        if (index == -1) {
+            index = field_190->field_90;
+        }
+        CRenderTexture* current = Unk_AsTexture(field_190->field_38[index]);
+        if (!(reinterpret_cast<Unk_GPUTexture*>(current->field_b8[current->field_a0])->field_5c & 0x80000)) {
+            Unk_49e3a0(1, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+            reinterpret_cast<CRenderTextureArray*>(field_190)->Unk_4a5ff0(1, 0x7fffffff);
+            all = false;
+            view = 0;
+        }
+    }
+    if (clear) {
+        util->Unk_471410(all ? 1 : 2, 3, 4);
+    }
+    if (all) {
+        Unk_440c00_get(reinterpret_cast<u64>(field_18), 8);
+        field_18->vf45(2);
+        view = 0;
+    } else if (from == nullptr) {
+        from = Unk_AsTexture(Unk_TextureAt(field_5d8));
+    }
+    if (to == nullptr) {
+        to = Unk_AsTexture(Unk_TextureAt(field_5e0));
+    }
+    CRenderTexture* size = from != nullptr ? from : to;
+    f32 u0 = size->field_90;
+    f32 v0 = size->field_94;
+    f32 fw = static_cast<f32>(static_cast<u32>(size->field_54));
+    f32 fh = static_cast<f32>(static_cast<u32>(size->field_58));
+    f32 su = size->field_88;
+    f32 sv = size->field_8c;
+    f32 tw = static_cast<f32>(static_cast<u32>(to->field_54));
+    f32 th = static_cast<f32>(static_cast<u32>(to->field_58));
+    if (from != nullptr || !keep) {
+        s32 result = Unk_SetTarget(to);
+        if (result < 0) {
+            return result;
+        }
+    }
+    CRenderTexture::Unk_49cf50(nullptr, nullptr);
+    Unk_GPUTexture* depth;
+    if (field_1051) {
+        depth = field_190->field_60[static_cast<s32>(field_190->field_94)];
+    } else if (field_50 != nullptr) {
+        depth = Unk_GetTexture(Unk_AsTexture(field_50));
+    } else {
+        depth = nullptr;
+    }
+    Unk_GPUTexture* texture = from != nullptr ? Unk_GetTexture(from) : nullptr;
+    f32* params = &field_1054;
+    f32 blur = field_1064;
+    CDepthOfField* dof = reinterpret_cast<CDepthOfField*>(field_1a0);
+    s32 level = dof->field_16c;
+    dof->Unk_4aef30();
+    depth->vf17(1);
+    if (texture != nullptr) {
+        texture->vf17(fw == tw && fh == th);
+    }
+    f32 ratio = Unk_SceneLuminance(this) / field_7f8;
+    f32 u1 = su * fw;
+    f32 v1 = sv * fh;
+    Unk_Float4 colour(ratio, ratio, ratio, 1.0f);
+    Unk_Rect maskScale;
+    maskScale.field_0 = 1.0f;
+    maskScale.field_4 = 0.0f;
+    maskScale.field_8 = 1.0f;
+    maskScale.field_c = 0.0f;
+    Unk_Rect depthScale;
+    depthScale.field_0 = 1.0f;
+    depthScale.field_4 = 0.0f;
+    depthScale.field_8 = 1.0f;
+    depthScale.field_c = 0.0f;
+    Unk_GPUTexture* maskTexture = nullptr;
+    f32 maskV;
+    if (mask != nullptr) {
+        maskTexture = Unk_GetTexture(static_cast<CRenderTexture*>(mask));
+        maskTexture->vf15(4);
+        maskScale = Unk_DepthFactors(6, maskSpace, 1.0f, 0.0f);
+        f32 scale = 1.0f;
+        f32 bias = 0.0f;
+        f32 scale2 = 1.0f;
+        f32 bias2 = 0.0f;
+        if (field_50 != nullptr) {
+            scale = field_60;
+            bias = field_64;
+            scale2 = field_68;
+            bias2 = field_6c;
+        }
+        if (maskSpace == 6) {
+            maskScale.field_0 = maskScale.field_0 * scale;
+            maskScale.field_4 = maskScale.field_4 * scale + bias;
+        }
+        depthScale = Unk_DepthFactors(depthSpace, 1, 1.0f, 0.0f);
+        if (depthSpace == 6) {
+            f32 x = depthScale.field_0;
+            f32 y = depthScale.field_4;
+            depthScale.field_0 = scale2 * x;
+            depthScale.field_4 = bias2 * x + y;
+        }
+        f32 mw = static_cast<f32>(maskTexture->field_4c);
+        f32 mh = static_cast<f32>(maskTexture->field_50);
+        f32 k = (mw - 1.0f) / mw;
+        f32 x = maskScale.field_0;
+        f32 y = maskScale.field_4;
+        maskScale.field_0 = x * k;
+        maskScale.field_4 = 0.5f / mw + k * y;
+        maskV = (offset + 0.5f) / mh;
+    } else {
+        maskV = 0.5f;
+    }
+    u1 = u1 + u0;
+    v1 = v1 + v0;
+    if (field_1051) {
+        util->Unk_48b1e0(0.0f, 0.0f, tw, th, 0.0f, 0.0f, u1, v1, field_6c4, field_6c8, blur, depth, level, texture, view,
+                         field_1014, params, maskTexture, &maskScale, &depthScale, flags, maskV, &colour, 0);
+    } else if (field_50 != nullptr) {
+        s32 type = Unk_DepthCastType(field_58);
+        Unk_Rect factors;
+        if (maskTexture != nullptr) {
+            factors = *reinterpret_cast<const Unk_Rect*>(params);
+        } else {
+            factors = Unk_DepthFactors(6, 2, 1.0f, 0.0f);
+        }
+        f32 scale = 1.0f;
+        f32 bias = 0.0f;
+        f32 scale2 = 1.0f;
+        f32 bias2 = 0.0f;
+        if (field_50 != nullptr) {
+            scale = field_60;
+            bias = field_64;
+            scale2 = field_68;
+            bias2 = field_6c;
+        }
+        Unk_Float4 depthFactors;
+        depthFactors.field_0[0] = scale;
+        depthFactors.field_0[1] = bias;
+        depthFactors.field_0[2] = scale2;
+        depthFactors.field_0[3] = bias2;
+        util->Unk_48b280(0.0f, 0.0f, tw, th, 0.0f, 0.0f, u1, v1, depth, texture, &depthFactors, &factors.field_0, type,
+                         view, maskTexture, &maskScale, &depthScale, flags, maskV, &colour, 0);
+    }
+    if (field_50 != nullptr) {
+        depth->vf17(0);
+    }
+    if (texture != nullptr) {
+        texture->vf17(0);
+    }
+    if (all) {
+        Unk_440c00_get(reinterpret_cast<u64>(field_18), 15);
+        field_18->vf45(0);
+    }
+    field_1053 = true;
+    return 0;
+}
+
+// 0x7100430250: the colour chart's parts (0x710042f540) laid out in the
+// `width` by `height` area from `x`, `y` (half size for an HDR output)
+// NON_MATCHING: a draft; the calls and their arguments are the original's,
+// the floating point registers and the order of the arithmetic are not yet
+// (about 250 instructions).
+s32 CPostEffect::Unk_430250(bool second, bool hdr, bool pq, bool flag, const Unk_42f540_Params* params, f32 x, f32 y,
+                            f32 width, f32 height) {
+    f32 scale = hdr ? 0.5f : 1.0f;
+    f32 boxW = scale * (width * 0.45f);
+    f32 boxH = scale * (height * 0.2f);
+    f32 margin0 = width * 0.025f;
+    f32 margin = margin0;
+    f32 top;
+    if (hdr) {
+        top = (height - height * 0.025f) - boxH;
+        margin = scale * margin;
+        if (!pq) {
+            y = y + scale * (height * -0.21f);
+        }
+    } else {
+        top = height * 0.075f;
+    }
+    if (!pq) {
+        f32 left = margin + x;
+        f32 right = (width - boxW) - left;
+        Unk_42f540(0, second, hdr, params, width, height, flag ? right : left, y + top, boxW, boxH, 0.0f, 0.0f, 1.0f,
+                   1.0f);
+        top = scale * (height * 0.21f) + top;
+    }
+    f32 left = margin + x;
+    f32 inner = width - boxW;
+    f32 right = inner - left;
+    f32 line = boxH * 0.03125f;
+    Unk_42f540(0, second, hdr, params, width, height, flag ? right : left, y + top, boxW, line, 0.0f, 0.0f, 1.0f,
+               0.03125f);
+    top = line + top;
+    Unk_42f540(pq ? 2 : 1, second, hdr, params, width, height, flag ? right : left, y + top, boxW, boxH, 0.0f, 0.0f,
+               1.0f, 1.0f);
+    if (pq) {
+        f32 size = boxW * 0.8f;
+        f32 dy = hdr ? -(size * 1.05f) : boxH * 1.1f;
+        f32 l = scale * margin0 + x;
+        f32 r = inner - l;
+        return Unk_42f540(5, second, hdr, params, width, height, flag ? r : l, y + (dy + top), boxW, size, 0.0f,
+                          0.8f, 1.0f, 0.0f);
+    }
+    f32 sign = hdr ? -1.0f : 1.0f;
+    f32 t = sign * (boxH * 1.1f) + top;
+    f32 q = scale * (width * 0.25f);
+    f32 q2 = q * 1.05f;
+    top = hdr ? t - q2 : t;
+    f32 a;
+    f32 b;
+    if (flag) {
+        Unk_42f540(3, second, hdr, params, width, height, (width - q) - left, top + y, q, q, 0.0f, 0.0f, 1.0f, 1.0f);
+        a = q * 0.25f + y;
+        b = (width - q * 0.75f) - (margin + (q2 + x));
+    } else {
+        Unk_42f540(3, second, hdr, params, width, height, left, top + y, q, q, 0.0f, 0.0f, 1.0f, 1.0f);
+        a = q * 0.25f + y;
+        b = margin + (q2 + x);
+    }
+    return Unk_42f540(4, second, hdr, params, width, height, b, top + a, q * 0.75f, q * 0.75f, 0.0f, 0.0f, 1.0f, 1.0f);
+}
+
+// 0x71004306b0: the colour chart (0x7100430250) drawn into `surface` with
+// the output's numbers, for each output
+s32 CPostEffect::Unk_4306b0(void* surface, f32 a, f32 b, f32 c, s32 arg4, const Unk_Float4* color, s32 arg6,
+                            const MATRIXT44* matrix, f32 d, f32 e, f32 f, f32 g) {
+    f32 p2;
+    f32 p0;
+    f32 p1;
+    if (field_96c) {
+        p0 = field_980;
+        p1 = field_984;
+        p2 = field_988;
+    } else {
+        p0 = 1.0f;
+        p1 = 1.0f;
+        p2 = 1.0f;
+    }
+    MATRIXT44 conversion = field_1094;
+    bool custom = field_999;
+    if (custom) {
+        switch (field_99c) {
+        case 9:
+            if (field_9a0 == 2.19921875f) {
+                custom = false;
+            }
+            break;
+        case 10:
+            if (field_9a0 == 2.6f) {
+                custom = false;
+            }
+            break;
+        case 11:
+        case 12:
+            if (field_9a0 == 1.8f) {
+                custom = false;
+            }
+            break;
+        case 13:
+            if (field_9a0 == 2.2f) {
+                custom = false;
+            }
+            break;
+        case 14:
+            if (field_9a0 == 2.4f) {
+                custom = false;
+            }
+            break;
+        }
+    }
+    f32 q2;
+    f32 q0;
+    f32 q1;
+    if (field_96c) {
+        q0 = field_98c;
+        q1 = field_bc4;
+        q2 = field_bc8;
+    } else {
+        q0 = 0.0f;
+        q1 = 0.0f;
+        q2 = 0.0f;
+    }
+    const Unk_SurfaceSize* size = reinterpret_cast<const Unk_SurfaceSize*>(surface);
+    f32 width = static_cast<f32>(size->field_4c);
+    f32 height = static_cast<f32>(size->field_50);
+    s32 mode = Unk_24e09bc;
+    bool pq = mode == 3 || mode == 5;
+    s32 space = field_96c ? field_974 : 0;
+    Unk_42f540_Params params;
+    params.field_0 = surface;
+    params.field_8 = a;
+    params.field_c = b;
+    params.field_10 = c;
+    bool hdr = static_cast<u32>(mode - 1) < 3;
+    params.field_14 = arg4;
+    params.field_18 = *color;
+    params.field_28 = arg6;
+    params.field_2c = space;
+    params.field_30 = conversion;
+    params.field_70 = *matrix;
+    params.field_b0 = p0;
+    params.field_b4 = p1;
+    params.field_b8 = 100.0f;
+    params.field_bc = q0;
+    params.field_c0 = q1;
+    params.field_c4 = q2;
+    params.field_c8 = custom;
+    params.field_cc = d;
+    params.field_d0 = e;
+    params.field_d4 = f;
+    params.field_d8 = g;
+    params.field_dc = p2;
+    if (!(field_96c && field_974 == 1)) {
+        Unk_430250(false, hdr, pq, false, &params, 0.0f, 0.0f, width, height);
+        if (mode == 1) {
+            Unk_430250(false, hdr, true, false, &params, width * 0.25f, 0.0f, width, height);
+        }
+    }
+    if (field_96c) {
+        s32 second = field_974;
+        if (second != 0) {
+            Unk_430250(true, hdr, pq, second != 1, &params, 0.0f, 0.0f, width, height);
+            if (mode == 1) {
+                Unk_430250(true, hdr, true, second != 1, &params, width * 0.25f, 0.0f, width, height);
+            }
+        }
+    }
+    return 0;
+}
+
+// 0x7100431b40: the colour chart's look-up textures for the output's colour
+// spaces, drawn again when they or field_bc4 and field_bc8 changed (what they
+// were drawn for is kept in field_10e4); 1 without an HDR output
+// NON_MATCHING: the original copies the colour spaces into the state through
+// a temporary (stores to it that nothing reads), gives gamma's 1 a block of
+// its own (here materialised before the test) and keeps `mode - 1` where this
+// keeps `mode`.
+s32 CPostEffect::Unk_431b40() {
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    if (Unk_24e09bc == 0) {
+        return 1;
+    }
+    util->Unk_46ec80(Unk_TextureAt(field_5d8)->field_30, Unk_TextureAt(field_5d8)->field_34);
+    MATRIXT44 conversion;
+    {
+        MATRIXT44 m2;
+        MATRIXT44 m;
+        Unk_Identity(&m);
+        MATRIXT44_MatrixMultiply(&m, &m, &field_b3c);
+        MATRIXT44_MatrixMultiply(&m2, &m, &field_9b4[1]);
+        MATRIXT44_MatrixMultiply(&conversion, &m2, &field_9b4[0]);
+    }
+    f32 gamma;
+    if (field_97c != 0 || field_8c4.field_0 <= 0.0f) {
+        gamma = 1.0f;
+    } else {
+        gamma = 2.2f / field_8c4.field_0;
+    }
+    f32 high = field_1138;
+    f32 limit = field_113c;
+    s32 mode = Unk_24e09bc;
+    bool pq = mode == 1 || mode == 3 || mode == 5;
+    if (mode == 1 || mode == 3 || mode == 5) {
+        util->Unk_480740(util->field_29b08[3], true, true, &conversion, false, 0, gamma, 4.0f, -1.0f, 0.0f);
+    }
+    f32 range = pq ? 4.0f : 4.5f;
+    f32 low = pq ? -1.0f : -2.0f;
+    bool hdr = static_cast<u32>(mode - 1) < 3;
+    {
+        MATRIXT44 identity;
+        Unk_Identity(&identity);
+        util->Unk_480740(hdr ? util->field_29b08[1] : util->field_29b00, false, true, &identity, false, 0, 1.0f, range,
+                         low, limit);
+    }
+    s32 result = util->Unk_480740(hdr ? util->field_29b08[2] : util->field_29b08[0], false, true, &conversion, false,
+                                  0, gamma, range, low, high);
+    struct {
+        Unk_410f90 field_0;
+        Unk_410f90 field_20;
+        f32 field_40;
+        f32 field_44;
+        f32 field_48;
+    } state;
+    state.field_0 = field_ba4;
+    state.field_20 = field_b84;
+    if (field_96c) {
+        state.field_40 = field_bc4;
+        state.field_44 = field_bc8;
+    } else {
+        state.field_40 = 0.0f;
+        state.field_44 = 0.0f;
+    }
+    state.field_48 = 1.0f;
+    if (memcmp(field_10e4, &state, sizeof(state)) != 0) {
+        Unk_Float2 scale(1.0f, 1.0f);
+        {
+            Unk_Float2 zero(0.0f, 0.0f);
+            util->Unk_481000(util->field_29b08[6], false, &zero, &scale, 1.0f, state.field_40, state.field_44,
+                             &state.field_0, true, true, &state.field_20, false, 0);
+        }
+        {
+            Unk_Float2 zero(0.0f, 0.0f);
+            util->Unk_481000(util->field_29b08[7], false, &zero, &scale, state.field_48, state.field_40,
+                             state.field_44, &state.field_20, true, true, &state.field_20, false, 0);
+        }
+        scale = Unk_Float2(0.75f, 0.75f);
+        {
+            Unk_Float2 zero(0.0f, 0.0f);
+            util->Unk_481000(util->field_29b08[4], true, &zero, &scale, state.field_48, state.field_40,
+                             state.field_44, &state.field_0, true, true, &state.field_20, false, 0);
+        }
+        {
+            Unk_Float2 zero(0.0f, 0.0f);
+            result = util->Unk_481000(util->field_29b08[5], true, &zero, &scale, state.field_48, state.field_40,
+                                      state.field_44, &state.field_20, true, true, &state.field_20, false, 0);
+        }
+        memcpy(field_10e4, &state, sizeof(state));
+    }
+    return result;
+}
+
+// 0x71004320b0: Unk_48cc30 from `source` and field_1f0 to field_218 (the
+// output `target`, else texture field_5f8) with the camera's planes
+// NON_MATCHING: the original folds the far plane's last two selects into one
+// (fccmp, as in 0x7100427ad0) and keeps the sigma in s12 (here s8): about
+// 100 instructions.
+s32 CPostEffect::Unk_4320b0(Unk_RenderTexture* source, Unk_RenderTexture* target, bool flag, bool force) {
+    if (!force && !field_10de) {
+        return 0;
+    }
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    Unk_RenderTexture* temp = field_1f0;
+    Unk_RenderTexture* copy = field_1f8;
+    Unk_RenderTexture* blur0 = field_200;
+    Unk_RenderTexture* blur1 = field_208;
+    Unk_RenderTexture* composite = field_210;
+    Unk_RenderTexture* other = field_218;
+    Unk_RenderTexture* output = target != nullptr ? nullptr : Unk_TextureAt(field_5f8);
+    MATRIXT44 projection;
+    f32 scale = field_6c4;
+    f32 w = scale * (field_6d0 * field_420);
+    f32 h = scale * field_6d0;
+    f32 xw = field_6d4 * w;
+    f32 yh = h * field_6d8;
+    Unk_40f8d0(&projection, false, true, xw - w, w + xw, yh - h, h + yh, scale, field_6c8);
+    f32 a0 = field_ec0;
+    f32 a3 = field_ecc;
+    f32 a4 = field_ed0;
+    f32 a5 = field_ed4;
+    f32 a6 = field_ed8;
+    f32 a1 = field_ec4;
+    f32 sigma = field_f00;
+    bool depth = field_10df;
+    f32 a2 = field_ec8;
+    f32 blur2 = field_ef8;
+    f32 blur3 = field_efc;
+    s32 count = field_ebc;
+    if (sigma <= 0.0f) {
+        u32 width = field_30->field_8;
+        if (field_410 != 0) {
+            width = field_410;
+        }
+        sigma = static_cast<f32>(blur1->field_54) / static_cast<f32>(width) * 4.0f * 2.0f;
+    }
+    s32 blurCount = field_f04;
+    Unk_4320b0_Vector v0 = field_edc_v;
+    s32 mode = Unk_E88();
+    CRenderTexture* source3 = Unk_E90();
+    Unk_4320b0_Vector v1 = Unk_E98();
+    Unk_4320b0_Vector v2 = field_ea8_v;
+    s32 kind = flag ? 4 : 0;
+    f32 low = field_8f4;
+    f32 x = field_90c;
+    if (x > 0.0f) {
+        f32 high = field_8f8;
+        low = x < low ? low : (x > high ? high : x);
+        f32 y = field_910;
+        if (y > 0.0f) {
+            low = Unk_Less(low, y);
+        }
+    }
+    f32 current = field_6c4;
+    f32 before = field_ef0;
+    f32 now = field_eec;
+    if (Unk_4622e0(current, field_6c8, now, before)) {
+        f32 next = now > before ? before : current;
+        current = Unk_Greater(next, current);
+    }
+    f32 nearPlane = low > current ? low : current;
+    f32 high = field_8f8;
+    f32 y = field_910;
+    if (y > 0.0f) {
+        f32 low2 = field_8f4;
+        high = y < low2 ? low2 : (y > high ? high : y);
+        f32 x2 = field_90c;
+        if (x2 > 0.0f) {
+            high = Unk_Greater(high, x2);
+        }
+    }
+    current = field_6c8;
+    before = field_ef0;
+    now = field_eec;
+    if (Unk_4622e0(field_6c4, current, now, before)) {
+        f32 next = now < before ? before : current;
+        current = next < current ? next : current;
+    }
+    f32 farPlane = high < current ? high : current;
+    f32 fade[2];
+    const f32* range = nullptr;
+    if (field_eb8 && Unk_4622e0(field_6c4, field_6c8, field_eec, field_ef0)) {
+        f32 k = 1.0f / (field_eec - field_ef0);
+        fade[0] = k;
+        fade[1] = 0.0f - field_ef0 * k;
+        range = fade;
+    }
+    s32 linear = field_ef4 == -2 ? 1 : field_ef4;
+    util->Unk_48cc30(field_6c4, field_6c8, field_6d0, a0, a1, a2, a3, a4, Unk_AsTexture(temp), Unk_AsTexture(copy),
+                     Unk_AsTexture(blur0), Unk_AsTexture(blur1), Unk_AsTexture(composite), Unk_AsTexture(other),
+                     Unk_AsTexture(output), reinterpret_cast<Unk_GPUTexture*>(target), &projection, count, a5, a6,
+                     Unk_Frame(field_298), depth, range, nearPlane, farPlane, kind, Unk_AsTexture(source), blurCount,
+                     sigma, blur2, blur3, reinterpret_cast<const Unk_Vector3*>(&v0), mode, source3,
+                     reinterpret_cast<const Unk_Vector3*>(&v1), reinterpret_cast<const Unk_Vector3*>(&v2), linear,
+                     false);
+    return 0;
+}
+
+// NON_MATCHING: written this round, not matching yet (tools/check.py --diff shows
+// what differs).
+// 0x7100432570: the view's adaptation (Unk_48fb40 from texture field_5fc to
+// texture field_600 with field_238's texture of the view), then its numbers
+// moved on a frame
+s32 CPostEffect::Unk_432570() {
+    if (!field_10df) {
+        return 0;
+    }
+    s32 view = field_298;
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    s32 active = field_298;
+    Unk_RenderTexture* work = field_238[active];
+    Unk_RenderTexture* source = Unk_TextureAt(field_5fc);
+    Unk_RenderTexture* target = Unk_TextureAt(field_600);
+    s32 mode = field_f0c;
+    Unk_RenderTexture* history = static_cast<u32>(mode - 1) < 2 ? field_d70 : nullptr;
+    f32 speed = field_f28;
+    f32 exposure = field_8c0.field_0;
+    f32 luminance = Unk_SceneLuminance(this);
+    s32 depthSource = field_58;
+    Unk_RenderTexture* external = field_50;
+    bool own = depthSource == 8 || external != nullptr;
+    Unk_RenderTexture* depth;
+    s32 type;
+    if (depthSource == 8) {
+        type = FXDCT_GetDepthCastTypeFromDepthFormat(depth->field_38);
+        depth = field_190->field_80[static_cast<s32>(field_190->field_94)];
+    } else {
+        depth = own ? external : Unk_TextureAt(field_5e0);
+        if (Unk_IsDepthFormat(depth->field_38)) {
+            type = FXDCT_GetDepthCastTypeFromDepthFormat(depth->field_38);
+        } else {
+            type = Unk_CheckDepthCastType(Unk_DepthCastType(own ? depthSource : 3));
+        }
+    }
+    f32 ratio = exposure / luminance;
+    Unk_Rect depthScale;
+    depthScale.field_0 = 1.0f;
+    depthScale.field_4 = 0.0f;
+    depthScale.field_8 = 1.0f;
+    depthScale.field_c = 0.0f;
+    Unk_Rect viewScale;
+    viewScale.field_0 = 1.0f;
+    viewScale.field_4 = 0.0f;
+    viewScale.field_8 = 1.0f;
+    viewScale.field_c = 0.0f;
+    if (mode == 2) {
+        f32 scale;
+        f32 bias;
+        if (field_50 != nullptr) {
+            scale = field_60;
+            bias = field_64;
+        } else {
+            bias = 0.0f;
+            scale = 1.0f;
+        }
+        s32 from;
+        if (depthSource == 8) {
+            if (field_1014) {
+                scale = -1.0f;
+                bias = 1.0f;
+            }
+            from = 0;
+        } else {
+            bias = own ? bias : 0.0f;
+            scale = own ? scale : 1.0f;
+            from = own ? 6 : 2;
+        }
+        depthScale = Unk_DepthFactors(from, 0, scale, bias);
+        viewScale = field_258[view];
+        if (viewScale.field_0 == 0.0f) {
+            viewScale = Unk_DepthFactors(2, 0, 1.0f, 0.0f);
+        }
+    }
+    f32 x = field_d64.field_0[0].field_0;
+    f32 y = field_d64.field_0[1].field_0;
+    f32 size = x < y ? x : y;
+    x = x > 0.0f ? x : -x;
+    y = y > 0.0f ? y : -y;
+    size = field_f1c < size ? field_f1c : size;
+    f32 low = field_240[view];
+    f32 high = field_248[view];
+    f32 width = field_f20;
+    f32 height = field_f24;
+    {
+        Unk_Float4 colour(1.0f, 1.0f, 1.0f, 0.0f);
+        Unk_Float4 colour2(1.0f, 1.0f, 1.0f, 0.0f);
+        util->Unk_48fb40(ratio, speed, field_6c4, field_6c8, size, low, high, width * 0.5f, Unk_AsTexture(target),
+                         Unk_AsTexture(source), Unk_AsTexture(history), Unk_AsTexture(work),
+                         Unk_AsTexture(own ? depth : nullptr), mode == 2, field_d6c, &field_d64, type,
+                         reinterpret_cast<const Unk_Float2*>(&depthScale), reinterpret_cast<const Unk_Float2*>(&viewScale),
+                         width, height * 0.5f, height, field_7f8 / field_250[view], &colour, &colour2, false);
+    }
+    {
+        Unk_Float4 ones(1.0f, 1.0f, 1.0f, 1.0f);
+        Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
+        util->Unk_47dfa0(0.0f, 0.0f, 0.0f, 1.0f, target, Unk_AsTexture(work), 0, &ones, 0, false, false, 1, &zero,
+                         nullptr, -1);
+    }
+    if (field_f10) {
+        Unk_Float4 colour(0.1f, 1.0f, 0.1f, 0.0f);
+        Unk_Float4 colour2(1.0f, 0.1f, 1.0f, 0.0f);
+        util->Unk_48fb40(ratio, speed, field_6c4, field_6c8, size, low, high, width * 0.5f, Unk_AsTexture(target),
+                         Unk_AsTexture(source), Unk_AsTexture(history), Unk_AsTexture(work),
+                         Unk_AsTexture(own ? depth : nullptr), mode == 2, field_d6c, &field_d64, type,
+                         reinterpret_cast<const Unk_Float2*>(&depthScale), reinterpret_cast<const Unk_Float2*>(&viewScale),
+                         width, height * 0.5f, height, field_7f8 / field_250[view], &colour, &colour2, false);
+    }
+    f32 next = 1.0f / (1.0f / field_240[view] + 1.0f);
+    field_240[view] = std::max(field_f14, next);
+    f32 most = field_f18;
+    if (!(most > 0.0f && most <= 1.0f)) {
+        most = powf(field_f14, 0.7f);
+    }
+    f32 next2 = 1.0f / (1.0f / field_248[view] + 1.0f);
+    field_248[view] = std::max(most, next2);
+    field_250[view] = field_7f8;
+    field_258[view] = Unk_DepthFactors(2, 0, 1.0f, 0.0f);
+    return 0;
+}
+
+// 0x7100433d00: `source` tone mapped into the history texture (or into
+// field_670's texture, then copied into it)
+// NON_MATCHING: register allocation only (s10 to s13, x21/x22, and `space`
+// in w8 where the original keeps a `mov w9, wzr`): about 120 instructions.
+s32 CPostEffect::Unk_433d00(Unk_RenderTexture* source) {
+    field_10e1 = false;
+    s32 format;
+    f32 scale;
+    f32 scale2;
+    f32 dither;
+    bool hasGamma;
+    f32 gamma;
+    MATRIXT44* matrix;
+    MATRIXT44* matrix2;
+    Unk_42df80(&format, &scale, &scale2, &dither, &hasGamma, &gamma, &matrix, &matrix2, false, false);
+    f32 width = field_420;
+    f32 height = field_424;
+    f32 edgeX = field_bf4;
+    f32 edgeY = field_bf8;
+    if (!field_bec) {
+        edgeX = 0.0f;
+        edgeY = 0.0f;
+    }
+    f32 a = field_bfc;
+    f32 b = field_c00;
+    f32 c = field_bf0;
+    f32 step = field_968;
+    s32 fmt = format;
+    bool flag = field_67b;
+    Unk_RenderTexture* history = Unk_428f00();
+    Unk_RenderTexture* target;
+    if ((!Unk_IsHdrOutput() || Unk_IsHdrDirect())) {
+        target = history;
+    } else {
+        target = Unk_428f00_Previous(field_190);
+        Unk_49ad30(target, 0, 0, 0, 0);
+    }
+    f32 w = static_cast<f32>(target->field_54);
+    f32 h = static_cast<f32>(target->field_58);
+    Unk_SetTarget(Unk_AsTexture(target));
+    s32 space = field_96c ? field_974 : 0;
+    IGPUSurface* surface =
+        reinterpret_cast<IGPUSurface*>(Unk_AsTexture(target)->field_b8[Unk_AsTexture(target)->field_a0]);
+    f32 aspect = width / height;
+    Unk_Float4 colour(field_8e8, field_8e8, field_8e8, field_8e8);
+    reinterpret_cast<CRenderGlare*>(field_198)->TonemapToSurface(
+        surface, false,
+        Unk_AsTexture(source), hasGamma, fmt, &colour, matrix, w, h, 0.0f, 0.0f, dither, gamma, scale, scale2, step,
+        matrix2, field_8c0.field_0 / Unk_SceneLuminance(this), &field_8d4, field_8e4, edgeX, edgeY, a, b, c,
+        aspect, !flag, nullptr, space, 0, -1, 0.6f, nullptr);
+    if (!(!Unk_IsHdrOutput() || Unk_IsHdrDirect())) {
+        Unk_430a10(target, history, Unk_AsTexture(history)->field_b8[Unk_AsTexture(history)->field_a0], false);
+        Unk_426a50();
+    }
+    field_10e1 = true;
+    return 0;
+}
+
+// 0x7100434000: `source` tone mapped into the feedback's tone map texture (or
+// field_670's one, then copied into it), then the feedback blended from it
+// NON_MATCHING: register allocation only (x21/x22 zeroed in the other order,
+// `space` in w8 where the original keeps a `mov w9, wzr`, the TonemapToSurface
+// argument stores scheduled differently).
+s32 CPostEffect::Unk_434000(Unk_RenderTexture* source) {
+    field_10e1 = false;
+    Unk_RenderTexture* history = field_268;
+    if (history == nullptr) {
+        history = Unk_FeedbackTexture();
+    }
+    Unk_RenderTexture* previous = nullptr;
+    Unk_RenderTexture* current = nullptr;
+    if (field_260 != nullptr) {
+        s32 view = field_298;
+        Unk_4a5d10_Self* textures = field_260[view];
+        s32 index = field_290[view] & 1;
+        current = index < textures->field_30 ? textures->field_38[index] : nullptr;
+        index ^= 1;
+        previous = index < textures->field_30 ? textures->field_38[index] : nullptr;
+    }
+    s32 format;
+    f32 scale;
+    f32 scale2;
+    f32 dither;
+    bool hasGamma;
+    f32 gamma;
+    MATRIXT44* matrix;
+    MATRIXT44* matrix2;
+    Unk_42df80(&format, &scale, &scale2, &dither, &hasGamma, &gamma, &matrix, &matrix2, false, false);
+    s32 fmt = format;
+    Unk_RenderTexture* target;
+    if (!Unk_IsHdrOutput() || Unk_IsHdrDirect()) {
+        target = history;
+    } else {
+        target = Unk_428f00_Previous(field_190);
+        Unk_49ad30(target, 0, 0, 0, 0);
+    }
+    f32 h = static_cast<f32>(target->field_58);
+    f32 w = static_cast<f32>(target->field_54);
+    f32 edgeX = field_bf4;
+    f32 edgeY = field_bf8;
+    if (!field_bec) {
+        edgeX = 0.0f;
+        edgeY = 0.0f;
+    }
+    f32 a = field_bfc;
+    f32 b = field_c00;
+    f32 c = field_bf0;
+    f32 width = field_420;
+    f32 height = field_424;
+    bool flag = field_67b;
+    Unk_SetTarget(Unk_AsTexture(target));
+    s32 space = field_96c ? field_974 : 0;
+    IGPUSurface* surface =
+        reinterpret_cast<IGPUSurface*>(Unk_AsTexture(target)->field_b8[Unk_AsTexture(target)->field_a0]);
+    f32 aspect = width / height;
+    {
+        Unk_Float4 colour(field_8e8, field_8e8, field_8e8, field_8e8);
+        reinterpret_cast<CRenderGlare*>(field_198)->TonemapToSurface(
+            surface, false, Unk_AsTexture(source), hasGamma, fmt, &colour, matrix, w, h, 0.0f, 0.0f, dither, gamma,
+            scale, scale2, field_968, matrix2, field_8c0.field_0 / Unk_SceneLuminance(this), &field_8d4, field_8e4,
+            edgeX, edgeY, a, b, c, aspect, !flag, nullptr, space, 0, -1, 0.6f, nullptr);
+    }
+    if (!(!Unk_IsHdrOutput() || Unk_IsHdrDirect())) {
+        Unk_430a10(target, history, Unk_AsTexture(history)->field_b8[Unk_AsTexture(history)->field_a0], false);
+        Unk_426a50();
+    }
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    if (!field_270) {
+        Unk_SetTarget(Unk_AsTexture(current));
+    }
+    f32 weight = field_bd0;
+    f32 weight2 = field_bd4 < 0.0f ? 1.0f - weight : field_bd4;
+    if (field_bd8_f > 0.0f) {
+        weight = powf(weight, field_7f4 / field_bd8_f);
+        weight2 = 1.0f - powf(1.0f - weight2, field_7f4 / field_bd8_f);
+    }
+    const MATRIXT44* m0 = field_b34[2] ? &field_9b4[2] : nullptr;
+    const MATRIXT44* m1 = field_b34[3] ? &field_9b4[3] : nullptr;
+    f32 ratio = field_bdc > 0.0f ? field_bdc : field_420;
+    util->Unk_4821a0(Unk_AsTexture(previous), Unk_AsTexture(history), Unk_AsTexture(current), field_270, false,
+                     reinterpret_cast<const f32*>(m0), const_cast<MATRIXT44*>(m1), weight, weight2, ratio, 0, 0);
+    field_10e1 = true;
+    return 0;
+}
+
+// NON_MATCHING: written this round, not matching yet (tools/check.py --diff shows
+// what differs).
+// 0x71004347e0: CPostEffect::EndPostEffectScene_Process (its log lines name
+// it): the pre-process, the passes (once more for the second eye), the copy
+// into the output and the post-process
+s32 CPostEffect::EndPostEffectScene_Process(u32 flags, s32 samples) {
+    if (!field_0) {
+#line 30034
+        PPFX_ERROR("CPostEffect::EndPostEffectScene_Process(): EndPostEffectScene() called without BeginPostEffectScene().\n");
+        return -1;
+    }
+    field_0 = false;
+    field_678 = false;
+    field_679 = false;
+    field_67a = false;
+    field_10e1 = false;
+    Unk_425750();
+    field_67b = Unk_24e09b8 || (flags & 0x10) != 0;
+    if (field_7f4 <= 0.0f) {
+        field_67b = true;
+    }
+    if (flags & 2) {
+        if (!field_104c) {
+            Unk_24e53e0 = nullptr;
+        }
+        s32 result = Unk_49e3a0(0x1f, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+        return result < 0 ? result : 0;
+    }
+    bool copy = field_5d0 == 2 || field_5c8 != 0 || field_5cc != 0;
+    u64 surface = field_1168;
+    f32 x = field_5a4;
+    f32 y = field_5a8;
+    f32 width = field_5ac;
+    f32 height = field_5b0;
+    if (copy) {
+        CRenderTexture* first = Unk_AsTexture(reinterpret_cast<Unk_4a5d10_Self*>(field_1a8)->field_38[0]);
+        field_1168 = reinterpret_cast<u64>(first->field_d0[first->field_a0][0]);
+        field_5a4 = 1.0f;
+        field_5a8 = 1.0f;
+        field_5ac = 0.0f;
+        field_5b0 = 0.0f;
+    }
+    s32 result = EndPostEffectScene_PreProcess(flags, samples);
+    if (result < 0) {
+#line 30160
+        PPFX_ERROR("CPostEffect::EndPostEffectScene_Process(): EndPostEffectScene_PreProcess() failed (0x%x: %s).\n", result, Unk_446df0(result));
+    }
+    result = Unk_435ed0();
+    if (result < 0) {
+#line 30170
+        PPFX_ERROR("CPostEffect::EndPostEffectScene_Process(): EndPostEffectScene_InternalProcess() failed (0x%x: %s).\n", result, Unk_446df0(result));
+    }
+    if (field_5d0 == 2) {
+        Unk_RenderTexture* scene = field_70;
+        field_70 = scene != nullptr ? scene : Unk_TextureAt(field_5d8);
+        u32 toneMap = field_8c8;
+        Unk_Float exposure = field_8c0;
+        f32 scale = field_7fc;
+        f32 luminance = field_7f8;
+        f32 vignette = field_848;
+        bool fade = field_eb8;
+        field_78 = 1;
+        MATRIXT44 matrix0 = field_9b4[0];
+        MATRIXT44 matrix1 = field_9b4[1];
+        f32 b = field_8d0;
+        f32 a = field_8cc;
+        Unk_Float gamma = field_8c4;
+        field_8cc = 1.0f;
+        field_8d0 = 1.0f;
+        field_8c0 = 1.0f;
+        field_8c4 = 1.0f;
+        field_7f8 = 1.0f;
+        field_7fc = 1.0f;
+        field_848 = 0.0f;
+        field_eb8 = false;
+        field_8c8 = field_59c ? 0x40004 : 1;
+        Unk_Identity(&field_9b4[0]);
+        Unk_Identity(&field_9b4[1]);
+        field_9 = true;
+        field_678 = false;
+        field_679 = false;
+        field_67a = false;
+        field_10e1 = false;
+        Unk_425750();
+        field_67b = true;
+        CRenderTexture* second = Unk_AsTexture(reinterpret_cast<Unk_4a5d10_Self*>(field_1a8)->field_38[1]);
+        field_1168 = reinterpret_cast<u64>(second->field_d0[second->field_a0][0]);
+        result = Unk_435ed0();
+        field_9 = false;
+        if (result < 0) {
+#line 30263
+            PPFX_ERROR("CPostEffect::EndPostEffectScene_Process(): EndPostEffectScene_InternalProcess() failed (0x%x: %s).\n", result, Unk_446df0(result));
+        }
+        field_8c8 = toneMap;
+        field_8c0 = exposure;
+        field_7fc = scale;
+        field_7f8 = luminance;
+        field_848 = vignette;
+        field_70 = scene;
+        field_78 = 0;
+        field_8d0 = b;
+        field_8cc = a;
+        field_8c4 = gamma;
+        field_eb8 = fade;
+        field_9b4[0] = matrix0;
+        field_9b4[1] = matrix1;
+    }
+    if (copy) {
+        field_1168 = surface;
+        field_5a4 = x;
+        field_5a8 = y;
+        field_5ac = width;
+        field_5b0 = height;
+        s32 left = field_5c8;
+        s32 right = field_5d0 == 2 ? field_5cc : 0;
+        CRenderTextureArray* outputs = field_1a8;
+        CRenderTexture* first = nullptr;
+        CRenderTexture* other = nullptr;
+        if (reinterpret_cast<Unk_4a5d10_Self*>(outputs)->field_30 >= 1) {
+            first = Unk_AsTexture(reinterpret_cast<Unk_4a5d10_Self*>(outputs)->field_38[0]);
+            if (field_5d0 == 2 && reinterpret_cast<Unk_4a5d10_Self*>(outputs)->field_30 != 1) {
+                other = Unk_AsTexture(reinterpret_cast<Unk_4a5d10_Self*>(outputs)->field_38[1]);
+            }
+        }
+        Unk_RenderTexture* source = field_5b8;
+        if (source == nullptr) {
+            source = field_70 != nullptr ? field_70 : Unk_TextureAt(field_5d8);
+        }
+        Unk_RenderTexture* source2 = field_5c0;
+        if (source2 == nullptr) {
+            source2 = field_70 != nullptr ? field_70 : Unk_TextureAt(field_5d8);
+        }
+        f32 amount = field_8d0 * (Unk_434570() ? 1.0f : 0.0f) * field_198->field_138;
+        Unk_RenderTexture* glare = amount > 0.0f ? field_198->field_420 : nullptr;
+        f32 ratio = field_5d4;
+        Unk_RenderTexture* scene = field_70 != nullptr ? field_70 : Unk_TextureAt(field_5d8);
+        s32 blend = Unk_BlendMode(field_be0);
+        const Unk_SurfaceSize* size = reinterpret_cast<const Unk_SurfaceSize*>(field_1168);
+        f32 sw = static_cast<f32>(size->field_4c);
+        f32 sh = static_cast<f32>(size->field_50);
+        f32 value = field_5d0 == 2 ? field_8d4.field_0[3].field_0 : 1.0f;
+        CTextureUtil* util = Unk_GetTextureUtil();
+        Unk_ReleaseTextureUtil();
+        result = util->Unk_498ab0(field_5a4 * sw, field_5a8 * sh, field_5ac * sw, field_5b0 * sh, amount * ratio, value,
+                                  reinterpret_cast<void*>(field_1168), true, first, other, Unk_AsTexture(glare), left,
+                                  right, Unk_AsTexture(scene), Unk_AsTexture(source), Unk_AsTexture(source2), blend,
+                                  false, 0);
+    }
+    if (field_8b6) {
+        return result;
+    }
+    result = Unk_438510();
+    if (result < 0) {
+#line 30436
+        PPFX_ERROR("CPostEffect::EndPostEffectScene_Process(): EndPostEffectScene_PostProcess() failed (0x%x: %s).\n", result, Unk_446df0(result));
+    }
+    return result < 0 ? result : 0;
+}
+
 // 0x7100435ed0: CPostEffect::EndPostEffectScene_InternalProcess (its log
 // lines name it): every effect of the frame, the glare and the tone map
 // NON_MATCHING: a first draft; the effects' order and calls are the
@@ -6870,10 +9413,10 @@ s32 CPostEffect::Unk_435ed0() {
     if (field_10dc) {
         Unk_49e3a0(1, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
         reinterpret_cast<CRenderTextureArray*>(field_190)->Unk_4a5ff0(1, 0x7fffffff);
-        result = Unk_42c300();
+        result = ApplyEffects_GenerateNormalAndLinearDepth();
     }
     if (field_10de) {
-        Unk_4320b0(Unk_TextureAt(field_5f4), nullptr, 0, 0);
+        Unk_4320b0(Unk_TextureAt(field_5f4), nullptr, false, false);
         result = 0;
     }
     if (field_10df) {
@@ -7291,7 +9834,7 @@ s32 CPostEffect::Unk_435ed0() {
         PPFX_ERROR("CPostEffect::EndPostEffectScene_InternalProcess(): m_pRenderGlare->TonemapToSurface() failed (0x%x: %s).\n",
                    status, Unk_446df0(status));
     }
-    Unk_4386d0();
+    DrawDebugBuffers();
     return status < 0 ? status : 0;
 }
 

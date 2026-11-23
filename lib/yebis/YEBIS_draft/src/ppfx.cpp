@@ -146,7 +146,7 @@ IPfxBaseContext::~IPfxBaseContext() {
     if (s_pSinglePostEffect != nullptr) {
         PPFX_SAFE_RELEASE_INTERFACE(Unk_24e00e8);
         PPFX_SAFE_RELEASE_INTERFACE(Unk_24e00f0);
-        s32 result = s_pSinglePostEffect->Unk_419690(nullptr);
+        s32 result = s_pSinglePostEffect->Uninitialize(nullptr);
         if (result < 0) {
 #line 729
             PPFX_ERROR("IPfxBaseContext::~IPfxBaseContext(): s_pSinglePostEffect->Uninitialize() failed (0x%x: %s).\n",
@@ -311,7 +311,7 @@ s32 Unk_4180d0(u64 self) {
     if (s_pSinglePostEffect != nullptr) {
         PPFX_SAFE_RELEASE_INTERFACE(Unk_24e00e8);
         PPFX_SAFE_RELEASE_INTERFACE(Unk_24e00f0);
-        s32 result = s_pSinglePostEffect->Unk_419690(nullptr);
+        s32 result = s_pSinglePostEffect->Uninitialize(nullptr);
         if (result < 0) {
 #line 1227
             PPFX_ERROR("IPfxBaseContext::Uninitialize(): s_pSinglePostEffect->Uninitialize() failed (0x%x: %s).\n", result,

@@ -42,6 +42,25 @@ struct Unk_SiGfxQuery {
     virtual bool vf18(const Unk_SiGfxQueryDesc* desc);  // "ISiGfxQuery::Create()"
 };
 
+// the queue ISiGfxDevice gives (placeholder): command lists are executed on
+// it, and waited for
+struct Unk_SiGfxQueue {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10(u32 count, void** lists);  // executes command lists
+    virtual void vf11();
+    virtual u64 vf12();         // signals
+    virtual void vf13(u64 value);  // waits
+};
+
 // ISiGfxDevice
 struct Unk_SiGfxDevice {
     virtual void vf0();
@@ -63,10 +82,10 @@ struct Unk_SiGfxDevice {
     virtual void vf16();
     virtual void vf17();
     virtual void vf18();
-    virtual void vf19();
+    virtual Unk_SiGfxQueue* vf19();  // the queue
     virtual void vf20();
     virtual void vf21();
-    virtual void vf22();
+    virtual void* vf22(u32 arg1, u32 arg2, void* arg3);  // makes a command list
     virtual void vf23();
     virtual void vf24();
     virtual Unk_SiGfxPipelineState* vf25(u32 arg1, u32 arg2, void* allocator);  // makes a pipeline state
@@ -113,7 +132,8 @@ struct Unk_SiGfxDevice {
     virtual Unk_SiGfxQuery* vf66(void* arg1, s32 arg2, void* arg3);  // "ISiGfxDevice::CreateQuery()"
     virtual void vf67();
     virtual void vf68();
-    virtual void vf69();
+    // makes a texture that wraps a device one (0x7100423160)
+    virtual struct Unk_SiGfxWrappedTexture* vf69(void* arg1, u32 arg2, void* arg3);
     virtual void vf70();
     virtual void vf71();
     virtual Unk_SiGfxInterface* vf72(void* arg1, u32 arg2, void* arg3);  // "ISiGfxDevice::CreateRenderTarget()"

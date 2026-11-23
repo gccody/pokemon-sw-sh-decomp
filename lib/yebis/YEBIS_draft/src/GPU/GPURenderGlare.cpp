@@ -23,6 +23,8 @@ void Unk_4a1010();
 void Unk_4a15b0();
 void Unk_4a0a30();
 void Unk_4a2b80();
+// 0x71004a1690 (GPUGlareDef.cpp): the glare definitions' styles from their seeds
+s32 Unk_4a1690(const s32* seeds);
 
 namespace PPFX {
 
@@ -169,61 +171,61 @@ static inline u32 Unk_PackColor(const Unk_Float4& color) {
 
 // 0x7100455b50 (its log line names it): the resources' device objects, and
 // the 64x64 circle of field_348 (m_pGPUTextureTrimCircle) when it has
-// field_340
+// m_pGhostGeneration
 s32 CRenderGlare::CreateDeviceResources() {
     if (field_20 == nullptr) {
         return -1;
     }
-    s32 result = field_2f0->vf0(field_20);
+    s32 result = m_pGlareSource->vf0(field_20);
     if (result < 0) {
         return result;
     }
-    result = field_398->vf0(field_20);
+    result = m_pGlareResult->vf0(field_20);
     if (result < 0) {
         return result;
     }
-    if (field_3b8 != nullptr) {
-        result = field_3b8->vf0(field_20);
+    if (m_pGlareResultUpsample != nullptr) {
+        result = m_pGlareResultUpsample->vf0(field_20);
         if (result < 0) {
             return result;
         }
     }
-    if (field_3b0 != nullptr) {
-        result = field_3b0->vf0(field_20);
+    if (m_pGlareResultAntialias != nullptr) {
+        result = m_pGlareResultAntialias->vf0(field_20);
         if (result < 0) {
             return result;
         }
     }
-    if (field_3a8 != nullptr) {
-        result = field_3a8->vf0(field_20);
+    if (m_pGlareResultLensDistortionFalloff != nullptr) {
+        result = m_pGlareResultLensDistortionFalloff->vf0(field_20);
         if (result < 0) {
             return result;
         }
     }
-    if (field_3a0 != nullptr) {
-        result = field_3a0->vf0(field_20);
+    if (m_pGlareResultChromaticAberration != nullptr) {
+        result = m_pGlareResultChromaticAberration->vf0(field_20);
         if (result < 0) {
             return result;
         }
     }
     s32 count = field_b0.field_18[5];
     for (s32 i = 0; i < count; i++) {
-        result = field_310[i]->vf0(field_20);
+        result = m_ppBloomGeneration[i]->vf0(field_20);
         if (result < 0) {
             return result;
         }
     }
-    result = field_318->vf0(field_20);
+    result = m_pBloomResult->vf0(field_20);
     if (result < 0) {
         return result;
     }
-    if (field_328 != nullptr) {
-        result = field_328->vf0(field_20);
+    if (m_pStarGeneration != nullptr) {
+        result = m_pStarGeneration->vf0(field_20);
         if (result < 0) {
             return result;
         }
-        for (u32 i = 0; i < static_cast<u32>(static_cast<CRenderTextureArray*>(field_328)->field_30); i++) {
-            Unk_GPUTexture* texture = Unk_GetTexture(static_cast<CRenderTextureArray*>(field_328)->Unk_Texture(i));
+        for (u32 i = 0; i < static_cast<u32>(static_cast<CRenderTextureArray*>(m_pStarGeneration)->field_30); i++) {
+            Unk_GPUTexture* texture = Unk_GetTexture(static_cast<CRenderTextureArray*>(m_pStarGeneration)->Unk_Texture(i));
             if (i < static_cast<u32>(field_b0.field_18[10])) {
                 texture->vf17(1);
             } else {
@@ -231,61 +233,61 @@ s32 CRenderGlare::CreateDeviceResources() {
             }
         }
     }
-    if (field_330 != nullptr) {
-        result = field_330->vf0(field_20);
+    if (m_pStarResult != nullptr) {
+        result = m_pStarResult->vf0(field_20);
         if (result < 0) {
             return result;
         }
     }
-    if (field_338 != nullptr) {
-        result = field_338->vf0(field_20);
+    if (m_pAnamorphicFlareResult != nullptr) {
+        result = m_pAnamorphicFlareResult->vf0(field_20);
         if (result < 0) {
             return result;
         }
     }
-    if (field_340 != nullptr) {
-        result = field_340->vf0(field_20);
+    if (m_pGhostGeneration != nullptr) {
+        result = m_pGhostGeneration->vf0(field_20);
         if (result < 0) {
             return result;
         }
-        for (u32 i = 0; i < static_cast<u32>(static_cast<CRenderTextureArray*>(field_340)->field_30); i++) {
-            Unk_GetTexture(static_cast<CRenderTextureArray*>(field_340)->Unk_Texture(i))->vf18(0);
+        for (u32 i = 0; i < static_cast<u32>(static_cast<CRenderTextureArray*>(m_pGhostGeneration)->field_30); i++) {
+            Unk_GetTexture(static_cast<CRenderTextureArray*>(m_pGhostGeneration)->Unk_Texture(i))->vf18(0);
         }
-        Unk_GetTexture(static_cast<CRenderTextureArray*>(field_340)->Unk_Texture(0))->vf18(1);
+        Unk_GetTexture(static_cast<CRenderTextureArray*>(m_pGhostGeneration)->Unk_Texture(0))->vf18(1);
     }
-    if (field_390 != nullptr) {
-        result = field_390->vf0(field_20);
+    if (m_pLightGhostLuminance != nullptr) {
+        result = m_pLightGhostLuminance->vf0(field_20);
         if (result < 0) {
             return result;
         }
     }
-    if (field_350 != nullptr) {
+    if (m_ppAfterimageGeneration != nullptr) {
         for (u32 i = 0; i < field_b0.field_4c; i++) {
-            result = field_350[i]->vf0(field_20);
+            result = m_ppAfterimageGeneration[i]->vf0(field_20);
             if (result < 0) {
                 return result;
             }
         }
     }
-    if (field_3c0 != nullptr) {
-        result = field_3c0->vf0(field_20);
+    if (m_pLightShaftBlurSource != nullptr) {
+        result = m_pLightShaftBlurSource->vf0(field_20);
         if (result < 0) {
             return result;
         }
     }
-    if (field_3d0 != nullptr) {
-        result = field_3d0->vf0(field_20);
+    if (m_pLightShaftResult != nullptr) {
+        result = m_pLightShaftResult->vf0(field_20);
         if (result < 0) {
             return result;
         }
     }
-    if (field_3c8 != nullptr) {
-        result = field_3c8->vf0(field_20);
+    if (m_pLightShaftGeneration != nullptr) {
+        result = m_pLightShaftGeneration->vf0(field_20);
         if (result < 0) {
             return result;
         }
     }
-    if (field_340 != nullptr) {
+    if (m_pGhostGeneration != nullptr) {
         f32 inner = 0.5f;
         result = field_20->vf60(64, 64, 1, 0, 0x3d, 0, 0, &field_348, 0);
         if (result < 0) {
@@ -319,53 +321,53 @@ s32 CRenderGlare::CreateDeviceResources() {
 
 // 0x7100456190: lets go of the device's resources
 s32 CRenderGlare::vf1() {
-    field_2f0->vf1();
-    field_318->vf1();
-    field_398->vf1();
-    if (field_3a0 != nullptr) {
-        field_3a0->vf1();
+    m_pGlareSource->vf1();
+    m_pBloomResult->vf1();
+    m_pGlareResult->vf1();
+    if (m_pGlareResultChromaticAberration != nullptr) {
+        m_pGlareResultChromaticAberration->vf1();
     }
-    if (field_3a8 != nullptr) {
-        field_3a8->vf1();
+    if (m_pGlareResultLensDistortionFalloff != nullptr) {
+        m_pGlareResultLensDistortionFalloff->vf1();
     }
-    if (field_3b0 != nullptr) {
-        field_3b0->vf1();
+    if (m_pGlareResultAntialias != nullptr) {
+        m_pGlareResultAntialias->vf1();
     }
-    if (field_3b8 != nullptr) {
-        field_3b8->vf1();
+    if (m_pGlareResultUpsample != nullptr) {
+        m_pGlareResultUpsample->vf1();
     }
     s32 count = field_b0.field_18[5];
     for (s32 i = 0; i < count; i++) {
-        field_310[i]->vf1();
+        m_ppBloomGeneration[i]->vf1();
     }
-    if (field_328 != nullptr) {
-        field_328->vf1();
+    if (m_pStarGeneration != nullptr) {
+        m_pStarGeneration->vf1();
     }
-    if (field_330 != nullptr) {
-        field_330->vf1();
+    if (m_pStarResult != nullptr) {
+        m_pStarResult->vf1();
     }
-    if (field_338 != nullptr) {
-        field_338->vf1();
+    if (m_pAnamorphicFlareResult != nullptr) {
+        m_pAnamorphicFlareResult->vf1();
     }
-    if (field_340 != nullptr) {
-        field_340->vf1();
+    if (m_pGhostGeneration != nullptr) {
+        m_pGhostGeneration->vf1();
     }
-    if (field_390 != nullptr) {
-        field_390->vf1();
+    if (m_pLightGhostLuminance != nullptr) {
+        m_pLightGhostLuminance->vf1();
     }
-    if (field_350 != nullptr) {
+    if (m_ppAfterimageGeneration != nullptr) {
         for (u32 i = 0; i < field_b0.field_4c; i++) {
-            field_350[i]->vf1();
+            m_ppAfterimageGeneration[i]->vf1();
         }
     }
-    if (field_3c0 != nullptr) {
-        field_3c0->vf1();
+    if (m_pLightShaftBlurSource != nullptr) {
+        m_pLightShaftBlurSource->vf1();
     }
-    if (field_3d0 != nullptr) {
-        field_3d0->vf1();
+    if (m_pLightShaftResult != nullptr) {
+        m_pLightShaftResult->vf1();
     }
-    if (field_3c8 != nullptr) {
-        field_3c8->vf1();
+    if (m_pLightShaftGeneration != nullptr) {
+        m_pLightShaftGeneration->vf1();
     }
     PPFX_SAFE_RELEASE_INTERFACE(field_348);
     return CGPUResourceManage::vf1();
@@ -384,35 +386,35 @@ s32 CRenderGlare::vf2() {
 s32 CRenderGlare::vf3() {
     CTextureUtil* util = Unk_GetTextureUtil();
     Unk_ReleaseTextureUtil();
-    UNK_DELETE(field_318);
-    UNK_DELETE(field_398);
-    UNK_DELETE(field_3a0);
-    UNK_DELETE(field_3a8);
-    UNK_DELETE(field_3b0);
-    UNK_DELETE(field_3b8);
-    UNK_DELETE(field_2f0);
-    UNK_DELETE(field_328);
-    UNK_DELETE(field_330);
-    UNK_DELETE(field_338);
-    UNK_DELETE(field_3c0);
-    UNK_DELETE(field_3d0);
-    UNK_DELETE(field_3c8);
+    UNK_DELETE(m_pBloomResult);
+    UNK_DELETE(m_pGlareResult);
+    UNK_DELETE(m_pGlareResultChromaticAberration);
+    UNK_DELETE(m_pGlareResultLensDistortionFalloff);
+    UNK_DELETE(m_pGlareResultAntialias);
+    UNK_DELETE(m_pGlareResultUpsample);
+    UNK_DELETE(m_pGlareSource);
+    UNK_DELETE(m_pStarGeneration);
+    UNK_DELETE(m_pStarResult);
+    UNK_DELETE(m_pAnamorphicFlareResult);
+    UNK_DELETE(m_pLightShaftBlurSource);
+    UNK_DELETE(m_pLightShaftResult);
+    UNK_DELETE(m_pLightShaftGeneration);
     UNK_DELETE_ARRAY(field_1f8);
     UNK_DELETE_ARRAY(field_208);
-    UNK_DELETE(field_340);
-    UNK_DELETE(field_390);
-    if (field_350 != nullptr) {
+    UNK_DELETE(m_pGhostGeneration);
+    UNK_DELETE(m_pLightGhostLuminance);
+    if (m_ppAfterimageGeneration != nullptr) {
         for (u32 i = 0; i < field_b0.field_4c; i++) {
-            UNK_DELETE(field_350[i]);
+            UNK_DELETE(m_ppAfterimageGeneration[i]);
         }
-        UNK_DELETE_ARRAY(field_350);
+        UNK_DELETE_ARRAY(m_ppAfterimageGeneration);
     }
     UNK_DELETE_ARRAY(field_358);
     s32 count = field_b0.field_18[5];
     for (s32 i = 0; i < count; i++) {
-        UNK_DELETE(field_310[i]);
+        UNK_DELETE(m_ppBloomGeneration[i]);
     }
-    UNK_DELETE_ARRAY(field_310);
+    UNK_DELETE_ARRAY(m_ppBloomGeneration);
     UNK_DELETE_ARRAY(field_320);
     if (field_300 != nullptr) {
         Unk_49fc60(util->field_29a58, field_308, field_300);
@@ -450,6 +452,497 @@ s32 CRenderGlare::Unk_4534f0(f32 fov, f32 a, f32 b) {
     field_15c = a;
     field_160 = b;
     field_154 = atanf(field_158) * 2.0f;
+    return 0;
+}
+
+// 0x7100442bc0 (GPUInterfaceDevice.cpp): the first of some formats that a
+// usage can have, or a fallback
+s32 Unk_442bc0(IGPUDevice* self, s32 usage, s32 type, const s32* formats, s32 count, s32 fallback);
+// 0x71024e55b0: the device (GPUResourceManage.cpp)
+extern IGPUDevice* Unk_24e55b0;
+
+// a new object made with one argument (inline: the argument is evaluated
+// before the allocation, as GPUDepthOfField.cpp's)
+template <class T, class A>
+static inline T* Unk_NewWith(A arg, const char* file, int line) {
+    return new (Unk_4b99a0(Unk_238d5f8, sizeof(T), file, line, nullptr)) T(arg);
+}
+#define UNK_NEW_WITH(T, arg) Unk_NewWith<T>(arg, __FILE__, __LINE__)
+
+// 0x7100453540 (its log lines name it): the description made valid, the
+// glare's objects and their textures (with two of them, `field_b0.field_0`'s
+// bit 28, the textures one after the other take the two flags in turn), then
+// the numbers' defaults
+// NON_MATCHING: the same calls, allocation lines and stores; the levels'
+// description loop is unrolled for at most 4 descriptions here (7, each
+// cleared first, in the original), the bit-28 tests read field_b0 through
+// `this` instead of a spilled &field_b0, and register allocation and the
+// order of the constant stores at the end differ
+s32 CRenderGlare::CreateSystemObjects() {
+    Unk_452f00(&field_b0);
+    field_3d8 = field_b0.field_18[5];
+    field_40c = field_b0.field_18_f[11];
+    Unk_4a2b80();
+    Unk_4a1690(field_b0.field_68_p);
+    if (field_b0.field_18[2] == 0) {
+        s32 formats[1] = {26};
+        field_b0.field_18[2] = Unk_442bc0(Unk_24e55b0, 0x20001, 3, formats, 1, 26);
+    }
+    field_130 = false;
+    if (field_b0.field_50) {
+        f32 x = static_cast<f32>(field_b0.field_c + 1) / static_cast<f32>(field_b0.field_4);
+        f32 y = static_cast<f32>(field_b0.field_10 + 1) / static_cast<f32>(field_b0.field_8);
+        f32 scale = 1.0f / static_cast<f32>(static_cast<u32>(field_b0.field_54));
+        s32 count = static_cast<s32>(ceilf(logf(x > y ? x : y) / logf(scale))) - 1;
+        field_308 = count > 0 ? count : 0;
+    }
+#line 660
+    m_pGlareSource = UNK_NEW_WITH(CRenderTextureArray, (field_10 + "::m_pGlareSource").field_8);
+    m_pGlareResult = UNK_NEW_WITH(CRenderTexture, (field_10 + "::m_pGlareResult").field_8);
+    if (field_b0.field_7c) {
+#line 664
+        m_pGlareResultChromaticAberration =
+            UNK_NEW_WITH(CRenderTexture, (field_10 + "::m_pGlareResultChromaticAberration").field_8);
+    }
+    if (field_b0.field_14) {
+#line 669
+        m_pGlareResultAntialias = UNK_NEW_WITH(CRenderTexture, (field_10 + "::m_pGlareResultAntialias").field_8);
+    }
+    if (field_b0.field_70) {
+#line 671
+        m_pGlareResultLensDistortionFalloff =
+            UNK_NEW_WITH(CRenderTexture, (field_10 + "::m_pGlareResultLensDistortionFalloff").field_8);
+    }
+    if (field_b0.field_18_f[0] > 0.0f) {
+#line 675
+        m_pGlareResultUpsample = UNK_NEW_WITH(CRenderTexture, (field_10 + "::m_pGlareResultUpsample").field_8);
+    }
+    s32 levels = field_b0.field_18[5];
+#line 679
+    m_ppBloomGeneration = UNK_NEW_ARRAY(CGPUResourceManage*, levels);
+    for (s32 i = 0; i < levels; i++) {
+        Unk_TFXString name = field_10 + "::m_ppBloomGeneration[" + Unk_4525a0(i) + "]";
+#line 683
+        m_ppBloomGeneration[i] = UNK_NEW_WITH(CRenderTextureArray, name.field_8);
+    }
+#line 690
+    m_pBloomResult = UNK_NEW_WITH(CRenderTexture, (field_10 + "::m_pBloomResult").field_8);
+    field_300 = nullptr;
+    if (field_308 != 0) {
+        CTextureUtil* util = Unk_GetTextureUtil();
+        Unk_ReleaseTextureUtil();
+#line 700
+        field_300 = UNK_NEW_ARRAY(CRenderTexture*, field_308);
+        memset(field_300, 0, field_308 * sizeof(CRenderTexture*));
+        u32 width = field_b0.field_4;
+        u32 height = field_b0.field_8;
+        for (s32 i = 0; i < field_308; i++) {
+            width = static_cast<u32>(static_cast<f32>(width) / static_cast<f32>(static_cast<u32>(field_b0.field_54)) +
+                                     0.99f);
+            height = static_cast<u32>(
+                static_cast<f32>(height) / static_cast<f32>(static_cast<u32>(field_b0.field_54)) + 0.99f);
+            u32 flags = 0;
+            if (field_b0.field_0 & 0x10000000) {
+                flags = (i & 1) ? 0x2000000 : 0x1000000;
+            }
+            util->field_29a58->Unk_49fc10(&field_300[i], width, height,
+                                          field_b0.field_58 ? field_b0.field_18[4] : field_b0.field_18[2], false,
+                                          flags, 0);
+        }
+    }
+    if (field_b0.field_18[10] > 0) {
+#line 744
+        m_pStarGeneration = UNK_NEW_WITH(CRenderTextureArray, (field_10 + "::m_pStarGeneration").field_8);
+        m_pStarResult = UNK_NEW_WITH(CRenderTexture, (field_10 + "::m_pStarResult").field_8);
+#line 747
+        m_pAnamorphicFlareResult = UNK_NEW_WITH(CRenderTexture, (field_10 + "::m_pAnamorphicFlareResult").field_8);
+    }
+    if (field_b0.field_48) {
+#line 751
+        m_pGhostGeneration = UNK_NEW_WITH(CRenderTextureArray, (field_10 + "::m_pGhostGeneration").field_8);
+    }
+    field_b0.field_5c = field_b0.field_5c > 1 ? field_b0.field_5c : 1;
+    if (field_b0.field_58) {
+#line 758
+        m_pLightShaftBlurSource = UNK_NEW_WITH(CRenderTexture, (field_10 + "::m_pLightShaftBlurSource").field_8);
+        m_pLightShaftResult = UNK_NEW_WITH(CRenderTexture, (field_10 + "::m_pLightShaftResult").field_8);
+#line 762
+        field_1f8 = UNK_NEW_ARRAY(Unk_453_1f8, field_b0.field_5c);
+        if (field_b0.field_5c > 1) {
+#line 766
+            m_pLightShaftGeneration =
+                UNK_NEW_WITH(CRenderTextureArray, (field_10 + "::m_pLightShaftGeneration").field_8);
+        }
+    } else {
+        field_b0.field_5c = 0;
+    }
+    field_b0.field_64 = field_b0.field_64 > 1 ? field_b0.field_64 : 1;
+    if (field_b0.field_60_b && field_b0.field_64 > 0) {
+#line 779
+        field_208 = UNK_NEW_ARRAY(Unk_453_208, field_b0.field_64);
+        m_pLightGhostLuminance = UNK_NEW_WITH(CRenderTexture, (field_10 + "::m_pLightGhostLuminance").field_8);
+    }
+    if (field_b0.field_49) {
+#line 786
+        m_ppAfterimageGeneration = UNK_NEW_ARRAY(CRenderTextureArray*, field_b0.field_4c);
+        for (u32 i = 0; i < field_b0.field_4c; i++) {
+            Unk_TFXString name = field_10 + "::m_pAfterimageGeneration[" + Unk_4525a0(i) + "]";
+#line 790
+            m_ppAfterimageGeneration[i] = UNK_NEW_WITH(CRenderTextureArray, name.field_8);
+        }
+    }
+#line 793
+    field_358 = UNK_NEW_ARRAY(f32, field_b0.field_4c);
+    for (u32 i = 0; i < field_b0.field_4c; i++) {
+        field_358[i] = 1.0f;
+    }
+
+    u32 flags = field_b0.field_0 & 1;
+    u32 flags8 = flags | 8;
+    s32 format = field_b0.field_18[2];
+    s32 resultFormat = field_b0.field_18[3];
+    s32 result;
+    {
+        s32 sourceFormat = field_b0.field_58 ? field_b0.field_18[4] : field_b0.field_18[2];
+        s32 width = field_b0.field_c;
+        s32 height = field_b0.field_10;
+        Unk_49ab20_Desc descs[4];
+        descs[0] = Unk_49ab20_Desc(flags, width, height, sourceFormat);
+        if (field_b0.field_71) {
+            descs[1] = Unk_49ab20_Desc(flags8, width, height, sourceFormat);
+        } else {
+            descs[1].field_0 = 0x80000000;
+        }
+        descs[2] = Unk_49ab20_Desc(flags8, width, height, sourceFormat);
+        s32 count = 3;
+        if (field_b0.field_18_f[11] > 0.0f) {
+            descs[3] = Unk_49ab20_Desc(flags8, width, height, format);
+            count = 4;
+        }
+        if (field_b0.field_0 & 0x10000000) {
+            for (s32 i = 0; i < count; i++) {
+                descs[i].field_0 |= (i & 1) ? 0x1000000 : 0x2000000;
+            }
+        }
+        result = static_cast<CRenderTextureArray*>(m_pGlareSource)->Initialize(count, descs, 0, false, 0);
+        if (result < 0) {
+            return result;
+        }
+    }
+    {
+        u32 width = field_b0.field_c;
+        u32 height = field_b0.field_10;
+        bool first = true;
+        {
+            u32 f = flags;
+            if (field_b0.field_0 & 0x10000000) {
+                f |= first ? 0x1000000 : 0x2000000;
+                first = !first;
+            }
+            Unk_49ab20_Desc desc(f, width, height, resultFormat);
+            s32 r = static_cast<CRenderTexture*>(m_pGlareResult)->Unk_49ab20(&desc);
+            if (r < 0) {
+                return r;
+            }
+        }
+        if (field_b0.field_7c) {
+            u32 f = flags;
+            if (field_b0.field_0 & 0x10000000) {
+                f |= first ? 0x1000000 : 0x2000000;
+                first = !first;
+            }
+            Unk_49ab20_Desc desc(f, width, height, resultFormat);
+            s32 r = static_cast<CRenderTexture*>(m_pGlareResultChromaticAberration)->Unk_49ab20(&desc);
+            if (r < 0) {
+                result = r;
+            }
+            if (result < 0) {
+                return result;
+            }
+        }
+        if (field_b0.field_70) {
+            u32 f = flags;
+            if (field_b0.field_0 & 0x10000000) {
+                f |= first ? 0x1000000 : 0x2000000;
+                first = !first;
+            }
+            Unk_49ab20_Desc desc(f, width, height, resultFormat);
+            s32 r = static_cast<CRenderTexture*>(m_pGlareResultLensDistortionFalloff)->Unk_49ab20(&desc);
+            if (r < 0) {
+                result = r;
+            }
+            if (result < 0) {
+                return result;
+            }
+        }
+        if (field_b0.field_14) {
+            u32 f = flags;
+            if (field_b0.field_0 & 0x10000000) {
+                f |= first ? 0x1000000 : 0x2000000;
+                first = !first;
+            }
+            Unk_49ab20_Desc desc(f, width, height, resultFormat);
+            s32 r = static_cast<CRenderTexture*>(m_pGlareResultAntialias)->Unk_49ab20(&desc);
+            if (r < 0) {
+                result = r;
+            }
+            if (result < 0) {
+                return result;
+            }
+        }
+        if (field_b0.field_18_f[0] > 0.0f) {
+            f32 aspect = static_cast<f32>(field_b0.field_c) / static_cast<f32>(field_b0.field_10);
+            u32 upWidth = field_b0.field_c * 2 < static_cast<u32>(field_b0.field_18[1]) ? field_b0.field_c * 2
+                                                                                         : field_b0.field_18[1];
+            u32 f = flags;
+            if (field_b0.field_0 & 0x10000000) {
+                f |= first ? 0x1000000 : 0x2000000;
+                first = !first;
+            }
+            Unk_49ab20_Desc desc(f, upWidth, static_cast<u32>(static_cast<f32>(upWidth) / aspect), resultFormat);
+            s32 r = static_cast<CRenderTexture*>(m_pGlareResultUpsample)->Unk_49ab20(&desc);
+            if (r < 0) {
+                result = r;
+            }
+            if (result < 0) {
+                return result;
+            }
+        }
+    }
+    {
+        u32 f = flags | ((field_b0.field_0 & 0x10000000) ? 0x1000000 : 0);
+        Unk_49ab20_Desc desc(f, field_b0.field_c, field_b0.field_10, resultFormat);
+        s32 r = static_cast<CRenderTexture*>(m_pBloomResult)->Unk_49ab20(&desc);
+        if (r < 0) {
+            return r;
+        }
+    }
+    if (m_pStarResult != nullptr) {
+        u32 f = flags | ((field_b0.field_0 & 0x10000000) ? 0x1000000 : 0);
+        u32 width = field_b0.field_c;
+        u32 height = field_b0.field_10;
+        Unk_49ab20_Desc desc(f, width, height, resultFormat);
+        s32 r = static_cast<CRenderTexture*>(m_pStarResult)->Unk_49ab20(&desc);
+        if (r < 0) {
+            return r;
+        }
+        if (m_pAnamorphicFlareResult != nullptr) {
+            Unk_49ab20_Desc desc2(f, width, height, resultFormat);
+            r = static_cast<CRenderTexture*>(m_pAnamorphicFlareResult)->Unk_49ab20(&desc2);
+            if (r < 0) {
+                return r;
+            }
+        }
+    }
+#line 1005
+    field_320 = UNK_NEW_ARRAY(Unk_45_320, levels);
+    for (s32 i = 0; i < levels; i++) {
+        s32 level = i - field_b0.field_18[6];
+        f32 scale;
+        s32 count;
+        if (level >= 0) {
+            scale = ldexpf(1.0f, -1 - level);
+            count = 3;
+        } else {
+            scale = 1.0f;
+            count = 2;
+        }
+        u32 width = static_cast<u32>(scale * static_cast<f32>(field_b0.field_c) + 0.99f);
+        u32 height = static_cast<u32>(scale * static_cast<f32>(field_b0.field_10) + 0.99f);
+        width = width > 3 ? width : 3;
+        height = height > 3 ? height : 3;
+        bool extra = false;
+        if (level >= 0) {
+            extra = width <= field_b0.field_4 / 16 || i == levels - 1;
+            if (extra) {
+                count = 4;
+            }
+        }
+        Unk_49ab20_Desc descs[4];
+        for (s32 j = 0; j < count; j++) {
+            u32 f = flags8;
+            if (field_b0.field_0 & 0x10000000) {
+                f |= (j & 1) ? 0x1000000 : 0x2000000;
+            }
+            descs[j] = Unk_49ab20_Desc(f, width, height, format);
+        }
+        if (extra) {
+            descs[3].field_4 *= 2;
+            descs[3].field_8 *= 2;
+        }
+        CRenderTextureArray* array = static_cast<CRenderTextureArray*>(m_ppBloomGeneration[i]);
+        s32 r = array->Initialize(count, descs, 0, false, 0);
+        if (r < 0) {
+            return r;
+        }
+        field_320[i].field_0 = level + 1;
+        field_320[i].field_4 = scale;
+        field_320[i].field_18 = Unk_ArrayTexture(m_ppBloomGeneration[i], 0);
+        field_320[i].field_20 = Unk_ArrayTexture(m_ppBloomGeneration[i], 1);
+        field_320[i].field_30 = nullptr;
+        field_320[i].field_28 = nullptr;
+        if (extra) {
+            field_320[i].field_28 = Unk_ArrayTexture(m_ppBloomGeneration[i], 3);
+        }
+        field_320[i].field_8 = scale * ldexpf(1.0f, i);
+        if (level >= 0) {
+            field_320[i].field_10 = Unk_ArrayTexture(m_ppBloomGeneration[i], 2);
+        } else {
+            field_320[i].field_10 = Unk_ArrayTexture(m_pGlareSource, 2);
+        }
+    }
+    if (m_pStarGeneration != nullptr) {
+        Unk_49ab20_Desc descs[18];
+        s32 count = field_b0.field_18[10] + 2;
+        for (s32 j = 0; j < count; j++) {
+            u32 f = flags8;
+            if (field_b0.field_0 & 0x10000000) {
+                f |= (j & 1) ? 0x1000000 : 0x2000000;
+            }
+            descs[j] = Unk_49ab20_Desc(f, field_b0.field_c, field_b0.field_10, resultFormat);
+        }
+        s32 r = static_cast<CRenderTextureArray*>(m_pStarGeneration)->Initialize(count, descs, 0, false, 0);
+        if (r < 0) {
+#line 1221
+            PPFX_ERROR("CRenderGlare::CreateSystemObjects(): m_pStarGeneration->Initialize() failed (0x%x: %s).\n", r,
+                       Unk_446df0(r));
+        }
+    }
+    if (m_pGhostGeneration != nullptr) {
+        Unk_49ab20_Desc desc(flags8, field_b0.field_c, field_b0.field_10, resultFormat);
+        s32 r = static_cast<CRenderTextureArray*>(m_pGhostGeneration)->Initialize(2, &desc, 0, true, 0);
+        if (r < 0) {
+#line 1246
+            PPFX_ERROR("CRenderGlare::CreateSystemObjects(): m_pGhostGeneration->Initialize() failed (0x%x: %s).\n", r,
+                       Unk_446df0(r));
+        }
+    }
+    if (m_pLightGhostLuminance != nullptr) {
+        Unk_49ab20_Desc desc(flags8, 1, 1, 10);
+        s32 r = static_cast<CRenderTexture*>(m_pLightGhostLuminance)->Unk_49ab20(&desc);
+        if (r < 0) {
+            return r;
+        }
+    }
+    if (m_ppAfterimageGeneration != nullptr && field_b0.field_4c != 0) {
+        u32 width = field_b0.field_c;
+        u32 height = field_b0.field_10;
+        for (u32 i = 0; i < field_b0.field_4c; i++) {
+            Unk_49ab20_Desc desc(flags8 | 0x400, width, height, resultFormat);
+            s32 r = m_ppAfterimageGeneration[i]->Initialize(2, &desc, 0, true, 0);
+            if (r < 0) {
+#line 1281
+                PPFX_ERROR(
+                    "CRenderGlare::CreateSystemObjects(): m_ppAfterimageGeneration[%d]->Initialize() failed (0x%x: "
+                    "%s).\n",
+                    i, r, Unk_446df0(r));
+            }
+        }
+    }
+    if (m_pLightShaftBlurSource != nullptr || m_pLightShaftResult != nullptr) {
+        u32 width = field_b0.field_c;
+        u32 height = field_b0.field_10;
+        u32 f = flags8 | ((field_b0.field_0 & 0x10000000) ? 0x1000000 : 0);
+        Unk_49ab20_Desc desc(f, width, height, resultFormat);
+        s32 r = static_cast<CRenderTexture*>(m_pLightShaftBlurSource)->Unk_49ab20(&desc);
+        if (r < 0) {
+            return r;
+        }
+        Unk_49ab20_Desc desc2(flags, width, height, resultFormat);
+        r = static_cast<CRenderTexture*>(m_pLightShaftResult)->Unk_49ab20(&desc2);
+        if (r < 0) {
+            return r;
+        }
+        if (m_pLightShaftGeneration != nullptr) {
+            Unk_49ab20_Desc desc3(flags, width, height, resultFormat);
+            r = static_cast<CRenderTextureArray*>(m_pLightShaftGeneration)
+                    ->Initialize(field_b0.field_5c, &desc3, 0, true, 0);
+            if (r < 0) {
+#line 1328
+                PPFX_ERROR(
+                    "CRenderGlare::CreateSystemObjects(): m_pLightShaftGeneration->Initialize() failed (0x%x: %s).\n",
+                    r, Unk_446df0(r));
+            }
+        }
+    }
+    Unk_453440(-1, -1, -1);
+    field_148 = 0;
+    field_14c = 16.0f;
+    field_150 = 1.0f;
+    field_1ec = 1.0f;
+    field_1f0 = 1.0f;
+    field_404 = 1.0f;
+    field_408 = 0.001f;
+    field_410 = true;
+    field_411 = false;
+    field_1e4 = 1.0f;
+    field_1e8 = 0.5f;
+    field_3fc = 1.0f;
+    field_400 = 0.01f;
+    if (m_pGlareResultUpsample != nullptr) {
+        field_418 = field_b0.field_18_f[0];
+    } else {
+        field_418 = 0.0f;
+    }
+    if (field_b0.field_5c >= 0) {
+        field_1f4 = 0;
+    }
+    for (s32 i = 0; i < field_b0.field_5c; i++) {
+        Unk_GlareRect white;
+        white.field_0 = 1.0f;
+        white.field_4 = 1.0f;
+        white.field_8 = 1.0f;
+        white.field_c = 1.0f;
+        Unk_4552e0(i, &white, 1.0f, 0.25f, 0.999f, 1.0f, 1.0f, 1.0f);
+        field_1f8[i].field_24 = 0.4f;
+        field_1f8[i].field_30 = 0.2617994f;
+        field_1f8[i].field_28 = 0.4f;
+        field_1f8[i].field_2c = 1.0f;
+        field_1f8[i].field_34 = white;
+        field_1f8[i].field_44 = Unk_Float2(0.5f, 0.5f);
+    }
+    field_3dc = 64.0f;
+    field_3e0 = 2048.0f;
+    field_3e4 = 128.0f;
+    field_3e8 = 64.0f;
+    field_3ec = 1.0f;
+    field_3f0 = 1.0f;
+    field_3f4 = 1.0f;
+    field_3f8 = 1.0f;
+    field_180 = true;
+    field_184 = 1.0f;
+    field_188 = 0.05f;
+    field_19c = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+    field_190 = 1.0f;
+    field_194 = 0.0f;
+    field_198 = 0.0f;
+    field_1b0 = 1.0f;
+    field_1c8 = 1.0f;
+    field_1b4 = 1.0f;
+    field_1b8 = 0.2f;
+    field_1bc = 0.2f;
+    field_1c0 = 1.0f;
+    field_1c4 = 0.0f;
+    field_1cc = 0.2f;
+    field_1d0 = 0.5f;
+    field_1d4 = 1.0f;
+    field_1d8 = 0.0f;
+    field_18c = false;
+    field_1ac = false;
+    field_270[0] = 0.7853982f;
+    field_270[1] = field_b0.field_74 / field_b0.field_78;
+    field_270[2] = 1.0f;
+    field_270[3] = 0.0f;
+    field_270[4] = 0.0f;
+    field_270[5] = 3.1415927f;
+    field_270[6] = 1.0471976f;
+    field_270[7] = 0.1f;
+    field_290 = 0.25f;
+    field_294 = 1;
+    field_298 = 1.0f;
+    field_26c = false;
+    field_1dc = 1.0f;
+    field_2ec = 0;
     return 0;
 }
 
@@ -582,11 +1075,9 @@ static inline bool Unk_IsGlareFormatC(s32 format) {
     }
 }
 
-// 0x710045ed80
-// NON_MATCHING: the original tests the first kind's range and bits in one
-// branch (`cmp #0x3b ; ccmp ... ls ; b.eq`) and the zero test after it; here
-// the range test is a branch of its own. A switch, a range expression and a
-// bit test were tried, with signed and unsigned formats.
+// 0x710045ed80 (the zero test and the second kind's as one `&`: with `&&` the
+// zero test is a branch of its own, and the first kind's range test can't
+// share a `ccmp` with its bits)
 f32 CRenderGlare::Unk_45ed80() {
     if (field_b0.field_4a) {
         return field_3e8 * field_3f8;
@@ -595,7 +1086,7 @@ f32 CRenderGlare::Unk_45ed80() {
     if (Unk_IsGlareFormatA(format)) {
         return field_3e0 * field_3f0;
     }
-    if (format != 0 && Unk_IsGlareFormatB(format)) {
+    if ((format != 0) & Unk_IsGlareFormatB(format)) {
         return field_3e4 * field_3f4;
     }
     if (Unk_IsGlareFormatC(format)) {
@@ -604,23 +1095,21 @@ f32 CRenderGlare::Unk_45ed80() {
     return field_3dc * field_3ec;
 }
 
-// 0x710045ee20
-// NON_MATCHING: as 0x710045ed80's first test; and the original selects 128 or
-// 64 with `fcsel` where this makes a table of the two.
+// 0x710045ee20 (as 0x710045ed80)
 f32 CRenderGlare::Unk_45ee20() {
     s32 format = field_b0.field_18[3];
     if (Unk_IsGlareFormatA(format)) {
         return 2048.0f;
     }
-    return format != 0 && Unk_IsGlareFormatB(format) ? 128.0f : 64.0f;
+    return (format != 0) & Unk_IsGlareFormatB(format) ? 128.0f : 64.0f;
 }
 
 // 0x7100456bf0: whether the glare's ghosts have something to draw
 bool CRenderGlare::Unk_456bf0() {
-    if (field_328 == nullptr) {
+    if (m_pStarGeneration == nullptr) {
         return false;
     }
-    if (field_330 == nullptr) {
+    if (m_pStarResult == nullptr) {
         return false;
     }
     if (field_138 <= 0.0f) {
@@ -652,10 +1141,10 @@ bool CRenderGlare::Unk_456bf0() {
 
 // 0x7100456f30: whether the glare has a colour to draw
 bool CRenderGlare::Unk_456f30() {
-    if (field_328 == nullptr) {
+    if (m_pStarGeneration == nullptr) {
         return false;
     }
-    if (field_338 == nullptr) {
+    if (m_pAnamorphicFlareResult == nullptr) {
         return false;
     }
     if (!field_1ac) {
@@ -675,7 +1164,7 @@ bool CRenderGlare::Unk_456f30() {
 
 // 0x71004570b0
 bool CRenderGlare::Unk_4570b0() {
-    if (field_340 == nullptr) {
+    if (m_pGhostGeneration == nullptr) {
         return false;
     }
     if (field_138 <= 0.0f) {
@@ -698,7 +1187,7 @@ bool CRenderGlare::Unk_4570b0() {
 
 // 0x7100457370
 bool CRenderGlare::Unk_457370() {
-    if (field_350 == nullptr) {
+    if (m_ppAfterimageGeneration == nullptr) {
         return false;
     }
     if (field_138 <= 0.0f) {
@@ -810,7 +1299,7 @@ s32 CRenderGlare::Initialize(const Unk_453_30* desc) {
     Unk_49ec80();
     field_b0 = *desc;
     field_30 = *desc;
-    result = Unk_453540();
+    result = CreateSystemObjects();
     if (result < 0) {
         return result;
     }
@@ -825,50 +1314,50 @@ static inline s32 Unk_SetArray(CGPUResourceManage* array, void* arg) {
 // 0x710045e980
 s32 CRenderGlare::Unk_45e980(void* arg) {
     s32 result = 0;
-    if (field_330 != nullptr) {
-        result = Unk_49c8d0_call(field_330, arg);
+    if (m_pStarResult != nullptr) {
+        result = Unk_49c8d0_call(m_pStarResult, arg);
     }
-    if (field_328 != nullptr) {
-        result = Unk_SetArray(field_328, arg);
+    if (m_pStarGeneration != nullptr) {
+        result = Unk_SetArray(m_pStarGeneration, arg);
     }
-    if (field_340 != nullptr) {
-        result = Unk_SetArray(field_340, arg);
+    if (m_pGhostGeneration != nullptr) {
+        result = Unk_SetArray(m_pGhostGeneration, arg);
     }
-    if (field_3c0 != nullptr) {
-        result = Unk_49c8d0_call(field_3c0, arg);
+    if (m_pLightShaftBlurSource != nullptr) {
+        result = Unk_49c8d0_call(m_pLightShaftBlurSource, arg);
     }
-    if (field_3d0 != nullptr) {
-        result = Unk_49c8d0_call(field_3d0, arg);
+    if (m_pLightShaftResult != nullptr) {
+        result = Unk_49c8d0_call(m_pLightShaftResult, arg);
     }
-    if (field_3c8 != nullptr) {
-        result = Unk_SetArray(field_3c8, arg);
+    if (m_pLightShaftGeneration != nullptr) {
+        result = Unk_SetArray(m_pLightShaftGeneration, arg);
     }
-    Unk_49c8d0_call(field_318, arg);
-    if (field_350 != nullptr) {
+    Unk_49c8d0_call(m_pBloomResult, arg);
+    if (m_ppAfterimageGeneration != nullptr) {
         s32 count = field_b0.field_4c;
         for (s32 i = 0; i < count; i++) {
-            if (field_350[i] != nullptr) {
-                result = Unk_SetArray(field_350[i], arg);
+            if (m_ppAfterimageGeneration[i] != nullptr) {
+                result = Unk_SetArray(m_ppAfterimageGeneration[i], arg);
             }
         }
     }
-    Unk_SetArray(field_2f0, arg);
-    Unk_49c8d0_call(field_398, arg);
-    if (field_3a8 != nullptr) {
-        Unk_49c8d0_call(field_3a8, arg);
+    Unk_SetArray(m_pGlareSource, arg);
+    Unk_49c8d0_call(m_pGlareResult, arg);
+    if (m_pGlareResultLensDistortionFalloff != nullptr) {
+        Unk_49c8d0_call(m_pGlareResultLensDistortionFalloff, arg);
     }
-    if (field_3a0 != nullptr) {
-        Unk_49c8d0_call(field_3a0, arg);
+    if (m_pGlareResultChromaticAberration != nullptr) {
+        Unk_49c8d0_call(m_pGlareResultChromaticAberration, arg);
     }
-    if (field_3b0 != nullptr) {
-        Unk_49c8d0_call(field_3b0, arg);
+    if (m_pGlareResultAntialias != nullptr) {
+        Unk_49c8d0_call(m_pGlareResultAntialias, arg);
     }
-    if (field_3b8 != nullptr) {
-        Unk_49c8d0_call(field_3b8, arg);
+    if (m_pGlareResultUpsample != nullptr) {
+        Unk_49c8d0_call(m_pGlareResultUpsample, arg);
     }
     s32 count = field_b0.field_18[5];
     for (s32 i = 0; i < count; i++) {
-        result = Unk_SetArray(field_310[i], arg);
+        result = Unk_SetArray(m_ppBloomGeneration[i], arg);
     }
     for (s32 i = 0; i < field_308; i++) {
         result = Unk_49c8d0_call(field_300[i], arg);
@@ -895,10 +1384,10 @@ static inline f32 Unk_AfterimageLeast(s32 format) {
 
 // the view's current glare texture (inline)
 static inline CRenderTexture* Unk_ViewTexture(CRenderGlare* self) {
-    if (self->field_350 == nullptr) {
+    if (self->m_ppAfterimageGeneration == nullptr) {
         return nullptr;
     }
-    return self->field_350[static_cast<u32>(self->field_2ec)]->Unk_Texture(-1);
+    return self->m_ppAfterimageGeneration[static_cast<u32>(self->field_2ec)]->Unk_Texture(-1);
 }
 
 // a colour's luminance in the default colour space (inline)
@@ -916,8 +1405,8 @@ static inline f32 Unk_DefaultLuminance(const Unk_Vector3& color) {
 // other way round; the calls and the stores are the same. The factors come
 // from inline functions: written in place, the selects of constants let
 // InstCombine fold the square, and the format mask isn't hoisted into x22.
-// field_350 is an array of CRenderTextureArray pointers: with a cast at the
-// load, the null view array (GVN's PRE of field_350[view]) is not a trap.
+// m_ppAfterimageGeneration is an array of CRenderTextureArray pointers: with a cast at the
+// load, the null view array (GVN's PRE of m_ppAfterimageGeneration[view]) is not a trap.
 s32 CRenderGlare::GenerateGlare_Afterimage() {
     if (!Unk_457370()) {
         return 0;
@@ -925,7 +1414,7 @@ s32 CRenderGlare::GenerateGlare_Afterimage() {
     CTextureUtil* util = Unk_GetTextureUtil();
     Unk_ReleaseTextureUtil();
     CRenderTexture* previous = Unk_ViewTexture(this);
-    CRenderTextureArray* array = field_350[static_cast<u32>(field_2ec)];
+    CRenderTextureArray* array = m_ppAfterimageGeneration[static_cast<u32>(field_2ec)];
     if (array != nullptr) {
         array->field_90 = 1 - array->field_90;
     }
@@ -984,7 +1473,7 @@ s32 CRenderGlare::GenerateGlare_Afterimage() {
     return result;
 }
 
-// 0x710045c880: each view's glare, then all of them into field_3d0
+// 0x710045c880: each view's glare, then all of them into m_pLightShaftResult
 // NON_MATCHING: the loop unswitched on `count == 1` is laid out first here
 // (the original branches to it), and the test after the loop is `b.le`, not
 // `b.eq`
@@ -994,16 +1483,16 @@ s32 CRenderGlare::Unk_45c880() {
         return 0;
     }
     for (s32 i = 0; i < count; i++) {
-        Unk_45ca70(count != 1 ? Unk_ArrayTexture(field_3c8, i) : nullptr, i);
+        Unk_45ca70(count != 1 ? Unk_ArrayTexture(m_pLightShaftGeneration, i) : nullptr, i);
     }
     if (count > 1) {
         CRenderTexture* textures[16] = {};
         for (s32 i = 0; i < count; i++) {
-            textures[i] = Unk_ArrayTexture(field_3c8, i);
+            textures[i] = Unk_ArrayTexture(m_pLightShaftGeneration, i);
         }
         CTextureUtil* util = Unk_GetTextureUtil();
         Unk_ReleaseTextureUtil();
-        util->Unk_48d220(1.0f, 1.0f, field_3d0, count, textures, nullptr, 0, 0);
+        util->Unk_48d220(1.0f, 1.0f, m_pLightShaftResult, count, textures, nullptr, 0, 0);
     }
     return 0;
 }
@@ -1015,9 +1504,9 @@ extern PPFX::Unk_4a0540* Unk_24e58c0;
 
 namespace PPFX {
 
-// 0x71004593f0: the glare's star into field_330 (`flag`: the sixth star
-// definition into field_338), with field_328's textures; without `flag` only
-// when the ghosts changed. The ghosts' colours go into field_2f0's fourth
+// 0x71004593f0: the glare's star into m_pStarResult (`flag`: the sixth star
+// definition into m_pAnamorphicFlareResult), with m_pStarGeneration's textures; without `flag` only
+// when the ghosts changed. The ghosts' colours go into m_pGlareSource's fourth
 // texture first, once a frame.
 s32 CRenderGlare::Unk_4593f0(bool flag) {
     if (!flag && !Unk_456bf0()) {
@@ -1033,16 +1522,16 @@ s32 CRenderGlare::Unk_4593f0(bool flag) {
     }
     s32 lines = definition->field_8;
     s32 count = lines < field_b0.field_18[10] ? lines : field_b0.field_18[10];
-    CRenderTexture* target = Unk_ArrayTexture(field_2f0, 2);
+    CRenderTexture* target = Unk_ArrayTexture(m_pGlareSource, 2);
     if (field_b0.field_18_f[11] > 0.0f && field_40c > 0.0f) {
         s32 levels = field_3d8;
         CRenderTexture* sources[3];
-        sources[0] = Unk_ArrayTexture(field_2f0, 2);
+        sources[0] = Unk_ArrayTexture(m_pGlareSource, 2);
         const Unk_45_320* items = field_320;
         s32 sourceCount = levels > 1 ? 3 : 2;
         sources[1] = items[0].field_18;
         sources[2] = levels >= 2 ? items[1].field_18 : nullptr;
-        target = Unk_ArrayTexture(field_2f0, 3);
+        target = Unk_ArrayTexture(m_pGlareSource, 3);
         if (!field_41c) {
             f32 ghost = field_40c;
             f32 rest = 1.0f - ghost;
@@ -1063,7 +1552,7 @@ s32 CRenderGlare::Unk_4593f0(bool flag) {
             field_41c = true;
         }
     }
-    CRenderTexture** all = static_cast<CRenderTextureArray*>(field_328)->field_38;
+    CRenderTexture** all = static_cast<CRenderTextureArray*>(m_pStarGeneration)->field_38;
     CRenderTexture** pair = &all[field_b0.field_18[10]];
     CRenderTexture* textures[16];
     if (count > 0) {
@@ -1074,7 +1563,7 @@ s32 CRenderGlare::Unk_4593f0(bool flag) {
     }
     CRenderTexture* pairs[2];
     memcpy(pairs, pair, sizeof(pairs));
-    Unk_459730(definition, target, flag ? field_338 : field_330, textures, pairs, 2, flag);
+    Unk_459730(definition, target, flag ? m_pAnamorphicFlareResult : m_pStarResult, textures, pairs, 2, flag);
     return 0;
 }
 
@@ -1416,8 +1905,128 @@ s32 CRenderGlare::Unk_459730(const Unk_4a0540* star, CRenderTexture* target, CGP
     return 0;
 }
 
+// the smaller of two numbers (inline)
+static inline const Unk_Float& Unk_MinFloat(const Unk_Float& a, const Unk_Float& b) {
+    return a.field_0 < b.field_0 ? a : b;
+}
+
+// 0x7100458720: the ghosts' levels blurred, each from the one before (field_3fc
+// their ratio), then added up by 0x7100458e20
+// NON_MATCHING: the original keeps `weight` on the stack (an integer `csel`
+// for its clamp, reloaded after every call) and all eight constants in d8-d15;
+// here it is a register and three constants are spilled, so registers, the
+// loop's block order and the white colour's stores differ
+s32 CRenderGlare::Unk_458720() {
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    if (!Unk_IsFixedFormat(field_b0.field_18[2])) {
+        field_3fc = 1.0f;
+    } else {
+        f32 ratio = powf(Unk_458250(), 1.0f / static_cast<f32>(field_3d8));
+        s32 format = field_b0.field_18[2];
+        if (Unk_IsGlareFormatC(format) || (format != 0 && Unk_IsGlareFormatB(format))) {
+            ratio = 2.0f;
+        } else {
+            ratio = fminf(ratio, 2.0f);
+        }
+        field_3fc = ratio;
+    }
+    s32 levels = field_3d8;
+    s32 count = Unk_LevelCount();
+    s32 slot = field_2e4;
+    f32 factor = 1.0f;
+    if (field_1e4 != 1.0f) {
+        f32 size = field_404 * (field_b0.field_4a ? 1.8f : 2.2f) / static_cast<f32>(field_b0.field_10);
+        f32 e = logf(size) / -0.6931472f + -4.0f;
+        factor = 1.0f / powf(field_1e4, e);
+    }
+    Unk_Float weight = 1.0f;
+    s32 result = 0;
+    for (s32 i = 0; i < levels; i++) {
+        Unk_45_320* entry = &field_320[i];
+        CRenderTexture* low = entry->field_10;
+        CRenderTexture* blur = entry->field_18;
+        CRenderTexture* work = entry->field_20;
+        f32 scale = 1.0f;
+        if (i != 0) {
+            scale = field_b0.field_4a ? 1.5f : 1.0f;
+        }
+        bool down = false;
+        if (i >= count) {
+            Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+            Unk_Float4 offset(0.0f, 0.0f, 0.0f, 0.0f);
+            util->Unk_47dfa0(0.0f, 0.0f, 0.0f, 1.0f, field_320[i - 1].field_18, low, 0, &color, 1, false, false, 1,
+                             &offset, nullptr, -1);
+            weight.field_0 = weight.field_0 + -1.0f;
+            down = true;
+        }
+        CRenderTexture* source = low;
+        f32 radius;
+        if (i != 0 && i < count) {
+            source = field_320[i - 1].field_18;
+            radius = field_1e0 * field_320[i].field_8 * 0.8660254f;
+        } else {
+            radius = field_1e0 * field_320[i].field_8;
+            if (down) {
+                radius *= 0.8660254f;
+            }
+        }
+        scale = factor * scale;
+        if (field_130 || (i == 0 && field_b0.field_4a)) {
+            Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+            if (i == 0) {
+                s32 r = util->Unk_493f30(scale, weight, source, blur, slot, &color, false, false, 0, 0);
+                if (r < 0) {
+                    result = r;
+                }
+                factor *= field_1e4 * field_3fc;
+            } else {
+                if (i == 1) {
+                    util->Unk_493f30(sqrtf(scale), 1.0f, source, work, slot, &color, false, false, 0, 0);
+                } else {
+                    util->Unk_493f30(sqrtf(scale), 1.0f, source, blur, slot, &color, false, false, 0, 0);
+                    util->Unk_493f30(1.0f, 1.0f, blur, work, slot, &color, false, false, 0, 0);
+                }
+                s32 r = util->Unk_493f30(sqrtf(scale), 2.0f, work, blur, slot, &color, false, false, 0, 0);
+                if (r < 0) {
+                    result = r;
+                }
+            }
+        } else {
+            f32 red = radius * 6.15e-7f;
+            f32 green = radius * 5.4e-7f;
+            f32 blue = radius * 4.65e-7f;
+            Unk_Float4 offset(-(red / 6.15e-7f), green / 6.15e-7f, blue / 6.15e-7f, 0.0f);
+            Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+            s32 r = util->Unk_497b20(scale, field_400, source, work, blur, &offset, slot, &color, false, false, false,
+                                     0, 0);
+            if (r < 0) {
+                result = r;
+            }
+            if (i == 0) {
+                factor *= field_1e4 * field_3fc;
+            }
+        }
+        if (i >= count) {
+            weight = Unk_MinFloat(Unk_Float(weight.field_0 + 1.0f), Unk_Float(4.0f));
+        }
+        if (field_320[i].field_28 != nullptr) {
+            Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+            Unk_Float4 offset(0.0f, 0.0f, 0.0f, 0.0f);
+            util->Unk_47dfa0(0.0f, 0.0f, 0.375f, 1.0f, blur, field_320[i].field_28, 0, &color, 0, false, false, 1,
+                             &offset, nullptr, -1);
+        }
+    }
+    s32 r = Unk_458e20();
+    if (r < 0) {
+        return r;
+    }
+    Unk_49e3a0(1, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+    return result < 0 ? result : 0;
+}
+
 // 0x7100458e20: the ghosts' levels, each by its colour, added up into
-// field_318 (their textures halved into each other first)
+// m_pBloomResult (their textures halved into each other first)
 // NON_MATCHING: register allocation of the second loop (the textures', the
 // colours' and the levels' pointers and the constant 1 get x23/x25/x26/x28,
 // the original x26/x23/x28/x25), and the colour loop's scheduling (the
@@ -1435,7 +2044,7 @@ s32 CRenderGlare::Unk_458e20() {
         textures[i] = nullptr;
     }
     bool same = Unk_457650();
-    CGPUResourceManage* target = field_318;
+    CGPUResourceManage* target = m_pBloomResult;
     bool skip = true;
     if (Unk_IsGlareFormatC(field_b0.field_18[3])) {
         if (same) {
@@ -1529,64 +2138,642 @@ bool CRenderGlare::Unk_455850() {
             return false;
         }
     }
-    if (!Unk_ArrayMade(field_2f0)) {
+    if (!Unk_ArrayMade(m_pGlareSource)) {
         return false;
     }
-    if (!Unk_TextureMade(field_318)) {
+    if (!Unk_TextureMade(m_pBloomResult)) {
         return false;
     }
-    if (!Unk_TextureMade(field_398)) {
+    if (!Unk_TextureMade(m_pGlareResult)) {
         return false;
     }
-    if (field_3a0 != nullptr && !Unk_TextureMade(field_3a0)) {
+    if (m_pGlareResultChromaticAberration != nullptr && !Unk_TextureMade(m_pGlareResultChromaticAberration)) {
         return false;
     }
-    if (field_3b8 != nullptr && !Unk_TextureMade(field_3b8)) {
+    if (m_pGlareResultUpsample != nullptr && !Unk_TextureMade(m_pGlareResultUpsample)) {
         return false;
     }
-    if (field_3b0 != nullptr && !Unk_TextureMade(field_3b0)) {
+    if (m_pGlareResultAntialias != nullptr && !Unk_TextureMade(m_pGlareResultAntialias)) {
         return false;
     }
-    if (field_3a8 != nullptr && !Unk_TextureMade(field_3a8)) {
+    if (m_pGlareResultLensDistortionFalloff != nullptr && !Unk_TextureMade(m_pGlareResultLensDistortionFalloff)) {
         return false;
     }
     for (s32 i = 0; i < count; i++) {
-        if (!Unk_ArrayMade(field_310[i])) {
+        if (!Unk_ArrayMade(m_ppBloomGeneration[i])) {
             return false;
         }
     }
-    if (field_328 != nullptr && !Unk_ArrayMade(field_328)) {
+    if (m_pStarGeneration != nullptr && !Unk_ArrayMade(m_pStarGeneration)) {
         return false;
     }
-    if (field_330 != nullptr && !Unk_TextureMade(field_330)) {
+    if (m_pStarResult != nullptr && !Unk_TextureMade(m_pStarResult)) {
         return false;
     }
-    if (field_338 != nullptr && !Unk_TextureMade(field_338)) {
+    if (m_pAnamorphicFlareResult != nullptr && !Unk_TextureMade(m_pAnamorphicFlareResult)) {
         return false;
     }
-    if (field_340 != nullptr && !Unk_ArrayMade(field_340)) {
+    if (m_pGhostGeneration != nullptr && !Unk_ArrayMade(m_pGhostGeneration)) {
         return false;
     }
-    if (field_390 != nullptr && !Unk_TextureMade(field_390)) {
+    if (m_pLightGhostLuminance != nullptr && !Unk_TextureMade(m_pLightGhostLuminance)) {
         return false;
     }
-    if (field_350 != nullptr) {
+    if (m_ppAfterimageGeneration != nullptr) {
         for (u32 i = 0; i < field_b0.field_4c; i++) {
-            if (!Unk_ArrayMade(field_350[i])) {
+            if (!Unk_ArrayMade(m_ppAfterimageGeneration[i])) {
                 return false;
             }
         }
     }
-    if (field_3c0 != nullptr && !Unk_TextureMade(field_3c0)) {
+    if (m_pLightShaftBlurSource != nullptr && !Unk_TextureMade(m_pLightShaftBlurSource)) {
         return false;
     }
-    if (field_3d0 != nullptr && !Unk_TextureMade(field_3d0)) {
+    if (m_pLightShaftResult != nullptr && !Unk_TextureMade(m_pLightShaftResult)) {
         return false;
     }
-    if (field_3c8 != nullptr && !Unk_ArrayMade(field_3c8)) {
+    if (m_pLightShaftGeneration != nullptr && !Unk_ArrayMade(m_pLightShaftGeneration)) {
         return false;
     }
     return true;
+}
+
+// 0x7100478880 (GPUTextureUtil.cpp): a ratio (the flag is not read)
+f32 Unk_478880(f32 a, f32 b, bool flag);
+
+// whether one of the glare's formats (field_2e0) is an sRGB one, and the
+// linear format of one (inline)
+static inline bool Unk_IsGlareSrgb(s32 format) {
+    switch (format) {
+    case 2:
+    case 5:
+    case 8:
+    case 11:
+    case 14:
+        return true;
+    default:
+        return false;
+    }
+}
+static inline s32 Unk_GlareLinear(s32 format) {
+    switch (format) {
+    case 8:
+        return 7;
+    case 2:
+        return 1;
+    case 5:
+        return 4;
+    case 11:
+        return 10;
+    case 14:
+        return 13;
+    default:
+        return format;
+    }
+}
+
+// 0x7100457760: `source` tone mapped into `target` (field_140 the mode),
+// through m_pGlareSource's first texture when the sizes differ
+// NON_MATCHING: the original stores the colours' elements 1 and 2 as the
+// pair (filling them in reverse order gives it for the copy's colour only),
+// tests `resize` with `tbz`, and swaps two registers of the size tests.
+s32 CRenderGlare::Unk_457760(CRenderTexture* source, CRenderTexture* target) {
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    s32 mode = field_140;
+    if (mode == 3 && field_144 == 1.0f) {
+        mode = 2;
+    }
+    if ((mode == 1 || mode == 2) && field_13c == 0.0f) {
+        mode = 0;
+    }
+    Unk_GPUTexture* texture = Unk_GetTexture(source);
+    bool srgb = Unk_IsGlareSrgb(field_2e0);
+    CRenderTexture* first = static_cast<CRenderTextureArray*>(m_pGlareSource)->field_38[0];
+    bool filtered = (texture->field_5c & 0x20000) != 0;
+    bool larger = static_cast<u32>(source->field_54) > static_cast<u32>(first->field_54) * 2 + 1 ||
+                  static_cast<u32>(source->field_58) > static_cast<u32>(first->field_58) * 2 + 1;
+    bool shrink = larger & (field_308 == 0);
+    bool differ = source->field_54 != first->field_54 || source->field_58 != first->field_58;
+    bool shaft = field_180;
+    bool resize = filtered ? shrink : differ;
+    bool unscaled = !srgb || field_164 / field_134 == 1.0f;
+    bool copy = (mode == 0) & unscaled & !shaft;
+    Unk_Float4 rect;
+    if (shaft) {
+        bool vignette = field_18c && field_198 >= 0.0f;
+        f32 ratio = Unk_478880(field_b0.field_74, field_b0.field_78, vignette);
+        f32 s = Unk_45d350();
+        f32 sx = ratio * s;
+        f32 cx = field_15c * (sx + sx) * 0.5f;
+        f32 cy = field_160 * (s + s) * 0.5f;
+        rect = Unk_Float4(-sx - cx, -s - cy, sx - cx, s - cy);
+    }
+    Unk_Float4* shaftRect = shaft ? &rect : nullptr;
+    f32 angle = field_18c ? field_158 : 0.0f;
+    Unk_440cf0_get(reinterpret_cast<u64>(field_20), 0);
+    field_20->vf46(0);
+    bool fixed = false;
+    switch (field_b0.field_18[3]) {
+    case 28:
+    case 29:
+    case 30:
+    case 31:
+    case 32:
+    case 49:
+    case 50:
+    case 51:
+    case 52:
+    case 61:
+    case 62:
+    case 63:
+    case 64:
+    case 65:
+    case 87:
+    case 88:
+    case 91:
+    case 93:
+        fixed = true;
+        break;
+    }
+    s32 format = field_2e0;
+    u64 device = reinterpret_cast<u64>(field_20);
+    if (copy) {
+        if (fixed && field_411) {
+            Unk_440d50_get(device, 1);
+        }
+        f32 k = field_164 / field_134;
+        Unk_Float4 color(k, k, k, 1.0f);
+        Unk_Float4 offset(0.0f, 0.0f, 0.0f, 0.0f);
+        util->Unk_47dfa0(0.0f, 0.0f, 0.0f, 1.0f, source, target, format, &color, 1, false, false, 1, &offset,
+                         nullptr, -1);
+        field_2f8 = target;
+    } else if (resize) {
+        Unk_440cf0_get(device, 0);
+        field_20->vf46(0);
+        f32 scale = 0.0f;
+        f32 k = 1.0f;
+        s32 format = 0;
+        if (!srgb) {
+            scale = 1.0f / (field_134 + field_13c);
+            k = field_164 * scale;
+            format = field_2e0;
+        }
+        CRenderTexture* work = Unk_ArrayTexture(m_pGlareSource, 0);
+        Unk_Float4 color(k, k, k, 1.0f);
+        Unk_Float4 offset(0.0f, 0.0f, 0.0f, 0.0f);
+        util->Unk_47dfa0(0.0f, 0.0f, 0.0f, 1.0f, source, work, format, &color, 0, false, false, 1, &offset,
+                         nullptr, -1);
+        field_2f8 = work;
+        f32 intensity;
+        s32 linear;
+        if (srgb) {
+            linear = Unk_GlareLinear(field_2e0);
+            intensity = field_164;
+        } else {
+            intensity = 1.0f / scale;
+            linear = 0;
+        }
+        f32 step = 1.0f / field_134;
+        Unk_GetTexture(work)->vf17(1);
+        if (fixed && field_411) {
+            Unk_440d50_get(reinterpret_cast<u64>(field_20), 1);
+        }
+        util->Unk_48e260(work, target, intensity, step, field_13c, field_144, angle, field_190, field_194,
+                         field_198, mode, shaftRect, linear, 1, false);
+        Unk_GetTexture(work)->vf17(0);
+    } else {
+        s32 linear = Unk_GlareLinear(format);
+        if (source->field_54 == target->field_54 && source->field_58 == target->field_58) {
+            Unk_GetTexture(source)->vf17(1);
+        }
+        if (fixed && field_411) {
+            Unk_440d50_get(reinterpret_cast<u64>(field_20), 1);
+        }
+        util->Unk_48e260(source, target, field_164, 1.0f / field_134, field_13c, field_144, angle, field_190,
+                         field_194, field_198, mode, shaftRect, linear, 1, false);
+        field_2f8 = target;
+        Unk_GetTexture(source)->vf17(0);
+    }
+    if (fixed && field_411) {
+        Unk_471460_update(reinterpret_cast<u64>(util), 16, 1);
+    }
+    return 0;
+}
+
+// the least level a light shaft's steps fade to, for a format (inline)
+static inline f32 Unk_ShaftLeast(s32 format) {
+    if (!Unk_4385e0(format)) {
+        return 0.001f;
+    }
+    if (Unk_IsGlareFormatA(format)) {
+        return 0.001f;
+    }
+    if (format != 0 && Unk_IsGlareFormatB(format)) {
+        return 0.001f;
+    }
+    if (Unk_IsGlareFormatC(format)) {
+        return 1.0f / 255.0f;
+    }
+    return 0.001f;
+}
+
+// 0x710045ca70: the light shaft of view `index` (field_1f8's), blurred out
+// from its centre in up to eight passes of four steps through m_pStarGeneration's
+// textures, into `target` (m_pLightShaftResult for none)
+// NON_MATCHING: a first draft with the original's calls and arithmetic. The
+// original keeps `color` in memory (its tint is applied by a loop over the
+// channels, which SROA can't undo: with one, 25 fewer differences), spills
+// `this` instead of keeping it in x20, and branches out of the level loop
+// before the step and the ping-pong index are updated (here they become
+// selects folded into the loop's exit test).
+s32 CRenderGlare::Unk_45ca70(CRenderTexture* target, s32 index) {
+    if (target == nullptr) {
+        target = static_cast<CRenderTexture*>(m_pLightShaftResult);
+    }
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    CRenderTexture* glare = Unk_ArrayTexture(m_pGlareSource, 2);
+    CRenderTexture* source = static_cast<CRenderTexture*>(m_pLightShaftBlurSource);
+    s32 result = util->Unk_48e4e0(field_1f8[index].field_5c, field_168 / field_134, field_1f8[index].field_10,
+                                  field_1f8[index].field_14, field_1f8[index].field_18, field_154,
+                                  field_1f8[index].field_20, source, glare,
+                                  &field_1f8[index].field_44, field_1f8[index].field_4c, false);
+    f32 length = field_1f8[index].field_1c;
+    f32 least = Unk_ShaftLeast(source->field_2c.field_c);
+    result = result < 0 ? result : 0;
+    f32 size = static_cast<f32>(field_b0.field_c) / 320.0f * (1.0f / (field_158 + field_158));
+    f32 step = 1.0f / size * 0.0625f / length;
+    f32 steps = logf(least) / -0.6931472f / step;
+    s32 levels = static_cast<s32>(ceilf(logf(steps) / 1.3862944f));
+    s32 count = levels < 8 ? levels : 8;
+    s32 last = static_cast<s32>(ceilf(steps * 4.0f / powf(4.0f, static_cast<f32>(count))));
+    if (last == 0) {
+        last = 4;
+    }
+    f32 scale = powf(field_158 * 0.25f, 1.0f / static_cast<f32>(count));
+    CRenderTextureArray* array = static_cast<CRenderTextureArray*>(m_pStarGeneration);
+    CRenderTexture* pair[2] = {array->field_38[field_b0.field_18[10]], array->field_38[field_b0.field_18[10] + 1]};
+    Unk_GlareRect tint = field_1f8[index].field_34;
+    f32 a = field_1f8[index].field_24;
+    f32 b = field_1f8[index].field_28;
+    f32 c = field_1f8[index].field_2c;
+    f32 d = field_1f8[index].field_30;
+    Unk_GlareRect color = field_1f8[index].field_0;
+    if (a == 0.0f && (tint.field_0 != 1.0f || tint.field_4 != 1.0f || tint.field_8 != 1.0f)) {
+        color.field_0 *= tint.field_0;
+        color.field_4 *= tint.field_4;
+        color.field_8 *= tint.field_8;
+    }
+    s32 k = 0;
+    for (s32 i = 0; i < count; i++) {
+        f32 level = i == 0 ? scale * 0.25f : scale;
+        f32 weights[4];
+        weights[0] = level * powf(0.5f, step * 0.0f);
+        weights[1] = level * powf(0.5f, step);
+        weights[2] = level * powf(0.5f, step + step);
+        weights[3] = level * powf(0.5f, step * 3.0f);
+        s32 taps = last < 4 && i == count - 1 ? last : 4;
+        bool final = i == count - 1 || taps < 4;
+        CRenderTexture* dest = a == 0.0f && final ? target : pair[k];
+        u32 width = dest->field_54;
+        f32 height = static_cast<f32>(static_cast<u32>(dest->field_58));
+        f32 maxU;
+        f32 maxV;
+        Unk_GetCoords(source, &maxU, &maxV);
+        dest->Unk_49d250(0, 0, 1, 0, 0);
+        f32 cy = field_20->field_58 ? 1.0f - field_1f8[index].field_44.field_0[1].field_0
+                                    : field_1f8[index].field_44.field_0[1].field_0;
+        Unk_Float4 colors[4];
+        f32 u0[4];
+        f32 v0[4];
+        f32 u1[4];
+        f32 v1[4];
+        if (taps >= 1) {
+            f32 cu = source->field_90 + source->field_88 * (field_1f8[index].field_44.field_0[0].field_0 *
+                                                            static_cast<f32>(static_cast<u32>(source->field_54)));
+            f32 cv = source->field_94 + source->field_8c * (cy * static_cast<f32>(static_cast<u32>(source->field_58)));
+            for (s32 j = 0; j < taps; j++) {
+                f32 w = weights[j];
+                if (final) {
+                    colors[j] = Unk_Float4(color.field_0 * w, color.field_4 * w, color.field_8 * w, color.field_c * w);
+                    f32 f = Unk_458420() * 0.25f * (320.0f / static_cast<f32>(field_b0.field_c)) * 4.0f;
+                    for (s32 n = 0; n < 4; n++) {
+                        colors[j].field_0[n].field_0 *= f;
+                    }
+                } else {
+                    colors[j] = Unk_Float4(w, w, w, w);
+                }
+                f32 t = 1.0f / ((static_cast<f32>(j) * static_cast<f32>(static_cast<s32>(
+                                                          powf(4.0f, static_cast<f32>(i)))) + height) / height);
+                u0[j] = Unk_Lerp(cu, 0.0f, t);
+                v0[j] = Unk_Lerp(cv, 0.0f, t);
+                u1[j] = Unk_Lerp(cu, maxU, t);
+                v1[j] = Unk_Lerp(cv, maxV, t);
+            }
+        }
+        Unk_GetTexture(source)->vf15(0);
+        s32 r = util->DrawRectGPU_TexCoordMadT1_Sn(0.0f, 0.0f, static_cast<f32>(width), height, u0, v0, u1, v1, taps,
+                                                   colors, Unk_GetTexture(source), field_2e4, 0);
+        if (r < 0) {
+            result = r;
+        }
+        source = dest;
+        if (taps < 4) {
+            break;
+        }
+        step *= 4.0f;
+        k = (k + 1) % 2;
+    }
+    if (a != 0.0f) {
+        s32 r = util->Unk_48e9a0(a, b, c, d, target, field_154, source, &tint, &field_1f8[index].field_44, false);
+        if (r < 0) {
+            result = r;
+        }
+    }
+    return result;
+}
+
+}  // namespace PPFX
+
+// 0x71024e5950 (GPUGlareDef.cpp): the light ghost presets
+extern PPFX::Unk_GlareGhostDef* Unk_24e5950;
+
+namespace PPFX {
+
+// 0x710045d3b0 (its log lines name it): the glare's parts added up into
+// m_pGlareResult (or m_pBloomResult alone), then the lens distortion, its chromatic
+// aberration's blur, the bloom, the blur and the light ghosts; the result goes
+// to field_420
+// NON_MATCHING: a first draft with the original's calls, log lines and
+// arithmetic; the stack layout (the colour space temporaries, the colours and
+// the textures), the registers and the block layout of the tests at the top
+// differ.
+s32 CRenderGlare::GenerateGlare_Composite() {
+    if (Unk_457650()) {
+        field_420 = static_cast<CRenderTexture*>(m_pBloomResult);
+    } else {
+        CTextureUtil* util = Unk_GetTextureUtil();
+        Unk_ReleaseTextureUtil();
+        bool ghosts = Unk_456bf0();
+        bool color = Unk_456f30();
+        bool streaks = Unk_4570b0();
+        bool afterimage = Unk_457370();
+        s32 frames = field_1f4;
+        bool idle = field_200 < 1 || (field_210 == -1 && field_220 < 1);
+        bool released = !field_368 || field_360 == 0;
+        CRenderTexture* source = static_cast<CRenderTexture*>(m_pBloomResult);
+        if ((idle & released) != true || (ghosts | color | streaks | afterimage) || frames >= 1) {
+            f32 baseWidth = static_cast<f32>(static_cast<u32>(source->field_54));
+            f32 baseHeight = static_cast<f32>(static_cast<u32>(source->field_58));
+            f32 scaleU = source->field_88;
+            f32 scaleV = source->field_8c;
+            f32 offsetU = source->field_90;
+            f32 offsetV = source->field_94;
+            CRenderTexture* target = static_cast<CRenderTexture*>(m_pGlareResult);
+            f32 width = static_cast<f32>(static_cast<u32>(target->field_54));
+            f32 height = static_cast<f32>(static_cast<u32>(target->field_58));
+            target->Unk_49d250(0, 0, 1, 0, 0);
+            CRenderTexture::Unk_49cf50(nullptr, nullptr);
+            bool fixed = Unk_IsGlareFormatC(field_b0.field_18[3]);
+            if (fixed && field_411) {
+                Unk_440d50_get(reinterpret_cast<u64>(field_20), 0);
+            }
+            CRenderTexture* textures[8];
+            Unk_Float4 colors[8];
+            for (s32 i = 0; i < 8; i++) {
+                colors[i] = Unk_Float4(1.0f, 1.0f, 1.0f, 1.0f);
+            }
+            const Unk_45_170* def = field_170;
+            Unk_410f90 space;
+            Unk_410f90_set(&space, 0);
+            f32 inverse = 1.0f / Unk_Luminance(space, def->field_8);
+            f32 r = def->field_8.field_0[0] * inverse;
+            f32 g = inverse * def->field_8.field_0[1];
+            f32 b = inverse * def->field_8.field_0[2];
+            f32 a = inverse * def->field_14;
+            textures[0] = static_cast<CRenderTexture*>(m_pBloomResult);
+            def = field_170;
+            f32 cr = r * def->field_18.field_0[0];
+            f32 cg = g * def->field_18.field_0[1];
+            f32 cb = b * def->field_18.field_0[2];
+            f32 ca = a * def->field_24;
+            Unk_410f90 colorSpace;
+            Unk_410f90_set(&colorSpace, 0);
+            f32 k = 1.0f / Unk_Luminance(colorSpace, def->field_18);
+            colors[0] = Unk_Float4(cr * k, cg * k, cb * k, ca * k);
+            u32 count = 1;
+            if (Unk_456bf0() && field_428) {
+                textures[1] = static_cast<CRenderTexture*>(m_pStarResult);
+                def = field_170;
+                Unk_410f90 colorSpace;
+                Unk_410f90_set(&colorSpace, 0);
+                f32 k = 1.0f / Unk_Luminance(colorSpace, def->field_4c);
+                colors[1] = Unk_Float4(r * def->field_4c.field_0[0] * k, g * def->field_4c.field_0[1] * k,
+                                       b * def->field_4c.field_0[2] * k, a * def->field_58 * k);
+                count = 2;
+            }
+            if (Unk_456f30()) {
+                textures[count] = static_cast<CRenderTexture*>(m_pAnamorphicFlareResult);
+                colors[count] = Unk_Float4((r * field_1b8) + (r * field_1b8), (g * field_1bc) + (g * field_1bc),
+                                           (b * field_1c0) + (b * field_1c0), (a * field_1c4) + (a * field_1c4));
+                count++;
+            }
+            if (Unk_4570b0()) {
+                textures[count] = m_pGhostGeneration != nullptr ? Unk_ArrayTexture(m_pGhostGeneration, 0) : nullptr;
+                def = field_170;
+                Unk_410f90 colorSpace;
+                Unk_410f90_set(&colorSpace, 0);
+                f32 k = 1.0f / Unk_Luminance(colorSpace, def->field_30);
+                colors[count] = Unk_Float4(r * def->field_30.field_0[0] * k, g * def->field_30.field_0[1] * k,
+                                           b * def->field_30.field_0[2] * k, a * def->field_3c * k);
+                count++;
+            }
+            if (Unk_457370()) {
+                textures[count] = Unk_ViewTexture(this);
+                def = field_170;
+                Unk_410f90 colorSpace;
+                Unk_410f90_set(&colorSpace, 0);
+                f32 k = 1.0f / Unk_Luminance(colorSpace, def->field_6c);
+                colors[count] = Unk_Float4(r * def->field_6c.field_0[0] * k, g * def->field_6c.field_0[1] * k,
+                                           b * def->field_6c.field_0[2] * k, a * def->field_78 * k);
+                count++;
+            }
+            f32 u1 = scaleU * baseWidth + offsetU;
+            f32 v1 = scaleV * baseHeight + offsetV;
+            if (field_1f4 >= 1) {
+                textures[count] = static_cast<CRenderTexture*>(m_pLightShaftResult);
+                count++;
+            }
+            for (u32 i = 0; i < count; i++) {
+                Unk_GetTexture(textures[i])->vf17(1);
+            }
+            s32 filters[8];
+            for (u32 i = 0; i < count; i++) {
+                CRenderTexture* texture = textures[i];
+                Unk_GPUTexture* gpu = Unk_GetTexture(texture);
+                filters[i] = gpu->vf16();
+                gpu->vf17(texture->field_54 == target->field_54 && texture->field_58 == target->field_58);
+                gpu->vf18(1);
+            }
+            s32 dirt = field_148;
+            if (dirt) {
+                util->Unk_470610(field_14c, field_150);
+            }
+            if (field_368 && field_360 != 0) {
+                s32 result = util->DrawRectGPU_MadLumGammaWithLensDirtTn(
+                    0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, 1.0f,
+                    Unk_Float4(field_36c.field_0, field_36c.field_4, field_36c.field_8, field_36c.field_c),
+                    Unk_Float4(field_37c.field_0, field_37c.field_4, field_384.field_0, field_384.field_4), count,
+                    textures, reinterpret_cast<CRenderTexture*>(field_360), colors, dirt, 0);
+                if (result < 0) {
+#line 6194
+                    PPFX_ERROR("CRenderGlare::GenerateGlare_Composite(): pTexUtil->DrawRectGPU_MadLumGammaWithLensDirtTn() failed (0x%x: %s).\n", result, Unk_446df0(result));
+                }
+            } else {
+                s32 result =
+                    util->DrawRectGPU_MadLumGammaTn(0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, 1.0f, count, textures, colors, dirt, 0);
+                if (result < 0) {
+#line 6210
+                    PPFX_ERROR("CRenderGlare::GenerateGlare_Composite(): pTexUtil->DrawRectGPU_MadLumGammaTn() failed (0x%x: %s).\n", result, Unk_446df0(result));
+                }
+            }
+            for (u32 i = 0; i < count; i++) {
+                Unk_GetTexture(textures[i])->vf15(filters[i]);
+            }
+            for (u32 i = 0; i < count; i++) {
+                Unk_GetTexture(textures[i])->vf17(0);
+            }
+            if (fixed && field_411) {
+                Unk_471460_update(reinterpret_cast<u64>(util), 16, 0);
+            }
+            source = static_cast<CRenderTexture*>(m_pGlareResult);
+        }
+        CRenderTexture* result = source;
+        if (field_29c) {
+            CRenderTexture* target = static_cast<CRenderTexture*>(m_pGlareResultChromaticAberration);
+            util->Unk_482010(field_154,
+                             static_cast<f32>(field_b0.field_c) / static_cast<f32>(field_b0.field_10), field_2d0,
+                             field_2d4, field_2d8, source, target, field_2a0, &field_2a8, &field_2b0, &field_2b8,
+                             &field_2c8, &field_2c0, field_2dc, util->field_29ab8[0], 0, 0);
+            result = target;
+            if (field_2a4) {
+                CRenderTexture* blur = static_cast<CRenderTextureArray*>(m_pStarGeneration)->field_38[0];
+                if (blur == nullptr) {
+#line 6338
+                    PPFX_WARNING("GenerateGlare_Composite(): pGlareResultChromaticAberrationBlur is NULL.\n");
+                } else {
+                    Unk_Float4 white(1.0f, 1.0f, 1.0f, 1.0f);
+                    Unk_Float4 offset(0.0f, 0.0f, 0.0f, 0.0f);
+                    util->Unk_47dfa0(0.0f, 0.0f, 0.0f, 1.0f, target, blur, 0, &white, 0, false, false, 1, &offset,
+                                     nullptr, -1);
+                    result = blur;
+                }
+            }
+        }
+        if (field_26c) {
+            CRenderTexture* target = static_cast<CRenderTexture*>(m_pGlareResultLensDistortionFalloff);
+            util->Unk_481bc0(field_270[0], field_270[1], field_270[2], field_270[3], field_270[4], field_270[5],
+                             field_270[6], field_270[7], field_290, 0.0f, field_298, 0.0f, 1.0f, 0.0f, result, target,
+                             field_294, true, false, true, 0, 0);
+            result = target;
+        }
+        if (field_b0.field_14) {
+            CRenderTexture* target = static_cast<CRenderTexture*>(m_pGlareResultAntialias);
+            util->Unk_48edb0(field_164, 0.25f, target, result, nullptr, false);
+            result = target;
+        }
+        if (field_418 > 0.0f) {
+            CRenderTexture* target = static_cast<CRenderTexture*>(m_pGlareResultUpsample);
+            Unk_Float4 white(1.0f, 1.0f, 1.0f, 1.0f);
+            Unk_Float4 offset(0.0f, 0.0f, 0.0f, 0.0f);
+            util->Unk_47dfa0(0.0f, 0.0f, field_418 * 0.5f, 1.0f, result, target, 0, &white, 0, false, false, 1,
+                             &offset, nullptr, -1);
+            result = target;
+        }
+        if (field_200 >= 1 && (field_210 != -1 || field_220 >= 1)) {
+            CRenderTexture::Unk_49cf50(nullptr, nullptr);
+            u32 ghostCount = field_b0.field_64;
+            for (u32 i = 0; i < ghostCount; i++) {
+                Unk_453_208* ghost = &field_208[i];
+                if (!ghost->field_0) {
+                    continue;
+                }
+                CRenderTexture* luminance = static_cast<CRenderTexture*>(m_pLightGhostLuminance);
+                Unk_GPUTexture* texture = Unk_GetTexture(luminance);
+                if (ghost->field_24 == 2) {
+                    texture = reinterpret_cast<Unk_GPUTexture*>(util->field_29a70[4]);
+                } else {
+                    CRenderTexture* glare = Unk_ArrayTexture(m_pGlareSource, 2);
+                    luminance->Unk_49d250(0, 0, 1, 0, 0);
+                    s32 r = util->DrawLightGhostLuminance(0.0f, 0.0f, 1.0f, 1.0f, Unk_GetTexture(glare),
+                                             static_cast<f32>(static_cast<u32>(glare->field_54)),
+                                             static_cast<f32>(static_cast<u32>(glare->field_58)), &ghost->field_14,
+                                             ghost->field_28, ghost->field_2c, ghost->field_24, 0, 0);
+                    if (r < 0) {
+#line 6437
+                        PPFX_ERROR("CRenderGlare::GenerateGlare_Composite(): pTexUtil->DrawLightGhostLuminance() failed (0x%x: %s).\n", r, Unk_446df0(r));
+                    }
+                }
+                const void* presets;
+                s32 presetCount;
+                if (field_210 == -1) {
+                    presets = reinterpret_cast<const void*>(field_218);
+                    presetCount = field_220;
+                } else {
+                    presets = &Unk_24e5950[field_210];
+                    presetCount = Unk_24e5950[field_210].field_1b00;
+                }
+                f32 falloff = field_25c;
+                if (field_258 == 0 && field_248_f > 0.0f) {
+                    f32 base = powf(10.0f, -(field_25c + field_25c + -1.0f));
+                    falloff = powf(base, field_248_f < 0.0f ? 0.0f : fminf(field_248_f, 1.0f));
+                }
+                f32 spread;
+                if (field_250_f > 0.0f) {
+                    spread = field_268 / field_250_f * 0.5f;
+                } else if (field_254 > 0.0f) {
+                    spread = field_254;
+                } else {
+                    spread = field_158;
+                }
+                f32 fov = field_254 > 0.0f ? field_254 : field_158;
+                f32 level = ghost->field_24 == 0 ? field_134 : field_168;
+                f32 zoom = fov / field_158;
+                f32 scale = 1.0f / (zoom * zoom) *
+                            (ghost->field_28 * ghost->field_28 * 3.14159274f * (level * field_138));
+                Unk_Float4 ghostColor(field_224.field_0 * ghost->field_4[0] * scale,
+                                      field_224.field_4 * ghost->field_4[1] * scale,
+                                      field_224.field_8 * ghost->field_4[2] * scale,
+                                      field_224.field_c * ghost->field_4[3] * scale);
+                Unk_Float2 position = ghost->field_14;
+                Unk_Float2 position2 = ghost->field_1c;
+                if (field_20->field_58) {
+                    position.field_0[1] = 1.0f - position.field_0[1].field_0;
+                    position2.field_0[1] = 1.0f - position2.field_0[1].field_0;
+                }
+                f32 aspect = field_268 > 0.0f ? field_24c / field_268 : 1.0f;
+                f32 width = static_cast<f32>(static_cast<u32>(result->field_54));
+                f32 height = static_cast<f32>(static_cast<u32>(result->field_58));
+                f32 ratio = field_24c > 0.0f ? field_250_f / field_24c : 1.0f;
+                f32 strength = field_248_f * ratio;
+                result->Unk_49d250(0, 0, 1, 0, 0);
+                f32 amount = field_248_f;
+                amount = amount < 1.0f && amount > 0.0f ? amount : 1.0f;
+                s32 r = util->DrawLightGhost(width, height, field_234, field_238, field_23c, field_240, field_244,
+                                             fov, texture, presetCount, presets, &position, &ghostColor, &position2,
+                                             field_260, spread, field_17c, falloff, aspect, amount,
+                                             ratio > strength ? ratio : strength, 0, 0);
+                if (r < 0) {
+#line 6547
+                    PPFX_ERROR("CRenderGlare::GenerateGlare_Composite(): pTexUtil->DrawLightGhost() failed (0x%x: %s).\n", r, Unk_446df0(r));
+                }
+            }
+        }
+        field_420 = result;
+    }
+    Unk_49e3a0(1, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+    return 0;
 }
 
 // 0x7100457f00: `source` drawn into each of field_300's textures that is
@@ -1619,11 +2806,11 @@ s32 CRenderGlare::Unk_457f00(CRenderTexture* source, s32 arg2, CRenderTexture* a
             source = target;
         }
     }
-    CRenderTexture* glare = Unk_ArrayTexture(field_2f0, 2);
+    CRenderTexture* glare = Unk_ArrayTexture(m_pGlareSource, 2);
     if (arg2) {
-        CRenderTexture* texture = Unk_ArrayTexture(field_2f0, 1);
+        CRenderTexture* texture = Unk_ArrayTexture(m_pGlareSource, 1);
         Unk_457760(source, texture);
-        util->Unk_490570(Unk_ArrayTexture(field_2f0, 2), texture, arg3, arg2, false);
+        util->Unk_490570(Unk_ArrayTexture(m_pGlareSource, 2), texture, arg3, arg2, false);
     } else {
         Unk_457760(source, glare);
     }
@@ -1690,7 +2877,7 @@ s32 CRenderGlare::Unk_45ee80(CRenderTexture* source, f32 f0, f32 f1, f32 f2, f32
         }
     }
     Unk_45c880();
-    Unk_45d3b0();
+    GenerateGlare_Composite();
     field_358[static_cast<u32>(field_2ec)] = field_164;
     Unk_49e3a0(1, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
     return 0;
@@ -1751,9 +2938,6 @@ s32 Unk_45eb90(PPFX::Unk_45eb90_Self* self_, f32 width, f32 height, f32 x, f32 y
 u32 Unk_440c60_get(u64 device, u32 arg1, u32 arg2);
 
 namespace PPFX {
-
-// 0x7100478880 (GPUTextureUtil.cpp): a ratio (the flag is not read)
-f32 Unk_478880(f32 a, f32 b, bool flag);
 
 // whether a surface format is one the hardware converts to sRGB (inline)
 static inline bool Unk_IsSrgbFormat(s32 format) {

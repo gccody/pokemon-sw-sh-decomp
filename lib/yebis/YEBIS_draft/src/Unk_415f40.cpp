@@ -1868,6 +1868,125 @@ void Unk_413ea0(u32 count, f32* offsets, f32* weights, bool normalize, f32 sigma
     }
 }
 
+// 0x71004141e0: fifteen samples of a Gaussian: its taps at 1 .. 14 times `x`
+// merged pairwise into seven bilinear samples (Unk_412270), at +- their
+// positions / `count`, and the centre (halved, as the pairs' weights are);
+// divided by sigma * sqrt(2 pi) / 2 when `normalize` and that is at least 1,
+// else scaled to add up to 1. Unk_414be0's body with merged taps.
+// NON_MATCHING: Unk_414af0's 2 sigma times sigma, and the schedule (registers)
+// of the last pair, where the original converts `count` (ucvtf) earlier
+void Unk_4141e0(u32 count, f32* offsets, f32* weights, bool normalize, f32 sigma, f32 x) {
+    sigma = fmaxf(sigma, 1e-8f);
+    bool scaled = false;
+    if (normalize) {
+        scaled = true;
+        if (sigma * 2.5066283f < 1.0f) {
+            scaled = false;
+        }
+    }
+    f32 step = 1.0f / static_cast<f32>(count);
+    f32 k = 1.0f / (2.0f * sigma * sigma);
+    f32 taps[7];
+    f32 pos[7];
+    for (s32 i = 0; i < 7; i++) {
+        f32 t0 = (static_cast<f32>(i) * 2.0f + 1.0f) * x;
+        f32 w0 = expf(-(k * (t0 * t0)));
+        f32 t1 = (static_cast<f32>(i) * 2.0f + 2.0f) * x;
+        f32 w1 = expf(-(k * (t1 * t1)));
+        Unk_412270(t0, t1, w0, w1, &pos[i], &taps[i]);
+    }
+    f32 t = x * 0.0f;
+    f32 centre = expf(-(t * t * k)) * 0.5f;
+    f32 kernel[15];
+    f32 position[15];
+    kernel[0] = centre;
+    position[0] = 0.0f;
+    for (s32 i = 0; i < 7; i++) {
+        kernel[1 + i] = taps[i];
+        position[1 + i] = step * pos[i];
+        kernel[8 + i] = taps[i];
+        position[8 + i] = -(step * pos[i]);
+    }
+    f32 scale;
+    if (scaled) {
+        scale = 1.0f / (sigma * 2.5066283f) * 2.0f;
+    } else {
+        f32 sum = centre;
+        for (s32 i = 0; i < 7; i++) {
+            sum += 2.0f * taps[i];
+        }
+        scale = 1.0f / sum;
+    }
+    for (s32 j = 0; j < 15; j++) {
+        s32 index = 0;
+        if (j != 0) {
+            if ((j & 1) != 0) {
+                index = j / 2 + 1;
+            } else {
+                index = j / 2 + 7;
+            }
+        }
+        weights[j] = scale * kernel[index];
+        offsets[j] = position[index];
+    }
+}
+
+// 0x71004146f0: Unk_4141e0's body with 15 pairs (thirty-one samples), its
+// loops not unrolled; the sum is taken before the kernel is filled (the loads
+// stay in front of the branch) and position[0] is set after it
+// NON_MATCHING: Unk_414af0's 2 sigma times sigma, and the last tap's load for
+// the sum, which the original reloads in the branch (one register)
+void Unk_4146f0(u32 count, f32* offsets, f32* weights, bool normalize, f32 sigma, f32 x) {
+    sigma = fmaxf(sigma, 1e-8f);
+    bool scaled = false;
+    if (normalize) {
+        scaled = true;
+        if (sigma * 2.5066283f < 1.0f) {
+            scaled = false;
+        }
+    }
+    f32 step = 1.0f / static_cast<f32>(count);
+    f32 k = 1.0f / (2.0f * sigma * sigma);
+    f32 taps[15];
+    f32 pos[15];
+    for (s32 i = 0; i < 15; i++) {
+        f32 t0 = (static_cast<f32>(i) * 2.0f + 1.0f) * x;
+        f32 w0 = expf(-(k * (t0 * t0)));
+        f32 t1 = (static_cast<f32>(i) * 2.0f + 2.0f) * x;
+        f32 w1 = expf(-(k * (t1 * t1)));
+        Unk_412270(t0, t1, w0, w1, &pos[i], &taps[i]);
+    }
+    f32 t = x * 0.0f;
+    f32 centre = expf(-(t * t * k)) * 0.5f;
+    f32 kernel[31];
+    f32 position[31];
+    kernel[0] = centre;
+    f32 sum = centre;
+    for (s32 i = 0; i < 15; i++) {
+        sum += 2.0f * taps[i];
+    }
+    for (s32 i = 0; i < 15; i++) {
+        kernel[1 + i] = taps[i];
+        position[1 + i] = step * pos[i];
+        kernel[16 + i] = taps[i];
+        position[16 + i] = -(step * pos[i]);
+    }
+    position[0] = 0.0f;
+    f32 scale = scaled ? 1.0f / (sigma * 2.5066283f) * 2.0f : 1.0f / sum;
+    for (s32 j = 0; j < 31; j++) {
+        s32 index = 0;
+        if (j != 0) {
+            if ((j & 1) != 0) {
+                index = j / 2 + 1;
+            } else {
+                index = j / 2 + 15;
+            }
+        }
+        weights[j] = scale * kernel[index];
+        offsets[j] = position[index];
+    }
+}
+
 // 0x7100414af0: three samples of a Gaussian at 0 and +-1 / `count`, its
 // weights at 0 and `x` (divided by sigma * sqrt(2 pi) when `normalize` and
 // that is at least 1, else scaled to add up to 1). The four 1-D Gaussians
@@ -1880,9 +1999,12 @@ void Unk_413ea0(u32 count, f32* offsets, f32* weights, bool normalize, f32 sigma
 // Unk_413170).
 // NON_MATCHING: one instruction: the original multiplies 2 sigma by sigma,
 // here sigma by 2 sigma (Reassociate puts the operand of lower rank first; the
-// original's order needs the second sigma to be a separate, later load at
-// that point, e.g. two array elements merged by GVN after the loops are
-// unrolled; no natural source for that was found)
+// original's order needs the second sigma to be another value of at least
+// 2 sigma's rank at that point, merged with the first only later: a later
+// load or a phi (two array elements merged by GVN after the loops are
+// unrolled), or `sigma > 1e-8f ? sigma : 1e-8f` next to fmaxf's (ISel makes
+// both fmaxnm); a single clamped value, however it is passed to a helper or
+// clamped, always comes out sigma first; no natural source was found)
 void Unk_414af0(u32 count, f32* offsets, f32* weights, bool normalize, f32 sigma, f32 x) {
     sigma = fmaxf(sigma, 1e-8f);
     f32 s = sigma * 2.5066283f;
