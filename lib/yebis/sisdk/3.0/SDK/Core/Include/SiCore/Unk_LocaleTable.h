@@ -25,6 +25,7 @@ void Unk_4c9390(const Unk_4ca820_arg0& language, SiSDK3::SiString<char>* languag
 // index in x25, this the other way round. Their live ranges are within half
 // an instruction of each other when registers are assigned, and the longer
 // one gets the lower register; here the address's is the longer one.
+// (Tried: the three tests as else-ifs, nested ifs, `!`, a result variable.)
 // The body of such a function: returns the table for a language, the neutral
 // one, the English one or the Japanese one, or none. (A macro: the code is in
 // each of the five functions, and it is too large for an inline function to

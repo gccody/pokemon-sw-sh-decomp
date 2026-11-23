@@ -62,7 +62,16 @@ public:
     virtual ISiGfxImageSaver* vf15(const char* extension);  // 0x71004d1690
     virtual bool vf16(SiGfxImage* image, const char* path, const Unk_LoadOptions* options);  // 0x71004d17f0
     virtual bool vf17(SiGfxImage* image, const char* path, const void* options);             // 0x71004d18d0
-    virtual void vf18();
+    // 0x71004d1970: fills a 2D, 3D or cube image with noise (two scales and
+    // a count: placeholder names)
+    virtual bool vf18(SiGfxImage* image, f32 scaleX, f32 scaleY, s32 octaves);
+
+    // 0x71004d1150: adds the DDS loader (what the graphics kernel's
+    // initialisation calls)
+    bool Unk_4d1150();
+    // 0x71004d1a70: vf18 for a 3D image, 0x71004d2110: for a cube
+    bool Unk_4d1a70(SiGfxImage* image, f32 scaleX, f32 scaleY, s32 octaves);
+    bool Unk_4d2110(SiGfxImage* image, f32 scaleX, f32 scaleY, s32 octaves);
 
     Unk_4bf660 field_8;
     SiArray<ISiGfxImageLoader*, 16> field_18;
@@ -72,6 +81,8 @@ PKMN_SIZE_ASSERT(SiGfxImageUtility, 0xb8);
 
 }  // namespace SiSDK3
 
+#ifdef UNK_SIGFX_IMAGEUTILITY_IMPL
 // 0x71004d2670 (vf2), 0x71004d2690 (vf3)
 #line 32
 UNK_REFCOUNT_DEFINE(SiSDK3::SiGfxImageUtility, field_8.m_pAllocator, field_8.m_count)
+#endif

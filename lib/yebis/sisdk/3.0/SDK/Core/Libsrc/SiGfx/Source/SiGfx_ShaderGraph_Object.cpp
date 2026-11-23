@@ -2,6 +2,7 @@
 // SiSDK3::SiGfxShaderGraphObject: the functions of its own translation unit
 // (0x71004dc730 to 0x71004dcb70). Its inline ones are the header's; its two
 // empty event handlers (vf14, vf15) are lib/yebis/class's.
+#define UNK_SIGFX_SHADERGRAPH_OBJECT_IMPL
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiGfx/ShaderGraph/SiGfx_ShaderGraph_Object.h>
 
 // 0x710276d590

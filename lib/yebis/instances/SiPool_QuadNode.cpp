@@ -6,6 +6,7 @@
 // index, then the rest without its last three bytes, which is how two base
 // classes with constructors are copied. Placeholder names for the two.
 #define UNK_SIPOOL_WHOLE_ELEMENT
+#define UNK_SIPOOL_CLEAR
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_Pool.h>
 
 namespace SiSDK3 {
@@ -68,3 +69,5 @@ template bool SiPool<Unk_Node, 16>::vf5(size_t);
 template void SiPool<Unk_Node, 16>::Unk_4be3f0(Unk_Node*);
 // 0x7100531a90 = _ZN6SiSDK36SiPoolINS_13SiGfxQuadTreeINS_22SiGfxFreeTypeFaceCache9CacheDataEE8QuadNodeELi16EEC1EPNS_12ISiAllocatorEb
 template SiPool<Unk_Node, 16>::SiPool(ISiAllocator*, bool);
+// 0x7100532020
+template void SiPool<Unk_Node, 16>::Unk_4be7d0();

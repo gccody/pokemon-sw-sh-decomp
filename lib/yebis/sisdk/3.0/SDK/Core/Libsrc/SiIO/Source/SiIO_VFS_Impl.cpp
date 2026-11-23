@@ -3,6 +3,7 @@
 #define UNK_SIIO_VFS_IMPL
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiIO/Source/SiIO_VFS_Impl.h>
 
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_StringCompare.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_StringFuncs.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiIO/Source/SiIO_MemoryStream_Impl.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiIO/Source/SiIO_VFSManager_Impl.h>
@@ -22,6 +23,8 @@ SiSDK3::SiString<char> Unk_4e4230(SiSDK3::SiString<char>* path);
 void Unk_4c8020(SiSDK3::SiString<char>* self, const SiSDK3::SiString<char>* other);
 void Unk_4ca0b0(SiSDK3::SiString<char>* self, const char* from, const char* to, u64, u64, bool);
 s64 Unk_4c5630(const char* a, const char* b, bool);
+// 0x71004c3510: a string's hash
+u32 Unk_4c3510(const SiSDK3::SiString<char>* s);
 // 0x71004c5520: copies a string into a buffer
 void Unk_4c5520(char* dst, size_t size, const char* src, s64 count);
 
@@ -70,6 +73,55 @@ inline void Unk_WriteHeader(ISiIOStream* stream, SiIOVFS::Unk_Header* header) {
     stream->vf51(header->field_18, true);
     stream->vf51(header->field_20, true);
     stream->vf51(header->field_28, true);
+}
+
+// A string and a character after it, and a string and another after it.
+inline SiString<char> Unk_StringConcat(const SiString<char>& a, char c) {
+    SiString<char> result(a, nullptr);
+    Unk_StringAppend(&result, c);
+    return result;
+}
+inline SiString<char> Unk_StringConcat(const SiString<char>& a, const SiString<char>& b) {
+    SiString<char> result(a, nullptr);
+    Unk_StringAppendString(&result, &b);
+    return result;
+}
+
+}  // namespace
+
+// Where another string is in a string first, or -1 (external linkage, not
+// in the anonymous namespace: see vf13).
+inline s64 Unk_StringFind(const SiString<char>* self, const SiString<char>* other) {
+    if (self->field_10 == 0 || other->field_10 == 0) {
+        return -1;
+    }
+    const char* buffer = self->m_pBuffer;
+    for (s64 i = 0; i < static_cast<s64>(self->field_10); i++) {
+        if (buffer[i] == other->m_pBuffer[0]) {
+            s64 j = 1;
+            while (other->m_pBuffer[j] != 0 && buffer[i + j] == other->m_pBuffer[j]) {
+                j++;
+            }
+            if (other->m_pBuffer[j] == 0) {
+                return i;
+            }
+        }
+    }
+    return -1;
+}
+
+namespace {
+
+// Compares a string with characters (not null) with case: 0 if they are the
+// same, else which of them is greater.
+inline int Unk_CompareWith(const SiString<char>* self, const char* s) {
+    if (*s == 0) {
+        return self->field_10 != 0;
+    }
+    if (self->field_10 == 0) {
+        return -1;
+    }
+    return Unk_Compare(s, self->m_pBuffer);
 }
 
 template <class T>
@@ -186,8 +238,8 @@ bool SiIOVFS::Unk_584750(ISiIOStream* stream, Unk_Header* header) {
 }
 
 // 0x71005848c0
-// NON_MATCHING: w23 and w24 are swapped (the value for field_88 and the directory flag): three
-// long values are evicted to the stack for them, and the allocator picks them in another order.
+// The entry's data is the mapped file's bytes from its start (a pointer's sum: base first), and
+// the index of a child is read before the array.
 bool SiIOVFS::Unk_5848c0(ISiIOStream* stream, Unk_Header* header, SiIOVFSEntry* entry) {
     s64 offset = stream->vf28(true);
     s64 size = stream->vf28(true);
@@ -204,24 +256,27 @@ bool SiIOVFS::Unk_5848c0(ISiIOStream* stream, Unk_Header* header, SiIOVFSEntry* 
     stream->vf37(&entry->field_28, true);
     entry->field_8c = directory != 0;
     entry->field_c0 = index;
+    entry->field_90 = header->field_28 + offset;
+    entry->field_98 = size;
     entry->field_a0 = valueA0;
     entry->field_b0 = valueB0;
     entry->field_88 = value88;
-    entry->field_90 = header->field_28 + offset;
-    entry->field_98 = size;
-    entry->field_a8 = field_20->vf10() + entry->field_90;
-    field_148.m_pData[entry->field_c0] = entry;
+    entry->field_a8 = reinterpret_cast<s64>(reinterpret_cast<const u8*>(field_20->vf10()) + entry->field_90);
+    s64 position = entry->field_c0;
+    field_148.m_pData[position] = entry;
     if (entry->vf11()) {
         entry->field_118.Unk_SetCount(count118);
         entry->field_c8.Unk_SetCount(countC8);
         for (s64 i = 0; i < entry->vf15(); i++) {
-            SiIOVFSEntry* child = &field_f8.m_pData[stream->vf27(true)];
+            s32 k = stream->vf27(true);
+            SiIOVFSEntry* child = &field_f8.m_pData[k];
             child->field_20 = entry;
             entry->field_118.m_pData[i] = child;
             child->vf2();
         }
         for (s64 i = 0; i < entry->vf12(); i++) {
-            SiIOVFSEntry* child = &field_f8.m_pData[stream->vf27(true)];
+            s32 k = stream->vf27(true);
+            SiIOVFSEntry* child = &field_f8.m_pData[k];
             child->field_20 = entry;
             entry->field_c8.m_pData[i] = child;
             child->vf2();
@@ -241,6 +296,125 @@ void SiIOVFS::vf6() {
     }
 }
 
+// 0x7100584df0
+// NON_MATCHING: block layout and registers of the binary search. The
+// original keeps the guard `high - low >= 2` as `cmp #2; b.ge` (here `cmp #1;
+// b.gt`, the loop's blocks in another order) and returns the entry it found
+// from blocks of their own where clang selects it (`csel x19, xzr, x12`).
+// What decided the rest: Unk_StringFind has external linkage (internal, its
+// string argument is promoted to its buffer and length, read at the call),
+// `high` is computed unsigned (no nsw: the guard isn't rewritten on the
+// count) with the count's own sign test (`subs; b.lt`), and the entries are
+// read before the '/' test (which then becomes a select, not a switch with
+// the zero test). Tried the loop's test as `> 1`, `< 2` with break, `low + 1 <
+// high`, the find with separate tests, a local length, a local buffer, a for
+// loop for the pattern. vf14 is the same search for a directory.
+SiIOVFSEntry* SiIOVFS::vf13(const char* path) {
+    s64 high = field_148.m_itemCount - 1;
+    if (static_cast<s64>(field_148.m_itemCount) <= 0) {
+        return nullptr;
+    }
+    char buffer[0x400];
+    SiString<char> name(nullptr, buffer, sizeof(buffer));
+    Unk_StringAssign(&name, path);
+    s64 offset = 0;
+    if (Unk_StringFind(&name, &field_58) == 0) {
+        offset = static_cast<s32>(field_58.field_10);
+    }
+    if (name.m_pBuffer[offset] == 0) {
+        return nullptr;
+    }
+    SiIOVFSEntry** entries = field_148.m_pData;
+    if (name.m_pBuffer[offset] == '/') {
+        offset++;
+    }
+    const char* p = &name.m_pBuffer[offset];
+    if (Unk_CompareWith(&entries[0]->field_58, p) > 0) {
+        return nullptr;
+    }
+    if (Unk_CompareWith(&entries[high]->field_58, p) < 0) {
+        return nullptr;
+    }
+    s64 low = 0;
+    while (high - low >= 2) {
+        s64 mid = (low + high) >> 1;
+        SiIOVFSEntry* entry = entries[mid];
+        int result = Unk_CompareWith(&entry->field_58, p);
+        if (result == 0) {
+            if (entry->vf11()) {
+                return nullptr;
+            }
+            return entry;
+        }
+        if (result > 0) {
+            high = mid - 1;
+        } else {
+            low = mid + 1;
+        }
+    }
+    if (Unk_CompareWith(&entries[low]->field_58, p) == 0) {
+        return entries[low];
+    }
+    if (Unk_CompareWith(&entries[high]->field_58, p) == 0) {
+        return entries[high];
+    }
+    return nullptr;
+}
+
+// 0x7100585250
+// NON_MATCHING: as vf13 (its offset is an int: `sxtw` before the first read).
+SiIOVFSEntry* SiIOVFS::vf14(const char* path) {
+    s64 high = field_148.m_itemCount - 1;
+    if (static_cast<s64>(field_148.m_itemCount) <= 0) {
+        return nullptr;
+    }
+    char buffer[0x400];
+    SiString<char> name(nullptr, buffer, sizeof(buffer));
+    Unk_StringAssign(&name, path);
+    s32 offset = 0;
+    if (Unk_StringFind(&name, &field_58) == 0) {
+        offset = field_58.field_10;
+    }
+    if (name.m_pBuffer[offset] == 0) {
+        return nullptr;
+    }
+    SiIOVFSEntry** entries = field_148.m_pData;
+    if (name.m_pBuffer[offset] == '/') {
+        offset++;
+    }
+    const char* p = &name.m_pBuffer[offset];
+    if (Unk_CompareWith(&entries[0]->field_58, p) > 0) {
+        return nullptr;
+    }
+    if (Unk_CompareWith(&entries[high]->field_58, p) < 0) {
+        return nullptr;
+    }
+    s64 low = 0;
+    while (high - low >= 2) {
+        s64 mid = (low + high) >> 1;
+        SiIOVFSEntry* entry = entries[mid];
+        int result = Unk_CompareWith(&entry->field_58, p);
+        if (result == 0) {
+            if (!entry->vf11()) {
+                return nullptr;
+            }
+            return entry;
+        }
+        if (result > 0) {
+            high = mid - 1;
+        } else {
+            low = mid + 1;
+        }
+    }
+    if (Unk_CompareWith(&entries[low]->field_58, p) == 0) {
+        return entries[low];
+    }
+    if (Unk_CompareWith(&entries[high]->field_58, p) == 0) {
+        return entries[high];
+    }
+    return nullptr;
+}
+
 // 0x71005856e0
 void SiIOVFS::vf19(const char* s) {
     Unk_StringAssign(&field_88, s);
@@ -258,9 +432,9 @@ SiIOVFSEntry* SiIOVFS::vf21() {
 }
 
 // 0x7100585780
-// NON_MATCHING: one instruction more. After the list's room is allocated (SiArray's reserve, inlined)
-// its two end pointers are cleared there and again after the join; the original clears them only
-// after the join.
+// The list's room is made with Unk_ReserveAtLeast (its failure path clears the end pointers, so
+// both paths' stores join and the reserve's own are dead), and the data's size is chosen by two
+// calls (LLVM merges them, and the size's test keeps `cmp #1; b.ge`).
 bool SiIOVFS::vf22(const char* path, u32 byteOrder) {
     s64 offset;
     if (field_e8 == nullptr) {
@@ -274,7 +448,7 @@ bool SiIOVFS::vf22(const char* path, u32 byteOrder) {
         Unk_586310(field_e8);
     }
     SiArray<SiIOVFSEntry*> list(field_8.m_pAllocator);
-    list.Unk_Reserve(count);
+    list.Unk_ReserveAtLeast(count);
     Unk_585ca0(&list);
     SiArray<SiIOVFSEntry*> sorted(field_8.m_pAllocator);
     Unk_585d70(&list, &sorted);
@@ -298,7 +472,11 @@ bool SiIOVFS::vf22(const char* path, u32 byteOrder) {
         for (s32 i = 0; i < static_cast<s32>(list.m_itemCount); i++) {
             SiIOVFSEntry* entry = list.m_pData[i];
             if (!entry->vf11()) {
-                stream->vf44(reinterpret_cast<void*>(entry->field_168), entry->field_a0 > 0 ? entry->field_a0 : entry->field_98, true);
+                if (entry->field_a0 > 0) {
+                    stream->vf44(reinterpret_cast<void*>(entry->field_168), entry->field_a0, true);
+                } else {
+                    stream->vf44(reinterpret_cast<void*>(entry->field_168), entry->field_98, true);
+                }
             }
         }
         header.field_20 = stream->vf17() - start;
@@ -408,6 +586,21 @@ bool SiIOVFS::vf24() {
     return true;
 }
 
+// 0x7100586310: the paths (and their hashes) of the entries below a directory
+void SiIOVFS::Unk_586310(SiIOVFSEntry* entry) {
+    for (s64 i = 0; i < static_cast<s32>(entry->vf15()); i++) {
+        SiIOVFSEntry* child = entry->vf16(i);
+        child->field_58 = Unk_StringConcat(Unk_StringConcat(*entry->vf10(), '/'), child->field_28);
+        child->field_88 = Unk_4c3510(&child->field_58);
+    }
+    for (s64 i = 0; i < static_cast<s32>(entry->vf12()); i++) {
+        SiIOVFSEntry* child = entry->vf13(i);
+        child->field_58 = Unk_StringConcat(Unk_StringConcat(*entry->vf10(), '/'), child->field_28);
+        child->field_88 = Unk_4c3510(&child->field_58);
+        Unk_586310(child);
+    }
+}
+
 // 0x7100586750
 void SiIOVFS::Unk_586750(SiArray<SiIOVFSEntry*>* list, SiIOVFSEntry* entry) {
     for (s32 i = 0; i < static_cast<s32>(entry->vf15()); i++) {
@@ -421,8 +614,8 @@ void SiIOVFS::Unk_586750(SiArray<SiIOVFSEntry*>* list, SiIOVFSEntry* entry) {
 }
 
 // 0x7100586910
-// NON_MATCHING: x19, x20 and x21 hold the entries, the count and `this` instead of the count,
-// `this` and the entries (three live ranges of nearly the same size).
+// (the second part as `&entries[pivot + 1]`: `entries + pivot + 1` adds twice, the count's
+// computation comes first and the registers of the entries and the count are exchanged)
 bool Unk_586910::Unk_586910_Sort(s64 count, SiIOVFSEntry** entries) {
     if (count > 1) {
         s64 pivot = 0;
@@ -465,7 +658,7 @@ bool Unk_586910::Unk_586910_Sort(s64 count, SiIOVFSEntry** entries) {
             entries[pivot] = t;
         }
         Unk_586910_Sort(pivot, entries);
-        Unk_586910_Sort(count - pivot - 1, entries + pivot + 1);
+        Unk_586910_Sort(count - pivot - 1, &entries[pivot + 1]);
     }
     return true;
 }

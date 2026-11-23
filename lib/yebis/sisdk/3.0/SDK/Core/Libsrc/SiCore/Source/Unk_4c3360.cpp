@@ -20,25 +20,29 @@ void Unk_4c3360() {
     }
 }
 
-// 0x71004c3410
-u32 Unk_4c3410(int size, const u8* data) {
+// 0x71004c3410 (the size is a 64-bit parameter, converted to an int as the
+// string hashes below convert theirs: the callers pass it sign-extended,
+// `ldrsw x0` or a 64-bit `mul`)
+u32 Unk_4c3410(s64 length, const u8* data) {
+    int size = static_cast<int>(length);
     if (size < 1) {
         return 0;
     }
     u32 crc = 0xffffffff;
-    do {
+    for (int i = 0; i < size; i++) {
         crc = Unk_24e9458[(crc ^ *data++) & 0xff] ^ (crc >> 8);
-    } while (--size != 0);
+    }
     return ~crc;
 }
 
 // 0x71004c3450
-u32 Unk_4c3450(int size, const u8* data) {
+u32 Unk_4c3450(s64 length, const u8* data) {
+    int size = static_cast<int>(length);
     if (size < 1) {
         return 0;
     }
     u32 crc = 0xffffffff;
-    for (s64 i = static_cast<s64>(size) - 1; i >= 0; i--) {
+    for (int i = size - 1; i >= 0; i--) {
         crc = Unk_24e9458[(crc ^ data[i]) & 0xff] ^ (crc >> 8);
     }
     return ~crc;
@@ -74,5 +78,5 @@ u32 Unk_4c3510(const SiSDK3::SiString<char>* s) {
 
 // 0x71004c3560
 u32 Unk_4c3560(const SiSDK3::SiString<char>* s) {
-    return Unk_4c3450(static_cast<int>(s->field_10), reinterpret_cast<const u8*>(s->m_pBuffer));
+    return Unk_4c3450(s->field_10, reinterpret_cast<const u8*>(s->m_pBuffer));
 }

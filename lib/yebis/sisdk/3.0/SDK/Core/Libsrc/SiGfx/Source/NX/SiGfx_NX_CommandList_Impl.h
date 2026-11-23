@@ -27,9 +27,8 @@ public:
     };
     // The same once the recording has ended, with the sync object that tells
     // when the GPU is past it (RTTI names the type).
-    struct DiscontinuedEntry {
-        SiGfxNXMemoryHeap* field_0;
-        void* field_8;
+    // (Its first two members are copied from an OverwrittenEntry as one.)
+    struct DiscontinuedEntry : OverwrittenEntry {
         u64 field_10[8];  // NVNsync
     };
     // What slots 12 and 13 return (placeholder name).

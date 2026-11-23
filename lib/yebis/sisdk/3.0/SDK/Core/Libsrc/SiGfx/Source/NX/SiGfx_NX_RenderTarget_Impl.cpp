@@ -196,6 +196,99 @@ bool SiGfxNXRenderTarget::vf25() {
     return true;
 }
 
+// NON_MATCHING: the same calls and stores; the original doesn't test the
+// surface a texture's slot 24 returns (it calls it at once) and has no
+// induction variable of its own for the formats' stores (`add x9, x19, x23,
+// lsl #2` each time), where this keeps 0x29c + 4 * i in a register. Writing
+// the surface's three statements in both branches drops the test but keeps
+// the extra induction variable (and costs 8 bytes).
+// 0x71005564a0
+bool SiGfxNXRenderTarget::Unk_5564a0() {
+    field_298.field_0 = 0;
+    for (s32 i = 0; i < 8; i++) {
+        Unk_NXAttachment* surface;
+        if (field_a0[i].field_8 != nullptr) {
+            surface = field_a0[i].field_8->vf24(field_a0[i].field_10);
+        } else {
+            surface = field_a0[i].field_18;
+        }
+        if (surface != nullptr) {
+            field_298.field_4[i] = surface->vf17()->field_4;
+            field_2c0[i] = reinterpret_cast<u64>(surface->vf25());
+            field_308[i] = surface->vf26();
+        } else if (field_a0[i].field_20 != nullptr) {
+            Unk_NXAttachment* texture = field_a0[i].field_20;
+            field_298.field_4[i] = texture->vf19()->field_4;
+            field_2c0[i] = texture->vf40();
+            s32 layer = field_a0[i].field_28;
+            if (texture->vf19()->field_0 == 4 || texture->vf19()->field_0 == 6) {
+                layer = field_a0[i].field_28 * 6 + field_a0[i].field_34;
+            }
+            field_308[i] = texture->vf42(field_a0[i].field_30, layer);
+        }
+        if (field_2c0[i] != 0 && field_308[i] != 0) {
+            field_298.field_0++;
+        }
+    }
+    Unk_NXAttachment* surface;
+    if (field_260.field_8 != nullptr) {
+        surface = field_260.field_8->vf25();
+        if (surface == nullptr) {
+            return true;
+        }
+    } else {
+        surface = field_260.field_10;
+    }
+    if (surface != nullptr) {
+        field_298.field_24 = surface->vf17()->field_4;
+        field_300 = reinterpret_cast<u64>(surface->vf25());
+        field_348 = surface->vf26();
+    } else if (field_260.field_18 != nullptr) {
+        Unk_NXAttachment* texture = field_260.field_18;
+        field_298.field_24 = texture->vf19()->field_4;
+        field_300 = texture->vf40();
+        field_348 = texture->vf42(0, field_260.field_20);
+    }
+    return true;
+}
+
+// 0x7100556730
+// NON_MATCHING: the loop's induction variables: the original steps the
+// formats' offset (`cmp x20, #0x20`) and a pointer to the colour, here the
+// colours' offset and a pointer to the format; and the depth's blocks are
+// laid out in another order (4 bytes more). The formats are read through
+// pointers computed in each branch (the descriptions are of two types), which
+// gives the original's `add x8, x0, #4 ; ldr w8, [x8]` after the shared call.
+bool SiGfxNXRenderTarget::Unk_556730() {
+    field_298.field_0 = 0;
+    for (s32 i = 0; i < 8; i++) {
+        const u32* format;
+        if (field_a0[i].field_8 != nullptr) {
+            format = &field_a0[i].field_8->vf24(0)->vf17()->field_4;
+        } else if (field_a0[i].field_18 != nullptr) {
+            format = &field_a0[i].field_18->vf17()->field_4;
+        } else if (field_a0[i].field_20 != nullptr) {
+            format = &field_a0[i].field_20->vf19()->field_4;
+        } else {
+            continue;
+        }
+        field_298.field_4[i] = *format;
+        field_298.field_0++;
+    }
+    field_298.field_0 = field_78.field_10;
+    if (field_260.field_8 != nullptr) {
+        if (field_260.field_8->vf25() == nullptr) {
+            return true;
+        }
+        field_298.field_24 = field_260.field_8->vf25()->vf17()->field_4;
+    } else if (field_260.field_10 != nullptr) {
+        field_298.field_24 = field_260.field_10->vf17()->field_4;
+    } else if (field_260.field_18 != nullptr) {
+        field_298.field_24 = field_260.field_18->vf19()->field_4;
+    }
+    return true;
+}
+
 // 0x7100556840
 void SiGfxNXRenderTarget::vf26() {
     for (s32 i = 0; i < 8; i++) {

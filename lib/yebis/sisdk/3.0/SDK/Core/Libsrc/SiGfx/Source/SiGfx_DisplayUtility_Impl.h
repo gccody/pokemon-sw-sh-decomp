@@ -46,6 +46,8 @@ PKMN_SIZE_ASSERT(SiGfxDisplayUtility, 0x68);
 
 }  // namespace SiSDK3
 
+#ifdef UNK_SIGFX_DISPLAYUTILITY_IMPL
 // 0x71004d2f70 (vf2), 0x71004d2f90 (vf3)
 #line 33
 UNK_REFCOUNT_DEFINE(SiSDK3::SiGfxDisplayUtility, field_8.m_pAllocator, field_8.m_count)
+#endif

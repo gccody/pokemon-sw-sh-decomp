@@ -87,6 +87,92 @@ namespace SiSDK3 {
         field_58--;                                                     \
     }
 
+// A heap's making (both heaps' functions: the kind of memory, NVN's name
+// for the size of a descriptor, the pool's initialisation and the lines of
+// the allocations and frees differ): its nodes, room for the descriptors in
+// a memory heap, the NVN pool, then the nodes' numbers and the two lists.
+#define UNK_MAKE(Class, Name, Kind, SizeName, Initialize, LineNodes, LinePool, LineFree1, LineFree2, LineFree3, \
+                 LineFree4)                                                                                     \
+    bool Class::Name(SiGfxNXDevice* pDevice, s32 count, s32 first) {                                               \
+        if (pDevice == nullptr || count == 0) {                                                                 \
+            return false;                                                                                       \
+        }                                                                                                       \
+        Unk_596640 lock(Unk_Lock(), true);                                                                      \
+        u32 n = count;                                                                                          \
+        u32 total = n + 0x102;                                                                                  \
+        ISiAllocator* pAllocator = Unk_NXKernel()->vf6();                                                       \
+        size_t nodesSize = total * sizeof(Unk_NXDescriptorNode);                                                \
+        field_0 = static_cast<Unk_NXDescriptorNode*>(pAllocator->vf7(nodesSize, 1, __FILE__, LineNodes));       \
+        if (field_0 == nullptr) {                                                                               \
+            return false;                                                                                       \
+        }                                                                                                       \
+        void* device = Unk_NXDevice(pDevice)->vf85();                                                           \
+        int descriptorSize = 0;                                                                                 \
+        nvnDeviceGetInteger(device, SizeName, &descriptorSize);                                                 \
+        size_t poolSize = Unk_NXAlign(descriptorSize * total, descriptorSize);                                  \
+        field_8 = Unk_NXDevice(pDevice)->vf30(0, nullptr);                                                      \
+        Unk_NXMemoryHeapDesc heapDesc(poolSize);                                                                \
+        heapDesc.field_10 = 0;                                                                                  \
+        heapDesc.field_30 = (Unk_563620(Kind, 0, 0, 0) & ~3) | 2;                                               \
+        if (!field_8->vf8(&heapDesc)) {                                                                         \
+            return false;                                                                                       \
+        }                                                                                                       \
+        if (!field_8->Unk_552fc0(static_cast<s32>(poolSize), descriptorSize, &field_60)) {                      \
+            return false;                                                                                       \
+        }                                                                                                       \
+        field_68 = Unk_NXAlign(field_60, descriptorSize);                                                       \
+        field_50 = pAllocator->vf7(0x20, 0x10, __FILE__, LinePool);                                             \
+        if (field_50 == nullptr) {                                                                              \
+            pAllocator->vf9(field_0, __FILE__, LineFree1);                                                      \
+            if (field_8 != nullptr) {                                                                           \
+                field_8->vf3();                                                                                 \
+                field_8 = nullptr;                                                                              \
+            }                                                                                                   \
+            if (field_50 != nullptr) {                                                                          \
+                pAllocator->vf9(field_50, __FILE__, LineFree2);                                                 \
+                field_50 = nullptr;                                                                             \
+            }                                                                                                   \
+            field_0 = nullptr;                                                                                  \
+            return false;                                                                                       \
+        }                                                                                                       \
+        if (Initialize(field_50, field_8->vf16(), field_68, total) != 1) {                                      \
+            pAllocator->vf9(field_0, __FILE__, LineFree3);                                                      \
+            if (field_8 != nullptr) {                                                                           \
+                field_8->vf3();                                                                                 \
+                field_8 = nullptr;                                                                              \
+            }                                                                                                   \
+            if (field_50 != nullptr) {                                                                          \
+                pAllocator->vf9(field_50, __FILE__, LineFree4);                                                 \
+                field_50 = nullptr;                                                                             \
+            }                                                                                                   \
+            field_0 = nullptr;                                                                                  \
+            return false;                                                                                       \
+        }                                                                                                       \
+        field_74 = first;                                                                                       \
+        field_5c = count;                                                                                       \
+        memset(field_0, 0, nodesSize);                                                                          \
+        for (u32 i = 2; i < n + 2; i++) {                                                                       \
+            Unk_NXDescriptorNode* node = &field_0[i];                                                           \
+            *node = Unk_NXDescriptorNode();                                                                     \
+            node->field_0 = first + (i - 2);                                                                    \
+        }                                                                                                       \
+        field_10 = Unk_Node(0);                                                                                 \
+        field_10->field_10 = field_10;                                                                          \
+        field_10->field_8 = field_10;                                                                           \
+        field_10->field_0 = 0xffffffff;                                                                         \
+        field_18 = Unk_Node(1);                                                                                 \
+        field_18->field_0 = 0xffffffff;                                                                         \
+        for (u32 i = 1; i < n + 2; i++) {                                                                       \
+            Unk_NXDescriptorNode* node = Unk_Node(i);                                                           \
+            node->field_8 = nullptr;                                                                            \
+            node->field_10 = Unk_Node(i + 1);                                                                   \
+        }                                                                                                       \
+        field_0[n + 1].field_8 = field_18;                                                                      \
+        field_58 = 0;                                                                                           \
+        field_70 = true;                                                                                        \
+        return true;                                                                                            \
+    }
+
 // 0x7100551910
 void Unk_5518d0_Pool::Unk_551910() {
     Unk_551940();
@@ -96,6 +182,15 @@ void Unk_5518d0_Pool::Unk_551910() {
 // 0x7100551940
 #line 194
 UNK_RELEASE(Unk_5518d0_Pool, Unk_551940, nvnTexturePoolFinalize, 194, 208)
+
+// NON_MATCHING (and 0x7100552230): the original's failures before the NVN
+// pool's initialisation all branch to one block that sets the result to
+// false; here the failed vf8 sets it before its test, which keeps the
+// pool's size in another register (x27, a frame 16 bytes larger) and moves
+// every stack slot; and the numbers' loop, unrolled by two in both, has its
+// trip count from count + 2 here, from count in the original.
+// 0x7100551a50
+UNK_MAKE(Unk_5518d0_Pool, Unk_551a50, 0, 0xf, nvnTexturePoolInitialize, 68, 112, 116, 118, 131, 133)
 
 // 0x7100551ed0
 s32 Unk_5518d0_Pool::Unk_551ed0(u64 a1, u64 a2, bool a3) {
@@ -127,6 +222,9 @@ void Unk_5520b0_Pool::Unk_5520f0() {
 // 0x7100552120
 UNK_RELEASE(Unk_5520b0_Pool, Unk_552120, nvnSamplerPoolFinalize, 467, 481)
 
+// 0x7100552230
+UNK_MAKE(Unk_5520b0_Pool, Unk_552230, 0xc, 0x10, nvnSamplerPoolInitialize, 343, 386, 390, 392, 404, 406)
+
 // 0x71005526b0
 s32 Unk_5520b0_Pool::Unk_5526b0(u64 a1) {
     if (a1 == 0) {
@@ -142,6 +240,7 @@ s32 Unk_5520b0_Pool::Unk_5526b0(u64 a1) {
 // 0x7100552790
 UNK_GIVE_BACK(Unk_5520b0_Pool, Unk_552790)
 
+#undef UNK_MAKE
 #undef UNK_RELEASE
 #undef UNK_TAKE_NODE
 #undef UNK_GIVE_BACK

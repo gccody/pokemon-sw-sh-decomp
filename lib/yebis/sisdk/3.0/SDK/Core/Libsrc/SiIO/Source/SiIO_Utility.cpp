@@ -1,13 +1,15 @@
 // Scope: common
 // SiIO's file and stream helpers: the functions between SiIOMemoryStream's
 // and SiIOVFSManager's (0x7100582d60 to 0x7100583760). SiIO_Utility.cpp is
-// the __FILE__ of the last two, which aren't written yet (0x7100583410,
-// 0x7100583580: a block's compression and decompression); placeholder names.
+// the __FILE__ of the last two (0x7100583410, 0x7100583580: a block's
+// compression and decompression); placeholder names.
 #include <stdio.h>
 #include <string.h>
 
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_StringFuncs.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiIO/SiIO_Stream.h>
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiIO/Source/SiIO_Codec_ZLib_Impl.h>
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiIO/Source/SiIO_Kernel_Impl.h>
 
 namespace nn {
 struct Result {
@@ -24,6 +26,8 @@ Result GetEntryType(DirectoryEntryType* outType, const char* path);
 struct Unk_57d840;
 Unk_57d840* Unk_57cfb0();
 u64 Unk_57d840_get(const Unk_57d840* self);
+// 0x710057d030 (leafgen's name and type): SiIO's kernel
+u64 Unk_57d030_get();
 // 0x7100583b70, 0x7100583be0: the archive manager's file or directory of a path, or null
 void* Unk_583b70(void* manager, const char* path);
 void* Unk_583be0(void* manager, const char* path);
@@ -36,6 +40,10 @@ u32 Unk_4cbbb0_get(u64 buffer, u64 path, u32 size);
 u8* Unk_4c9eb0_get();
 
 namespace {
+
+inline SiSDK3::SiIOKernel* Unk_GetIOKernel() {
+    return reinterpret_cast<SiSDK3::SiIOKernel*>(Unk_57d030_get());
+}
 
 inline void* Unk_GetVFSManager() {
     return reinterpret_cast<void*>(Unk_57d840_get(Unk_57cfb0()));
@@ -156,19 +164,88 @@ bool Unk_583140(SiSDK3::ISiIOStream* stream, Unk_BlockHeader* header, s32 alignm
     return true;
 }
 
-// 0x7100583340
-// NON_MATCHING: the original tests the first byte against 0xff, then against 0xef; here the two
-// tests become a switch, which compares in the cases' order (0xef first).
+// 0x7100583340: skips a UTF-8 or UTF-16 byte order mark. (The two tests
+// become a switch whose comparisons come in the reverse of the source's
+// order: the UTF-8 mark's test is written first.)
 bool Unk_583340(SiSDK3::ISiIOStream* stream) {
     u8 mark[4];
     stream->vf21(mark, sizeof(mark), false);
-    if (mark[0] == 0xff && mark[1] == 0xfe) {
-        stream->vf19(2);
-        return true;
-    }
     if (mark[0] == 0xef && mark[1] == 0xbb && mark[2] == 0xbf) {
         stream->vf19(3);
         return true;
     }
+    if (mark[0] == 0xff && mark[1] == 0xfe) {
+        stream->vf19(2);
+        return true;
+    }
     return false;
+}
+
+// A block's data compressed with a codec, if that makes it smaller than ratio
+// times its size: the compressed data (also in *buffer, to be freed), else the
+// data as it is.
+// 0x7100583410
+const void* Unk_583410(SiSDK3::ISiAllocator* pAllocator, Unk_BlockHeader* header, const void* data, u32 codec,
+                       float ratio, void** buffer) {
+    *buffer = nullptr;
+    if (data == nullptr || codec == 0) {
+        return data;
+    }
+    SiSDK3::SiIOCodecZLib* pCodec = reinterpret_cast<SiSDK3::SiIOCodecZLib*>(Unk_GetIOKernel()->vf17(codec));
+    void* compressed = nullptr;
+    if (pCodec != nullptr) {
+        s64 size = pCodec->vf5(data, header->field_0);
+        if (pAllocator != nullptr) {
+#line 2181
+            compressed = pAllocator->vf8(1, size, -1, __FILE__, __LINE__);
+            if (compressed != nullptr) {
+                if (pCodec->vf6(data, header->field_0, compressed, &size)) {
+                    if (static_cast<float>(size) < static_cast<float>(header->field_0) * ratio) {
+                        header->field_8 = size;
+                        data = compressed;
+                        header->field_10 = codec;
+                    } else {
+                        header->field_10 = 0;
+#line 2199
+                        SI_FREE(pAllocator, compressed);
+                        compressed = nullptr;
+                    }
+                } else {
+                    header->field_10 = 0;
+#line 2207
+                    SI_FREE(pAllocator, compressed);
+                    compressed = nullptr;
+                }
+            }
+        }
+    }
+    *buffer = compressed;
+    return data;
+}
+
+// A block's data decompressed (also in *buffer, to be freed), and its size.
+// 0x7100583580
+// NON_MATCHING: registers only: the codec and the result are exchanged
+// (x24/x25). Tried: the declarations' order, early returns, nested tests, the
+// buffer assigned first, u8*, the kind in a local, one result variable, an else.
+const void* Unk_583580(SiSDK3::ISiAllocator* pAllocator, const Unk_BlockHeader* header, const void* data,
+                       void** buffer, s64* size) {
+    *buffer = nullptr;
+    *size = header->field_0;
+    if (header->field_10 == 0) {
+        return data;
+    }
+    void* decompressed = nullptr;
+    SiSDK3::SiIOCodecZLib* pCodec =
+        reinterpret_cast<SiSDK3::SiIOCodecZLib*>(Unk_GetIOKernel()->vf17(header->field_10));
+    if (pAllocator != nullptr && pCodec != nullptr) {
+#line 2257
+        decompressed = pAllocator->vf8(1, header->field_0, -1, __FILE__, __LINE__);
+        if (decompressed != nullptr) {
+            pCodec->vf7(data, header->field_8, decompressed, header->field_0);
+            *buffer = decompressed;
+            *size = header->field_8;
+        }
+    }
+    return decompressed;
 }

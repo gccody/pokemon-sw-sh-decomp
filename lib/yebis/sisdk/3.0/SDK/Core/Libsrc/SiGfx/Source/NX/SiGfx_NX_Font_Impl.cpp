@@ -1,8 +1,7 @@
 // Scope: common
 // SiSDK3::SiGfxNXFont: its construction and destruction, its name, its small
 // functions, and the reference counts its header defines. (Its other small
-// accessors are lib/yebis/class's; slot 18, which makes the face, isn't
-// written yet.)
+// accessors are lib/yebis/class's.)
 #define UNK_SIGFX_NX_FONT_IMPL
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_Font_Impl.h>
 
@@ -64,6 +63,26 @@ u32 SiGfxNXFont::vf27() {
     return field_60;
 }
 
+// 0x71004ff920
+bool SiGfxNXFont::vf18(const Unk_FontDesc* desc) {
+    if (!field_78.Unk_5005c0(desc)) {
+        return false;
+    }
+#line 246
+    field_268 = UNK_SI_NEW(field_10.m_pAllocator, 0x10) SiGfxNXFreeTypeFaceCache(field_20);
+    if (!field_268->vf5(desc->field_3c, desc->field_40)) {
+        vf19();
+        return false;
+    }
+    field_78.Unk_500550(field_268);
+    if (field_268 != nullptr && field_30.field_10 != 0) {
+        Unk_NXString<0x400> name(field_10.m_pAllocator);
+        Unk_4c9090(&name, "%s_FontCache", field_30.m_pBuffer);
+        field_268->Unk_5316f0(Unk_StringCStr(&name));
+    }
+    return true;
+}
+
 // 0x71004ffab0
 void SiGfxNXFont::vf19() {
     if (field_268 != nullptr) {
@@ -75,7 +94,7 @@ void SiGfxNXFont::vf19() {
 
 // 0x71004ffb00
 bool SiGfxNXFont::vf21(const char* text) {
-    Unk_NXFontCache* pCache = field_268;
+    SiGfxNXFreeTypeFaceCache* pCache = field_268;
     if (text == nullptr || pCache == nullptr) {
         return false;
     }
@@ -92,8 +111,8 @@ bool SiGfxNXFont::vf22(char character) {
 }
 
 // 0x71004ffbb0
-Unk_NXFontCacheSecond* SiGfxNXFont::vf23() {
-    return field_268;
+SiGfxImage* SiGfxNXFont::vf23() {
+    return field_268 != nullptr ? &field_268->field_40 : nullptr;
 }
 
 // 0x71004ffbe0

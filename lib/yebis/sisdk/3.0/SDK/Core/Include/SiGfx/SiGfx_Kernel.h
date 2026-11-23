@@ -16,6 +16,7 @@ public:
     // destructor is a trap, 0x7100545fb0).
     class EventHandler {
     public:
+        explicit EventHandler(ISiAllocator* pAllocator) : field_8(pAllocator) {}
         virtual ~EventHandler() {}  // 0x7100545f90
         UNK_REFCOUNT_DECLARE;
         virtual u32 vf4() { return field_8.m_count; }  // 0x7100545ed0

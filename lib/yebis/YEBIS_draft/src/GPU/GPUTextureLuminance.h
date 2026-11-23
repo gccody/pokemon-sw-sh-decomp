@@ -8,6 +8,9 @@
 
 namespace PPFX {
 
+// 0x7100462c30 (GPUTextureUtil.cpp's first half; placeholder signature, from its callers)
+f32 Unk_462c30(s32 mode, f32 a, f32 b, f32 c);
+
 class CTextureLuminance : public CGPUResourceManage {
 public:
     explicit CTextureLuminance(const char* name) : CGPUResourceManage(nullptr) { Unk_4b75a0(name); }
@@ -21,7 +24,13 @@ public:
     // 0x71004b7670
     s32 Unk_4b7670(CRenderTexture* target, s32 format, s32 arg2);
     // 0x71004b8240
-    s32 Unk_4b8240(CGPUBaseResourceManage* target, bool flag);
+    s32 Unk_4b8240(CRenderTexture* source, bool flag);
+    // 0x71004b7f40 (not written yet): reads the measured luminance back
+    s32 Unk_4b7f40();
+    // whether the device and the four objects are ready (inline)
+    inline s32 Unk_CheckReady();
+    // 0x71004b7d60: draws the source down the chain of textures smaller than it
+    s32 Unk_4b7d60(CRenderTexture* source);
     // (re)creates it for a target (inline in the manager)
     s32 Unk_Create(CRenderTexture* target, s32 count, s32 format) {
         IGPUDevice* device = field_20;
@@ -65,8 +74,8 @@ public:
     f32 field_74;
     CRenderTexture** field_78;  // textures of the pool
     s32 field_80;
-    u64 field_88;
-    u32 _90;
+    CRenderTexture* field_88;  // the last texture of the chain it drew into
+    u8 field_90[4];  // the luminance read back (red, green, blue, alpha)
     s32 field_94;
     s32 field_98;
     s32 field_9c;
@@ -110,6 +119,7 @@ public:
     s32 Unk_4b89b0();                    // 0x71004b89b0
     // 0x71004b8a40
     s32 Unk_4b8a40(bool flag, f32 a, f32 b, f32 c, f32 d);
+    f32 Unk_4b8ae0(f32 a, f32 b, f32 c);  // 0x71004b8ae0
     // 0x71004b9140: every frame of the history gets the same values
     s32 Unk_4b9140(const Unk_Value* value, bool flag, f32 a, f32 b, f32 c, f32 d, f32 e);
 

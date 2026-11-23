@@ -6,13 +6,7 @@
 
 #include <types.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_Reflection.h>
-
-// 0x20 bytes, aligned to 4 (the merged statics put it at 0xcc)
-struct Unk_410f90 {
-    f32 field_0[8];
-};
-// 0x7100410f90
-void Unk_410f90_set(Unk_410f90* self, u32 value);
+#include <yebis/YEBIS_draft/src/GPU/Unk_410f90.h>
 
 namespace PPFX {
 

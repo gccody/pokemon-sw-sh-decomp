@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 #define UNK_SIFIXEDHEAPALLOCATOR2_IMPL
+#define UNK_SIPOOL_CLEAR
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_FixedHeapAllocator2.h>
 
 // 0x71004c54a0, 0x71004c5520: string copies
@@ -21,6 +22,8 @@ template bool SiPool<SiFixedHeapAllocator2::MemoryBlockHeader, 16>::vf5(size_t c
 template void SiPool<SiFixedHeapAllocator2::MemoryBlockHeader, 16>::Unk_4bcfa0(ISiAllocator* pAllocator);
 template void SiPool<SiFixedHeapAllocator2::MemoryBlockHeader, 16>::Unk_4be3f0(
     SiFixedHeapAllocator2::MemoryBlockHeader* item);
+// 0x71004be7d0
+template void SiPool<SiFixedHeapAllocator2::MemoryBlockHeader, 16>::Unk_4be7d0();
 // 0x71004bf330
 template bool SiArray<SiFixedHeapAllocator2::MemoryBlockHeader, 16>::Unk_4bf190(size_t count, bool keep);
 
@@ -205,6 +208,182 @@ inline void SiFixedHeapAllocator2::Unk_4bd610(s64 number, bool) {
 // 0x71004bd8e0
 void* SiFixedHeapAllocator2::vf7(size_t size, int alignment, const char* file, int line) {
     return vf8(size, 1, alignment, file, line);
+}
+
+// 0x71004bd900: the first free block that holds the allocation, split when
+// it has room left
+// NON_MATCHING: register allocation in three places (the unlink of the block
+// that isn't split: prev and next swapped; the new header's reset: one store
+// scheduled the other way; the insert after the block in the list of every
+// block: the list's head loaded before the block's next link). Same
+// instructions otherwise.
+void* SiFixedHeapAllocator2::vf8(size_t elementSize, size_t count, int alignment, const char* file, int line) {
+    Unk_4c87b0 lock(Unk_CriticalSection(), true);
+    if (alignment < 0) {
+        alignment = field_40;
+    }
+    size_t size = count * elementSize;
+    MemoryBlockHeader* block = nullptr;
+    if (field_e8.m_count != 0) {
+        for (MemoryBlockPtr* node = field_e8.m_pHead; node != nullptr; node = node->m_pNext) {
+            MemoryBlockHeader* header = node->m_pHeader;
+            u8* base = header->field_50;
+            u8* p = reinterpret_cast<u8*>((reinterpret_cast<size_t>(base) + (static_cast<size_t>(alignment) - 1)) & ~(static_cast<size_t>(alignment) - 1));
+            if (header->field_60 >= (alignment == 0 ? size : size - reinterpret_cast<size_t>(base) + reinterpret_cast<size_t>(p))) {
+                header->field_58 = alignment == 0 ? base : p;
+                block = header;
+                break;
+            }
+        }
+    }
+    if (block == nullptr) {
+        if (field_b8 != nullptr) {
+            field_b8->vf5(this, elementSize, count, alignment, file, line);
+        }
+        return nullptr;
+    }
+    size_t index = block->field_10;
+    size_t used;
+    if (alignment > 0) {
+        used = (size + (alignment - 1)) & ~(alignment - 1);
+    } else {
+        used = size + (block->field_58 - block->field_50);
+    }
+    if (block->field_60 > used) {
+        MemoryBlockHeader* rest = field_110.Unk_Alloc();
+        if (rest == nullptr) {
+            return nullptr;
+        }
+        block = field_110.Unk_Get(index);
+        rest->Unk_Reset();
+        rest->field_50 = block->field_50 + used;
+        rest->field_60 = block->field_60 - used;
+        block->field_60 = used;
+        block->field_68 = size;
+        field_e8.Unk_InsertBefore(&block->field_38, &rest->field_38);
+        field_e8.Remove(&block->field_38);
+        field_c0.Unk_InsertAfter(&block->field_20, &rest->field_20);
+    } else {
+        block->field_68 = size;
+        field_e8.Remove(&block->field_38);
+    }
+    block->field_70 = count;
+    block->field_88 = file;
+    block->field_84 = line;
+    block->field_80 = static_cast<int>(field_68);
+    field_68++;
+    field_70 += block->field_60;
+    field_78 = field_78 > field_70 ? field_78 : field_70;
+    u8* end = block->field_50 + block->field_60;
+    field_80 = field_80 > end ? field_80 : end;
+    field_88++;
+    field_90 = field_90 > field_88 ? field_90 : field_88;
+    if (field_98 < static_cast<s64>(block->field_60)) {
+        field_98 = block->field_60;
+    }
+    if (field_a0 != 0 && field_a0 == block->field_80) {
+        __builtin_debugtrap();
+    }
+    if (field_a8 != 0 && reinterpret_cast<s64>(block->field_58) == field_a8) {
+        __builtin_debugtrap();
+    }
+    if (field_b0 >= 0 && static_cast<s64>(block->field_68) == field_b0) {
+        __builtin_debugtrap();
+    }
+    return block->field_58;
+}
+
+// 0x71004bde60: frees the block of p, merged with free neighbours
+// NON_MATCHING: the original calls SiPool::Unk_4be3f0 out of line (three
+// calls); here clang inlines it (cost 210 to 220 of 250). With the calls kept
+// out of line the rest is two register choices away (the loop's free block).
+void SiFixedHeapAllocator2::vf9(void* p, const char*, int) {
+    if (p == nullptr) {
+        return;
+    }
+    Unk_4c87b0 lock(Unk_CriticalSection(), true);
+    if (field_c0.m_count == 0) {
+        return;
+    }
+    MemoryBlockPtr* node = field_c0.m_pHead;
+    MemoryBlockHeader* block = nullptr;
+    for (; node != nullptr; node = node->m_pNext) {
+        block = node->m_pHeader;
+        if (block->field_58 == p) {
+            break;
+        }
+    }
+    if (node == nullptr) {
+        return;
+    }
+    field_88 = field_88 - 1 < 0 ? 0 : field_88 - 1;
+    field_70 = field_70 - block->field_60;
+    MemoryBlockPtr* prevLink = block->field_20.m_pPrev;
+    MemoryBlockHeader* prev = prevLink != nullptr ? prevLink->m_pHeader : nullptr;
+    MemoryBlockPtr* nextLink = block->field_20.m_pNext;
+    MemoryBlockHeader* next = nextLink != nullptr ? nextLink->m_pHeader : nullptr;
+    if (prev != nullptr && prev->field_58 == nullptr && (block->field_78 & 1) == 0) {
+        if (next != nullptr && next->field_58 == nullptr && (next->field_78 & 1) == 0) {
+            prev->field_60 = next->field_50 + next->field_60 - prev->field_50;
+            field_c0.Remove(&block->field_20);
+            field_c0.Remove(&next->field_20);
+            field_e8.Remove(&next->field_38);
+            field_110.Unk_4be3f0(next);
+            field_110.Unk_4be3f0(block);
+        } else {
+            prev->field_60 = block->field_50 + block->field_60 - prev->field_50;
+            field_c0.Remove(&block->field_20);
+            field_110.Unk_4be3f0(block);
+        }
+    } else if (next != nullptr && next->field_58 == nullptr && (next->field_78 & 1) == 0) {
+        block->field_60 = next->field_50 + next->field_60 - block->field_50;
+        field_e8.Unk_InsertBefore(&next->field_38, &block->field_38);
+        block->field_58 = nullptr;
+        block->field_88 = nullptr;
+        block->field_84 = 0;
+        block->field_68 = 0;
+        block->field_70 = 0;
+        field_c0.Remove(&next->field_20);
+        field_e8.Remove(&next->field_38);
+        field_110.Unk_4be3f0(next);
+    } else {
+        // the nearest free block in front or behind decides where it goes in
+        // the free list
+        MemoryBlockPtr* back = prevLink;
+        MemoryBlockPtr* front = nextLink;
+        MemoryBlockPtr* where = nullptr;
+        while (back != nullptr || front != nullptr) {
+            if (back != nullptr) {
+                MemoryBlockHeader* header = back->m_pHeader;
+                if (header->field_58 == nullptr) {
+                    MemoryBlockPtr* after = header->field_38.m_pNext;
+                    if (after != nullptr) {
+                        where = &after->m_pHeader->field_38;
+                    }
+                    break;
+                }
+                back = back->m_pPrev;
+            }
+            if (front != nullptr) {
+                MemoryBlockHeader* header = front->m_pHeader;
+                if (header->field_58 == nullptr) {
+                    where = &header->field_38;
+                    break;
+                }
+                front = front->m_pNext;
+            }
+        }
+        if (where != nullptr) {
+            field_e8.Unk_InsertBefore(where, &block->field_38);
+        } else {
+            field_e8.AddTail(&block->field_38);
+        }
+        block->field_58 = nullptr;
+        block->field_88 = nullptr;
+        block->field_84 = 0;
+        block->field_68 = 0;
+        block->field_70 = 0;
+    }
 }
 
 // 0x71004be4c0

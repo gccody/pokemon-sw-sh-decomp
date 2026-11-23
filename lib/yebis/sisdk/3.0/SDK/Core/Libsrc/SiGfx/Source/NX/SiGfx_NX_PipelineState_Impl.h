@@ -19,7 +19,67 @@ namespace SiSDK3 {
 
 class SiGfxNXPipelineState : public Unk_NXInterface {
 public:
-    SiGfxNXPipelineState(ISiAllocator* pAllocator, SiGfxNXDevice* pDevice);  // 0x7100553180 (not written yet)
+    // A colour target's blending in the description (placeholder name and
+    // members). Its constructor's order of assignments is the one the
+    // pipeline's constructor stores the defaults in again.
+    struct Unk_Blend {
+        Unk_Blend() {
+            field_0 = false;
+            field_c = 1;
+            field_4 = 2;
+            field_8 = 1;
+            field_18 = 1;
+            field_10 = 2;
+            field_14 = 1;
+            field_1c[0] = 1;
+            field_1c[1] = 1;
+            field_1c[2] = 1;
+            field_1c[3] = 1;
+        }
+
+        bool field_0;
+        u32 field_4;
+        u32 field_8;
+        u32 field_c;
+        u32 field_10;
+        u32 field_14;
+        u32 field_18;
+        u8 field_1c[4];  // the channels written
+    };
+    // What a pipeline is described by (placeholder name and members): 0x530
+    // bytes, which the constructor zeroes before it sets the defaults.
+    struct Unk_Desc {
+        u8 field_0[0x10];
+        u32 field_10;
+        u32 field_14;
+        u8 field_18[0x10];
+        bool field_28;
+        u8 field_29[4];
+        bool field_2d;
+        u32 field_30;
+        bool field_34;
+        bool field_35;
+        u8 field_36[3];
+        u8 field_39;
+        u8 field_3a;
+        u32 field_3c;
+        u32 field_40;
+        u32 field_44;
+        u32 field_48;
+        u32 field_4c;
+        u32 field_50;
+        u32 field_54;
+        u32 field_58;
+        bool field_5c;
+        bool field_5d;
+        Unk_Blend field_60[8];
+        u32 field_160;  // what is drawn (as the draw context counts it)
+        u8 field_164[0x3cc];
+    };
+    PKMN_OFFSET_ASSERT(Unk_Desc, field_60, 0x60);
+    PKMN_SIZE_ASSERT(Unk_Desc, 0x530);
+
+    SiGfxNXPipelineState(ISiAllocator* pAllocator, SiGfxNXDevice* pDevice);  // 0x7100553180
     ~SiGfxNXPipelineState() override;                                        // 0x7100553330, 0x7100553640
     u32 vf2() override;                                                      // 0x71005542f0
     u32 vf3() override;                                                      // 0x7100554310
@@ -47,18 +107,24 @@ public:
 
     Unk_4bf660 field_8;
     SiGfxNXDevice* field_18;
-    u32 field_20;
-    u8 field_28[0x530];  // its description
+    u64 field_20;
+    Unk_Desc field_28;  // its description
     u64 field_558[8];    // NVNblendState
-    u8 field_598[0x30];
+    u32 field_598;       // NVNpolygonState
+    u8 field_59c[4];
+    u64 field_5a0;       // NVNdepthStencilState
+    u8 field_5a8[0x18];  // NVNmultisampleState
+    u32 field_5c0;       // NVNcolorState
+    u32 field_5c4;       // NVNchannelMaskState
     u32 field_5c8[32];   // NVNvertexAttribState
     u64 field_648[16];   // NVNvertexStreamState
-    u32 field_6c8;
-    u32 field_6cc;
+    s32 field_6c8;  // how many vertex attributes and streams there are
+    s32 field_6cc;
     u32 field_6d0;
     u32 field_6d4;
 };
 PKMN_OFFSET_ASSERT(SiGfxNXPipelineState, field_558, 0x558);
+PKMN_OFFSET_ASSERT(SiGfxNXPipelineState, field_5c0, 0x5c0);
 PKMN_OFFSET_ASSERT(SiGfxNXPipelineState, field_648, 0x648);
 PKMN_SIZE_ASSERT(SiGfxNXPipelineState, 0x6d8);
 

@@ -30,6 +30,7 @@ bool SiGfxNXDescriptorSet::vf9(s32 count) {
         ParameterEntry& entry = field_28.m_pData[index];                \
         entry.field_10 = false;                                         \
         entry.field_8 = 0;                                              \
+        entry.field_c = 0;                                              \
         entry.field_18 = a3;                                            \
         entry.field_20 = 0;                                             \
         entry.field_0 = Kind;                                           \
@@ -53,6 +54,7 @@ bool SiGfxNXDescriptorSet::vf13(s32 index, u32 a2, u64 a3) {
     ParameterEntry& entry = field_28.m_pData[index];
     entry.field_10 = false;
     entry.field_8 = 0;
+    entry.field_c = 0;
     entry.field_0 = 4;
     entry.field_4 = a2;
     entry.field_18 = 0;

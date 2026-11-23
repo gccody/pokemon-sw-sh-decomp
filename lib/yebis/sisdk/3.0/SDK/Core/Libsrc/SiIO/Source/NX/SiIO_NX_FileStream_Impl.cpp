@@ -343,14 +343,14 @@ bool SiIONXFileStream::vf21(void* p, s64 size, bool advance) {
 }
 
 // 0x7100588cc0
-// NON_MATCHING: the same instructions, but the test for buffered bytes is `cmp x8, #1 ; b.lt`
-// instead of `subs ; b.le`, and the blocks after the loop are laid out in another order.
+// The buffered bytes are tested as `field_10108 > field_10118` (`subs ; b.le`, the difference
+// is the same expression), the minimum is `a > b ? b : a`.
 s64 SiIONXFileStream::Unk_588cc0(void* p, s64 size, bool advance) {
     if (size < 1) {
         return 0;
     }
     s64 pos = field_b0;
-    s64 left = field_a8 - pos < size ? field_a8 - pos : size;
+    s64 left = field_a8 - pos > size ? size : field_a8 - pos;
     if (left < 1) {
         return 0;
     }
@@ -358,7 +358,7 @@ s64 SiIONXFileStream::Unk_588cc0(void* p, s64 size, bool advance) {
     u8* dst = static_cast<u8*>(p);
     s64 total = 0;
     s32 refills = 0;
-    if (field_10108 - field_10118 > 0) {
+    if (field_10108 > field_10118) {
         s64 n = left < field_10108 - field_10118 ? left : field_10108 - field_10118;
         memcpy(dst, field_10110 + field_10118, n);
         field_10118 += n;
@@ -378,13 +378,13 @@ s64 SiIONXFileStream::Unk_588cc0(void* p, s64 size, bool advance) {
                 field_10110[read] = 0xff;
                 field_10110[read + 1] = 0xff;
             }
-            memcpy(dst, field_10110 + field_10118, n);
             refills++;
+            memcpy(dst, field_10110 + field_10118, n);
             field_10118 += n;
-            field_b0 += n;
             left -= n;
             dst += n;
             total += n;
+            field_b0 += n;
         } while (left > 0);
     }
     if (!advance) {
@@ -512,8 +512,8 @@ double SiIONXFileStream::vf34(bool advance) {
 }
 
 // 0x7100589580
-// NON_MATCHING: the position and the string swap their registers (x21 and x22): the two live
-// ranges are within four instructions of each other in size, and the allocator takes the longer first.
+// Each branch ends in its own `if (!advance) ...; return true;` (with one
+// shared tail, the position and the string swap their registers).
 bool SiIONXFileStream::vf35(SiString<char>* str, bool advance) {
     if (field_98 != nullptr) {
         return field_98->vf35(str, advance);
@@ -528,6 +528,10 @@ bool SiIONXFileStream::vf35(SiString<char>* str, bool advance) {
     }
     if (length <= 0) {
         Unk_StringAssign(str, "");
+        if (!advance) {
+            vf18(pos, false);
+        }
+        return true;
     } else {
         Unk_StringReserve(str, length + 1);
         Unk_StringAssign(str, "");
@@ -547,7 +551,6 @@ bool SiIONXFileStream::vf35(SiString<char>* str, bool advance) {
 }
 
 // 0x7100589750
-// NON_MATCHING: x21 and x22 are swapped, as in vf35.
 bool SiIONXFileStream::vf36(SiString<wchar_t>* str, bool advance) {
     if (field_98 != nullptr) {
         return field_98->vf36(str, advance);
@@ -562,6 +565,10 @@ bool SiIONXFileStream::vf36(SiString<wchar_t>* str, bool advance) {
     }
     if (length <= 0) {
         Unk_StringAssign(str, L"");
+        if (!advance) {
+            vf18(pos, false);
+        }
+        return true;
     } else {
         Unk_StringReserve(str, length + 1);
         Unk_StringAssign(str, L"");
@@ -581,7 +588,6 @@ bool SiIONXFileStream::vf36(SiString<wchar_t>* str, bool advance) {
 }
 
 // 0x7100589920
-// NON_MATCHING: x21 and x22 are swapped, as in vf35.
 bool SiIONXFileStream::vf37(SiString<char>* str, bool advance) {
     if (field_98 != nullptr) {
         return field_98->vf37(str, advance);
@@ -596,6 +602,10 @@ bool SiIONXFileStream::vf37(SiString<char>* str, bool advance) {
     }
     if (length <= 0) {
         Unk_StringAssign(str, "");
+        if (!advance) {
+            vf18(pos, false);
+        }
+        return true;
     } else {
         Unk_StringReserve(str, length + 1);
         Unk_StringAssign(str, "");
@@ -618,7 +628,6 @@ bool SiIONXFileStream::vf37(SiString<char>* str, bool advance) {
 }
 
 // 0x7100589b10
-// NON_MATCHING: x21 and x22 are swapped, as in vf35.
 bool SiIONXFileStream::vf38(SiString<wchar_t>* str, bool advance) {
     if (field_98 != nullptr) {
         return field_98->vf38(str, advance);
@@ -633,6 +642,10 @@ bool SiIONXFileStream::vf38(SiString<wchar_t>* str, bool advance) {
     }
     if (length <= 0) {
         Unk_StringAssign(str, L"");
+        if (!advance) {
+            vf18(pos, false);
+        }
+        return true;
     } else {
         Unk_StringReserve(str, length + 1);
         Unk_StringAssign(str, L"");
@@ -652,6 +665,150 @@ bool SiIONXFileStream::vf38(SiString<wchar_t>* str, bool advance) {
         vf18(pos, false);
     }
     return true;
+}
+
+// 0x7100589cf0
+// The two branches end in their own `if (!advance) ... return true;`: that's
+// what keeps the result in a callee-saved register and one return block.
+bool SiIONXFileStream::vf39(SiString<char>* str, bool advance) {
+    s64 pos = vf17();
+    s32 length = 0;
+    s32 size = 0;
+    if (Unk_588cc0(&length, sizeof(length), true) != sizeof(length)) {
+        return false;
+    }
+    if (Unk_588cc0(&size, sizeof(size), true) != sizeof(size)) {
+        return false;
+    }
+    if (Unk_Swaps()) {
+        Unk_SwapInPlace(&length);
+        Unk_SwapInPlace(&size);
+    }
+    if (length <= 0) {
+        Unk_StringAssign(str, "");
+        if (!advance) {
+            vf18(pos, false);
+        }
+        return true;
+    }
+    Unk_StringReserve(str, length + 1);
+    Unk_StringAssign(str, "");
+    Unk_StringResize(str, length);
+    vf21(str->m_pBuffer, length, true);
+    if (!advance) {
+        vf18(pos, false);
+    }
+    return true;
+}
+
+// 0x7100589ea0
+bool SiIONXFileStream::vf40(SiString<wchar_t>* str, bool advance) {
+    s64 pos = vf17();
+    s32 length = 0;
+    s32 size = 0;
+    if (Unk_588cc0(&length, sizeof(length), true) != sizeof(length)) {
+        return false;
+    }
+    if (Unk_588cc0(&size, sizeof(size), true) != sizeof(size)) {
+        return false;
+    }
+    if (Unk_Swaps()) {
+        Unk_SwapInPlace(&length);
+        Unk_SwapInPlace(&size);
+    }
+    if (length <= 0) {
+        Unk_StringAssign(str, L"");
+        if (!advance) {
+            vf18(pos, false);
+        }
+        return true;
+    } else {
+        Unk_StringReserve(str, size + 1);
+        Unk_StringAssign(str, L"");
+#line 1294
+        char* p = static_cast<char*>(UNK_ALLOC(Unk_GetKernel()->vf12(), length + 1));
+        vf21(p, length, true);
+        p[length] = 0;
+        Unk_4c4f60(p, str, -1);
+        if (p != nullptr) {
+#line 1307
+            UNK_FREE(Unk_GetKernel()->vf12(), p);
+        }
+    }
+    if (!advance) {
+        vf18(pos, false);
+    }
+    return true;
+}
+
+// 0x710058a0a0
+bool SiIONXFileStream::vf41(SiString<char>* str, bool advance) {
+    if (field_98 != nullptr) {
+        return field_98->vf41(str, advance);
+    }
+    s64 pos = vf17();
+    s32 length = 0;
+    if (Unk_588cc0(&length, sizeof(length), true) != sizeof(length)) {
+        return false;
+    }
+    if (Unk_Swaps()) {
+        Unk_SwapInPlace(&length);
+    }
+    if (length <= 0) {
+        Unk_StringAssign(str, "");
+        if (!advance) {
+            vf18(pos, false);
+        }
+        return true;
+    }
+    char* p = static_cast<char*>(__builtin_alloca(length + 1));
+    for (s32 i = 0; i < length; i++) {
+        char c;
+        Unk_588cc0(&c, 1, true);
+        p[i] = c;
+    }
+    p[length] = 0;
+    Unk_StringAssign(str, "");
+    bool result = Unk_4c5b50_call(str, p);
+    if (!advance) {
+        vf18(pos, false);
+    }
+    return result;
+}
+
+// 0x710058a250
+bool SiIONXFileStream::vf42(SiString<wchar_t>* str, bool advance) {
+    if (field_98 != nullptr) {
+        return field_98->vf42(str, advance);
+    }
+    s64 pos = vf17();
+    s32 length = 0;
+    if (Unk_588cc0(&length, sizeof(length), true) != sizeof(length)) {
+        return false;
+    }
+    if (Unk_Swaps()) {
+        Unk_SwapInPlace(&length);
+    }
+    if (length <= 0) {
+        Unk_StringAssign(str, L"");
+        if (!advance) {
+            vf18(pos, false);
+        }
+        return true;
+    }
+    char* p = static_cast<char*>(__builtin_alloca(length + 1));
+    for (s32 i = 0; i < length; i++) {
+        char c;
+        Unk_588cc0(&c, 1, true);
+        p[i] = c;
+    }
+    p[length] = 0;
+    Unk_StringAssign(str, L"");
+    bool result = Unk_4c5c60(str, p);
+    if (!advance) {
+        vf18(pos, false);
+    }
+    return result;
 }
 
 // 0x710058a400
@@ -686,8 +843,7 @@ bool SiIONXFileStream::vf44(const void* p, s64 size, bool advance) {
 }
 
 // 0x710058a520
-// NON_MATCHING: the same instructions, but the test for room in the buffer is `cmp x8, #1 ; b.lt`
-// instead of `subs ; b.le`, and the blocks after the loop are laid out in another order.
+// As in Unk_588cc0: the room in the buffer is tested as a comparison of the two members.
 s64 SiIONXFileStream::Unk_58a520(const void* p, s64 size, bool advance) {
     if (size < 1) {
         return 0;
@@ -697,11 +853,8 @@ s64 SiIONXFileStream::Unk_58a520(const void* p, s64 size, bool advance) {
     const u8* src = static_cast<const u8*>(p);
     s64 total = 0;
     s32 flushes = 0;
-    s64 n = field_10100 - bufferPos;
-    if (n > 0) {
-        if (n > size) {
-            n = size;
-        }
+    if (field_10100 > bufferPos) {
+        s64 n = field_10100 - bufferPos > size ? size : field_10100 - bufferPos;
         memcpy(field_10110 + bufferPos, src, n);
         field_10118 += n;
         field_b0 += n;
@@ -718,15 +871,15 @@ s64 SiIONXFileStream::Unk_58a520(const void* p, s64 size, bool advance) {
                     field_10108 = 0;
                 }
             }
-            n = size < field_10100 ? size : field_10100;
             flushes++;
             field_10118 = 0;
+            s64 n = size < field_10100 ? size : field_10100;
             memcpy(field_10110, src, n);
             field_10118 += n;
-            field_b0 += n;
             size -= n;
             src += n;
             total += n;
+            field_b0 += n;
         } while (size > 0);
     }
     if (!advance) {
@@ -917,12 +1070,12 @@ bool SiIONXFileStream::vf63(const wchar_t* s, bool advance) {
 }
 
 // 0x710058b180
-bool SiIONXFileStream::vf64(const wchar_t* s, bool advance) {
+bool SiIONXFileStream::vf64(const char* s, bool advance) {
     s64 pos = vf17();
     bool result;
     {
         SiString<char> str(field_8.m_pAllocator);
-        if (Unk_4c5b30_call(&str, const_cast<wchar_t*>(s))) {
+        if (Unk_4c5b30_call(&str, const_cast<char*>(s))) {
             s32 length = static_cast<s32>(str.field_10);
             vf50(length, true);
             vf44(str.m_pBuffer, length, true);

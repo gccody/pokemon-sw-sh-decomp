@@ -131,10 +131,10 @@ public:
     virtual void vf34();
     virtual s32 vf35(u32 pass);  // 0x710049a280
     virtual s32 vf36();          // 0x710049a2c0
-    virtual s32 vf37();          // 0x710049a1b0
-    virtual s32 vf38();          // 0x710049a1c0
-    virtual s32 vf39();          // 0x710049a1d0
-    virtual s32 vf40();          // 0x710049a1e0
+    virtual void* vf37(s32 technique);  // 0x710049a1b0: a pass's code
+    virtual void* vf38(s32 technique);  // 0x710049a1c0
+    virtual s32 vf39(s32 technique);    // 0x710049a1d0: its size
+    virtual s32 vf40(s32 technique);    // 0x710049a1e0
     virtual void vf41(u64, u64, u64, u64, u64, u64, bool);
     // 0x710049a1f0
     virtual s32 vf42(const u8* a, void* b, u32 c, s32 d, u32 index, bool flag);

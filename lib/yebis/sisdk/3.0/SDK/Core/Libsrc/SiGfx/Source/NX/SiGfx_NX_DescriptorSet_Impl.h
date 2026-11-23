@@ -17,11 +17,12 @@ class SiGfxNXDescriptorSet : public Unk_NXInterface {
 public:
     // A parameter: its kind (1 to 4), and what it is.
     struct ParameterEntry {
-        ParameterEntry() : field_0(0), field_4(0), field_8(0), field_10(false), field_18(0), field_20(0) {}
+        ParameterEntry() : field_0(0), field_4(0), field_8(0), field_c(0), field_10(false), field_18(0), field_20(0) {}
 
         u32 field_0;
         u32 field_4;
-        u64 field_8;
+        u32 field_8;  // (kind 1: where in the buffer, and how much)
+        u32 field_c;
         bool field_10;
         u64 field_18;
         u64 field_20;

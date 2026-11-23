@@ -49,6 +49,20 @@ struct Unk_Float4 {
         field_0[3] = w;
     }
 
+    enum { ELMS = 4 };
+    // an element (its assert names it and gives its line)
+    Unk_Float& v(s32 i) {
+#line 17945
+        PPFX_TYPES_ASSERT(i >= 0 && i < ELMS);
+        return field_0[i];
+    }
+    const Unk_Float& v(s32 i) const {
+#line 17945
+        PPFX_TYPES_ASSERT(i >= 0 && i < ELMS);
+        return field_0[i];
+    }
+#line 65
+
     Unk_Float field_0[4];
 };
 PKMN_SIZE_ASSERT(Unk_Float4, 0x10);

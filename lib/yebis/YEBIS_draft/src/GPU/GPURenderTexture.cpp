@@ -2,18 +2,14 @@
 // PPFX::CRenderTexture (lib/yebis/YEBIS_draft/src/GPU/GPURenderTexture.h).
 #include <string.h>
 
+#include <yebis/YEBIS_draft/src/GPU/GPUInterfaceDevice.h>
 #include <yebis/YEBIS_draft/src/GPU/GPURenderTexture.h>
+#include <yebis/YEBIS_draft/src/GPU/Unk_Statics.h>
 
-// log switch: PPFX_LOG's
-extern s32 Unk_24e0008;
+#define PPFX_FILE "C:/workspace/YEBIS_draft/src/GPU/GPURenderTexture.cpp"
+#include <yebis/YEBIS_draft/src/GPU/Unk_Log.h>
 
-#define UNK_LOG(...)                                                                                 \
-    do {                                                                                             \
-        if (Unk_238c1e0 != 0 && Unk_24e0008 != 0) {                                                  \
-            Unk_417a30("C:/workspace/YEBIS_draft/src/GPU/GPURenderTexture.cpp(%d) : PPFX: ", __LINE__); \
-            Unk_417a30(__VA_ARGS__);                                                                 \
-        }                                                                                            \
-    } while (0)
+#define UNK_LOG PPFX_LOG
 
 // one reference less, and the pointer cleared
 #define UNK_RELEASE(object)        \
@@ -30,6 +26,11 @@ struct Unk_24e1500_Settings {
     u32 field_10;
 };
 extern Unk_24e1500_Settings Unk_24e1500;
+
+namespace PPFX {
+// 0x7100447010 (Unk_447050.cpp)
+bool Unk_447010(s32 width, s32 height);
+}  // namespace PPFX
 
 // 0x710049e3a0
 void Unk_49e3a0(u32 arg0, s32 arg1, s32 arg2, void* arg3, void* arg4, s32 arg5, void* arg6, void* arg7, f32 arg8);
@@ -54,6 +55,8 @@ struct Unk_49b230_Device {
 
     u8 _8[0x20];
     u32 field_28;  // the frame's number
+    u8 _2c[0x14f00 - 0x2c];
+    Unk_49b230_Object* field_14f00[8];  // the targets that are set
 };
 
 // 0x7101b61484: the class's name
@@ -63,11 +66,20 @@ const char Unk_1b61484[] = "CRenderTexture";
 // 0x710238d228, 0x71024e53e0, 0x71024e5408 how many textures have the
 // device, 0x71024e5410 the device, 0x71024e5420 a setting
 extern CRenderTexture* Unk_24e53a0[8];
-extern u64 Unk_238d228[4];
+extern u32 Unk_238d228[8];
 extern void* Unk_24e53e0;
 extern s32 Unk_24e5408;
 extern IGPUDevice* Unk_24e5410;
 extern bool Unk_24e5420;
+// The tiling's state: 0x71024e53e8 whether BeginTiling was called, then its
+// arguments (0x71024e53ec, 0x71024e53f4, 0x71024e5404, 0x710238d248) and the
+// number of targets it found (0x71024e53f0)
+extern bool Unk_24e53e8;
+extern s32 Unk_24e53ec;
+extern s32 Unk_24e53f0;
+CRenderTexture::Unk_Tile Unk_24e53f4;
+extern s32 Unk_24e5404;
+extern f32 Unk_238d248;
 // 0x71024e55b0: the device (GPUResourceManage.cpp)
 extern IGPUDevice* Unk_24e55b0;
 
@@ -109,15 +121,7 @@ Unk_49a890& Unk_49a890::operator=(const Unk_49a890& other) {
     field_8 = UNK_NEW_ARRAY(Unk_Rect, other.field_0);
     for (u32 i = 0; i < other.field_0; i++)
         memmove(&field_8[i], &other.field_8[i], sizeof(Unk_Rect));
-    field_10 = 0;
-    field_14 = 0;
-    u32 count = field_0;
-    for (u32 i = 0; i < count; i++) {
-        u32 width = field_8[i].field_10 - field_8[i].field_0;
-        u32 height = field_8[i].field_18 - field_8[i].field_8;
-        field_10 = field_10 > width ? field_10 : width;
-        field_14 = field_14 > height ? field_14 : height;
-    }
+    Unk_UpdateSize();
     return *this;
 }
 
@@ -159,8 +163,8 @@ s32 CRenderTexture::Unk_49ab20(const Unk_49ab20_Desc* desc) {
     field_74 = 1.0f;
     field_100 = 0;
     field_108.clear();
-    UNK_DELETE(field_f0);
-    UNK_DELETE(field_f8);
+    UNK_DELETE(field_f0[0]);
+    UNK_DELETE(field_f0[1]);
     field_120 = nullptr;
     return Unk_49ec30(device);
 }
@@ -257,7 +261,7 @@ s32 CRenderTexture::vf0(IGPUDevice* device) {
         return 0;
     if (field_2c.field_c == 0)
         return 0;
-    if (field_a8 != nullptr && field_b8 != nullptr)
+    if (field_a8 != nullptr && field_b8[0] != nullptr)
         return 0;
     result = Unk_49b230();
     return result < 0 ? result : 0;
@@ -277,33 +281,33 @@ s32 CRenderTexture::vf1() {
         reinterpret_cast<Unk_49b230_Device*>(field_20)->vf7(3, nullptr, 0);
         reinterpret_cast<Unk_49b230_Device*>(field_20)->vf8(nullptr);
     }
-    if (field_d0 != nullptr) {
+    if (field_d0[0] != nullptr) {
         for (u32 i = 0; i < field_98; i++)
-            UNK_RELEASE(field_d0[i]);
-        UNK_DELETE_ARRAY(field_d0);
+            UNK_RELEASE(field_d0[0][i]);
+        UNK_DELETE_ARRAY(field_d0[0]);
     }
-    if (field_d8 != nullptr) {
+    if (field_d0[1] != nullptr) {
         for (u32 i = 0; i < field_98; i++)
-            UNK_RELEASE(field_d8[i]);
-        UNK_DELETE_ARRAY(field_d8);
+            UNK_RELEASE(field_d0[1][i]);
+        UNK_DELETE_ARRAY(field_d0[1]);
     }
-    UNK_RELEASE(field_b8);
-    UNK_RELEASE(field_c0);
+    UNK_RELEASE(field_b8[0]);
+    UNK_RELEASE(field_b8[1]);
     for (u32 i = 0; i < field_98; i++)
         UNK_RELEASE(field_c8[i]);
     UNK_DELETE_ARRAY(field_c8);
     UNK_RELEASE(field_b0);
     UNK_RELEASE(field_a8);
     UNK_DELETE_ARRAY(field_80);
-    if (field_e0 != nullptr) {
+    if (field_e0[0] != nullptr) {
         for (u32 i = 0; i < field_98; i++)
-            UNK_DELETE(field_e0[i]);
-        UNK_DELETE_ARRAY(field_e0);
+            UNK_DELETE(field_e0[0][i]);
+        UNK_DELETE_ARRAY(field_e0[0]);
     }
-    if (field_e8 != nullptr) {
+    if (field_e0[1] != nullptr) {
         for (u32 i = 0; i < field_98; i++)
-            UNK_DELETE(field_e8[i]);
-        UNK_DELETE_ARRAY(field_e8);
+            UNK_DELETE(field_e0[1][i]);
+        UNK_DELETE_ARRAY(field_e0[1]);
     }
     UNK_DELETE_ARRAY(field_68);
     field_78 = 0;
@@ -311,14 +315,14 @@ s32 CRenderTexture::vf1() {
     field_9c = 0;
     field_80 = nullptr;
     field_a8 = nullptr;
-    field_e0 = nullptr;
-    field_e8 = nullptr;
-    field_d0 = nullptr;
-    field_d8 = nullptr;
-    field_c0 = nullptr;
+    field_e0[0] = nullptr;
+    field_e0[1] = nullptr;
+    field_d0[0] = nullptr;
+    field_d0[1] = nullptr;
+    field_b8[1] = nullptr;
     field_c8 = nullptr;
     field_b0 = nullptr;
-    field_b8 = nullptr;
+    field_b8[0] = nullptr;
     while (field_a0 != 0)
         field_a0--;
     IGPUDevice* previous = field_20;
@@ -342,10 +346,76 @@ s32 CRenderTexture::vf2() {
 
 // 0x710049c640
 s32 CRenderTexture::vf3() {
-    UNK_DELETE(field_f0);
-    UNK_DELETE(field_f8);
+    UNK_DELETE(field_f0[0]);
+    UNK_DELETE(field_f0[1]);
     Unk_Reset();
     s32 result = CGPUResourceManage::vf3();
+    return result < 0 ? result : 0;
+}
+
+// 0x710049c760
+s32 CRenderTexture::Unk_49c760(s32 set, u32 slot, u32 width, u32 height, s32 format, s32 msaa, u32 quality,
+                               s32 tiled, IGPUInterface** surface) {
+    s32 index = set < 0 ? field_a0 : set;
+    Unk_49a890* tiles;
+    if (field_f0[index] == nullptr) {
+        tiles = Unk_49c8e0(width, height, format, msaa, tiled);
+    } else {
+        Unk_49a890* source = Unk_SetTiles(index);
+#line 1944
+        tiles = UNK_NEW(Unk_49a890)(*source);
+    }
+    field_e0[set][slot] = tiles;
+    Unk_49a890* slotTiles = Unk_SlotTiles(set, slot);
+    u32 w = width;
+    u32 h = height;
+    if (slotTiles != nullptr) {
+        w = slotTiles->field_10;
+        h = slotTiles->field_14;
+    }
+    u32 flags = field_50;
+    if (tiled == 0)
+        flags &= ~0x10000000;
+    s32 result = field_20->vf64(w, h, format, msaa, quality, surface, flags, nullptr, field_2c.field_c, false);
+    return result < 0 ? result : 0;
+}
+
+// whether the device's target `slot` is the texture's (inline)
+inline s32 CRenderTexture::Unk_CheckTarget(u32 slot, u32 level, u32 arg3, u32 arg4, s32 arg5, bool force,
+                                           void* arg7, s32 arg8, void* arg9, s32 arg10, bool* done, f32 arg11,
+                                           f32 arg12) {
+    if (done != nullptr)
+        *done = false;
+    if (level == 0xffffffff)
+        level = Unk_238d228[slot];
+    Unk_49b230_Object* current = reinterpret_cast<Unk_49b230_Device*>(field_20)->field_14f00[slot];
+    s32 result = 0;
+    if (current != nullptr && current != field_d0[field_a0][level])
+        result = -6;
+    if (Unk_24e53a0[slot] != this)
+        result = -6;
+    if (!force && result < 0)
+        return result;
+    Unk_447010(field_d0[field_a0][level]->field_54, field_d0[field_a0][level]->field_58);
+    return 0;
+}
+
+// 0x710049cfa0
+s32 CRenderTexture::Unk_49cfa0(u32 slot, u32 level, u32 arg3, u32 arg4, s32 arg5, bool force, void* arg7, s32 arg8,
+                               void* arg9, s32 arg10, bool* done, f32 arg11, f32 arg12) {
+    if (done != nullptr)
+        *done = false;
+    if (level == 0xffffffff)
+        level = Unk_238d228[slot];
+    Unk_49a890* tiles = Unk_SlotTiles(-1, level);
+    s32 result = 0;
+    if (tiles == nullptr) {
+        result = Unk_CheckTarget(slot, level, arg3, arg4, arg5, force, arg7, arg8, arg9, arg10, done, arg11, arg12);
+    } else {
+        for (u32 i = 0; i < tiles->field_0; i++)
+            result = Unk_CheckTarget(slot, level, arg3, arg4, arg5, force, arg7, arg8, arg9, arg10, done, arg11,
+                                     arg12);
+    }
     return result < 0 ? result : 0;
 }
 
@@ -358,4 +428,178 @@ s32 CRenderTexture::Unk_49cf50(Unk_49b230_Object* depth, void* owner) {
     return 0;
 }
 
+// 0x710049d7d0
+s32 CRenderTexture::BeginTiling(s32 mode, const Unk_Tile* tile, s32 arg2, f32 arg3) {
+    if (Unk_24e53e8) {
+#line 4587
+        PPFX_ERROR("CRenderTexture::BeginTiling(): CRenderTexture::BeginTiling() has already been called.\nYou have "
+                   "to call EndTiling() before next BeginTiling().\n");
+        return -3;
+    }
+    Unk_24e53f0 = 0;
+    u32 index = 0;
+    CRenderTexture* target = nullptr;
+    for (u32 i = 0; i < 8; i++) {
+        if (Unk_24e53a0[i] != nullptr) {
+            Unk_24e53f0++;
+            if (target == nullptr) {
+                target = Unk_24e53a0[i];
+                index = i;
+            }
+        }
+    }
+    if (Unk_24e53f0 == 0) {
+#line 4613
+        PPFX_ERROR("CRenderTexture::BeginTiling(): Any render target textures not found.\n");
+        return -3;
+    }
+    if (static_cast<s32>(target->field_2c.field_0) < 0 ||
+        target->Unk_Tiles(Unk_238d228[index]) == nullptr) {
+#line 4625
+        PPFX_ERROR("CRenderTexture::BeginTiling(): Current render texture(s) must have tiling informations.\n");
+        return -3;
+    }
+    Unk_24e53ec = mode;
+    if (tile != nullptr)
+        Unk_24e53f4 = *tile;
+    else
+        Unk_24e53f4 = Unk_Tile();
+    Unk_238d248 = arg3;
+    Unk_24e5404 = arg2;
+    Unk_24e53e8 = true;
+    return 0;
+}
+
+// What the tiling does with a tile (inline): only asks the context for an
+// object on NX. Its arguments are used until it is inlined, which is why the
+// callers of the functions that call it still pass them.
+inline s32 Unk_DrawTile(const Unk_49a890::Unk_Rect* rect, u32 flags, s32 arg2, s32 arg3, s32 arg4,
+                               bool* done, f32 arg6, f32 arg7) {
+    if (done != nullptr)
+        *done = false;
+    if (Unk_24e53e0 == nullptr)
+        return -6;
+    Unk_49b230_Object* object;
+    static_cast<Unk_49df00_Context*>(Unk_24e53e0)->vf23(0, &object);
+    object->vf1();
+    return 0;
+}
+
 }  // namespace PPFX
+
+namespace PPFX {
+
+// 0x710049c8e0
+Unk_49a890* Unk_49c8e0(u32 width, u32 height, s32 format, s32 msaa, s32 tiled) {
+    s32 tileFormat = format;
+    u32 tileWidth;
+    u32 tileHeight;
+    s32 count = Unk_446e20(&tileWidth, &tileHeight, width, height, 1, &tileFormat, tiled, msaa, 0);
+    Unk_49a890* tiles = nullptr;
+    if (count > 1) {
+#line 1814
+        tiles = UNK_NEW(Unk_49a890);
+        tiles->field_0 = count;
+#line 1816
+        tiles->field_8 = UNK_NEW_ARRAY(Unk_49a890::Unk_Rect, count);
+        for (s32 i = 0; i < count; i++) {
+            Unk_49a890::Unk_Rect rect;
+            rect.field_0 = 0;
+            rect.field_10 = tileWidth;
+            rect.field_8 = i * tileHeight;
+            u64 bottom = rect.field_8 + tileHeight;
+            rect.field_18 = bottom < height ? bottom : height;
+            tiles->field_8[i] = rect;
+        }
+        tiles->Unk_UpdateSize();
+    }
+    return tiles;
+}
+
+// 0x710049df00
+s32 Unk_49df00(CRenderTexture* target, u32 flags, s32 arg2, s32 arg3, s32 arg4, bool* done, f32 arg6, f32 arg7) {
+    if (done != nullptr)
+        *done = false;
+    Unk_49a890* tiles;
+    s32 result = 0;
+    if (static_cast<s32>(target->field_2c.field_0) < 0 ||
+        (tiles = target->Unk_Tiles(0)) == nullptr) {
+        result = Unk_DrawTile(nullptr, flags, arg2, arg3, arg4, done, arg6, arg7);
+    } else {
+        for (u32 i = 0; i < tiles->field_0; i++)
+            result = Unk_DrawTile(&tiles->field_8[i], flags, arg2, arg3, arg4, done, arg6, arg7);
+    }
+    return result < 0 ? result : 0;
+}
+
+// What EndTiling does with its arguments on other platforms (nothing on NX;
+// inline): they are used until it is inlined, so its callers pass them.
+inline void Unk_EndTiles(void* arg0, s32 arg1, s32* arg2, bool* arg3, f32 arg4) {}
+
+// 0x710049e080
+// NON_MATCHING: the search for the first target. The original turns it into
+// two selects per element (the element's test outside, the target's inside);
+// here clang ands the two tests and makes one select (or exits the loop
+// early, with `&&`). The rest is the original's.
+s32 CRenderTexture::EndTiling(void* arg0, s32 arg1, s32* arg2, bool* arg3, f32 arg4) {
+    Unk_EndTiles(arg0, arg1, arg2, arg3, arg4);
+    if (!Unk_24e53e8) {
+#line 4928
+        PPFX_ERROR("CRenderTexture::EndTiling(): CRenderTexture::BeginTiling() was never called.\nEndTiling() must be "
+                   "called after BeginTiling().\n");
+        return -3;
+    }
+    u32 index = 0;
+    CRenderTexture* target = nullptr;
+    for (u32 i = 0; i < 8; i++) {
+        if (Unk_24e53a0[i] != nullptr) {
+            if (target == nullptr) {
+                target = Unk_24e53a0[i];
+                index = i;
+            }
+        }
+    }
+    if (static_cast<s32>(target->field_2c.field_0) < 0 ||
+        target->Unk_Tiles(Unk_238d228[index]) == nullptr) {
+#line 4959
+        PPFX_ERROR("CRenderTexture::EndTiling(): Current render texture(s) must have tiling informations.\n");
+        return -3;
+    }
+    Unk_ClearShared();
+    Unk_24e53e8 = false;
+    Unk_24e53ec = 0;
+    return 0;
+}
+
+// 0x710049e290
+// NON_MATCHING: the original tests both conditions of the first `if` in one
+// block (`ccmp`) and bit 20 of the flags again after the call, which clang
+// folds here; the paths are the same.
+s32 Unk_49e290(u32 flags, CRenderTexture* target, s32 arg2, bool* done, f32 arg4) {
+    if (!Unk_24e53e8 || !(flags & 0x100000)) {
+        s32 result = CRenderTexture::EndTiling(nullptr, arg2, nullptr, done, arg4);
+        return result < 0 ? result : 0;
+    }
+    if (done != nullptr)
+        *done = false;
+    if (Unk_24e53e0 == nullptr)
+        return 0;
+    if (target == nullptr) {
+        for (s32 i = 0; i < 8; i++) {
+            target = Unk_24e53a0[i];
+            if (target != nullptr)
+                break;
+        }
+    }
+    if (target != nullptr) {
+        s32 result = Unk_49df00(target, flags, 1, arg2, arg2, done, arg4, arg4);
+        if ((flags & 0x100000) || result < 0)
+            return result < 0 ? result : 0;
+    }
+    Unk_24e53e0 = nullptr;
+    return 0;
+}
+
+}  // namespace PPFX
+
+// 0x710049e890: _GLOBAL__sub_I_GPURenderTexture.cpp

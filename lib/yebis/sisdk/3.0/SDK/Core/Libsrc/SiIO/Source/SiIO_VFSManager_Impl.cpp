@@ -18,8 +18,7 @@ SiIOVFSManager::SiIOVFSManager(ISiAllocator* pAllocator) : field_8(pAllocator), 
 SiIOVFSManager::~SiIOVFSManager() {}
 
 // 0x7100583980
-// NON_MATCHING: the same instructions, but the new node's stores come the other way round (the
-// original stores its list and previous node first and the zeros of its other two links last).
+// (the new node's stores: see SiLinkedList::Node's constructor)
 SiIOVFS* SiIOVFSManager::Unk_583980(ISiAllocator* pAllocator) {
 #line 56
     SiIOVFS* pVFS = UNK_SI_NEW(pAllocator, 0x10) SiIOVFS(pAllocator);

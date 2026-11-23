@@ -20,11 +20,16 @@ struct Unk_538d70 {
     SiSDK3::ISiAllocator* m_pAllocator;
     // volatile, as Unk_4bf660's
     volatile u32 m_count;
-    // 1: the resource waits to be destroyed (the constructor clears it by
-    // itself, the next two bytes together and the last one by itself)
-    u8 field_c;
-    u8 field_d;
-    u8 field_e;
+    // two bytes cleared together (placeholder): the constructor clears
+    // field_c, these two as one store and field_f, each by itself, which a
+    // pair of bytes zeroed as a whole between two single bytes gives
+    struct Unk_Pair {
+        u8 field_0;
+        u8 field_1;
+    };
+
+    u8 field_c;  // 1: the resource waits to be destroyed
+    Unk_Pair field_d;
     u8 field_f;
 };
 PKMN_SIZE_ASSERT(Unk_538d70, 0x10);

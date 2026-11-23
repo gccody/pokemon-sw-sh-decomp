@@ -12,7 +12,7 @@
 #include <yebis/YEBIS_draft/src/GPU/Unk_Array.h>
 
 // 0x7100417a30: printf to the log
-void Unk_417a30(const char* format, ...);
+s32 Unk_417a30(const char* format, ...);
 // log switches: all messages, and the warnings
 extern s32 Unk_238c1e0;
 extern s32 Unk_238c1e4;

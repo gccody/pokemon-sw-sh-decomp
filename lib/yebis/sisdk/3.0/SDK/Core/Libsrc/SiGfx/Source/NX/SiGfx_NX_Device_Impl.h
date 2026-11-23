@@ -97,6 +97,40 @@ PKMN_SIZE_ASSERT(Unk_4f96e0_Desc, 0x48);
 // The device's description (placeholder name, after the device's slot 11 that
 // gives it): what slot 5 and slot 88 copy 0xb6 bytes of.
 struct Unk_4f96c0_Desc {
+    // the defaults the device's constructor stores (which its body then
+    // zeroes). Which members the body assigns, and in what order, decides
+    // how LLVM merges and pairs the stores (the original's 8-byte stores
+    // start at field_c and leave field_8 and field_a0 alone): the formats
+    // cleared by a loop and then set, the count after them, field_a0 before
+    // and the last heap kind's members after.
+    Unk_4f96c0_Desc()
+        : field_0(0xffffffff), field_4(1), field_8(1), field_50(0), field_51(1), field_52(1), field_53(1),
+          field_54(0), field_58(0x100), field_5c(4), field_60(4), field_64(4), field_68(4), field_6c(8),
+          field_70(0x20000), field_74(0x100), field_78(0x100), field_7c(8), field_80(0x10), field_84(0x100000),
+          field_88(0), field_8c(0x400000), field_90(0), field_94(0x400000), field_98(0), field_9c(0x400000),
+          field_b4(1), field_b5(1) {
+        field_a0 = 0;
+        for (s32 i = 0; i < 16; i++) {
+            field_10[i] = 0;
+        }
+        field_10[0] = 0xc100;
+        field_10[1] = 0xc000;
+        field_10[2] = 0xb300;
+        field_10[3] = 0xb200;
+        field_10[4] = 0xb100;
+        field_10[5] = 0xb000;
+        field_10[6] = 0xa100;
+        field_10[7] = 0xa000;
+        field_10[8] = 0x9300;
+        field_10[9] = 0x9200;
+        field_10[10] = 0x9100;
+        field_c = 11;
+        field_a4 = 0x100000;
+        field_a8 = 0;
+        field_ac = 0;
+        field_b0 = 0;
+    }
+
     u32 field_0;
     u32 field_4;
     u32 field_8;
@@ -192,8 +226,8 @@ public:
     virtual ISiGfxCommandListPool* vf23(u32 a1, u64 a2, ISiAllocator* pAllocator);
     virtual ISiGfxCommandCache* vf24(u32 a1, u64 a2, ISiAllocator* pAllocator);
     virtual ISiGfxPipelineState* vf25(u32 a1, u64 a2, ISiAllocator* pAllocator);
-    virtual ISiGfxRootSignature* vf26(u32 a1, u64 a2, ISiAllocator* pAllocator);
-    virtual ISiGfxDescriptorTable* vf27(u32 a1, u64 a2, ISiAllocator* pAllocator);
+    virtual ISiGfxRootSignature* vf26(u32 a1, u32 a2, ISiAllocator* pAllocator);
+    virtual ISiGfxDescriptorTable* vf27(u32 a1, u32 a2, ISiAllocator* pAllocator);
     virtual ISiGfxDescriptorSet* vf28(u32 a1, u64 a2, ISiAllocator* pAllocator);
     virtual ISiGfxRenderPassState* vf29(u32 a1, u64 a2, ISiAllocator* pAllocator);
     virtual ISiGfxMemoryHeap* vf30(u32 a1, ISiAllocator* pAllocator);
@@ -215,7 +249,7 @@ public:
     virtual ISiGfxShaderProgram* vf46(size_t index);
     virtual ISiGfxShaderProgram* vf47(const char* name);
     virtual void vf48(u64 value, u64 arg2, u64 arg3, u64 arg4, u64 arg5);
-    virtual ISiGfxTexture* vf49(u32 a1, const void* desc, u64 a3, ISiAllocator* pAllocator);
+    virtual ISiGfxTexture* vf49(u32 a1, const void* desc, u32 a3, ISiAllocator* pAllocator);
     virtual ISiGfxTexture* vf50(size_t index);
     virtual ISiGfxTexture* vf51(const char* name);
     virtual ISiGfxSampler* vf52(const void* desc, u64 a2, u64 a3, ISiAllocator* pAllocator);
@@ -298,14 +332,14 @@ public:
     bool Unk_4fb090();
     // 0x71004fb1d0 to 0x71004fb380: descriptors from its pools, or from the
     // functions it was given with another's NVN device
-    u64 Unk_4fb1d0(u64 a1, u64 a2);
-    u64 Unk_4fb200(u64 a1, u64 a2);
-    u64 Unk_4fb230(u64 a1, u64 a2);
+    s32 Unk_4fb1d0(u64 a1, u64 a2);
+    s32 Unk_4fb200(u64 a1, u64 a2);
+    s32 Unk_4fb230(u64 a1, u64 a2);
     u64 Unk_4fb260(u64 a1);
     u64 Unk_4fb290(u32 a1);
     u64 Unk_4fb2c0(u32 a1);
     u64 Unk_4fb2f0(u32 a1);
-    u64 Unk_4fb380(u64 a1, u64 a2);
+    s32 Unk_4fb380(u64 a1, u64 a2);
 
     ISiAllocator* Unk_Allocator() const { return field_8.m_pAllocator; }
     inline void Unk_MakeFreeTypeManager();
@@ -368,7 +402,7 @@ public:
     Unk_5518d0_Pool* field_758;
     // what gives descriptors for another's NVN device: four functions and
     // what each is called with
-    u64 (*field_760)(u64 a1, u64 a2, u64 user);
+    s32 (*field_760)(u64 a1, u64 a2, u64 user);
     u64 (*field_768)(u64 a1, u64 user);
     u64 (*field_770)(u32 a1, u64 user);
     u64 (*field_778)(u32 a1, u64 user);

@@ -7,7 +7,7 @@
 #include <yebis/YEBIS_draft/src/GPU/Unk_Statics.h>
 
 // 0x7100417a30: printf to the log
-void Unk_417a30(const char* format, ...);
+s32 Unk_417a30(const char* format, ...);
 // 0x7100446df0: an error code's name
 const char* Unk_446df0(s32 result);
 // log switches: all messages, and the errors
@@ -26,10 +26,10 @@ extern s32 Unk_238c1e8;
 // 0x710044f3a0 makes one from an effect file
 void* Unk_44f3a0(const void* data, void* arg1, bool arg2);
 s32 Unk_44f450(void* self);
-s32 Unk_44e630(void* self);
-s32 Unk_44e750(void* self);
-s32 Unk_44e870(void* self);
-s32 Unk_44e960(void* self);
+void* Unk_44e630(void* self, s32 technique);
+void* Unk_44e750(void* self, s32 technique);
+s32 Unk_44e870(void* self, s32 technique);
+s32 Unk_44e960(void* self, s32 technique);
 struct Unk_44fa70;
 struct Unk_44fa90;
 struct Unk_44fab0;
@@ -137,23 +137,23 @@ Unk_TinyEffect::Unk_Result IGPUEffect::vf32(u64 a) {
 }
 
 // 0x710049a1b0
-s32 IGPUEffect::vf37() {
-    return Unk_44e630(field_78);
+void* IGPUEffect::vf37(s32 technique) {
+    return Unk_44e630(field_78, technique);
 }
 
 // 0x710049a1c0
-s32 IGPUEffect::vf38() {
-    return Unk_44e750(field_78);
+void* IGPUEffect::vf38(s32 technique) {
+    return Unk_44e750(field_78, technique);
 }
 
 // 0x710049a1d0
-s32 IGPUEffect::vf39() {
-    return Unk_44e870(field_78);
+s32 IGPUEffect::vf39(s32 technique) {
+    return Unk_44e870(field_78, technique);
 }
 
 // 0x710049a1e0
-s32 IGPUEffect::vf40() {
-    return Unk_44e960(field_78);
+s32 IGPUEffect::vf40(s32 technique) {
+    return Unk_44e960(field_78, technique);
 }
 
 // 0x710049a1f0

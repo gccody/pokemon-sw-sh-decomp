@@ -21,6 +21,8 @@ PKMN_SIZE_ASSERT(Unk_NXDescriptorNode, 0x18);
 
 #define UNK_NX_DESCRIPTOR_HEAP_MEMBERS                                                         \
     SiOSCriticalSection* Unk_Lock() { return reinterpret_cast<SiOSCriticalSection*>(field_20); } \
+    /* a node, null past the last one (inline: placeholder name) */                            \
+    Unk_NXDescriptorNode* Unk_Node(size_t index) { return field_5c + 2 > index ? &field_0[index] : nullptr; } \
                                                                                                \
     Unk_NXDescriptorNode* field_0; /* the nodes */                                             \
     SiGfxNXMemoryHeap* field_8;    /* where the NVN pool's memory is */                        \
@@ -42,8 +44,8 @@ public:
     void Unk_551910();
     // 0x7100551940: releases the texture pool
     void Unk_551940();
-    // 0x7100551a50: makes it (not written yet)
-    bool Unk_551a50(SiGfxNXDevice* pDevice, s32 a2, s32 a3);
+    // 0x7100551a50: makes it, for count numbers from first
+    bool Unk_551a50(SiGfxNXDevice* pDevice, s32 count, s32 first);
     // 0x7100551ed0: a number for a texture and its view (-1: none), as an
     // image if a3; 0x7100551fd0: gives a number back
     s32 Unk_551ed0(u64 a1, u64 a2, bool a3);
@@ -60,8 +62,8 @@ public:
     void Unk_5520f0();
     // 0x7100552120: releases the sampler pool
     void Unk_552120();
-    // 0x7100552230: makes it (not written yet)
-    bool Unk_552230(SiGfxNXDevice* pDevice, s32 a2, s32 a3);
+    // 0x7100552230: makes it, for count numbers from first
+    bool Unk_552230(SiGfxNXDevice* pDevice, s32 count, s32 first);
     // 0x71005526b0: a number for a sampler (-1: none); 0x7100552790: gives a
     // number back
     s32 Unk_5526b0(u64 a1);

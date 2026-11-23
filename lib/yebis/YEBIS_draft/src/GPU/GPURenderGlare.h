@@ -13,9 +13,48 @@ namespace PPFX {
 
 // 0x80 bytes that CRenderGlare has twice: the constructor's stores give the
 // members' sizes
-struct Unk_453_1f8 {
-    u8 field_0[0x60];
+struct Unk_GlareRect {
+    f32 field_0;
+    f32 field_4;
+    f32 field_8;
+    f32 field_c;
 };
+struct Unk_GlarePair {
+    f32 field_0;
+    f32 field_4;
+};
+// what field_170 points to (set outside this file): a colour at 8
+struct Unk_45_170 {
+    u8 pad_0[0x8];
+    Unk_Vector3 field_8;
+    u8 pad_14[0x4];
+    Unk_Vector3 field_18;
+    u8 pad_24[0xc];
+    Unk_Vector3 field_30;
+    u8 pad_3c[0x10];
+    Unk_Vector3 field_4c;
+    u8 pad_58[0x10];
+    f32 field_68;
+    Unk_Vector3 field_6c;
+    u8 pad_78[0x10];
+    s32 field_88;
+    u8 pad_8c[0x4];
+    f32 field_90;
+};
+PKMN_OFFSET_ASSERT(Unk_45_170, field_4c, 0x4c);
+PKMN_OFFSET_ASSERT(Unk_45_170, field_6c, 0x6c);
+PKMN_OFFSET_ASSERT(Unk_45_170, field_90, 0x90);
+struct Unk_453_1f8 {
+    Unk_GlareRect field_0;
+    f32 field_10;
+    f32 field_14;
+    f32 field_18;
+    f32 field_1c;
+    f32 field_20;
+    u8 pad_24[0x38];
+    f32 field_5c;
+};
+PKMN_SIZE_ASSERT(Unk_453_1f8, 0x60);
 struct Unk_453_208 {
     u8 field_0[0x34];
 };
@@ -24,7 +63,7 @@ struct Unk_29af8;
 struct Unk_453_30 {
     Unk_453_30() { Unk_Reset(); }
     void Unk_Reset() {
-        memset(field_0, 0, sizeof(field_0));
+        memset(field_bytes, 0, sizeof(field_bytes));
         memset(field_18, 0, sizeof(field_18));
         field_48 = true;
         field_49 = true;
@@ -42,8 +81,22 @@ struct Unk_453_30 {
         field_7c = false;
     }
 
-    u8 field_0[0x15];
-    s32 field_18[12];
+    // the first 0x15 bytes, which the reset clears as one
+    union {
+        u8 field_bytes[0x15];
+        struct {
+            u32 field_0;
+            u32 field_4;
+            u32 field_8;
+            u32 field_c;
+            u32 field_10;
+            bool field_14;
+        };
+    };
+    union {
+        s32 field_18[12];
+        f32 field_18_f[12];  // the same words where they are floats
+    };
     bool field_48;
     bool field_49;
     bool field_4a;
@@ -56,8 +109,8 @@ struct Unk_453_30 {
     u64 field_68;
     bool field_70;
     bool field_71;
-    s32 field_74;
-    s32 field_78;
+    f32 field_74;
+    f32 field_78;
     bool field_7c;
 };
 PKMN_SIZE_ASSERT(Unk_453_30, 0x80);
@@ -72,7 +125,27 @@ public:
     ~CRenderGlare() override;        // 0x7100455750, 0x71004557d0
 
     s32 Unk_4531d0(const char* name);  // 0x71004531d0
+    // 0x71004555a0 (its log line names it)
+    s32 Initialize(const Unk_453_30* desc);
+    s32 Unk_453540();  // 0x7100453540 (not written yet)
+    s32 Unk_45e980(void* arg);  // 0x710045e980: hands `arg` to every resource
+    s32 Unk_45ca70(CRenderTexture* texture, s32 index);  // 0x710045ca70 (not written yet)
+    s32 Unk_45c880();  // 0x710045c880
     bool Unk_455850();                 // 0x7100455850
+    // 0x71004534f0: the field of view (tan(22.5 degrees) for none) and two more numbers
+    s32 Unk_4534f0(f32 fov, f32 a, f32 b);
+    // 0x7100453440: three numbers (-1: field_b0's)
+    s32 Unk_453440(s32 a, s32 b, s32 c);
+    f32 Unk_45ed80();  // 0x710045ed80
+    f32 Unk_45ee20();  // 0x710045ee20
+    // 0x710045e940
+    s32 Unk_45e940(const Unk_GlareRect* a, const Unk_GlarePair* b, const Unk_GlarePair* c);
+    // 0x71004552e0: the light shaft of a view
+    s32 Unk_4552e0(s32 view, const Unk_GlareRect* rect, f32 a, f32 b, f32 c, f32 d, f32 e, f32 f);
+    f32 Unk_45d350();  // 0x710045d350
+    // 0x710045e8a0
+    s32 Unk_45e8a0(bool a, s32 b, bool c, const u64* d, const u64* e, const u64* f, const u64* g, const u64* h,
+                   bool i, f32 j, f32 k, f32 l);
     s32 CreateDeviceResources();       // 0x7100455b50
 
     // the members as a new object has them (inline in Unk_4531d0 and vf3: it
@@ -82,15 +155,17 @@ public:
         field_b0.Unk_Reset();
         field_23c = 0.5f;
         field_2e8 = 0;
+        field_2ec = 0;
         field_2e0 = 0;
-        field_224[0] = 1.0f;
-        field_224[1] = 1.0f;
-        field_224[2] = 1.0f;
-        field_224[3] = 1.0f;
-        field_224[4] = 1.0f;
-        field_224[5] = 1.0f;
+        field_2e4 = 0;
+        field_224.field_0 = 1.0f;
+        field_224.field_4 = 1.0f;
+        field_224.field_8 = 1.0f;
+        field_224.field_c = 1.0f;
+        field_234 = 1.0f;
+        field_238 = 1.0f;
         field_240 = 1.0f;
-        field_244 = 0;
+        field_244 = 0.0f;
         field_220 = 0;
         field_218 = 0;
         field_210 = 2;
@@ -135,44 +210,73 @@ public:
         field_13c = 1.0f;
         field_360 = 0;
         field_368 = false;
-        field_36c[0] = 1.0f;
-        field_36c[1] = 1.0f;
-        field_36c[2] = 1.0f;
-        field_36c[3] = 1.0f;
-        field_36c[4] = 1.0f;
-        field_36c[5] = 1.0f;
-        field_384[0] = 0.0f;
-        field_384[1] = 0.0f;
+        field_36c.field_0 = 1.0f;
+        field_36c.field_4 = 1.0f;
+        field_36c.field_8 = 1.0f;
+        field_36c.field_c = 1.0f;
+        field_37c.field_0 = 1.0f;
+        field_37c.field_4 = 1.0f;
+        field_384.field_0 = 0.0f;
+        field_384.field_4 = 0.0f;
         field_390 = nullptr;
         field_348 = nullptr;
     }
+
+    // 0x7100456bf0, 0x7100456f30, 0x71004570b0, 0x7100457370: whether
+    // parts of the glare changed
+    bool Unk_456bf0();
+    bool Unk_456f30();
+    bool Unk_4570b0();
+    bool Unk_457370();
+    bool Unk_457650();  // 0x7100457650: whether nothing is to be drawn again
+    f32 Unk_458420();   // 0x7100458420: the glare's luminance
+    f32 Unk_458250();   // 0x7100458250
+    f32 Unk_458580();   // 0x7100458580
+    s32 Unk_457f00(CRenderTexture* source, s32 arg2, CRenderTexture* arg3);  // 0x7100457f00
+    void Unk_457760(CRenderTexture* source, CRenderTexture* target);  // 0x7100457760 (not written yet)
 
     // UNK_FIELDS_BEGIN
     Unk_453_30 field_30;
     Unk_453_30 field_b0;
     u8 pad_130[0x4];
     f32 field_134;
-    u8 pad_138[0x4];
+    f32 field_138;
     f32 field_13c;
     u8 pad_140[0x14];
     f32 field_154;
     f32 field_158;
-    s32 field_15c;
-    s32 field_160;
+    f32 field_15c;
+    f32 field_160;
     f32 field_164;
     f32 field_168;
-    u8 pad_16c[0x8c];
+    u8 pad_16c[0x4];
+    const Unk_45_170* field_170;
+    u8 pad_178[0x8];
+    bool field_180;
+    u8 pad_181[0x3];
+    f32 field_184;
+    f32 field_188;
+    bool field_18c;
+    u8 pad_18d[0x1f];
+    bool field_1ac;
+    u8 pad_1ad[0x37];
+    f32 field_1e4;
+    u8 pad_1e8[0xc];
+    s32 field_1f4;
     Unk_453_1f8* field_1f8;
-    u8 pad_200[0x8];
+    s32 field_200;
+    u8 pad_204[0x4];
     Unk_453_208* field_208;
     s32 field_210;
     u8 pad_214[0x4];
     u64 field_218;
     s32 field_220;
-    f32 field_224[6];
+    Unk_GlareRect field_224;
+    f32 field_234;
+    f32 field_238;
     f32 field_23c;
     f32 field_240;
-    s32 field_244;
+    f32 field_244;
     u64 field_248;
     u64 field_250;
     s32 field_258;
@@ -180,12 +284,30 @@ public:
     s32 field_260;
     s32 field_264;
     s32 field_268;
-    u8 pad_26c[0x74];
-    u64 field_2e0;
-    u64 field_2e8;
+    bool field_26c;
+    u8 pad_26d[0x2f];
+    bool field_29c;
+    u8 pad_29d[0x3];
+    s32 field_2a0;
+    bool field_2a4;
+    u8 pad_2a5[0x3];
+    u64 field_2a8;
+    u64 field_2b0;
+    u64 field_2b8;
+    u64 field_2c0;
+    u64 field_2c8;
+    f32 field_2d0;
+    f32 field_2d4;
+    f32 field_2d8;
+    bool field_2dc;
+    u8 pad_2dd[0x3];
+    s32 field_2e0;
+    s32 field_2e4;
+    s32 field_2e8;
+    s32 field_2ec;  // the active view
     CGPUResourceManage* field_2f0;
     void* field_2f8;
-    void** field_300;
+    CRenderTexture** field_300;  // field_308 of them
     s32 field_308;
     u8 pad_30c[0x4];
     CGPUResourceManage** field_310;
@@ -201,8 +323,9 @@ public:
     u64 field_360;
     bool field_368;
     u8 pad_369[0x3];
-    f32 field_36c[6];
-    f32 field_384[2];
+    Unk_GlareRect field_36c;
+    Unk_GlarePair field_37c;
+    Unk_GlarePair field_384;
     u8 pad_38c[0x4];
     CGPUResourceManage* field_390;
     CGPUResourceManage* field_398;
@@ -213,7 +336,20 @@ public:
     CGPUResourceManage* field_3c0;
     CGPUResourceManage* field_3c8;
     CGPUResourceManage* field_3d0;
-    u8 pad_3d8[0x48];
+    s32 field_3d8;
+    f32 field_3dc;
+    f32 field_3e0;
+    f32 field_3e4;
+    f32 field_3e8;
+    f32 field_3ec;
+    f32 field_3f0;
+    f32 field_3f4;
+    f32 field_3f8;
+    u8 pad_3fc[0x14];
+    bool field_410;
+    u8 pad_411[0x7];
+    f32 field_418;
+    u8 pad_41c[0x4];
     u64 field_420;
     // UNK_FIELDS_END
 };

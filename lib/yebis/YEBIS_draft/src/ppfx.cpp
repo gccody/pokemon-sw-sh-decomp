@@ -4,6 +4,9 @@
 // arguments to the one PPFX::CPostEffect there is, without the context they
 // are called with. lib/yebis/leaf/Unk_4182e0.cpp has the ones leafgen wrote;
 // these are the others of that shape. Placeholder names.
+#include <stdarg.h>
+#include <stdio.h>
+
 #include <yebis/YEBIS_draft/src/GPU/GPUPostEffect.h>
 #include <yebis/YEBIS_draft/src/GPU/Unk_Array.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUInterface.h>
@@ -46,7 +49,7 @@ struct Unk_423b80;
 struct Unk_43b9b0;
 struct Unk_43a0e0;
 struct Unk_423ed0;
-void Unk_424670(PPFX::CPostEffect* self);
+s32 Unk_424670(PPFX::CPostEffect* self, f32 elapsed);  // SetDeltaTime (its log message)
 void Unk_424490_update(Unk_424490* self, u32 value);
 void Unk_423eb0_update(Unk_423eb0* self, f32 a, f32 b, f32 c);
 void Unk_427a60_update(Unk_427a60* self, f32 a, f32 b);
@@ -57,7 +60,10 @@ void Unk_423950_update(Unk_423950* self, u32 arg1, bool arg2, const Unk_423950_a
                        const Unk_423950_arg4* arg4, const Unk_423950_arg5* arg5, bool arg6);
 void Unk_423da0_update(Unk_423da0* self, u32 value);
 void Unk_423b90_update(Unk_423b90* self, u32 value);
-void Unk_423b80_call(const Unk_423b80* self, void* arg);
+namespace PPFX {
+struct Unk_GlareRect;
+}
+void Unk_423b80_call(const Unk_423b80* self, const PPFX::Unk_GlareRect* arg, f32 a, f32 b, f32 c, f32 d, f32 e);
 void Unk_43b9b0_update(Unk_43b9b0* self, u64 value);
 void Unk_43a0e0_update(Unk_43a0e0* self, u64 value);
 void Unk_423ed0_update(Unk_423ed0* self, u64 value, u32 arg2);
@@ -74,9 +80,58 @@ static inline u64 Unk_Held(const void* object) {
     return reinterpret_cast<u64>(object);
 }
 
+// 0x71024e00f8: what the log hands its lines to (printf without one), and
+// 0x71024e01b8 the line: two statics of this file, merged into one object
+struct Unk_24e00f8_Statics {
+    void (*field_0)(const char* text);
+    u8 pad_8[0xb8];
+    char field_c0[0x800];
+};
+extern Unk_24e00f8_Statics Unk_24e00f8 __attribute__((visibility("hidden")));
+
+// 0x7100417a30: printf to the log
+s32 Unk_417a30(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    s32 length = vsnprintf(Unk_24e00f8.field_c0, sizeof(Unk_24e00f8.field_c0), format, args);
+    va_end(args);
+    if (Unk_24e00f8.field_0 != nullptr) {
+        Unk_24e00f8.field_0(Unk_24e00f8.field_c0);
+    } else {
+        printf(Unk_24e00f8.field_c0);
+    }
+    return length;
+}
+
+// 0x71004180d0: IPfxBaseContext::Uninitialize (its log lines name it)
+s32 Unk_4180d0(u64 self) {
+    UNK_PPFX_INFO("==== IPfxBaseContext::Uninitialize() ====\n");
+#line 1185
+    PPFX_LOG("==== IPfxBaseContext::Uninitialize() ====\n");
+    if (Unk_24e00e0 != nullptr) {
+        PPFX_SAFE_RELEASE_INTERFACE(Unk_24e00e8);
+        PPFX_SAFE_RELEASE_INTERFACE(Unk_24e00f0);
+        s32 result = Unk_24e00e0->Unk_419690(nullptr);
+        if (result < 0) {
+#line 1227
+            PPFX_ERROR("IPfxBaseContext::Uninitialize(): s_pSinglePostEffect->Uninitialize() failed (0x%x: %s).\n", result,
+                       Unk_446df0(result));
+            return result;
+        }
+#line 1232
+        PPFX_LOG("IPfxBaseContext::Uninitialize(): s_pSinglePostEffect->Uninitialize() succeeded.\n");
+        UNK_DELETE(Unk_24e00e0);
+        *reinterpret_cast<void**>(const_cast<u8*>(Unk_4b9840_get(reinterpret_cast<const Unk_4b9840*>(self)))) = nullptr;
+    }
+#line 1246
+    PPFX_LOG("==== IPfxBaseContext::Uninitialize() succeeded. ====\n");
+    UNK_PPFX_INFO("==== IPfxBaseContext::Uninitialize() succeeded. ====\n");
+    return 0;
+}
+
 // 0x7100418310
-void Unk_418310(u64) {
-    Unk_424670(Unk_24e00e0);
+s32 Unk_418310(u64, f32 elapsed) {
+    return Unk_424670(Unk_24e00e0, elapsed);
 }
 
 // 0x7100418330
@@ -155,8 +210,8 @@ void Unk_4186f0(void*, u32 value) {
 }
 
 // 0x7100418700
-void Unk_418700(void*, void* arg) {
-    Unk_423b80_call(reinterpret_cast<const Unk_423b80*>(Unk_24e00e0), arg);
+void Unk_418700(void*, const PPFX::Unk_GlareRect* arg, f32 a, f32 b, f32 c, f32 d, f32 e) {
+    Unk_423b80_call(reinterpret_cast<const Unk_423b80*>(Unk_24e00e0), arg, a, b, c, d, e);
 }
 
 // 0x7100418730

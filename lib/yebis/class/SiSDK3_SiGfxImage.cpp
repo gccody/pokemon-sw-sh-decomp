@@ -11,23 +11,34 @@ struct Unk_4f4690 {
 };
 PKMN_OFFSET_ASSERT(Unk_4f4690, field_18, 0x18);
 
-struct Unk_4f3dc0_arg1 {
-    u64 field_0;
-};
-PKMN_OFFSET_ASSERT(Unk_4f3dc0_arg1, field_0, 0x0);
-
 namespace SiSDK3 {
+// (SiGfx_Image.h's, as far as slot 24 uses it)
+struct Unk_ImageConvertDesc {
+    u32 field_0;
+    s32 field_4;
+    s32 field_8;
+    struct Unk_Pair {
+        s32 field_0;
+        u32 field_4;
+    };
+    Unk_Pair field_c;
+    bool field_14;
+    bool field_15;
+    bool field_16;
+};
+PKMN_SIZE_ASSERT(Unk_ImageConvertDesc, 0x18);
+
 class SiGfxImage {
 public:
     u32 vf4();
-    u32 vf24(Unk_4f3dc0_arg1* value);
+    bool vf24(SiGfxImage** pConverted, Unk_ImageConvertDesc desc);
 };
 }  // namespace SiSDK3
 
 // 0x71004f3dc0
-u32 SiSDK3::SiGfxImage::vf24(Unk_4f3dc0_arg1* value) {
-    value->field_0 = 0;
-    return 1;
+bool SiSDK3::SiGfxImage::vf24(SiGfxImage** pConverted, Unk_ImageConvertDesc) {
+    *pConverted = nullptr;
+    return true;
 }
 
 // 0x71004f4690

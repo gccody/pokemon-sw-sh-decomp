@@ -26,6 +26,11 @@
         }                            \
     } while (0)
 
+// 0x7100440d50 (lib/yebis/leaf)
+u32 Unk_440d50_get(u64 device, u32 arg);
+// 0x710049e3a0 (GPURenderTexture.cpp)
+void Unk_49e3a0(u32 arg0, s32 arg1, s32 arg2, void* arg3, void* arg4, s32 arg5, void* arg6, void* arg7, f32 arg8);
+
 // 0x710049ca70 (GPURenderTexture.cpp)
 void Unk_49ca70(void* self, void* arg1, u32 arg2);
 
@@ -43,12 +48,69 @@ struct Unk_4b7a30_Texture {
     virtual s32 vf7();
     virtual void vf8();
     virtual void vf9();
-    virtual void vf10();
+    virtual s32 vf10();
     virtual void vf11();
     virtual void vf12();
     virtual void vf13();
     virtual void vf14();
     virtual void vf15(u32 filter);
+};
+
+// 0x71024e1500: PPFX's settings; field_10 is the number of frame slots
+struct Unk_24e1500_Settings {
+    u8 _0[0x10];
+    u32 field_10;
+};
+extern Unk_24e1500_Settings Unk_24e1500;
+
+static inline u32 Unk_FrameSlots() {
+    return Unk_24e1500.field_10 > 1 ? Unk_24e1500.field_10 : 1;
+}
+
+// the device's frame number, as this file reads it
+struct Unk_4b7f40_Device {
+    u8 _0[0x28];
+    u32 field_28;
+};
+
+// a surface's device texture and the resource it maps, as this file reads them
+struct Unk_4b7f40_Resource {
+    u8 _0[0x20];
+    void* field_20;  // the buffer
+};
+struct Unk_4b7f40_Texture {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+    virtual void vf25();
+    virtual void vf26();
+    virtual Unk_4b7f40_Resource* vf27(s32 level);
+};
+struct Unk_4b7f40_Surface {
+    u8 _0[0xa8];
+    Unk_4b7f40_Texture* field_a8;
 };
 
 // 0x7101eea4bc, 0x7101eea4ce: the classes' names
@@ -124,6 +186,122 @@ s32 CTextureLuminance::vf3() {
     Unk_Reset();
     s32 result = CGPUResourceManage::vf3();
     return result < 0 ? result : 0;
+}
+
+// 0x71004b7d60
+s32 CTextureLuminance::Unk_4b7d60(CRenderTexture* source) {
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    bool drawn = false;
+    CRenderTexture* current = source;
+    CRenderTexture* texture;
+    for (s32 i = 0; i < field_80; i++) {
+        texture = field_78[i];
+        if (static_cast<u32>(texture->field_54) < static_cast<u32>(current->field_54)) {
+            drawn = true;
+            Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+            Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
+            util->Unk_47dfa0(0.0f, 0.0f, 0.0f, 1.0f, current, texture, 0, &color, 0, false, false, 1, &zero, nullptr,
+                             -1);
+            current = texture;
+        }
+    }
+    field_88 = drawn ? texture : source;
+    return 0;
+}
+
+// 0x71004b7f40
+// NON_MATCHING: the frame: the colour and the map information share a slot below the
+// zero vector here; in the original the zero vector is below them.
+s32 CTextureLuminance::Unk_4b7f40() {
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    CRenderTexture* source = field_88;
+    CRenderTexture* target = field_30;
+    if (field_60 == 3) {
+        reinterpret_cast<Unk_4b7a30_Texture*>(field_40)->vf7();
+        reinterpret_cast<Unk_4b7a30_Texture*>(field_40)->vf9();
+    }
+    {
+        Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
+        Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+        util->Unk_47dfa0(0.0f, 0.0f, 0.0f, 1.0f, source, target, 0, &color, 0, false, false, 1, &zero, nullptr, -1);
+    }
+    Unk_49e3a0(1, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+    field_9c = reinterpret_cast<Unk_4b7f40_Device*>(field_20)->field_28 % Unk_FrameSlots();
+    switch (field_60) {
+    case 3: {
+        s32 result = reinterpret_cast<Unk_4b7a30_Texture*>(field_40)->vf10();
+        if (result < 0)
+            return result;
+        break;
+    }
+    case 4: {
+        s32 result = util->Unk_48d7f0(Unk_GetTexture(field_30), &field_40, field_38, nullptr);
+        if (result < 0)
+            return result;
+        break;
+    }
+    case 2: {
+        Unk_SiGfxDrawContext* context = field_20->field_30;
+        Unk_4b7f40_Resource* resource =
+            reinterpret_cast<Unk_4b7f40_Surface*>(field_30->field_b8[field_30->field_a0])->field_a8->vf27(0);
+        void* buffer = resource->field_20;
+        IGPUBuffer::Unk_MapInfo info;
+        info.field_8 = 4;
+        info.field_0 = 1;
+        if (context->vf69(buffer, &info)) {
+            u32 value = *reinterpret_cast<const u32*>(info.field_20);
+            u8 b = value;
+            u8 g = value >> 8;
+            u8 r = value >> 16;
+            u8 a = value >> 24;
+            field_90[2] = b;
+            field_90[0] = r;
+            field_90[1] = g;
+            field_90[3] = a;
+            context->vf70(buffer, &info);
+        }
+        break;
+    }
+    }
+    if (field_60 == 5)
+        field_94 = 0;
+    return 0;
+}
+
+// whether the device and the four objects are ready
+inline s32 CTextureLuminance::Unk_CheckReady() {
+    if (field_20 == nullptr || field_74 < 0.0f)
+        return -3;
+    for (s32 i = 0; i < field_3c; i++) {
+        s32 result = reinterpret_cast<Unk_4b7a30_Texture*>((&field_40)[i])->vf7();
+        if (result < 0)
+            return result;
+    }
+    return 0;
+}
+
+// 0x71004b8240
+s32 CTextureLuminance::Unk_4b8240(CRenderTexture* source, bool flag) {
+    s32 result = Unk_CheckReady();
+    if (result < 0)
+        return result;
+    field_74 = -1.0f;
+    if (source == nullptr)
+        source = field_88;
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    if (flag)
+        util->Unk_471410(1, 3, -1);
+    Unk_440d50_get(reinterpret_cast<u64>(field_20), 0);
+    Unk_49e3a0(1, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+    Unk_4b7d60(source);
+    result = Unk_4b7f40();
+    if (result < 0)
+        return result;
+    Unk_49e3a0(1, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+    return 0;
 }
 
 // 0x71004b86d0
@@ -214,6 +392,19 @@ s32 CTextureLuminanceManage::Unk_4b8a40(bool flag, f32 a, f32 b, f32 c, f32 d) {
     field_4b4[index] = d;
     field_54 = true;
     return 0;
+}
+
+// 0x71004b8ae0
+f32 CTextureLuminanceManage::Unk_4b8ae0(f32 a, f32 b, f32 c) {
+    s32 mode = field_500;
+    f32 value;
+    if (mode < 0) {
+        f32 scale = b * 100.0f;
+        value = expf(a * 8.0f) / scale;
+    } else {
+        value = Unk_462c30(mode, a, b, 1.0f);
+    }
+    return value / c;
 }
 
 // 0x71004b9140

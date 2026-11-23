@@ -220,7 +220,7 @@ SiSDK3's core library starts YEBIS's second half. Its TUs, in address order
 | 0x4c2d70-0x4c32e0 | `SiCore_HeapAllocator.cpp` | the allocator over the memory system |
 | 0x4c3360-0x4c35c0 | `Unk_4c3360.cpp` | CRC-32 |
 | 0x4c3640-0x4c4100 | `Unk_4c3650.cpp` | `SiMemorySystem`: malloc with a header, 65536 lists by address |
-| 0x4c4290-0x4c6010 | `Unk_4c4290.cpp` | string functions, `SiString`'s out-of-line members |
+| 0x4c4290-0x4c6010 | `SiCore_String.cpp` (0x71004c49f0's allocation's `__FILE__`) | string functions, `SiString`'s out-of-line members |
 | 0x4c6090-0x4c8620 | `SiCore_StringTable_Impl.cpp` | `SiStringTable` and its `Entry` |
 | 0x4c86a0-0x4c8840 | `Unk_4c86a0.cpp` | `SiCoreCriticalSection`, the scoped lock |
 | 0x4c88c0-0x4c8ef0 | `SiCore_SystemInfo_Impl.cpp` | `SiSystemInfo` |
@@ -638,9 +638,12 @@ placeholder named after its first function (`SiOS/Source/Unk_596410.cpp`,
   `Unk_SetCount`, `Unk_Reserve`, `Unk_ReserveAtLeast` (which also clamps the
   count), `Unk_Add` (grows by `field_40` elements, or to twice the room).
   Their failure paths store the count, then the two range pointers.
-- `SiArray`'s assignment (`operator=`, it returns nothing) is written but one
-  address away in all four copies (`m`): the original computes `&field_30`
-  where its loop starts and stores through `this` before it.
+- `SiArray`'s assignment (`operator=`, it returns nothing) matches in all
+  four copies once its clear goes through one more inline (`Unk_FreeAll()`
+  rather than `Unk_4e3050()`): that function's own optimisation zeroes the
+  three pointers as one block before it's inlined, so the later `field_30`
+  stores don't reuse an address computed early; `if (x != 0) {main} else if
+  (...)` keeps the pointer-element copy's loop end from being duplicated.
 - `SiString`: the default constructor takes the kernel's allocator, the
   assignment is out of line (0x71004c8020), `Unk_Clear` frees and empties
   (line 344), `Unk_StringCStr` is the buffer or the empty string
@@ -894,7 +897,7 @@ Written in this round: `SiGfxNXDrawContext`'s forwarders and draw slots,
 `SiCore_Utility.cpp` (the file's name is its allocator callback's
 `__FILE__`) and `Unk_4cad50.cpp` with their static initialisers; the event
 handler and enumeration converter templates of `SiCore_Reflection.h`; the
-format helpers of `Libsrc/SiGfx/Source/Unk_4ed060.cpp` (names of the
+format helpers of `Libsrc/SiGfx/Source/SiGfx_Utility.cpp` (names of the
 graphics interfaces and shader languages, bits and block bytes of a pixel
 format, mip counters, pixel and index writers, the formatted append);
 `SiGfxImageUtility`, `SiGfxDisplayUtility` and the constructors and
@@ -1047,4 +1050,174 @@ and `IGPUPixelContainer` (`Unk_4460c0.cpp`).
   The base's reference counts are defined only for the TU that asks
   (`UNK_SIGFX_KERNEL_EVENTHANDLER_DEFINE`), now that other headers include
   it.
+
+
+## Later round: the shader effect's variation list and effect, the NX pools' own resources, the FreeType face, SiMath's projection
+
+The variation list (`SiGfx_ShaderEffectVariationList_Impl.{h,cpp}`) has its
+three element types under `ISiGfxShaderEffectVariationList` (RTTI names
+them): a variation (0x140 bytes: two `SiGfxShaderEffectKey`s whose bytes are
+in four bytes of their own or in an array, its strings and their hash), an
+effect's data and a name that wasn't found. The effect
+(`SiGfx_ShaderEffect_Impl.{h,cpp}`) is 0x178 bytes: its name, a lock, its
+techniques and program map, and the callback it gives SiGfx's kernel to be
+told when a program is compiled. `ShaderProgramMap`'s destructor is defined
+in that header under the package's guard: its `__FILE__` is the header and
+the original has it in the package's translation unit. The NX vertex format
+and font pools make their own resources in slot 7 (`SiGfx_NX_VertexFormatPool.cpp`,
+`SiGfx_NX_FontPool.cpp`). `Unk_DirectMap.h` is SiSDK3's `SiDirectMap`, an
+intrusive map (the FreeType face's glyphs are their own nodes).
+
+### Idioms that decided matches here
+
+- Loads of a parameter's fields hoisted out of a loop mean a reference
+  parameter (dereferenceable); through a pointer they stay in the loop
+  (the variation list's slots 5 and 6, the keys).
+- `cmp; ccmp ..., #2, hs; b.hi`, or two branches to one block, is a
+  three-way compare written `if (a < b) return -1; if (a > b) return 1;`.
+  Written as `!=` and then `?:` it folds into one `b.ne` (the keys' compare,
+  the variations' sort).
+- Store merging only joins stores of the same size: a 4-byte store left
+  alone next to a merged 8-byte pair means the pair is one 8-byte struct
+  assigned as a whole from a temporary (`field_94 = Unk_94();`, a memcpy that
+  becomes one 64-bit store). The same for bytes: a byte, a merged two-byte
+  pair, a byte (`Unk_538d70`'s constructor: a two-byte struct
+  value-initialised; it needs no `volatile`).
+- A list element whose links are stored before its other members has them
+  as a value-initialised base (`: Unk_Links<T>()`, `RequestNotFoundEntry`).
+- A value read into a local before a loop (an allocator) lets LLVM unswitch
+  the loop on it; read through the member it's reloaded every iteration
+  (the effect's `Unk_576780`).
+- An object whose constructor reads something of its owner after its
+  vtable is stored takes the owner, not the value (`CompileRequestCallback`).
+- Many copies of one block with the same `__LINE__` for their allocation are
+  an inline helper inlined at each call (the NX vertex format pool's sixteen
+  formats, 0x7100563a40: local constant arrays per block, which clang copies
+  from rodata or stores by itself; index 15 reuses index 3's name).
+- A max whose argument is computed again when it's the greater
+  (`cmp #2; b.lt`, then the same calls again) is a macro
+  `((a) > (b) ? (a) : (b))` (`SiGfxNXVolume::Unk_565c80`).
+- A byte that is stored as it was loaded (`strb w8`, then `cbz w8`) is a
+  `u8`; a `bool` gives `cmp; cset`.
+- Reads of all inputs before the result's constructor give the loads-first
+  order of SiMath's projection matrix (0x7100594590); the stores of its
+  constants follow the statements' order within what the scheduler allows.
+- An `if`/`else if` chain instead of `continue`s gives one rotated search
+  loop.
+- A member function of a class template that the original calls by its
+  complete-object name (D1) resolves in `check.py` through the alias of the
+  translation unit that instantiates it; `qc`-style one-file checks need a
+  D1 row of their own for it.
+- An explicit instantiation declaration (`extern template
+  SiPool<SiGfxFreeTypeGlyph, 16>::~SiPool();`) keeps a header's template
+  member from being emitted (and compared) in a translation unit that only
+  calls it.
+
+### Near misses and what's left
+
+Near misses, each with its `NON_MATCHING` reason: the variation list's slot
+10 (its run-length loops' 64-bit index), slot 14 (the end of a case-sensitive
+compare kept as a value), slot 22 (a `found` flag), its stream reader
+(registers); the variation's slot 12 (the zeros' loop's addresses); the
+effect's slot 17 and `Unk_576780` (an address sunk into a call's block,
+registers); `ShaderProgramMap`'s destructor and the package's slot 21 and 13
+(a spilled register, shared return blocks, loop guards); SiIO's
+decompression, the file stream's slot 39 and the CSV document's line reader
+(registers, a duplicated epilogue, a peeled first read); the texture
+utility's descriptor (the order of its stores); the FreeType face's
+constructor (one register); the image flip `Unk_4ee110` (a 32-bit counter
+LLVM folds here).
+
+Not written: the effect's slot 12 (0x7100576c30) and its helpers, its
+program requests (0x71005785d0, 0x7100578c30), `Unk_578b10` (needs SiString's
+copy constructor 0x71004c45c0), the map erase of the effect's programs
+(0x7100566f10, SiCore's 0x71004c0e60 is the same template), the face's map
+insert (0x7100500a30, an intrusive red-black insert), the canvas's
+constructor and setup (0x71004fb6d0, 0x71004fbb20, 0x71004fc8a0), the font
+pool's own fonts (0x71004fe990), the device's constructor.
+
+## Later round: the font pool's own font, the canvas's setup and teardown, the FreeType face's loading, SiGfx images, the texture chunk's data
+
+The NX font pool (`SiGfx_NX_FontPool.cpp`) now makes its own font (the
+kernel's font directory plus a file name, a description of the face with
+`Unk_FontDesc`, then the four strings of characters it renders first) and
+holds the resource pools' item-of-index lookup `SiPool::Unk_4fef10`, whose
+only instance the original has in this translation unit. The font's slot 18
+(`SiGfx_NX_Font_Impl.cpp`) opens the face and makes its glyph cache. The face
+(`SiGfx_FreeType_Face.{h,cpp}`) reads FreeType's `FT_FaceRec_` through a
+placeholder view (`Unk_FTFace`, its members' FreeType names in comments) and
+is opened through `SiGfxFreeTypeManager`. The canvas (`SiGfx_NX_Canvas_Impl.{h,cpp}`)
+has its real layout (its description at 0xc0, its render targets' summary at
+0x70, the heap blocks of its window's textures at 0x248) with its
+constructor, the setup on a window made for it, its buffers and its teardown.
+`SiGfx_Image.cpp` has the image of noise 0x71004f4390 and the 1D and 2D
+image setups. The texture chunk's data (`Unk_4efb80`) embeds the NX
+texture's description. SiMath's view volume has its constructor and
+destructor in `Unk_594590.cpp`; `Include/SiMath/Unk_Matrix.h` is the 4x4
+matrix SiGfx's callers use (four `float32x4_t` rows with a copy constructor
+of its own: it's returned in memory).
+
+### Idioms that decided matches here
+
+- A string read through a pointer (`x20`) before a copy constructor call
+  that it follows in the source is an argument of an inline function that
+  takes it by value: the font pool's path is `Unk_StringConcat(dir, name)`,
+  whose append grows like the character append (`Unk_StringAppendGrow`).
+- A value read before a struct is constructed (`ldr w8` sunk into the join
+  after the allocator's selection) is read into a local before the
+  constructor runs (the font description's size).
+- A call through the table of a named object's base (`ldr x8, [x0, #8]!`)
+  is a call through that base, `static_cast<Base*>(p)->vf()`; through the
+  class itself it uses the primary table's overriding entry.
+- A buffer address built as `mov x8, sp; add x8, x8, #0x30` is the buffer
+  of an `Unk_NXString<N>`, a string that holds its own characters.
+- `x < 2 ? 1 : x >> 1` gives `cmp #2; csinc ge`; `x > 1 ? x >> 1 : 1` gives
+  `cmp #1; csinc gt` (the image's 2D setup). A count's guard folded to `cmn
+  w9, #1` needs the count computed in `s32` (a `u32` field converted first).
+- In a loop over pixels, the order of the locals' declarations (the pointer
+  first, then the lowest and highest values) decides the order of their
+  zeroings; the outer coordinate's division is hoisted only when it's a
+  local of the outer loop; a loop test written `size > i` keeps the
+  original's operand order.
+- A string cleared in a destructor with `Unk_EmptyAll` keeps its stores
+  apart; `Unk_Clear` merges two of them (the texture chunk's data).
+- The free of an array element whose address the original computes again
+  after the call is written out (`if (a) SI_FREE(a, p[i]); p[i] = nullptr;`),
+  not through `Unk_Free`'s reference (the canvas's slot 19).
+- Zeroed arrays stored in descending `stp`s after the members' constructors
+  are loops (or a memset) in the constructor's body (the canvas).
+- The blocks of a BC4 image are read as unaligned 32-bit words masked to 24
+  bits (`ldur w8, [x1, #2]`, `[x1, #5]`, even past the block); the original
+  computes each middle byte from the masked word, which this source doesn't
+  reproduce (0x71004ee660).
+
+### Near misses and what's left
+
+Near misses: the orthographic projection 0x71004ee020 (the product's
+scheduling), the key's text 0x71004eddf0 (a 64-bit load of the size for
+hashes that take an int), the block flip 0x71004ee660 (the BC4 rows'
+middle bytes), the face's size measures 0x71005006c0 (scheduling), the
+resource pool's lookup 0x71004fef10 (a null test the original doesn't
+have), the image's 1D and 2D setups (register order), the texture chunk's
+data constructor (the order of the description's zeroed blocks, shared with
+the NX texture's constructor), the canvas's colour buffers 0x71004fc4d0 (one
+more saved register).
+
+Later in the round: the package's shader of a stage 0x710056ce60 and the
+effect's program from its shaders 0x71005785d0 matched once the member tested
+with the first pointer was read into a local (the README's earlier idiom of
+`SiGfxNXFont::vf21`); the effect's builder passes its unused second argument
+on to the inline that fetches each stage's shader, which is why its callers
+still pass zero. `ShaderProgramCompileEntry` has its constructor (two keys
+copied into its own bytes) and its release; `SiArray<SIGFX_SHADER_PREPROCESSOR>`'s
+reserve calls an out-of-line array new (0x710056e4e0) where `SiCore_Array.h`
+expands `SI_NEW_ARRAY`: it's an explicit specialisation at the end of the
+package's file (its `#line` names the header). SiIO's byte order mark test
+0x7100583340 matched with the UTF-8 mark's test written first: the two tests
+become a switch that compares in the reverse order.
+
+Not written: the canvas's own window 0x71004fbb20 and its slot 26
+0x71004fd080 (NVN builder sequences), the block-compressed image flip
+0x71004ee290 (its switch is unswitched for formats 0x46 and 0x47 and its
+stride table is guarded by the mask of `Unk_4ed0f0`'s cases).
 

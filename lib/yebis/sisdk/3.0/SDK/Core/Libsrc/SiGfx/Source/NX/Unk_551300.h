@@ -1,10 +1,15 @@
 // SiSDK3::SiGfxNXFreeTypeManager (RTTI names the class; it derives from
 // SiGfxFreeTypeManager, which is on ISiInterface): the FreeType manager of
-// the NVN back end, which adds the shader program and two objects its text is
-// drawn with. A placeholder file name (the translation unit's isn't in the
-// executable) and placeholder members; the virtual functions are vf<slot>.
+// the NVN back end, which adds the shader program, the vertex format and the
+// index buffer its text is drawn with. A placeholder file name for the
+// header (its translation unit is SiGfx_NX_FreeType_Manager.cpp, the
+// __FILE__ of its allocations) and placeholder members; the virtual
+// functions are vf<slot>.
 #pragma once
 
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_4bf660.h>
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_Buffer_Impl.h>
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_VertexFormat_Impl.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/Unk_NXResource.h>
 
 namespace SiSDK3 {
@@ -30,7 +35,7 @@ public:
     virtual void vf13();
     virtual void vf14();
 
-    u8 field_8[0x10];
+    Unk_4bf660 field_8;
     SiGfxNXDevice* field_18;
     u8 field_20[0x38];
 };
@@ -58,13 +63,13 @@ public:
     void vf11() override;                                     // 0x7100551830
     void vf12() override;                                     // 0x7100551840
 
-    // 0x71005514c0: makes the two objects (not written yet)
-    void Unk_5514c0();
+    // 0x71005514c0: makes the vertex format and the index buffer
+    bool Unk_5514c0();
 
     void* field_58;  // the device's shader program 0x44
     u32 field_60;
-    Unk_551300_Object* field_68;
-    Unk_551300_Object* field_70;
+    SiGfxNXBuffer* field_68;        // the quads' indices
+    SiGfxNXVertexFormat* field_70;  // the vertices' format
 };
 PKMN_SIZE_ASSERT(SiGfxNXFreeTypeManager, 0x78);
 

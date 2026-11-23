@@ -3,8 +3,14 @@
 #include <yebis/YEBIS_draft/src/GPU/Unk_Statics.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUInterfaceTexture.h>
 
+#define PPFX_FILE "C:/workspace/YEBIS_draft/src/GPU/GPUInterfaceTexture.cpp"
+#include <yebis/YEBIS_draft/src/GPU/Unk_Log.h>
+
 // 0x710238c3f9
 extern bool Unk_238c3f9;
+
+// 0x71024e14f8: the device there is
+extern PPFX::IGPUDevice* Unk_24e14f8;
 
 // 0x7100445370: a texture's surface for a level
 PPFX::IGPUSurface* Unk_445370(PPFX::IGPUDevice* device, PPFX::IGPUBaseTexture* texture, u32 level, u32 arg3, u32 usage);
@@ -12,6 +18,11 @@ PPFX::IGPUSurface* Unk_445370(PPFX::IGPUDevice* device, PPFX::IGPUBaseTexture* t
 namespace PPFX {
 
 u32 Unk_446a90(u32 size, u32 level);
+// 0x7100446b20: a format's name (in `buffer` if it has none)
+const char* Unk_446b20(s32 format, char* buffer);
+IGPUTexture* Unk_4481c0(IGPUDevice* device, void* siTexture, u32 width, u32 height, u32 arg4, s32 format, u32 arg6);
+IGPUVolumeTexture* Unk_4486b0(IGPUDevice* device, void* siTexture, u32 width, u32 height, u32 arg4, u32 arg5, s32 format,
+                              u32 arg7);
 u32 Unk_446ae0(s32 format);
 s32 Unk_43e620(IGPUDevice* self, s32 n);
 
@@ -137,6 +148,84 @@ s32 IGPUTexture::vf10() {
     return 0;
 }
 
+// 0x7100447b80: IGPUTexture::ReleaseLevelSurfacesAttachToTexture (its log
+// line names it)
+s32 IGPUTexture::vf11() {
+    u32 levels = vf12();
+    if (levels == 0) {
+        return -3;
+    }
+    for (u32 i = 0; i < levels; i++) {
+        if (static_cast<u32>(field_88[i]->field_8) >= 2) {
+#line 2150
+            PPFX_WARNING("IGPUTexture::ReleaseLevelSurfacesAttachToTexture(): m_apGPUSurfaceMipmap[%d]->GetRefCount() reference counter is non-zero: %d.\n",
+                         i, field_88[i]->field_8);
+            field_88[i]->field_40 = false;
+            field_88[i]->field_68 = 0;
+        }
+        PPFX_SAFE_RELEASE_INTERFACE(field_88[i]);
+    }
+    UNK_DELETE_ARRAY(field_88);
+    return 0;
+}
+
+// what a SiGfx texture describes, as the textures keep it (inline)
+static inline IGPUPixelContainer::Unk_Desc Unk_TextureDesc(const IGPUPixelContainer* self, const Unk_SiGfxTextureDesc* desc,
+                                                           u32 flags) {
+    const u32* format;
+    if (flags & 0x4000) {
+        format = &desc->field_c;
+    } else if (flags & 0x20) {
+        format = &desc->field_10;
+    } else if (flags & 8) {
+        format = &desc->field_8;
+    } else {
+        format = &desc->field_4;
+    }
+    u32 view = *format;
+    u32 base = desc->field_4;
+    IGPUPixelContainer::Unk_Desc result;
+    result.field_0 = view != 0 ? view : base;
+    result.field_8 = desc->field_14;
+    result.field_c = desc->field_18;
+    result.field_10 = desc->field_30;
+    result.field_14 = desc->field_34;
+    result.field_4 = self->field_c;
+    return result;
+}
+
+// 0x71004477a0
+s32 IGPUTexture::vf22(Unk_SiGfxTexture* texture, u32 usage) {
+    if (texture == nullptr) {
+        return -6;
+    }
+    texture->vf19();
+    if (texture->vf19()->field_0 != 2) {
+        return -6;
+    }
+    if (field_90[0] != nullptr) {
+        field_90[0]->vf3();
+        field_90[0] = nullptr;
+    }
+    field_10 = 0;
+    const Unk_SiGfxTextureDesc* desc = texture->vf19();
+    field_44 = Unk_TextureDesc(this, desc, texture->vf8()->field_8);
+    field_80 = desc->field_20;
+    u32 flags = texture->vf8()->field_8;
+    field_24 = ((flags >> 13) & 2) | ((flags >> 5) & 1);
+    field_28 = usage;
+    Unk_445f80();
+    field_90[0] = texture;
+    field_90[0]->vf2();
+    field_90[0]->vf4();
+    if (vf10() < 0) {
+        vf11();
+    } else {
+        vf15(0);
+    }
+    return 0;
+}
+
 // 0x7100447cf0
 s32 IGPUTexture::vf24(u32 level, IGPUPixelContainer::Unk_Desc* pDesc) {
     if (level >= field_80) {
@@ -169,6 +258,33 @@ IGPUVolumeTexture::~IGPUVolumeTexture() {
     }
 }
 
+// 0x71004483b0
+s32 IGPUVolumeTexture::vf22(Unk_SiGfxTexture* texture, u32 arg2, u32 usage) {
+    if (texture == nullptr) {
+        return -6;
+    }
+    if (texture->vf19()->field_0 != 3) {
+        return -6;
+    }
+    if (field_88[0] != nullptr) {
+        field_88[0]->vf3();
+        field_88[0] = nullptr;
+    }
+    field_10 = 0;
+    const Unk_SiGfxTextureDesc* desc = texture->vf19();
+    field_44 = Unk_TextureDesc(this, desc, texture->vf8()->field_8);
+    field_80 = desc->field_20;
+    field_84 = desc->field_1c;
+    u32 flags = texture->vf8()->field_8;
+    field_24 = ((flags >> 13) & 2) | ((flags >> 5) & 1);
+    field_28 = usage;
+    Unk_445f80();
+    field_88[0] = texture;
+    field_88[0]->vf2();
+    vf15(0);
+    return 0;
+}
+
 // 0x7100448680
 s32 IGPUVolumeTexture::vf10() {
     return -4;
@@ -180,5 +296,70 @@ s32 IGPUVolumeTexture::vf11() {
 }
 
 }  // namespace PPFX
+
+// 0x71004481c0: a texture for a texture SiGfx made (null: the device there is)
+PPFX::IGPUTexture* PPFX::Unk_4481c0(IGPUDevice* device, void* siTexture, u32 width, u32 height, u32 arg4, s32 format,
+                                    u32 arg6) {
+    static char names[2][0x100];
+    if (device == nullptr) {
+        device = Unk_24e14f8;
+    }
+#line 4351
+    IGPUTexture* texture = UNK_NEW(IGPUTexture)(device);
+    if (texture->vf22(static_cast<Unk_SiGfxTexture*>(siTexture), 0) < 0) {
+        if (texture != nullptr) {
+            texture->vf1();
+        }
+        texture = nullptr;
+    }
+    if (texture->field_44.field_8 != width) {
+#line 4440
+        PPFX_WARNING("Specified uiWidth(%d) doesn't match the resouce width(%d)\n", width,
+                     texture->field_44.field_8);
+    }
+    if (texture->field_44.field_c != height) {
+#line 4443
+        PPFX_WARNING("Specified uiHeight(%d) doesn't match the resouce height(%d)\n", height,
+                     texture->field_44.field_c);
+    }
+    if (texture->field_44.field_0 != format) {
+#line 4447
+        PPFX_WARNING("Specified eFormat(%s) doesn't match the resouce format(%s)\n", Unk_446b20(format, names[0]),
+                     Unk_446b20(texture->field_44.field_0, names[1]));
+    }
+    return texture;
+}
+
+// 0x71004486b0: a volume texture for a texture SiGfx made (null: the device
+// there is)
+PPFX::IGPUVolumeTexture* PPFX::Unk_4486b0(IGPUDevice* device, void* siTexture, u32 width, u32 height, u32 arg4,
+                                          u32 arg5, s32 format, u32 arg7) {
+    static char names[2][0x100];
+    // the formats the device's vf73 gives more uses, tested without branches
+    bool flag = format != 0 && ((format == 91) | (format == 29) | (format == 93) | (format == 72) | (format == 75) | (format == 78) | (format == 99));
+    if (device == nullptr) {
+        device = Unk_24e14f8;
+    }
+#line 4962
+    IGPUVolumeTexture* texture = UNK_NEW(IGPUVolumeTexture)(device);
+    texture->vf22(static_cast<Unk_SiGfxTexture*>(siTexture), flag, 0);
+    if (texture->field_44.field_8 != width) {
+#line 5034
+        PPFX_WARNING("Specified uiWidth(%d) doesn't match the resouce width(%d)\n", width,
+                     texture->field_44.field_8);
+    }
+    if (texture->field_44.field_c != height) {
+#line 5037
+        PPFX_WARNING("Specified uiHeight(%d) doesn't match the resouce height(%d)\n", height,
+                     texture->field_44.field_c);
+    }
+    if (texture->field_44.field_0 != format) {
+#line 5041
+        PPFX_WARNING("Specified eFormat(%s) doesn't match the resouce format(%s)\n", Unk_446b20(format, names[0]),
+                     Unk_446b20(texture->field_44.field_0, names[1]));
+    }
+    Unk_446a90(reinterpret_cast<Unk_SiGfxTexture*>(texture->field_70[0])->vf19()->field_1c, 0);
+    return texture;
+}
 
 // 0x7100448900: _GLOBAL__sub_I_GPUInterfaceTexture.cpp

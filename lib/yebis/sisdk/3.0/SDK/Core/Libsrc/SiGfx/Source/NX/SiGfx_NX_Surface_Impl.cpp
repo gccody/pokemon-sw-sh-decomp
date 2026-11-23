@@ -18,7 +18,97 @@ bool Unk_4ed120(u32 format);
 s32 Unk_4ed180(s32 samples);
 bool Unk_4ed6e0(u32 format);
 
+// 0x71005635f0 (leafgen's name; it returns what it's given): the NVN number
+// of samples of SiGfx's, 0x7100562ee0: an NVN format of SiGfx's
+u32 Unk_5635f0_update(u32 samples);
+u32 Unk_562ee0(u32 format);
+
 namespace SiSDK3 {
+
+class SiGfxNXCanvas;
+
+// What 0x710055cfd0 reads of a canvas (placeholder names): slot 17 is the
+// description of its colour buffers.
+struct Unk_55cfd0_CanvasDesc {
+    u32 field_0;
+    u32 field_4;
+    s32 field_8;   // the width
+    s32 field_c;   // and height
+    u8 field_10[0x18];
+    u32 field_28;  // the format
+    u32 field_2c;  // the samples
+};
+class Unk_55cfd0_Canvas {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual const Unk_55cfd0_CanvasDesc* vf17();
+};
+
+// An NVN texture and an NVN texture view, as a surface allocates them
+// (placeholder names).
+struct Unk_NXSurfaceNVNTexture {
+    u64 field_0[24];
+};
+struct Unk_NXSurfaceNVNView {
+    u64 field_0[5];
+};
+
+// 0x710055cfd0: gives a surface memory of its own and an NVN texture in it,
+// for a canvas's colour buffer
+bool Unk_55cfd0(SiGfxNXSurface* surface, SiGfxNXCanvas* canvas) {
+    void* device = Unk_NXDevice(surface->field_20)->vf85();
+    const Unk_55cfd0_CanvasDesc* desc = reinterpret_cast<Unk_55cfd0_Canvas*>(canvas)->vf17();
+    u32 samples = Unk_5635f0_update(desc->field_2c);
+    u32 format = Unk_562ee0(desc->field_28);
+    u64 builder[16] = {};  // NVNtextureBuilder
+    nvnTextureBuilderSetDefaults(builder);
+    nvnTextureBuilderSetDevice(builder, device);
+    nvnTextureBuilderSetSize2D(builder, desc->field_8, desc->field_c);
+    nvnTextureBuilderSetFormat(builder, format);
+    nvnTextureBuilderSetSamples(builder, samples);
+    nvnTextureBuilderSetTarget(builder, static_cast<s32>(samples) > 0 ? 5 : 1);
+    nvnTextureBuilderSetFlags(builder, 8);
+    size_t size = nvnTextureBuilderGetStorageSize(builder);
+    size_t alignment = nvnTextureBuilderGetStorageAlignment(builder);
+    size_t poolSize = Unk_NXAlign(size, alignment);
+    surface->field_f0 = surface->vf5()->vf30(0, nullptr);
+    Unk_NXMemoryHeapDesc heapDesc(poolSize);
+    heapDesc.field_30 = 0xa1;
+    if (!surface->field_f0->vf8(&heapDesc)) {
+        return false;
+    }
+    if (!surface->field_f0->Unk_552fc0(static_cast<s32>(poolSize), alignment, &surface->field_f8)) {
+        return false;
+    }
+    surface->field_100 = Unk_NXAlign(surface->field_f8, alignment);
+#line 407
+    surface->field_e0 = UNK_SI_NEW(surface->field_10.m_pAllocator, 0x10) Unk_NXSurfaceNVNTexture();
+#line 410
+    surface->field_e8 = UNK_SI_NEW(surface->field_10.m_pAllocator, 0x10) Unk_NXSurfaceNVNView();
+    surface->field_10c = true;
+    nvnTextureBuilderSetStorage(builder, surface->field_f0->vf16(), surface->field_100);
+    if (nvnTextureInitialize(surface->field_e0, builder) != 1) {
+        return false;
+    }
+    surface->Unk_55cd70(4, 0, 0);
+    return true;
+}
 
 // 0x710055c5b0
 SiGfxNXSurface::SiGfxNXSurface(ISiAllocator* pAllocator, SiGfxNXDevice* pDevice)

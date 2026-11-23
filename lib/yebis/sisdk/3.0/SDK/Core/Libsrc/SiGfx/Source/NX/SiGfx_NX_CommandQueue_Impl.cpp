@@ -185,7 +185,7 @@ bool SiGfxNXCommandQueue::vf10(s32 count, SiGfxNXCommandList** lists) {
 }
 
 // 0x710054e4a0
-u32 SiGfxNXCommandQueue::vf12() {
+u64 SiGfxNXCommandQueue::vf12() {
     u32 next = field_20;
     nvnQueueFenceSync(field_50, &field_2050.m_pData[next], 0, 1);
     Unk_nvnQueueFlush(field_50);

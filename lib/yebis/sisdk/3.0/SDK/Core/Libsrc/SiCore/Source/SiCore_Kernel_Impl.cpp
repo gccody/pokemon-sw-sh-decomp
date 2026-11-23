@@ -2,6 +2,7 @@
 // SiSDK3::SiKernel: the string tables, report handlers and indexed allocators
 // it keeps. Its small accessors are lib/yebis/class's.
 #define UNK_SIKERNEL_DEFINE
+#define UNK_SIMAP_MEMBERS_DEFINE
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiCore/Source/SiCore_Kernel_Impl.h>
 
 #include <stdlib.h>
@@ -203,18 +204,13 @@ SiReflectionObject* SiKernel::vf19(const char* name) {
     return position.m_pNode->m_value;
 }
 
-// 0x71004c1590
-// NON_MATCHING: the same instructions in another layout. The original loads
-// the map's root straight into the loop's node register on the three ways into
-// the loop, repeats the loop's first test where the loop is entered, and has
-// the failed reserve's stores after the loop; here the root goes through x8
-// and those stores are before the loop.
+// 0x71004c1590 (the walk advances its node by reference: Unk_AdvanceNode)
 int SiKernel::vf20() {
     typedef SiMap<const char*, SiReflectionObject*, ReflectionCompare, 16> Unk_Map;
     if (field_f98.m_itemCount != field_f70.m_count) {
         field_f98.Unk_FreeAll();
         field_f98.Unk_ReserveAtLeast(field_f70.m_count);
-        for (Unk_Map::Unk_Node* pNode = field_f70.m_pRoot; pNode != nullptr; pNode = Unk_Map::Unk_Next(pNode)) {
+        for (Unk_Map::Unk_Node* pNode = field_f70.m_pRoot; pNode != nullptr; Unk_Map::Unk_AdvanceNode(pNode)) {
             field_f98.Unk_Add(pNode->m_value);
         }
     }

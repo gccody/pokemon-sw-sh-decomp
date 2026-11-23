@@ -44,6 +44,8 @@ public:
     void Unk_565ab0(SiGfxNXDevice* pDevice);
     // 0x7100565c10: starts over with data
     bool Unk_565c10(void* data, u32 a2);
+    // 0x7100565c80: what it knows of a level of its data
+    void Unk_565c80(u32 a1, u32 level);
 
     Unk_538d70 field_10;
     SiGfxNXDevice* field_20;
@@ -51,10 +53,28 @@ public:
     SiString<char> field_30;  // the name
     u32 field_60;             // its hash
     Unk_NXResourceInfo field_64;
-    // (placeholder name)
+    // what it knows of its data's level (placeholder name): 0x7100565c80
+    // fills it
     struct Unk_78 {
-        u64 field_0[8];
+        u32 field_0;
+        u32 field_4;  // the format
+        u32 field_8;
+        u32 field_c;
+        u32 field_10;
+        s32 field_14;  // the level's width, height and depth
+        s32 field_18;
+        s32 field_1c;
+        u32 field_20;
+        u32 field_24;
+        u32 field_28;
+        bool field_2c;
+        u8 field_2d;  // compressed: then the size in blocks of four
+        s32 field_30;
+        s32 field_34;
+        u32 field_38;
+        u32 field_3c;
     };
+    PKMN_SIZE_ASSERT(Unk_78, 0x40);
     Unk_78 field_78;
     u32 field_b8;
     void* field_c0;  // the data

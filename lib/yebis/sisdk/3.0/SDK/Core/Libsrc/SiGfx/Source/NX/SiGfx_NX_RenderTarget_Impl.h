@@ -16,6 +16,18 @@ namespace SiSDK3 {
 // The named object's functions are the render target's slots 40 to 42.
 UNK_NAMED_OBJECT(Unk_NXRenderTargetNamedObject, vf40, vf41, vf42);
 
+// What an attachment's slots 17 and 19 describe it by, as the render target
+// reads them (placeholder names): a surface's description and a volume's,
+// both with the format second.
+struct Unk_NXAttachmentSurfaceDesc {
+    u32 field_0;
+    u32 field_4;  // the format
+};
+struct Unk_NXAttachmentVolumeDesc {
+    u32 field_0;
+    u32 field_4;  // the format
+};
+
 // What a render target is attached to, as it calls it (placeholder name):
 // slots 2 and 3 count its references, slots 15 and 16 are what the render
 // target's own slots 15 and 16 call on every attachment.
@@ -38,6 +50,36 @@ public:
     virtual void vf14();
     virtual void vf15(u32 value);
     virtual u32 vf16();
+    // slots 17 and 19: its resource's information (a surface's and a
+    // volume's); 24 and 25: a texture's level's surface (in a layer)
+    virtual const Unk_NXAttachmentSurfaceDesc* vf17();
+    virtual void vf18();
+    virtual const Unk_NXAttachmentVolumeDesc* vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual Unk_NXAttachment* vf24(u32 level);
+    // slot 25 is also a surface's NVN texture, 26 its view; 40 is a
+    // texture's NVN texture, 42 the view of a level in a layer
+    virtual Unk_NXAttachment* vf25();
+    virtual u64 vf26();
+    virtual void vf27();
+    virtual void vf28();
+    virtual void vf29();
+    virtual void vf30();
+    virtual void vf31();
+    virtual void vf32();
+    virtual void vf33();
+    virtual void vf34();
+    virtual void vf35();
+    virtual void vf36();
+    virtual void vf37();
+    virtual void vf38();
+    virtual void vf39();
+    virtual u64 vf40();
+    virtual void vf41();
+    virtual u64 vf42(s32 level, s32 layer);
 };
 
 class SiGfxNXRenderTarget : public Unk_NXInterface, public Unk_NXRenderTargetNamedObject {
@@ -73,24 +115,26 @@ public:
     struct Unk_298 {
         void Unk_Clear() {
             field_0 = 0;
-            field_4 = 0;
-            field_8 = 0;
-            field_10 = 0;
-            field_18 = 0;
-            field_20 = 0;
+            for (int i = 0; i < 8; i++) {
+                field_4[i] = 0;
+            }
+            field_24 = 0;
         }
 
-        s32 field_0;  // how many colour attachments there are
-        u32 field_4;
-        u64 field_8;
-        u64 field_10;
-        u64 field_18;
-        u64 field_20;
+        s32 field_0;      // how many colour attachments there are
+        u32 field_4[8];   // their formats
+        u32 field_24;     // the depth attachment's
     };
     // What slot 17 returns (placeholder name).
     struct Unk_Desc {
-        u64 field_0[5];
+        u64 field_0;
+        u64 field_8;
+        s32 field_10;  // how many colour attachments it has
+        u32 field_14;
+        u64 field_18;
+        u64 field_20;
     };
+    PKMN_SIZE_ASSERT(Unk_Desc, 0x28);
 
     SiGfxNXRenderTarget(ISiAllocator* pAllocator, SiGfxNXDevice* pDevice);  // 0x71005556d0
     ~SiGfxNXRenderTarget() override;                                        // 0x71005558c0, 0x7100555a00
@@ -138,11 +182,11 @@ public:
     const SiString<char>* vf41() override;      // 0x7100555bd0
     u32 vf42() override;                        // 0x7100555bf0
 
-    // 0x71005560c0, 0x71005564a0, 0x7100556730: what slot 25 does (not
-    // written yet)
+    // 0x71005560c0 (not written yet), 0x71005564a0 (the attachments' NVN
+    // textures and views), 0x7100556730: what slot 25 does
     bool Unk_5560c0();
-    void Unk_5564a0();
-    void Unk_556730();
+    bool Unk_5564a0();
+    bool Unk_556730();
 
     Unk_538d70 field_10;
     SiGfxNXDevice* field_20;
