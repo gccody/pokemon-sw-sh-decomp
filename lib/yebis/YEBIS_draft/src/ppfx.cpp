@@ -411,7 +411,7 @@ void Unk_4183b0_call(f32 a, f32 b, f32 c) {
     Unk_428ec0(reinterpret_cast<u64>(s_pSinglePostEffect), a, b, c);
 }
 
-void Unk_424740(u64, s32, u32);
+void Unk_424740(u64, s32, bool);
 // 0x71004183c0
 void Unk_4183c0_call(void* /*unused*/, s32 value, bool arg2) {
     Unk_424740(reinterpret_cast<u64>(s_pSinglePostEffect), value, arg2);
@@ -453,7 +453,7 @@ s32 Unk_418420_call(void* /*unused*/, s32 view, f32 a, f32 b, f32 c, f32 d, f32 
     return Unk_4248b0(a, b, c, d, e, f, g, reinterpret_cast<u64>(s_pSinglePostEffect), view);
 }
 
-void Unk_425170(u64, u64, u32);
+void Unk_425170(u64, s32, bool);
 // 0x7100418430
 void Unk_418430_call(void* /*unused*/, u64 value, bool arg2) {
     Unk_425170(reinterpret_cast<u64>(s_pSinglePostEffect), value, arg2);
@@ -554,7 +554,7 @@ void Unk_418590(void*, u32 value) {
     Unk_423da0_update(reinterpret_cast<Unk_423da0*>(s_pSinglePostEffect), value);
 }
 
-void Unk_423db0(u64, s32, u32, f32, f32, f32);
+void Unk_423db0(u64, s32, u32, PPFX::Unk_Float, PPFX::Unk_Float, PPFX::Unk_Float);
 // 0x71004185a0
 void Unk_4185a0_call(void* /*unused*/, s32 value, u32 arg2, f32 a, f32 b, f32 c) {
     Unk_423db0(reinterpret_cast<u64>(s_pSinglePostEffect), value, arg2, a, b, c);

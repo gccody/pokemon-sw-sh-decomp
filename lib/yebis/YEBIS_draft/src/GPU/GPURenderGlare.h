@@ -37,7 +37,10 @@ struct Unk_45_170 {
     u8 pad_28[0x8];
     Unk_Vector3 field_30;
     f32 field_3c;
-    u8 pad_40[0xc];
+    f32 field_40;  // the ghosts' falloff per level
+    f32 field_44;  // their size
+    bool field_48;  // whether they are drawn from the glare's source
+    u8 pad_49[0x3];
     Unk_Vector3 field_4c;
     f32 field_58;
     u8 pad_5c[0xc];

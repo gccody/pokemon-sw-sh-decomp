@@ -59,21 +59,22 @@ u32 SiGfxNXShader::vf24() {
     return field_60;
 }
 
-// NON_MATCHING: the original computes the entry's address again after the
-// allocation (`sxtw x23, w22 ; madd x24, x23, x8, x21`) and once more for the
-// code's offset, keeping only the addresses of the two sizes across the
-// calls; this keeps the entry's address in one register. The rest is the
-// same instructions.
+// The entries follow the header, found by integer arithmetic on the binary's
+// address: LLVM keeps that address as a value of its own, and each read of
+// entries[index] is a GEP of its own from it, so the entry's address is
+// computed again in each block that reads it (`smaddl` before the
+// allocation, `madd` after it), as the original's is. (An empty binary
+// returns false, as the original's `cbz w8` does.)
 // 0x710055b280
 bool SiGfxNXShader::vf18(const void* desc, const Unk_Binary* binary) {
     vf19();
     if (desc == nullptr || binary == nullptr) {
         return false;
     }
-    if (binary->field_0 != 0x19866891) {
+    if (binary->field_0 != 0x19866891 || binary->field_4c == 0) {
         return false;
     }
-    const Unk_BinaryEntry* entries = reinterpret_cast<const Unk_BinaryEntry*>(binary + 1);
+    const Unk_BinaryEntry* entries = reinterpret_cast<const Unk_BinaryEntry*>(reinterpret_cast<uintptr_t>(binary) + sizeof(Unk_Binary));
     s32 index = -1;
     for (u32 i = 0; i < binary->field_4c; i++) {
         if (entries[i].field_8 == 0) {

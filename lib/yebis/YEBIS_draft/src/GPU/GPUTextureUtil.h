@@ -95,6 +95,7 @@ inline bool Unk_47b560_Format(s32 format) {
 }
 
 class CTinyEffect;
+class CRenderTextureArray;
 
 // PPFX::IGPUEffect, as this file calls it
 struct Unk_463fd0_Effect {
@@ -1192,8 +1193,8 @@ public:
         }
     }
     // 0x71004816a0: 0x7100473d90 between two render textures, with the weights 0x7100411df0 makes
-    s32 Unk_4816a0(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, CRenderTexture* source, CRenderTexture* target,
-                   const Unk_Float4* arg7, const Unk_Float4* arg8);
+    s32 Unk_4816a0(f32 arg0, f32 arg1, f32 arg2, CRenderTexture* source, CRenderTexture* target,
+                   const Unk_Float4* arg7, const Unk_Float4* arg8, f32 arg3, f32 arg4);
     // 0x71004809a0 (GPUTextureUtil.cpp's first half; placeholder signature, from its caller)
     s32 Unk_4809a0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg8, f32 arg9,
                    f32 arg10, bool arg11, void* arg12, bool arg13, bool arg14, void* arg15, s32 arg16);
@@ -1287,10 +1288,9 @@ public:
                    Unk_GPUTexture* texture, void* arg3, u32 flags);
     void Unk_47abf0(f32 value);
     void Unk_470610(f32 value, f32 scale);  // 0x7100470610
-    // 0x7100480740 (`d` isn't read; the default is only until GPUPostEffect.cpp's
-    // caller passes its fourth number)
+    // 0x7100480740 (`d` isn't read)
     s32 Unk_480740(CRenderTexture* target, bool second, bool positive, const void* value, bool clear, u32 flags,
-                   f32 a, f32 b, f32 c, f32 d = 0.0f);
+                   f32 a, f32 b, f32 c, f32 d);
     // 0x710048d020
     s32 Unk_48d020(CRenderTexture* source, CRenderTexture* target, CRenderTexture* mask, u32 arg3,
                    const Unk_Float2* arg4, s32 usnorm, s32 bits, bool background, s32 dense, bool clear);
@@ -1395,7 +1395,7 @@ public:
     s32 Unk_470860(s32 value);  // 0x7100470860
     // 0x7100470880 (`arg` isn't read; the default is only until GPUPostEffect.cpp's
     // caller passes its field_a)
-    s32 Unk_470880(bool arg = false);
+    s32 Unk_470880(bool arg);
     s32 Unk_4708a0(void* arg);  // 0x71004708a0
 
     // 0x7100482d70: the offset 0x71004827b0 gives in the target's texels, and
@@ -1479,8 +1479,10 @@ public:
     // 0x710048e260: 0x71004780c0 from `source` into `target`
     s32 Unk_48e260(CRenderTexture* source, CRenderTexture* target, f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, f32 arg6, f32 arg7, s32 arg10, void* arg11, s32 arg12, u32 arg13, bool clear);
     // 0x710048d550: 0x7100477d80 from `count` render textures into `target`
-    s32 Unk_48d550(f32 r, f32 g, f32 b, f32 a, f32 power, CRenderTexture* target, s32 count, CRenderTexture** sources,
-                   const Unk_Float* weights, s32 index, bool clear);
+    // (the floats after the pointers: the registers are the same, the order
+    // decides the entry's copies)
+    s32 Unk_48d550(CRenderTexture* target, s32 count, CRenderTexture** sources, const Unk_Float* weights, f32 r,
+                   f32 g, f32 b, f32 a, f32 power, s32 index, bool clear);
     // 0x7100498800: tech_CompositeColorAndAlphaEffectsMask_<a>(_<b>) of six
     // textures (the missing ones replaced by field_29a70's), in four rectangles
     s32 Unk_498800(f32 x, f32 y, f32 width, f32 height, const f32* coords, Unk_GPUTexture* texture0, bool flag,
@@ -1496,11 +1498,12 @@ public:
     s32 Unk_48b280(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, Unk_GPUTexture* texture0,
                    Unk_GPUTexture* texture1, const Unk_Float4* scale, f32* factor, s32 channel, s32 index,
                    void* arg7, void* arg8, void* arg9, s32 arg10, f32 arg11, Unk_Float4* offset, u32 flags);
-    // 0x7100491bb0 (not written yet; placeholder signature, from its caller)
-    s32 Unk_491bb0(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, CRenderTexture* source,
-                   CRenderTexture* target, CRenderTexture* temp0, CRenderTexture* temp1, s32 count,
-                   const Unk_Float4* offsets, s32 arg12, s32 arg13, void* arg14, void* arg15, void* arg16,
-                   bool arg17, s32 arg18, s32 arg19);
+    // 0x7100491bb0 (the four scale floats last: the parameters' order decides
+    // the entry's spills)
+    s32 Unk_491bb0(f32 arg0, f32 arg1, CRenderTexture* source, CRenderTexture* target, CRenderTexture* temp0,
+                   CRenderTexture* temp1, s32 count, const Unk_Float4* offsets, s32 passes, s32 arg13, void* arg14,
+                   void* arg15, void* arg16, bool arg17, s32 arg18, s32 arg19, f32 arg2, f32 arg3, f32 arg4,
+                   f32 arg5);
     // 0x71004920b0: 0x7100491bb0 with seven offsets (the centre and a hexagon)
     s32 Unk_4920b0(f32 arg0, f32 arg1, f32 arg2, f32 arg3, CRenderTexture* source, CRenderTexture* target,
                    CRenderTexture* temp0, CRenderTexture* temp1, s32 arg8, s32 arg9, void* arg10, void* arg11,
@@ -1535,6 +1538,33 @@ public:
                    const MATRIXT44* view, const MATRIXT44* previous, const MATRIXT44* projection,
                    const MATRIXT44* arg7, s32 index, const Unk_Float2* arg9, const Unk_Float2* falloff, s32 mode,
                    const Unk_Float2* range, bool clear, s32* outMode);
+    // 0x710047e060: CTextureUtil::DrawRectGPU_OptoElectronicTransfer (its
+    // log lines name it; not written yet, signature from 0x710042f540's
+    // calls). `space` is a pointer: the caller copies field_ba4 into a local
+    // once and passes its address to every call, and this copies it again.
+    // `count` is used as `count - 1`; `eotf` and `backendMode` are the
+    // transfer function (6 to 14 and 16) and the backend colour space mode
+    // (1: PFXTBCSM_SCRGB) its warnings test
+    s32 DrawRectGPU_OptoElectronicTransfer(f32 x, f32 y, f32 width, f32 height, f32 arg4, f32 arg5, f32 arg6,
+                                           f32 arg7, s32 count, void* arg9, Unk_GPUTexture* texture, void* surface,
+                                           s32 eotf, s32 backendMode, s32 arg14, f32 arg15, f32 arg16, f32 arg17,
+                                           const MATRIXT44* matrix, const MATRIXT44* matrix2,
+                                           const Unk_410f90* space, f32 arg21, f32 arg22, f32 arg23, f32 arg24,
+                                           f32 arg25, f32 arg26, f32 arg27, bool arg28, s32 arg29, f32 arg30,
+                                           f32 arg31, const Unk_Float4* color, s32 arg33, f32 arg34, f32 arg35,
+                                           f32 arg36, void* arg37, bool arg38, bool arg39, bool arg40, f32 arg41,
+                                           s32 arg42, bool arg43);
+    // 0x7100485610 (not written yet; signature from 0x7100433450's call): the
+    // motion blur along the velocity (`velocity`, reduced into `reduced`, the
+    // arrays' work textures) of `source` into `target`
+    s32 Unk_485610(f32 x, f32 y, f32 arg2, f32 arg3, f32 ratio, CRenderTexture* source, CRenderTexture* target,
+                   CRenderTexture* temp, CRenderTextureArray* work, CRenderTexture* velocity,
+                   CRenderTexture* reduced, CRenderTextureArray* velocityWork, const u64* dilation,
+                   const f32* arg12, bool arg13, const MATRIXT44* view, const MATRIXT44* previous,
+                   const MATRIXT44* projection, const MATRIXT44* previousProjection, CRenderTexture* depth, s32 type,
+                   const Unk_Float2* depthScale, const Unk_Float2* linear, const Unk_Float2* range, s32 mode,
+                   const Unk_Float2* offset, bool arg26, bool arg27, const Unk_Float2* arg28, u32 count,
+                   const Unk_Float2* arg30, s32 arg31, const Unk_Float4* color, bool clear);
     // 0x7100488d90: tech_GlareGhost_PointSymmetry(DistScale)T4_S8_TrimT1_S8
     // `index` from `a` to `d` (and `trim`) into `target`
     s32 Unk_488d90(CRenderTexture* a, CRenderTexture* b, CRenderTexture* c, CRenderTexture* d,

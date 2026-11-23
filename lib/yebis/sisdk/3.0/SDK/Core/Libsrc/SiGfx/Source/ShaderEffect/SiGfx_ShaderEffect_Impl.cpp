@@ -425,8 +425,7 @@ inline bool Unk_GetStageShader(SiGfxShaderEffect* self, SiGfxShaderEffect::Shade
 }
 
 // 0x71005785d0
-bool SiGfxShaderEffect::Unk_5785d0(void* p, void* unused) {
-    ShaderProgramData* program = static_cast<ShaderProgramData*>(p);
+bool SiGfxShaderEffect::Unk_5785d0(ShaderProgramData* program, void* unused) {
     void* device = field_18;
     if (program == nullptr || device == nullptr) {
         return false;
@@ -496,11 +495,13 @@ static inline SiGfxShaderEffect::ShaderProgramData* Unk_FindProgram(SiGfxShaderE
             return programs[mid];
         }
     }
-    if (Unk_ProgramMatches(programs[low], &key0, &key1)) {
-        return programs[low];
+    SiGfxShaderEffect::ShaderProgramData* lowProgram = programs[low];
+    SiGfxShaderEffect::ShaderProgramData* highProgram = programs[high];
+    if (Unk_ProgramMatches(lowProgram, &key0, &key1)) {
+        return lowProgram;
     }
-    if (Unk_ProgramMatches(programs[high], &key0, &key1)) {
-        return programs[high];
+    if (Unk_ProgramMatches(highProgram, &key0, &key1)) {
+        return highProgram;
     }
     return nullptr;
 }
@@ -508,11 +509,15 @@ static inline SiGfxShaderEffect::ShaderProgramData* Unk_FindProgram(SiGfxShaderE
 // 0x7100578100
 // NON_MATCHING: the returns: the original has a `mov x0, xzr ; ret` of its own
 // for each `return nullptr` (each early test, each byte compare), this one
-// block they all branch to; and a register order in the search's midpoint
-// (`add w17, w12, w18` for the original's `add w17, w18, w12`). The tests
-// and the search are the original's (the keys' loads are hoisted out of it
-// because the search's keys are references). Tried: the function not
-// inline, the midpoint as `(high + low) >> 1`.
+// block they all branch to (branch folding merges the edges' copies into the
+// one that falls through into the return); and a register order in the
+// search's midpoint (`add w17, w12, w18` for the original's `add w17, w18,
+// w12`). The tests and the search are the original's (the keys' loads are
+// hoisted out of it because the search's keys are references; both ends'
+// programs are read before either is tested). Tried: the function not
+// inline, the midpoint as `(high + low) >> 1`, the single program's test
+// after the search, the result in a variable, the match test as early
+// returns.
 inline SiGfxShaderEffect::ShaderProgramData* SiGfxShaderEffect::Unk_578100(const SiGfxShaderEffectKey* key0,
                                                                           const SiGfxShaderEffectKey* key1) {
     s32 index = key0->field_8;
@@ -895,11 +900,6 @@ SiGfxShaderEffect::Unk_ProgramRequest SiGfxShaderEffect::vf12(const char* name, 
 }
 
 // 0x7100578980
-// NON_MATCHING: the program's address is computed before its first word is
-// tested in the original (`add x1; ldr [x1]`); here the add is sunk into the
-// call's block and the load takes the register offset. Tried: continue, two
-// element expressions, `+ j`, a reference, s32/size_t j, the field in a local,
-// a bool, the array in a local, `!`, a while loop, an inline helper.
 void SiGfxShaderEffect::vf17() {
     for (s64 i = 0; i < static_cast<s32>(field_c0.m_itemCount); i++) {
         TechniqueData* technique = field_c0.m_pData[i];

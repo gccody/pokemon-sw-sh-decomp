@@ -21,6 +21,22 @@
 extern s32 Unk_24e09bc;
 // 0x7100440c00 (lib/yebis/leaf/Unk_43dc00.cpp)
 u32 Unk_440c00_get(u64 device, u32 arg);
+// 0x71004b79a0, 0x71004b8b40, 0x71004b91f0, 0x71004b9200 (lib/yebis/leaf/Unk_4b79a0.cpp):
+// a luminance's mode, format and two numbers
+struct Unk_4b79a0;
+struct Unk_4b8b40;
+struct Unk_4b91f0;
+struct Unk_4b9200;
+void Unk_4b79a0_set(Unk_4b79a0* self, u32 value);
+u32 Unk_4b8b40_update(Unk_4b8b40* self, u32 value);
+f32 Unk_4b91f0_get(const Unk_4b91f0* self);
+f32 Unk_4b9200_get(const Unk_4b9200* self);
+// 0x71004b72c0 (lib/yebis/leaf/Unk_4afa90.cpp): the depth of field's flag
+// 0x12d
+struct Unk_4b72c0;
+u8 Unk_4b72c0_get(const Unk_4b72c0* self);
+// 0x7100440d50 (lib/yebis/leaf/Unk_43dc00.cpp)
+u32 Unk_440d50_get(u64 device, u32 arg);
 // 0x71024e09b8 (placeholder; GPUPostEffect.cpp): EndPostEffectScene_Process
 // ORs it into field_67b
 extern bool Unk_24e09b8;
@@ -30,8 +46,14 @@ namespace PPFX {
 class CRenderTexture;
 class CRenderTextureArray;
 class CTextureLuminanceManage;
+class CTextureUtil;
 struct Unk_49b230_Object;
 struct Unk_GPUTexture;
+// 0x710049e290 (GPURenderTexture.cpp): resolves the current depth stencil
+// texture
+s32 Unk_49e290(u32 flags, CRenderTexture* target, s32 arg2, bool* done, f32 arg4);
+// 0x71024e53e8 (GPURenderTexture.cpp)
+extern bool Unk_24e53e8;
 // 0x710049da70 (GPURenderTexture.h)
 s32 Unk_49da70(s32 count, CRenderTexture** targets, Unk_49b230_Object* depth, Unk_49b230_Object* arg3, s32 arg4,
                void* arg5, s32 arg6, s32 arg7, s32 arg8, f32 arg9);
@@ -282,7 +304,7 @@ struct Unk_429da0_Item {
     f32 field_4c;
     f32 field_50;
     s32 field_54;
-    s32 field_58;
+    f32 field_58;
     f32 field_5c;
     f32 field_60;
     bool field_64;
@@ -290,6 +312,9 @@ struct Unk_429da0_Item {
     s32 field_68;
     u8 pad_6c[0x4];
     void* field_70;  // a CTextureLuminanceManage
+
+    // the metering area as one (inline: 0x710042d490 copies it)
+    const Unk_Float4& Unk_MeteringArea() const { return *reinterpret_cast<const Unk_Float4*>(&field_c); }
 };
 PKMN_SIZE_ASSERT(Unk_429da0_Item, 0x78);
 struct Unk_429e60_Item {
@@ -307,7 +332,7 @@ struct Unk_429e60_Item {
     u8 pad_25[0x3];
     f32 field_28;
     s32 field_2c;
-    s32 field_30;
+    f32 field_30;
     f32 field_34;
     f32 field_38;
     bool field_3c;
@@ -322,7 +347,7 @@ PKMN_SIZE_ASSERT(Unk_423ba0_Item, 0x34);
 }  // namespace PPFX
 
 // 0x710049ad30: a render texture's viewport
-s32 Unk_49ad30(PPFX::Unk_RenderTexture* texture, s32 width, s32 height, s32 x, s32 y);
+s32 Unk_49ad30(PPFX::CRenderTexture* texture, s32 width, s32 height, s32 x, s32 y);
 // 0x71004a5d10, 0x710045eb90, 0x71004aa5a0: the same for the objects that own render textures
 s32 Unk_4a5d10(PPFX::Unk_4a5d10_Self* self, s32 arg1, f32 width, f32 height, f32 x, f32 y);
 s32 Unk_45eb90(PPFX::Unk_45eb90_Self* self, f32 width, f32 height, f32 x, f32 y);
@@ -354,6 +379,23 @@ extern void* Unk_24e09d8;
 // many (placeholders)
 extern s32 Unk_238c2e4;
 extern s32 Unk_238c2e8;
+// 0x7100418e30, 0x7100418e40, 0x7100418e50 (ppfx.cpp): the post effect's
+// render textures, glare and depth of field (field_190, field_198, field_1a0)
+void* Unk_418e30();
+void* Unk_418e40();
+void* Unk_418e50();
+// 0x71024e09b9: whether CPostEffect::DrawDebugBuffers draws (placeholder)
+extern bool Unk_24e09b9;
+// 0x710238c2d8, 0x710238c2dc: the scales of its two rows of buffers (1;
+// placeholders)
+extern f32 Unk_238c2d8;
+extern f32 Unk_238c2dc;
+// 0x710045e920, 0x710045e930 (lib/yebis/leaf/Unk_4534d0.cpp): two of the
+// glare's settings (placeholder types)
+struct Unk_45e920;
+struct Unk_45e930;
+u32 Unk_45e920_update(Unk_45e920* self, u64 value);
+u32 Unk_45e930_update(Unk_45e930* self, bool value);
 
 // what SiSDK3::SiGfxKernel's slot 37 (Unk_4cbf40_get()->vf37()) gives, as
 // CreateInternalResource_SiGfx calls it (placeholder)
@@ -376,7 +418,7 @@ inline s32 Unk_SetViewport(Unk_RenderTexture* texture, f32 width, f32 height, f3
     s32 iy = static_cast<s32>(y * static_cast<f32>(texture->field_34));
     if (width > 0.0f) { w = w > 1 ? w : 1; }
     if (height > 0.0f) { h = h > 1 ? h : 1; }
-    return Unk_49ad30(texture, w, h, ix, iy);
+    return Unk_49ad30(reinterpret_cast<CRenderTexture*>(texture), w, h, ix, iy);
 }
 
 // PPFX's maps of objects by the device's object (an address); the pointees
@@ -710,6 +752,7 @@ public:
     s32 CreateInternalResource_SiGfx(void** device, const Unk_417b30_Desc* desc);
     s32 Unk_425750();  // 0x7100425750
     s32 UpdateParameters_Base();  // 0x710042a7e0 (its log lines name it)
+    u32 GetMaxMotionBlurCameraRecurrences();  // (inline; its log line names it)
     s32 Unk_426a50();  // 0x7100426a50
     // 0x7100423160: the object of two device objects (key) made or found
     u64 Unk_423160(u64 arg1, u64 arg2, void* device);
@@ -731,7 +774,12 @@ public:
     s32 EndPostEffectScene_Process(u32 flags, s32 samples);
     // 0x7100435180 (EndPostEffectScene_Process's log line names it)
     s32 EndPostEffectScene_PreProcess(u32 flags, s32 samples);
-    s32 Unk_438510();  // 0x7100438510: the end of the scene (EndPostEffectScene_Process)
+    // the render buffer's texture after `index`, and the depth of field's
+    // and motion blur's textures from `index` on (inline: 0x7100435180)
+    s32 Unk_NextTexture(s32 index) const;
+    s32 Unk_DepthOfFieldTextures(s32 index);
+    s32 Unk_MotionBlurTextures(s32 index);
+    s32 EndPostEffectScene_PostProcess();  // 0x7100438510 (EndPostEffectScene_Process logs the name)
     // 0x710042cc90
     s32 Unk_42cc90(s32 view, bool clear, void* source, void* target, bool keep, void* mask, u32 maskSpace,
                    u32 depthSpace, u32 flags, f32 offset);
@@ -742,7 +790,7 @@ public:
     Unk_RenderTexture* Unk_42bbe0(Unk_RenderTexture* source);  // 0x710042bbe0
     Unk_RenderTexture* Unk_428f00();  // 0x7100428f00
     s32 ApplyEffects_DepthOfField();  // 0x710042f070 (its log line names it)
-    void Unk_42e560();                // 0x710042e560 (not written yet)
+    s32 Unk_42e560();                 // 0x710042e560: the active view's auto focus
     // field_190's texture `index` (-1: its current one), if it has one (inline)
     Unk_RenderTexture* Unk_TextureAt(s32 index) {
         Unk_4a5d10_Self* textures = field_190;
@@ -779,8 +827,11 @@ public:
     // the one field_5f8 names) when field_10de or `force` says so
     s32 Unk_4320b0(Unk_RenderTexture* source, Unk_RenderTexture* target, bool flag, bool force);
     s32 Unk_432570();  // 0x7100432570 (not written yet)
-    s32 Unk_433450();  // 0x7100433450 (not written yet)
-    s32 Unk_42d490(Unk_RenderTexture* source);  // 0x710042d490 (not written yet)
+    // 0x7100433450: the motion blur
+    s32 Unk_433450();
+    // 0x710042d490: the active view's auto exposure
+    s32 Unk_42d490(Unk_RenderTexture* source);
+    f32 Unk_AdaptationRate(f32 speed) const;
     s32 Unk_434000(Unk_RenderTexture* source);  // 0x7100434000
     s32 Unk_433d00(Unk_RenderTexture* source);  // 0x7100433d00
     // 0x7100431b40: the colour chart's look-up textures, drawn again when
@@ -800,7 +851,35 @@ public:
                    f32 width, f32 height);
     // 0x7100430a10 (not written yet; placeholder signature, from the call)
     s32 Unk_430a10(Unk_RenderTexture* source, void* arg2, void* surface, bool arg4);
-    void DrawDebugBuffers();  // 0x71004386d0 (not written yet)
+    s32 DrawDebugBuffers();  // 0x71004386d0 (its log line names it)
+    // the shared texture util, made if no one has it and released again
+    // (inline: DrawDebugBuffers)
+    CTextureUtil* Unk_TextureUtil();
+    // the luminances of the active view (inline: DrawDebugBuffers)
+    CTextureLuminanceManage* Unk_ViewLuminance() {
+        s32 view = field_298;
+        return static_cast<CTextureLuminanceManage*>(field_2a0[view].field_70);
+    }
+    CTextureLuminanceManage* Unk_ViewLuminance2() {
+        s32 view = field_298;
+        return static_cast<CTextureLuminanceManage*>(field_2a8[view].field_48);
+    }
+    // the OETF luminance's base work of the active view, its resize work
+    // `index` and its last resize work (inline: DrawDebugBuffers)
+    CRenderTexture* Unk_OetfBase() { return field_570 != nullptr ? field_570[field_298] : nullptr; }
+    CRenderTexture* Unk_OetfResize(s32 index) {
+        if (field_578 == nullptr) {
+            return nullptr;
+        }
+        return index < field_580 ? field_578[index] : nullptr;
+    }
+    CRenderTexture* Unk_OetfLastResize() { return field_578 != nullptr ? field_578[field_580 - 1] : nullptr; }
+    // the active view's field_588, if there are any (inline: DrawDebugBuffers)
+    CTextureLuminanceManage* Unk_Luminance588() { return field_588 != nullptr ? field_588[field_298] : nullptr; }
+    CTextureLuminanceManage* Unk_ViewLuminance588() {
+        s32 view = field_298;
+        return field_588[view];
+    }
     // 0x7100428220
     s32 Unk_428220();
     bool Unk_4291c0();  // 0x71004291c0
@@ -1167,7 +1246,10 @@ public:
     s32 field_60c;
     s32 field_610;
     s32 field_614;
-    u8 pad_618[0x10];
+    s32 field_618;
+    s32 field_61c;
+    s32 field_620;
+    s32 field_624;  // a texture index (UpdateParameters_Base)
     s32 field_628;
     s32 field_62c;
     s32 field_630;
@@ -1187,7 +1269,7 @@ public:
     s32 field_668;
     s32 field_66c;
     s32 field_670;
-    u8 pad_674[0x4];
+    s32 field_674;
     bool field_678;
     bool field_679;
     bool field_67a;
@@ -1381,7 +1463,7 @@ public:
     bool field_c34;
     bool field_c35;
     bool field_c36;
-    u8 pad_c37[0x1];
+    bool field_c37;  // the light shafts are drawn (UpdateParameters_Base)
     Unk_Float2 field_c38;
     Unk_Float2 field_c40;
     Unk_Float2 field_c48;
@@ -1433,7 +1515,7 @@ public:
     f32 field_d1c;
     f32 field_d20;
     f32 field_d24;
-    s32 field_d28;
+    f32 field_d28;
     s32 field_d2c;
     s32 field_d30;
     u8 pad_d34[0x4];
@@ -1561,7 +1643,7 @@ public:
     f32 field_101c;
     s32 field_1020;
     s32 field_1024;
-    u8 pad_1028[0x1];
+    bool field_1028;
     bool field_1029;
     u8 pad_102a[0x2];
     f32 field_102c[6];
@@ -1573,14 +1655,15 @@ public:
     bool field_104f;
     bool field_1050;
     bool field_1051;
-    u8 pad_1052[0x1];
+    bool field_1052;
     bool field_1053;
     f32 field_1054;
     f32 field_1058;
     f32 field_105c;
     f32 field_1060;
     f32 field_1064;
-    u8 pad_1068[0x2];
+    bool field_1068;
+    bool field_1069;
     bool field_106a;
     bool field_106b;
     bool field_106c;
@@ -1592,16 +1675,17 @@ public:
     bool field_1075;
     u8 pad_1076[0x2];
     s32 field_1078;  // the depth of field's mode this frame (-1: none)
-    u8 pad_107c[0x4];
+    s32 field_107c;  // its levels
     bool field_1080;
-    u8 pad_1081[0x3];
+    bool field_1081;
+    u8 pad_1082[0x2];
     Unk_Float2 field_1084;
     f32 field_108c;
     bool field_1090;
     bool field_1091;
     u8 pad_1092[0x2];
     MATRIXT44 field_1094;
-    u8 pad_10d4[0x1];
+    bool field_10d4;
     bool field_10d5;
     bool field_10d6;
     bool field_10d7;
@@ -1613,7 +1697,7 @@ public:
     bool field_10dd;  // the normal and linear depth are drawn
     bool field_10de;
     bool field_10df;
-    u8 pad_10e0[0x1];
+    bool field_10e0;
     bool field_10e1;
     u8 pad_10e2[0x2];
     u32 field_10e4[18];
@@ -1719,6 +1803,15 @@ PKMN_OFFSET_ASSERT(CPostEffect, field_94c, 0x94c);
 PKMN_OFFSET_ASSERT(CPostEffect, field_964, 0x964);
 PKMN_OFFSET_ASSERT(CPostEffect, field_f18, 0xf18);
 PKMN_OFFSET_ASSERT(CPostEffect, field_1078, 0x1078);
+PKMN_OFFSET_ASSERT(CPostEffect, field_624, 0x624);
+PKMN_OFFSET_ASSERT(CPostEffect, field_c37, 0xc37);
+PKMN_OFFSET_ASSERT(CPostEffect, field_1028, 0x1028);
+PKMN_OFFSET_ASSERT(CPostEffect, field_1052, 0x1052);
+PKMN_OFFSET_ASSERT(CPostEffect, field_1069, 0x1069);
+PKMN_OFFSET_ASSERT(CPostEffect, field_107c, 0x107c);
+PKMN_OFFSET_ASSERT(CPostEffect, field_1081, 0x1081);
+PKMN_OFFSET_ASSERT(CPostEffect, field_10d4, 0x10d4);
+PKMN_OFFSET_ASSERT(CPostEffect, field_10e0, 0x10e0);
 PKMN_OFFSET_ASSERT(Unk_45eb90_Self, field_410, 0x410);
 PKMN_OFFSET_ASSERT(Unk_4a5d10_Self, field_60, 0x60);
 PKMN_OFFSET_ASSERT(Unk_4a5d10_Self, field_80, 0x80);

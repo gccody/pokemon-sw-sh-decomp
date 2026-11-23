@@ -170,8 +170,9 @@ public:
     s32 vf3() override;                    // 0x71004ac430
     ~CDepthOfField() override;             // 0x71004aa790, 0x71004aa7d0
 
-    // 0x71004a7390: whether a description fits the source
-    static s32 Unk_4a7390(void* source, void* desc);
+    // 0x71004a7390: whether a description fits the source (named by
+    // Initialize's log line "ValidateInitParam() failed")
+    static s32 ValidateInitParam(CRenderTexture* source, const Unk_Desc* desc);
     // 0x71004aa0d0 (its log line names it)
     s32 Initialize(CRenderTexture* source, const Unk_Desc* desc);
     s32 Unk_4a7f60();  // 0x71004a7f60: the description's defaults, the passes, the levels and their textures

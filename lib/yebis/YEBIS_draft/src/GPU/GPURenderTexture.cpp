@@ -168,7 +168,7 @@ s32 CRenderTexture::Unk_49ab20(const Unk_49ab20_Desc* desc) {
     field_50 = usage;
     if (field_2c.field_1c == 0)
         field_2c.field_1c = field_2c.field_c;
-    ::Unk_49ad30(reinterpret_cast<Unk_RenderTexture*>(this), 0, 0, 0, 0);
+    ::Unk_49ad30(this, 0, 0, 0, 0);
     Unk_StoreViewport();
     field_70 = 0.0f;
     field_74 = 1.0f;
@@ -184,13 +184,10 @@ s32 CRenderTexture::Unk_49ab20(const Unk_49ab20_Desc* desc) {
 
 // 0x710049ad30: a render texture's viewport (0: the whole texture, negative:
 // unchanged). The name is the one GPUPostEffect.h, which calls it, gave it.
-// NON_MATCHING: 4 instructions, ordering only. The original keeps the result
-// in w8 to its last block (`mov w8, wzr` ... `mov w0, w8`), sets it to 1
-// between the two viewport stores of the path without a device, and adds
-// y and field_9c with the operands the other way round.
-s32 Unk_49ad30(PPFX::Unk_RenderTexture* texture, s32 width, s32 height, s32 x, s32 y) {
+// NON_MATCHING: 1 instruction: the original adds y and field_9c with the
+// operands the other way round (`add w9, w4, w9`; x's add has the load first).
+s32 Unk_49ad30(PPFX::CRenderTexture* self, s32 width, s32 height, s32 x, s32 y) {
     using namespace PPFX;
-    CRenderTexture* self = reinterpret_cast<CRenderTexture*>(texture);
     if (width == 0)
         width = self->field_2c.field_4;
     if (height == 0)
@@ -236,8 +233,10 @@ s32 Unk_49ad30(PPFX::Unk_RenderTexture* texture, s32 width, s32 height, s32 x, s
             self->field_88 = 1.0f / static_cast<f32>(self->field_80->field_8);
             self->field_8c = 1.0f / static_cast<f32>(self->field_80->field_c);
         }
-        self->field_90 = self->field_88 * static_cast<f32>(static_cast<u32>(self->field_9c + x));
-        self->field_94 = self->field_8c * static_cast<f32>(static_cast<u32>(y + self->field_9c));
+        f32 offsetX = static_cast<f32>(static_cast<u32>(self->field_9c + x));
+        f32 offsetY = static_cast<f32>(static_cast<u32>(y + self->field_9c));
+        self->field_90 = self->field_88 * offsetX;
+        self->field_94 = self->field_8c * offsetY;
     }
     return result;
 }
@@ -440,7 +439,7 @@ s32 CRenderTexture::Unk_49b230() {
             }
         }
     }
-    ::Unk_49ad30(reinterpret_cast<Unk_RenderTexture*>(this), 0, 0, 0, 0);
+    ::Unk_49ad30(this, 0, 0, 0, 0);
     Unk_StoreViewport();
     field_70 = 0.0f;
     field_74 = 1.0f;
@@ -529,7 +528,7 @@ s32 CRenderTexture::vf6(IGPUDevice* device, Unk_49b230_Object* texture) {
         level.field_14 = 1.0f;
         field_80[i] = level;
     }
-    Unk_49ad30(reinterpret_cast<Unk_RenderTexture*>(this), 0, 0, 0, 0);
+    Unk_49ad30(this, 0, 0, 0, 0);
     Unk_StoreViewport();
     field_70 = 0.0f;
     field_74 = 1.0f;

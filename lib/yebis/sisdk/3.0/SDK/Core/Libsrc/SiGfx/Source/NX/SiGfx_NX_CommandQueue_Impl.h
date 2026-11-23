@@ -10,9 +10,12 @@
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_RefCount.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/Unk_NXResource.h>
 
-// NVN's sync object (RTTI names it: the queue has an array of them).
+// NVN's sync object (RTTI names it: the queue has an array of them). Its
+// bytes are chars, as NVN's opaque objects' are: as eight u64 the copy loop of
+// the array's reserve is cheaper for LLVM's unroller (unrolled by four, not
+// two).
 struct NVNsync {
-    u64 reserved[8];
+    char reserved[64];
 };
 
 namespace SiSDK3 {

@@ -22,13 +22,21 @@ SiGfxNXCommandListPool::~SiGfxNXCommandListPool() {
     field_78 = 0;
 }
 
-// NON_MATCHING: the same instructions with two registers exchanged (the
-// addresses of the array's count and of its buffer, x21 and x22), and the
-// failure's three zero stores through those registers where the original has
-// them through `this` (`str xzr, [x19, #0x38] ; stp xzr, xzr, [x19, #0x58]`).
+// The release is written out, with the buffer freed through Unk_FreeAll (one
+// inline function more than Unk_ReleaseAll's direct Unk_4e3050): with
+// Unk_ReleaseAll the reserve's failure stores share the array's addresses with
+// the release (two registers exchanged, the failure's zero stores through them
+// instead of `this`).
 // 0x710054f460
 bool SiGfxNXCommandListPool::vf8(s32 count) {
-    Unk_ReleaseAll(&field_28);
+    for (size_t i = 0; i < field_28.m_itemCount; i++) {
+        SiGfxNXCommandList* item = field_28.m_pData[i];
+        if (item != nullptr) {
+            field_28.m_pData[i] = nullptr;
+            item->vf3();
+        }
+    }
+    field_28.Unk_FreeAll();
     if (!field_28.Unk_SetCount(count)) {
         return false;
     }

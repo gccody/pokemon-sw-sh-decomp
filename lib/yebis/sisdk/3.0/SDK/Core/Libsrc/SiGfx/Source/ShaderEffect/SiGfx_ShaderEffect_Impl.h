@@ -212,9 +212,9 @@ public:
     void Unk_5765b0();
     void Unk_576780();
     void Unk_5769e0();
-    // 0x71005785d0: asks for a program
-    // 0x71005785d0: makes a program from its shaders
-    bool Unk_5785d0(void* program, void* unused);
+    // 0x71005785d0: makes a program from its shaders (the program typed:
+    // with a void* the caller's address add is sunk into the call's block)
+    bool Unk_5785d0(ShaderProgramData* program, void* unused);
     // 0x7100578100: the program of two keys: the technique's first for
     // keys without bytes, else a binary search of its sorted programs
     // (inline: its caller's translation unit has its copy)

@@ -35,4 +35,18 @@ inline void Unk_ReleaseTextureUtil() {
     }
 }
 
+// the same, given the object Unk_GetTextureUtil returned (what is deleted is
+// that pointer: BeginPostEffectScene keeps the object's read for it)
+inline void Unk_ReleaseTextureUtil(CTextureUtil* instance) {
+    if (Unk_24e0c28 <= 1) {
+        if (instance != nullptr) {
+            Unk_Delete(Unk_238d5f8, instance);
+            Unk_24e0c30 = nullptr;
+        }
+        Unk_24e0c28 = 0;
+    } else {
+        Unk_24e0c28--;
+    }
+}
+
 }  // namespace PPFX

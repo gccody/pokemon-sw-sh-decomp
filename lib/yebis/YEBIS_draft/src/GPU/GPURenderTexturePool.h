@@ -45,5 +45,7 @@ PKMN_SIZE_ASSERT(CRenderTexturePool, 0x48);
 }  // namespace PPFX
 
 // 0x710049fc60: gives `count` textures back; returns how many it destroyed.
-// It keeps the placeholder name its matched caller in lib/yebis/leaf has.
-s32 Unk_49fc60(void* self, u32 count, void* textures);
+// It keeps the placeholder name its matched caller in lib/yebis/leaf has. The
+// pool is a typed parameter: as a cast `void*` its list's end would be a
+// bitcast, which InstCombine orders after a pointer phi in one compare.
+s32 Unk_49fc60(PPFX::CRenderTexturePool* pool, u32 count, void* textures);
