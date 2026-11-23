@@ -231,6 +231,14 @@ public:
     bool Unk_457650();  // 0x7100457650: whether nothing is to be drawn again
     f32 Unk_458420();   // 0x7100458420: the glare's luminance
     f32 Unk_458250();   // 0x7100458250
+    s32 Unk_458720();          // 0x7100458720 (not written yet)
+    void Unk_4593f0(bool arg);  // 0x71004593f0 (not written yet)
+    s32 Unk_45a820();          // 0x710045a820 (not written yet)
+    s32 Unk_45c1e0();          // 0x710045c1e0 (not written yet)
+    void Unk_45d3b0();         // 0x710045d3b0 (not written yet)
+    // 0x710045ee80: the glare of a frame
+    s32 Unk_45ee80(CRenderTexture* source, f32 f0, f32 f1, f32 f2, f32 f3, s32 arg2, f32 f4, u32 index,
+                   const Unk_45_170* color, f32 f5, f32 f6, bool flag, s32 arg6, CRenderTexture* arg7);
     f32 Unk_458580();   // 0x7100458580
     s32 Unk_457f00(CRenderTexture* source, s32 arg2, CRenderTexture* arg3);  // 0x7100457f00
     void Unk_457760(CRenderTexture* source, CRenderTexture* target);  // 0x7100457760 (not written yet)
@@ -242,7 +250,9 @@ public:
     f32 field_134;
     f32 field_138;
     f32 field_13c;
-    u8 pad_140[0x14];
+    s32 field_140;
+    f32 field_144;
+    u8 pad_148[0xc];
     f32 field_154;
     f32 field_158;
     f32 field_15c;
@@ -251,7 +261,8 @@ public:
     f32 field_168;
     u8 pad_16c[0x4];
     const Unk_45_170* field_170;
-    u8 pad_178[0x8];
+    f32 field_178;
+    f32 field_17c;
     bool field_180;
     u8 pad_181[0x3];
     f32 field_184;
@@ -259,7 +270,8 @@ public:
     bool field_18c;
     u8 pad_18d[0x1f];
     bool field_1ac;
-    u8 pad_1ad[0x37];
+    u8 pad_1ad[0x33];
+    f32 field_1e0;
     f32 field_1e4;
     u8 pad_1e8[0xc];
     s32 field_1f4;
@@ -319,7 +331,7 @@ public:
     CGPUResourceManage* field_340;
     IGPUInterface* field_348;
     CGPUResourceManage** field_350;
-    u32* field_358;
+    f32* field_358;
     u64 field_360;
     bool field_368;
     u8 pad_369[0x3];
@@ -345,11 +357,15 @@ public:
     f32 field_3f0;
     f32 field_3f4;
     f32 field_3f8;
-    u8 pad_3fc[0x14];
+    u8 pad_3fc[0x8];
+    f32 field_404;
+    u8 pad_408[0x8];
     bool field_410;
-    u8 pad_411[0x7];
+    u8 pad_411[0x3];
+    s32 field_414;
     f32 field_418;
-    u8 pad_41c[0x4];
+    bool field_41c;
+    u8 pad_41d[0x3];
     u64 field_420;
     // UNK_FIELDS_END
 };

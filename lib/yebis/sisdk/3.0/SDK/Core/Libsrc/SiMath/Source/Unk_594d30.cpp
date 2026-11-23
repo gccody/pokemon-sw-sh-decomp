@@ -8,7 +8,8 @@
 // path keeps its own packing of two zeros (`mov w9, wzr; mov w8, wzr; bfi`)
 // with the bias subtracted before the range tests (`subs w9, w10, #0x70`).
 // The half floats are built in a struct returned by value: its i64
-// coercion makes them one 64-bit store (`bfi` x3, `str x8`).
+// coercion makes them one 64-bit store (`bfi` x3, `str x8`); the exponent
+// is read before the sign (the order of `ubfx` and `and`).
 #include <types.h>
 
 // A float's bits as an unsigned float of six mantissa and five exponent bits

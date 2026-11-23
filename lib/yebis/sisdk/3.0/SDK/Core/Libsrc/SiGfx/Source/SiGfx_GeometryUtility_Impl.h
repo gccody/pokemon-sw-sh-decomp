@@ -11,6 +11,16 @@
 namespace SiSDK3 {
 
 class SiGfxNXVertexFormat;
+class SiGfxNXBuffer;
+
+// What the generators tell of the shape they made (placeholder name and
+// members): a box around it.
+struct Unk_GeometryBounds {
+    s32 field_0;  // 1: the box is set
+    f32 field_4[3];   // its lowest corner
+    f32 field_10[3];  // its highest corner
+};
+PKMN_SIZE_ASSERT(Unk_GeometryBounds, 0x1c);
 
 class SiGfxGeometryUtility {
 public:
@@ -19,15 +29,45 @@ public:
     UNK_REFCOUNT_DECLARE;
     virtual u32 vf4();
     virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
+    // 0x71004d41f0: an ellipsoid of three radii, slices around and stacks
+    // from pole to pole, with tangents (placeholder parameter names)
+    virtual bool vf6(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVertexBuffer, SiGfxNXBuffer* pIndexBuffer,
+                     f32 radiusX, f32 radiusY, f32 radiusZ, s32 slices, s32 stacks, Unk_GeometryBounds* pBounds);
+    // 0x71004d4bd0: the lines of an ellipsoid of three radii, slices
+    // meridians and stacks - 1 circles of latitude (placeholder parameter names)
+    virtual bool vf7(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVertexBuffer, SiGfxNXBuffer* pIndexBuffer,
+                     f32 radiusX, f32 radiusY, f32 radiusZ, s32 slices, s32 stacks, Unk_GeometryBounds* pBounds);
+    // 0x71004d55e0: a cylinder or truncated cone of a bottom and a top radius
+    // and a height, slices around and stacks up, closed by a disc where a
+    // radius is positive (placeholder parameter names)
+    virtual bool vf8(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVertexBuffer, SiGfxNXBuffer* pIndexBuffer,
+                     f32 bottomRadius, f32 topRadius, f32 height, s32 slices, s32 stacks,
+                     Unk_GeometryBounds* pBounds);
+    // 0x71004d64d0: a torus of a radius and a tube radius, sides around the
+    // tube and rings around the axis (placeholder parameter names)
+    virtual bool vf9(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVertexBuffer, SiGfxNXBuffer* pIndexBuffer,
+                     f32 radius, f32 tubeRadius, s32 sides, s32 rings, Unk_GeometryBounds* pBounds);
+    // 0x71004d6cb0: a rectangle of a width and a height around the origin
+    // in the xy plane, facing z
+    virtual bool vf10(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVertexBuffer, SiGfxNXBuffer* pIndexBuffer,
+                      f32 width, f32 height, Unk_GeometryBounds* pBounds);
+    // 0x71004d7330: a cone: a ring of a number of segments at a radius
+    // and a height around a vertex at the origin (placeholder parameter names)
+    virtual bool vf11(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVertexBuffer, SiGfxNXBuffer* pIndexBuffer,
+                      f32 radius, f32 height, s32 segments, Unk_GeometryBounds* pBounds);
+    // 0x71004d7a50: a half sphere of a radius, a number of slices around and
+    // of stacks from its rim to its top (placeholder parameter names)
+    virtual bool vf12(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVertexBuffer, SiGfxNXBuffer* pIndexBuffer,
+                      f32 radius, s32 slices, s32 stacks, Unk_GeometryBounds* pBounds);
+    // 0x71004d8260: the lines of a circle of a radius in the xz plane, of a
+    // number of segments (placeholder parameter names)
+    virtual bool vf13(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVertexBuffer, SiGfxNXBuffer* pIndexBuffer,
+                      f32 radius, s32 segments, Unk_GeometryBounds* pBounds);
+    // 0x71004d8c70: a capsule of a radius and a height between its two half
+    // spheres' centres, slices around and stacks per half sphere (placeholder
+    // parameter names)
+    virtual bool vf14(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVertexBuffer, SiGfxNXBuffer* pIndexBuffer,
+                      f32 radius, f32 height, s32 slices, s32 stacks, Unk_GeometryBounds* pBounds);
 
     // 0x71004d3d00: writes a vertex's position, normal, texture coordinate,
     // colour and tangent (those with an offset and a format) in their formats

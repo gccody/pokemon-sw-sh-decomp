@@ -1,6 +1,7 @@
 // Scope: common
 // PPFX::CTinyEffect (C:/workspace/YEBIS_draft/src/GPU/TinyEffect/TinyEffect.cpp,
 // 0x710044ab80 to 0x7100450eb0): the small virtual functions so far.
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -9,15 +10,33 @@
 #include <yebis/YEBIS_draft/src/GPU/Unk_Statics.h>
 #include <yebis/YEBIS_draft/src/GPU/TinyEffect/TinyEffect.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUInterfaceBuffer.h>
+#include <yebis/YEBIS_draft/src/GPU/Unk_Array.h>
 
 #define PPFX_FILE "C:/workspace/YEBIS_draft/src/GPU/TinyEffect/TinyEffect.cpp"
 #include <yebis/YEBIS_draft/src/GPU/Unk_Log.h>
 
 namespace PPFX {
 
-// 0x71024e2808: the device objects a pass has before it has its own
-// (placeholder)
-extern Unk_TinyResult Unk_24e2808 __attribute__((visibility("hidden")));
+// 0x71024e2808 (in the TU's merged statics): the device objects a pass has
+// before it has its own (placeholder)
+static const Unk_TinyResult Unk_24e2808(reinterpret_cast<SiSDK3::ISiInterface*>(-1),
+                                        reinterpret_cast<SiSDK3::ISiInterface*>(-1),
+                                        reinterpret_cast<SiSDK3::ISiInterface*>(-1));
+
+}  // namespace PPFX
+
+// how many bytes `count` floats are (inline: placeholder)
+static inline u32 Unk_FloatBytes(u32 count) {
+    return count * sizeof(f32);
+}
+
+// 0x71024e2730, 0x71024e2734, 0x71024e2738, 0x71024e273c
+u32 Unk_24e2730 = Unk_FloatBytes(1);
+u32 Unk_24e2734 = Unk_FloatBytes(4);
+u32 Unk_24e2738 = Unk_FloatBytes(16);
+u32 Unk_24e273c = Unk_FloatBytes(2);
+
+namespace PPFX {
 
 // releases a device object
 static inline void Unk_Release(SiSDK3::ISiInterface*& object) {
@@ -207,6 +226,88 @@ s32 CTinyEffect::Unk_44b380(const char* name) {
     return -1;
 }
 
+// 0x710044bbd0
+// NON_MATCHING: register allocation in the loop: the original keeps
+// `elements` on the stack and a down-counter of `count` in x19, the
+// first parameter in x28, and ends the loop on `i - count != 0`; the
+// instructions are otherwise the same.
+s32 CTinyEffect::CreateGlobalParameter(const Unk_TFXString& name, s32 type, s32 elements, bool find) {
+#line 6579
+    PPFX_FX("CTinyEffect::CreateGlobalParameter():\nstrName: %s\neType: %d\nnElements: %d\n", name.field_8, type,
+            elements);
+    s32 index = -1;
+    if (find) {
+        index = Unk_44b1d0(name.field_8, false);
+        if (index >= 0) {
+            return index;
+        }
+    }
+    s32 count = elements > 0 ? elements : (elements == 0 ? 1 : elements);
+    field_328.reserve(field_328.size() + count);
+    Unk_TinyParam* first = nullptr;
+    for (s32 i = 0; i < count; i++) {
+#line 6631
+        Unk_TinyParam* param = UNK_NEW(Unk_TinyParam)(this);
+        field_328.push_back(param);
+        if (i == 0) {
+            param->field_2c = count;
+            index = field_328.size() - 1;
+            first = param;
+        } else {
+            param->field_2c = elements - i;
+        }
+        param->field_1c = type;
+        u32 size;
+        u32 rows;
+        switch (type) {
+        case 1:
+            size = 4;
+            rows = 1;
+            break;
+        case 2:
+            size = 16;
+            rows = 1;
+            break;
+        case 3:
+            size = 64;
+            rows = 4;
+            break;
+        case 4:
+            size = 8;
+            rows = 1;
+            break;
+        default:
+            size = 0;
+            rows = 0;
+            break;
+        }
+        param->field_20 = size;
+        param->field_24 = size;
+        param->field_28 = rows;
+        param->field_8 = name;
+        param->field_30 = name;
+        param->field_41 = elements > 0;
+        if (elements > 0) {
+            char text[16];
+            sprintf(text, "[%d]", i);
+            param->field_30 += text;
+        }
+#line 6672
+        PPFX_FX("\nm_strName       : %s\nm_strElementName: %s\n", param->field_8.field_8, param->field_30.field_8);
+        if (i == 0) {
+            param->field_40 = true;
+            s32 bytes = static_cast<s32>(param->field_20) * count;
+#line 6686
+            param->field_48 = UNK_NEW_ARRAY(char, bytes);
+            memset(param->field_48, 0, bytes);
+        } else {
+            param->field_40 = false;
+            param->field_48 = static_cast<char*>(first->field_48) + static_cast<s32>(param->field_20) * i;
+        }
+    }
+    return index;
+}
+
 // the SiGfx root signature CreateSiGfxProgramResources fills in (placeholder)
 struct Unk_TinyRootSignature {
     virtual void vf0();
@@ -339,6 +440,34 @@ s32 CTinyEffect::CreateSiGfxProgramResources(Unk_TinyPass* pass) {
     pass->field_b0 = nullptr;
     pass->field_b8 = nullptr;
     return 0;
+}
+
+// 0x710044c920
+s32 CTinyEffect::Unk_44c920(const Unk_TFXString& name, const Unk_TFXString& code, u32 arg,
+                            const Unk_TinyResult* objects) {
+    if (!(objects->field_0 != nullptr && objects->field_8 != nullptr && objects->field_10 != nullptr &&
+          !(objects->field_0 == Unk_24e2808.field_0 && objects->field_8 == Unk_24e2808.field_8 &&
+            objects->field_10 == Unk_24e2808.field_10))) {
+        s32 index = Unk_FindPass(code.field_8);
+        if (index >= 0) {
+            return index;
+        }
+    }
+    Unk_TinyProgram program(nullptr);
+    program.field_48 = arg;
+    program.field_8 = name;
+    program.field_20 = code;
+    program.field_30 = *objects;
+    if (objects->field_0 == nullptr || objects->field_8 == nullptr || objects->field_10 == nullptr) {
+        s32 result = CreateProgram(&program);
+        if (result < 0 && result != -4) {
+            return -1;
+        }
+    }
+#line 5586
+    Unk_TinyPass* pass = UNK_NEW(Unk_TinyPass)(this, program);
+    field_310.push_back(pass);
+    return field_310.size() - 1;
 }
 
 // 0x710044dbc0

@@ -22,6 +22,8 @@
 bool Unk_442c50_get(u64 device);
 // 0x7100446620: the device of an IGPUResource (with a reference)
 s32 Unk_446620(void* resource, PPFX::IGPUDevice** device);
+// a colour space (Unk_410f90.h)
+struct Unk_410f90;
 
 namespace PPFX {
 
@@ -54,7 +56,9 @@ struct Unk_GPUTexture {
     u8 pad_48[0x4];
     u32 field_4c;  // its size
     u32 field_50;
-    u8 pad_54[0x30];
+    u8 pad_54[0x8];
+    u32 field_5c;  // flags (0x20000 tested by 0x710048e260)
+    u8 pad_60[0x24];
     u32 field_84;  // and its depth
 };
 
@@ -153,7 +157,17 @@ s32 Unk_49a300(void* device, const void* data, s32 size, void* arg3, void* effec
 struct Unk_1af6c {
     s32 field_0[32];
     s32 field_80[8];
-    s32 field_a0[40][5];
+    union {
+        // five tables by [near][far][taps - 1] (GPUDepthOfField.cpp's view)
+        struct {
+            s32 field_a0s[2][4][5];
+            s32 field_140[2][4][5];
+            s32 field_1e0[2][4][5];
+            s32 field_280[2][4][5];
+            s32 field_320[2][4][5];
+        };
+        s32 field_a0[40][5];
+    };
 };
 PKMN_SIZE_ASSERT(Unk_1af6c, 0x3c0);
 
@@ -271,18 +285,30 @@ public:
     s32 field_c18[32][22];
     s32 field_1718[32][22];
     s32 field_2218[32][22];
-    s32 field_2d18[1][22];
-    u8 pad_2d70[0x528];
-    s32 field_3298[1][22];
-    u8 pad_32f0[0x528];
-    s32 field_3818[1][22];
-    u8 pad_3870[0x528];
-    s32 field_3d98[1][22];
-    u8 pad_3df0[0x528];
-    s32 field_4318;
-    s32 field_431c;
-    s32 field_4320;
-    s32 field_4324;
+    union {
+        struct {
+            s32 field_2d18[1][22];
+            u8 pad_2d70[0x528];
+            s32 field_3298[1][22];
+            u8 pad_32f0[0x528];
+            s32 field_3818[1][22];
+            u8 pad_3870[0x528];
+            s32 field_3d98[1][22];
+            u8 pad_3df0[0x528];
+        };
+        // tech_MadAlphaColorT2_<channel>_Sn: [channel][count - 1][index] (only count 1 is filled in)
+        s32 field_2d18_table[4][16][22];
+    };
+    union {
+        struct {
+            s32 field_4318;
+            s32 field_431c;
+            s32 field_4320;
+            s32 field_4324;
+        };
+        // tech_Alpha_<channel>
+        s32 field_4318_table[4];
+    };
     s32 field_4328[16][22];
     s32 field_48a8[16][22];
     s32 field_4e28[16][22];
@@ -493,27 +519,33 @@ public:
     s32 field_22790;
     s32 field_22794;
     s32 field_22798;
-    u8 pad_2279c[0x14];
-    s32 field_227b0;
-    s32 field_227b4;
-    s32 field_227b8;
-    s32 field_227bc;
-    s32 field_227c0;
-    s32 field_227c4;
-    s32 field_227c8;
-    s32 field_227cc;
-    s32 field_227d0;
-    s32 field_227d4;
-    s32 field_227d8;
-    s32 field_227dc;
-    s32 field_227e0;
-    s32 field_227e4;
-    s32 field_227e8;
-    s32 field_227ec;
-    s32 field_227f0;
-    s32 field_227f4;
-    s32 field_227f8;
-    s32 field_227fc;
+    union {
+        struct {
+            u8 pad_2279c[0x14];
+            s32 field_227b0;
+            s32 field_227b4;
+            s32 field_227b8;
+            s32 field_227bc;
+            s32 field_227c0;
+            s32 field_227c4;
+            s32 field_227c8;
+            s32 field_227cc;
+            s32 field_227d0;
+            s32 field_227d4;
+            s32 field_227d8;
+            s32 field_227dc;
+            s32 field_227e0;
+            s32 field_227e4;
+            s32 field_227e8;
+            s32 field_227ec;
+            s32 field_227f0;
+            s32 field_227f4;
+            s32 field_227f8;
+            s32 field_227fc;
+        };
+        // tech_CompositeColorAndAlphaEffectsMask_<channel>(_<channel>): [first][second] (0: none)
+        s32 field_2279c_table[5][5];
+    };
     s32 field_22800;
     s32 field_22804;
     s32 field_22808;
@@ -799,14 +831,13 @@ public:
     // 0x710047c090: Unk_47bf10 applied `count` times (up to 16), the last
     // time by the fraction of `count`
     // 0x710047c2f0
-    f32 Unk_47c2f0(s32 encoding, s32 mode, const f32* params, f32 value, f32 base, f32 scale, f32 exponent, f32 gamma,
-                   f32 threshold, f32 count, f32 arg0, f32 arg1, f32 exposure);
+    f32 Unk_47c2f0(f32 value, f32 base, f32 scale, s32 encoding, f32 exponent, f32 gamma, f32 threshold, f32 count,
+                   f32 arg0, s32 mode, const f32* params, f32 arg1, f32 exposure);
     f32 Unk_47c090(f32 x, s32 mode, const f32* params, f32 white, f32 limit, f32 count, f32 arg0, f32 arg1,
                    f32 exposure);
     // 0x710048d220 (not written yet; placeholder signature)
-    s32 Unk_48d220(f32 arg6, f32 arg7, void* target, s32 count, CRenderTexture** sources, void* arg3, s32 arg4,
-                   s32 arg5);
-
+    s32 Unk_48d220(f32 scale, f32 power, void* target, s32 count, CRenderTexture** sources, const Unk_Float4* colors,
+                   s32 index, bool clear);
     // the members as the constructor leaves them (inline in Unk_46dc60 and vf3)
     inline void Unk_Clear() {
         field_29a98 = nullptr;
@@ -856,6 +887,12 @@ public:
     s32 Unk_4708b0(void* arg);  // 0x71004708b0
     // 0x7100471960: draws a rectangle (or the triangle that covers it) in the current target
     s32 Unk_471960(f32 x, f32 y, f32 width, f32 height, u32 flags);
+    // 0x7100496b40 (placeholder signature, from CDepthOfField::Unk_4b3280)
+    s32 Unk_496b40(f32 arg0, f32 arg1, CRenderTexture* source, CRenderTexture* source2, CRenderTexture* target,
+                   const Unk_Float4* arg5, s32 arg6, const Unk_Float4* color, s32 arg8, bool arg9, bool arg10,
+                   s32 arg11, s32 arg12);
+    // 0x7100481820 (placeholder signature, from CDepthOfField::Unk_4b48d0)
+    s32 Unk_481820(CRenderTexture* source, CRenderTexture* target, const Unk_Float2& offset, const Unk_Float4& arg3);
     // 0x7100481340
     s32 Unk_481340(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, bool arg8, bool arg9,
                    s32 count, const Unk_Float4* weights, Unk_GPUTexture* texture, u32 flags);
@@ -950,7 +987,7 @@ public:
                    const MATRIXT44* arg7, void* arg8, s32 arg9, f32 arg2, void* arg10, s32 arg11, void* arg12, bool arg13);
     // 0x71004930d0, 0x71004934a0, 0x71004937b0 (not written yet): filters of
     // 3x3 weights, of 5 and of 9; 0x7100493e20 chooses one by its size
-    s32 Unk_4930d0(CRenderTexture* source, CRenderTexture* target, const f32* weights, s32 arg3, s32 mode,
+    s32 Unk_4930d0(CRenderTexture* source, CRenderTexture* target, const f32* weights, bool normalize, s32 mode,
                    const Unk_Float4* color, bool clear, bool arg7, s32 arg8, s32 arg9);
     s32 Unk_4934a0(f32 scale, CRenderTexture* source, CRenderTexture* target, s32 mode, const Unk_Float4* color,
                    bool arg5, bool clear, s32 arg7, s32 arg8);
@@ -1151,6 +1188,72 @@ public:
     s32 Unk_470880();           // 0x7100470880
     s32 Unk_4708a0(void* arg);  // 0x71004708a0
 
+    // 0x7100482d70: the offset 0x71004827b0 gives in the target's texels, and
+    // the pyramid Unk_411c70 makes for its length
+    s32 Unk_482d70(f32 x, f32 y, CRenderTexture* target, const MATRIXT44* arg1, const MATRIXT44* arg2,
+                   void* arg3, s32 maxLevels, f32 ratio, const Unk_Float2* scale, s32 index, s32* outCount, s32* outLevels,
+                   s32* outFirst, Unk_Float2* outOffset, Unk_Float2* outDirection);
+    // 0x71004797a0 (not written yet; placeholder signature, from its caller)
+    s32 Unk_4797a0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg8, f32 arg9,
+                   f32 arg10, bool arg11, Unk_GPUTexture* texture0, Unk_GPUTexture* texture1, const f32* arg14,
+                   void* arg15, s32 arg16, s32 arg17);
+    // 0x71004821a0: 0x71004797a0 from `source` and `other` into `target`
+    s32 Unk_4821a0(CRenderTexture* source, CRenderTexture* other, CRenderTexture* target, bool arg4, bool clear, const f32* arg6, void* arg7, f32 arg0, f32 arg1, f32 ratio, s32 arg8, s32 arg9);
+    // 0x710048c1b0 (not written yet; placeholder signature, from its caller)
+    s32 Unk_48c1b0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg8, f32 arg9,
+                   f32 arg10, f32 arg11, f32 arg12, f32 arg13, f32 arg14, f32 arg15, f32 arg16, f32 arg17,
+                   void* arg18, Unk_GPUTexture* texture, s32 count, s32 arg21, bool arg22, const f32* arg23,
+                   s32 arg24);
+    // 0x710048ca20: 0x710048c1b0 from `source` into `target`
+    s32 Unk_48ca20(CRenderTexture* source, CRenderTexture* target, void* arg14, f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, f32 arg6, f32 arg7, f32 arg8, f32 arg9, f32 arg10, f32 arg11, s32 count, s32 arg16, bool arg17, const f32* arg18, bool clear);
+    // 0x710048e4e0: 0x710048e710 from `source` into `target`
+    s32 Unk_48e4e0(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, f32 arg6, CRenderTexture* target,
+                   CRenderTexture* source, const Unk_Float2* center, const f32* color, bool clear);
+    // 0x7100490780 (not written yet; placeholder signature, from its callers)
+    s32 Unk_490780(f32 scale, CRenderTexture* source, CRenderTexture* target, CRenderTexture* arg3, s32 count,
+                   const f32* weights, s32 arg6, s32 arg7, const Unk_Float4* color, bool clear, s32 arg10,
+                   s32 arg11);
+    // 0x7100493be0: 0x7100490780 and 0x71004939c0 from `source`, the two
+    // results added into `target`
+    s32 Unk_493be0(CRenderTexture* source, CRenderTexture* a, CRenderTexture* b, void* target, f32 scale, bool flag, s32 arg6, const Unk_Float4* color, bool clear, bool arg9, s32 arg10, s32 arg11);
+    // 0x71004780c0 (not written yet; placeholder signature, from its caller)
+    s32 Unk_4780c0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg8, f32 arg9,
+                   f32 arg10, f32 arg11, f32 arg12, f32 arg13, f32 arg14, f32 arg15, Unk_GPUTexture* texture,
+                   s32 arg17, void* arg18, s32 arg19, s32 arg20);
+    // 0x710048e260: 0x71004780c0 from `source` into `target`
+    s32 Unk_48e260(CRenderTexture* source, CRenderTexture* target, f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, f32 arg6, f32 arg7, s32 arg10, void* arg11, s32 arg12, u32 arg13, bool clear);
+    // 0x710048d550: 0x7100477d80 from `count` render textures into `target`
+    s32 Unk_48d550(f32 r, f32 g, f32 b, f32 a, f32 power, CRenderTexture* target, s32 count, CRenderTexture** sources,
+                   const Unk_Float* weights, s32 index, bool clear);
+    // 0x7100498800: tech_CompositeColorAndAlphaEffectsMask_<a>(_<b>) of six
+    // textures (the missing ones replaced by field_29a70's), in four rectangles
+    s32 Unk_498800(f32 x, f32 y, f32 width, f32 height, const f32* coords, Unk_GPUTexture* texture0, bool flag,
+                   Unk_Float amount, Unk_GPUTexture* texture1, Unk_GPUTexture* texture2, s32 a, s32 b, f32 value,
+                   Unk_GPUTexture* texture3, Unk_GPUTexture* texture4, Unk_GPUTexture* texture5, u32 flags);
+    // 0x710048b280: tech_MadAlphaColorT2_<channel>_Sn (tech_Alpha_<channel>
+    // without a second texture), or 0x710048ad80 for technique 21 or with `arg7`
+    s32 Unk_48b280(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, Unk_GPUTexture* texture0,
+                   Unk_GPUTexture* texture1, const Unk_Float4* scale, f32* factor, s32 channel, s32 index,
+                   void* arg7, void* arg8, void* arg9, s32 arg10, f32 arg11, Unk_Float4* offset, u32 flags);
+    // 0x7100491bb0 (not written yet; placeholder signature, from its caller)
+    s32 Unk_491bb0(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, CRenderTexture* source,
+                   CRenderTexture* target, CRenderTexture* temp0, CRenderTexture* temp1, s32 count,
+                   const Unk_Float4* offsets, s32 arg12, s32 arg13, void* arg14, void* arg15, void* arg16,
+                   bool arg17, s32 arg18, s32 arg19);
+    // 0x71004920b0: 0x7100491bb0 with seven offsets (the centre and a hexagon)
+    s32 Unk_4920b0(f32 arg0, f32 arg1, f32 arg2, f32 arg3, CRenderTexture* source, CRenderTexture* target,
+                   CRenderTexture* temp0, CRenderTexture* temp1, s32 arg8, s32 arg9, void* arg10, void* arg11,
+                   void* arg12, bool arg13, s32 arg14, s32 arg15);
+    // 0x7100493f30: a 3x3 blur of `source` into `target` (0x71004930d0), or
+    // with four bilinear taps where the texture is filtered
+    s32 Unk_493f30(f32 scale, Unk_Float amount, CRenderTexture* source, CRenderTexture* target, s32 mode,
+                   const Unk_Float4* color, bool clear, bool arg7, s32 arg8, s32 arg9);
+    // 0x710048dad0: the technique field_30.field_2072c (two textures, a colour
+    // matrix and the colour space's luminance)
+    s32 Unk_48dad0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 s0, f32 t0, f32 s1,
+                   f32 t1, f32 arg12, f32 arg13, Unk_Float low, Unk_Float high, f32 arg16, f32 arg17, const Unk_410f90* space,
+                   const MATRIXT44* matrix, Unk_GPUTexture* texture0, Unk_GPUTexture* texture1, bool filter0,
+                   bool filter1, u32 flags);
     // UNK_FIELDS_BEGIN
     TEXSHADERSET field_30;
     CRenderTexturePool* field_29a58;

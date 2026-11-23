@@ -110,6 +110,7 @@ _Z10SetNbShapePN5physx22PxSimulationStatisticsENS_14PxGeometryType4EnumEj,"PhysX
 _Z12PxGetPhysicsv,"PhysX: not in the executable (inlined into every caller, or unreferenced and dropped by the linker)"
 _Z13GetNbCCDPairsPKN5physx22PxSimulationStatisticsENS_14PxGeometryType4EnumES4_,"PhysX: not in the executable (inlined into every caller, or unreferenced and dropped by the linker)"
 _Z13SetNbCCDPairsPN5physx22PxSimulationStatisticsENS_14PxGeometryType4EnumES3_j,"PhysX: not in the executable (inlined into every caller, or unreferenced and dropped by the linker)"
+_Z15Unk_24e00f8_setPFvPKcE,"not in the executable: a stand-in for what the linker dropped that set PPFX's log callback static 0x71024e00f8 (lib/yebis/YEBIS_draft/src/ppfx.cpp); without a store LLVM folds the callback to null and Unk_417a30's test goes away"
 _Z15Unk_276ccc0_addv,not in the executable: a stand-in for the function the linker dropped that changed SiCore's static counter 0x710276ccc0 (lib/yebis/sisdk/3.0/SDK/Core/Libsrc/SiCore/Source/Unk_4cad50.cpp); the static initialiser 0x71004cadf0 only keeps the counter's store with one
 _Z15Unk_276ce30_getb,"not in the executable: a stand-in for what the linker dropped that read the two static versions 0x710276ce30 and 0x710276ce40 (lib/yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/Unk_4cbc40.cpp); without a reader the compiler drops the variables and the static initialiser's stores"
 _Z16PxInitExtensionsRN5physx9PxPhysicsEPNS_5PxPvdE,"PhysX: not in the executable (inlined into every caller, or unreferenced and dropped by the linker)"

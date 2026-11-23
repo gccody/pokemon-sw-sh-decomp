@@ -401,10 +401,136 @@ s32 Unk_410400(s32 type) {
 // 0x71004155f0 (not written yet): the inverse of a matrix
 void Unk_4155f0(MATRIXT44* out, const MATRIXT44* m);
 
+}  // namespace PPFX
+
+// 0x7100410960 (not written yet): the primaries and white point of a colour
+// space by its number
+void Unk_410960(Unk_410f90* self, u32 value);
+
+// 0x7100410f90: a colour space by its number (0x19 and -1: none, all zero)
+void Unk_410f90_set(Unk_410f90* self, u32 value) {
+    if (value == 0x19 || value == 0xffffffff) {
+        *self = Unk_410f90();
+        return;
+    }
+    Unk_410960(self, value);
+}
+
+namespace PPFX {
+
+MATRIXT44* Unk_411340(MATRIXT44* out, u32 value);
+MATRIXT44* Unk_4114f0(MATRIXT44* out, u32 value);
+
+// 0x7100410fb0: the adaptation of XYZ colours from one white point to another
+// (a von Kries transform in the cone space of colour space `method`)
+MATRIXT44* Unk_410fb0(MATRIXT44* out, const Unk_410f90_Point* from, const Unk_410f90_Point* to, u32 method) {
+    if (from->field_0 == to->field_0 && from->field_4 == to->field_4) {
+        out->field_0[0][1] = out->field_0[0][2] = out->field_0[0][3] = out->field_0[1][0] = out->field_0[1][2] =
+            out->field_0[1][3] = out->field_0[2][0] = out->field_0[2][1] = out->field_0[2][3] = out->field_0[3][0] =
+                out->field_0[3][1] = out->field_0[3][2] = 0.0f;
+        out->field_0[0][0] = out->field_0[1][1] = out->field_0[2][2] = out->field_0[3][3] = 1.0f;
+        return out;
+    }
+    f32 fromScale = 1.0f / from->field_4;
+    f32 fromZ = 1.0f - from->field_0 - from->field_4;
+    f32 fromX = from->field_0 * fromScale;
+    fromZ = fromScale * fromZ;
+    f32 toZ = 1.0f - to->field_0 - to->field_4;
+    f32 toScale = 1.0f / to->field_4;
+    f32 toX = to->field_0 * toScale;
+    toZ = toScale * toZ;
+    MATRIXT44 toCone;
+    Unk_4114f0(&toCone, method);
+    MATRIXT44 fromCone;
+    Unk_411340(&fromCone, method);
+    f32 r0 = fromX * toCone.field_0[0][0] + toCone.field_0[1][0] + fromZ * toCone.field_0[2][0] + toCone.field_0[3][0];
+    f32 g0 = fromX * toCone.field_0[0][1] + toCone.field_0[1][1] + fromZ * toCone.field_0[2][1] + toCone.field_0[3][1];
+    f32 b0 = fromX * toCone.field_0[0][2] + toCone.field_0[1][2] + fromZ * toCone.field_0[2][2] + toCone.field_0[3][2];
+    f32 r1 = toX * toCone.field_0[0][0] + toCone.field_0[1][0] + toZ * toCone.field_0[2][0] + toCone.field_0[3][0];
+    f32 g1 = toX * toCone.field_0[0][1] + toCone.field_0[1][1] + toZ * toCone.field_0[2][1] + toCone.field_0[3][1];
+    f32 b1 = toX * toCone.field_0[0][2] + toCone.field_0[1][2] + toZ * toCone.field_0[2][2] + toCone.field_0[3][2];
+    MATRIXT44 scale;
+    scale.field_0[0][1] = 0.0f;
+    scale.field_0[0][2] = 0.0f;
+    scale.field_0[0][3] = 0.0f;
+    scale.field_0[1][0] = 0.0f;
+    scale.field_0[1][2] = 0.0f;
+    scale.field_0[1][3] = 0.0f;
+    scale.field_0[2][0] = 0.0f;
+    scale.field_0[2][1] = 0.0f;
+    scale.field_0[2][3] = 0.0f;
+    scale.field_0[3][0] = 0.0f;
+    scale.field_0[3][1] = 0.0f;
+    scale.field_0[3][2] = 0.0f;
+    scale.field_0[0][0] = r1 / r0;
+    scale.field_0[1][1] = g1 / g0;
+    scale.field_0[2][2] = b1 / b0;
+    scale.field_0[3][3] = 1.0f;
+    MATRIXT44 result;
+    MATRIXT44 coneScale;
+    MATRIXT44_MatrixMultiply(&coneScale, &toCone, &scale);
+    MATRIXT44_MatrixMultiply(&result, &coneScale, &fromCone);
+    *out = result;
+    return out;
+}
+
+MATRIXT44* Unk_411b00(MATRIXT44* out, const Unk_410f90_Point* red, const Unk_410f90_Point* green,
+                      const Unk_410f90_Point* blue, const Unk_410f90_Point* white);
+
+// 0x7100411190: the matrix from one colour space's RGB to another's, through
+// XYZ, adapting the white point when `adapt` (each matrix its own local: with
+// one reused for all three the registers come out otherwise)
+MATRIXT44* Unk_411190(MATRIXT44* out, const Unk_410f90* from, const Unk_410f90* to, bool adapt) {
+    out->field_0[0][1] = out->field_0[0][2] = out->field_0[0][3] = out->field_0[1][0] = out->field_0[1][2] =
+        out->field_0[1][3] = out->field_0[2][0] = out->field_0[2][1] = out->field_0[2][3] = out->field_0[3][0] =
+            out->field_0[3][1] = out->field_0[3][2] = 0.0f;
+    out->field_0[0][0] = out->field_0[1][1] = out->field_0[2][2] = out->field_0[3][3] = 1.0f;
+    if (!Unk_SameColorSpace(*from, *to)) {
+        {
+            MATRIXT44 toXyz;
+            Unk_411b00(&toXyz, &from->field_0, &from->field_8, &from->field_10, &from->field_18);
+            MATRIXT44_MatrixMultiply(out, out, &toXyz);
+        }
+        if (adapt) {
+            MATRIXT44 adaptation;
+            Unk_410fb0(&adaptation, &from->field_18, &to->field_18, 0x15);
+            MATRIXT44_MatrixMultiply(out, out, &adaptation);
+        }
+        MATRIXT44 toXyz;
+        Unk_411b00(&toXyz, &to->field_0, &to->field_8, &to->field_10, &to->field_18);
+        MATRIXT44 inverse;
+        Unk_4155f0(&inverse, &toXyz);
+        MATRIXT44 toRgb = inverse;
+        MATRIXT44_MatrixMultiply(out, out, &toRgb);
+    }
+    return out;
+}
+
+// 0x7100411340: the RGB to XYZ matrix of a colour space by its number
+MATRIXT44* Unk_411340(MATRIXT44* out, u32 value) {
+    Unk_410f90 space;
+    Unk_410f90_set(&space, value);
+    Unk_411b00(out, &space.field_0, &space.field_8, &space.field_10, &space.field_18);
+    return out;
+}
+
+// 0x71004114f0: the XYZ to RGB matrix of a colour space by its number
+MATRIXT44* Unk_4114f0(MATRIXT44* out, u32 value) {
+    MATRIXT44 toXyz;
+    Unk_410f90 space;
+    Unk_410f90_set(&space, value);
+    Unk_411b00(&toXyz, &space.field_0, &space.field_8, &space.field_10, &space.field_18);
+    MATRIXT44 inverse;
+    Unk_4155f0(&inverse, &toXyz);
+    *out = inverse;
+    return out;
+}
+
 // 0x7100411b00: the RGB to XYZ matrix of three primaries and a white point
 // (their CIE x and y)
-// NON_MATCHING: the two 8-byte zero stores of primaries' [2][3] to [3][2]
-// come in descending order here (a memset), ascending in the original
+// (the primaries' last row is set with [3][3] before [3][2]: with the four
+// zeros from [2][3] to [3][2] stored one after the other, MemCpyOpt makes
+// them a memset, whose two 8-byte stores come in descending order)
 MATRIXT44* Unk_411b00(MATRIXT44* out, const Unk_410f90_Point* red, const Unk_410f90_Point* green,
                       const Unk_410f90_Point* blue, const Unk_410f90_Point* white) {
     f32 rx = red->field_0;
@@ -419,12 +545,23 @@ MATRIXT44* Unk_411b00(MATRIXT44* out, const Unk_410f90_Point* red, const Unk_410
     f32 gz = 1.0f - gx - gy;
     f32 bz = 1.0f - bx - by;
     f32 wz = 1.0f - wx - wy;
-    MATRIXT44 primaries = {{
-        {rx, ry, rz, 0.0f},
-        {gx, gy, gz, 0.0f},
-        {bx, by, bz, 0.0f},
-        {0.0f, 0.0f, 0.0f, 1.0f},
-    }};
+    MATRIXT44 primaries;
+    primaries.field_0[0][0] = rx;
+    primaries.field_0[0][1] = ry;
+    primaries.field_0[0][2] = rz;
+    primaries.field_0[0][3] = 0.0f;
+    primaries.field_0[1][0] = gx;
+    primaries.field_0[1][1] = gy;
+    primaries.field_0[1][2] = gz;
+    primaries.field_0[1][3] = 0.0f;
+    primaries.field_0[2][0] = bx;
+    primaries.field_0[2][1] = by;
+    primaries.field_0[2][2] = bz;
+    primaries.field_0[2][3] = 0.0f;
+    primaries.field_0[3][0] = 0.0f;
+    primaries.field_0[3][1] = 0.0f;
+    primaries.field_0[3][3] = 1.0f;
+    primaries.field_0[3][2] = 0.0f;
     MATRIXT44 inverse;
     Unk_4155f0(&inverse, &primaries);
     f32 scale = 1.0f / wy;
@@ -444,13 +581,13 @@ MATRIXT44* Unk_411b00(MATRIXT44* out, const Unk_410f90_Point* red, const Unk_410
     weights.field_0[3][0] = 0.0f;
     weights.field_0[3][1] = 0.0f;
     weights.field_0[3][2] = 0.0f;
-    weights.field_0[3][3] = 1.0f;
     f32 r = x * inverse.field_0[0][0] + y * inverse.field_0[1][0] + z * inverse.field_0[2][0];
     f32 g = x * inverse.field_0[0][1] + y * inverse.field_0[1][1] + z * inverse.field_0[2][1];
     f32 b = x * inverse.field_0[0][2] + y * inverse.field_0[1][2] + z * inverse.field_0[2][2];
     weights.field_0[0][0] = r;
     weights.field_0[1][1] = g;
     weights.field_0[2][2] = b;
+    weights.field_0[3][3] = 1.0f;
     MATRIXT44 result;
     MATRIXT44_MatrixMultiply(&result, &weights, &primaries);
     *out = result;
@@ -850,6 +987,12 @@ void Unk_413b10(u32 count, f32* offsets, f32* weights, bool normalize, f32 sigma
 // `normalize` a branch (the flag a `csel` of the scale's comparison) and
 // multiplies 2 sigma by sigma; here both tests become selects and sigma is
 // multiplied by 2 sigma.
+// (Reassociate puts the operand of lower rank first, and 2 sigma's rank is
+// always above sigma's: the original's order needs the two sigmas to be two
+// loads at that point, merged by GVN later. A sigma[2] filled in a loop and
+// multiplied as 2 * s[0] * s[1] gives it, which isn't natural code. The
+// k-first products and the centre-first sum come from loops over the taps,
+// unrolled after Reassociate, as 0x7100414be0 shows: tap arrays on the stack.)
 void Unk_414af0(u32 count, f32* offsets, f32* weights, bool normalize, f32 sigma, f32 x) {
     sigma = fmaxf(sigma, 1e-8f);
     f32 s = sigma * 2.5066283f;

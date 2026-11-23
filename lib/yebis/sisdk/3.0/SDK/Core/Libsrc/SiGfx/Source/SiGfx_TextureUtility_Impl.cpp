@@ -87,7 +87,8 @@ bool SiGfxTextureUtility::vf8(void* device, ISiInterface** texture, const Unk_Te
         if (device == nullptr) {
             return false;
         }
-        *texture = reinterpret_cast<ISiInterface*>(static_cast<SiGfxNXDevice*>(device)->vf49(kind, nullptr, 0, nullptr));
+        SiGfxNXDevice* pDevice = static_cast<SiGfxNXDevice*>(device);
+        *texture = reinterpret_cast<ISiInterface*>(pDevice->vf49(kind, nullptr, 0, nullptr));
         if (*texture == nullptr) {
             return false;
         }
@@ -245,3 +246,7 @@ bool SiGfxTextureUtility::vf17(void* texture, const char* path, u32 platform, u3
 }
 
 }  // namespace SiSDK3
+
+// 0x71004ec920: the reserve of the levels' array (vf18 and SiGfxNXTexture's
+// slot 23 call it)
+template bool SiSDK3::SiArray<SiSDK3::SIGFX_TEXTURE_INITDATA, 16>::Unk_4bf190(size_t, bool);

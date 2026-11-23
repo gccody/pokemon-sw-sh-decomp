@@ -85,6 +85,92 @@ struct Unk_544540_Target {
     f32 field_38;  // and height
 };
 
+// The vertex format the helper makes (placeholder name: SiGfxNXVertexFormat's
+// slots 18 to 20 begin, add an element and end its description).
+class Unk_5439a0_VertexFormat : public Unk_544090_Object {
+public:
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual u32 vf18();
+    virtual bool vf19(u32 a1, s32 a2, u32 a3, s32 a4, s32 a5, u32 a6, u32 a7);
+    virtual bool vf20();
+};
+
+// The device as the helper calls it (placeholder name: SiGfxNXDevice's
+// slots 38, 52 and 56 make a vertex format and a sampler and give a font).
+class Unk_5439a0_Device {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+    virtual void vf25();
+    virtual void vf26();
+    virtual void vf27();
+    virtual void vf28();
+    virtual void vf29();
+    virtual void vf30();
+    virtual void vf31();
+    virtual void vf32();
+    virtual void vf33();
+    virtual void vf34();
+    virtual void vf35();
+    virtual void vf36();
+    virtual void vf37();
+    virtual Unk_5439a0_VertexFormat* vf38(const void* desc, u32 a2, ISiAllocator* pAllocator);
+    virtual void vf39();
+    virtual void vf40();
+    virtual void vf41();
+    virtual void vf42();
+    virtual void vf43();
+    virtual void vf44();
+    virtual void vf45();
+    virtual void vf46();
+    virtual void vf47();
+    virtual void vf48();
+    virtual void vf49();
+    virtual void vf50();
+    virtual void vf51();
+    virtual Unk_544090_Object* vf52(const void* desc, u64 a2, u32 a3, ISiAllocator* pAllocator);
+    virtual void vf53();
+    virtual void vf54();
+    virtual void vf55();
+    virtual Unk_544090_Object* vf56(s32 index);
+};
+
 // The draw context as the helper calls it (placeholder name).
 class Unk_544540_Context {
 public:
@@ -93,7 +179,7 @@ public:
     virtual void vf2();
     virtual void vf3();
     virtual void vf4();
-    virtual void vf5();
+    virtual Unk_5439a0_Device* vf5();
     virtual void vf6();
     virtual void vf7();
     virtual void vf8();
@@ -138,14 +224,36 @@ public:
     };
 
     // The arrays' elements (RTTI names them), as far as their sizes.
+    // (Their constructors are what the arrays' reserves construct the new
+    // elements with.)
     struct GlyphRenderData {
-        u8 field_0[0x38];
+        GlyphRenderData() : field_10(0), field_18(0), field_20(0), field_28(0), field_30(0) {}
+
+        u64 field_0;
+        u64 field_8;
+        u64 field_10;
+        u64 field_18;
+        u64 field_20;
+        u64 field_28;
+        u32 field_30;
     };
     struct TextLineData {
-        u8 field_0[0x14];
+        TextLineData() : field_0(0), field_4(0), field_8(0), field_c(0) {}
+
+        u32 field_0;
+        u32 field_4;
+        u32 field_8;
+        u32 field_c;
+        u32 field_10;
     };
     struct FontVertex {
-        u8 field_0[0x28];
+        FontVertex() : field_0(0), field_8(0), field_10(0), field_18(0), field_20(0) {}
+
+        u64 field_0;
+        u64 field_8;
+        u64 field_10;
+        u64 field_18;
+        u64 field_20;
     };
 
     // A 4x4 matrix, an identity one at first (placeholder name).
@@ -187,7 +295,7 @@ public:
     void Unk_5436d0();
     // 0x7100544090: lets go of what it has
     void Unk_544090();
-    // 0x71005439a0: sets the helper up for a draw context (not written yet)
+    // 0x71005439a0: sets the helper up for a draw context
     bool Unk_5439a0(Unk_544540_Context* pContext);
     // The draw context's slots 51 to 57 (what they take is passed on as it
     // comes: the functions not written yet are declared without it).
@@ -212,7 +320,7 @@ public:
     Unk_Matrix field_e0;
     SiArray<FontVertex, 16> field_120;
     SiArray<unsigned short, 16> field_170;
-    Unk_544090_Object* field_1c0;
+    Unk_5439a0_VertexFormat* field_1c0;
     Unk_Vec4 field_1c8[4];  // a quad's corners
     Unk_Vec2 field_208[4];  // and their texture coordinates
     Unk_544090_Object* field_228;
@@ -226,6 +334,9 @@ PKMN_OFFSET_ASSERT(SiGfxFontDrawHelper, field_120, 0x120);
 PKMN_OFFSET_ASSERT(SiGfxFontDrawHelper, field_1c0, 0x1c0);
 PKMN_OFFSET_ASSERT(SiGfxFontDrawHelper, field_2b8, 0x2b8);
 PKMN_SIZE_ASSERT(SiGfxFontDrawHelper, 0x2e0);
+PKMN_SIZE_ASSERT(SiGfxFontDrawHelper::GlyphRenderData, 0x38);
+PKMN_SIZE_ASSERT(SiGfxFontDrawHelper::TextLineData, 0x14);
+PKMN_SIZE_ASSERT(SiGfxFontDrawHelper::FontVertex, 0x28);
 
 }  // namespace SiSDK3
 

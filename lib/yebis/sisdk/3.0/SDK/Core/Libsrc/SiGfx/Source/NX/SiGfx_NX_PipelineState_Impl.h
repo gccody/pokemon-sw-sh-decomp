@@ -46,20 +46,33 @@ public:
         u32 field_18;
         u8 field_1c[4];  // the channels written
     };
+    // A vertex attribute in the description (placeholder name and members).
+    struct Unk_VertexElement {
+        u32 field_0;  // its semantic
+        s32 field_4;  // and its index
+        u32 field_8;  // its format
+        s32 field_c;  // the stream it is read from
+        s32 field_10;  // its offset there
+        u8 field_14[8];
+    };
+    PKMN_SIZE_ASSERT(Unk_VertexElement, 0x1c);
     // What a pipeline is described by (placeholder name and members): 0x530
     // bytes, which the constructor zeroes before it sets the defaults.
     struct Unk_Desc {
         u8 field_0[0x10];
-        u32 field_10;
-        u32 field_14;
-        u8 field_18[0x10];
-        bool field_28;
-        u8 field_29[4];
+        u32 field_10;  // the faces culled
+        u32 field_14;  // the polygon mode
+        u8 field_18[0xc];
+        u32 field_24;  // the samples
+        bool field_28;  // the front face
+        bool field_29;  // multisampling
+        u8 field_2a[3];
         bool field_2d;
-        u32 field_30;
-        bool field_34;
-        bool field_35;
-        u8 field_36[3];
+        u32 field_30;   // the depth function
+        bool field_34;  // the depth test
+        bool field_35;  // the depth writes
+        u8 field_36[2];
+        bool field_38;  // the stencil test
         u8 field_39;
         u8 field_3a;
         u32 field_3c;
@@ -74,9 +87,15 @@ public:
         bool field_5d;
         Unk_Blend field_60[8];
         u32 field_160;  // what is drawn (as the draw context counts it)
-        u8 field_164[0x3cc];
+        u8 field_164[4];
+        Unk_VertexElement field_168[32];  // the vertex attributes
+        s32 field_4e8;                    // how many there are
+        u8 field_4ec[0x40];
+        bool field_52c;  // the attributes are placed by their semantics
+        u8 field_52d[3];
     };
     PKMN_OFFSET_ASSERT(Unk_Desc, field_60, 0x60);
+    PKMN_OFFSET_ASSERT(Unk_Desc, field_4e8, 0x4e8);
     PKMN_SIZE_ASSERT(Unk_Desc, 0x530);
 
     SiGfxNXPipelineState(ISiAllocator* pAllocator, SiGfxNXDevice* pDevice);  // 0x7100553180
@@ -88,7 +107,7 @@ public:
     virtual Unk_NXDeviceInterface* vf6();
     virtual u32 vf7();
     virtual u32 vf8();
-    virtual bool vf9(const void* desc);  // 0x71005536e0: makes the NVN states (not written yet)
+    virtual bool vf9();  // 0x71005536e0: makes the NVN states
     virtual const u8* vf10();
     virtual const u8* vf11();
     virtual u32 vf12();
@@ -107,7 +126,8 @@ public:
 
     Unk_4bf660 field_8;
     SiGfxNXDevice* field_18;
-    u64 field_20;
+    u32 field_20;
+    s32 field_24;  // how many descriptions it was given (slot 8)
     Unk_Desc field_28;  // its description
     u64 field_558[8];    // NVNblendState
     u32 field_598;       // NVNpolygonState

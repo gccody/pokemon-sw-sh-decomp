@@ -2,6 +2,7 @@
 // PPFX::IGPUTexture (C:/workspace/YEBIS_draft/src/GPU/GPUInterfaceTexture.cpp, the __FILE__ of its log lines).
 #include <yebis/YEBIS_draft/src/GPU/Unk_Statics.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUInterfaceTexture.h>
+#include <yebis/YEBIS_draft/src/GPU/Unk_SiGfxTextureCreateDesc.h>
 
 #define PPFX_FILE "C:/workspace/YEBIS_draft/src/GPU/GPUInterfaceTexture.cpp"
 #include <yebis/YEBIS_draft/src/GPU/Unk_Log.h>
@@ -11,9 +12,6 @@ extern bool Unk_238c3f9;
 
 // 0x71024e14f8: the device there is
 extern PPFX::IGPUDevice* Unk_24e14f8;
-
-// 0x7100445370: a texture's surface for a level
-PPFX::IGPUSurface* Unk_445370(PPFX::IGPUDevice* device, PPFX::IGPUBaseTexture* texture, u32 level, u32 arg3, u32 usage);
 
 namespace PPFX {
 
@@ -25,6 +23,8 @@ IGPUVolumeTexture* Unk_4486b0(IGPUDevice* device, void* siTexture, u32 width, u3
                               u32 arg7);
 u32 Unk_446ae0(s32 format);
 s32 Unk_43e620(IGPUDevice* self, s32 n);
+// 0x710043e600: counts memory the device's textures use
+s32 Unk_43e600(IGPUDevice* self, s32 n);
 
 // 0x71004472c0: what the texture is of goes before its last reference
 s32 IGPUBaseTexture::vf1() {
@@ -120,6 +120,128 @@ s32 IGPUBaseTexture::vf21(s32 state, bool check) {
     return 0;
 }
 
+// 0x7100447320: copies `data` into level `level` through a SiGfx texture made
+// for it
+s32 IGPUBaseTexture::vf9(void* data, u32 level, u32 a3, bool a4) {
+    s32 result = vf7(data, level, a3, a4);
+    if (result < 0) {
+        return result;
+    }
+    if (field_c != 3) {
+        return -6;
+    }
+    IGPUSurface* surface = static_cast<IGPUTexture*>(this)->field_88[level];
+    Unk_SiGfxTexture* staging = field_18->field_38->vf49(2, nullptr, 0, nullptr);
+    u32 bpp = Unk_446ae0(surface->field_44.field_0);
+    Unk_SiGfxTextureLevelData pixels = {};
+    pixels.field_0 = data;
+    u32 pitch = surface->field_44.field_8 * bpp;
+    u32 size = pitch * surface->field_44.field_c;
+    pixels.field_10 = pitch;
+    pixels.field_8 = size;
+    Unk_SiGfxTextureCreateDesc desc;
+    desc.field_1c = 1;
+    desc.field_20 = 1;
+    desc.field_10 = surface->field_44.field_8;
+    desc.field_14 = surface->field_44.field_c;
+    desc.field_40 = 8;
+    desc.field_38 = 0;
+    desc.field_30 = 0;
+    desc.field_0 = surface->field_44.field_0;
+    desc.field_60 = &pixels;
+    desc.field_50 = pixels.field_8;
+    desc.field_54 = 1;
+    if (!staging->vf22(&desc)) {
+        staging->vf3();
+        return -1;
+    }
+    Unk_SiGfxDrawContext* context = field_18->field_30;
+    void* source = staging->vf25(0);
+    void* target = reinterpret_cast<Unk_SiGfxTexture*>(*field_70)->vf25(level);
+    void* list = context->vf10();
+    context->vf98(nullptr);
+    context->vf71(target, source);
+    context->vf98(list);
+    staging->vf3();
+    return 0;
+}
+
+// 0x7100447da0 (IGPUTexture::CreateTexture, its log lines say): a new
+// texture of a SiGfx texture of its own
+// NON_MATCHING: the original computes the description's kind, view flags
+// and field_38 with selects before the device's CreateTexture() and spills
+// them; here the view flags are computed after it, and the registers differ.
+IGPUTexture* IGPUTexture::CreateTexture(IGPUDevice* pDevice, u32 width, u32 height, u32 levels, s32 format, s32 msaa,
+                                        u32 quality, u32 usage, u32 flags) {
+    if (width == 0 || height == 0) {
+        return nullptr;
+    }
+    u32 kind = (usage & 0x200) ? 2 : (usage >> 11) & 1;
+    u32 views = ((usage & 2) << 13) | ((usage & 1) << 5);
+    u32 a38 = (flags & 0x2000000) >> 8;
+    if (flags & 1) {
+        views |= 8;
+        a38 = 0x20000;
+        kind = 3;
+    }
+    Unk_SiGfxTexture* siTexture = pDevice->field_38->vf49(2, nullptr, 0, nullptr);
+    if (siTexture == nullptr) {
+#line 4067
+        PPFX_ERROR("IGPUTexture::CreateTexture(): ISiGfxDevice::CreateTexture() failed.\n");
+        return nullptr;
+    }
+    Unk_SiGfxTextureCreateDesc desc;
+    desc.field_0 = format;
+    desc.field_4 = 0;
+    desc.field_8 = 0;
+    desc.field_c = 0;
+    desc.field_10 = width;
+    desc.field_14 = height;
+    desc.field_18 = 1;
+    desc.field_1c = levels;
+    desc.field_20 = 1;
+    desc.field_24 = msaa;
+    desc.field_28 = quality;
+    desc.field_30 = kind;
+    desc.field_34 = views;
+    desc.field_38 = a38;
+    desc.field_3c = 0;
+    desc.field_40 = (flags & 0x2000000) >> 22;
+    desc.field_48 = 0;
+    desc.field_54 = 0;
+    desc.field_60 = nullptr;
+    desc.field_68 = 0;
+    desc.field_70 = 0;
+    desc.field_78 = 1.0f;
+    desc.field_7c = 0;
+    desc.field_80 = 0;
+    desc.field_84 = 0;
+    if (!siTexture->vf22(&desc)) {
+#line 4106
+        PPFX_ERROR("IGPUTexture::CreateTexture(): ISiGfxTexture::Create() failed.\n");
+        siTexture->vf3();
+        return nullptr;
+    }
+    u32 count = siTexture->vf19()->field_20;
+    for (u32 i = 0; i < count; i++) {
+        const Unk_SiGfxSurfaceDesc* level = static_cast<Unk_SiGfxSurface*>(siTexture->vf25(i))->vf17();
+        Unk_43e600(pDevice, level->field_14 * level->field_18 * level->field_28);
+    }
+#line 4129
+    IGPUTexture* texture = UNK_NEW(IGPUTexture)(pDevice);
+    s32 result = texture->vf22(siTexture, flags);
+    texture->field_20 = true;
+    siTexture->vf3();
+    reinterpret_cast<Unk_SiGfxTexture*>(*texture->field_70)->vf4();
+    if (result < 0) {
+        if (texture != nullptr) {
+            texture->vf1();
+        }
+        texture = nullptr;
+    }
+    return texture;
+}
+
 // 0x7100447970, 0x7100447a10 (deleting): gives back the memory the device
 // counts for each level
 IGPUTexture::~IGPUTexture() {
@@ -143,7 +265,7 @@ s32 IGPUTexture::vf10() {
 #line 2086
     field_88 = UNK_NEW_ARRAY(IGPUSurface*, levels);
     for (u32 i = 0; i < levels; i++) {
-        field_88[i] = Unk_445370(field_18, this, i, 0, field_24);
+        field_88[i] = IGPUSurface::CreateSurface_SIGFX_TEXTURE_ATTACHED_SURFACE(field_18, this, i, 0, field_24);
     }
     return 0;
 }

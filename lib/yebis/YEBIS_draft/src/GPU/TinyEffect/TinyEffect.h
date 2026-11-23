@@ -25,8 +25,17 @@ class CTinyEffect;
 
 // what vf20 and vf21 return: a pass's three device objects
 struct Unk_TinyResult {
+    Unk_TinyResult() {}
+    Unk_TinyResult(SiSDK3::ISiInterface* a, SiSDK3::ISiInterface* b, SiSDK3::ISiInterface* c)
+        : field_0(a), field_8(b), field_10(c) {}
     Unk_TinyResult(const Unk_TinyResult& other)
         : field_0(other.field_0), field_8(other.field_8), field_10(other.field_10) {}
+    Unk_TinyResult& operator=(const Unk_TinyResult& other) {
+        field_0 = other.field_0;
+        field_8 = other.field_8;
+        field_10 = other.field_10;
+        return *this;
+    }
 
     SiSDK3::ISiInterface* field_0;
     SiSDK3::ISiInterface* field_8;
@@ -83,20 +92,53 @@ struct Unk_TinyShared {
 };
 PKMN_OFFSET_ASSERT(Unk_TinyShared, field_140, 0x140);
 
+// what a pass is made from (placeholder): its programs' names and objects,
+// the base of a pass (the part CreateProgram fills in)
+struct Unk_TinyProgram {
+    Unk_TinyProgram(CTinyEffect* effect) : field_0(effect), field_8(""), field_18(false) {
+        field_20 = "";
+        field_30.field_0 = nullptr;
+        field_30.field_8 = nullptr;
+        field_30.field_10 = nullptr;
+        field_48 = 0;
+        field_4c = 0;
+        field_50 = 0;
+        field_58 = nullptr;
+        field_60 = nullptr;
+    }
+
+    CTinyEffect* field_0;
+    Unk_TFXString field_8;  // the name
+    bool field_18;
+    u8 pad_19[0x7];
+    Unk_TFXString field_20;  // the code's name
+    Unk_TinyResult field_30;
+    u32 field_48;
+    u32 field_4c;  // the sizes of the vertex and fragment code
+    u32 field_50;
+    u8 pad_54[0x4];
+    const char* field_58;  // the vertex and fragment code
+    const char* field_60;
+};
+PKMN_SIZE_ASSERT(Unk_TinyProgram, 0x68);
+
 // a pass (field_310's elements)
-struct Unk_TinyPass {
+struct Unk_TinyPass : Unk_TinyProgram {
+    Unk_TinyPass(CTinyEffect* effect)
+        : Unk_TinyProgram(effect), field_68(false), field_88(nullptr), field_90(nullptr), field_98(nullptr),
+          field_c0(false) {}
+    // a pass for `program`
+    Unk_TinyPass(CTinyEffect* effect, const Unk_TinyProgram& program)
+        : Unk_TinyProgram(effect), field_68(false), field_88(nullptr), field_90(nullptr), field_98(nullptr),
+          field_c0(false) {
+        field_8 = program.field_8.field_8;
+        field_20 = program.field_20;
+        field_30 = program.field_30;
+        field_48 = program.field_48;
+    }
     ~Unk_TinyPass() { Unk_44ab80(); }
     s32 Unk_44ab80();  // 0x710044ab80: releases its device objects
 
-    u8 pad_0[0x8];
-    Unk_TFXString field_8;  // the name
-    u8 pad_18[0x8];
-    Unk_TFXString field_20;
-    Unk_TinyResult field_30;
-    u8 pad_48[0x4];
-    u32 field_4c;
-    u32 field_50;
-    u8 pad_54[0x14];
     bool field_68;
     u8 pad_69[0x7];
     std::vector<Unk_TinyPassItem*, Unk_StlAllocator<Unk_TinyPassItem*>> field_70;
@@ -116,16 +158,24 @@ PKMN_OFFSET_ASSERT(Unk_TinyPass, field_c0, 0xc0);
 
 // a parameter (field_328's elements)
 struct Unk_TinyParam {
-    u8 pad_0[0x8];
+    Unk_TinyParam(CTinyEffect* effect)
+        : field_0(effect), field_8(""), field_18(false), field_40(false), field_41(false), field_48(nullptr) {
+        field_1c = 0;
+    }
+
+    CTinyEffect* field_0;
     Unk_TFXString field_8;  // the name
-    u8 pad_18[0x4];
+    bool field_18;
+    u8 pad_19[0x3];
     s32 field_1c;   // the kind: 1 to 3 numbers, 4 an object
     u32 field_20;   // the size in bytes
-    u8 pad_24[0x8];
+    u32 field_24;
+    u32 field_28;
     u32 field_2c;   // the number of elements
-    Unk_TFXString field_30;  // the semantic
+    Unk_TFXString field_30;  // the semantic (the element's name)
     bool field_40;  // field_48 is the parameter's own
-    u8 pad_41[0x7];
+    bool field_41;  // an element of an array
+    u8 pad_42[0x6];
     void* field_48;  // the value
 
     ~Unk_TinyParam() {
@@ -233,6 +283,25 @@ public:
     s32 Unk_44cbd0();  // 0x710044cbd0: reads the effect
     // 0x710044c060 (its log lines name it)
     s32 CreateSiGfxProgramResources(Unk_TinyPass* pass);
+    // 0x710044bbd0 (its log line names it): `elements` parameters (one if
+    // 0) named `name`, or the one that has the name if `find`
+    s32 CreateGlobalParameter(const Unk_TFXString& name, s32 type, s32 elements, bool find);
+    // 0x710044c370 (its log lines name it): makes the program's objects
+    s32 CreateProgram(Unk_TinyProgram* program);
+    // 0x710044c920: the pass that runs `code` (a new one unless `objects` are
+    // already made), its index
+    s32 Unk_44c920(const Unk_TFXString& name, const Unk_TFXString& code, u32 arg, const Unk_TinyResult* objects);
+    // the pass that runs `code` (-1 if none)
+    s32 Unk_FindPass(const char* code) const {
+        s32 index = -1;
+        for (u32 i = 0; i < field_310.size(); i++) {
+            if (field_310[i]->field_20 == code) {
+                index = i;
+                break;
+            }
+        }
+        return index;
+    }
 
     // a parameter by its handle (counted from 1)
     bool Unk_IsParam(s32 handle) const { return handle >= 1 && handle <= static_cast<s32>(field_328.size()); }

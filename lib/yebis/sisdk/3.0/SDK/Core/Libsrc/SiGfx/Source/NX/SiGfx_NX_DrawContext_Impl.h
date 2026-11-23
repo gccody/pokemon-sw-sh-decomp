@@ -205,7 +205,8 @@ public:
 struct Unk_NXDrawUsage {
     u32 field_0;  // (a texture's slot 19: its kind, 2: 2D, 4: cube, 5 and 6: their arrays)
     s32 field_4;  // (a buffer's slot 17: its size)
-    u8 field_8[0xc];
+    s32 field_8;  // (a vertex buffer's slot 17: its stride)
+    u8 field_c[8];
     s32 field_14;  // (a texture's slot 19, a surface's slot 17: the width and height)
     s32 field_18;
     u8 field_1c[0x58];
@@ -772,7 +773,7 @@ public:
             Unk_Viewport field_2c[16];
             s32 field_1ac;
             Unk_Scissor field_1b0[16];
-            u64 field_2b0[16];  // the vertex buffers' (slot 74 clears them)
+            ISiGfxResource* field_2b0[16];  // the vertex buffers (slot 74 clears them)
             u32 field_330[16];  // their strides
             u32 field_370[16];
             Unk_NXDrawIndirect* field_3b0;  // the index buffer
@@ -979,6 +980,9 @@ public:
         field_30.field_29b8.Unk_Mark(slot);
         field_30.field_2b40[slot] = value;
     }
+    // 0x710053cfc0: binds vertex buffers (their strides are the buffers' own
+    // if none are given)
+    void vf19(s32 first, s32 count, ISiGfxResource** ppBuffers, const s32* strides, const s32* offsets);
     void vf20(Unk_NXDrawIndirect* pBuffer, s32 offset);  // 0x710053d490: the index buffer
     void vf21(const Unk_Color* color);             // 0x710053d5c0: the clear color
     void vf23(SiGfxNXDescriptorSet* pSet);         // 0x710053d660: binds a descriptor set's parameters
@@ -1031,7 +1035,9 @@ public:
     void vf57();
     bool vf58(Unk_PrimitiveTexture* pTexture, const Unk_PrimitiveTextureDesc* desc, const Unk_PrimitiveRect* dest,
               const Unk_PrimitiveRect* source);
-    void vf59();
+    bool vf59(Unk_PrimitiveTexture* pPlane0, Unk_PrimitiveTexture* pPlane1, Unk_PrimitiveTexture* pPlane2,
+              Unk_PrimitiveTexture* pPlane3, const Unk_PrimitiveTextureDesc* desc, const Unk_PrimitiveRect* dest,
+              const Unk_PrimitiveRect* source);
     bool vf61(Unk_NXDrawQuery* query);             // 0x7100540840
     bool vf62(Unk_NXDrawQuery* query);             // 0x7100540890
     bool vf64(Unk_NXDrawQuery* query);             // 0x71005408e0

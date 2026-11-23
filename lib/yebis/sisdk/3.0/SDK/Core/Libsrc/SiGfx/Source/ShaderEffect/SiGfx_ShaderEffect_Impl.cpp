@@ -511,7 +511,8 @@ static inline SiGfxShaderEffect::ShaderProgramData* Unk_FindProgram(SiGfxShaderE
 // block they all branch to; and a register order in the search's midpoint
 // (`add w17, w12, w18` for the original's `add w17, w18, w12`). The tests
 // and the search are the original's (the keys' loads are hoisted out of it
-// because the search's keys are references).
+// because the search's keys are references). Tried: the function not
+// inline, the midpoint as `(high + low) >> 1`.
 inline SiGfxShaderEffect::ShaderProgramData* SiGfxShaderEffect::Unk_578100(const SiGfxShaderEffectKey* key0,
                                                                           const SiGfxShaderEffectKey* key1) {
     s32 index = key0->field_8;
@@ -707,7 +708,10 @@ inline bool Unk_InsertFirst(SiArray<T, ALIGN>* array, const T& value) {
 // NON_MATCHING: registers and spills: the original keeps key1 in x21 until
 // the compile entry is made (and spills it then, to sp+0x70), this spills it
 // right after the hashes; the stack slots of the technique, the description
-// and the options are 8 bytes off; the found key's copy pairs other stores.
+// and the options are 8 bytes off; the found key's copy pairs other stores
+// (the original stores the program's state alone, then the key's words in
+// pairs from 0xc; tried: the key assigned as a whole, which copies it in
+// 64-bit words, and the three assignments in other orders).
 // (The hash 0x71004c3410 takes a 64-bit size now, which gives the keys'
 // sizes' `ldrsw x0`.)
 SiGfxShaderEffect::Unk_ProgramRequest SiGfxShaderEffect::vf12(const char* name, const SiGfxShaderEffectKey* key0,

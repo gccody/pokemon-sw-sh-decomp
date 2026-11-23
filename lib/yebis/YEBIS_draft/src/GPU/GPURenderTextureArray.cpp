@@ -12,6 +12,9 @@
 
 // 0x7100446df0: a result's name
 const char* Unk_446df0(s32 result);
+// 0x7100440cb0, 0x7100440d50 (lib/yebis/leaf)
+u32 Unk_440cb0_get(u64 device, u32 arg);
+u32 Unk_440d50_get(u64 device, u32 arg);
 
 // one reference less, and the pointer cleared
 #define UNK_RELEASE(object)        \
@@ -225,10 +228,8 @@ static inline s32 Unk_ClearTarget(PPFX::CRenderTextureArray* self, PPFX::Unk_49b
 
 // 0x71004a6160: every texture's targets cleared (with `color`, `depth` and
 // `stencil`)
-// NON_MATCHING: register allocation only: the original keeps the saved
-// current index and the depth target's result in stack slots from the start
-// (spilled where they are set); here the result stays in w23 until the loop
-// and the two slots are exchanged.
+// (the inner loop over the two sets is unrolled only after the outer loops
+// are optimised, which decides the registers)
 s32 Unk_4a6160(PPFX::Unk_4a5d10_Self* selfArg, void* color, s32 stencil, f32 depth) {
     PPFX::CRenderTextureArray* self = reinterpret_cast<PPFX::CRenderTextureArray*>(selfArg);
     if (self->field_20 == nullptr) {
@@ -248,16 +249,11 @@ s32 Unk_4a6160(PPFX::Unk_4a5d10_Self* selfArg, void* color, s32 stencil, f32 dep
             continue;
         }
         for (u32 level = 0; level < self->field_38[i]->field_98; level++) {
-            s32 result = Unk_ClearTarget(self, self->field_38[i]->field_d0[0][level], &self->field_50,
-                                         static_cast<const f32*>(color), depth, stencil);
-            if (result < 0) {
-                return result;
-            }
-            self->field_38[i]->Unk_49cfa0(0, level, 0x10000, 0x10000, 0, true, nullptr, 0, nullptr, 0, nullptr, 1.0f,
-                                          1.0f);
-            if (self->field_38[i]->field_d0[1][level] != self->field_38[i]->field_d0[0][level]) {
-                result = Unk_ClearTarget(self, self->field_38[i]->field_d0[1][level], &self->field_58,
-                                         static_cast<const f32*>(color), depth, stencil);
+            for (s32 set = 0; set < 2; set++) {
+                if (set != 0 && self->field_38[i]->field_d0[1][level] == self->field_38[i]->field_d0[0][level])
+                    break;
+                s32 result = Unk_ClearTarget(self, self->field_38[i]->field_d0[set][level], &(&self->field_50)[set],
+                                             static_cast<const f32*>(color), depth, stencil);
                 if (result < 0) {
                     return result;
                 }
@@ -287,7 +283,7 @@ namespace PPFX {
 
 // 0x71004a6070
 s32 CRenderTextureArray::Unk_4a6070(s32 index, bool depth, s32 arg2, void* arg3, s32 arg4, s32 slot, s32 arg6,
-                                    s32 arg7) {
+                                    s32 arg7, f32 arg8) {
     if (index == -1)
         index = field_90;
     field_90 = index;
@@ -305,8 +301,65 @@ s32 CRenderTextureArray::Unk_4a6070(s32 index, bool depth, s32 arg2, void* arg3,
     CRenderTexture* texture = index < field_30 ? field_38[index] : nullptr;
     CRenderTexture* targets[8] = {slot == 0 ? texture : nullptr, slot == 1 ? texture : nullptr,
                                   slot == 2 ? texture : nullptr, slot == 3 ? texture : nullptr};
-    s32 result = Unk_49da70(8, targets, first, second, arg2, arg3, arg4, arg6, arg7);
+    s32 result = Unk_49da70(8, targets, first, second, arg2, arg3, arg4, arg6, arg7, arg8);
     return result < 0 ? result : 0;
+}
+
+// 0x71004a65a0
+// NON_MATCHING: two spots: the search for the largest count that has a
+// technique tests `n != 0` before it reads the table (the original reads
+// first and tests both with one ccmp), and with no device the original
+// passes a constant null to Unk_442c50_get from its own block.
+s32 CRenderTextureArray::Unk_4a65a0(s32 target, s32 source, u32 count, s32 index, bool flag, f32 scale) {
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    if (flag)
+        util->Unk_471410(count, 0, 4);
+    Unk_440cb0_get(reinterpret_cast<u64>(field_20), 1);
+    Unk_440d50_get(reinterpret_cast<u64>(field_20), 0);
+    field_20->vf42(0);
+    CRenderTexture* dst = Unk_Texture(target);
+    CRenderTexture* src = Unk_Texture(source);
+    Unk_GPUTexture* textures[16];
+    Unk_Float4 weights[16];
+    f32 total = static_cast<f32>(count);
+    for (u32 i = 0; i < count; i++) {
+        CRenderTexture* texture = Unk_Texture(source + i);
+        while (texture->field_120 != nullptr)
+            texture = texture->field_120;
+        textures[i] = reinterpret_cast<Unk_GPUTexture*>(texture->field_a8);
+        f32 weight = scale / total;
+        weights[i] = Unk_Float4(weight, weight, weight, weight);
+    }
+    f32 srcWidth = static_cast<f32>(static_cast<u32>(src->field_54));
+    f32 srcHeight = static_cast<f32>(static_cast<u32>(src->field_58));
+    f32 x = src->field_88 * srcWidth + src->field_90;
+    f32 y = src->field_8c * srcHeight + src->field_94;
+    f32 width = static_cast<f32>(static_cast<u32>(dst->field_54));
+    f32 height = static_cast<f32>(static_cast<u32>(dst->field_58));
+    for (u32 i = 0; i < count; i++)
+        textures[i]->vf17(1);
+    Unk_4a6070(target, false, 0, nullptr, 0, 0, 0, 0, 1.0f);
+    if (!Unk_442c50_get(reinterpret_cast<u64>(field_20))) {
+        u32 n = count;
+        while (util->field_30.field_48a8[static_cast<s32>(n - 1)][index] == 0 && n != 0)
+            n--;
+        if (n < count) {
+            count = n;
+            f32 factor = total / static_cast<f32>(count);
+            for (u32 i = 0; i < count; i++) {
+                weights[i].field_0[0].field_0 *= factor;
+                weights[i].field_0[1].field_0 *= factor;
+                weights[i].field_0[2].field_0 *= factor;
+                weights[i].field_0[3].field_0 *= factor;
+            }
+        }
+    }
+    s32 result = util->Unk_4768b0(0.0f, 0.0f, width, height, 0.0f, 0.0f, x, y,
+                                  count, textures, weights, index, 0x10000);
+    for (u32 i = 0; i < count; i++)
+        textures[i]->vf17(0);
+    return result;
 }
 
 // what CopyToSurface calls of the device and the surface

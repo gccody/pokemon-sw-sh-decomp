@@ -15,8 +15,11 @@ namespace SiSDK3 {
 
 // A level's pixels as the texture is made from them (RTTI names the type:
 // SiArray's element). Placeholder members; its destructor isn't trivial (the
-// array's delete asks the allocator for the count).
+// array's delete asks the allocator for the count), and its constructor
+// zeroes it (the array's reserve, 0x71004ec920, clears what it allocates).
 struct SIGFX_TEXTURE_INITDATA {
+    SIGFX_TEXTURE_INITDATA() : field_0(nullptr), field_8(0), field_10(0), field_14(0) {}
+
     u8* field_0;    // the pixels (in the chunk's: the writer stores the offset)
     u64 field_8;    // how many bytes
     u32 field_10;   // how many bytes a row is

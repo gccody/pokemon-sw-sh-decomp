@@ -2182,6 +2182,69 @@ struct Unk_428f00_Target {
     u32 field_50;
 };
 
+// 0x7100428cc0
+// NON_MATCHING: scheduling only, the same instructions: the original computes
+// the first stage's 1 - f / near before its scale, the second stage's scale
+// between the offset's product and sum, and materialises 1.0 before the fneg
+// of the inversion
+s32 CPostEffect::Unk_428cc0(f32* out, s32 from, s32 to, f32 a, f32 b) {
+    if (from == 6) {
+        from = field_5c;
+    }
+    if (to == 6) {
+        to = field_5c;
+    }
+    Unk_Refresh();
+    f32 offset = 0.0f;
+    f32 scale = 1.0f;
+    if (from != to) {
+        f32 near = field_6c4;
+        f32 far = field_6c8;
+        s32 low = from < to ? from : to;
+        s32 high = from > to ? from : to;
+        Unk_Refresh();
+        if (low < 1 && high >= 1) {
+            f32 f = field_1064;
+            f32 k = (far - near) * f / (near * far);
+            offset = offset * k + (1.0f - f / near);
+            scale = scale * k;
+        }
+        if (low < 2 && high >= 2) {
+            f32 k = field_1054;
+            f32 m = field_1058;
+            offset = offset * k + m;
+            scale = scale * k;
+        }
+        if (low < 3 && high >= 3) {
+            f32 c = field_105c;
+            f32 o = offset * c;
+            f32 d = field_1060;
+            Unk_Refresh();
+            scale = scale * c;
+            o = o + d;
+            f32 e = field_1050 ? field_1a0->field_1e4 : 0.0f;
+            scale = scale * e;
+            offset = o * e + 0.0f;
+        }
+        if (from >= to) {
+            offset = -offset / scale;
+            scale = 1.0f / scale;
+        }
+    }
+    if (a != 1.0f || b != 0.0f) {
+        f32 inverse = 1.0f / a;
+        offset = offset - b / a * scale;
+        scale = inverse * scale;
+    }
+    f32 inverse = 1.0f / scale;
+    f32 inverseOffset = -offset / scale;
+    out[0] = scale;
+    out[1] = offset;
+    out[2] = inverse;
+    out[3] = inverseOffset;
+    return 0;
+}
+
 // 0x7100428f00: the render target the feedback is read from
 // NON_MATCHING: the format test and the size comparisons are the original's;
 // after them the original has one block for each of field_278's and
@@ -2453,10 +2516,9 @@ bool Unk_4385e0(s32 format) {
 }
 
 // 0x7100434570: whether field_848 and the colour of field_f84 are positive
-// NON_MATCHING: the comparison of field_848 is sunk to its use here (the
-// original sets w20 with `cset` before the branch), and the colour space's
-// address is kept in x20 across the calls (the original materialises it again
-// for Unk_411b00's arguments)
+// NON_MATCHING: field_848's comparison: the original keeps its `cset` result
+// in w20 across the calls; here the loaded value is kept in s8 (d8 is saved)
+// and compared again where it is used
 bool CPostEffect::Unk_434570() {
     bool result = field_848 > 0.0f;
     if (field_f80 == -1) {

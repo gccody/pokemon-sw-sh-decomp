@@ -383,9 +383,16 @@ bool Unk_5692a0_Sorter::Unk_5692a0(s64 count, ISiGfxShaderEffectPackage::ShaderE
 
 // 0x7100568e60: ends a change: the effects' data sorted by hash, and the
 // definitions and variations they use, each once, with their indices
-// NON_MATCHING: 68 bytes longer: the loops' guards test the count as
-// `cmp w1, #1` in the original (here through a 64-bit shift), and the two
-// searches and adds are laid out differently (first attempt, not iterated).
+// NON_MATCHING: 12 bytes longer. The loops have s32 indices (an s64 index
+// tested against the s32 count gives `lsl x8, x1, #32; cmp x8, #1` for the
+// guards, where the original has `cmp w1, #1`), and each search's index starts
+// at -1 and is tested `< 0` (tested `== count` the found path keeps a compare
+// the original doesn't have). What's left: the data and the variation's index
+// are in x21/x28 the other way round, and the definitions' growth is a
+// branch here where the original selects it (`csinc`, `csel`; the
+// variations' growth is a branch in both). Tried: an s64 main loop, the
+// index declared first, the two stores swapped, the data read again for the
+// stores, a helper returning the index.
 bool SiGfxShaderEffectPackage::vf13(ISiIOStream*) {
     if (field_138 < 1) {
         return false;
@@ -395,7 +402,7 @@ bool SiGfxShaderEffectPackage::vf13(ISiIOStream*) {
         return true;
     }
     field_190.Unk_SetCount(field_140.m_itemCount);
-    for (s64 i = 0; i < static_cast<s32>(field_140.m_itemCount); i++) {
+    for (s32 i = 0; i < static_cast<s32>(field_140.m_itemCount); i++) {
         ISiGfxShaderEffectPackage::ShaderEffectData* data = field_140.m_pData[i];
         data->field_3c = i;
         field_190.m_pData[i] = data;
@@ -408,7 +415,7 @@ bool SiGfxShaderEffectPackage::vf13(ISiIOStream*) {
     field_280.Unk_Clear();
     field_230.Unk_ReserveAtLeast(field_140.m_itemCount);
     field_230.Unk_Clear();
-    for (s64 i = 0; i < static_cast<s32>(field_140.m_itemCount); i++) {
+    for (s32 i = 0; i < static_cast<s32>(field_140.m_itemCount); i++) {
         ISiGfxShaderEffectPackage::ShaderEffectData* data = field_140.m_pData[i];
         ISiGfxShaderEffectDefinition* definition = data->field_58;
         if (definition == nullptr) {
@@ -418,29 +425,33 @@ bool SiGfxShaderEffectPackage::vf13(ISiIOStream*) {
         s32 variationIndex = -1;
         if (variation != nullptr) {
             s32 count = static_cast<s32>(field_230.m_itemCount);
-            variationIndex = count;
-            for (s64 k = 0; k < count; k++) {
+            for (s32 k = 0; k < count; k++) {
                 if (field_230.m_pData[k] == variation) {
                     variationIndex = k;
                     break;
                 }
             }
-            if (variationIndex == count) {
+            if (variationIndex < 0) {
+                variationIndex = count;
                 field_230.Unk_Add(variation);
                 variation->vf2();
             }
         }
         s32 count = static_cast<s32>(field_280.m_itemCount);
-        s32 definitionIndex = count;
-        for (s64 k = 0; k < count; k++) {
+        s32 definitionIndex = -1;
+        for (s32 k = 0; k < count; k++) {
             if (field_280.m_pData[k] == definition) {
                 definitionIndex = k;
                 break;
             }
         }
+        bool added = definitionIndex < 0;
+        if (added) {
+            definitionIndex = count;
+        }
         data->field_40 = definitionIndex;
         data->field_44 = variationIndex;
-        if (definitionIndex == count) {
+        if (added) {
             field_280.Unk_Add(definition);
             definition->vf2();
             reinterpret_cast<SiGfxShaderEffectDefinition*>(definition)->field_a8 = variationIndex;

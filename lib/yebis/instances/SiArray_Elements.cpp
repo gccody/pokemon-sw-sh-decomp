@@ -11,33 +11,6 @@
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_Array.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_String.h>
 
-struct Unk_5461d0 {
-    Unk_5461d0() : field_10(0), field_18(0), field_20(0), field_28(0), field_30(0) {}
-    u64 field_0;
-    u64 field_8;
-    u64 field_10;
-    u64 field_18;
-    u64 field_20;
-    u64 field_28;
-    u32 field_30;
-};
-PKMN_SIZE_ASSERT(Unk_5461d0, 0x38);
-
-struct Unk_546490 {
-    Unk_546490() : field_0(0), field_4(0), field_8(0), field_c(0) {}
-    u32 field_0;
-    u32 field_4;
-    u32 field_8;
-    u32 field_c;
-    u32 field_10;
-};
-PKMN_SIZE_ASSERT(Unk_546490, 0x14);
-
-struct Unk_562770 {
-    u64 field_0;
-};
-
-
 namespace SiSDK3 {
 
 // A pool's item (SiCore_Pool.h): its links, its index in the pool, whether
@@ -97,13 +70,10 @@ template bool SiArray<SiGfxResourcePool::ResourceItem, 16>::Unk_4bf190(size_t, b
 template bool SiArray<SiGfxFreeTypeGlyph, 16>::Unk_4bf190(size_t, bool);
 // (0x710053ad10 and 0x710053af60 are SiArray<SiGfxNXCommandList::DiscontinuedEntry>'s and
 // SiArray<SiGfxNXCommandList::OverwrittenEntry>'s: SiGfx_NX_CommandList_Impl.cpp instantiates them.)
-// 0x71005461d0 = _ZN6SiSDK37SiArrayI10Unk_5461d0Li16EE10Unk_4bf190Emb
-template bool SiArray<Unk_5461d0, 16>::Unk_4bf190(size_t, bool);
-// 0x7100546490 = _ZN6SiSDK37SiArrayI10Unk_546490Li16EE10Unk_4bf190Emb
-template bool SiArray<Unk_546490, 16>::Unk_4bf190(size_t, bool);
+// (0x71005461d0 and 0x7100546490 are SiGfxFontDrawHelper's glyphs' and lines'
+// arrays': SiGfx_FontDrawHelper.cpp instantiates them.)
 // (0x7100557e60 is SiArray<SiGfxNXRootSignature::DescriptorRangeEntry>'s: SiGfx_NX_RootSignature_Impl.cpp instantiates it.)
-// 0x7100562770 = _ZN6SiSDK37SiArrayI10Unk_562770Li16EE10Unk_4bf190Emb
-template bool SiArray<Unk_562770, 16>::Unk_4bf190(size_t, bool);
+// (0x7100562770 is SiArray<unsigned long>'s, the NX texture's handles': SiGfx_NX_Texture_Impl.cpp instantiates it.)
 // 0x7100574090 = _ZN6SiSDK37SiArrayINS_31ISiGfxShaderEffectVariationList16ShaderEffectDataELi16EE10Unk_4bf190Emb
 template bool SiArray<ISiGfxShaderEffectVariationList::ShaderEffectData, 16>::Unk_4bf190(size_t, bool);
 

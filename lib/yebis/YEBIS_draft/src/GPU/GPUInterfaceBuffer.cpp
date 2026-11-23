@@ -11,6 +11,9 @@ const char* Unk_446df0(s32 result);
 namespace PPFX {
 
 s32 Unk_43e620(IGPUDevice* self, s32 n);
+// 0x7100447030: a vertex element's usage as SiGfx has it
+u32 Unk_447030(s32 usage);
+struct Unk_SiGfxVertexFormat;
 
 // 0x7100448b70, 0x7100448c30 (deleting): releases SiGfx's buffers, giving
 // back the memory the device counts for each
@@ -161,6 +164,145 @@ IGPUInputAttribute::~IGPUInputAttribute() {
         field_78->vf3();
         field_78 = nullptr;
     }
+}
+
+// how many bytes an element of a vertex format is (inline)
+static inline u32 Unk_ElementSize(s32 format) {
+    switch (format) {
+    case 2:
+        return 16;
+    case 6:
+        return 12;
+    case 14:
+    case 16:
+        return 8;
+    case 30:
+    case 38:
+    case 41:
+        return 4;
+    default:
+        return 0;
+    }
+}
+
+// how many components an element of a vertex format has (inline)
+static inline u32 Unk_ElementComponents(s32 format) {
+    switch (format) {
+    case 2:
+    case 14:
+    case 30:
+        return 4;
+    case 6:
+        return 3;
+    case 16:
+    case 38:
+        return 2;
+    case 41:
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+// SiGfx's vertex format, as the input attribute makes it (placeholder)
+struct Unk_SiGfxVertexFormat {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();  // releases
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual bool vf18();  // "BeginCreate()"
+    // an element: what it is, its index, format, stream and offset, and
+    // whether (and how often) it steps per instance
+    virtual void vf19(u32 usage, u32 index, u32 format, u32 stream, u32 offset, bool instanced, u32 rate);
+    virtual bool vf20();  // "EndCreate()"
+};
+
+// SiGfx's vertex format for a layout (inline; the arguments it is handed
+// aren't used)
+inline Unk_SiGfxVertexFormat* Unk_CreateVertexFormat(IGPUDevice* device, void* arg3, s32 arg4) {
+    return device->field_38->vf38(nullptr, 0, nullptr);
+}
+
+// 0x7100449890 (its log lines name it)
+// NON_MATCHING: the element loop's two format switches: the original sets
+// each result to 0 before the range check and lays the jump table's blocks
+// out with the 0 case joining, and its registers for the two results are
+// swapped (w13/w14); the rest is the same.
+s32 IGPUInputAttribute::BuildInputAttribute(const Unk_InputElement* elements, s32 count, void* arg3, s32 arg4) {
+    UNK_DELETE_ARRAY(field_20);
+    if (field_28 != nullptr) {
+        Unk_4b9a60(Unk_238d5f8, reinterpret_cast<u64*>(field_28) - 1);
+        field_28 = nullptr;
+    }
+    if (field_30 != nullptr) {
+        Unk_4b9a60(Unk_238d5f8, reinterpret_cast<u64*>(field_30) - 1);
+        field_30 = nullptr;
+    }
+    field_18 = 0;
+    if (field_78 != nullptr) {
+        field_78->vf3();
+        field_78 = nullptr;
+    }
+    field_18 = count;
+#line 1617
+    field_20 = UNK_NEW_ARRAY(Unk_InputElement, static_cast<u32>(count));
+    field_28 = UNK_NEW_ARRAY(u32, field_18);
+    field_30 = UNK_NEW_ARRAY(u32, field_18);
+    for (s32 i = 0; i < 16; i++) {
+        field_38[i] = 0;
+    }
+    u32 offset = 0;
+    for (u32 i = 0; i < field_18; i++) {
+        field_20[i] = elements[i];
+        field_28[i] = Unk_ElementSize(field_20[i].field_8);
+        field_30[i] = Unk_ElementComponents(field_20[i].field_8);
+        if (field_20[i].field_c != 0) {
+            offset = field_20[i].field_c;
+        } else {
+            field_20[i].field_c = offset;
+        }
+        offset += field_28[i];
+        field_38[field_20[i].field_10] += field_28[i];
+    }
+    Unk_SiGfxVertexFormat* format = Unk_CreateVertexFormat(field_10, arg3, arg4);
+    if (format == nullptr) {
+#line 1721
+        PPFX_ERROR("IGPUInputAttribute::BuildInputAttribute(): pSiGfxDevice->CreateVertexFormat() failed.\n");
+        return -1;
+    }
+    if (!format->vf18()) {
+#line 1730
+        PPFX_ERROR("IGPUInputAttribute::BuildInputAttribute(): pSiGfxVertexFormat->BeginCreate() failed.\n");
+        format->vf3();
+        return -1;
+    }
+    for (u32 i = 0; i < field_18; i++) {
+        const Unk_InputElement& element = field_20[i];
+        format->vf19(Unk_447030(element.field_0), element.field_4, element.field_8, element.field_10, element.field_c,
+                     element.field_14 != 0, element.field_14);
+    }
+    if (!format->vf20()) {
+#line 1764
+        PPFX_ERROR("IGPUInputAttribute::BuildInputAttribute(): pSiGfxVertexFormat->EndCreate() failed.\n");
+        format->vf3();
+        return -1;
+    }
+    field_78 = reinterpret_cast<Unk_SiGfxInterface*>(format);
+    return 0;
 }
 
 // 0x7100449cc0: IGPUInputAttribute::CreateInputAttribute (its log line)

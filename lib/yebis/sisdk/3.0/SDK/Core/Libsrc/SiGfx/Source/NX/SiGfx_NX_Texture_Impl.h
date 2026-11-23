@@ -58,6 +58,115 @@ public:
     virtual void vf3();
 };
 
+// The draw context as slot 30 is given it (placeholder name): slot 102 is
+// its NVN command buffer.
+class Unk_NXTextureDrawContext {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+    virtual void vf25();
+    virtual void vf26();
+    virtual void vf27();
+    virtual void vf28();
+    virtual void vf29();
+    virtual void vf30();
+    virtual void vf31();
+    virtual void vf32();
+    virtual void vf33();
+    virtual void vf34();
+    virtual void vf35();
+    virtual void vf36();
+    virtual void vf37();
+    virtual void vf38();
+    virtual void vf39();
+    virtual void vf40();
+    virtual void vf41();
+    virtual void vf42();
+    virtual void vf43();
+    virtual void vf44();
+    virtual void vf45();
+    virtual void vf46();
+    virtual void vf47();
+    virtual void vf48();
+    virtual void vf49();
+    virtual void vf50();
+    virtual void vf51();
+    virtual void vf52();
+    virtual void vf53();
+    virtual void vf54();
+    virtual void vf55();
+    virtual void vf56();
+    virtual void vf57();
+    virtual void vf58();
+    virtual void vf59();
+    virtual void vf60();
+    virtual void vf61();
+    virtual void vf62();
+    virtual void vf63();
+    virtual void vf64();
+    virtual void vf65();
+    virtual void vf66();
+    virtual void vf67();
+    virtual void vf68();
+    virtual void vf69();
+    virtual void vf70();
+    virtual void vf71();
+    virtual void vf72();
+    virtual void vf73();
+    virtual void vf74();
+    virtual void vf75();
+    virtual void vf76();
+    virtual void vf77();
+    virtual void vf78();
+    virtual void vf79();
+    virtual void vf80();
+    virtual void vf81();
+    virtual void vf82();
+    virtual void vf83();
+    virtual void vf84();
+    virtual void vf85();
+    virtual void vf86();
+    virtual void vf87();
+    virtual void vf88();
+    virtual void vf89();
+    virtual void vf90();
+    virtual void vf91();
+    virtual void vf92();
+    virtual void vf93();
+    virtual void vf94();
+    virtual void vf95();
+    virtual void vf96();
+    virtual void vf97();
+    virtual void vf98();
+    virtual void vf99();
+    virtual void vf100();
+    virtual void vf101();
+    virtual void* vf102();
+};
+
 class SiGfxNXTexture : public Unk_NXInterface, public Unk_NXTextureNamedObject, public Unk_NXTextureTypedObject {
 public:
     // What a texture is made from (placeholder name and members): 0x110
@@ -137,6 +246,16 @@ public:
     };
     PKMN_SIZE_ASSERT(Unk_Desc, 0x110);
 
+    // The pixels of a level, face or layer a description points to
+    // (placeholder name and members).
+    struct Unk_LevelData {
+        const void* field_0;
+        u64 field_8;   // how many bytes
+        u32 field_10;  // how many bytes a row is
+        u32 field_14;
+    };
+    PKMN_SIZE_ASSERT(Unk_LevelData, 0x18);
+
     // 0x710055e7c0: a texture of a kind (2: 2D, ...)
     SiGfxNXTexture(ISiAllocator* pAllocator, SiGfxNXDevice* pDevice, u32 kind);
     ~SiGfxNXTexture() override;                 // 0x710055eb20, 0x710055f130
@@ -160,7 +279,8 @@ public:
     virtual void vf19();
     virtual void vf20();
     virtual void vf21();
-    virtual void vf22();
+    // 0x710055f3d0: makes the texture from a description
+    virtual bool vf22(const Unk_Desc* desc);
     virtual void vf23();
     virtual void vf24();  // 0x7100560e10: releases what it was made with
     virtual SiGfxNXSurface* vf25(s32 level);                            // 0x7100561040
@@ -168,7 +288,10 @@ public:
     virtual SiGfxNXSurface* vf27(s32 layer, s32 level);                 // 0x71005610c0
     virtual SiGfxNXSurface* vf28(s32 layer, s32 face, s32 level);       // 0x7100561120
     virtual SiGfxNXVolume* vf29(s32 level);                             // 0x7100561190
-    virtual void vf30();
+    // 0x71005611d0: makes its levels from the first (with the device's
+    // program 0x4b), in the context's command buffer or in a command list of
+    // the device's
+    virtual bool vf30(Unk_NXTextureDrawContext* pContext);
     virtual bool vf31(Unk_NXTextureTarget* pTarget);                    // 0x7100561630
     virtual bool vf32(Unk_NXTextureOwner* pOwner);                      // 0x71005616b0
     virtual void vf33();

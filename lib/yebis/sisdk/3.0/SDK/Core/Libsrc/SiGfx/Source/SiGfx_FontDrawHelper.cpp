@@ -6,20 +6,32 @@
 
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/SiGfx_Kernel_Impl.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_Font_Impl.h>
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_Sampler_Impl.h>
 
 #include <math.h>
+#include <string.h>
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiMath/Unk_Matrix.h>
 
 // 0x71004cbf40 (leafgen's name and type): SiGfx's kernel
 u64 Unk_4cbf40_get();
 // 0x71004ee020: a projection for a target of a width and a height
 // (placeholder name)
-SiSDK3::SiGfxFontDrawHelper::Unk_Matrix Unk_4ee020(f32 width, f32 height, f32 a3, f32 a4);
+Unk_Matrix44 Unk_4ee020(f32 width, f32 height, f32 a3, f32 a4);
 // 0x71004c4d10, 0x71004c4d90: a string's characters, from Latin-1 and from
 // UTF-8 (SiCore_String.cpp)
 wchar_t* Unk_4c4d10(const char* s, wchar_t* dst, size_t size);
 wchar_t* Unk_4c4d90(const char* s, wchar_t* dst, s64 size);
 
 namespace SiSDK3 {
+
+// The matrix set from rows (inline: placeholder name).
+static inline void Unk_SetRows(SiGfxFontDrawHelper::Unk_Matrix* dst, float32x4_t a, float32x4_t b, float32x4_t c, float32x4_t d) {
+    float32x4_t* rows = reinterpret_cast<float32x4_t*>(dst->field_0);
+    rows[0] = a;
+    rows[1] = b;
+    rows[2] = c;
+    rows[3] = d;
+}
 
 // 0x7100543200, 0x7100543220 (deleting): defined here, so it is a function
 // of its own (with the base's inline)
@@ -99,6 +111,68 @@ void SiGfxFontDrawHelper::Unk_544090() {
             field_230[i] = nullptr;
         }
     }
+}
+
+// 0x71005439a0
+bool SiGfxFontDrawHelper::Unk_5439a0(Unk_544540_Context* pContext) {
+    field_18 = pContext;
+    Unk_5439a0_Device* pDevice = pContext->vf5();
+    if (field_30.Unk_SetCount(0x1000)) {
+        for (s64 i = 0; i < static_cast<s32>(field_30.m_itemCount); i++) {
+            memset(&field_30.m_pData[i], 0, sizeof(GlyphRenderData));
+        }
+    }
+    if (field_88.Unk_SetCount(0x400)) {
+        for (s64 i = 0; i < static_cast<s32>(field_88.m_itemCount); i++) {
+            memset(&field_88.m_pData[i], 0, sizeof(TextLineData));
+        }
+    }
+    Unk_544090_Object* pFont = pDevice->vf56(1);
+    if (pFont != nullptr) {
+        pFont->vf2();
+        if (field_20 != nullptr) {
+            field_20->vf3();
+        }
+        field_20 = pFont;
+    }
+    field_120.Unk_SetCount(0x4000);
+    field_170.Unk_SetCount(0x6000);
+    memset(field_120.m_pData, 0, sizeof(FontVertex));
+    for (s32 i = 0; i < 0x1000; i++) {
+        field_170.m_pData[i * 6 + 0] = i * 4 + 0;
+        field_170.m_pData[i * 6 + 1] = i * 4 + 1;
+        field_170.m_pData[i * 6 + 2] = i * 4 + 2;
+        field_170.m_pData[i * 6 + 3] = i * 4 + 2;
+        field_170.m_pData[i * 6 + 4] = i * 4 + 1;
+        field_170.m_pData[i * 6 + 5] = i * 4 + 3;
+    }
+    Unk_5439a0_VertexFormat* pFormat = pDevice->vf38(nullptr, 0, nullptr);
+    pFormat->vf18();
+    pFormat->vf19(0, 0, 2, 0, -1, 0, 0);
+    pFormat->vf19(4, 0, 2, 0, -1, 0, 0);
+    pFormat->vf19(5, 0, 16, 0, -1, 0, 0);
+    pFormat->vf20();
+    field_1c0 = pFormat;
+    SiGfxNXSampler::Unk_Desc desc;
+    desc.field_0 = 3;
+    desc.field_4 = 1;
+    desc.field_8 = 1;
+    desc.field_c = 1;
+    desc.field_10 = 0.0f;
+    desc.field_14 = 0.0f;
+    desc.field_18 = 100.0f;
+    desc.field_1c = 1;
+    desc.field_20 = 8;
+    desc.field_24.field_0[0] = 0;
+    desc.field_24.field_0[1] = 0;
+    desc.field_24.field_0[2] = 0;
+    desc.field_24.field_0[3] = 0;
+    desc.field_34 = 0;
+    desc.field_38 = 0;
+    desc.field_3c = 0;
+    field_228 = pDevice->vf52(&desc, 0, 0, nullptr);
+    reinterpret_cast<SiGfxKernel*>(Unk_4cbf40_get())->vf33(&field_2b8);
+    return true;
 }
 
 // 0x7100544010
@@ -184,14 +258,9 @@ bool SiGfxFontDrawHelper::Unk_544290(const char* text, Unk_Vec2* pSize, u32 flag
     return true;
 }
 
-// NON_MATCHING: the original copies the projection with four 16-byte loads
-// and stores (`ldp q0, q1`) and puts the return for a second begin before
-// the setup; here the copy is eight 8-byte pairs and the setup comes first.
-// The matrix's real type decides both (with four `vector_size(16)` rows,
-// returned in registers, the branches come out right). Tried: Unk_Matrix.h's
-// Unk_Matrix44 as the return, with field_e0 as four float32x4_t rows (the
-// copy is then 16-byte stores, not pairs, and the constructor 0x7100543280
-// stops matching) or assigned with a 64-byte memcpy (8-byte pairs).
+// The projection is a matrix of four NEON rows (Unk_Matrix44, returned in
+// memory); its rows are read first and then stored (with -mno-implicit-float
+// only explicit vectors give the 16-byte pairs `ldp q0, q1` / `stp q0, q1`).
 // 0x7100544540
 bool SiGfxFontDrawHelper::Unk_544540() {
     if (field_20 == nullptr) {
@@ -204,7 +273,8 @@ bool SiGfxFontDrawHelper::Unk_544540() {
     field_80 = 0;
     s32 width = static_cast<s32>(field_18->vf33()->field_34);
     s32 height = static_cast<s32>(field_18->vf33()->field_38);
-    field_e0 = Unk_4ee020(static_cast<f32>(width), static_cast<f32>(height), 1.0f, 2.0f);
+    Unk_Matrix44 m = Unk_4ee020(static_cast<f32>(width), static_cast<f32>(height), 1.0f, 2.0f);
+    Unk_SetRows(&field_e0, m.r[0], m.r[1], m.r[2], m.r[3]);
     return true;
 }
 

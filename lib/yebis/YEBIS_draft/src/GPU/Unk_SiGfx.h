@@ -9,6 +9,8 @@ namespace PPFX {
 
 struct Unk_SiGfxInterface;
 struct Unk_SiGfxRenderTarget;
+struct Unk_SiGfxTexture;
+struct Unk_SiGfxVertexFormat;
 
 // what ISiGfxQuery::Create() takes
 struct Unk_SiGfxQueryDesc {
@@ -79,7 +81,7 @@ struct Unk_SiGfxDevice {
     virtual void vf35();
     virtual void vf36();
     virtual void vf37();
-    virtual void vf38();
+    virtual Unk_SiGfxVertexFormat* vf38(void* arg1, u32 arg2, void* arg3);  // "pSiGfxDevice->CreateVertexFormat()"
     virtual void vf39();
     virtual void vf40();
     virtual void vf41();
@@ -90,7 +92,7 @@ struct Unk_SiGfxDevice {
     virtual void vf46();
     virtual void vf47();
     virtual void vf48();
-    virtual void vf49();
+    virtual Unk_SiGfxTexture* vf49(u32 kind, void* arg2, u32 arg3, void* arg4);  // "ISiGfxDevice::CreateTexture()"
     virtual void vf50();
     virtual void vf51();
     virtual Unk_SiGfxInterface* vf52(const void* desc, void* arg2, u32 arg3, void* arg4);  // "pSiGfxDevice->CreateSampler()"
@@ -208,6 +210,33 @@ struct Unk_SiGfxDrawContext {
     virtual bool vf69(void* buffer, void* info);  // maps a buffer
     virtual void vf70(void* buffer, void* info);  // unmaps a buffer
     virtual bool vf71(void* source, void* target);  // copies a surface
+    virtual void vf72();
+    virtual void vf73();
+    virtual void vf74();
+    virtual void vf75();
+    virtual void vf76();
+    virtual void vf77();
+    virtual void vf78();
+    virtual void vf79();
+    virtual void vf80();
+    virtual void vf81();
+    virtual void vf82();
+    virtual void vf83();
+    virtual void vf84();
+    virtual void vf85();
+    virtual void vf86();
+    virtual void vf87();
+    virtual void vf88();
+    virtual void vf89();
+    virtual void vf90();
+    virtual void vf91();
+    virtual void vf92();
+    virtual void vf93();
+    virtual void vf94();
+    virtual void vf95();
+    virtual void vf96();
+    virtual void vf97();
+    virtual void vf98(void* list);  // records to a command list (null: the context's own)
 };
 
 }  // namespace PPFX

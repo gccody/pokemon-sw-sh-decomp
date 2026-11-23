@@ -710,6 +710,65 @@ void SiGfxNXDrawContext::vf17(SiGfxNXRootSignature* pSignature) {
     }
 }
 
+// NON_MATCHING: in the copy of the loop for given strides the induction
+// pointers of the strides and of the NVN vertex buffers are created in the
+// other order (x25/x26 exchanged), and the size and stride exchange w8/w9;
+// the copy for the buffers' own strides is the original's but for the order
+// of the flag's `orr` and the last store (37 lines). The slot computed at the
+// loop's top and the buffer's range built before the test decided most of it.
+// 0x710053cfc0
+void SiGfxNXDrawContext::vf19(s32 first, s32 count, ISiGfxResource** ppBuffers, const s32* strides,
+                              const s32* offsets) {
+    if (first < 0 || first + count > 15) {
+        return;
+    }
+    bool update = false;
+    for (s32 i = 0; i < count; i++) {
+        s32 slot = first + i;
+        ISiGfxResource* pResource = ppBuffers[i];
+        u64 address = 0;
+        s32 size = 0;
+        s32 stride = 0;
+        if (pResource != nullptr) {
+            Unk_NXDrawTexture* pBuffer = static_cast<Unk_NXDrawTexture*>(pResource);
+            address = pBuffer->vf27();
+            size = pBuffer->vf17()->field_4;
+            if (strides == nullptr) {
+                stride = pBuffer->vf17()->field_8;
+            }
+        }
+        if (strides != nullptr) {
+            stride = strides[i];
+        }
+        s32 offset = offsets != nullptr ? offsets[i] : 0;
+        Unk_VertexBuffer vb = {address + offset, static_cast<u64>(static_cast<s64>(size))};
+        if (field_30.field_20.field_2b0[slot] == pResource && field_30.field_20.field_370[slot] == offset &&
+            field_30.field_20.field_330[slot] == stride) {
+            continue;
+        }
+        update = field_30.field_20.field_330[slot] != stride || (stride & 0x3f) != 0;
+        field_30.field_20.field_2b0[slot] = pResource;
+        field_30.field_20.field_370[slot] = offset;
+        field_30.field_20.field_330[slot] = stride;
+        field_30.field_508.field_290[slot] = vb;
+        if (update) {
+            Unk_VertexStreamStateSetDefaults(&field_30.field_508.field_4b0[slot]);
+            Unk_VertexStreamStateSetStride(&field_30.field_508.field_4b0[slot], stride);
+        }
+        field_30.field_2760.Unk_MarkOr(slot);
+    }
+    if (!update) {
+        return;
+    }
+    field_30.field_508.field_4ac = 0;
+    for (s32 i = 0; i < 16; i++) {
+        if (field_30.field_508.field_290[i].field_0 != 0) {
+            field_30.field_508.field_4ac++;
+        }
+    }
+    field_30.field_0 |= 0x1000;
+}
+
 // NON_MATCHING: the original tests the index type for 0, 1 and 2 in that
 // order and gives the other types a block of their own; this tests 0, 2 and
 // 1 and shares the other types' block with the null buffer's (268 bytes for
@@ -1008,6 +1067,263 @@ void SiGfxNXDrawContext::Unk_53da20(s32 index, ISiGfxResource* pResource) {
                 field_30.field_508.field_1050[5][slot] = handle;
             }
         }
+    }
+}
+
+// A sampler as a descriptor table holds it (placeholder name: a
+// SiGfxNXSampler, of kind 12): slot 19 is its hash.
+class Unk_NXTableSampler : public ISiGfxResource {
+public:
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual u32 vf19();
+};
+
+// NON_MATCHING: the cases, their loops (the 32-bit slot widened by
+// IndVarSimplify into the ranges' 64-bit compares) and the ranges' repeat
+// count are the original's; the table's null test is hoisted above the
+// signature's count here, and the registers differ (the original keeps the
+// ranges and both a range's base and count in callee-saved registers, here
+// they are spilled).
+// 0x710053e0c0
+void SiGfxNXDrawContext::Unk_53e0c0(s32 index, SiGfxNXDescriptorTable* pTable) {
+    SiGfxNXRootSignature* pSignature;
+    if (field_20 == 1) {
+        pSignature = field_30.field_20.field_8;
+    } else if (field_20 == 2) {
+        pSignature = field_30.field_20.field_10;
+    } else {
+        return;
+    }
+    if (index < 0 || pSignature == nullptr || index >= static_cast<s32>(pSignature->field_28.m_itemCount) ||
+        pTable == nullptr) {
+        return;
+    }
+    SiGfxNXRootSignature::RootParameterEntry& parameter = pSignature->field_28.m_pData[index];
+    if (parameter.field_0 != 5) {
+        return;
+    }
+    SiGfxNXRootSignature::Unk_Ranges* pRanges = parameter.field_20;
+    s32 textures = 0;
+    s32 buffers = 0;
+    s32 images = 0;
+    s32 samplers = 0;
+    for (s32 i = 0; i < static_cast<s32>(pRanges->field_8.m_itemCount); i++) {
+        SiGfxNXRootSignature::DescriptorRangeEntry& range = pRanges->field_8.m_pData[i];
+        s32 base = range.field_4;
+        s32 count = range.field_c;
+        switch (range.field_0) {
+        case 1:
+            if (base < 0 || count + base > 63) {
+                return;
+            }
+            for (s32 j = 0; j < count; j++) {
+                if (textures + j >= static_cast<s32>(pTable->field_88.field_8.m_itemCount)) {
+                    break;
+                }
+                Unk_NXDrawTexture* pTexture = static_cast<Unk_NXDrawTexture*>(pTable->field_88.field_8.m_pData[textures + j]);
+                if (pTexture == nullptr) {
+                    continue;
+                }
+                u32 stages = parameter.field_4;
+                s32 slot = base + j;
+                if (pTexture->vf8()->field_0 == 1) {
+                    u32 number = pTexture->vf43();
+                    Unk_NXRootSampler* pSampler = pTexture->vf33();
+                    s32 sampler = pSampler != nullptr ? static_cast<s32>(pSampler->vf19()) : -1;
+                    if (number != field_30.field_508.field_d50[slot]) {
+                        field_30.field_2a08[slot] = stages;
+                        field_30.field_508.field_d50[slot] = number;
+                        if (sampler != -1) {
+                            field_30.field_508.field_e50[slot] = sampler;
+                            field_30.field_29b8.Unk_MarkRead(slot);
+                        }
+                        if (stages & 1) {
+                            field_30.field_2808[0].Unk_MarkRead(slot);
+                        }
+                        if (stages & 2) {
+                            field_30.field_2808[1].Unk_MarkRead(slot);
+                        }
+                        if (stages & 4) {
+                            field_30.field_2808[2].Unk_MarkRead(slot);
+                        }
+                        if (stages & 16) {
+                            field_30.field_2808[3].Unk_MarkRead(slot);
+                        }
+                        if (stages & 16) {
+                            field_30.field_2808[4].Unk_MarkRead(slot);
+                        }
+                        if (stages & 32) {
+                            field_30.field_2808[5].Unk_MarkRead(slot);
+                        }
+                    }
+                }
+                if (pTexture->vf8()->field_0 == 10) {
+                    u64 address = pTexture->field_100 + pTexture->field_154 * static_cast<s64>(pTexture->field_bc);
+                    s32 bytes = pTexture->field_bc;
+                    if (stages & 1) {
+                        field_30.field_2898[0].Unk_MarkRead(slot);
+                        field_30.field_508.field_960[0][slot] = address;
+                        field_30.field_508.field_c00[0][slot] = bytes;
+                    }
+                    if (stages & 2) {
+                        field_30.field_2898[1].Unk_MarkRead(slot);
+                        field_30.field_508.field_960[1][slot] = address;
+                        field_30.field_508.field_c00[1][slot] = bytes;
+                    }
+                    if (stages & 4) {
+                        field_30.field_2898[2].Unk_MarkRead(slot);
+                        field_30.field_508.field_960[2][slot] = address;
+                        field_30.field_508.field_c00[2][slot] = bytes;
+                    }
+                    if (stages & 16) {
+                        field_30.field_2898[3].Unk_MarkRead(slot);
+                        field_30.field_508.field_960[3][slot] = address;
+                        field_30.field_508.field_c00[3][slot] = bytes;
+                    }
+                    if (stages & 16) {
+                        field_30.field_2898[4].Unk_MarkRead(slot);
+                        field_30.field_508.field_960[4][slot] = address;
+                        field_30.field_508.field_c00[4][slot] = bytes;
+                    }
+                    if (stages & 32) {
+                        field_30.field_2898[5].Unk_MarkRead(slot);
+                        field_30.field_508.field_960[5][slot] = address;
+                        field_30.field_508.field_c00[5][slot] = bytes;
+                    }
+                }
+            }
+            textures += count;
+            break;
+        case 2:
+            if (base < 0 || count + base > 13) {
+                return;
+            }
+            for (s32 j = 0; j < count; j++) {
+                if (buffers + j >= static_cast<s32>(pTable->field_30.field_8.m_itemCount)) {
+                    break;
+                }
+                Unk_NXDrawTexture* pBuffer = static_cast<Unk_NXDrawTexture*>(pTable->field_30.field_8.m_pData[buffers + j]);
+                if (pBuffer == nullptr) {
+                    continue;
+                }
+                u32 stages = parameter.field_4;
+                s32 slot = base + j;
+                if (pBuffer->vf8()->field_0 != 10) {
+                    continue;
+                }
+                u64 address = pBuffer->field_100 + pBuffer->field_154 * static_cast<s64>(pBuffer->field_bc);
+                s32 bytes = pBuffer->field_bc;
+                if (stages & 1) {
+                    field_30.field_2778[0].Unk_MarkRead(slot);
+                    field_30.field_508.field_570[0][slot] = address;
+                    field_30.field_508.field_810[0][slot] = bytes;
+                }
+                if (stages & 2) {
+                    field_30.field_2778[1].Unk_MarkRead(slot);
+                    field_30.field_508.field_570[1][slot] = address;
+                    field_30.field_508.field_810[1][slot] = bytes;
+                }
+                if (stages & 4) {
+                    field_30.field_2778[2].Unk_MarkRead(slot);
+                    field_30.field_508.field_570[2][slot] = address;
+                    field_30.field_508.field_810[2][slot] = bytes;
+                }
+                if (stages & 16) {
+                    field_30.field_2778[3].Unk_MarkRead(slot);
+                    field_30.field_508.field_570[3][slot] = address;
+                    field_30.field_508.field_810[3][slot] = bytes;
+                }
+                if (stages & 16) {
+                    field_30.field_2778[4].Unk_MarkRead(slot);
+                    field_30.field_508.field_570[4][slot] = address;
+                    field_30.field_508.field_810[4][slot] = bytes;
+                }
+                if (stages & 32) {
+                    field_30.field_2778[5].Unk_MarkRead(slot);
+                    field_30.field_508.field_570[5][slot] = address;
+                    field_30.field_508.field_810[5][slot] = bytes;
+                }
+            }
+            buffers += count;
+            break;
+        case 3:
+            if (base < 0 || count + base > 13) {
+                return;
+            }
+            for (s32 j = 0; j < count; j++) {
+                if (images + j >= static_cast<s32>(pTable->field_e0.field_8.m_itemCount)) {
+                    break;
+                }
+                Unk_NXDrawTexture* pTexture = static_cast<Unk_NXDrawTexture*>(pTable->field_e0.field_8.m_pData[images + j]);
+                if (pTexture == nullptr) {
+                    continue;
+                }
+                u32 stages = parameter.field_4;
+                s32 slot = base + j;
+                u64 handle = pTexture->field_340;
+                if (stages & 1) {
+                    field_30.field_2928[0].Unk_MarkRead(slot);
+                    field_30.field_508.field_1050[0][slot] = handle;
+                }
+                if (stages & 2) {
+                    field_30.field_2928[1].Unk_MarkRead(slot);
+                    field_30.field_508.field_1050[1][slot] = handle;
+                }
+                if (stages & 4) {
+                    field_30.field_2928[2].Unk_MarkRead(slot);
+                    field_30.field_508.field_1050[2][slot] = handle;
+                }
+                if (stages & 16) {
+                    field_30.field_2928[3].Unk_MarkRead(slot);
+                    field_30.field_508.field_1050[3][slot] = handle;
+                }
+                if (stages & 16) {
+                    field_30.field_2928[4].Unk_MarkRead(slot);
+                    field_30.field_508.field_1050[4][slot] = handle;
+                }
+                if (stages & 32) {
+                    field_30.field_2928[5].Unk_MarkRead(slot);
+                    field_30.field_508.field_1050[5][slot] = handle;
+                }
+            }
+            images += count;
+            break;
+        case 4:
+            for (s32 j = 0; j < count; j++) {
+                if (samplers + j >= static_cast<s32>(pTable->field_138.field_8.m_itemCount)) {
+                    break;
+                }
+                Unk_NXTableSampler* pSampler = static_cast<Unk_NXTableSampler*>(pTable->field_138.field_8.m_pData[samplers + j]);
+                if (pSampler == nullptr) {
+                    continue;
+                }
+                u32 stages = parameter.field_4;
+                s32 slot = base + j;
+                if (pSampler->vf8()->field_0 != 12) {
+                    continue;
+                }
+                u32 bound = pSampler->vf19();
+                if (bound == field_30.field_508.field_e50[slot]) {
+                    continue;
+                }
+                field_30.field_2b40[slot] = stages;
+                field_30.field_508.field_e50[slot] = bound;
+                field_30.field_29b8.Unk_MarkRead(slot);
+            }
+            samplers += count;
+            break;
+        }
+        s32 repeat = pRanges->field_8.m_pData[i].field_8;
+        i += repeat > 1 ? repeat - 1 : 0;
     }
 }
 
@@ -1588,8 +1904,10 @@ bool SiGfxNXDrawContext::vf58(Unk_PrimitiveTexture* pTexture, const Unk_Primitiv
 }
 
 // 0x7100540820
-void SiGfxNXDrawContext::vf59() {
-    field_2c70.Unk_54cab0();
+bool SiGfxNXDrawContext::vf59(Unk_PrimitiveTexture* pPlane0, Unk_PrimitiveTexture* pPlane1, Unk_PrimitiveTexture* pPlane2,
+                              Unk_PrimitiveTexture* pPlane3, const Unk_PrimitiveTextureDesc* desc,
+                              const Unk_PrimitiveRect* dest, const Unk_PrimitiveRect* source) {
+    return field_2c70.Unk_54cab0(pPlane0, pPlane1, pPlane2, pPlane3, desc, dest, source);
 }
 
 // 0x7100540840

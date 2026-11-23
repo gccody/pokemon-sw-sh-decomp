@@ -6,9 +6,17 @@
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_ShaderProgram_Impl.h>
 
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_StringFuncs.h>
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_Device_Impl.h>
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_ShaderInput_Impl.h>
 
 // NVN's entry points that only the shader program calls (nvn.h has them
 // without their types).
+inline NvnBoolean Unk_nvnProgramInitialize(void* program, u64 device) {
+    return reinterpret_cast<NvnBoolean (*)(void*, u64)>(Unk_27fc918)(program, device);
+}
+inline NvnBoolean Unk_nvnProgramSetShaders(void* program, s32 count, const SiSDK3::Unk_NXShaderData* stages) {
+    return reinterpret_cast<NvnBoolean (*)(void*, s32, const SiSDK3::Unk_NXShaderData*)>(Unk_27fc930)(program, count, stages);
+}
 inline void Unk_nvnProgramFinalize(void* program) {
     reinterpret_cast<void (*)(void*)>(Unk_27fc920)(program);
 }
@@ -36,9 +44,13 @@ SiGfxNXShaderProgram::SiGfxNXShaderProgram(ISiAllocator* pAllocator, SiGfxNXDevi
     field_a8 = nullptr;
     field_b0 = nullptr;
     field_178 = 0;
-    field_180 = 0;
-    field_188 = 0;
-    field_190 = 0;
+    field_17c = 0;
+    field_180[0] = 0;
+    field_180[1] = 0;
+    field_180[2] = 0;
+    field_180[3] = 0;
+    field_180[4] = 0;
+    field_180[5] = 0;
     memset(&field_64, 0, sizeof(field_64));
     field_64.field_0 = 8;
     field_78.field_0 = 2;
@@ -78,6 +90,105 @@ u32 SiGfxNXShaderProgram::vf42() {
 bool SiGfxNXShaderProgram::vf18(Unk_NXProgramPart* a1, Unk_NXProgramPart* a2, Unk_NXProgramPart* a3,
                                 Unk_NXProgramPart* a4, Unk_NXProgramPart* a5) {
     return Unk_55a2e0(a1, a2, a3, a4, a5, nullptr);
+}
+
+// 0x710055a2e0
+bool SiGfxNXShaderProgram::Unk_55a2e0(Unk_NXProgramPart* a1, Unk_NXProgramPart* a2, Unk_NXProgramPart* a3,
+                                      Unk_NXProgramPart* a4, Unk_NXProgramPart* a5, Unk_NXProgramPart* a6) {
+    field_80 = a1;
+    field_88 = a2;
+    field_90 = a3;
+    field_98 = a4;
+    field_a0 = a5;
+    field_a8 = a6;
+    Unk_NXShaderData stages[5] = {};
+    field_178 = 0;
+    field_17c = 0;
+    u32 coded = 0;
+    u32 count = 0;
+    if (field_a8 != nullptr) {
+        field_a8->vf2();
+        if (field_a8->vf20()) {
+            stages[coded++] = *field_a8->vf21();
+            field_178 |= 0x20;
+            field_180[field_17c] = 5;
+            field_17c++;
+        }
+        count++;
+    }
+    if (field_80 != nullptr) {
+        field_80->vf2();
+        if (field_80->vf20()) {
+            stages[coded++] = *field_80->vf21();
+            field_178 |= 0x1f;
+            field_180[field_17c] = 0;
+            field_17c++;
+        }
+        count++;
+    }
+    if (field_88 != nullptr) {
+        field_88->vf2();
+        if (field_88->vf20()) {
+            stages[coded++] = *field_88->vf21();
+            field_178 |= 2;
+            field_180[field_17c] = 1;
+            field_17c++;
+        }
+        count++;
+    }
+    if (field_90 != nullptr) {
+        field_90->vf2();
+        if (field_90->vf20()) {
+            stages[coded++] = *field_90->vf21();
+            field_178 |= 4;
+            field_180[field_17c] = 2;
+            field_17c++;
+        }
+        count++;
+    }
+    // (the original asks the vertex shader whether this one has its code)
+    if (field_98 != nullptr) {
+        field_98->vf2();
+        if (field_80->vf20()) {
+            stages[coded++] = *field_98->vf21();
+            field_178 |= 8;
+            field_180[field_17c] = 3;
+            field_17c++;
+        }
+        count++;
+    }
+    if (field_a0 != nullptr) {
+        field_a0->vf2();
+        if (field_a0->vf20()) {
+            stages[coded++] = *field_a0->vf21();
+            field_178 |= 0x10;
+            field_180[field_17c] = 4;
+            field_17c++;
+        }
+        count++;
+    }
+    if (count == coded) {
+        field_78.field_4 = true;
+        UNK_SAFE_RELEASE(field_b0);
+        if (field_80 != nullptr) {
+#line 674
+            SiGfxNXShaderInput* pInput = UNK_SI_NEW(field_10.m_pAllocator, 0x10) SiGfxNXShaderInput(field_10.m_pAllocator, field_20);
+            field_b0 = reinterpret_cast<Unk_NXProgramPart*>(pInput);
+            pInput->Unk_55ac60(this);
+        }
+    } else {
+        field_78.field_4 = false;
+    }
+    u64 device = field_20->vf85();
+    if (Unk_nvnProgramInitialize(field_b8, device) == 1) {
+        if (Unk_nvnProgramSetShaders(field_b8, count, stages) == 1) {
+            field_198 = true;
+            Unk_nvnProgramSetDebugLabel(field_b8, Unk_StringCStr(&field_30));
+            return true;
+        }
+        Unk_nvnProgramFinalize(field_b8);
+    }
+    return false;
 }
 
 // 0x710055a760

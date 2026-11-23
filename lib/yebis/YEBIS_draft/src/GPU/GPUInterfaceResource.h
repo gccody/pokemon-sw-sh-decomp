@@ -67,7 +67,7 @@ public:
     Unk_Desc field_44;
     u32 field_5c;
     u64 field_60;
-    u64 field_68;
+    IGPUPixelContainer* field_68;  // the texture a level's surface is of (field_10 4)
 };
 PKMN_OFFSET_ASSERT(IGPUPixelContainer, field_44, 0x44);
 PKMN_OFFSET_ASSERT(IGPUPixelContainer, field_68, 0x68);
