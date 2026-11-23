@@ -67,18 +67,25 @@ static inline float Unk_NoiseFade(float t) { return t * (t * (t * (t * (t * 6.0f
 static inline float Unk_NoiseLerp(float t, float a, float b) { return a + t * (b - a); }
 // 0x71004c9110: the gradient noise of a point (the permutation's first number
 // stands where a third coordinate's would)
-// NON_MATCHING: the same instructions, scheduled in another order (the
-// hashes of the second row are computed later in the original, between the
-// first row's products) and with other registers.
+// The integers' conversions are read into locals before the fractions are
+// taken, y's first, and x + 1 and the fractions minus one are locals: that
+// gives the original's float registers and most of its schedule.
+// NON_MATCHING: two integer registers: y's integer and x + 1 are each in the
+// other's (w9, w10), and the second row's hash is computed earlier here.
 float Unk_4c9110(float x, float y) {
     int ix = static_cast<int>(floorf(x));
     int iy = static_cast<int>(floorf(y));
-    x -= static_cast<float>(ix);
-    y -= static_cast<float>(iy);
+    float fx = static_cast<float>(ix);
+    float fy = static_cast<float>(iy);
+    y -= fy;
+    x -= fx;
+    int ix1 = ix + 1;
+    float x1 = x - 1.0f;
+    float y1 = y - 1.0f;
     float n00 = Unk_NoiseGrad(Unk_NoisePerm(Unk_NoisePerm(Unk_NoisePerm(0) + iy) + ix), x, y);
-    float n10 = Unk_NoiseGrad(Unk_NoisePerm(Unk_NoisePerm(Unk_NoisePerm(0) + iy) + (ix + 1)), x - 1.0f, y);
-    float n01 = Unk_NoiseGrad(Unk_NoisePerm(Unk_NoisePerm(Unk_NoisePerm(0) + iy + 1) + ix), x, y - 1.0f);
-    float n11 = Unk_NoiseGrad(Unk_NoisePerm(Unk_NoisePerm(Unk_NoisePerm(0) + iy + 1) + (ix + 1)), x - 1.0f, y - 1.0f);
+    float n10 = Unk_NoiseGrad(Unk_NoisePerm(Unk_NoisePerm(Unk_NoisePerm(0) + iy) + ix1), x1, y);
+    float n01 = Unk_NoiseGrad(Unk_NoisePerm(Unk_NoisePerm(Unk_NoisePerm(0) + iy + 1) + ix), x, y1);
+    float n11 = Unk_NoiseGrad(Unk_NoisePerm(Unk_NoisePerm(Unk_NoisePerm(0) + iy + 1) + ix1), x1, y1);
     float u = Unk_NoiseFade(x);
     float v = Unk_NoiseFade(y);
     return Unk_NoiseLerp(v, Unk_NoiseLerp(u, n00, n10), Unk_NoiseLerp(u, n01, n11));
@@ -548,8 +555,8 @@ void Unk_4ca0b0(SiSDK3::SiString<char>* self, const char* from, const char* to, 
         for (SiSDK3::SiLinkedList<size_t>::Node* node = found.m_pHead; node != nullptr; node = node->m_pNext) {
             size_t at = node->m_value + offset;
             size_t src = at + fromLength;
-            size_t dst = at + toLength;
             size_t rest = self->field_10 - src;
+            size_t dst = at + toLength;
             Unk_StringMove(self, dst, src, rest);
             if (rest == 0) {
                 self->m_pBuffer[dst] = 0;
@@ -560,8 +567,8 @@ void Unk_4ca0b0(SiSDK3::SiString<char>* self, const char* from, const char* to, 
         }
         self->m_pBuffer[newLength] = 0;
     } else {
-        size_t last = self->field_10;
         s64 offset = diff * (count - 1);
+        size_t last = self->field_10;
         SiSDK3::SiLinkedList<size_t>::Node* node = found.m_pTail;
         for (;;) {
             size_t at = node->m_value;

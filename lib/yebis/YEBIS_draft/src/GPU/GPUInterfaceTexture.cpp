@@ -13,6 +13,9 @@ extern bool Unk_238c3f9;
 // 0x71024e14f8: the device there is
 extern PPFX::IGPUDevice* Unk_24e14f8;
 
+// 0x710043fa90: the device's sampler `index` (GPUInterfaceDevice.cpp's)
+u64 Unk_43fa90(u64 self, u32 index);
+
 namespace PPFX {
 
 u32 Unk_446a90(u32 size, u32 level);
@@ -314,6 +317,11 @@ static inline IGPUPixelContainer::Unk_Desc Unk_TextureDesc(const IGPUPixelContai
     result.field_14 = desc->field_34;
     result.field_4 = self->field_c;
     return result;
+}
+
+// 0x7100447790
+Unk_SiGfxInterface* IGPUBaseTexture::Unk_447790() const {
+    return reinterpret_cast<Unk_SiGfxInterface*>(Unk_43fa90(reinterpret_cast<u64>(field_18), field_78));
 }
 
 // 0x71004477a0

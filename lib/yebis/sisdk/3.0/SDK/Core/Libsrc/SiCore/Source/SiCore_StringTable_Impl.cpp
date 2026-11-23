@@ -281,16 +281,11 @@ ISiStringTable::IEntry* SiStringTable::vf16(int id) {
 }  // namespace SiSDK3
 
 // 0x71004c8020
-// NON_MATCHING: the path for an empty string loads the flags (field_28) and
-// doesn't use them in the original (as 0x71004c4700 does), and the growth's
-// maximum compares its operands the other way round (`cmp x8, x9 ; csel lo`
-// for the original's `cmp x9, x8 ; csel hi`, from the same IR as
-// 0x71004c4700's, which has the original's); the rest is the original's. (The
-// test is `count < 1`: with `count == 0`, call-site splitting gives the copy
-// a second copy for the path that grows the buffer.)
+// (The test is `count < 1`: with `count == 0`, call-site splitting gives the
+// copy a second copy for the path that grows the buffer.)
 SiSDK3::SiString<char>* Unk_4c8020(SiSDK3::SiString<char>* self, const SiSDK3::SiString<char>* other) {
     if (other->field_10 == 0) {
-        SiSDK3::Unk_StringSetEmpty(self);
+        SiSDK3::Unk_StringSetEmptyAny(self);
         return self;
     }
     SiSDK3::Unk_StringReserve(self, other->field_10 + 1);

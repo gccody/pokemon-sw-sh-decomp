@@ -515,7 +515,9 @@ void SiGfxNXDrawContext::vf14(s32 count, const Unk_Viewport* viewports) {
 
 // NON_MATCHING: the same instructions with the loop's two pointers in each
 // other's registers (the original has the scissors' in x10 and the
-// rectangles' in x11).
+// rectangles' in x11). Tried: references to both in either order, pointers
+// stepped by the loop, a local rectangle assigned, the sizes first, s64/u32
+// counters.
 // 0x710053ca70
 void SiGfxNXDrawContext::vf15(s32 count, const Unk_Scissor* scissors) {
     if (count < 0 || count > 15) {
@@ -1447,9 +1449,10 @@ void SiGfxNXDrawContext::Unk_53ee60(ISiGfxResource* pResource, u32 stages, s32 s
     }
 }
 
-// NON_MATCHING: the original doesn't reload the ranges' count for a range of
-// another kind (the load is partially redundant there) and keeps the running
-// first index in a register; here it lives in a stack slot.
+// NON_MATCHING: three instructions: the original steps a pointer to the
+// sampler slot (`str w0, [x25] ; add x25, x25, #4`) where this indexes it by
+// the inner counter. Tried: the slot through a pointer stepped by the loop or
+// indexed, the counters and the range's fields as s64/u32.
 // 0x710053f2f0
 void SiGfxNXDrawContext::Unk_53f2f0(s32 index, SiGfxNXDescriptorTable* pTable) {
     if (pTable == nullptr) {
@@ -1472,7 +1475,7 @@ void SiGfxNXDrawContext::Unk_53f2f0(s32 index, SiGfxNXDescriptorTable* pTable) {
     }
     SiGfxNXRootSignature::Unk_Ranges* pRanges = parameter.field_20;
     s32 first = 0;
-    for (s64 i = 0; i < static_cast<s32>(pRanges->field_8.m_itemCount); i++) {
+    for (s32 i = 0; i < static_cast<s32>(pRanges->field_8.m_itemCount); i++) {
         SiGfxNXRootSignature::DescriptorRangeEntry& range = pRanges->field_8.m_pData[i];
         s32 base = range.field_4;
         s32 count = range.field_c;
@@ -1490,7 +1493,10 @@ void SiGfxNXDrawContext::Unk_53f2f0(s32 index, SiGfxNXDescriptorTable* pTable) {
                 break;
             }
             Unk_NXDrawTexture* pTexture = static_cast<Unk_NXDrawTexture*>(pTable->field_88.field_8.m_pData[first + j]);
-            if (pTexture != nullptr && pTexture->vf8()->field_0 == 1) {
+            if (pTexture == nullptr) {
+                continue;
+            }
+            if (pTexture->vf8()->field_0 == 1) {
                 field_30.field_508.field_f50[base + j] = Unk_53f490(pTexture, pSignature);
             }
         }
@@ -1500,7 +1506,9 @@ void SiGfxNXDrawContext::Unk_53f2f0(s32 index, SiGfxNXDescriptorTable* pTable) {
 
 // NON_MATCHING: the original duplicates the final `mvn` into the block of
 // a missing signature or no samplers (with the dead `mov w23, wzr` left in
-// it); here that block branches to it.
+// it); here that block branches to it. Tried: `~result`, `-(result + 1)`, an
+// early return for a missing signature, the result declared first, s32
+// indices, returning from the loop instead of the break.
 // 0x710053f490
 s32 SiGfxNXDrawContext::Unk_53f490(Unk_NXDrawTexture* pTexture, SiGfxNXRootSignature* pSignature) {
     Unk_NXRootSampler* pSampler = pTexture->vf33();
@@ -2557,7 +2565,8 @@ void SiGfxNXDrawContext::vf91(u32 a1, u32 stages, s32 slot, ISiGfxResource* pRes
 }
 
 // NON_MATCHING: the last call of slot 8 (its result unused) is a tail call
-// here; the original calls it and returns.
+// here; the original calls it and returns. Tried: slot 8 returning a
+// reference (the README's dereferenceable case): still a tail call.
 // 0x7100542570
 void SiGfxNXDrawContext::vf92(u32 a1, u32 stages, s32 slot, ISiGfxResource* pResource) {
     if (pResource == nullptr) {

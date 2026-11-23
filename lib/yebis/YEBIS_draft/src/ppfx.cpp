@@ -369,7 +369,8 @@ void Unk_418340_call(void* /*unused*/, void* value) {
     Unk_4278c0(reinterpret_cast<u64>(s_pSinglePostEffect), value);
 }
 
-void Unk_427900(u64, void*, u32);
+// 0x7100427900 (GPUPostEffect.cpp)
+PPFX::Unk_4278c0_Data* Unk_427900(u64, void*, u32);
 // 0x7100418350
 void Unk_418350_call(void* /*unused*/, void* value, u32 arg2) {
     Unk_427900(reinterpret_cast<u64>(s_pSinglePostEffect), value, arg2);
@@ -689,16 +690,18 @@ void Unk_4187f0_call(void* /*unused*/, u32 value, f32 a) {
     Unk_43a840(reinterpret_cast<u64>(s_pSinglePostEffect), value, a);
 }
 
-void Unk_43ad10(u64, u64, u32, void*);
-// 0x7100418800
-void Unk_418800_call(void* /*unused*/, u64 value, bool arg2, void* arg3) {
-    Unk_43ad10(reinterpret_cast<u64>(s_pSinglePostEffect), value, arg2, arg3);
+s32 Unk_43ad10(u64, s32, bool, const Unk_410f90*, f32, f32);
+// 0x7100418800: a colour matrix times a white balance (GPUPostEffect.cpp)
+void Unk_418800_call(void* /*unused*/, s32 index, bool planck, const Unk_410f90* space, f32 temperature,
+                     f32 luminance) {
+    Unk_43ad10(reinterpret_cast<u64>(s_pSinglePostEffect), index, planck, space, temperature, luminance);
 }
 
-void Unk_43af30(u64, u64, u32, void*);
-// 0x7100418810
-void Unk_418810_call(void* /*unused*/, u64 value, bool arg2, void* arg3) {
-    Unk_43af30(reinterpret_cast<u64>(s_pSinglePostEffect), value, arg2, arg3);
+s32 Unk_43af30(u64, s32, bool, const Unk_410f90*, f32, f32);
+// 0x7100418810: the same inverted
+void Unk_418810_call(void* /*unused*/, s32 index, bool planck, const Unk_410f90* space, f32 temperature,
+                     f32 luminance) {
+    Unk_43af30(reinterpret_cast<u64>(s_pSinglePostEffect), index, planck, space, temperature, luminance);
 }
 
 void Unk_43a460(u64, u32, f32);

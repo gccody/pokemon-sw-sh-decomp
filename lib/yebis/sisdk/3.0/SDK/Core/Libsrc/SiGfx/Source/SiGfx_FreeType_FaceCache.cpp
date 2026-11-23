@@ -118,7 +118,9 @@ void SiGfxFreeTypeFaceCache::Unk_531710() {
 // NON_MATCHING: one branch: the original goes to the shared `mov w0, wzr`
 // when no node is found (`cbz x0`); here that edge's copy is dropped as
 // redundant and the branch goes straight to the return (also with the root's
-// test and the call in one expression).
+// test and the call in one expression, a null-initialised node set under the
+// root's test, a ternary, and the rest of the function under `node !=
+// nullptr`).
 bool SiGfxFreeTypeFaceCache::Unk_531420(SiGfxFreeTypeGlyph* glyph) {
     if (field_30 == nullptr) {
         return false;

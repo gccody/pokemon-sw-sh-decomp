@@ -110,6 +110,7 @@ bool SiGfxGeometryUtility::vf5(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
                          {right, top, front}, {right, bottom, front}, {left, bottom, front}, {left, top, front}};
     f32 normals[6][3];
     normals[0][0] = 0.0f;
+    normals[3][1] = 0.0f;
     normals[0][1] = 0.0f;
     normals[0][2] = -1.0f;
     normals[1][0] = 1.0f;
@@ -119,7 +120,6 @@ bool SiGfxGeometryUtility::vf5(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
     normals[2][1] = 0.0f;
     normals[2][2] = 1.0f;
     normals[3][0] = -1.0f;
-    normals[3][1] = 0.0f;
     normals[3][2] = 0.0f;
     normals[4][0] = 0.0f;
     normals[4][1] = 1.0f;
@@ -171,10 +171,10 @@ bool SiGfxGeometryUtility::vf5(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
     for (s32 i = 0; i < 6; i++) {
         for (s32 j = 0; j < 4; j++) {
             f32 tangent[4];
+            const f32* position = corners[faces[i][j]];
             tangent[0] = 0.0f;
             tangent[1] = 0.0f;
             tangent[2] = 0.0f;
-            const f32* position = corners[faces[i][j]];
             const f32* normal = normals[i];
             const f32* texCoord = texCoords[j];
             Unk_4d3d00(vertex, positionAttribute.offset, positionAttribute.format, position, normalAttribute.offset,
@@ -374,8 +374,8 @@ bool SiGfxGeometryUtility::vf6(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
             f32 v = static_cast<f32>(i) / static_cast<f32>(stacks);
             f32 phi = v * 3.1415927f;
             f32 c = cosf(phi);
-            f32 s = sinf(phi);
             f32 y = c * radiusY;
+            f32 s = sinf(phi);
             for (s32 j = 0; j <= slices; j++) {
                 f32 u = static_cast<f32>(j) / static_cast<f32>(slices);
                 f32 theta = j == slices ? 0.0f : u * -6.2831855f;
@@ -424,8 +424,8 @@ bool SiGfxGeometryUtility::vf6(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
     }
     for (s32 i = 1; i < stacks - 1; i++) {
         for (s32 j = 0; j < slices; j++) {
-            s32 first = i * (slices + 1) + j;
             s32 second = (i + 1) * (slices + 1) + j;
+            s32 first = i * (slices + 1) + j;
             Unk_4ed780(4, indexCount >= 0x10000, indices, triangle, first, second + 1, first + 1);
             Unk_4ed780(4, indexCount >= 0x10000, indices, triangle + 1, first, second, second + 1);
             triangle += 2;
@@ -526,8 +526,8 @@ bool SiGfxGeometryUtility::vf7(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
     if (indices == nullptr) {
         return false;
     }
-    u16* indices16 = vertexCount >= 0x10000 ? nullptr : static_cast<u16*>(indices);
     u32* indices32 = vertexCount >= 0x10000 ? static_cast<u32*>(indices) : nullptr;
+    u16* indices16 = vertexCount >= 0x10000 ? nullptr : static_cast<u16*>(indices);
     {
         f32 position[4];
         f32 normal[4];
@@ -554,12 +554,12 @@ bool SiGfxGeometryUtility::vf7(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
                 f32 phi = j == stacks ? 3.1415927f : v * 3.1415927f;
                 f32 c = cosf(phi);
                 f32 s = sinf(phi);
-                position[0] = x * s;
-                position[1] = c * radiusY;
                 position[2] = z * s;
-                normal[0] = position[0];
+                position[1] = c * radiusY;
+                position[0] = x * s;
                 normal[1] = position[1];
                 normal[2] = position[2];
+                normal[0] = position[0];
                 Unk_Normalize(normal);
                 texCoord[0] = u;
                 texCoord[1] = v;
@@ -742,9 +742,9 @@ bool SiGfxGeometryUtility::vf8(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
             position[1] = 0.0f;
             position[2] = height * -0.5f;
             normal[0] = 0.0f;
+            texCoord[0] = 0.5f;
             normal[1] = 0.0f;
             normal[2] = -1.0f;
-            texCoord[0] = 0.5f;
             texCoord[1] = 0.0f;
             tangent[0] = 0.0f;
             tangent[1] = 0.0f;
@@ -760,6 +760,7 @@ bool SiGfxGeometryUtility::vf8(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
             f32 normal[4];
             f32 texCoord[2];
             f32 tangent[4];
+            normal[1] = 0.0f;
             f32 angle = j == slices ? 0.0f : static_cast<f32>(-j) / static_cast<f32>(slices) * 6.2831855f;
             f32 c = cosf(angle);
             f32 s = sinf(angle);
@@ -767,7 +768,6 @@ bool SiGfxGeometryUtility::vf8(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
             position[1] = s * bottomRadius;
             position[2] = height * -0.5f;
             normal[0] = 0.0f;
-            normal[1] = 0.0f;
             normal[2] = -1.0f;
             Unk_Normalize(normal);
             texCoord[0] = static_cast<f32>(j) / static_cast<f32>(slices);
@@ -806,10 +806,10 @@ bool SiGfxGeometryUtility::vf8(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
                 normal[2] = z;
             }
             Unk_Normalize(normal);
-            texCoord[0] = static_cast<f32>(j) / static_cast<f32>(slices);
             texCoord[1] = v;
             tangent[0] = 0.0f;
             tangent[1] = 0.0f;
+            texCoord[0] = static_cast<f32>(j) / static_cast<f32>(slices);
             tangent[2] = 0.0f;
             Unk_4d3d00(vertex, positionAttribute.offset, positionAttribute.format, position, normalAttribute.offset,
                        normalAttribute.format, normal, texCoordAttribute.offset, texCoordAttribute.format, texCoord,
@@ -827,9 +827,9 @@ bool SiGfxGeometryUtility::vf8(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
             position[0] = 0.0f;
             position[1] = 0.0f;
             position[2] = height * 0.5f;
-            normal[0] = 0.0f;
             normal[1] = 0.0f;
             normal[2] = 1.0f;
+            normal[0] = 0.0f;
             texCoord[0] = 0.5f;
             texCoord[1] = 0.0f;
             tangent[0] = 0.0f;
@@ -849,9 +849,9 @@ bool SiGfxGeometryUtility::vf8(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
             f32 angle = j == slices ? 0.0f : static_cast<f32>(-j) / static_cast<f32>(slices) * 6.2831855f;
             f32 c = cosf(angle);
             f32 s = sinf(angle);
-            position[0] = c * topRadius;
             position[1] = s * topRadius;
             position[2] = height * 0.5f;
+            position[0] = c * topRadius;
             normal[0] = position[0];
             normal[1] = position[1];
             normal[2] = position[2];
@@ -1071,14 +1071,14 @@ bool SiGfxGeometryUtility::vf9(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
     }
     SiGfxNXBuffer::Unk_MakeDesc indexDesc(0, 0, 0, 1, 1, 0);
     indexDesc.field_0 = indexCount >= 0x10000 ? 0x2a : 0x39;
-    indexDesc.field_4 = indexSize;
     indexDesc.field_8 = indexCount >= 0x10000 ? 4 : 2;
     indexDesc.field_1c = 2;
+    indexDesc.field_4 = indexSize;
     indexDesc.field_20 = 0;
-    indexDesc.field_18 = 1;
     indexDesc.field_24 = 0;
-    indexDesc.field_28 = indexSize;
     indexDesc.field_30 = indices;
+    indexDesc.field_18 = 1;
+    indexDesc.field_28 = indexSize;
     if (!pIndexBuffer->vf21(&indexDesc)) {
 #line 1639
         UNK_SAFE_FREE(field_8.m_pAllocator, vertices);
@@ -1292,14 +1292,14 @@ bool SiGfxGeometryUtility::vf11(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVe
         color[3] = 1.0f;
         u8* vertex = vertices;
         for (s32 i = 0; i < segments; i++) {
+            position[2] = height;
             f32 angle = static_cast<f32>(i) / static_cast<f32>(segments) * 6.2831855f;
             f32 c = cosf(angle);
             f32 s = sinf(angle);
             position[0] = c * radius;
-            position[1] = s * radius;
-            position[2] = height;
-            normal[0] = c * height;
             normal[1] = s * height;
+            position[1] = s * radius;
+            normal[0] = c * height;
             normal[2] = -radius;
             Unk_Normalize(normal);
             texCoord[0] = c * 0.5f + 0.5f;
@@ -1319,10 +1319,10 @@ bool SiGfxGeometryUtility::vf11(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVe
         normal[0] = 0.0f;
         normal[1] = 0.0f;
         normal[2] = 1.0f;
-        texCoord[0] = 0.5f;
         texCoord[1] = 0.5f;
         tangent[0] = 0.0f;
         tangent[1] = 0.0f;
+        texCoord[0] = 0.5f;
         tangent[2] = 0.0f;
         Unk_4d3d00(vertex, positionAttribute.offset, positionAttribute.format, position, normalAttribute.offset,
                    normalAttribute.format, normal, texCoordAttribute.offset, texCoordAttribute.format, texCoord,
@@ -1624,12 +1624,12 @@ bool SiGfxGeometryUtility::vf13(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVe
     SiGfxNXBuffer::Unk_MakeDesc vertexDesc(0, 0, 0, 1, 1, 0);
     vertexDesc.field_0 = 0;
     vertexDesc.field_4 = size;
-    vertexDesc.field_8 = stride;
     vertexDesc.field_1c = 1;
     vertexDesc.field_20 = 0;
     vertexDesc.field_18 = 1;
     vertexDesc.field_24 = 0;
     vertexDesc.field_28 = size;
+    vertexDesc.field_8 = stride;
     vertexDesc.field_30 = vertices;
     if (!pVertexBuffer->vf21(&vertexDesc)) {
 #line 2579

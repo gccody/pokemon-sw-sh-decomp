@@ -201,6 +201,7 @@ public:
     // 0x71004b35a0: a level's texture of one of two sets
     CRenderTexture* Unk_4b35a0(bool second, s32 index);
     bool Unk_4b5ae0();  // 0x71004b5ae0: whether there is anything to blur
+    s32 Unk_4b5b40();   // 0x71004b5b40: the second kind's blurs brought back to their levels
     s32 Unk_4aa030(s32 value);  // 0x71004aa030: field_170 (negative: from the format)
     s32 Unk_4b4e10();           // 0x71004b4e10: field_238 drawn with 0x710048b1e0
     void Unk_4b0db0(bool near, bool far);  // 0x71004b0db0: the composite's constants
@@ -247,7 +248,7 @@ public:
     bool field_174;  // the levels are drawn in their colours
     u8 _175[0x178 - 0x175];
     f32 field_178;
-    u8 _17c[0x180 - 0x17c];
+    s32 field_17c;
     s32 field_180;  // the number of a level's field_48
     bool field_184;  // whether the camera is usable
     f32 field_188;
@@ -277,9 +278,10 @@ public:
     f32 field_1e4;
     Unk_Float4 field_1e8;  // the depth's scale and bias, and their inverse
     s32 field_1f8[4];
-    u8 _208[0x20c - 0x208];
-    s32 field_20c;
-    u8 _210[0x21c - 0x210];
+    s32 field_208;  // the number of levels drawn
+    s32 field_20c;  // of them, with a near blur
+    s32 field_210;  // and with a far blur
+    u8 _214[0x21c - 0x214];
     s32 field_21c;
     s32 field_220;
     s32 field_224;

@@ -380,15 +380,12 @@ static inline void Unk_StringAssignCStr(SiSDK3::SiString<T>* self, const T* s) {
 
 
 // The characters of s, with room for them made first (0x71004c42b0 and
-// 0x71004c4700).
-// NON_MATCHING (both): the original's path for an empty string loads the
-// flags (field_28) and doesn't use them, which no spelling tried here gives
-// (an `if` on bit 0 whose two sides became the same code after register
-// allocation, it seems); the rest is the original's.
+// 0x71004c4700). The empty string's path is the one that tests the flags
+// (the original loads them there and nothing uses them).
 template <class T>
 static inline SiSDK3::SiString<T>* Unk_StringAssignReserved(SiSDK3::SiString<T>* self, const T* s) {
     if (s == nullptr || *s == 0) {
-        SiSDK3::Unk_StringSetEmpty(self);
+        SiSDK3::Unk_StringSetEmptyAny(self);
         return self;
     }
     s64 length = SiSDK3::Unk_StringLength(s);
@@ -538,10 +535,8 @@ bool Unk_4c5280(const u8* s, SiSDK3::SiString<char>* dst, s64 count) {
 // 0x71004c5520: copies at most count characters (-1: all of them) into size
 // (under 1: as many as there are), cutting the string short with a
 // terminator
-// NON_MATCHING: one block. For an empty source without a count the original
-// goes to the shared terminator store with i = 0; here that store is
-// duplicated into the path (`strb wzr, [x0, xzr]; ret`). The loops are the
-// original's.
+// The counted loop comes first (`count != -1`): with the test the other way
+// round the empty source's path gets the terminator store duplicated into it.
 void Unk_4c5520(char* dst, size_t size, const char* src, s64 count) {
     if (size == 0) {
         return;
@@ -554,17 +549,7 @@ void Unk_4c5520(char* dst, size_t size, const char* src, s64 count) {
     }
     s64 i = 0;
     char c = *src;
-    if (count == -1) {
-        while (c != 0) {
-            if (static_cast<s64>(size) >= 1 && i >= static_cast<s64>(size)) {
-                dst[i - 1] = 0;
-                return;
-            }
-            dst[i] = c;
-            i++;
-            c = src[i];
-        }
-    } else {
+    if (count != -1) {
         while (count >= 1 && c != 0) {
             if (static_cast<s64>(size) >= 1 && i >= static_cast<s64>(size)) {
                 dst[i - 1] = 0;
@@ -572,6 +557,16 @@ void Unk_4c5520(char* dst, size_t size, const char* src, s64 count) {
             }
             dst[i] = c;
             count--;
+            i++;
+            c = src[i];
+        }
+    } else {
+        while (c != 0) {
+            if (static_cast<s64>(size) >= 1 && i >= static_cast<s64>(size)) {
+                dst[i - 1] = 0;
+                return;
+            }
+            dst[i] = c;
             i++;
             c = src[i];
         }
@@ -617,55 +612,63 @@ void Unk_4c5750(char* dst, s64 size, const char* src, s64 count) {
     *dst = 0;
 }
 
-// which of two ends (null or zero) comes first: -1, 0 or 1
+// which of two ends (null or zero) comes first: -1, 0 or 1 (both ends'
+// test is computed before a's: `orr ; csetm`, then `csinc`)
 template <class T>
 static inline s64 Unk_EndOrder(T a, T b) {
-    if (a == 0 && b == 0) {
-        return 0;
-    }
-    return a == 0 ? -1 : 1;
+    s64 r = (a == 0 && b == 0) ? 0 : -1;
+    return a == 0 ? r : 1;
 }
 
 // 0x71004c5630: compares two strings (with or without case): -1, 0 or 1; a
 // null string is before any other
-// NON_MATCHING: the original computes the result for the ends as a value
-// before it tests them (`orr ; cmp ; csetm ; csinc`, then the branches), for
-// the pointers and again for the first characters, and unswitches the loop on
-// the case. With the results taken before the tests (as here) they are
-// computed first too, but as `cneg ; csel` of the other operand order, and
-// the characters' two tests stay branches (the original ORs two csets and
-// tests them after the case's branch). Tried: the end order as `a != 0 ? 1 :
-// ...`, `a == 0 ? (b == 0 ? 0 : -1) : 1`, the header's form, `|` for `||`, a
-// break out of the loop and one return.
+// One loop for each case: their first iterations' identical reads and tests
+// are hoisted above the case's branch, as in the original. The end's result
+// is computed with the end's test before it (an `orr` of both tests that the
+// loops branch on).
 s64 Unk_4c5630(const char* a, const char* b, bool caseSensitive) {
     s64 result = Unk_EndOrder(a, b);
     if (a == nullptr || b == nullptr) {
         return result;
     }
-    for (;;) {
-        char c1 = *a;
-        char c2 = *b;
-        result = Unk_EndOrder(c1, c2);
-        if (c1 == 0 || c2 == 0) {
-            return result;
+    if (caseSensitive) {
+        for (;;) {
+            char c1 = *a;
+            char c2 = *b;
+            bool end = c1 == 0 || c2 == 0;
+            result = Unk_EndOrder(c1, c2);
+            if (end) {
+                return result;
+            }
+            if (static_cast<u8>(c1) < static_cast<u8>(c2)) {
+                return -1;
+            }
+            if (static_cast<u8>(c1) > static_cast<u8>(c2)) {
+                return 1;
+            }
+            a++;
+            b++;
         }
-        u8 ca;
-        u8 cb;
-        if (caseSensitive) {
-            ca = c1;
-            cb = c2;
-        } else {
-            ca = toupper(static_cast<u8>(c1));
-            cb = toupper(static_cast<u8>(c2));
+    } else {
+        for (;;) {
+            char c1 = *a;
+            char c2 = *b;
+            bool end = c1 == 0 || c2 == 0;
+            result = Unk_EndOrder(c1, c2);
+            if (end) {
+                return result;
+            }
+            u8 u1 = toupper(static_cast<u8>(c1));
+            u8 u2 = toupper(static_cast<u8>(c2));
+            if (u1 < u2) {
+                return -1;
+            }
+            if (u1 > u2) {
+                return 1;
+            }
+            a++;
+            b++;
         }
-        if (ca < cb) {
-            return -1;
-        }
-        if (ca > cb) {
-            return 1;
-        }
-        a++;
-        b++;
     }
 }
 

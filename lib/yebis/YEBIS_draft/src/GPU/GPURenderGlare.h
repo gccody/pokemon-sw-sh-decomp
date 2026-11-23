@@ -58,7 +58,33 @@ PKMN_SIZE_ASSERT(Unk_453_1f8, 0x60);
 struct Unk_453_208 {
     u8 field_0[0x34];
 };
-struct Unk_29af8;
+class Unk_4a0540;
+
+// field_320's elements (placeholder): a texture at 0x18
+struct Unk_45_320 {
+    u8 pad_0[0x18];
+    CRenderTexture* field_18;
+    u8 pad_20[0x8];
+    CRenderTexture* field_28;
+    CRenderTexture* field_30;
+
+    // field_28 or field_30, else field_18 (inline)
+    CRenderTexture* Unk_Texture28() const {
+        CRenderTexture* texture = field_18;
+        if (field_28 != nullptr) {
+            texture = field_28;
+        }
+        return texture;
+    }
+    CRenderTexture* Unk_Texture30() const {
+        CRenderTexture* texture = field_18;
+        if (field_30 != nullptr) {
+            texture = field_30;
+        }
+        return texture;
+    }
+};
+PKMN_SIZE_ASSERT(Unk_45_320, 0x38);
 
 struct Unk_453_30 {
     Unk_453_30() { Unk_Reset(); }
@@ -232,7 +258,17 @@ public:
     f32 Unk_458420();   // 0x7100458420: the glare's luminance
     f32 Unk_458250();   // 0x7100458250
     s32 Unk_458720();          // 0x7100458720 (not written yet)
-    void Unk_4593f0(bool arg);  // 0x71004593f0 (not written yet)
+    s32 Unk_458e20();          // 0x7100458e20: the ghosts' levels added up into field_318
+    // field_3d8, at most field_b0.field_18[6] (inline)
+    s32 Unk_LevelCount() const {
+        s32 count = field_3d8;
+        s32 limit = field_b0.field_18[6];
+        return limit < count ? limit : count;
+    }
+    s32 Unk_4593f0(bool flag);  // 0x71004593f0: the glare's star (`flag`: the sixth star definition)
+    // 0x7100459730 (not written yet; placeholder signature, from its caller)
+    s32 Unk_459730(const Unk_4a0540* star, CRenderTexture* target, CGPUResourceManage* texture,
+                   CRenderTexture** textures, CRenderTexture** pair, s32 count, bool flag);
     s32 Unk_45a820();          // 0x710045a820 (not written yet)
     s32 Unk_45c1e0();          // 0x710045c1e0 (not written yet)
     void Unk_45d3b0();         // 0x710045d3b0 (not written yet)
@@ -270,10 +306,19 @@ public:
     bool field_18c;
     u8 pad_18d[0x1f];
     bool field_1ac;
-    u8 pad_1ad[0x33];
+    u8 pad_1ad[0x3];
+    f32 field_1b0;
+    f32 field_1b4;
+    f32 field_1b8;
+    f32 field_1bc;
+    f32 field_1c0;
+    f32 field_1c4;
+    u8 pad_1c8[0x18];
     f32 field_1e0;
     f32 field_1e4;
-    u8 pad_1e8[0xc];
+    f32 field_1e8;
+    f32 field_1ec;
+    f32 field_1f0;
     s32 field_1f4;
     Unk_453_1f8* field_1f8;
     s32 field_200;
@@ -324,7 +369,7 @@ public:
     u8 pad_30c[0x4];
     CGPUResourceManage** field_310;
     CGPUResourceManage* field_318;
-    Unk_29af8* field_320;
+    Unk_45_320* field_320;
     CGPUResourceManage* field_328;
     CGPUResourceManage* field_330;
     CGPUResourceManage* field_338;
@@ -357,17 +402,26 @@ public:
     f32 field_3f0;
     f32 field_3f4;
     f32 field_3f8;
-    u8 pad_3fc[0x8];
+    f32 field_3fc;
+    f32 field_400;
     f32 field_404;
-    u8 pad_408[0x8];
+    Unk_Float field_408;  // copied as an object
+    f32 field_40c;
     bool field_410;
-    u8 pad_411[0x3];
+    bool field_411;
+    u8 pad_412[0x2];
     s32 field_414;
     f32 field_418;
     bool field_41c;
     u8 pad_41d[0x3];
     u64 field_420;
+    bool field_428;
     // UNK_FIELDS_END
 };
+PKMN_OFFSET_ASSERT(CRenderGlare, field_1b0, 0x1b0);
+PKMN_OFFSET_ASSERT(CRenderGlare, field_1e8, 0x1e8);
+PKMN_OFFSET_ASSERT(CRenderGlare, field_3fc, 0x3fc);
+PKMN_OFFSET_ASSERT(CRenderGlare, field_411, 0x411);
+PKMN_OFFSET_ASSERT(CRenderGlare, field_428, 0x428);
 
 }  // namespace PPFX

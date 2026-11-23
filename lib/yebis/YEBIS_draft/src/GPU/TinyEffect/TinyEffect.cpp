@@ -10,6 +10,7 @@
 #include <yebis/YEBIS_draft/src/GPU/Unk_Statics.h>
 #include <yebis/YEBIS_draft/src/GPU/TinyEffect/TinyEffect.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUInterfaceBuffer.h>
+#include <yebis/YEBIS_draft/src/GPU/GPUInterfaceTexture.h>
 #include <yebis/YEBIS_draft/src/GPU/Unk_Array.h>
 
 #define PPFX_FILE "C:/workspace/YEBIS_draft/src/GPU/TinyEffect/TinyEffect.cpp"
@@ -65,7 +66,7 @@ s32 Unk_TinyPass::Unk_44ab80() {
           field_30.field_10 == Unk_24e2808.field_10)) {
         field_4c = 0;
         field_50 = 0;
-        Unk_TinyShared* shared = field_88;
+        CManualProgramParameterTable* shared = field_88;
         if (shared != nullptr) {
             if (--shared->field_8 == 0) {
                 Unk_Delete(Unk_238d5f8, shared);
@@ -91,17 +92,14 @@ s32 Unk_TinyPass::Unk_44ab80() {
     return 0;
 }
 
-// 0x710044ad90
-// NON_MATCHING: the original computes the address of field_140.field_1a4
-// (0x2e4) before the memsets and keeps it in x20 across the call (with a
-// pointer to it taken before the second memset it matches); here it is
-// computed after the call. A loop of the three numbers, std::fill and one
-// array for field_140 and the numbers were tried.
+// 0x710044ad90: field_140 is cleared up to its numbers by the difference of
+// their addresses (the address of field_1a4 is computed before the memset
+// and kept across it; with offsetof it is computed after)
 CTinyEffect::CTinyEffect()
     : field_78(nullptr), field_80(0), field_130(nullptr), field_138(0), field_13c(0), field_2f0(false), field_2f1(false), field_340(false),
       field_348(nullptr), field_3c0(0), field_3c8(nullptr) {
-    memset(field_88, 0, sizeof(field_88));
-    memset(&field_140, 0, __builtin_offsetof(Unk_TinyInputs, field_1a4));
+    memset(&field_88, 0, sizeof(field_88));
+    memset(&field_140, 0, reinterpret_cast<u8*>(&field_140.field_1a4) - reinterpret_cast<u8*>(&field_140));
     field_140.field_1a4 = 1;
     field_140.field_1a8 = 2;
     field_140.field_1ac = 3;
@@ -226,6 +224,168 @@ s32 CTinyEffect::Unk_44b380(const char* name) {
     return -1;
 }
 
+// whether a pass's device objects are made (and not the stand-in ones)
+static inline bool Unk_IsMade(const Unk_TinyResult& objects) {
+    return objects.field_0 != nullptr && objects.field_8 != nullptr && objects.field_10 != nullptr &&
+           !(objects.field_0 == Unk_24e2808.field_0 && objects.field_8 == Unk_24e2808.field_8 &&
+             objects.field_10 == Unk_24e2808.field_10);
+}
+
+typedef CManualProgramParameterTable::Unk_Item Unk_TableItem;
+
+// the table's item at `index` (null if there is none)
+static inline Unk_TableItem* Unk_GetItem(const CManualProgramParameterTable* table, s32 index) {
+    return index < 0 ? nullptr : table->field_10[index];
+}
+
+// whether `item` is one of the table's
+static inline bool Unk_IsItem(const CManualProgramParameterTable* table, const Unk_TableItem* item) {
+    if (item->field_1c >= static_cast<s32>(table->field_10.size())) {
+        return false;
+    }
+    return Unk_GetItem(table, item->field_1c) == item;
+}
+
+// whether `item` is one of the table's parameters of the effect's kinds
+static inline bool Unk_IsParameter(const CManualProgramParameterTable* table, const Unk_TableItem* item) {
+    return Unk_IsItem(table, item) && item->field_20 >= 1 && item->field_20 <= 4 && item->field_24 >= 0;
+}
+
+// whether the program uses it
+static inline bool Unk_IsReferenced(const CManualProgramParameterTable* table, const Unk_TableItem* item) {
+    return Unk_IsParameter(table, item) && item->field_18;
+}
+
+// the `element`th element of `item` (itself; null past its end)
+static inline Unk_TableItem* Unk_GetElement(const CManualProgramParameterTable* table, Unk_TableItem* item,
+                                            s32 element) {
+    if (!Unk_IsParameter(table, item)) {
+        return nullptr;
+    }
+    if (item->field_24 < 1 || item->field_24 <= element) {
+        return nullptr;
+    }
+    return item;
+}
+
+// the table's item named `name` (null if there is none)
+static inline Unk_TableItem* Unk_FindItem(const CManualProgramParameterTable* table, const char* name) {
+    s32 index = -1;
+    for (u32 i = 0; i < table->field_10.size(); i++) {
+        if (table->field_10[i]->field_8 == name) {
+            index = i;
+            break;
+        }
+    }
+    if (index < 0 || index >= static_cast<s32>(table->field_10.size())) {
+        return nullptr;
+    }
+    return table->field_10[index];
+}
+
+// 0x710044b4d0 (its log lines name it)
+// NON_MATCHING: a first version (the table's constructor matches): the
+// original doesn't fold the first test of the loop (`item != nullptr`) and
+// keeps the name search's index check and the array's element loop in other
+// shapes; the loop over the parameters is probably the inlined iteration
+// functions of a Cg-like interface (the log lines' "cgParameter"), not this
+// one loop.
+s32 CTinyEffect::CreateParameter(Unk_TinyPass* pass, s32 programIndex) {
+    if (pass->field_68) {
+        return 0;
+    }
+    Unk_TinyResult objects = pass->field_30;
+#line 2567
+    PPFX_FX("CTinyEffect::CreateParameter(): \n%d: %s\n", programIndex, pass->field_8.field_8);
+#line 2567
+    PPFX_FX("CTinyEffect::CreateParameter(programIndex: %d, pProgram->m_strName: \"%s\"):\n", programIndex,
+            pass->field_8.field_8);
+    if (!Unk_IsMade(objects)) {
+        return 0;
+    }
+    if (Unk_IsMade(pass->field_30) && pass->field_88 == nullptr) {
+#line 13731
+        CManualProgramParameterTable* table = UNK_NEW(CManualProgramParameterTable)();
+        table->Unk_44fca0(pass);
+        pass->field_88 = table;
+    }
+    s32 index = -1;
+    Unk_TableItem* item = nullptr;
+    while (item != nullptr || field_70) {
+        bool grouped = field_70;
+        Unk_TinyParam* param = nullptr;
+        if (index >= 0 && grouped) {
+            index += field_328[index]->field_2c;
+            if (index >= static_cast<s32>(field_328.size())) {
+                break;
+            }
+            param = field_328[index];
+        } else {
+            index++;
+            if (grouped) {
+                param = field_328[index];
+            }
+        }
+        Unk_TFXString name(param != nullptr ? param->field_8 : Unk_TFXString(""));
+        if (param != nullptr) {
+            item = Unk_FindItem(pass->field_88, name.field_8);
+            if (item == nullptr || !Unk_IsParameter(pass->field_88, item)) {
+                continue;
+            }
+        }
+        Unk_TFXString parameterName(name);
+        if (param == nullptr || param->field_1c == 0) {
+            continue;
+        }
+        Unk_TinyParam* first = field_328[index];
+        s32 referenced = 0;
+        if (param->field_41) {
+            for (s32 element = 0; element < first->field_2c; element++) {
+                Unk_TableItem* elementItem = Unk_GetElement(pass->field_88, item, element);
+                if (elementItem == nullptr) {
+                    break;
+                }
+                if (Unk_IsReferenced(pass->field_88, elementItem)) {
+                    referenced = element + 1;
+                }
+            }
+        } else {
+            referenced = Unk_IsReferenced(pass->field_88, item);
+        }
+        if (referenced != 0) {
+            bool array = param->field_41;
+            // compared, the result unused
+            bool matrix = parameterName == "m44_ColorTransformMatrix" || parameterName == "am44_TransformMatrix";
+            (void)matrix;
+#line 3802
+            Unk_TinyPassItem* passItem = UNK_NEW(Unk_TinyPassItem)(this);
+            pass->field_70.push_back(passItem);
+            passItem->field_20 = item;
+            passItem->field_8 = first->field_8;
+            passItem->field_3c = array;
+            passItem->field_28 = index;
+            passItem->field_30 = first;
+            passItem->field_40 = 0;
+            passItem->field_38 = referenced;
+            passItem->field_44 = passItem->field_20->field_2c;
+            passItem->field_48 = passItem->field_20->field_30;
+        }
+        if (param->field_41) {
+            s32 elements = param->field_2c;
+            Unk_TFXString text = Unk_TFXString(" ") + Unk_4525a0(referenced) + " elements referenced";
+#line 4010
+            PPFX_FX("cgParameter name: %s[%d]%s.\n", parameterName.field_8, elements,
+                    referenced != 0 ? text.field_8 : "");
+        } else {
+#line 4016
+            PPFX_FX("cgParameter name: %s%s.\n", parameterName.field_8, referenced != 0 ? " referenced" : "");
+        }
+    }
+    pass->field_68 = true;
+    CreateSiGfxProgramResources(pass);
+    return 0;
+}
+
 // 0x710044bbd0
 // NON_MATCHING: register allocation in the loop: the original keeps
 // `elements` on the stack and a down-counter of `count` in x19, the
@@ -308,13 +468,11 @@ s32 CTinyEffect::CreateGlobalParameter(const Unk_TFXString& name, s32 type, s32 
     return index;
 }
 
-// the index of the entry named `name` (a number is the index itself)
-// NON_MATCHING (its four callers): the test that ends the digits' loop is
-// `cmp w10, #0x3a ; b.lo` here, `cmp w10, #0x39 ; b.ls` in the original: the
-// same IR (`icmp ugt 57`), but here the search's block follows the loop's
-// latch when instructions are selected, so the branch is inverted there
-// (and the DAG makes `ule 57` `ult 58`); the original inverts it only in
-// block placement. Seven loop shapes and helpers were tried.
+// the index of the entry named `name` (a number is the index itself). `c`
+// is declared outside the loop: inside it, the gotos leave its scope through
+// a cleanup, and jump threading of the cleanup's switch puts the search's
+// block after the loop's latch (`cmp #0x3a ; b.lo` instead of the original's
+// `cmp #0x39 ; b.ls`).
 static inline s32 Unk_FindEntry(const CTinyEffect* effect, const Unk_TFXString& name) {
     s32 i = 0;
     char c;
@@ -420,7 +578,7 @@ struct Unk_TinyGfxDevice {
     virtual void vf24();
     virtual void vf25();
     virtual Unk_TinyRootSignature* vf26(s32 arg0, s32 arg1, void* arg2);  // CreateRootSignature
-    virtual void vf27();
+    virtual struct Unk_TinyTable* vf27(s32 arg0, s32 arg1, void* arg2);  // a table of textures
     virtual SiSDK3::ISiInterface* vf28(s32 arg0, s32 arg1, void* arg2);  // CreateDescriptorSet
     virtual void vf29();
     virtual void vf30();
@@ -454,7 +612,7 @@ s32 CTinyEffect::CreateSiGfxProgramResources(Unk_TinyPass* pass) {
     if (pass == nullptr || pass->field_88 == nullptr) {
         return -1;
     }
-    Unk_TinyShared* program = pass->field_88;
+    CManualProgramParameterTable* program = pass->field_88;
     Unk_TinyGfxDevice* device = reinterpret_cast<Unk_TinyGfxDevice*>(field_80);
     s32 constants = program->field_28;
     Unk_TinyRootSignature* signature = device->vf26(1, 0, nullptr);
@@ -463,10 +621,10 @@ s32 CTinyEffect::CreateSiGfxProgramResources(Unk_TinyPass* pass) {
         PPFX_ERROR("CTinyEffect::CreateSiGfxProgramResources(): pSiGfxDevice->CreateRootSignature() failed.\n");
         return -1;
     }
-    s32 textures = program->field_2c;
-    s32 samplers = program->field_30;
-    s32 count3 = program->field_34;
-    s32 count4 = program->field_38;
+    s32 textures = program->field_2c[0];
+    s32 samplers = program->field_2c[1];
+    s32 count3 = program->field_34[0];
+    s32 count4 = program->field_34[1];
     s32 count = (constants != 0 ? 1 : 0) + (textures != 0 ? 1 : 0) + (samplers != 0 ? 1 : 0);
     signature->vf8();
     signature->vf10(count);
@@ -480,7 +638,7 @@ s32 CTinyEffect::CreateSiGfxProgramResources(Unk_TinyPass* pass) {
     if (textures != 0) {
         signature->vf14(index, 1, textures);
         for (u32 i = 0; i < static_cast<u32>(textures); i++) {
-            Unk_TinyBinding* item = program->field_40[static_cast<s32>(i)];
+            CManualProgramParameterTable::Unk_Item* item = program->field_40[0][static_cast<s32>(i)];
             if (item != nullptr) {
                 binding = item->field_2c;
                 size = item->field_24;
@@ -493,7 +651,7 @@ s32 CTinyEffect::CreateSiGfxProgramResources(Unk_TinyPass* pass) {
     if (samplers != 0) {
         signature->vf14(index, 2, samplers);
         for (u32 i = 0; i < static_cast<u32>(samplers); i++) {
-            Unk_TinyBinding* item = program->field_140[static_cast<s32>(i)];
+            CManualProgramParameterTable::Unk_Item* item = program->field_40[1][static_cast<s32>(i)];
             if (item != nullptr) {
                 binding = item->field_2c;
                 size = item->field_24;
@@ -522,9 +680,12 @@ s32 CTinyEffect::CreateSiGfxProgramResources(Unk_TinyPass* pass) {
     return 0;
 }
 
-// NON_MATCHING: written this round, not matching yet (tools/check.py --diff shows
-// what differs).
 // 0x710044c370 (its log lines name it)
+// NON_MATCHING: the order of the zeros of the path without an effect file
+// (the original: vertexSize, shaderProgram, fragment, vertex, fragmentSize,
+// fragmentCode, vertexCode) and of the shaders' Create() arguments (the
+// original copies the size first); the locals' declaration order decides
+// both, and none of the 270 orders tried gives the original's.
 s32 CTinyEffect::CreateProgram(Unk_TinyProgram* program) {
     Unk_TinyGfxDevice* device = reinterpret_cast<Unk_TinyGfxDevice*>(field_80);
     const Unk_TFXString& programNames = program->field_8;
@@ -535,11 +696,11 @@ s32 CTinyEffect::CreateProgram(Unk_TinyProgram* program) {
     Unk_TFXString fragmentCodeName;
     {
         Unk_TFXString names(programNames);
-        vertexName = Token(&names, " \t\n", "//", "\"'", -1, -1, -1);
-        fragmentName = Token(&names, " \t\n", "//", "\"'", -1, -1, -1);
+        vertexName = Token(&names, " \t\n\r", "//", "\"'", -1, -1, -1);
+        fragmentName = Token(&names, " \t\n\r", "//", "\"'", -1, -1, -1);
         Unk_TFXString codes(codeNames);
-        vertexCodeName = Token(&codes, " \t\n", "//", "\"'", -1, -1, -1);
-        fragmentCodeName = Token(&codes, " \t\n", "//", "\"'", -1, -1, -1);
+        vertexCodeName = Token(&codes, " \t\n\r", "//", "\"'", -1, -1, -1);
+        fragmentCodeName = Token(&codes, " \t\n\r", "//", "\"'", -1, -1, -1);
     }
     const char* fragmentCode = nullptr;
     Unk_TinyShader* vertex = nullptr;
@@ -621,10 +782,10 @@ s32 CTinyEffect::CreateProgram(Unk_TinyProgram* program) {
 // Every order of the constructor's body gives this one (MemCpyOpt makes it
 // two memsets).
 s32 CTinyEffect::Unk_44c920(const Unk_TFXString& name, const Unk_TFXString& code, u32 arg,
-                            const Unk_TinyResult* objects) {
-    if (!(objects->field_0 != nullptr && objects->field_8 != nullptr && objects->field_10 != nullptr &&
-          !(objects->field_0 == Unk_24e2808.field_0 && objects->field_8 == Unk_24e2808.field_8 &&
-            objects->field_10 == Unk_24e2808.field_10))) {
+                            Unk_TinyResult objects) {
+    if (!(objects.field_0 != nullptr && objects.field_8 != nullptr && objects.field_10 != nullptr &&
+          !(objects.field_0 == Unk_24e2808.field_0 && objects.field_8 == Unk_24e2808.field_8 &&
+            objects.field_10 == Unk_24e2808.field_10))) {
         s32 index = Unk_FindPass(code.field_8);
         if (index >= 0) {
             return index;
@@ -634,8 +795,8 @@ s32 CTinyEffect::Unk_44c920(const Unk_TFXString& name, const Unk_TFXString& code
     program.field_48 = arg;
     program.field_8 = name;
     program.field_20 = code;
-    program.field_30 = *objects;
-    if (objects->field_0 == nullptr || objects->field_8 == nullptr || objects->field_10 == nullptr) {
+    program.field_30 = objects;
+    if (objects.field_0 == nullptr || objects.field_8 == nullptr || objects.field_10 == nullptr) {
         s32 result = CreateProgram(&program);
         if (result < 0 && result != -4) {
             return -1;
@@ -645,6 +806,198 @@ s32 CTinyEffect::Unk_44c920(const Unk_TFXString& name, const Unk_TFXString& code
     Unk_TinyPass* pass = UNK_NEW(Unk_TinyPass)(this, program);
     field_310.push_back(pass);
     return field_310.size() - 1;
+}
+
+// the size of a parameter's element, by its kind
+static inline u32 Unk_ElementSize(s32 type) {
+    switch (type) {
+    case 1:
+        return 4;
+    case 2:
+        return 16;
+    case 3:
+        return 64;
+    case 4:
+        return 8;
+    default:
+        return 0;
+    }
+}
+
+// 0x710238cf40: the kinds' names (the log's)
+static const char* const Unk_238cf40[] = {"ETFXPT_FLOAT", "ETFXPT_FLOAT", "ETFXPT_FLOAT4", "ETFXPT_FLOAT4x4",
+                                          "ETFXPT_SAMPLER"};
+
+// 0x710044cbd0 (its log line names it)
+// NON_MATCHING: two scheduling nits, the instructions are the same: the
+// original computes the code's offset before the address of the text
+// (`add w9` before `add x1` at +0x144), and the last two terms of the
+// passes' sharing condition after the shared objects' loads. The condition
+// is the bitwise one the original evaluates (every term, no branches); the
+// objects are passed by value (the copy is made just before the call).
+s32 CTinyEffect::BuildEffect() {
+#line 6847
+    PPFX_FX("CTinyEffect::BuildEffect(): \n\n%s\n\n", field_30.field_8);
+    field_2f0 = true;
+    field_368 = 0;
+    if (field_348 != nullptr) {
+        const char* header = static_cast<const char*>(field_348);
+        s32 size = atoi(header + 0x20);
+        field_350 = atoi(header + 0x30);
+        field_358 = Unk_TFXString(header + 0x38, 8, 8);
+        field_358.Unk_452b30();
+        if (field_358 == "glsl") {
+            field_368 = 1;
+        } else if (field_358 == "glsl_bin") {
+            field_368 = 2;
+        } else if (field_358 == "glsl_mrg" || field_358 == "glsl_kgr") {
+            field_368 = 3;
+        } else if (field_358 == "cgsrc") {
+            field_368 = 4;
+        } else if (field_358 == "cgnv1") {
+            field_368 = 5;
+        } else if (field_358 == "cgnv2") {
+            field_368 = 6;
+        } else if (field_358 == "cgstrip") {
+            field_368 = 7;
+        }
+        s32 entries = size + 0x40;
+        s32 code = entries + field_350 * static_cast<s32>(sizeof(Unk_TinyEntry));
+        if (field_368 == 5 || field_368 == 6) {
+            code = (code + 15) & ~15;
+        }
+        field_30 = Unk_TFXString(static_cast<const char*>(field_348) + 0x40);
+        Unk_TFXString globalTag("GlobalParameter:\n");
+        s32 global = field_30.Unk_4520d0(globalTag.field_8, 0, globalTag.field_0);
+        Unk_TFXString effectTag("Effect:\n");
+        s32 effect = field_30.Unk_4520d0(effectTag.field_8, global, effectTag.field_0);
+        if (global != 0) {
+            global = field_30.Unk_4520d0("\n", global, -1);
+            field_50 = field_30.Unk_452340(global, effect - 1);
+            field_70 = true;
+        }
+        if (effect != 0) {
+            effect = field_30.Unk_4520d0("\n", field_30.Unk_4520d0("\n", effect, -1) + 1, -1);
+            field_60 = field_30.Unk_4522d0(effect, field_30.field_0);
+        }
+        if (global != 0 || effect != 0) {
+            s32 effectEnd = effect != 0 ? effect - 1 : field_30.field_0;
+            s32 globalEnd = global != 0 ? global - 1 : field_30.field_0;
+            field_30.Unk_451530(effectEnd < globalEnd ? effectEnd : globalEnd);
+        }
+        field_370 = reinterpret_cast<Unk_TinyEntry*>(static_cast<char*>(field_348) + entries);
+        field_378 = static_cast<char*>(field_348) + code;
+    }
+    field_3c0 = 0;
+    field_2f1 = false;
+    if (field_70) {
+        Unk_TFXString text(field_50);
+        Unk_TFXString countText = Token(&text, " \t\n\r", "//", "\"'", -1, -1, -1);
+        s32 count = atoi(countText.field_8);
+        u32 maxSize = 0;
+        for (s32 i = 0; i < count; i++) {
+            Unk_TFXString name = Token(&text, ", \t\n\r", "//", "\"'", -1, -1, -1);
+            Unk_TFXString typeText = Token(&text, ", \t\n\r", "//", "\"'", -1, -1, -1);
+            Unk_TFXString elementsText = Token(&text, ", \t\n\r", "//", "\"'", -1, -1, -1);
+            s32 type = atoi(typeText.field_8);
+            s32 elements = atoi(elementsText.field_8);
+            CreateGlobalParameter(name, type, elements, false);
+            s32 n = elements > 1 ? elements : 1;
+            u32 bytes = Unk_ElementSize(type) * n;
+            maxSize = static_cast<s32>(maxSize) > static_cast<s32>(bytes) ? maxSize : bytes;
+        }
+        field_3c0 = maxSize;
+#line 7076
+        field_3c8 = UNK_NEW_ARRAY(char, maxSize);
+    }
+    Unk_TFXString text(field_30);
+    field_40 = Token(&text, " \t\n\r", "//", "\"'", -1, -1, -1);
+    Unk_TFXString countText = Token(&text, " \t\n\r", "//", "\"'", -1, -1, -1);
+    s32 count = atoi(countText.field_8);
+    field_2f8.reserve(field_2f8.size() + count);
+    for (s32 i = 0; i < count; i++) {
+#line 7173
+        Unk_TinyTechnique* technique = UNK_NEW(Unk_TinyTechnique)(this);
+        field_2f8.push_back(technique);
+    }
+    text.CutLeft(" \t\n", -1);
+    Unk_TFXString comma(",");
+    Unk_TFXString spaces(" \t\n");
+    s32 pos = 1;
+    for (s32 i = 0; i < count; i++) {
+        Unk_TinyTechnique* technique = field_2f8[i];
+        s32 end = text.Unk_451dc0('\n', pos);
+        if (end == 0) {
+            end = text.field_0;
+        }
+        Unk_TFXString line = text.Unk_452340(pos, end - 1);
+        line.CutLeft(" \t\n", -1);
+        technique->field_8 = Token(&line, ",", nullptr, "\"'", -1, -1, -1);
+        Unk_TFXString strLinkedProgramName;
+        Unk_TFXString strLinkedProgramFile;
+        Unk_TFXString strVertexProgramName = Token(&line, comma.field_8, "//", "\"'", -1, -1, -1);
+        Unk_TFXString strVertexProgramFile = Token(&line, comma.field_8, "//", "\"'", -1, -1, -1);
+        Unk_TFXString strFragmentProgramName = Token(&line, comma.field_8, "//", "\"'", -1, -1, -1);
+        Unk_TFXString strFragmentProgramFile = Token(&line, comma.field_8, "//", "\"'", -1, -1, -1);
+        strLinkedProgramName.Unk_452c00(spaces);
+        strLinkedProgramName.Unk_452b30();
+        strLinkedProgramFile.Unk_452c00(spaces);
+        strLinkedProgramFile.Unk_452b30();
+        strVertexProgramName.Unk_452c00(spaces);
+        strVertexProgramName.Unk_452b30();
+        strVertexProgramFile.Unk_452c00(spaces);
+        strVertexProgramFile.Unk_452b30();
+        strFragmentProgramName.Unk_452c00(spaces);
+        strFragmentProgramName.Unk_452b30();
+        strFragmentProgramFile.Unk_452c00(spaces);
+        strFragmentProgramFile.Unk_452b30();
+#line 7290
+        PPFX_FX("pTechnique->m_strName: %s\n", technique->field_8.field_8);
+        pos = end + 1;
+        if (field_368 == 3) {
+#line 7293
+            PPFX_FX("strLinkedProgramName: %s\n", strLinkedProgramName.field_8);
+            PPFX_FX("strLinkedProgramFile: %s\n", strLinkedProgramFile.field_8);
+            PPFX_FX("strVertexProgramName: %s\n", strVertexProgramName.field_8);
+            PPFX_FX("strFragmentProgramName: %s\n", strFragmentProgramName.field_8);
+        } else {
+#line 7300
+            PPFX_FX("strVertexProgramName: %s\n", strVertexProgramName.field_8);
+            PPFX_FX("strVertexProgramFile: %s\n", strVertexProgramFile.field_8);
+            PPFX_FX("strFragmentProgramName: %s\n", strFragmentProgramName.field_8);
+            PPFX_FX("strFragmentProgramFile: %s\n", strFragmentProgramFile.field_8);
+        }
+        Unk_TinyResult objects = Unk_24e2808;
+        if (!(i != 0 & i != count - 1 & i != count / 2 | field_70 != 0)) {
+            objects = Unk_TinyResult(nullptr, nullptr, nullptr);
+        }
+        Unk_TFXString programName = strVertexProgramName + " " + strFragmentProgramName;
+        Unk_TFXString programFile = strVertexProgramFile + " " + strFragmentProgramFile;
+        technique->field_1c = Unk_44c920(programName, programFile, 3, objects);
+    }
+    s32 passes = field_310.size();
+    for (s32 i = 0; i < passes; i++) {
+        CreateParameter(field_310[i], i);
+    }
+#line 7425
+    PPFX_FX("\nm_apGlobalParameter.size(): %d\n", field_328.size());
+    PPFX_FX("\n");
+    u32 params = field_328.size();
+    for (u32 i = 0; i < params; i++) {
+#line 7430
+        PPFX_FX("\n");
+        Unk_TinyParam* param = field_328[i];
+#line 7431
+        PPFX_FX("m_apGlobalParameter[%d]->m_eType: %d: %s\n", i, param->field_1c,
+                static_cast<u32>(param->field_1c) <= 4 ? Unk_238cf40[param->field_1c] : "invalid ETFXPARAMETERTYPE");
+        PPFX_FX("m_apGlobalParameter[%d]->m_sizeOfElement: %d\n", i, param->field_20);
+        PPFX_FX("m_apGlobalParameter[%d]->m_nElements: %d\n", i, param->field_2c);
+        PPFX_FX("m_apGlobalParameter[%d]->m_sizeOfElement: %d\n", i, param->field_20);
+        PPFX_FX("m_apGlobalParameter[%d]->m_strName: %s\n", i, param->field_8.field_8);
+        PPFX_FX("m_apGlobalParameter[%d]->m_strElementName: %s\n", i, param->field_30.field_8);
+        PPFX_FX("m_apGlobalParameter[%d]->m_pData: 0x%0x\n", i, param->field_48);
+    }
+    return 0;
 }
 
 // 0x710044dbc0
@@ -678,7 +1031,7 @@ s32 CTinyEffect::CreateFromMemory(const void* data, Unk_TinyDevice* device, bool
     } else {
         field_30 = text;
     }
-    Unk_44cbd0();
+    BuildEffect();
     return 0;
 }
 
@@ -989,6 +1342,197 @@ s32 CTinyEffect::vf24(u32 pass) {
     return result < 0 ? result : 0;
 }
 
+// a 4x4 matrix's numbers, copied as they are (placeholder)
+struct Unk_TinyMatrix {
+    u32 field_0[16];
+};
+
+// the matrix with its rows and columns swapped, into `out`
+static inline void Unk_TransposeTo(u32* out, const Unk_TinyMatrix& matrix) {
+    for (s32 row = 0; row < 4; row++) {
+        for (s32 column = 0; column < 4; column++) {
+            out[row * 4 + column] = matrix.field_0[column * 4 + row];
+        }
+    }
+}
+
+// 0x710044eac0
+// NON_MATCHING: only the matrices' loop: loop strength reduction biases the
+// source pointer by 0x20 here (`mov w9, #0x20`, loads at -0x20..0x18); the
+// original counts the byte offset from 0. Tried: the matrix as one or two
+// dimensional arrays, read through a pointer, memcpy, a reference, the
+// transposed copy into a local first.
+// The check of the kinds is a value tested for being negative (the original
+// keeps `select(bad, sext(bad), result)`, csetm + csel), and the constants'
+// size goes to the device as the fourth argument (it is in w4 on both
+// paths).
+s32 CTinyEffect::Unk_44eac0() {
+    Unk_TinyTechnique* technique = field_2f8[field_380 - 1];
+    Unk_TinyPass* pass = technique->field_0->field_310[technique->field_1c];
+    if (field_3d0) {
+        Unk_417a30("\n");
+        Unk_417a30("technique name: %s\n", technique->field_8.field_8);
+        Unk_417a30("  vertexprogram name:   %s\n", pass->field_8.field_8);
+        Unk_417a30("  fragmentprogram name: %s\n", pass->field_8.field_8);
+    }
+    pass->field_18 = true;
+    if (pass->field_30.field_0 == Unk_24e2808.field_0 && pass->field_30.field_8 == Unk_24e2808.field_8 &&
+        pass->field_30.field_10 == Unk_24e2808.field_10) {
+        s32 index = technique->field_1c;
+        CreateProgram(pass);
+        CreateParameter(pass, index);
+    }
+    s32 result = 0;
+    s32 items = pass->field_70.size();
+    for (s32 i = 0; i < items; i++) {
+        s32 check;
+        switch (pass->field_70[i]->field_30->field_1c) {
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+            check = 0;
+            break;
+        default:
+            check = -1;
+            break;
+        }
+        if (check < 0) {
+            result = check;
+        }
+    }
+    s32 constants = pass->field_88->field_28;
+    char* buffer = nullptr;
+    if (constants != 0) {
+        buffer = field_78->vf72(1, 3, 0, constants);
+    }
+    Unk_SiGfxInterface* vertexSamplers[4] = {};
+    Unk_SiGfxInterface* fragmentSamplers[16] = {};
+    field_88.field_0 = pass;
+    s32 count = pass->field_70.size();
+    if (field_3d0) {
+        Unk_417a30("\n");
+        Unk_417a30("program: %s has %d parameters.\n", pass->field_8.field_8, count);
+    }
+    for (s32 i = 0; i < count; i++) {
+        Unk_TinyPassItem* item = pass->field_70[i];
+        if (item->field_38 < 1) {
+            continue;
+        }
+        Unk_TinyParam* param = item->field_30;
+        if (field_3d0) {
+            Unk_417a30("\n");
+            Unk_417a30("parameter %d/%d: %s.\n", i, count, item->field_8.field_8);
+            switch (param->field_1c) {
+            case 1:
+                if (item->field_3c) {
+                    Unk_417a30("float[%d]\n", item->field_38);
+                } else {
+                    Unk_417a30("float\n");
+                }
+                break;
+            case 2:
+                if (item->field_3c) {
+                    Unk_417a30("float4[%d]\n", item->field_38);
+                } else {
+                    Unk_417a30("float4\n");
+                }
+                break;
+            case 3:
+                if (item->field_3c) {
+                    Unk_417a30("float4x4[%d]\n", item->field_38);
+                } else {
+                    Unk_417a30("float4x4\n");
+                }
+                break;
+            case 4:
+                Unk_417a30("sampler\n");
+                if (*static_cast<IGPUBaseTexture**>(param->field_48) == nullptr) {
+                    Unk_417a30("  NULL texture.\n");
+                } else {
+                    Unk_417a30("pProgramParameter->m_iResourceIndex: %d\n", item->field_44);
+                }
+                break;
+            default:
+#line 9523
+                PPFX_ERROR("Invalid pGlobalParameter->m_eType: %d: %s.\n", param->field_1c,
+                           static_cast<u32>(param->field_1c) <= 4 ? Unk_238cf40[param->field_1c]
+                                                                  : "invalid ETFXPARAMETERTYPE");
+                break;
+            }
+        }
+        switch (param->field_1c) {
+        case 1: {
+            char* data = buffer + item->field_48;
+            if (!item->field_3c) {
+                *reinterpret_cast<u32*>(data) = *static_cast<u32*>(param->field_48);
+            } else {
+                for (s32 j = 0; j < item->field_38; j++) {
+                    u32* out = reinterpret_cast<u32*>(data + static_cast<s32>(param->field_24) * j);
+                    *out = static_cast<u32*>(param->field_48)[j];
+                }
+            }
+            break;
+        }
+        case 2:
+            memcpy(buffer + item->field_48, param->field_48, item->field_38 * static_cast<s32>(param->field_24));
+            break;
+        case 3:
+            for (s32 j = 0; j < item->field_38; j++) {
+                u32* out = reinterpret_cast<u32*>(buffer + item->field_48 + static_cast<s32>(param->field_24) * j);
+                Unk_TinyMatrix matrix = static_cast<Unk_TinyMatrix*>(param->field_48)[j];
+                Unk_TransposeTo(out, matrix);
+            }
+            break;
+        case 4: {
+            Unk_SiGfxInterface* textures[16] = {};
+            bool any = false;
+            CManualProgramParameterTable::Unk_Item* binding = item->field_20;
+            for (s32 j = 0; j < item->field_38; j++) {
+                IGPUBaseTexture* texture = static_cast<IGPUBaseTexture**>(param->field_48)[j];
+                if (texture != nullptr) {
+                    textures[j] = *texture->field_70;
+                    u32 resource = item->field_44;
+                    if (binding->field_44 & 1) {
+                        vertexSamplers[resource + j] = texture->Unk_447790();
+                    }
+                    if (binding->field_44 & 2) {
+                        fragmentSamplers[resource + j] = texture->Unk_447790();
+                    }
+                    any = true;
+                }
+            }
+            if (any) {
+                if (binding->field_44 & 1) {
+                    memcpy(&field_88.field_8[item->field_48], textures, item->field_38 * sizeof(Unk_SiGfxInterface*));
+                }
+                if (binding->field_44 & 2) {
+                    memcpy(&field_88.field_28[item->field_48], textures, item->field_38 * sizeof(Unk_SiGfxInterface*));
+                }
+            }
+            break;
+        }
+        default:
+#line 10620
+            PPFX_ERROR("Invalid pGlobalParameter->m_eType: %d: %s.\n", param->field_1c,
+                       static_cast<u32>(param->field_1c) <= 4 ? Unk_238cf40[param->field_1c]
+                                                              : "invalid ETFXPARAMETERTYPE");
+            result = -1;
+            break;
+        }
+    }
+    for (s32 i = 0; i < 4; i++) {
+        field_140.field_100[i] = vertexSamplers[i];
+    }
+    for (s32 i = 0; i < 16; i++) {
+        field_140.field_120[i] = fragmentSamplers[i];
+    }
+    if (constants != 0) {
+        field_78->vf73();
+    }
+    return result < 0 ? result : 0;
+}
+
 // 0x710044f250
 // NON_MATCHING: the end of the first loop is `start + count` in the original
 // (`add w8, w5, w6`) and `count + start` here, whichever way it is written.
@@ -1038,6 +1582,244 @@ void* Unk_44f3a0(const void* data, void* arg1, bool arg2) {
     }
     return effect;
 }
+
+namespace PPFX {
+
+// a texture as Unk_44f450 uses it (placeholder): slot 32 takes its sampler
+struct Unk_TinyTexture : Unk_SiGfxInterface {
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+    virtual void vf25();
+    virtual void vf26();
+    virtual void vf27();
+    virtual void vf28();
+    virtual void vf29();
+    virtual void vf30();
+    virtual void vf31();
+    virtual void vf32(Unk_SiGfxInterface* sampler);
+};
+
+// a pass's table of textures (or samplers), field_a0 and field_a8
+// (placeholder): what the device's slot 27 makes
+struct Unk_TinyTable : SiSDK3::ISiInterface {
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8(s32 arg1, s32 arg2);  // begins
+    virtual void vf9();                   // ends
+    virtual void vf10(s32 size);
+    virtual void vf11();
+    virtual void vf12(s32 index, Unk_SiGfxInterface* texture);  // sets one
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+    virtual void vf25();
+    virtual void vf26();
+    virtual void vf27(s32 index, Unk_SiGfxInterface* texture);  // and changes one
+};
+
+// a pass's descriptor set, field_98 (placeholder)
+struct Unk_TinySet : SiSDK3::ISiInterface {
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8(SiSDK3::ISiInterface* signature);  // begins
+    virtual void vf9(s32 count);
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13(s32 index, s32 range, SiSDK3::ISiInterface* table);
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();  // ends
+};
+
+}  // namespace PPFX
+
+// 0x710044f450: sets the applied pass's textures and samplers (the tables of
+// them are made the first time)
+// NON_MATCHING: a first version, the same calls and loops (1576 bytes against
+// 1560): the original keeps the effect in x23 and the device only in x0
+// (spilled), and unswitches the texture loops on `made` after computing the
+// arrays' addresses once; the slot/range bookkeeping of the descriptor set
+// is laid out differently. The texture and sampler numbers carried from one
+// item to the next are uninitialised in the original too (registers that
+// hold other values).
+s32 Unk_44f450(void* self) {
+    using namespace PPFX;
+    CTinyEffect* effect = static_cast<CTinyEffect*>(self);
+    Unk_TinyDevice* context = effect->field_78;
+    Unk_TinyGfxDevice* device = reinterpret_cast<Unk_TinyGfxDevice*>(effect->field_80);
+    if (context == nullptr || device == nullptr) {
+        return -1;
+    }
+    Unk_TinyPass* pass = effect->field_88.field_0;
+    CManualProgramParameterTable* program = pass->field_88;
+    bool made = pass->field_c0;
+    s32 vertexTextures = program->field_2c[0];
+    s32 fragmentTextures = program->field_2c[1];
+    s32 vertexSamplers = program->field_34[0];
+    s32 fragmentSamplers = program->field_34[1];
+    if (vertexTextures != 0 && vertexSamplers != 0) {
+        Unk_TinyTable* table;
+        if (made) {
+            table = static_cast<Unk_TinyTable*>(pass->field_a0);
+        } else {
+            table = device->vf27(1, 0, nullptr);
+            table->vf8(1, 0);
+            s32 size = 0;
+            s32 binding;
+            s32 elements;
+            for (u32 i = 0; i < static_cast<u32>(vertexTextures); i++) {
+                CManualProgramParameterTable::Unk_Item* item = program->field_40[0][static_cast<s32>(i)];
+                if (item != nullptr) {
+                    binding = item->field_2c;
+                    elements = item->field_24;
+                }
+                s32 end = binding + elements;
+                size = size > end ? size : end;
+            }
+            table->vf10(size);
+        }
+        s32 first;
+        s32 samplerFirst;
+        s32 count;
+        for (u32 i = 0; i < static_cast<u32>(vertexTextures); i++) {
+            CManualProgramParameterTable::Unk_Item* item = program->field_40[0][static_cast<s32>(i)];
+            if (item != nullptr) {
+                first = item->field_2c;
+            }
+            CManualProgramParameterTable::Unk_Item* sampler = program->field_240[0][static_cast<s32>(i)];
+            if (sampler != nullptr) {
+                samplerFirst = sampler->field_2c;
+                count = sampler->field_24;
+            }
+            for (s32 k = 0; k < count; k++) {
+                static_cast<Unk_TinyTexture*>(effect->field_88.field_8[first + k])
+                    ->vf32(effect->field_140.field_100[samplerFirst + k]);
+                context->vf30(effect->field_88.field_8[first + k], 0x10, 0x100);
+                if (made) {
+                    table->vf27(first + k, effect->field_88.field_8[first + k]);
+                } else {
+                    table->vf12(first + k, effect->field_88.field_8[first + k]);
+                }
+            }
+        }
+        if (!made) {
+            table->vf9();
+            pass->field_a0 = table;
+        }
+        context->vf95(1, 0x10, 4, &effect->field_140.field_1a0);
+    }
+    if (fragmentTextures != 0 && fragmentSamplers != 0) {
+        Unk_TinyTable* table;
+        if (made) {
+            table = static_cast<Unk_TinyTable*>(pass->field_a8);
+        } else {
+            table = device->vf27(1, 0, nullptr);
+            table->vf8(1, 0);
+            s32 size = 0;
+            s32 binding;
+            s32 elements;
+            for (u32 i = 0; i < static_cast<u32>(fragmentTextures); i++) {
+                CManualProgramParameterTable::Unk_Item* item = program->field_40[1][static_cast<s32>(i)];
+                if (item != nullptr) {
+                    binding = item->field_2c;
+                    elements = item->field_24;
+                }
+                s32 end = binding + elements;
+                size = size > end ? size : end;
+            }
+            table->vf10(size);
+        }
+        s32 first;
+        s32 samplerFirst;
+        s32 count;
+        for (u32 i = 0; i < static_cast<u32>(fragmentTextures); i++) {
+            CManualProgramParameterTable::Unk_Item* item = program->field_40[1][static_cast<s32>(i)];
+            if (item != nullptr) {
+                first = item->field_2c;
+            }
+            CManualProgramParameterTable::Unk_Item* sampler = program->field_240[1][static_cast<s32>(i)];
+            if (sampler != nullptr) {
+                samplerFirst = sampler->field_2c;
+                count = sampler->field_24;
+            }
+            for (s32 k = 0; k < count; k++) {
+                if (effect->field_88.field_28[first + k] != nullptr) {
+                    static_cast<Unk_TinyTexture*>(effect->field_88.field_28[first + k])
+                        ->vf32(effect->field_140.field_120[samplerFirst + k]);
+                    context->vf30(effect->field_88.field_28[first + k], 0x10, 0x200);
+                }
+                if (made) {
+                    table->vf27(first + k, effect->field_88.field_28[first + k]);
+                } else {
+                    table->vf12(first + k, effect->field_88.field_28[first + k]);
+                }
+            }
+        }
+        if (!made) {
+            table->vf9();
+            pass->field_a8 = table;
+        }
+    }
+    Unk_TinySet* set = static_cast<Unk_TinySet*>(pass->field_98);
+    s32 constants = pass->field_88->field_28;
+    s32 index = constants != 0 ? 1 : 0;
+    s32 range = index;
+    if (!made) {
+        set->vf8(pass->field_90);
+        set->vf9(index + vertexTextures + fragmentTextures);
+    }
+    if (vertexTextures != 0) {
+        SiSDK3::ISiInterface** tables = &pass->field_a0;
+        for (u32 k = 0; k < static_cast<u32>(vertexTextures); k++) {
+            set->vf13(index + k, range, tables[k]);
+        }
+        index += vertexTextures;
+        range++;
+    }
+    if (fragmentTextures != 0) {
+        SiSDK3::ISiInterface** tables = &pass->field_a8;
+        for (u32 k = 0; k < static_cast<u32>(fragmentTextures); k++) {
+            set->vf13(index + k, range, tables[k]);
+        }
+    }
+    if (!made) {
+        set->vf16();
+    }
+    pass->field_c0 = true;
+    return 0;
+}
+
 
 namespace PPFX {
 

@@ -599,8 +599,8 @@ void Unk_594e80(Unk_594e80_Half4* dst, const u32* src);
 // A float's bits as a half float's (inline here; SiMath's translation unit
 // has the same code).
 static inline u16 Unk_PackHalf(u32 bits) {
-    u32 sign = (bits >> 16) & 0x8000;
     u32 exponent = (bits >> 23) & 0xff;
+    u32 sign = (bits >> 16) & 0x8000;
     u32 biased;
     u32 mantissa;
     if (exponent == 0) {
@@ -624,12 +624,12 @@ struct Unk_Float3 {
     f32 field_0[3];
 };
 
-// NON_MATCHING: 12 bytes longer; three differences. The half floats (formats
-// 34 and 54): the original subtracts the bias in the block of the first
-// range test (`subs w9, w11, #0x70; b.lo`), where this subtracts it after
-// the second (`cmp #0x6f; b.ls`, MachineSink moves the subtraction to its
-// use; computing the mantissa before the tests at least keeps the zero
-// exponent's path as two zeros, as the original has it). The blocks of
+// NON_MATCHING: the original's size; three differences. The half floats
+// (formats 34 and 54): the original subtracts the bias in the block of the
+// first range test (`subs w9, w11, #0x70; b.lo`), where this subtracts it
+// after the second (`cmp #0x6f; b.ls`: InstCombine sinks the subtraction to
+// the block that uses it; the exponent read before the sign and the
+// mantissa before the tests give the rest of the original's code). The blocks of
 // formats 61/65 and 62/64 are laid out the other way round (which one falls
 // into their shared conversion). Format 26 stores the copy's two words in
 // the other order. The case groups are in the original's layout (they come

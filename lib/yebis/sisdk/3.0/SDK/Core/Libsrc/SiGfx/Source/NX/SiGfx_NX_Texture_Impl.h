@@ -182,16 +182,16 @@ public:
         // texture chunk's data)
         inline explicit Unk_Desc(u32 format = 0, u32 width = 0, u32 height = 0, u32 a18 = 0, u32 a1c = 0, u32 a20 = 0,
                           u32 a30 = 0, u32 a38 = 0, u32 a54 = 0, const void* a60 = nullptr)
-            : field_0(format), field_4(0), field_8(0), field_10(width), field_14(height), field_18(a18),
+            : field_0(format), field_4(0), field_8(0), field_c(0), field_10(width), field_14(height), field_18(a18),
               field_1c(a1c), field_20(a20), field_24(0), field_28(0), field_2c(0), field_30(a30), field_34(8), field_38(a38), field_3c(0),
               field_40(0), field_44(0), field_50(0), field_54(a54), field_58(0), field_60(a60),
-              field_68(0), field_70(0), field_78(1.0f), field_7c(0), field_80(0), field_84(0), field_e8(0),
+              field_68(0), field_70(0), field_78(1.0f), field_7c(0), field_80(nullptr), field_e8(0),
               field_ec(-1), field_f0(-1) {
             field_f4 = Unk_Pair();
             field_fe = false;
             field_fc = false;
             field_fd = false;
-            field_48 = 0;
+            field_48 = Unk_Layout();
             field_100 = -1;
             field_108 = -1;
         }
@@ -210,6 +210,12 @@ public:
             u32 field_4;
         };
 
+        // eight bytes (placeholder): the NVN packaged texture's layout, which
+        // slot 22 tests byte by byte
+        struct Unk_Layout {
+            u8 field_0[8];
+        };
+
         // two numbers stored together (placeholder)
         struct Unk_Pair {
             Unk_Pair() : field_0(-1), field_4(0) {}
@@ -219,7 +225,8 @@ public:
 
         u32 field_0;  // the format
         u32 field_4;
-        u64 field_8;
+        u32 field_8;   // the view's format with a depth and stencil mode
+        u32 field_c;
         u32 field_10;  // the width
         u32 field_14;  // the height
         u32 field_18;
@@ -234,7 +241,7 @@ public:
         u32 field_3c;  // (0x34 to 0x3c: what the texture chunk's reader adds its flags to)
         u32 field_40;
         u32 field_44;
-        u64 field_48;
+        Unk_Layout field_48;  // NVNpackagedTextureLayout
         u32 field_50;
         u32 field_54;
         u64 field_58;
@@ -243,8 +250,7 @@ public:
         Unk_Pair2 field_70;
         f32 field_78;
         u32 field_7c;
-        u32 field_80;
-        u32 field_84;
+        SiGfxNXMemoryHeap* field_80;  // the heap to make it in (null: one of its own)
         SiString<char> field_88;
         SiString<char> field_b8;
         u32 field_e8;
@@ -292,8 +298,9 @@ public:
     virtual void vf19();
     virtual void vf20();
     virtual void vf21();
-    // 0x710055f3d0: makes the texture from a description
-    virtual bool vf22(const Unk_Desc* desc);
+    // 0x710055f3d0: makes the texture from a description (whose number of
+    // levels it fills in when it's 0)
+    virtual bool vf22(Unk_Desc* desc);
     // 0x71005604c0: makes the texture from an image (its pixels, levels and
     // layers) and a description of the rest
     virtual bool vf23(const Unk_Desc* desc, SiGfxImage* image);

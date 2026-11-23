@@ -37,6 +37,21 @@ inline NvnBoolean Unk_nvnTextureViewGetFormat(const void* view, int* format) {
     return reinterpret_cast<NvnBoolean (*)(const void*, int*)>(Unk_27fcc88)(view, format);
 }
 
+inline s64 Unk_nvnTextureBuilderGetStride(const void* builder) {
+    return reinterpret_cast<s64 (*)(const void*)>(Unk_27fcc08)(builder);
+}
+
+// 0x7100563270: sets an NVN texture builder up for a texture of a kind from
+// its description (Unk_562ee0.cpp's type: the texture's description)
+struct Unk_563270_Desc;
+void Unk_563270(void* device, s32 kind, const Unk_563270_Desc* desc, void* builder);
+
+// 0x71004ed1a0, 0x71004ed200, 0x71004ed300: how many levels a 1D, 2D or 3D
+// texture of a size has, down to a minimum size (SiGfx_Utility.cpp)
+s32 Unk_4ed1a0(s32 size, s32 minSize);
+s32 Unk_4ed200(s32 width, s32 height, s32 minWidth, s32 minHeight);
+s32 Unk_4ed300(s32 width, s32 height, s32 depth, s32 minWidth, s32 minHeight, s32 minDepth);
+
 // 0x7100562f10: an NVN texture format as SiGfx numbers it
 u32 Unk_562f10(u32 format);
 // 0x71004ed0f0: a format's block's size, 0x71004ed120: whether it's one of
@@ -70,6 +85,236 @@ const SiString<char>* SiGfxNXTexture::vf46() {
 // 0x710055f2e0 (0x710055f2f0: its thunk)
 u32 SiGfxNXTexture::vf47() {
     return field_a8;
+}
+
+// NVN's objects as the texture allocates them (placeholder names): a texture
+// and a texture view.
+struct Unk_NXTextureNVNTexture {
+    u64 field_0[24];
+};
+struct Unk_NXTextureNVNView {
+    u64 field_0[5];
+};
+
+// 0x710055f3d0: a description that names files is only kept; otherwise the
+// NVN texture is made in memory of its own heap (or the one the description
+// gives), filled with the description's pixels, with a view of each level and
+// layer. The NVN texture builder is a block's local: the null test of the view
+// that follows it returns without the builder's lifetime end, as the
+// original's direct branch to the return shows (AArch64's redundant copy
+// elimination then drops the zero move). The test for the files is a bool
+// local (without it the branch to the copy comes out inverted), and the
+// pixels' loop has a guard of its own (`cmp #1; b.lt`).
+bool SiGfxNXTexture::vf22(Unk_Desc* desc) {
+    bool files = desc->field_88.field_10 != 0 || desc->field_b8.field_10 != 0;
+    if (files) {
+        field_b0 = *desc;
+    } else {
+        field_b0.Unk_55ffd0();
+        field_451 = false;
+        void* device = reinterpret_cast<void*>(field_28->vf85());
+#line 298
+        field_328 = UNK_SI_NEW(field_18.m_pAllocator, 0x10) Unk_NXTextureNVNTexture;
+        if (field_328 == nullptr) {
+            return false;
+        }
+        u32 flags = Unk_563620(1, desc->field_30, desc->field_34, desc->field_38);
+        if (desc->field_34 & 0x4020) {
+            if (desc->field_40 != 8) {
+                flags |= 0x80;
+            }
+        }
+        s32 width = static_cast<s32>(desc->field_10) > 1 ? desc->field_10 : 1;
+        s32 height = static_cast<s32>(desc->field_14) > 1 ? desc->field_14 : 1;
+        s32 depth = static_cast<s32>(desc->field_18) > 1 ? desc->field_18 : 1;
+        s32 levels = desc->field_1c;
+        if (levels == 0) {
+            switch (field_1d4) {
+            case 1:
+                levels = Unk_4ed1a0(desc->field_10, 0);
+                break;
+            case 3:
+                levels = Unk_4ed300(desc->field_10, desc->field_14, desc->field_18, 0, 0, 0);
+                break;
+            default:
+                levels = Unk_4ed200(desc->field_10, desc->field_14, 0, 0);
+                break;
+            }
+            desc->field_1c = levels;
+        }
+        {
+            u64 builder[16] = {};  // NVNtextureBuilder
+            Unk_563270(device, field_1d4, reinterpret_cast<const Unk_563270_Desc*>(desc), builder);
+            for (s32 i = 0; i < 8; i++) {
+                if (desc->field_48.field_0[i] != 0) {
+                    nvnTextureBuilderSetPackagedTextureLayout(builder, &desc->field_48);
+                    break;
+                }
+            }
+            size_t size = nvnTextureBuilderGetStorageSize(builder);
+            size_t alignment = nvnTextureBuilderGetStorageAlignment(builder);
+            field_438 = desc->field_80;
+            if (field_438 != nullptr) {
+                field_438->vf2();
+            }
+            size_t poolSize = Unk_NXAlign(size, alignment);
+            if (field_438 == nullptr) {
+                field_438 = vf5()->vf30(0, nullptr);
+                Unk_NXMemoryHeapDesc heapDesc(poolSize);
+                heapDesc.field_24 = 1;
+                heapDesc.field_1c = desc->field_38;
+                heapDesc.field_10 = desc->field_30;
+                heapDesc.field_30 = flags;
+                u8* buffer = nullptr;
+                if (static_cast<s32>(desc->field_50) >= 1 && desc->field_60 != nullptr &&
+                    static_cast<const SIGFX_TEXTURE_INITDATA*>(desc->field_60)->field_0 != nullptr) {
+#line 410
+                    buffer = static_cast<u8*>(UNK_ALLOC(field_18.m_pAllocator, static_cast<s32>(poolSize)));
+                    memset(buffer, 0, static_cast<s32>(poolSize));
+                    if (desc->field_40 == 8) {
+                        s32 stride = Unk_nvnTextureBuilderGetStride(builder);
+                        u8* dst = buffer;
+                        if (static_cast<s32>(desc->field_54) >= 1) {
+                            for (s32 i = 0; i < static_cast<s32>(desc->field_54); i++) {
+                                const SIGFX_TEXTURE_INITDATA* data =
+                                    &static_cast<const SIGFX_TEXTURE_INITDATA*>(desc->field_60)[i];
+                                s32 rows = static_cast<s32>(data->field_8) / static_cast<s32>(data->field_10);
+                                heapDesc.field_34 += rows * stride;
+                                for (s32 row = 0; row < rows; row++) {
+                                    s32 pitch = data->field_10;
+                                    s64 offset = pitch * row;
+                                    memcpy(dst, &data->field_0[offset], pitch);
+                                    dst += stride;
+                                }
+                            }
+                        }
+                        heapDesc.field_34 = poolSize;
+                        heapDesc.field_40 = buffer;
+                    } else {
+                        heapDesc.field_34 = desc->field_50;
+                        heapDesc.field_40 = static_cast<const SIGFX_TEXTURE_INITDATA*>(desc->field_60)->field_0;
+                    }
+                }
+                if (!field_438->vf8(&heapDesc)) {
+                    return false;
+                }
+                if (buffer != nullptr) {
+#line 448
+                    UNK_FREE(field_18.m_pAllocator, buffer);
+                }
+            }
+            if (!field_438->Unk_552fc0(static_cast<s32>(poolSize), alignment, &field_440)) {
+                return false;
+            }
+            field_448 = Unk_NXAlign(field_440, alignment);
+            nvnTextureBuilderSetStorage(builder, field_438->vf16(), field_448);
+            if (nvnTextureInitialize(field_328, builder) != 1) {
+                return false;
+            }
+        }
+        s32 levelCount = nvnTextureGetLevels(field_328);
+#line 471
+        field_330 = reinterpret_cast<u64>(UNK_SI_NEW(field_18.m_pAllocator, 0x10) Unk_NXTextureNVNView);
+        if (field_330 == 0) {
+            return false;
+        }
+        nvnTextureViewSetDefaults(reinterpret_cast<void*>(field_330));
+        nvnTextureViewSetLevels(reinterpret_cast<void*>(field_330), 0, levelCount);
+        nvnTextureViewSetFormat(reinterpret_cast<void*>(field_330), nvnTextureGetFormat(field_328));
+        if (field_1d4 != 3) {
+            nvnTextureViewSetLayers(reinterpret_cast<void*>(field_330), 0, nvnTextureGetDepth(field_328));
+        }
+        if (desc->field_34 & 0x4000) {
+            nvnTextureViewSetDepthStencilMode(reinterpret_cast<void*>(field_330), 0);
+        }
+        nvnTextureViewSetTarget(reinterpret_cast<void*>(field_330), nvnTextureGetTarget(field_328));
+        field_338 = field_28->Unk_4fb1d0(reinterpret_cast<u64>(field_328), field_330);
+        if (field_338 == -1) {
+            return false;
+        }
+        if (desc->field_34 & 0x8000) {
+            field_340 = nvnDeviceGetImageHandle(device, field_338);
+        }
+        s32 layers = static_cast<s32>(desc->field_20) > 1 ? desc->field_20 : 1;
+        if (field_1d4 == 4 || field_1d4 == 6) {
+            layers *= 6;
+        }
+        s32 count = layers * levelCount;
+        field_348.Unk_SetCount(count);
+        if (count == 1) {
+            field_348.m_pData[0] = reinterpret_cast<NVNtextureView*>(field_330);
+        } else {
+            for (s32 i = 0; i < count; i++) {
+#line 532
+                field_348.m_pData[i] =
+                    reinterpret_cast<NVNtextureView*>(UNK_SI_NEW(field_18.m_pAllocator, 0x10) Unk_NXTextureNVNView);
+                s32 layer = i / levelCount;
+                s32 level = i % levelCount;
+                nvnTextureViewSetDefaults(field_348.m_pData[i]);
+                nvnTextureViewSetFormat(field_348.m_pData[i], nvnTextureGetFormat(field_328));
+                if (desc->field_34 & 0x4000) {
+                    nvnTextureViewSetDepthStencilMode(field_348.m_pData[i], 0);
+                }
+                if (field_1d4 != 3) {
+                    nvnTextureViewSetLayers(field_348.m_pData[i], layer, 1);
+                }
+                nvnTextureViewSetTarget(field_348.m_pData[i], nvnTextureGetTarget(field_328));
+                nvnTextureViewSetLevels(field_348.m_pData[i], level, 1);
+            }
+        }
+        field_450 = true;
+        field_1f8 = static_cast<s32>(desc->field_20) > 1 ? desc->field_20 : 1;
+        if (field_1d4 == 4 || field_1d4 == 6) {
+            field_1f8 *= 6;
+        }
+        field_1d8 = desc->field_0;
+        field_1dc = desc->field_4;
+        field_1e4 = desc->field_c;
+        field_1e0 = desc->field_8;
+        field_1e8 = width;
+        field_1ec = height;
+        field_1f0 = depth;
+        field_20c = true;
+        field_208 = desc->field_28;
+        field_204 = desc->field_24;
+        field_1f4 = levels;
+        field_21c = desc->field_40;
+        field_20e = Unk_4ed120(field_1d8);
+        if (field_20e) {
+            field_210 = (width + 3) / 4;
+            field_214 = (height + 3) / 4;
+            field_218 = Unk_4ed0f0(field_1d8);
+        } else {
+            field_210 = 0;
+            field_214 = 0;
+            field_218 = 0;
+        }
+        field_450 = true;
+        field_230 = static_cast<s32>(desc->field_20) > 1 ? desc->field_20 : 1;
+        field_22c = field_1f4;
+        field_1c8 = desc->field_34;
+        field_1cc = desc->field_38;
+        field_1d0 = desc->field_3c;
+        field_1c4 = desc->field_30;
+        field_1c0 = 1;
+        if (field_3e8.m_itemCount == 0 && (desc->field_3c & 1)) {
+            field_3e8.Unk_SetCount(field_348.m_itemCount);
+            field_398.Unk_SetCount(field_348.m_itemCount);
+            for (s64 i = 0; i < static_cast<s32>(field_348.m_itemCount); i++) {
+                field_398.m_pData[i] =
+                    field_28->Unk_4fb200(reinterpret_cast<u64>(field_328), reinterpret_cast<u64>(field_348.m_pData[i]));
+                field_3e8.m_pData[i] =
+                    nvnDeviceGetImageHandle(reinterpret_cast<void*>(field_28->vf85()), field_398.m_pData[i]);
+            }
+        }
+        if (!Unk_5601b0()) {
+            return false;
+        }
+        if (field_328 != nullptr) {
+            nvnTextureSetDebugLabel(field_328, Unk_StringCStr(&field_38));
+        }
+    }
+    return true;
 }
 
 // NON_MATCHING: the copy is inline now (the pairs at 0x68 and 0x70 split the
@@ -187,7 +432,8 @@ SiGfxNXSurface* SiGfxNXTexture::vf26(s32 layer, s32 level) {
 // result in a register that is zero for those and for the layers' test, with
 // one return for all of them. Here the two signs become one test of both
 // (`orr ; tbnz`) and every early return is a block of its own (100 bytes for
-// 92).
+// 92). Tried: a null result set under the tests (one, nested, or with the
+// levels' test inside), which compiles to the same code.
 // 0x71005610c0
 SiGfxNXSurface* SiGfxNXTexture::vf27(s32 layer, s32 level) {
     if (field_1d4 != 5 && field_1d4 != 2) {
@@ -380,7 +626,10 @@ bool SiGfxNXTexture::Unk_5601b0() {
 // 3, the texture's 5) is one block with a `ccmp` in the original, image kind
 // first; here Reassociate puts the texture's test first in the `and` and the
 // branch is split in two (one instruction more), and the result's register
-// is w22 instead of w19. Everything after it matches.
+// is w22 instead of w19. Everything after it matches. Tried (round 12): both
+// orders of the two tests with ||, && under !, nested ifs, | and &, a bool
+// local, the kind and the texture's kind in locals or a reference, the
+// format in a local.
 // 0x71005604c0
 bool SiGfxNXTexture::vf23(const Unk_Desc* desc, SiGfxImage* image) {
     if (image->field_58.field_0 == 0) {
