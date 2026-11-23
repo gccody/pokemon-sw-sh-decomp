@@ -2603,21 +2603,22 @@ s32 CTextureUtil::Unk_4732b0(s32 count, s32 arg2, s32 arg3, IGPUBuffer* vertices
     return result;
 }
 
-// NON_MATCHING: written this round, not matching yet (tools/check.py --diff shows
-// what differs).
 // 0x7100473410: the outline of a rectangle, the space between it and the
 // rectangle inside it (the last four numbers), as four rectangles of two
-// triangles through the vertex and index buffers
+// triangles through the vertex and index buffers. The last rectangle's
+// corners are read back from the stack (GVN's scan limit: the indices are
+// written in the same loop, which is what puts them out of its reach).
+// NON_MATCHING: the 0x20000 test's two blocks are laid out the other way
+// (the original falls through into the vf33/vf35 calls), and the scheduler
+// interleaves the third and fourth rectangles' vertex stores differently
+// (four instructions in another order); the instructions are otherwise the
+// original's.
 s32 CTextureUtil::Unk_473410(f32 x, f32 y, f32 width, f32 height, f32 arg5, f32 arg6, f32 arg7, f32 arg8,
                              u32 flags) {
-    f32 targetWidth;
-    f32 targetHeight;
-    {
-        Unk_Viewport viewport;
-        field_20->vf17(&viewport);
-        targetWidth = static_cast<f32>(viewport.field_8);
-        targetHeight = static_cast<f32>(viewport.field_c);
-    }
+    Unk_Viewport viewport;
+    field_20->vf17(&viewport);
+    f32 targetWidth = static_cast<f32>(viewport.field_8);
+    f32 targetHeight = static_cast<f32>(viewport.field_c);
     if (!(flags & 0x40000)) {
         field_20->vf41(-1, 1);
     }
@@ -2644,19 +2645,25 @@ s32 CTextureUtil::Unk_473410(f32 x, f32 y, f32 width, f32 height, f32 arg5, f32 
         {{innerX1, innerY0}, {x1, y1}},
         {{innerX0, y0}, {x1, innerY0}},
     };
-    const f32 offset = 0.0f;
+    u16 indices[24];
     f32 vertices[16][2];
+    const f32 offset = 0.0f;
     for (s32 i = 0; i < 4; i++) {
         vertices[i * 4 + 0][0] = scaleX * (rects[i][0][0] + offset);
         vertices[i * 4 + 0][1] = scaleY * (rects[i][1][1] + offset);
-        vertices[i * 4 + 1][0] = scaleX * (rects[i][0][0] + offset);
-        vertices[i * 4 + 1][1] = scaleY * (rects[i][0][1] + offset);
         vertices[i * 4 + 2][0] = scaleX * (rects[i][1][0] + offset);
         vertices[i * 4 + 2][1] = scaleY * (rects[i][0][1] + offset);
+        vertices[i * 4 + 1][0] = scaleX * (rects[i][0][0] + offset);
+        vertices[i * 4 + 1][1] = scaleY * (rects[i][0][1] + offset);
         vertices[i * 4 + 3][0] = scaleX * (rects[i][1][0] + offset);
         vertices[i * 4 + 3][1] = scaleY * (rects[i][1][1] + offset);
+        indices[i * 6 + 0] = i * 4 + 0;
+        indices[i * 6 + 1] = i * 4 + 1;
+        indices[i * 6 + 2] = i * 4 + 2;
+        indices[i * 6 + 3] = i * 4 + 2;
+        indices[i * 6 + 4] = i * 4 + 3;
+        indices[i * 6 + 5] = i * 4 + 0;
     }
-    u16 indices[24] = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4, 8, 9, 10, 10, 11, 8, 12, 13, 14, 14, 15, 12};
     field_30.Unk_Layout1();
     u32 vertexStart = field_29bb8;
     bool wrap = vertexStart + sizeof(vertices) >= field_29bbc;
@@ -4927,8 +4934,8 @@ s32 CTextureUtil::DrawRectGPU_TonemapHDR(f32 x, f32 y, f32 width, f32 height, f3
     return result;
 }
 
-// 0x7100478880
-f32 Unk_478880(f32 arg1, f32 arg2) {
+// 0x7100478880 (its callers pass a flag it doesn't read)
+f32 Unk_478880(f32 arg1, f32 arg2, bool flag) {
     return arg1 / arg2;
 }
 
@@ -5076,6 +5083,233 @@ s32 CTextureUtil::Unk_480740(CRenderTexture* target, bool second, bool positive,
     field_30.field_0->vf22(field_30.field_d0, Unk_24e4c18, 12);
     field_30.field_0->vf24(field_30.field_10c, value);
     return Unk_471c50(0.0f, 0.0f, w, h, 0.0f, 0.0f, 1.0f, 1.0f, flags);
+}
+
+// 0x71004809a0: technique field_29998[...] (by `arg11`, `arg13` and `arg14`)
+// with the colour space `space`'s matrices and a table of hues fading to grey
+// NON_MATCHING: the stores of the hue table (the original merges a few of
+// them into other pairs: [13] and [4] as one pair each, [26].w with [27].x),
+// two constants of the fallback technique's select materialised the other
+// way round, and the scheduling of the constants before the first table
+// (the frame keeps the 0x3f80000000000000 pair in x24, here x23). Tried: the
+// components and the entries in other orders, the clamp and the fallback
+// written in other forms.
+s32 CTextureUtil::Unk_4809a0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg8,
+                             f32 arg9, f32 arg10, bool arg11, void* arg12, bool arg13, bool arg14, void* arg15,
+                             s32 arg16) {
+    MATRIXT44* Unk_411b00(MATRIXT44* out, const Unk_410f90_Point* red, const Unk_410f90_Point* green,
+                          const Unk_410f90_Point* blue, const Unk_410f90_Point* white);
+    void Unk_4155f0(MATRIXT44* out, const MATRIXT44* m);
+    void Unk_411190(MATRIXT44* out, const Unk_410f90* from, const Unk_410f90* to, bool arg3);
+    const Unk_410f90* space = static_cast<const Unk_410f90*>(arg12);
+    f32 bottom = 1.0f - v1;
+    f32 top = 1.0f - v0;
+    s32 technique;
+    if (arg11) {
+        if (arg14) {
+            technique = arg13 ? field_30.field_29998[5] : field_30.field_29998[4];
+        } else {
+            technique = field_30.field_29998[3];
+        }
+    } else {
+        if (arg14) {
+            technique = arg13 ? field_30.field_29998[2] : field_30.field_29998[1];
+        } else {
+            technique = field_30.field_29998[0];
+        }
+    }
+    if (technique == 0) {
+        technique = arg11 ? field_30.field_29998[3] : field_30.field_29998[0];
+    }
+    field_30.field_0->vf29(technique);
+    MATRIXT44 toXyz;
+    Unk_411b00(&toXyz, &space->field_0, &space->field_8, &space->field_10, &space->field_18);
+    MATRIXT44 inverse;
+    Unk_4155f0(&inverse, &toXyz);
+    MATRIXT44 fromXyz = inverse;
+    field_30.field_0->vf24(field_30.field_108, &fromXyz);
+    Unk_411190(&toXyz, static_cast<const Unk_410f90*>(arg15), space, false);
+    field_30.field_0->vf24(field_30.field_10c, &toXyz);
+    Unk_4155f0(&inverse, &fromXyz);
+    field_30.field_0->vf24(field_30.field_110, &inverse);
+    f32 k = arg11 ? 0.008f : 0.01f;
+    f32* v = &Unk_24e4c18[0].field_0[0].field_0;
+    v[0] = 1.0f;
+    v[1] = -1.0f;
+    v[2] = 0.0f;
+    v[3] = 1.0f;
+    v[4] = 0.7f;
+    v[5] = 0.7f;
+    v[6] = 0.7f;
+    v[7] = 0.7f;
+    Unk_24e4c18[2].field_0[0] = space->field_18.field_0;
+    Unk_24e4c18[2].field_0[1] = space->field_18.field_4;
+    v[10] = 1.0f;
+    v[11] = arg8;
+    v[12] = 0.0f;
+    v[13] = 2.0f;
+    v[14] = 0.6f;
+    v[15] = 0.35f;
+    v[16] = k;
+    v[17] = k * 0.6f;
+    v[18] = k * 0.8f;
+    v[19] = k * 0.2f;
+    v[20] = arg9;
+    f32 c = arg10 < 0.0f ? 0.0f : (arg10 >= 0.999f ? 0.999f : arg10);
+    v[21] = 1.0f / (1.0f - powf(c, 0.25f));
+    v[22] = 0.0f;
+    v[23] = 0.0f;
+    field_30.field_0->vf22(field_30.field_d0, Unk_24e4c18, 6);
+    v[3] = 0.5f;
+    v[0] = 1.0f;
+    v[1] = 0.0f;
+    v[2] = 0.0f;
+    v[27] = 0.5f;
+    v[24] = 0.5f;
+    v[25] = 0.5f;
+    v[26] = 0.0f;
+    v[51] = 0.5f;
+    v[48] = 0.0f;
+    v[49] = 1.0f;
+    v[50] = 0.0f;
+    v[75] = 0.5f;
+    v[72] = 0.0f;
+    v[73] = 0.5f;
+    v[74] = 0.5f;
+    v[99] = 0.5f;
+    v[96] = 0.0f;
+    v[97] = 0.0f;
+    v[98] = 1.0f;
+    v[123] = 0.5f;
+    v[120] = 0.5f;
+    v[121] = 0.0f;
+    v[122] = 0.5f;
+    v[7] = 0.5f;
+    v[4] = 0.8888889f;
+    v[5] = 0.055555556f;
+    v[6] = 0.055555556f;
+    v[31] = 0.5f;
+    v[28] = 0.4722222f;
+    v[29] = 0.4722222f;
+    v[30] = 0.055555556f;
+    v[55] = 0.5f;
+    v[52] = 0.055555556f;
+    v[53] = 0.8888889f;
+    v[54] = 0.055555556f;
+    v[79] = 0.5f;
+    v[76] = 0.055555556f;
+    v[77] = 0.4722222f;
+    v[78] = 0.4722222f;
+    v[103] = 0.5f;
+    v[100] = 0.055555556f;
+    v[101] = 0.055555556f;
+    v[102] = 0.8888889f;
+    v[127] = 0.5f;
+    v[124] = 0.4722222f;
+    v[125] = 0.055555556f;
+    v[126] = 0.4722222f;
+    v[11] = 0.5f;
+    v[8] = 0.7777778f;
+    v[9] = 0.11111111f;
+    v[10] = 0.11111111f;
+    v[35] = 0.5f;
+    v[32] = 0.44444445f;
+    v[33] = 0.44444445f;
+    v[34] = 0.11111111f;
+    v[59] = 0.5f;
+    v[56] = 0.11111111f;
+    v[57] = 0.7777778f;
+    v[58] = 0.11111111f;
+    v[83] = 0.5f;
+    v[80] = 0.11111111f;
+    v[81] = 0.44444445f;
+    v[82] = 0.44444445f;
+    v[107] = 0.5f;
+    v[104] = 0.11111111f;
+    v[105] = 0.11111111f;
+    v[106] = 0.7777778f;
+    v[131] = 0.5f;
+    v[128] = 0.44444445f;
+    v[129] = 0.11111111f;
+    v[130] = 0.44444445f;
+    v[15] = 0.5f;
+    v[12] = 0.6666666f;
+    v[13] = 0.16666667f;
+    v[14] = 0.16666667f;
+    v[39] = 0.5f;
+    v[36] = 0.41666666f;
+    v[37] = 0.41666666f;
+    v[38] = 0.16666667f;
+    v[63] = 0.5f;
+    v[60] = 0.16666667f;
+    v[61] = 0.6666666f;
+    v[62] = 0.16666667f;
+    v[87] = 0.5f;
+    v[84] = 0.16666667f;
+    v[85] = 0.41666666f;
+    v[86] = 0.41666666f;
+    v[111] = 0.5f;
+    v[108] = 0.16666667f;
+    v[109] = 0.16666667f;
+    v[110] = 0.6666666f;
+    v[135] = 0.5f;
+    v[132] = 0.41666666f;
+    v[133] = 0.16666667f;
+    v[134] = 0.41666666f;
+    v[19] = 0.5f;
+    v[16] = 0.5555556f;
+    v[17] = 0.22222222f;
+    v[18] = 0.22222222f;
+    v[43] = 0.5f;
+    v[40] = 0.3888889f;
+    v[41] = 0.3888889f;
+    v[42] = 0.22222222f;
+    v[67] = 0.5f;
+    v[64] = 0.22222222f;
+    v[65] = 0.5555556f;
+    v[66] = 0.22222222f;
+    v[91] = 0.5f;
+    v[88] = 0.22222222f;
+    v[89] = 0.3888889f;
+    v[90] = 0.3888889f;
+    v[115] = 0.5f;
+    v[112] = 0.22222222f;
+    v[113] = 0.22222222f;
+    v[114] = 0.5555556f;
+    v[139] = 0.5f;
+    v[136] = 0.3888889f;
+    v[137] = 0.22222222f;
+    v[138] = 0.3888889f;
+    v[23] = 0.5f;
+    v[20] = 0.44444448f;
+    v[21] = 0.27777776f;
+    v[22] = 0.27777776f;
+    v[47] = 0.5f;
+    v[44] = 0.3611111f;
+    v[45] = 0.3611111f;
+    v[46] = 0.27777776f;
+    v[71] = 0.5f;
+    v[68] = 0.27777776f;
+    v[69] = 0.44444448f;
+    v[70] = 0.27777776f;
+    v[95] = 0.5f;
+    v[92] = 0.27777776f;
+    v[93] = 0.3611111f;
+    v[94] = 0.3611111f;
+    v[119] = 0.5f;
+    v[116] = 0.27777776f;
+    v[117] = 0.27777776f;
+    v[118] = 0.44444448f;
+    v[143] = 0.5f;
+    v[140] = 0.3611111f;
+    v[141] = 0.27777776f;
+    v[142] = 0.3611111f;
+    v[147] = 1.0f;
+    v[144] = 1.0f;
+    v[145] = 1.0f;
+    v[146] = 1.0f;
+    field_30.field_0->vf22(field_30.field_c8, Unk_24e4c18, 37);
+    return Unk_471c50(x, y, width, height, u0, bottom, u1, top, arg16);
 }
 
 // GPUTEXTUREUTIL_SECOND_HALF_BEGIN: functions of 0x7100481000 on
@@ -5787,6 +6021,140 @@ s32 CTextureUtil::Unk_48ba10(CRenderTexture* source, CRenderTexture* target, con
     return result < 0 ? result : 0;
 }
 
+// 0x710048bbc0: field_7db0's technique `mode` (0 to 3: one rectangle of
+// texture coordinates, the offset ones, the clip-space ones, both) from
+// `texture` (and `texture2`), with channel mask `channel` and the range
+// [arg23 or arg19, arg24 or 0.999 * arg20] (log2 scaled)
+// NON_MATCHING: register allocation (same size): arg20, arg23 and arg24
+// rotate through s8/s14/s15, and the clip-space cases number their
+// temporaries differently.
+s32 CTextureUtil::Unk_48bbc0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, s32 channel,
+                             s32 mode, const Unk_Float2* arg10, const Unk_Float2* size, Unk_GPUTexture* texture,
+                             const Unk_Float2* offset, Unk_GPUTexture* texture2, f32 s0, f32 t0, f32 s1, f32 t1,
+                             f32 arg19, f32 arg20, const MATRIXT44* arg21, const MATRIXT44* arg22, f32 arg23,
+                             f32 arg24, u32 flags) {
+    if (arg23 <= 0.0f)
+        arg23 = arg19;
+    if (arg24 <= 0.0f)
+        arg24 = arg20 * 0.999f;
+    s32 technique = (&field_30.field_7db0)[mode];
+    if (technique == 0)
+        return -4;
+    bool inverse = mode == 2 || mode == 3;
+    field_30.field_0->vf29(technique);
+    Unk_Float4 value(arg19, arg20, width / size->field_0[0].field_0, -height / size->field_0[1].field_0);
+    field_30.field_0->vf20(field_30.field_a4, reinterpret_cast<const f32*>(&value));
+    Unk_Float4 value2(arg10->field_0[0], arg10->field_0[1], 0.0f, 0.0f);
+    field_30.field_0->vf20(field_30.field_c0, reinterpret_cast<const f32*>(&value2));
+    MATRIXT44 matrices[2];
+    matrices[0] = *arg22;
+    if (inverse) {
+        MATRIXT44 m;
+        Unk_4155f0(&m, arg21);
+        matrices[1] = m;
+    }
+    field_30.field_0->vf25(field_30.field_114, matrices, 2);
+    f32 a = 0.0f;
+    f32 b = 0.0f;
+    f32 g = 0.0f;
+    f32 r = 0.0f;
+    switch (channel) {
+    case 0:
+        r = 1.0f;
+        break;
+    case 1:
+        g = 1.0f;
+        break;
+    case 2:
+        b = 1.0f;
+        break;
+    case 3:
+        a = 1.0f;
+        break;
+    case 4:
+        r = 0.99609375f;
+        g = 0.0038909912f;
+        b = 1.5199184e-05f;
+        break;
+    case 5:
+        r = 0.0038909912f;
+        g = 1.5199184e-05f;
+        a = 0.99609375f;
+        break;
+    case 6:
+        g = 1.5199184e-05f;
+        b = 0.0038909912f;
+        a = 0.99609375f;
+        break;
+    }
+    Unk_24e4a18[0] = Unk_Float4(r, g, b, a);
+    Unk_24e4a18[1].field_0[0].field_0 = arg23;
+    Unk_24e4a18[1].field_0[1].field_0 = arg24;
+    Unk_24e4a18[1].field_0[2].field_0 = 1.0f / (logf(arg24 + 1.0f) / 0.693147182f);
+    Unk_24e4a18[1].field_0[3].field_0 = 0.0f;
+    field_30.field_0->vf22(field_30.field_d0, Unk_24e4a18, 2);
+    s32 filter = texture->vf16();
+    bool same = static_cast<f32>(texture->field_4c) == width && static_cast<f32>(texture->field_50) == height;
+    texture->vf15(same && static_cast<u32>(mode) < 4 ? 5 : 4);
+    field_30.field_0->vf26(field_30.field_10[0], texture);
+    s32 filter2;
+    if (texture2 != nullptr) {
+        filter2 = texture2->vf16();
+        bool same2 = static_cast<f32>(texture2->field_4c) == width && static_cast<f32>(texture2->field_50) == height;
+        texture2->vf15(same2 ? 5 : 4);
+        field_30.field_0->vf26(field_30.field_10[1], texture2);
+    } else {
+        filter2 = -1;
+    }
+    s32 result;
+    switch (mode) {
+    case 0:
+        result = Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
+        break;
+    case 1: {
+        f32 oy = offset->field_0[1].field_0 * (field_20->field_58 ? -1.0f : 1.0f);
+        f32 ox = offset->field_0[0].field_0;
+        result = Unk_472250(x, y, width, height, u0, v0, u1, v1, ox + u0, v0, ox + u1, v1, u0, oy + v0, u1, oy + v1,
+                            flags);
+        break;
+    }
+    case 2: {
+        f32 a = u0 * 2.0f - 1.0f;
+        f32 b = v0 * 2.0f - 1.0f;
+        f32 c = u1 * 2.0f - 1.0f;
+        f32 d = v1 * 2.0f - 1.0f;
+        f32 d2 = field_20->field_58 ? d : -d;
+        f32 b2 = field_20->field_58 ? b : -b;
+        result = Unk_471f60(x, y, width, height, u0, v0, u1, v1, a, b2, c, d2, flags);
+        break;
+    }
+    case 3: {
+        f32 a = u0 * 2.0f - 1.0f;
+        f32 b = v0 * 2.0f - 1.0f;
+        f32 c = u1 * 2.0f - 1.0f;
+        f32 d = v1 * 2.0f - 1.0f;
+        f32 sign = field_20->field_58 ? -1.0f : 1.0f;
+        if (!field_20->field_58) {
+            b = -b;
+            d = -d;
+        }
+        f32 ox = offset->field_0[0].field_0;
+        f32 oy = offset->field_0[1].field_0;
+        f32 oys = oy * sign;
+        result = Unk_472cd0(x, y, width, height, u0, v0, u1, v1, ox + u0, v0, ox + u1, v1, u0, oys + v0, u1,
+                            oys + v1, a, b, c, d, a + ox * 2.0f, b, c + ox * 2.0f, d, a, b - oy * 2.0f, c,
+                            d - oy * 2.0f, flags);
+        break;
+    }
+    default:
+        result = Unk_471f60(x, y, width, height, u0, v0, u1, v1, s0, t0, s1, t1, flags);
+        break;
+    }
+    texture->vf15(filter);
+    if (texture2 != nullptr)
+        texture2->vf15(filter2);
+    return result;
+}
 // 0x710048b6e0
 s32 CTextureUtil::Unk_48b6e0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1,
                              const Unk_Float2* factor, Unk_GPUTexture* texture, s32 channel, u32 flags) {
@@ -5922,6 +6290,264 @@ s32 CTextureUtil::Unk_489c50(f32 x, f32 y, f32 width, f32 height, Unk_GPUTexture
     return result;
 }
 
+// 0x7101b35184: the default weights of Unk_490780 and Unk_490e70
+static const f32 Unk_1b35184[29] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                                    1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                                    1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+
+// 0x7100490780: `source` blurred by `count` taps of `weights` (bilinear pairs
+// of them; normalised if asked, scaled by the square root of `scale`),
+// horizontally into `temp`, then vertically into `target` (weighted by
+// `color` there unless it is white)
+// NON_MATCHING: 4 bytes short: the first pass's colour stores are paired here
+// (the original's four stores aren't), and the pass's coordinates are
+// scheduled in another order; the statements and calls are the original's.
+s32 CTextureUtil::Unk_490780(f32 scale, CRenderTexture* source, CRenderTexture* temp, CRenderTexture* target,
+                             s32 count, const f32* weights, bool normalize, s32 index, const Unk_Float4* color,
+                             bool clear, s32 width, s32 height) {
+    if (field_20 == nullptr) {
+        return -1;
+    }
+    if (clear) {
+        Unk_471410();
+    }
+    if (weights == nullptr) {
+        weights = Unk_1b35184;
+    }
+    f32 offsets[15];
+    f32 taps[15];
+    Unk_Float4 colors[15];
+    f32 tapWeights[15];
+    Unk_Float4 values[15];
+    s32 half = (count + 1) / 2;
+    if (count >= 1) {
+        f32 center = static_cast<f32>(count / 2);
+        for (s32 i = 0; i < half; i++) {
+            f32 x = static_cast<f32>(i * 2) - center;
+            if ((count & 1) == 0 || i < half - 1) {
+                Unk_412270(x, x + 1.0f, weights[i * 2], weights[i * 2 + 1], &offsets[i], &taps[i]);
+            } else {
+                offsets[i] = x;
+                taps[i] = weights[i * 2] * 0.5f;
+            }
+        }
+    }
+    f32 norm = 1.0f;
+    if (normalize) {
+        f32 total = 0.0f;
+        for (s32 i = 0; i < half; i++) {
+            total += taps[i];
+        }
+        norm = 1.0f / total;
+    }
+    u32 sourceWidth = width != 0 ? width : source->field_54;
+    u32 sourceHeight = height != 0 ? height : source->field_58;
+    f32 scaleX = source->field_88;
+    f32 scaleY = source->field_8c;
+    f32 offsetX = source->field_90;
+    f32 offsetY = source->field_94;
+    u32 tempWidth = width != 0 ? width : temp->field_54;
+    u32 tempHeight = height != 0 ? height : temp->field_58;
+    norm *= sqrtf(scale);
+    bool colored = color->field_0[0].field_0 != 1.0f || color->field_0[1].field_0 != 1.0f ||
+                   color->field_0[2].field_0 != 1.0f || color->field_0[3].field_0 != 1.0f;
+    for (s32 i = 0; i < half; i++) {
+        f32 weight = norm * taps[i];
+        if (colored) {
+            colors[i].field_0[0].field_0 = weight;
+            colors[i].field_0[1].field_0 = weight;
+            colors[i].field_0[2].field_0 = weight;
+            colors[i].field_0[3].field_0 = weight;
+        } else {
+            tapWeights[i] = weight;
+        }
+        values[i] = Unk_Float4(scaleX * offsets[i], 0.0f, 0.0f, 0.0f);
+    }
+    s32 result = temp->Unk_49d250(0, 0, 1, 0, 0);
+    if (result < 0) {
+        return result;
+    }
+    f32 u1 = scaleX * static_cast<f32>(sourceWidth) + offsetX;
+    f32 v1 = scaleY * static_cast<f32>(sourceHeight) + offsetY;
+    f32 fw = static_cast<f32>(tempWidth);
+    f32 fh = static_cast<f32>(tempHeight);
+    CRenderTexture::Unk_49cf50(nullptr, nullptr);
+    if (colored) {
+        result = DrawRectGPU_MadT1_Sn(0.0f, 0.0f, fw, fh, 0.0f, 0.0f, u1, v1, half, values, colors,
+                                      Unk_GetTexture(source), index, 0);
+    } else {
+        result = Unk_475d80(0.0f, 0.0f, fw, fh, 0.0f, 0.0f, u1, v1, half, values, tapWeights, Unk_GetTexture(source),
+                            index, 0);
+    }
+    if (result < 0) {
+        return result;
+    }
+    u32 width2 = width != 0 ? width : temp->field_54;
+    u32 height2 = height != 0 ? height : temp->field_58;
+    f32 tempScaleX = temp->field_88;
+    f32 tempScaleY = temp->field_8c;
+    f32 tempOffsetX = temp->field_90;
+    f32 tempOffsetY = temp->field_94;
+    u32 targetWidth = width != 0 ? width : target->field_54;
+    u32 targetHeight = height != 0 ? height : target->field_58;
+    for (s32 i = 0; i < half; i++) {
+        f32 weight = norm * taps[i];
+        if (colored) {
+            colors[i] = Unk_Float4(weight * color->field_0[0].field_0, weight * color->field_0[1].field_0,
+                                   weight * color->field_0[2].field_0, weight * color->field_0[3].field_0);
+        } else {
+            tapWeights[i] = weight;
+        }
+        values[i] = Unk_Float4(0.0f, source->field_8c * offsets[i], 0.0f, 0.0f);
+    }
+    result = target->Unk_49d250(0, 0, 1, 0, 0);
+    if (result < 0) {
+        return result;
+    }
+    u1 = tempScaleX * static_cast<f32>(width2) + tempOffsetX;
+    v1 = tempScaleY * static_cast<f32>(height2) + tempOffsetY;
+    if (colored) {
+        result = DrawRectGPU_MadT1_Sn(0.0f, 0.0f, static_cast<f32>(targetWidth), static_cast<f32>(targetHeight),
+                                      0.0f, 0.0f, u1, v1, half, values, colors, Unk_GetTexture(temp), index, 0);
+    } else {
+        result = Unk_475d80(0.0f, 0.0f, static_cast<f32>(targetWidth), static_cast<f32>(targetHeight), 0.0f, 0.0f,
+                            u1, v1, half, values, tapWeights, Unk_GetTexture(temp), index, 0);
+    }
+    return result < 0 ? result : 0;
+}
+
+// 0x7100490e70: `arg3` blurred along a line of `count` taps of `weights`
+// (`length` long, at `angle`; normalised if asked, scaled by the square root
+// of `scale`) into `arg4`, then along the line at right angles to it into
+// `arg5` (weighted by `arg10`'s colour there unless it is white), with the
+// circle of confusion of `arg11` (and `arg12`'s range) when there is one
+// NON_MATCHING: 8 bytes more: register allocation (`index` stays in a register
+// here, the original spills it and `this`; 0x10 more frame), and the length's
+// select comes after cosf/sinf; the statements and calls are the original's.
+s32 CTextureUtil::Unk_490e70(f32 angle, f32 length, f32 scale, void* arg3, void* arg4, void* arg5, s32 count,
+                             const f32* weights, bool normalize, s32 index, void* arg10, void* arg11, void* arg12,
+                             bool clear, s32 width, s32 height) {
+    if (field_20 == nullptr) {
+        return -1;
+    }
+    CRenderTexture* source = static_cast<CRenderTexture*>(arg3);
+    CRenderTexture* temp = static_cast<CRenderTexture*>(arg4);
+    CRenderTexture* target = static_cast<CRenderTexture*>(arg5);
+    CRenderTexture* coc = static_cast<CRenderTexture*>(arg11);
+    const Unk_Float4* range = static_cast<const Unk_Float4*>(arg12);
+    if (clear) {
+        Unk_471410();
+    }
+    if (length <= 0.0f) {
+        length = static_cast<f32>(count);
+    }
+    if (weights == nullptr) {
+        weights = Unk_1b35184;
+    }
+    f32 step = length / static_cast<f32>(count);
+    f32 cosine = cosf(angle);
+    f32 sine = sinf(angle);
+    Unk_Float2 offsets[15];
+    Unk_Float4 colors[15];
+    f32 tapWeights[15];
+    Unk_Float4 values[15];
+    for (s32 i = 0; i < count; i++) {
+        f32 x = step * static_cast<f32>(i - (count - 1) / 2);
+        offsets[i] = Unk_Float2(cosine * x - sine * 0.0f, cosine * 0.0f + sine * x);
+    }
+    f32 norm = 1.0f;
+    if (normalize) {
+        f32 total = 0.0f;
+        for (s32 i = 0; i < count; i++) {
+            total += weights[i];
+        }
+        if (total != 0.0f) {
+            norm = 1.0f / total;
+        }
+    }
+    u32 sourceWidth = width != 0 ? width : source->field_54;
+    u32 sourceHeight = height != 0 ? height : source->field_58;
+    f32 scaleX = source->field_88;
+    f32 scaleY = source->field_8c;
+    f32 offsetX = source->field_90;
+    f32 offsetY = source->field_94;
+    u32 tempWidth = width != 0 ? width : temp->field_54;
+    u32 tempHeight = height != 0 ? height : temp->field_58;
+    const Unk_Float4* color = static_cast<const Unk_Float4*>(arg10);
+    norm *= sqrtf(scale);
+    bool colored = color->field_0[0].field_0 != 1.0f || color->field_0[1].field_0 != 1.0f ||
+                   color->field_0[2].field_0 != 1.0f || color->field_0[3].field_0 != 1.0f;
+    for (s32 i = 0; i < count; i++) {
+        f32 weight = norm * weights[i];
+        if (colored) {
+            colors[i] = Unk_Float4(weight, weight, weight, weight);
+        } else {
+            tapWeights[i] = weight;
+        }
+        values[i] = Unk_Float4(scaleX * offsets[i].field_0[0].field_0, scaleY * offsets[i].field_0[1].field_0,
+                               0.0f, 0.0f);
+    }
+    s32 result = temp->Unk_49d250(0, 0, 1, 0, 0);
+    if (result < 0) {
+        return result;
+    }
+    f32 u1 = scaleX * static_cast<f32>(sourceWidth) + offsetX;
+    f32 v1 = scaleY * static_cast<f32>(sourceHeight) + offsetY;
+    f32 fw = static_cast<f32>(tempWidth);
+    f32 fh = static_cast<f32>(tempHeight);
+    CRenderTexture::Unk_49cf50(nullptr, nullptr);
+    if (coc != nullptr) {
+        result = DrawRectGPU_MadCocT2_Sn(0.0f, 0.0f, fw, fh, 0.0f, 0.0f, u1, v1, count, values, colors, range,
+                                         Unk_GetTexture(source), Unk_GetTexture(coc), 0, 0);
+    } else if (colored) {
+        result = DrawRectGPU_MadT1_Sn(0.0f, 0.0f, fw, fh, 0.0f, 0.0f, u1, v1, count, values, colors,
+                                      Unk_GetTexture(source), 0, 0);
+    } else {
+        result = Unk_475d80(0.0f, 0.0f, fw, fh, 0.0f, 0.0f, u1, v1, count, values, tapWeights,
+                            Unk_GetTexture(source), 0, 0);
+    }
+    if (result < 0) {
+        return result;
+    }
+    u32 width2 = width != 0 ? width : temp->field_54;
+    u32 height2 = height != 0 ? height : temp->field_58;
+    f32 tempScaleX = temp->field_88;
+    f32 tempScaleY = temp->field_8c;
+    f32 tempOffsetX = temp->field_90;
+    f32 tempOffsetY = temp->field_94;
+    u32 targetWidth = width != 0 ? width : target->field_54;
+    u32 targetHeight = height != 0 ? height : target->field_58;
+    for (s32 i = 0; i < count; i++) {
+        f32 weight = norm * weights[i];
+        if (colored) {
+            colors[i] = Unk_Float4(weight * color->field_0[0].field_0, weight * color->field_0[1].field_0,
+                                   weight * color->field_0[2].field_0, weight * color->field_0[3].field_0);
+        } else {
+            tapWeights[i] = weight;
+        }
+        values[i] = Unk_Float4(-(scaleX * offsets[i].field_0[1].field_0), scaleY * offsets[i].field_0[0].field_0,
+                               0.0f, 0.0f);
+    }
+    result = target->Unk_49d250(0, 0, 1, 0, 0);
+    if (result < 0) {
+        return result;
+    }
+    u1 = tempScaleX * static_cast<f32>(width2) + tempOffsetX;
+    v1 = tempScaleY * static_cast<f32>(height2) + tempOffsetY;
+    fw = static_cast<f32>(targetWidth);
+    fh = static_cast<f32>(targetHeight);
+    if (coc != nullptr) {
+        result = DrawRectGPU_MadCocT2_Sn(0.0f, 0.0f, fw, fh, 0.0f, 0.0f, u1, v1, count, values, colors, range,
+                                         Unk_GetTexture(temp), Unk_GetTexture(coc), index, 0);
+    } else if (colored) {
+        result = DrawRectGPU_MadT1_Sn(0.0f, 0.0f, fw, fh, 0.0f, 0.0f, u1, v1, count, values, colors,
+                                      Unk_GetTexture(temp), index, 0);
+    } else {
+        result = Unk_475d80(0.0f, 0.0f, fw, fh, 0.0f, 0.0f, u1, v1, count, values, tapWeights, Unk_GetTexture(temp),
+                            index, 0);
+    }
+    return result < 0 ? result : 0;
+}
 // 0x71004915e0
 s32 CTextureUtil::Unk_4915e0(f32 arg0, f32 arg1, f32 arg2, void* arg3, void* arg4, void* arg5, s32 arg6,
                              s32 arg9, void* arg10, void* arg11, void* arg12, bool clear, s32 arg14, s32 arg15) {
@@ -6173,6 +6799,128 @@ static inline Unk_Quaternion Unk_Normalize(const Unk_Quaternion& q) {
         return result;
     }
     return q;
+}
+
+// `from` copied into `to` with Unk_47d960 (`filter` its third value; inline)
+static inline s32 Unk_CopyTexture(CTextureUtil* self, CRenderTexture* from, CRenderTexture* to, f32 filter) {
+    Unk_Float4 one(1.0f, 1.0f, 1.0f, 1.0f);
+    Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
+    return self->Unk_47d960(0.0f, 0.0f, filter, 1.0f, from, to, nullptr, 0, &one, 0, false, false, 1, &zero, nullptr,
+                            -1);
+}
+
+// 0x7100499250: Unk_497b20 at the level of `list` (pairs of textures, halving
+// in size) where `color`'s largest value falls to `arg2`: `arg3` is
+// downsampled to it (skipping levels by log2 `arg12` while they are exact
+// halves larger than 320), its fraction past the next level's threshold
+// blended in from that level, and the result scaled back up into `arg6`
+// NON_MATCHING: 32 bytes short: Unk_47d960's eighth argument is a 32-bit
+// zero in the original (`mov w4, wzr`; its declaration has u64), the copies'
+// colours are at other stack offsets, the half colour's sign is a branch
+// there, and registers differ; the statements and calls are the original's.
+s32 CTextureUtil::Unk_499250(f32 arg0, f32 arg1, f32 arg2, CRenderTexture* arg3, CRenderTexture* arg4,
+                             CRenderTexture* arg5, CRenderTexture* arg6, const Unk_Float4* color, s32 arg8,
+                             const Unk_Float4* arg9, s32 count, void* list, u32 arg12, bool arg13, bool arg14,
+                             bool arg15, s32 arg16, s32 arg17) {
+    if (field_20 == nullptr) {
+        return -1;
+    }
+    CRenderTexture** textures = static_cast<CRenderTexture**>(list);
+    f32 cx = color->field_0[0].field_0;
+    f32 x = cx > 0.0f ? cx : -cx;
+    f32 y = color->field_0[1].field_0 > 0.0f ? color->field_0[1].field_0 : -color->field_0[1].field_0;
+    f32 z = color->field_0[2].field_0 > 0.0f ? color->field_0[2].field_0 : -color->field_0[2].field_0;
+    f32 w = color->field_0[3].field_0 > 0.0f ? color->field_0[3].field_0 : -color->field_0[3].field_0;
+    f32 largest = x > y ? x : y;
+    largest = largest > z ? largest : z;
+    largest = largest > w ? largest : w;
+    f32 level = logf(largest / arg2) / 0.693147182f + 1.0f;
+    f32 most = static_cast<f32>(count);
+    f32 clamped = level < 0.0f ? 0.0f : (level > most ? most : level);
+    s32 levels = static_cast<s32>(clamped);
+    f32 threshold = levels == 0 ? 0.75f : 0.65f;
+    Unk_Float fraction = 0.0f;
+    if (levels < count) {
+        f32 rest = clamped - static_cast<f32>(levels);
+        if (rest > threshold) {
+            f32 t = (rest - threshold) / (1.0f - threshold);
+            fraction = Unk_Saturate(t);
+        }
+    }
+    f32 scale = ldexpf(1.0f, -levels);
+    f32 factor = logf(static_cast<f32>(arg12));
+    CRenderTexture* from = arg3;
+    CRenderTexture* last = arg6;
+    CRenderTexture* target = arg4;
+    if (levels != 0) {
+        last = arg3;
+        s32 skip = static_cast<s32>(factor / 0.693147182f);
+        f32 filter = 0.0f;
+        for (s32 i = 0; i < levels;) {
+            CRenderTexture* next = textures[i * 2];
+            bool resized = next->field_54 * 2 != last->field_54 || next->field_58 * 2 != last->field_58;
+            bool single = i > 0 || static_cast<u32>(next->field_54) < 321 || resized;
+            if (single) {
+                skip = 1;
+                filter = 1.0f;
+            }
+            i += skip;
+            CRenderTexture* to = textures[(i < levels ? i : levels) * 2 - 2];
+            Unk_CopyTexture(this, last, to, filter);
+            last = to;
+        }
+        from = last;
+        target = textures[levels * 2 - 1];
+    }
+    CRenderTexture* blend = nullptr;
+    CRenderTexture* blendTarget = nullptr;
+    if (fraction.field_0 != 0.0f) {
+        blend = textures[levels * 2];
+        blendTarget = textures[levels * 2 + 1];
+        Unk_CopyTexture(this, from, blend, 1.0f);
+        if (levels == 0) {
+            last = arg5 != nullptr ? arg5 : arg3;
+        }
+    }
+    f32 r = x * scale;
+    f32 g = y * scale;
+    f32 b = z * scale;
+    f32 a = w * scale;
+    Unk_Float4 value(r, g, b, a);
+    if (cx < 0.0f) {
+        value = Unk_Float4(-r, -g, -b, -a);
+    }
+    Unk_497b20(arg0, arg1, from, target, last, &value, arg8, arg9, arg13, arg14, arg15, arg16, arg17);
+    if (fraction.field_0 != 0.0f) {
+        f32 sign = cx < 0.0f ? -0.5f : 0.5f;
+        Unk_Float4 half(r * sign, g * sign, b * sign, a * sign);
+        Unk_497b20(arg0, arg1, blend, blendTarget, blend, &half, arg8, arg9, arg13, arg14, arg15, arg16, arg17);
+        if (levels >= 1) {
+            Unk_CopyTexture(this, blend, from, 1.0f);
+        } else {
+            from = blend;
+        }
+    }
+    Unk_Float4 weights[2];
+    f32 rest = 1.0f - fraction.field_0;
+    weights[0] = Unk_Float4(rest, rest, rest, rest);
+    weights[1] = Unk_Float4(fraction, fraction, fraction, fraction);
+    if (levels != 0) {
+        if (levels >= 2) {
+            CRenderTexture* to = textures[levels * 2 - 4];
+            Unk_CopyTexture(this, last, to, 1.0f);
+            last = to;
+        }
+        if (fraction.field_0 == 0.0f) {
+            Unk_CopyTexture(this, last, arg6, 0.0f);
+            return 0;
+        }
+    } else if (fraction.field_0 == 0.0f) {
+        return 0;
+    }
+    CRenderTexture* sources[2] = {last, from};
+    Unk_48d220(1.0f, 1.0f, arg6, 2, sources, weights, 0, false);
+    return 0;
 }
 
 // 0x7100499890: the spherical interpolation of two quaternions
@@ -7123,6 +7871,184 @@ s32 CTextureUtil::Unk_498800(f32 x, f32 y, f32 width, f32 height, const f32* coo
     return 0;
 }
 
+// what Unk_498ab0 sets as the render target (placeholder: its size)
+struct Unk_498ab0_Surface {
+    u8 pad_0[0x4c];
+    u32 field_4c;
+    u32 field_50;
+};
+
+// a render texture's far texture coordinates, 0 without one (inline)
+static inline void Unk_CoordsOrZero(const CRenderTexture* texture, f32 width, f32 height, f32* u, f32* v) {
+    if (texture != nullptr) {
+        *u = texture->field_88 * width + texture->field_90;
+        *v = texture->field_8c * height + texture->field_94;
+    } else {
+        *u = 0.0f;
+        *v = 0.0f;
+    }
+}
+
+// 0x7100498ab0: Unk_498800 from render textures into the part of `surface`
+// (the target, set if `set`) that `x`, `y`, `width` and `height` cover (0: its
+// size), each texture filtered unless it has the rectangle's size; the
+// missing ones replaced by field_29a70's
+// NON_MATCHING: 8 bytes more: the rectangle's corners are float selects here
+// (the original's are integer ones, as in 0x710048de50), the textures' nulls
+// are tested in another order and registers differ; the statements and calls
+// are the original's.
+s32 CTextureUtil::Unk_498ab0(f32 width, f32 height, f32 x, f32 y, f32 amount, f32 value, void* surface, bool set,
+                             CRenderTexture* source, CRenderTexture* texture1, CRenderTexture* texture2, s32 a,
+                             s32 b, CRenderTexture* texture3, CRenderTexture* texture4, CRenderTexture* texture5,
+                             s32 state, bool clear, u32 flags) {
+    if (texture1 == nullptr) {
+        amount = 0.0f;
+        b = 0;
+        texture2 = nullptr;
+    }
+    if (amount == 0.0f) {
+        texture2 = nullptr;
+    }
+    if (a == 0) {
+        texture4 = nullptr;
+    }
+    if (b == 0) {
+        texture5 = nullptr;
+    }
+    if (a == 0 && b == 0) {
+        texture3 = nullptr;
+    }
+    if (clear) {
+        Unk_471410();
+    }
+    const Unk_498ab0_Surface* target = static_cast<const Unk_498ab0_Surface*>(surface);
+    if (set) {
+        field_20->vf8(nullptr);
+        if (target != nullptr) {
+            field_20->vf7(0, surface, 0);
+        }
+    }
+    if (target != nullptr) {
+        f32 surfaceWidth = static_cast<f32>(target->field_4c);
+        f32 surfaceHeight = static_cast<f32>(target->field_50);
+        width = width == 0.0f ? surfaceWidth : width;
+        height = height == 0.0f ? surfaceHeight : height;
+    }
+    Unk_Viewport viewport;
+    f32 left;
+    f32 top;
+    {
+        field_20->vf17(&viewport);
+        f32 right = width + x;
+        f32 bottom = height + y;
+        Unk_Float minX = right < x ? Unk_Float(right) : Unk_Float(x);
+        Unk_Float maxX = right < x ? Unk_Float(x) : Unk_Float(right);
+        Unk_Float minY = bottom < y ? Unk_Float(bottom) : Unk_Float(y);
+        Unk_Float maxY = bottom < y ? Unk_Float(y) : Unk_Float(bottom);
+        f32 viewportWidth = static_cast<f32>(viewport.field_8);
+        f32 viewportHeight = static_cast<f32>(viewport.field_c);
+        f32 x0 = minX.field_0 < 0.0f ? 0.0f : (minX.field_0 > viewportWidth ? viewportWidth : minX.field_0);
+        f32 y0 = minY.field_0 < 0.0f ? 0.0f : (minY.field_0 > viewportHeight ? viewportHeight : minY.field_0);
+        f32 x1 = maxX.field_0 < 0.0f ? 0.0f : (maxX.field_0 > viewportWidth ? viewportWidth : maxX.field_0);
+        f32 y1 = maxY.field_0 < 0.0f ? 0.0f : (maxY.field_0 > viewportHeight ? viewportHeight : maxY.field_0);
+        Unk_Viewport rect;
+        rect.field_0 = static_cast<u32>(x0);
+        rect.field_4 = static_cast<u32>(y0);
+        rect.field_8 = static_cast<u32>(x1 - x0);
+        rect.field_c = static_cast<u32>(y1 - y0);
+        rect.field_10 = 0.0f;
+        rect.field_14 = 1.0f;
+        field_20->vf16(&rect);
+        left = static_cast<f32>(static_cast<u32>(rect.field_0));
+        top = static_cast<f32>(static_cast<u32>(rect.field_4));
+    }
+    f32 sourceWidth = static_cast<f32>(static_cast<u32>(source->field_54));
+    f32 sourceHeight = static_cast<f32>(static_cast<u32>(source->field_58));
+    f32 width1 = 0.0f;
+    f32 height1 = 0.0f;
+    if (texture1 != nullptr) {
+        width1 = static_cast<f32>(static_cast<u32>(texture1->field_54));
+        height1 = static_cast<f32>(static_cast<u32>(texture1->field_58));
+    }
+    f32 width2 = 0.0f;
+    f32 height2 = 0.0f;
+    if (texture2 != nullptr) {
+        width2 = static_cast<f32>(static_cast<u32>(texture2->field_54));
+        height2 = static_cast<f32>(static_cast<u32>(texture2->field_58));
+    }
+    f32 width3 = 0.0f;
+    f32 height3 = 0.0f;
+    if (texture3 != nullptr) {
+        width3 = static_cast<f32>(static_cast<u32>(texture3->field_54));
+        height3 = static_cast<f32>(static_cast<u32>(texture3->field_58));
+    }
+    f32 width4 = 0.0f;
+    f32 height4 = 0.0f;
+    if (texture4 != nullptr) {
+        width4 = static_cast<f32>(static_cast<u32>(texture4->field_54));
+        height4 = static_cast<f32>(static_cast<u32>(texture4->field_58));
+    }
+    f32 width5 = 0.0f;
+    f32 height5 = 0.0f;
+    if (texture5 != nullptr) {
+        width5 = static_cast<f32>(static_cast<u32>(texture5->field_54));
+        height5 = static_cast<f32>(static_cast<u32>(texture5->field_58));
+    }
+    u32 filter0 = width == sourceWidth && height == sourceHeight ? 5 : 4;
+    bool point1 = (width == width1 && height == height1) || texture1 == nullptr;
+    bool point2 = (width == width2 && height == height2) || texture2 == nullptr;
+    bool point3 = (width == width3 && height == height3) || texture3 == nullptr;
+    bool point4 = (width == width4 && height == height4) || texture4 == nullptr;
+    bool point5 = (width == width5 && height == height5) || texture5 == nullptr;
+    Unk_GPUTexture* t0 = Unk_GetTexture(source);
+    Unk_GPUTexture* t1 =
+        texture1 != nullptr ? Unk_GetTexture(texture1) : reinterpret_cast<Unk_GPUTexture*>(field_29a70[2]);
+    Unk_GPUTexture* t2 =
+        texture2 != nullptr ? Unk_GetTexture(texture2) : reinterpret_cast<Unk_GPUTexture*>(field_29a70[2]);
+    Unk_GPUTexture* t3 =
+        texture3 != nullptr ? Unk_GetTexture(texture3) : reinterpret_cast<Unk_GPUTexture*>(field_29a70[2]);
+    Unk_GPUTexture* t4 =
+        texture4 != nullptr ? Unk_GetTexture(texture4) : reinterpret_cast<Unk_GPUTexture*>(field_29a70[4]);
+    Unk_GPUTexture* t5 =
+        texture5 != nullptr ? Unk_GetTexture(texture5) : reinterpret_cast<Unk_GPUTexture*>(field_29a70[4]);
+    u32 saved0 = t0->vf16();
+    u32 saved1 = t1->vf16();
+    u32 saved2 = t2->vf16();
+    u32 saved3 = t3->vf16();
+    u32 saved4 = t4->vf16();
+    u32 saved5 = t5->vf16();
+    t0->vf15(filter0);
+    t1->vf15(point1 ? 5 : 4);
+    t2->vf15(point2 ? 5 : 4);
+    t3->vf15(point3 ? 5 : 4);
+    t4->vf15(point4 ? 5 : 4);
+    t5->vf15(point5 ? 5 : 4);
+    field_20->vf44(state);
+    f32 coords[16];
+    coords[0] = 0.0f;
+    coords[1] = 0.0f;
+    coords[2] = source->field_88 * sourceWidth + source->field_90;
+    coords[3] = source->field_8c * sourceHeight + source->field_94;
+    coords[4] = 0.0f;
+    coords[5] = 0.0f;
+    Unk_CoordsOrZero(texture3, width3, height3, &coords[6], &coords[7]);
+    coords[8] = 0.0f;
+    coords[9] = 0.0f;
+    Unk_CoordsOrZero(texture4, width4, height4, &coords[10], &coords[11]);
+    coords[12] = 0.0f;
+    coords[13] = 0.0f;
+    Unk_CoordsOrZero(texture5, width5, height5, &coords[14], &coords[15]);
+    Unk_498800(x - left, y - top, width, height, coords, t0, texture1 != nullptr, amount, t1, t2, a, b, value, t3,
+               t4, t5, flags);
+    t0->vf15(saved0);
+    t1->vf15(saved1);
+    t2->vf15(saved2);
+    t3->vf15(saved3);
+    t4->vf15(saved4);
+    t5->vf15(saved5);
+    return 0;
+}
+
 }  // namespace PPFX
 
 // 0x7100488840 (lib/yebis/leaf): the lights' order, the brightest first
@@ -7620,6 +8546,183 @@ s32 CTextureUtil::Unk_4920b0(f32 arg0, f32 arg1, f32 arg2, f32 arg3, CRenderText
     const Unk_Float4* offsets = Unk_HexagonOffsets();
     return Unk_491bb0(arg0, arg1, arg2, 2.0f, arg3, 2.0f, source, target, temp0, temp1, 7, offsets, arg8, arg9,
                       arg10, arg11, arg12, arg13, arg14, arg15);
+}
+
+// 0x71004922a0: a hexagonal bokeh of `arg3` into `arg4`: with arg6 3 or 5
+// the hexagon's 7 (or 19: also its corners doubled and the midpoints of
+// those) offsets rotated by `arg0` in one pass weighted by `arg8`'s colour
+// (and `arg1`), with 9 or 17 three directions of arg6 / 2 taps through
+// `arg5`'s fourth texture into its first three (each 120 degrees on and a
+// second leg at -120 degrees) added up with Unk_48d220
+// NON_MATCHING: 64 bytes short (first draft): the 19-tap offsets are
+// computed in another order (the original reloads some of the stored ones),
+// the texel scales and the colours are scheduled differently, and registers
+// differ; the calls and the control flow are the original's.
+s32 CTextureUtil::Unk_4922a0(f32 arg0, f32 arg1, f32 arg2, void* arg3, void* arg4, void* arg5, s32 arg6, s32 arg7,
+                             void* arg8, void* arg9, void* arg10, bool clear, s32 arg12, s32 arg13) {
+    if (field_20 == nullptr) {
+        return -1;
+    }
+    if (clear) {
+        Unk_471410();
+    }
+    CRenderTexture* source = static_cast<CRenderTexture*>(arg3);
+    CRenderTexture* target = static_cast<CRenderTexture*>(arg4);
+    CRenderTexture** list = static_cast<CRenderTexture**>(arg5);
+    const Unk_Float4* color = static_cast<const Unk_Float4*>(arg8);
+    CRenderTexture* coc = static_cast<CRenderTexture*>(arg9);
+    const Unk_Float4* range = static_cast<const Unk_Float4*>(arg10);
+    u32 sourceFilter = Unk_GetTexture(source)->vf16();
+    u32 targetFilter = Unk_GetTexture(target)->vf16();
+    Unk_GetTexture(source)->vf15(8);
+    Unk_GetTexture(target)->vf15(8);
+    s32 filters[4];
+    for (s32 i = 0; i < 4; i++) {
+        filters[i] = -1;
+        if (list[i] != nullptr) {
+            filters[i] = Unk_GetTexture(list[i])->vf16();
+            Unk_GetTexture(list[i])->vf15(8);
+        }
+    }
+    u32 sourceWidth = arg12 != 0 ? arg12 : source->field_54;
+    u32 sourceHeight = arg13 != 0 ? arg13 : source->field_58;
+    f32 u1 = source->field_88 * static_cast<f32>(sourceWidth) + source->field_90;
+    f32 v1 = source->field_8c * static_cast<f32>(sourceHeight) + source->field_94;
+    u32 targetWidth = arg12 != 0 ? arg12 : target->field_54;
+    u32 targetHeight = arg13 != 0 ? arg13 : target->field_58;
+    f32 width = static_cast<f32>(targetWidth);
+    f32 height = static_cast<f32>(targetHeight);
+    f32 scaleX = (source->field_88 + source->field_90) * arg2;
+    f32 scaleY = (source->field_8c + source->field_94) * arg2;
+    f32 sine = sinf(arg0);
+    f32 cosine = cosf(arg0);
+    Unk_Float4 values[19];
+    Unk_Float4 colors[19];
+    s32 result;
+    if (arg6 <= 5) {
+        const Unk_Float4* offsets = Unk_HexagonOffsets();
+        for (s32 i = 0; i < 7; i++) {
+            f32 ox = offsets[i].field_0[0].field_0;
+            f32 oy = offsets[i].field_0[1].field_0;
+            values[i].field_0[0].field_0 = scaleX * (cosine * ox - sine * oy);
+            values[i].field_0[1].field_0 = scaleY * (sine * ox + cosine * oy);
+            values[i].field_0[2].field_0 = 0.0f;
+            values[i].field_0[3].field_0 = 0.0f;
+        }
+        s32 count = arg6 == 3 ? 7 : 19;
+        if (arg6 == 5) {
+            for (s32 i = 0; i < 6; i++) {
+                for (s32 c = 0; c < 4; c++) {
+                    values[7 + i].field_0[c].field_0 = values[1 + i].field_0[c].field_0 * 2.0f;
+                }
+            }
+            for (s32 i = 0; i < 6; i++) {
+                for (s32 c = 0; c < 4; c++) {
+                    values[13 + i].field_0[c].field_0 =
+                        (values[7 + i].field_0[c].field_0 + values[7 + (i + 1) % 6].field_0[c].field_0) * 0.5f;
+                }
+            }
+        }
+        f32 weight = 1.0f / static_cast<f32>(count) * arg1;
+        f32 r = weight * color->field_0[0].field_0;
+        f32 g = weight * color->field_0[1].field_0;
+        f32 b = weight * color->field_0[2].field_0;
+        f32 a = weight * color->field_0[3].field_0;
+        for (s32 i = 0; i < count; i++) {
+            colors[i].field_0[0].field_0 = r;
+            colors[i].field_0[1].field_0 = g;
+            colors[i].field_0[2].field_0 = b;
+            colors[i].field_0[3].field_0 = a;
+        }
+        result = target->Unk_49d250(0, 0, 1, 0, 0);
+        if (result < 0) {
+            return result;
+        }
+        if (coc != nullptr) {
+            result = DrawRectGPU_MadCocT2_Sn(0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, count, values, colors,
+                                             range, Unk_GetTexture(source), Unk_GetTexture(coc), arg7, 0);
+        } else {
+            result = DrawRectGPU_MadT1_Sn(0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, count, values, colors,
+                                          Unk_GetTexture(source), arg7, 0);
+        }
+    } else if (arg6 == 9 || arg6 == 17) {
+        s32 taps = arg6 / 2;
+        s32 taps2 = taps + 1;
+        f32 weight = 1.0f / static_cast<f32>(taps);
+        f32 weight2 = 1.0f / static_cast<f32>(taps2);
+        for (s32 dir = 0; dir < 3; dir++) {
+            f32 angle = static_cast<f32>(dir) * 120.0f * 3.14159274f / 180.0f + arg0;
+            f32 s = sinf(angle);
+            f32 c = cosf(angle);
+            f32 dx = scaleX * (c * 0.0f - s);
+            f32 dy = scaleY * (s * 0.0f + c);
+            for (s32 i = 0; i < taps; i++) {
+                f32 k = static_cast<f32>(i) + 1.0f;
+                values[i] = Unk_Float4(dx * k, dy * k, 0.0f, 0.0f);
+                colors[i] = Unk_Float4(weight, weight, weight, weight);
+            }
+            CRenderTexture* temp = list[3];
+            result = temp->Unk_49d250(0, 0, 1, 0, 0);
+            if (result < 0) {
+                return result;
+            }
+            if (coc != nullptr) {
+                DrawRectGPU_MadCocT2_Sn(0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, taps, values, colors, range,
+                                        Unk_GetTexture(source), Unk_GetTexture(coc), 0, 0);
+            } else {
+                DrawRectGPU_MadT1_Sn(0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, taps, values, colors,
+                                     Unk_GetTexture(source), 0, 0);
+            }
+            angle = angle - 120.0f * 3.14159274f / 180.0f;
+            s = sinf(angle);
+            c = cosf(angle);
+            dx = scaleX * (c * 0.0f - s);
+            dy = scaleY * (s * 0.0f + c);
+            for (s32 i = 0; i < taps2; i++) {
+                f32 k = static_cast<f32>(i);
+                values[i] = Unk_Float4(dx * k, dy * k, 0.0f, 0.0f);
+                colors[i] = Unk_Float4(weight2, weight2, weight2, weight2);
+            }
+            CRenderTexture* out = list[dir];
+            result = out->Unk_49d250(0, 0, 1, 0, 0);
+            if (result < 0) {
+                return result;
+            }
+            if (coc != nullptr) {
+                DrawRectGPU_MadCocT2_Sn(0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, taps2, values, colors, range,
+                                        Unk_GetTexture(temp), Unk_GetTexture(coc), 0, 0);
+            } else {
+                DrawRectGPU_MadT1_Sn(0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, taps2, values, colors,
+                                     Unk_GetTexture(temp), 0, 0);
+            }
+        }
+        f32 k = 1.0f / static_cast<f32>(taps2 * taps);
+        f32 total = 1.0f / (k + 3.0f);
+        Unk_Float4 weights[4];
+        for (s32 c = 0; c < 4; c++) {
+            weights[0].field_0[c].field_0 = total * (k * color->field_0[c].field_0);
+        }
+        for (s32 i = 1; i < 4; i++) {
+            for (s32 c = 0; c < 4; c++) {
+                weights[i].field_0[c].field_0 = total * color->field_0[c].field_0;
+            }
+        }
+        CRenderTexture* sources[4] = {source, list[0], list[1], list[2]};
+        for (s32 i = 0; i < 4; i++) {
+            Unk_GetTexture(sources[i])->vf17(1);
+        }
+        result = Unk_48d220(1.0f, 1.0f, target, 4, sources, weights, arg7, false);
+    } else {
+        result = -3;
+    }
+    Unk_GetTexture(source)->vf15(sourceFilter);
+    Unk_GetTexture(target)->vf15(targetFilter);
+    for (s32 i = 0; i < 4; i++) {
+        if (list[i] != nullptr) {
+            Unk_GetTexture(list[i])->vf15(filters[i]);
+        }
+    }
+    return result;
 }
 
 // What the render textures share (GPURenderTexture.cpp): the targets in use
@@ -8585,6 +9688,510 @@ s32 CTextureUtil::Unk_486a80(CRenderTexture* source, CRenderTexture* target, f32
     result = DrawRectGPU_MadT1_Sn(0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, count, offsets, colors,
                                   reinterpret_cast<Unk_GPUTexture*>(root->field_a8), mode, 0);
     return result < 0 ? result : 0;
+}
+
+// 0x710040f8d0 (Unk_415f40.cpp): a projection from its planes
+void Unk_40f8d0(MATRIXT44* out, bool arg1, bool arg2, f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far);
+
+// a view matrix: the inverse of rotation `q` at `position` (inline)
+static inline void Unk_ViewMatrix(MATRIXT44* m, const Unk_Quaternion& q, const Unk_Vector3& position) {
+    f32 yy = q.y * q.y;
+    f32 xy = q.x * q.y;
+    f32 zz = q.z * q.z;
+    f32 yz = q.y * q.z;
+    f32 xz = q.x * q.z;
+    f32 yw = q.y * q.w;
+    f32 zw = q.z * q.w;
+    f32 xw = q.x * q.w;
+    f32 xx = q.x * q.x;
+    m->field_0[0][0] = 1.0f - 2.0f * yy - 2.0f * zz;
+    m->field_0[0][1] = 2.0f * xy - 2.0f * zw;
+    m->field_0[0][2] = 2.0f * xz + 2.0f * yw;
+    m->field_0[1][0] = 2.0f * xy + 2.0f * zw;
+    m->field_0[1][1] = 1.0f - 2.0f * zz - 2.0f * xx;
+    m->field_0[1][2] = 2.0f * yz - 2.0f * xw;
+    m->field_0[2][0] = 2.0f * xz - 2.0f * yw;
+    m->field_0[2][1] = 2.0f * yz + 2.0f * xw;
+    m->field_0[2][2] = 1.0f - 2.0f * xx - 2.0f * yy;
+    m->field_0[3][0] = -(m->field_0[0][0] * position.field_0[0] + m->field_0[1][0] * position.field_0[1] +
+                         m->field_0[2][0] * position.field_0[2]);
+    m->field_0[3][1] = -(m->field_0[0][1] * position.field_0[0] + m->field_0[1][1] * position.field_0[1] +
+                         m->field_0[2][1] * position.field_0[2]);
+    m->field_0[3][2] = -(m->field_0[0][2] * position.field_0[0] + m->field_0[1][2] * position.field_0[1] +
+                         m->field_0[2][2] * position.field_0[2]);
+    m->field_0[2][3] = 0.0f;
+    m->field_0[1][3] = 0.0f;
+    m->field_0[0][3] = 0.0f;
+    m->field_0[3][3] = 1.0f;
+}
+
+// the absolute value (inline)
+static inline Unk_Float Unk_Abs(f32 x) {
+    return x > 0.0f ? x : -x;
+}
+
+// `a` and `b` mixed: their rotations interpolated spherically, the rest
+// linearly (inline)
+// the most taps (`count` or fewer) Unk_482fd0's techniques have (inline:
+// `unused`, which it doesn't read, stays an argument of Unk_482fd0's callers)
+inline s32 Unk_MotionTaps(const TEXSHADERSET* set, bool flag, s32 count, s32 index, void* unused) {
+    s32 used = count + 1;
+    s32 technique;
+    do {
+        technique = flag ? set->field_1bc74[used - 2][index] : set->field_1b9b4[used - 2][index];
+        used--;
+        if (technique == 0) {
+            technique = flag ? set->field_1b6f4[used - 1][index] : set->field_1b434[used - 1][index];
+        }
+    } while (technique == 0 && used > 1);
+    return used;
+}
+
+static inline Unk_484f50_View Unk_LerpView(const Unk_484f50_View& a, const Unk_484f50_View& b, f32 t) {
+    Unk_Float4 q;
+    Unk_499890(reinterpret_cast<Unk_Quaternion*>(&q), reinterpret_cast<const Unk_Quaternion*>(&a.field_0),
+               reinterpret_cast<const Unk_Quaternion*>(&b.field_0), t);
+    Unk_484f50_View r;
+    r.field_0 = Unk_Float4(q.field_0[0], q.field_0[1], q.field_0[2], q.field_0[3]);
+    for (s32 c = 0; c < 3; c++) {
+        r.field_10.field_0[c] = a.field_10.field_0[c] + (b.field_10.field_0[c] - a.field_10.field_0[c]) * t;
+    }
+    r.field_1c = a.field_1c + (b.field_1c - a.field_1c) * t;
+    r.field_20 = a.field_20 + (b.field_20 - a.field_20) * t;
+    r.field_24 = a.field_24 + (b.field_24 - a.field_24) * t;
+    r.field_28 = a.field_28 + (b.field_28 - a.field_28) * t;
+    r.field_2c = a.field_2c + (b.field_2c - a.field_2c) * t;
+    r.field_30 = a.field_30 + (b.field_30 - a.field_30) * t;
+    return r;
+}
+
+// a view's view matrix times its projection (inline)
+static inline MATRIXT44 Unk_ViewProjection(const Unk_484f50_View& view) {
+    MATRIXT44 m;
+    Unk_ViewMatrix(&m, *reinterpret_cast<const Unk_Quaternion*>(&view.field_0), view.field_10);
+    MATRIXT44 p;
+    Unk_40f8d0(&p, false, true, view.field_1c, view.field_20, view.field_24, view.field_28, view.field_2c,
+               view.field_30);
+    MATRIXT44_MatrixMultiply(&m, &m, &p);
+    return m;
+}
+
+// a product of two matrices (inline)
+static inline MATRIXT44 Unk_Product(const MATRIXT44& a, const MATRIXT44& b) {
+    MATRIXT44 r;
+    MATRIXT44_MatrixMultiply(&r, &a, &b);
+    return r;
+}
+
+// a matrix's inverse (inline)
+static inline MATRIXT44 Unk_Inverse(const MATRIXT44& m) {
+    MATRIXT44 r;
+    Unk_4155f0(&r, &m);
+    return r;
+}
+
+// a point through a matrix (inline)
+static inline Unk_Float4 Unk_Transform(const Unk_Float4& v, const MATRIXT44& m) {
+    Unk_Float4 r;
+    Unk_40ffc0(&r, &v, &m);
+    return r;
+}
+
+// 0x7100482fd0: how far the view's motion from `previous` to `view` (through
+// `projection` and `previousProjection`) moves 17 points on the screen in
+// `scale` of it, in eight steps: the longest movement (`outLength`, in the
+// target's texels, `scale` reduced so that it is at most twice `limit` in
+// screen units), the techniques' tap count for it (`outCount`) and
+// Unk_411c70's levels; the rotation and planes of the view and of the one
+// `scale` of the way to the previous one
+// NON_MATCHING: 28 bytes short: the view's rotation copy keeps one store
+// less (the original copies all of it before clearing the translation), the
+// first projections' stores are paired, the second step's loop shares its
+// latch, and the view matrix's arithmetic is scheduled in another order with
+// other registers; the statements, calls and stack layout are the original's.
+s32 CTextureUtil::Unk_482fd0(f32 scale, f32 limit, f32 ratio, CRenderTexture* target, const MATRIXT44* view,
+                             const MATRIXT44* previous, const MATRIXT44* projection,
+                             const MATRIXT44* previousProjection, const f32* arg, s32 maxLevels, void* unused,
+                             s32 index, s32* outCount, s32* outLevels, s32* outFirst, f32* outLength,
+                             f32* outRatio, Unk_484f50_View* outView, Unk_484f50_View* outLerped) {
+    bool flag;
+    if (arg != nullptr && *arg != 0.0f) {
+        flag = true;
+    } else {
+        flag = false;
+    }
+    MATRIXT44 a = *view;
+    MATRIXT44 b = *previous;
+    Unk_NormalizeRow(a.field_0[0]);
+    Unk_NormalizeRow(a.field_0[1]);
+    Unk_NormalizeRow(a.field_0[2]);
+    Unk_NormalizeRow(b.field_0[0]);
+    Unk_NormalizeRow(b.field_0[1]);
+    Unk_NormalizeRow(b.field_0[2]);
+    Unk_484f50_View camera;
+    Unk_4628f0(&camera.field_0, &a);
+    camera.field_10 = *reinterpret_cast<const Unk_Vector3*>(a.field_0[3]);
+    Unk_40f6e0(projection, false, nullptr, &camera.field_1c, &camera.field_20, &camera.field_24, &camera.field_28,
+               &camera.field_2c, &camera.field_30, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
+    Unk_484f50_View last;
+    Unk_4628f0(&last.field_0, &b);
+    last.field_10 = *reinterpret_cast<const Unk_Vector3*>(b.field_0[3]);
+    Unk_40f6e0(previousProjection, false, nullptr, &last.field_1c, &last.field_20, &last.field_24, &last.field_28,
+               &last.field_2c, &last.field_30, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
+    Unk_Vector3 zero = {{0.0f, 0.0f, 0.0f}};
+    camera.field_10 = zero;
+    last.field_10 = zero;
+    f32 rx;
+    f32 ry;
+    Unk_40f980(projection, &rx, &ry);
+    f32 aspect = rx / ry;
+    MATRIXT44 inverse;
+    Unk_4155f0(&inverse, projection);
+    MATRIXT44 rotation = a;
+    rotation.field_0[3][0] = 0.0f;
+    rotation.field_0[3][1] = 0.0f;
+    rotation.field_0[3][2] = 0.0f;
+    MATRIXT44 unproject;
+    MATRIXT44_MatrixMultiply(&unproject, &inverse, &rotation);
+    f32 far = camera.field_30;
+    f32 near = camera.field_2c;
+    f32 depth = -far * near / ((far - near) * 0.5f - far);
+    f32 z = depth * 0.5f;
+    f32 r0 = depth;
+    f32 r1 = depth * 0.5f;
+    f32 r2 = r1 * 0.75f;
+    f32 r3 = depth * 0.25f;
+    Unk_Float4 points[17] = {
+        Unk_Float4(0.0f, 0.0f, z, depth),   Unk_Float4(-r0, -r0, z, depth), Unk_Float4(-r0, r0, z, depth),
+        Unk_Float4(r0, -r0, z, depth),      Unk_Float4(r0, r0, z, depth),   Unk_Float4(-r1, -r1, z, depth),
+        Unk_Float4(-r1, r1, z, depth),      Unk_Float4(r1, -r1, z, depth),  Unk_Float4(r1, r1, z, depth),
+        Unk_Float4(-r2, -r2, z, depth),     Unk_Float4(-r2, r2, z, depth),  Unk_Float4(r2, -r2, z, depth),
+        Unk_Float4(r2, r2, z, depth),       Unk_Float4(-r3, -r3, z, depth), Unk_Float4(-r3, r3, z, depth),
+        Unk_Float4(r3, -r3, z, depth),      Unk_Float4(r3, r3, z, depth),
+    };
+    Unk_Float4 projected[9][17];
+    MATRIXT44 transforms[9];
+    Unk_SetIdentity(&transforms[0]);
+    for (s32 j = 0; j < 17; j++) {
+        projected[0][j] = points[j];
+        f32 inv = 1.0f / projected[0][j].field_0[3].field_0;
+        projected[0][j].field_0[0].field_0 = projected[0][j].field_0[0].field_0 * inv;
+        projected[0][j].field_0[1].field_0 = inv * projected[0][j].field_0[1].field_0;
+        projected[0][j].field_0[2].field_0 = inv * projected[0][j].field_0[2].field_0;
+    }
+    for (s32 i = 1; i < 9; i++) {
+        f32 t = static_cast<f32>(i) * scale * 0.125f;
+        Unk_484f50_View step = Unk_LerpView(camera, last, t);
+        step.field_10 = zero;
+        MATRIXT44 m = Unk_ViewProjection(step);
+        transforms[i] = Unk_Product(unproject, m);
+        transforms[i] = Unk_Inverse(transforms[i]);
+        for (s32 j = 0; j < 17; j++) {
+            Unk_Float4 v = Unk_Transform(points[j], transforms[i]);
+            projected[i][j].field_0[3].field_0 = v.field_0[3].field_0;
+            Unk_Float extent = Unk_Abs(v.field_0[0].field_0);
+            Unk_Float y = Unk_Abs(v.field_0[1].field_0);
+            extent = Unk_Max(extent, y);
+            projected[i][j].field_0[3] = Unk_Max(projected[i][j].field_0[3], extent);
+            f32 inv = 1.0f / projected[i][j].field_0[3].field_0;
+            projected[i][j].field_0[0].field_0 = v.field_0[0].field_0 * inv;
+            projected[i][j].field_0[1].field_0 = inv * v.field_0[1].field_0;
+            projected[i][j].field_0[2].field_0 = inv * v.field_0[2].field_0;
+        }
+    }
+    Unk_Float2 moves[17];
+    for (s32 j = 0; j < 17; j++) {
+        moves[j].field_0[0].field_0 = 0.0f;
+        moves[j].field_0[1].field_0 = 0.0f;
+    }
+    for (s32 i = 1; i < 9; i++) {
+        for (s32 j = 0; j < 17; j++) {
+            f32 dx = projected[i][j].field_0[0].field_0 - projected[i - 1][j].field_0[0].field_0;
+            f32 dy = projected[i][j].field_0[1].field_0 - projected[i - 1][j].field_0[1].field_0;
+            if (dx == 0.0f && dy == 0.0f) {
+                if (i > 1) {
+                    f32 k = static_cast<f32>(i) / static_cast<f32>(i - 1);
+                    moves[j].field_0[0].field_0 = k * moves[j].field_0[0].field_0;
+                    moves[j].field_0[1].field_0 = k * moves[j].field_0[1].field_0;
+                }
+            } else {
+                moves[j].field_0[0].field_0 = (dx > 0.0f ? dx : -dx) + moves[j].field_0[0].field_0;
+                moves[j].field_0[1].field_0 = (dy > 0.0f ? dy : -dy) + moves[j].field_0[1].field_0;
+            }
+        }
+    }
+    f32 screen = 0.0f;
+    f32 length = 0.0f;
+    for (s32 j = 0; j < 17; j++) {
+        f32 x = moves[j].field_0[0].field_0;
+        f32 y = moves[j].field_0[1].field_0;
+        f32 ax = aspect * x;
+        f32 s = Unk_Sqrt(ax * ax + y * y);
+        screen = screen > s ? screen : s;
+        f32 tx = x * (static_cast<f32>(static_cast<u32>(target->field_54)) * 0.5f);
+        f32 ty = y * (static_cast<f32>(static_cast<u32>(target->field_58)) * 0.5f);
+        f32 l = Unk_Sqrt(tx * tx + ty * ty);
+        length = length > l ? length : l;
+    }
+    f32 most = limit * 2.0f;
+    if (most > 0.0f && screen > most) {
+        f32 k = most / screen;
+        scale = k * scale;
+        length = k * length;
+    }
+    Unk_484f50_View lerped = Unk_LerpView(camera, last, scale);
+    s32 count = field_29a64 < 2 ? 4 : field_29a64;
+    s32 used = Unk_MotionTaps(&field_30, flag, count, index, unused);
+    s32 levels;
+    s32 first;
+    f32 step;
+    Unk_411c70(length, ratio, used, 0, maxLevels, &levels, &first, &step);
+    f32 k = step / length;
+    if (outCount != nullptr) {
+        *outCount = used;
+    }
+    if (outLevels != nullptr) {
+        *outLevels = levels;
+    }
+    if (outFirst != nullptr) {
+        *outFirst = first;
+    }
+    if (outLength != nullptr) {
+        *outLength = length;
+    }
+    if (outRatio != nullptr) {
+        *outRatio = k;
+    }
+    if (outView != nullptr) {
+        *outView = camera;
+    }
+    if (outLerped != nullptr) {
+        *outLerped = lerped;
+    }
+    return 0;
+}
+
+// 0x7100483e50: Unk_482fd0's motion of the view (`outMotion`), and the
+// techniques' tap count and Unk_411c70's levels for a blur `length` of the
+// target's height long (1 if it isn't positive), the tap counts in steps of
+// field_29a68's mode (1: odd ones, 2: even ones)
+// NON_MATCHING: 8 bytes short: the mode's blocks are laid out the other way
+// round and the techniques' loop tests the count before the first table (the
+// original tests it after); the rest differs in scheduling only.
+s32 CTextureUtil::Unk_483e50(f32 scale, f32 length, f32 ratio, CRenderTexture* target, const MATRIXT44* view,
+                             const MATRIXT44* previous, const MATRIXT44* projection,
+                             const MATRIXT44* previousProjection, bool flag, s32 maxLevels, void* unused,
+                             s32 index, s32* outCount, s32* outLevels, s32* outFirst, f32* outLength,
+                             f32* outMotion, f32* outRatio, Unk_484f50_View* outView, Unk_484f50_View* outLerped) {
+    MATRIXT44 a = *view;
+    MATRIXT44 b = *previous;
+    Unk_NormalizeRow(a.field_0[0]);
+    Unk_NormalizeRow(a.field_0[1]);
+    Unk_NormalizeRow(a.field_0[2]);
+    Unk_NormalizeRow(b.field_0[0]);
+    Unk_NormalizeRow(b.field_0[1]);
+    Unk_NormalizeRow(b.field_0[2]);
+    s32 levels;
+    s32 first;
+    s32 count;
+    f32 motion;
+    f32 step;
+    Unk_484f50_View motionView;
+    Unk_484f50_View motionLerped;
+    Unk_482fd0(scale, length, ratio, target, &a, &b, projection, previousProjection, nullptr, maxLevels, unused,
+               index, &count, &levels, &first, &motion, &step, &motionView, &motionLerped);
+    Unk_484f50_View camera;
+    Unk_4628f0(&camera.field_0, &a);
+    camera.field_10 = *reinterpret_cast<const Unk_Vector3*>(a.field_0[3]);
+    Unk_40f6e0(projection, false, nullptr, &camera.field_1c, &camera.field_20, &camera.field_24, &camera.field_28,
+               &camera.field_2c, &camera.field_30, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
+    Unk_484f50_View last;
+    Unk_4628f0(&last.field_0, &b);
+    last.field_10 = *reinterpret_cast<const Unk_Vector3*>(b.field_0[3]);
+    Unk_40f6e0(previousProjection, false, nullptr, &last.field_1c, &last.field_20, &last.field_24, &last.field_28,
+               &last.field_2c, &last.field_30, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
+    Unk_484f50_View current = camera;
+    Unk_484f50_View lerped = Unk_LerpView(camera, last, scale);
+    if (length <= 0.0f) {
+        length = 1.0f;
+    }
+    length = length * static_cast<f32>(static_cast<u32>(target->field_58));
+    s32 mode = field_29a68;
+    s32 stride = mode == 1 || mode == 2 ? 2 : 1;
+    s32 taps = field_29a64 < 2 ? 5 : field_29a64;
+    if (mode == 2) {
+        taps = (taps + 1) / 2 * 2;
+    } else if (mode == 1) {
+        taps = taps / 2 * 2 + 1;
+    }
+    s32 used;
+    s32 next = taps;
+    s32 technique;
+    do {
+        used = next;
+        technique = (flag ? field_30.field_201a4[1][used - 1][index] : field_30.field_1e0a4[1][used - 1][index]);
+        if (technique != 0 || used < 2) {
+            break;
+        }
+        technique = (flag ? field_30.field_1f124[1][used - 1][index] : field_30.field_1d024[1][used - 1][index]);
+        next = used - stride;
+    } while (technique == 0);
+    Unk_411c70(length, ratio, used, mode == 1 ? 1 : mode == 2 ? 2 : 0, maxLevels, &levels, &first, &step);
+    f32 k = step / length;
+    if (outCount != nullptr) {
+        *outCount = used;
+    }
+    if (outLevels != nullptr) {
+        *outLevels = levels;
+    }
+    if (outFirst != nullptr) {
+        *outFirst = first;
+    }
+    if (outLength != nullptr) {
+        *outLength = length;
+    }
+    if (outMotion != nullptr) {
+        *outMotion = motion;
+    }
+    if (outRatio != nullptr) {
+        *outRatio = k;
+    }
+    if (outView != nullptr) {
+        *outView = current;
+    }
+    if (outLerped != nullptr) {
+        *outLerped = lerped;
+    }
+    return 0;
+}
+
+// the two filters Unk_4845c0 sets on its textures (with and without `arg`)
+extern s32 Unk_238d00c;
+extern s32 Unk_238d008;
+
+// 0x71004845c0: `source` blurred along the view's motion (Unk_482fd0's) in
+// its levels: each pass draws its taps' transforms (the views between the
+// view and the one Unk_482fd0 gives `scale` of the way to the previous one)
+// with Unk_479c30, ping-ponging between `temp` and `source`, the last pass
+// into `target` weighted by `color`
+// NON_MATCHING: 28 bytes short: register allocation and scheduling (`this`
+// and `arg` are spilled in the original, the view matrix's arithmetic and the
+// copies of the taps' transforms come in another order); the statements,
+// calls and stack layout are the original's.
+s32 CTextureUtil::Unk_4845c0(f32 scale, f32 limit, f32 ratio, CRenderTexture* source, CRenderTexture* target,
+                             CRenderTexture* temp, const MATRIXT44* view, const MATRIXT44* previous,
+                             const MATRIXT44* projection, const MATRIXT44* previousProjection, const f32* arg,
+                             s32 maxLevels, void* unused, s32 index, const Unk_Float4* color, bool clear) {
+    bool flag;
+    if (arg != nullptr && *arg != 0.0f) {
+        flag = true;
+    } else {
+        flag = false;
+    }
+    MATRIXT44 a = *view;
+    MATRIXT44 b = *previous;
+    Unk_NormalizeRow(a.field_0[0]);
+    Unk_NormalizeRow(a.field_0[1]);
+    Unk_NormalizeRow(a.field_0[2]);
+    Unk_NormalizeRow(b.field_0[0]);
+    Unk_NormalizeRow(b.field_0[1]);
+    Unk_NormalizeRow(b.field_0[2]);
+    s32 levels;
+    s32 first;
+    s32 count;
+    f32 length;
+    f32 step;
+    Unk_484f50_View current;
+    Unk_484f50_View lerped;
+    Unk_482fd0(scale, limit, ratio, source, &a, &b, projection, previousProjection, arg, maxLevels, unused, index,
+               &count, &levels, &first, &length, &step, &current, &lerped);
+    if (levels == 0) {
+        if (source == target) {
+            return 0;
+        }
+        levels = 1;
+        first = 1;
+        length = 0.0f;
+        step = 0.0f;
+    }
+    s32 drawIndex = levels == 1 && first == 1 ? 0 : index;
+    if (clear) {
+        Unk_471410();
+    }
+    s32 filter = flag ? Unk_238d00c : Unk_238d008;
+    Unk_GetTexture(source)->vf15(filter);
+    Unk_GetTexture(target)->vf15(filter);
+    if (temp != nullptr) {
+        Unk_GetTexture(temp)->vf15(filter);
+    }
+    MATRIXT44 inverse;
+    Unk_4155f0(&inverse, projection);
+    MATRIXT44 rotation = a;
+    rotation.field_0[3][0] = 0.0f;
+    rotation.field_0[3][1] = 0.0f;
+    rotation.field_0[3][2] = 0.0f;
+    MATRIXT44 unproject;
+    MATRIXT44_MatrixMultiply(&unproject, &inverse, &rotation);
+    f32 width = static_cast<f32>(static_cast<u32>(source->field_54));
+    f32 height = static_cast<f32>(static_cast<u32>(source->field_58));
+    f32 u1;
+    f32 v1;
+    Unk_GetCoords(source, &u1, &v1);
+    CRenderTexture* targets[2] = {temp, source};
+    Unk_Vector3 zero = {{0.0f, 0.0f, 0.0f}};
+    MATRIXT44 transforms[16];
+    Unk_Float4 colors[16];
+    CRenderTexture* from = source;
+    f32 offset = step;
+    for (s32 pass = 0; pass < levels; pass++) {
+        CRenderTexture* to;
+        const s32* taps;
+        Unk_Float4 c;
+        if (pass == levels - 1) {
+            c = *color;
+            to = target;
+            taps = &first;
+        } else {
+            to = targets[pass & 1];
+            c = Unk_Float4(1.0f, 1.0f, 1.0f, 1.0f);
+            taps = &count;
+        }
+        s32 n = *taps;
+        to->Unk_49d250(0, 0, 1, 0, 0);
+        CRenderTexture::Unk_49cf50(nullptr, nullptr);
+        if (n > 0) {
+            f32 inv = 1.0f / static_cast<f32>(n);
+            f32 r = c.field_0[0].field_0 * inv;
+            f32 g = c.field_0[1].field_0 * inv;
+            f32 bl = c.field_0[2].field_0 * inv;
+            f32 al = c.field_0[3].field_0 * inv;
+            for (s32 i = 0; i < n; i++) {
+                f32 t = offset * static_cast<f32>(i);
+                Unk_484f50_View v = Unk_LerpView(current, lerped, t);
+                v.field_10 = zero;
+                MATRIXT44 m = Unk_ViewProjection(v);
+                transforms[i] = Unk_Product(unproject, m);
+                transforms[i] = Unk_Inverse(transforms[i]);
+                colors[i].field_0[0].field_0 = r;
+                colors[i].field_0[1].field_0 = g;
+                colors[i].field_0[2].field_0 = bl;
+                colors[i].field_0[3].field_0 = al;
+            }
+        }
+        Unk_479c30(0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, n, reinterpret_cast<Unk_GPUTexture**>(transforms),
+                   arg, colors, Unk_GetTexture(from), drawIndex, 0);
+        if (pass < levels - 1) {
+            Unk_43fc90_get(reinterpret_cast<u64>(field_20));
+        }
+        offset *= static_cast<f32>(count);
+        from = to;
+    }
+    Unk_GetTexture(source)->vf15(0);
+    Unk_GetTexture(target)->vf15(0);
+    if (temp != nullptr) {
+        Unk_GetTexture(temp)->vf15(0);
+    }
+    return 0;
 }
 
 // 0x7100484f50: Unk_47a030 from `source` (and `depth`) into `target`, with

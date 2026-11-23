@@ -366,6 +366,9 @@ void SiGfxNXDrawContext::vf11(Unk_NXDrawPass* pPass, const Unk_NXDrawClear* pCle
     }
 }
 
+// (The storage buffers' slot is declared before its loop, and the vertex
+// buffers' count is `last + 1 - first`: each decides the original's block
+// order and compares.)
 // 0x710053c340
 void SiGfxNXDrawContext::Unk_53c340() {
     const void* device = field_18->vf85();
@@ -389,7 +392,7 @@ void SiGfxNXDrawContext::Unk_53c340() {
         }
         if (field_30.field_2760.field_4 <= field_30.field_2760.field_8) {
             nvnCommandBufferBindVertexBuffers(field_3a60, field_30.field_2760.field_4,
-                                              field_30.field_2760.field_8 - field_30.field_2760.field_4 + 1,
+                                              field_30.field_2760.field_8 + 1 - field_30.field_2760.field_4,
                                               state.field_290);
             field_30.field_2760.Unk_Reset();
         }
@@ -448,7 +451,8 @@ void SiGfxNXDrawContext::Unk_53c340() {
         }
         Unk_SlotRange& storages = field_30.field_2898[stage];
         if (storages.field_4 <= storages.field_8) {
-            for (s32 slot = storages.field_4; slot <= storages.field_8; slot++) {
+            s32 slot;
+            for (slot = storages.field_4; slot <= storages.field_8; slot++) {
                 if (storages.field_10 & static_cast<u64>(1) << slot) {
                     nvnCommandBufferBindStorageBuffer(field_3a60, stage, slot, field_30.field_508.field_960[stage][slot],
                                                       field_30.field_508.field_c00[stage][slot]);

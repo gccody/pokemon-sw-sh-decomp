@@ -876,6 +876,114 @@ s32 CRenderGlare::Unk_45e980(void* arg) {
     return result;
 }
 
+// whether a format is a fixed-point one (inline; defined below)
+static inline bool Unk_IsFixedFormat(s32 format);
+
+// whether the glare is drawn in high precision: a float format, or one of the
+// first kind (inline)
+static inline bool Unk_IsPreciseFormat(s32 format) {
+    return !Unk_IsFixedFormat(format) || Unk_IsGlareFormatA(format);
+}
+
+// the afterimage's decay factor, and its least fade, for a format (inline)
+static inline f32 Unk_AfterimageFactor(s32 format) {
+    return Unk_IsPreciseFormat(format) ? 1.6f : 1.2f;
+}
+static inline f32 Unk_AfterimageLeast(s32 format) {
+    return Unk_IsPreciseFormat(format) ? 0.01f : 0.1f;
+}
+
+// the view's current glare texture (inline)
+static inline CRenderTexture* Unk_ViewTexture(CRenderGlare* self) {
+    if (self->field_350 == nullptr) {
+        return nullptr;
+    }
+    return self->field_350[static_cast<u32>(self->field_2ec)]->Unk_Texture(-1);
+}
+
+// a colour's luminance in the default colour space (inline)
+static inline f32 Unk_DefaultLuminance(const Unk_Vector3& color) {
+    Unk_410f90 space;
+    Unk_410f90_set(&space, 0);
+    return Unk_Luminance(space, color);
+}
+
+// 0x710045c1e0 (its log line names it): the afterimage, the last frame's
+// glare faded into this one's
+// NON_MATCHING: the original keeps the glare's sizes and coordinates in
+// d8-d15 (here three are spilled at once), divides the rate once after the
+// float test (here in both of its blocks) and tests the clamps' bounds the
+// other way round; the calls and the stores are the same. The factors come
+// from inline functions: written in place, the selects of constants let
+// InstCombine fold the square, and the format mask isn't hoisted into x22.
+// field_350 is an array of CRenderTextureArray pointers: with a cast at the
+// load, the null view array (GVN's PRE of field_350[view]) is not a trap.
+s32 CRenderGlare::GenerateGlare_Afterimage() {
+    if (!Unk_457370()) {
+        return 0;
+    }
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    CRenderTexture* previous = Unk_ViewTexture(this);
+    CRenderTextureArray* array = field_350[static_cast<u32>(field_2ec)];
+    if (array != nullptr) {
+        array->field_90 = 1 - array->field_90;
+    }
+    CRenderTexture* current = Unk_ViewTexture(this);
+    CRenderTexture* glare = field_320[0].field_18;
+    current->Unk_49d250(0, 0, 1, 0, 0);
+    CRenderTexture::Unk_49cf50(nullptr, nullptr);
+    f32 glareWidth = static_cast<f32>(static_cast<u32>(glare->field_54));
+    f32 glareHeight = static_cast<f32>(static_cast<u32>(glare->field_58));
+    s32 slot = field_2e4;
+    f32 scaleU = glare->field_88;
+    f32 scaleV = glare->field_8c;
+    f32 offsetU = glare->field_90;
+    f32 offsetV = glare->field_94;
+    f32 width = static_cast<f32>(static_cast<u32>(current->field_54));
+    f32 height = static_cast<f32>(static_cast<u32>(current->field_58));
+    f32 luminance = Unk_DefaultLuminance(field_170->field_6c);
+    f32 level = Unk_458420();
+    f32 rate = field_178 / field_170->field_68;
+    f32 k = Unk_AfterimageFactor(field_b0.field_18[3]);
+    f32 decay = rate * (k * k);
+    f32 lag = rate / k;
+    f32 brightness = luminance * 0.125f;
+    f32 fade = 1.0f - powf(0.5f, decay / 0.05f);
+    f32 keep = powf(0.5f, lag / 0.05f);
+    fade = fade < 1.0f && fade > 0.0f ? fade : 1.0f;
+    keep = keep < 1.0f && keep > 0.0f ? keep : 0.0f;
+    f32 least = Unk_AfterimageLeast(field_b0.field_18[3]);
+    f32 value = brightness * level * (fade > least ? fade : least);
+    Unk_Float hold = keep < 0.999f ? keep : 0.999f;
+    s32 format = field_b0.field_18[3];
+    Unk_Float bias;
+    if (Unk_IsGlareFormatC(format)) {
+        bias = -1.0f / 255.0f;
+    } else if (format != 0 && Unk_IsGlareFormatB(format)) {
+        bias = -1.0f / 1023.0f;
+    } else {
+        bias = -1.0f / 32767.0f;
+    }
+    Unk_Float4 colors[2];
+    colors[0] = Unk_Float4(value, value, value, value);
+    colors[1] = Unk_Float4(hold, hold, hold, hold);
+    Unk_Float4 params[3];
+    params[0] = Unk_Float4(bias, bias, bias, bias);
+    params[1] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+    params[2] = Unk_Float4(64512.0f, 64512.0f, 64512.0f, 64512.0f);
+    Unk_GPUTexture* textures[2] = {Unk_GetTexture(glare), Unk_GetTexture(previous)};
+    s32 result = util->Unk_4776f0(0.0f, 0.0f, width, height, 0.0f, 0.0f, scaleU * glareWidth + offsetU,
+                                  scaleV * glareHeight + offsetV, 2, textures, colors, params, slot, 0);
+    if (result < 0) {
+#line 4956
+        PPFX_ERROR("CRenderGlare::GenerateGlare_Afterimage(): pTexUtil->DrawRectGPU_MadOffsetTn() failed (0x%x: %s).\n",
+                   result, Unk_446df0(result));
+    }
+    Unk_49e3a0(1, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+    return result;
+}
+
 // 0x710045c880: each view's glare, then all of them into field_3d0
 // NON_MATCHING: the loop unswitched on `count == 1` is laid out first here
 // (the original branches to it), and the test after the loop is `b.le`, not
@@ -1576,7 +1684,7 @@ s32 CRenderGlare::Unk_45ee80(CRenderTexture* source, f32 f0, f32 f1, f32 f2, f32
         return result;
     }
     if (!skip) {
-        result = Unk_45c1e0();
+        result = GenerateGlare_Afterimage();
         if (result < 0) {
             return result;
         }
@@ -1638,5 +1746,267 @@ s32 Unk_45eb90(PPFX::Unk_45eb90_Self* self_, f32 width, f32 height, f32 x, f32 y
     }
     return result;
 }
+
+// 0x7100440c60 (lib/yebis/leaf)
+u32 Unk_440c60_get(u64 device, u32 arg1, u32 arg2);
+
+namespace PPFX {
+
+// 0x7100478880 (GPUTextureUtil.cpp): a ratio (the flag is not read)
+f32 Unk_478880(f32 a, f32 b, bool flag);
+
+// whether a surface format is one the hardware converts to sRGB (inline)
+static inline bool Unk_IsSrgbFormat(s32 format) {
+    switch (format) {
+    case 72:
+    case 75:
+    case 78:
+    case 91:
+    case 93:
+    case 99:
+    case 29:
+        return true;
+    default:
+        return false;
+    }
+}
+
+// the smallest step of a surface format's channels (inline)
+static inline f32 Unk_SurfaceStep(s32 format) {
+    if (Unk_IsGlareFormatA(format)) {
+        return 1.0f / 65535.0f;
+    }
+    if (format != 0 && Unk_IsGlareFormatB(format)) {
+        return 1.0f / 1023.0f;
+    }
+    if (Unk_IsGlareFormatC(format)) {
+        return 1.0f / 255.0f;
+    }
+    if (format != 0 && (format == 85 || format == 86)) {
+        return 1.0f / 31.0f;
+    }
+    return 0.0f;
+}
+
+// `x` clamped to 0 and `high` (inline)
+static inline f32 Unk_ClampTo(f32 x, f32 high) {
+    return x < 0.0f ? 0.0f : (x > high ? high : x);
+}
+
+// a rectangle narrowed to the part `rect` gives (its size, then its offset; inline)
+static inline void Unk_SubRect(Unk_Float4* r, const Unk_Float4* rect) {
+    f32 w = r->field_0[2].field_0 - r->field_0[0].field_0;
+    f32 h = r->field_0[3].field_0 - r->field_0[1].field_0;
+    r->field_0[0].field_0 = r->field_0[0].field_0 + w * rect->field_0[2].field_0;
+    r->field_0[1].field_0 = r->field_0[1].field_0 + h * rect->field_0[3].field_0;
+    r->field_0[2].field_0 = r->field_0[0].field_0 + w * rect->field_0[0].field_0;
+    r->field_0[3].field_0 = r->field_0[1].field_0 + h * rect->field_0[1].field_0;
+}
+
+// 0x710045f1c0 (its caller's log line names it)
+// NON_MATCHING: a first draft: the calls, their arguments and the stores are
+// the original's; the registers, the spill slots and the order of the
+// blocks are not yet (the viewport is clamped in other registers, the
+// rectangles of `rect` interleaved otherwise, the copy's weights filled by a
+// loop the original unrolls differently)
+s32 CRenderGlare::TonemapToSurface(IGPUSurface* surface, bool hasSurface, CRenderTexture* source, bool hasGamma,
+                                   s32 format, const Unk_Float4* color, const MATRIXT44* matrix, f32 width, f32 height,
+                                   f32 x, f32 y, f32 intensity, f32 gamma, f32 exposure, f32 white, f32 step,
+                                   const MATRIXT44* matrix2, f32 luminance, const Unk_Float4* arg17, f32 arg18,
+                                   f32 arg19, f32 arg20, f32 arg21, f32 arg22, f32 arg23, f32 aspect, bool arg25,
+                                   const Unk_Float4* rect, s32 space, s32 blend, s32 frames, f32 arg30, void* arg31) {
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    util->Unk_471410(2, 3, 3);
+    IGPUPixelContainer* pixels = reinterpret_cast<IGPUPixelContainer*>(surface);
+    f32 g = hasGamma ? gamma : 1.0f;
+    bool srgb = false;
+    bool forced = false;
+    if (surface != nullptr && (pixels->field_5c & 0x40000) != 0) {
+        if (Unk_IsSrgbFormat(pixels->field_44.field_0)) {
+            srgb = true;
+        } else if (g == 0.0f && field_20->field_14ef7) {
+            srgb = true;
+            forced = true;
+        }
+    }
+    if (g == 0.0f) {
+        g = 2.2f;
+    }
+    f32 encode = srgb ? g * 0.454545438f : g;
+    if (hasSurface) {
+        field_20->vf8(nullptr);
+        if (surface != nullptr) {
+            field_20->vf7(0, surface, 0);
+        }
+    }
+    if (forced) {
+        field_20->vf38(srgb);
+    }
+    if (surface != nullptr && step == -3.40282347e+38f) {
+        step = Unk_SurfaceStep(pixels->field_44.field_0);
+    }
+    if (surface != nullptr) {
+        if (width == 0.0f) {
+            width = static_cast<f32>(pixels->field_44.field_8);
+        }
+        if (height == 0.0f) {
+            height = static_cast<f32>(pixels->field_44.field_c);
+        }
+    }
+    Unk_Viewport current;
+    field_20->vf17(&current);
+    f32 right = x + width;
+    f32 bottom = y + height;
+    f32 left = right < x ? right : x;
+    f32 far = right < x ? x : right;
+    f32 top = bottom < y ? bottom : y;
+    f32 low = bottom < y ? y : bottom;
+    f32 vw = static_cast<f32>(current.field_8);
+    f32 vh = static_cast<f32>(current.field_c);
+    Unk_Viewport viewport;
+    f32 l = Unk_ClampTo(left, vw);
+    viewport.field_0 = static_cast<u32>(l);
+    f32 t = Unk_ClampTo(top, vh);
+    viewport.field_4 = static_cast<u32>(t);
+    viewport.field_8 = static_cast<u32>(Unk_ClampTo(far, vw) - l);
+    viewport.field_c = static_cast<u32>(Unk_ClampTo(low, vh) - t);
+    viewport.field_10 = 0.0f;
+    viewport.field_14 = 1.0f;
+    field_20->vf16(&viewport);
+    CRenderTexture* glare = nullptr;
+    if (field_138 * intensity > 0.0f) {
+        glare = field_420;
+    }
+    f32 glareWidth = 0.0f;
+    f32 glareHeight = 0.0f;
+    Unk_GPUTexture* glareTexture;
+    if (glare != nullptr) {
+        glareWidth = static_cast<f32>(static_cast<u32>(glare->field_54));
+        glareHeight = static_cast<f32>(static_cast<u32>(glare->field_58));
+        glareTexture = Unk_GetTexture(glare);
+    } else {
+        glareTexture = reinterpret_cast<Unk_GPUTexture*>(util->field_29a70[2]);
+    }
+    f32 sourceWidth = static_cast<f32>(static_cast<u32>(source->field_54));
+    f32 sourceHeight = static_cast<f32>(static_cast<u32>(source->field_58));
+    Unk_Float4 rects[3];
+    rects[0] = Unk_Float4(0.0f, 0.0f, source->field_88 * sourceWidth + source->field_90,
+                          source->field_8c * sourceHeight + source->field_94);
+    if (glare != nullptr) {
+        rects[1] = Unk_Float4(0.0f, 0.0f, glare->field_88 * glareWidth + glare->field_90,
+                              glare->field_8c * glareHeight + glare->field_94);
+    } else {
+        rects[1] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+    }
+    if (field_180) {
+        f32 ratio = Unk_478880(field_b0.field_74, field_b0.field_78, field_18c && field_198 >= 0.0f);
+        f32 s = 1.0f;
+        if (!field_18c) {
+            f32 a = field_180 ? field_184 : 0.0f;
+            f32 b = field_180 ? field_188 : 0.0f;
+            s = a * (b * (field_158 - 0.414213568f) + 0.414213568f);
+        }
+        f32 sx = ratio * s;
+        f32 cx = field_15c * (sx + sx) * 0.5f;
+        f32 cy = (s + s) * field_160 * 0.5f;
+        rects[2] = Unk_Float4(-sx - cx, -s - cy, sx - cx, s - cy);
+    } else {
+        rects[2] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+    }
+    f32 vignette = 0.0f;
+    f32 radius = field_198;
+    if (field_18c && radius >= 0.0f) {
+        vignette = field_158;
+        f32 least = 1.0f / height;
+        radius = least < radius ? radius : least;
+    }
+    bool sameSource = width == sourceWidth && height == sourceHeight;
+    bool sameGlare = width == glareWidth && height == glareHeight;
+    if (rect != nullptr) {
+        for (s32 i = 0; i < 3; i++) {
+            Unk_SubRect(&rects[i], rect);
+        }
+        sameSource = false;
+        sameGlare = false;
+    }
+    field_20->vf44(blend);
+    if (blend != 0) {
+        Unk_440c40_get(reinterpret_cast<u64>(field_20), 1);
+        u32 a = 2;
+        u32 b = 1;
+        switch (blend) {
+        case 1:
+            a = 5;
+            b = 6;
+            break;
+        case 2:
+            a = 2;
+            b = 2;
+            break;
+        case 3:
+            a = 2;
+            b = 4;
+            break;
+        case 4:
+            a = 9;
+            b = 1;
+            break;
+        case 5:
+            a = 2;
+            b = 14;
+            break;
+        }
+        Unk_440c60_get(reinterpret_cast<u64>(field_20), a, b);
+    } else {
+        Unk_440c40_get(reinterpret_cast<u64>(field_20), 0);
+    }
+    bool plain = glareTexture == reinterpret_cast<Unk_GPUTexture*>(util->field_29a70[2]);
+    if (luminance < 0.0f) {
+        luminance = field_164;
+    }
+    f32 dx = x - static_cast<f32>(static_cast<u32>(viewport.field_0));
+    f32 dy = y - static_cast<f32>(static_cast<u32>(viewport.field_4));
+    s32 result;
+    if (format != -1) {
+        result = util->DrawRectGPU_TonemapHDR(
+            dx, dy, width, height, luminance, intensity, encode, exposure, rects, Unk_GetTexture(source),
+            glareTexture, format, &color->field_0[0].field_0, matrix, matrix2, white, step, vignette, field_190,
+            field_194, radius, &field_19c, field_2e8, field_178, g, arg17, arg18, sameSource, sameGlare || plain,
+            arg19, arg20, arg21, arg22, arg23, aspect, arg25, 0);
+    } else {
+        f32 spread = arg30 > 0.0f ? arg30 : -arg30;
+        s32 count = sameSource ? 1 : (frames == 1 ? 4 : 1);
+        f32 weight = 1.0f / static_cast<f32>(count);
+        Unk_Float4 weights[4];
+        for (s32 i = 0; i < count; i++) {
+            weights[i] = Unk_Float4(weight, weight, weight, weight);
+        }
+        Unk_Float4 offsets[4];
+        if (count == 4) {
+            f32 half = fminf(spread, 1.0f) * 0.5f;
+            f32 ox = half * (rects[0].field_0[2].field_0 / sourceWidth);
+            f32 oy = half * (rects[0].field_0[3].field_0 / sourceHeight);
+            offsets[0] = Unk_Float4(-ox, -oy, 0.0f, 0.0f);
+            offsets[1] = Unk_Float4(ox, -oy, 0.0f, 0.0f);
+            offsets[2] = Unk_Float4(-ox, oy, 0.0f, 0.0f);
+            offsets[3] = Unk_Float4(ox, oy, 0.0f, 0.0f);
+        } else if (count == 1) {
+            offsets[0] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+        }
+        result = util->Unk_475560(dx, dy, width, height, rects[0].field_0[0].field_0, rects[0].field_0[1].field_0,
+                                  rects[0].field_0[2].field_0, rects[0].field_0[3].field_0, count, offsets, weights,
+                                  Unk_GetTexture(source), static_cast<Unk_GPUTexture*>(arg31), 0, 0);
+    }
+    if (blend != 0) {
+        field_20->vf44(0);
+    }
+    if (forced) {
+        field_20->vf38(0);
+    }
+    return result < 0 ? result : 0;
+}
+
+}  // namespace PPFX
 
 // 0x710045fbe0: _GLOBAL__sub_I_GPURenderGlare.cpp

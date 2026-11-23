@@ -102,15 +102,11 @@ public:
         Unk_Ranges* field_20;
     };
     // What a sampler's entry is made from when it isn't a sampler object
-    // (placeholder name).
+    // (placeholder name). (The entry clears field_24.)
     struct Unk_SamplerDesc {
         Unk_SamplerDesc()
             : field_0(0xc), field_4(1), field_8(1), field_c(1), field_10(0), field_14(0), field_18(100.0f),
-              field_1c(1), field_20(8) {
-            for (int i = 0; i < 7; i++) {
-                field_24[i] = 0;
-            }
-        }
+              field_1c(1), field_20(8) {}
 
         u32 field_0;
         u32 field_4;
@@ -126,7 +122,13 @@ public:
     // A sampler: a description or a sampler object, which it holds a
     // reference to.
     struct RootSamplerEntry {
-        RootSamplerEntry() : field_0(0), field_4(0), field_8(0), field_50(nullptr) {}
+        // (field_c's last words are cleared in the body: the array's reserve,
+        // 0x7100558530, stores the sampler pointer before them)
+        RootSamplerEntry() : field_0(0), field_4(0), field_8(0), field_50(nullptr) {
+            for (int i = 0; i < 7; i++) {
+                field_c.field_24[i] = 0;
+            }
+        }
         ~RootSamplerEntry() {
             if (field_50 != nullptr) {
                 field_50->vf3();

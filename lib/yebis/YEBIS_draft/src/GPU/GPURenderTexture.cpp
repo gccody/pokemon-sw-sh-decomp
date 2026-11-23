@@ -34,6 +34,11 @@ namespace PPFX {
 bool Unk_447010(s32 width, s32 height);
 }  // namespace PPFX
 
+// 0x710049ca70
+s32 Unk_49ca70(void* selfArg, void* colorArg, u32 level);
+// 0x710238d258: whether new render textures are cleared (ppfxRenderToTexture.cpp)
+extern u8 Unk_238d258;
+
 // 0x710049e3a0
 s32 Unk_49e3a0(u32 arg0, s32 arg1, s32 arg2, void* arg3, void* arg4, s32 arg5, void* arg6, void* arg7, f32 arg8);
 
@@ -73,6 +78,10 @@ extern void* Unk_24e53e0;
 extern s32 Unk_24e5408;
 extern IGPUDevice* Unk_24e5410;
 extern bool Unk_24e5420;
+// 0x71024e5418: the tiling setting of each set's targets, 0x71024e5421: whether
+// a texture always gets targets of its own
+extern s32 Unk_24e5418[2];
+extern u8 Unk_24e5421;
 // The tiling's state: 0x71024e53e8 whether BeginTiling was called, then its
 // arguments (0x71024e53ec, 0x71024e53f4, 0x71024e5404, 0x710238d248) and the
 // number of targets it found (0x71024e53f0)
@@ -214,7 +223,12 @@ s32 Unk_49ad30(PPFX::Unk_RenderTexture* texture, s32 width, s32 height, s32 x, s
     self->field_58 = height;
     self->field_5c = x;
     self->field_60 = y;
-    if (self->field_20 != nullptr) {
+    if (self->field_20 == nullptr) {
+        self->field_88 = 0.0f;
+        self->field_8c = 0.0f;
+        self->field_90 = 0.0f;
+        self->field_94 = 0.0f;
+    } else {
         if (Unk_24e5420 && (self->field_78 & 1)) {
             self->field_88 = 1.0f;
             self->field_8c = 1.0f;
@@ -224,11 +238,6 @@ s32 Unk_49ad30(PPFX::Unk_RenderTexture* texture, s32 width, s32 height, s32 x, s
         }
         self->field_90 = self->field_88 * static_cast<f32>(static_cast<u32>(self->field_9c + x));
         self->field_94 = self->field_8c * static_cast<f32>(static_cast<u32>(y + self->field_9c));
-    } else {
-        self->field_88 = 0.0f;
-        self->field_8c = 0.0f;
-        self->field_90 = 0.0f;
-        self->field_94 = 0.0f;
     }
     return result;
 }
@@ -267,6 +276,177 @@ s32 CRenderTexture::vf0(IGPUDevice* device) {
         return 0;
     result = Unk_49b230();
     return result < 0 ? result : 0;
+}
+
+// 0x710049b230
+// NON_MATCHING: same size; the original keeps &field_a8 in a register from
+// the filter calls to vf12 (rematerialised in each branch), computes the
+// texture creation's usage after its flags, and has the three flags computed
+// twice, once for field_1c == 0 (jump threaded); the rest is scheduling.
+s32 CRenderTexture::Unk_49b230() {
+#line 1072
+    field_68 = UNK_NEW_ARRAY(Unk_Viewport, Unk_FrameSlots());
+    s32 textureFormat = field_2c.field_c;
+    s32 format = field_2c.field_1c != 0 ? field_2c.field_1c : textureFormat;
+    field_7c = format;
+    field_9c = 0;
+    Unk_446e20(nullptr, nullptr, field_2c.field_4, field_2c.field_8, 1, &format, Unk_24e5418[0], field_2c.field_14, 0);
+    u32 width = field_2c.field_4 + field_9c * 2;
+    u32 height = field_2c.field_8 + field_9c * 2;
+    f32 widthLog = logf(static_cast<f32>(width)) / 0.6931472f;
+    f32 heightLog = logf(static_cast<f32>(height)) / 0.6931472f;
+    u32 widthLevels = static_cast<u32>(ceilf(widthLog));
+    u32 heightLevels = static_cast<u32>(ceilf(heightLog));
+    u32 flags = field_50;
+    if (widthLog != static_cast<f32>(widthLevels) || heightLog != static_cast<f32>(heightLevels)) {
+        if (field_2c.field_0 & 1) {
+            width = 1 << widthLevels;
+            height = 1 << heightLevels;
+        } else {
+            field_78 |= 2;
+        }
+    }
+    CRenderTexture* shared = Unk_FindShared();
+    if (shared != nullptr) {
+        field_a8 = shared->Unk_Root()->field_a8;
+        field_a8->vf0();
+    } else {
+        u32 usage = field_2c.field_20 ? 4 : 1;
+        if (!(field_2c.field_0 & 0x1400))
+            flags |= 0x100;
+        if (!(field_2c.field_0 & 0x400))
+            flags |= 0x200;
+        s32 result = field_20->vf60(width, height, field_2c.field_10, usage, textureFormat, 0, 0,
+                                    reinterpret_cast<IGPUInterface**>(&field_a8), flags);
+        if (result < 0) {
+            result = field_20->vf60(width, height, 1, usage, textureFormat, 0, 0,
+                                    reinterpret_cast<IGPUInterface**>(&field_a8), flags);
+            if (result < 0)
+                return result;
+        }
+    }
+    if (field_2c.field_0 & 0x10)
+        field_a8->vf15(8);
+    else if (field_2c.field_0 & 8)
+        field_a8->vf15(0);
+    else if (field_2c.field_0 & 4)
+        field_a8->vf15(4);
+    s32 result = field_a8->vf23(0, &field_b0);
+    if (result < 0)
+        return result;
+    field_98 = field_a8->vf12();
+#line 1480
+    field_c8 = UNK_NEW_ARRAY(Unk_49b230_Object*, field_98);
+#line 1481
+    field_80 = UNK_NEW_ARRAY(Unk_Level, field_98);
+    for (s32 set = 0; set < 2; set++) {
+#line 1485
+        field_d0[set] = UNK_NEW_ARRAY(Unk_49b230_Object*, field_98);
+#line 1486
+        field_e0[set] = UNK_NEW_ARRAY(Unk_49a890*, field_98);
+        for (u32 i = 0; i < field_98; i++) {
+            field_d0[set][i] = nullptr;
+            field_e0[set][i] = nullptr;
+        }
+    }
+    bool always = Unk_24e5421;
+    s32 msaa = field_2c.field_14;
+    bool separate = (field_2c.field_0 & 2) || msaa != 0;
+    bool otherFormat = field_2c.field_1c != 0 && field_2c.field_1c != field_2c.field_c;
+    bool second = otherFormat || always;
+    bool own = separate || second;
+    bool shareSecond = field_2c.field_14 == 0 && field_2c.field_18 == 0;
+    if (own) {
+        result = Unk_49c760(0, 0, width, height, format, field_2c.field_14, field_2c.field_18, Unk_24e5418[0],
+                            reinterpret_cast<IGPUInterface**>(&field_b8[0]));
+        if (result < 0)
+            return result;
+    } else {
+        result = field_a8->vf23(0, &field_b8[0]);
+        if (result < 0)
+            return result;
+    }
+    if (second) {
+        if (shareSecond) {
+            field_b8[1] = field_b8[0];
+            field_b8[1]->vf0();
+            if (field_e0[0][0] != nullptr) {
+#line 1563
+                field_e0[1][0] = UNK_NEW(Unk_49a890)();
+                *field_e0[1][0] = *field_e0[0][0];
+            }
+        } else {
+            result = Unk_49c760(1, 0, width, height, format, 0, 0, Unk_24e5418[1],
+                                reinterpret_cast<IGPUInterface**>(&field_b8[1]));
+            if (result < 0)
+                return result;
+        }
+    } else {
+        result = field_a8->vf23(0, &field_b8[1]);
+        if (result < 0)
+            return result;
+    }
+    for (u32 i = 0; i < field_98; i++) {
+        if (i == 0) {
+            field_c8[0] = field_b0;
+            field_c8[0]->vf0();
+        } else {
+            result = field_a8->vf23(i, &field_c8[i]);
+            if (result < 0)
+                return result;
+        }
+        Unk_49b230_Desc desc;
+        field_c8[i]->vf8(&desc);
+        Unk_Level level;
+        level.field_0 = 0;
+        level.field_8 = desc.field_8;
+        level.field_c = desc.field_c;
+        level.field_10 = 0.0f;
+        level.field_14 = 1.0f;
+        field_80[i] = level;
+        if (i == 0) {
+            field_d0[0][0] = field_b8[0];
+            field_d0[0][0]->vf0();
+            field_d0[1][0] = field_b8[1];
+            field_d0[1][0]->vf0();
+        } else {
+            if (own) {
+                result = Unk_49c760(0, i, desc.field_8, desc.field_c, format, field_2c.field_14, field_2c.field_18,
+                                    Unk_24e5418[0], reinterpret_cast<IGPUInterface**>(&field_d0[0][i]));
+                if (result < 0)
+                    return result;
+            } else {
+                result = field_a8->vf23(i, &field_d0[0][i]);
+                if (result < 0)
+                    return result;
+            }
+            if (second) {
+                if (shareSecond) {
+                    field_d0[1][i] = field_d0[0][i];
+                    field_d0[1][i]->vf0();
+                    if (field_e0[0][i] != nullptr)
+#line 1682
+                        field_e0[1][i] = UNK_NEW(Unk_49a890)(*field_e0[0][i]);
+                } else {
+                    result = Unk_49c760(1, i, desc.field_8, desc.field_c, format, 0, 0, Unk_24e5418[1],
+                                        reinterpret_cast<IGPUInterface**>(&field_d0[1][i]));
+                    if (result < 0)
+                        return result;
+                }
+            } else {
+                result = field_a8->vf23(i, &field_d0[1][i]);
+                if (result < 0)
+                    return result;
+            }
+        }
+    }
+    ::Unk_49ad30(reinterpret_cast<Unk_RenderTexture*>(this), 0, 0, 0, 0);
+    Unk_StoreViewport();
+    field_70 = 0.0f;
+    field_74 = 1.0f;
+    if (Unk_238d258)
+        ::Unk_49ca70(this, nullptr, 0xffffffff);
+    return 0;
 }
 
 // 0x710049bb30: the render texture of an existing texture
@@ -325,11 +505,11 @@ s32 CRenderTexture::vf6(IGPUDevice* device, Unk_49b230_Object* texture) {
         }
     }
     field_2c = Unk_49ab20_Desc();
+    field_50 = 0;
     u32 width = texture->field_4c;
     field_2c.field_4 = width;
     u32 height = texture->field_50;
     field_2c.field_8 = height;
-    field_50 = 0;
     field_2c.field_c = texture->field_44;
     field_2c.field_10 = field_98;
     field_9c = 0;
@@ -340,11 +520,11 @@ s32 CRenderTexture::vf6(IGPUDevice* device, Unk_49b230_Object* texture) {
         field_78 |= 2;
     for (u32 i = 0; i < field_98; i++) {
         Unk_49b230_Desc desc;
-        field_c8[i]->vf8(&desc);
         Unk_Level level;
         level.field_0 = 0;
         level.field_8 = desc.field_8;
         level.field_c = desc.field_c;
+        field_c8[i]->vf8(&desc);
         level.field_10 = 0.0f;
         level.field_14 = 1.0f;
         field_80[i] = level;

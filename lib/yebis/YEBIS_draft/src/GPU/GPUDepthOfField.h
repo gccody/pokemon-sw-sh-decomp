@@ -11,6 +11,11 @@ namespace PPFX {
 // 0x71004385e0 (GPUPostEffect.cpp's TU; placeholder signature, from its callers)
 bool Unk_4385e0(s32 format);
 
+class IGPUBuffer;
+class IGPUTexture;
+
+struct Unk_462090_Params;
+
 class CDepthOfField : public CGPUResourceManage {
 public:
     // a level's render textures (0x108 bytes)
@@ -33,7 +38,8 @@ public:
         f32 field_30;
         u8 _34[0x38 - 0x34];
         CRenderTexture* field_38;
-        u8 _40[0x48 - 0x40];
+        bool field_40;  // field_38 isn't the pool's
+        u8 _41[0x48 - 0x41];
         CRenderTexture* field_48[3];
         s32 field_60;
         u8 _64[0x68 - 0x64];
@@ -129,16 +135,34 @@ public:
 
     // what field_420 and field_428 hold (0x80 bytes)
     struct Unk_Pass {
-        u32 field_0;
-        u8 _4[0x58 - 0x4];
-        Unk_Float4 field_58;
-        u8 _68[0x78 - 0x68];
-        f32 field_78;
-        f32 field_7c;
+        // a viewport of its texture (0x18 bytes)
+        struct Unk_Viewport {
+            u32 field_0;  // x, y, width, height
+            u32 field_4;
+            u32 field_8;
+            u32 field_c;
+            Unk_Float2 field_10;  // the depth range
+        };
+
+        u32 field_0;  // the size
+        u32 field_4;
+        Unk_Float2 field_8;   // the first viewport's scale and offset
+        Unk_Float2 field_10;
+        Unk_Float2 field_18;  // the second's
+        Unk_Float2 field_20;
+        Unk_Viewport field_28[2];
+        Unk_Float2 field_58;  // the viewports' size and position in fractions of the size
+        Unk_Float2 field_60;
+        Unk_Float2 field_68;
+        Unk_Float2 field_70;
+        Unk_Float field_78;
+        Unk_Float field_7c;
     };
 
     explicit CDepthOfField(const char* name);  // 0x71004a7630
     s32 Unk_4a7760(const char* name);          // 0x71004a7760: names it and resets the members
+    // the members as the constructor leaves them (inline in Unk_4a7760 and vf3)
+    inline void Unk_ResetMembers();
 
     s32 vf0(IGPUDevice* device) override;  // 0x71004aa810
     s32 vf1() override;                    // 0x71004ac220
@@ -150,15 +174,22 @@ public:
     static s32 Unk_4a7390(void* source, void* desc);
     // 0x71004aa0d0 (its log line names it)
     s32 Initialize(CRenderTexture* source, const Unk_Desc* desc);
-    void Unk_4a7f60();  // 0x71004a7f60 (not written yet)
+    s32 Unk_4a7f60();  // 0x71004a7f60: the description's defaults, the passes, the levels and their textures
     s32 Unk_4a79e0();  // 0x71004a79e0: makes the levels
-    s32 Unk_4aa860();  // 0x71004aa860: makes the levels' textures
+    s32 CreateDeviceResources();  // 0x71004aa860 (its log lines name it): the device objects
+    // 0x71004ad3d0 (its log lines name it): a scatter bokeh texture and its
+    // minimum texture from an image (placeholder parameter names)
+    s32 CreateScatterBokehOpticsTexture(u32 width, u32 height, const void* image, IGPUTexture** outTexture,
+                                        IGPUTexture** outMinTexture, Unk_Float4* outColor, Unk_Float* outRed,
+                                        f32* outPosition, f32 gamma, f32 hue, f32 saturation, f32 exponent);
     s32 Unk_4aa290(void* arg);  // 0x71004aa290: the last result of 0x710049c8d0
     // 0x71004b6fc0 (its log lines name it)
     s32 ApplyDepthOfField(CRenderTexture* source, void* arg2, CRenderTexture* target, bool arg4);
     s32 Unk_4a7dc0();                        // 0x71004a7dc0: the levels' depth ranges
-    void Unk_4b4ff0(CRenderTexture* source);  // 0x71004b4ff0 (not written yet)
-    // 0x71004b6530 (not written yet): ApplyDepthOfField_Composite, the log line
+    // 0x71004b4ff0: the numbers of levels with a near and a far blur, and the
+    // levels' and passes' sources scaled down from `source`
+    s32 Unk_4b4ff0(CRenderTexture* source);
+    // 0x71004b6530: ApplyDepthOfField_Composite, the log line
     // of its caller says
     s32 Unk_4b6530(CRenderTexture* source, void* arg2, CRenderTexture* target);
 
@@ -214,9 +245,9 @@ public:
     // textures; placeholder parameter names)
     s32 Unk_4b19a0(s32 level, bool first, CRenderTexture* source, CRenderTexture* target, CRenderTexture** list,
                    CRenderTexture* extra, s32 mode);
-    // 0x71004b1100 (not written yet): the taps' offsets
+    // 0x71004b1100: the taps' offsets
     s32 Unk_4b1100(bool near, bool far, s32 count, f32 angle);
-    // 0x71004b35f0, 0x71004b48d0, 0x71004b4540 (not written yet): the passes of
+    // 0x71004b35f0, 0x71004b48d0, 0x71004b4540: the passes of
     // the second kind; 0x71004b29b0, 0x71004b3280: a level's, by its kind
     s32 Unk_4b35f0(f32 scale, CRenderTexture* source, CRenderTexture* target, void* arg3, void* arg4, s32 arg5,
                    s32 arg6, void* arg7, void* arg8, Unk_Pass* arg9, Unk_Pass* arg10, bool first, bool last);
@@ -241,7 +272,8 @@ public:
     u32 field_154;  // flags
     u32 field_158;  // the source's width
     u32 field_15c;  // and height
-    u64 field_160;
+    s32 field_160;  // the source's format
+    s32 field_164;  // and the description's
     f32 field_168;  // the source's width over the description's
     s32 field_16c;
     s32 field_170;
@@ -281,17 +313,19 @@ public:
     s32 field_208;  // the number of levels drawn
     s32 field_20c;  // of them, with a near blur
     s32 field_210;  // and with a far blur
-    u8 _214[0x21c - 0x214];
+    s32 field_214;  // field_20c and field_210 as the flags and limits leave them
+    s32 field_218;
     s32 field_21c;
     s32 field_220;
     s32 field_224;
     CRenderTexture* field_228;  // the source
-    u8 _230[0x238 - 0x230];
+    bool field_230;
+    u8 _231[0x238 - 0x231];
     Unk_GPUTexture* field_238;
     bool field_240;
     u8 _241[0x248 - 0x241];
     CRenderTexture* field_248;
-    u8 _250;
+    bool field_250;
     bool field_251;
     u8 _252[0x258 - 0x252];
     u64 field_258;
@@ -300,7 +334,7 @@ public:
     u64 field_270;
     f32 field_278;
     f32 field_27c;
-    u64 field_280[5];
+    IGPUInterface* field_280[5];
     s32 field_2a8;
     s32 field_2ac;
     f32 field_2b0;
@@ -308,12 +342,22 @@ public:
     f32 field_2b8;
     f32 field_2bc;
     s32 field_2c0;
-    f32* field_2c8[5];  // tables, by field_2ac
+    // field_2c0 interfaces and textures, then tables (by field_2ac)
+    IGPUInterface** field_2c8;
+    Unk_GPUTexture** field_2d0;
+    Unk_Float4* field_2d8;
+    f32* field_2e0;
+    f32* field_2e8;
     s32 field_2f0;
-    u64 field_2f8[12];
-    f32* field_358[8];
+    // four sets of tables (by field_2a8): interfaces (field_2f0 of each),
+    // floats, the blur scales, the apertures' blades
+    IGPUInterface** field_2f8[4];
+    IGPUInterface** field_318[4];
+    f32* field_338[4];
+    f32* field_358[4];
+    Unk_462090_Params* field_378[4];
     f32* field_398;
-    u64 field_3a0;
+    IGPUInterface* field_3a0;  // the eclipse texture
     bool field_3a8;
     u8 _3a9[0x3ac - 0x3a9];
     f32 field_3ac;
@@ -341,8 +385,8 @@ public:
     s32 field_3f8;  // the number of passes of the second kind
     s32* field_400;
     s32* field_408;
-    void** field_410;
-    void** field_418;
+    IGPUBuffer** field_410;  // the passes' vertex buffers
+    IGPUBuffer** field_418;  // and index buffers
     Unk_Pass* field_420;
     Unk_Pass* field_428;
     CRenderTexture** field_430;
@@ -356,7 +400,7 @@ public:
     CRenderTexture** field_470;
     CRenderTexture** field_478;
     CRenderTexture** field_480;
-    void** field_488;
+    CRenderTexture** field_488;
     CRenderTexture** field_490;
     s32 field_498;
     CRenderTexturePool* field_4a0;
@@ -365,6 +409,8 @@ public:
 PKMN_SIZE_ASSERT(CDepthOfField::Unk_Level, 0x108);
 PKMN_SIZE_ASSERT(CDepthOfField::Unk_Desc, 0x94);
 PKMN_SIZE_ASSERT(CDepthOfField::Unk_Pass, 0x80);
+PKMN_SIZE_ASSERT(CDepthOfField::Unk_Pass::Unk_Viewport, 0x18);
+PKMN_OFFSET_ASSERT(CDepthOfField::Unk_Pass, field_58, 0x58);
 PKMN_OFFSET_ASSERT(CDepthOfField, field_2c, 0x2c);
 PKMN_OFFSET_ASSERT(CDepthOfField, field_c0, 0xc0);
 PKMN_OFFSET_ASSERT(CDepthOfField, field_16c, 0x16c);
@@ -393,6 +439,11 @@ PKMN_OFFSET_ASSERT(CDepthOfField, field_280, 0x280);
 PKMN_OFFSET_ASSERT(CDepthOfField, field_2a8, 0x2a8);
 PKMN_OFFSET_ASSERT(CDepthOfField, field_2c8, 0x2c8);
 PKMN_OFFSET_ASSERT(CDepthOfField, field_358, 0x358);
+PKMN_OFFSET_ASSERT(CDepthOfField, field_2d0, 0x2d0);
+PKMN_OFFSET_ASSERT(CDepthOfField, field_2e8, 0x2e8);
+PKMN_OFFSET_ASSERT(CDepthOfField, field_318, 0x318);
+PKMN_OFFSET_ASSERT(CDepthOfField, field_378, 0x378);
+PKMN_OFFSET_ASSERT(CDepthOfField, field_398, 0x398);
 PKMN_OFFSET_ASSERT(CDepthOfField, field_3a0, 0x3a0);
 PKMN_OFFSET_ASSERT(CDepthOfField, field_440, 0x440);
 PKMN_OFFSET_ASSERT(CDepthOfField, field_478, 0x478);

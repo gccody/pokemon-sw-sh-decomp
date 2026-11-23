@@ -422,7 +422,7 @@ public:
     virtual void vf35();
     virtual void vf36();
     virtual void vf37();
-    virtual void vf38();
+    virtual void vf38(s32 arg);  // (0x7100440d40 in the base, which returns 1)
     virtual s32 vf39();  // 0x7100440d60: forgets the blend state that is set
     virtual void vf40(s32 arg);
     virtual s32 vf41(s32 state, bool cached);  // 0x7100440d90: applies a blend state (-1: the one vf42 set)

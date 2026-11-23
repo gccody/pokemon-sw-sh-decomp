@@ -73,7 +73,12 @@ void Unk_56de40(ISiAllocator* allocator, T*& p, const char* file, long line) {
     }
     if (!Unk_PodTraits<T>::value) {
         size_t count = allocator->vf10(p);
-        for (size_t i = 0; i < count; i++) {
+        // the counter declared before the loop: a for-init declaration's
+        // cleanup block puts the code after the loop ahead of its body,
+        // which decides where a nested loop's preheader goes
+        // (SiPool<SiGfxFreeTypeGlyph>::Unk_4be7d0)
+        size_t i;
+        for (i = 0; i < count; i++) {
             p[i].~T();
         }
     }

@@ -252,6 +252,13 @@ static inline bool Unk_MatchRest(const char* a, const char* b, bool caseSensitiv
 // them, among much else). Tried: the helper's tests in other orders, both
 // characters read first, a result variable, index loops, `&buffer[i] + 1`,
 // the helper not static or returning int, the match nested, `return i`.
+// What decides it: the inner loop's empty preheader falls through to the
+// loop here, so Early Tail Duplication keeps it; in the original it doesn't
+// (the copies land in the test's block, as when a block comes between the
+// two in the IR's order: see SiPool<SiGfxFreeTypeGlyph>::Unk_4be7d0, the
+// other way round). Also tried: the increments before the compare, the loop
+// written with for-init pointers or an index, a case-sensitive helper of its
+// own (for/while forms), two outer loops, the case tests as ternaries.
 s64 Unk_4c99a0(const SiSDK3::SiString<char>* self, const char* sub, size_t start, bool caseSensitive) {
     s64 result = -1;
     size_t length = self->field_10;

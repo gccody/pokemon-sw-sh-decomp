@@ -26,56 +26,57 @@ SiIONXMemoryMappedFile::~SiIONXMemoryMappedFile() {
 }
 
 // 0x710058bab0
-// NON_MATCHING: the original still tests the mode's bit 3 after the read
-// (`cset w0, eq; b.ne ret; tbz w19, #3, ret; mov w0, #1`), returning the
-// read's comparison where the bit isn't set; here clang folds the two results
-// into one and drops the test (four bytes less). With an int result instead
-// of bool the test stays (and only its order with the read's differs), but
-// SiIOBinaryArchive::vf5 tests this function's result as a bool. What the
-// code shows otherwise: the mode's flags are tested as (mode & flag) == flag,
-// the mode string has 16 bytes, and each character is stored before the
-// length grows. Tried: ~20 forms of the tail (int/size_t results, nested and
-// joined tests, the text flag in a local before or after the read and returned:
-// that one gets the mode tests' layout, but a select at the end).
+// NON_MATCHING: the tail's two tests are in the other order: the original
+// branches on the read's comparison first (`cset w0, eq; b.ne ret; tbz w19,
+// #3, ret; mov w0, #1`), this tests the mode's bit 3 first. With the mode
+// string's scope ending before `return true` the test stays at all (without
+// it clang folds the two results into one; 38 instructions off). What the code
+// shows otherwise: the mode's flags are tested as (mode & flag) == flag, the
+// mode string has 16 bytes, and each character is stored before the length
+// grows. Tried: the tests split, nested, joined either way, the read as
+// int/u8/size_t, the text flag in a local; `!read || (mode & 8) != 8` gives the
+// tail's order but moves the mode tests' blocks.
 bool SiIONXMemoryMappedFile::vf5(const char* path, u32 mode) {
     vf6();
-    char modeString[16];
-    u32 length = 0;
-    if ((mode & 8) == 8) {
-        modeString[length] = 'r';
-        length++;
-    }
-    if ((mode & 1) == 1) {
-        modeString[length] = 'b';
-        length++;
-    }
-    if ((mode & 2) == 2) {
-        modeString[length] = 't';
-        length++;
-    }
-    modeString[length] = 0;
-    field_18 = Unk_582d60(path, modeString);
-    if (field_18 == nullptr) {
-        return false;
-    }
-    Unk_StringAssign(&field_28, path);
-    field_58 = Unk_4e4400(&field_28, true);
-    s64 position = ftell(field_18);
-    fseek(field_18, 0, SEEK_END);
-    s64 size = ftell(field_18);
-    fseek(field_18, position, SEEK_SET);
-    field_20 = size;
-    if (size != 0) {
-#line 144
-        field_88 = UNK_ALLOC(Unk_Allocator(), size);
-        if (field_88 == nullptr) {
-            field_20 = 0;
-            Unk_582d70(field_18);
+    {
+        char modeString[16];
+        u32 length = 0;
+        if ((mode & 8) == 8) {
+            modeString[length] = 'r';
+            length++;
+        }
+        if ((mode & 1) == 1) {
+            modeString[length] = 'b';
+            length++;
+        }
+        if ((mode & 2) == 2) {
+            modeString[length] = 't';
+            length++;
+        }
+        modeString[length] = 0;
+        field_18 = Unk_582d60(path, modeString);
+        if (field_18 == nullptr) {
             return false;
         }
-        bool read = fread(field_88, field_20, 1, field_18) == 1;
-        if (!(read && (mode & 8) == 8)) {
-            return read;
+        Unk_StringAssign(&field_28, path);
+        field_58 = Unk_4e4400(&field_28, true);
+        s64 position = ftell(field_18);
+        fseek(field_18, 0, SEEK_END);
+        s64 size = ftell(field_18);
+        fseek(field_18, position, SEEK_SET);
+        field_20 = size;
+        if (size != 0) {
+    #line 144
+            field_88 = UNK_ALLOC(Unk_Allocator(), size);
+            if (field_88 == nullptr) {
+                field_20 = 0;
+                Unk_582d70(field_18);
+                return false;
+            }
+            bool read = fread(field_88, field_20, 1, field_18) == 1;
+            if (!(read && (mode & 8) == 8)) {
+                return read;
+            }
         }
     }
     return true;

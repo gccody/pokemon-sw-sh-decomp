@@ -402,9 +402,9 @@ s32 CTextureLuminance::Unk_4b8450(bool flag) {
     if (field_74 >= 0.0f) {
         return 0;
     }
+    f32 r = field_90[2] * (1.0f / 255.0f);
     f32 b = field_90[0] * (1.0f / 255.0f);
     f32 a = field_90[3] * (1.0f / 255.0f);
-    f32 r = field_90[2] * (1.0f / 255.0f);
     f32 g = field_90[1] * (1.0f / 255.0f);
     field_6c = b;
     field_70 = a;
@@ -521,18 +521,21 @@ f32 CTextureLuminanceManage::Unk_4b8ae0(f32 a, f32 b, f32 c) {
 inline s32 CTextureLuminance::Unk_Poll() {
     if (field_74 >= 0.0f)
         return 0;
-    s32 mode = field_60;
-    if (mode == 3 || mode == 4) {
+    switch (field_60) {
+    case 3:
+    case 4:
         for (s32 i = field_3c - 1; i < field_3c; i++) {
             s32 result = reinterpret_cast<Unk_4b7a30_Texture*>((&field_40)[i])->vf11(false);
             if (result != 0)
                 return result;
         }
-    } else if (mode == 5) {
-        if (field_94 < Unk_FrameSlots() * field_98) {
+        break;
+    case 5:
+        if (field_94 < field_98 * Unk_FrameSlots()) {
             field_94++;
             return 1;
         }
+        break;
     }
     if (reinterpret_cast<Unk_4b7f40_Device*>(field_20)->field_28 % Unk_FrameSlots() != field_9c)
         return 1;
@@ -556,10 +559,10 @@ static inline CTextureLuminanceManage::Unk_Value Unk_LerpValue(const CTextureLum
 }
 
 // 0x71004b8b50
-// NON_MATCHING: scheduling and registers: the mode test is `cmp #1; b.hi` here
-// (`cmp #2; b.hs`), the ratio's address isn't kept from each branch, the
-// second kind test's load comes later and the history indices' sums are
-// computed in another order.
+// NON_MATCHING: scheduling and registers: the ratio's address isn't
+// rematerialised in each branch, &field_360[i1] isn't computed before the
+// kind test (the original addresses the history as base + index) and the
+// history indices' sums are computed in another order.
 s32 CTextureLuminanceManage::Unk_4b8b50() {
     field_58++;
     s32 result = 0;
@@ -581,11 +584,12 @@ s32 CTextureLuminanceManage::Unk_4b8b50() {
                 *ratio = Unk_4b8ae0(field_1c8[index], field_42c[index], field_3e8[index]);
             }
             s32 previous = (field_50 + 1) % 17;
+            u32 mode = field_2c.field_0;
             f32 t = field_4fc;
             field_360[index] = Unk_Lerp(field_360[previous], field_1c8[index], t);
             f32 a = field_3a4[previous] + 1.17549435e-38f;
             f32 value;
-            if (field_2c.field_0 == 1) {
+            if (mode == 1) {
                 f32 b = *ratio + 1.17549435e-38f;
                 value = 1.0f / Unk_Lerp(1.0f / a, 1.0f / b, t);
             } else {

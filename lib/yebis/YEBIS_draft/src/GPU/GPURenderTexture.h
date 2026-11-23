@@ -142,7 +142,7 @@ struct Unk_49b230_Object {
     virtual u32 vf12();  // a texture's number of mip levels
     virtual void vf13();
     virtual void vf14();
-    virtual void vf15();
+    virtual s32 vf15(u32 state);  // the sampler state's bits
     virtual void vf16();
     virtual void vf17();
     virtual void vf18();
@@ -154,7 +154,9 @@ struct Unk_49b230_Object {
 
     u8 _8[0x24 - 0x8];
     bool field_24;  // whether the texture is a render target too
-    u8 _25[0x44 - 0x25];
+    u8 _25[0x28 - 0x25];
+    u32 field_28;  // a surface's flags (bit 28: tiled)
+    u8 _2c[0x44 - 0x2c];
     s32 field_44;  // its format
     u8 _48[0x4c - 0x48];
     u32 field_4c;  // its size (as a depth target's, compared)
@@ -239,6 +241,21 @@ public:
     // arguments are its callers', it reads none of them)
     static s32 BeginTiling(s32 mode, const Unk_Tile* tile, s32 arg2, f32 arg3);
     static s32 EndTiling(void* arg0, s32 arg1, s32* arg2, bool* arg3, f32 arg4);
+    // the texture whose device objects this one shares (inline: field_120's chain)
+    CRenderTexture* Unk_Root() {
+        CRenderTexture* texture = this;
+        while (texture->field_120 != nullptr)
+            texture = texture->field_120;
+        return texture;
+    }
+    // the first texture of field_108 whose root has a texture (inline)
+    CRenderTexture* Unk_FindShared() {
+        for (CRenderTexture* texture : field_108) {
+            if (texture->Unk_Root()->field_a8 != nullptr)
+                return texture;
+        }
+        return nullptr;
+    }
     // the tiles of a slot of the current set (field_a0)
     Unk_49a890* Unk_Tiles(u32 slot) { return field_e0[field_a0][slot]; }
 

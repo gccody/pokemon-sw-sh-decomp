@@ -392,17 +392,10 @@ bool SiDirectMap<K, V, Compare>::Unk_Insert(const K& key, V value) {
     return true;
 }
 
-// NON_MATCHING: registers: in each block's array delete the original tests
-// the count from the allocator (`cbz x0`) before it copies the count and
-// the elements into the loop's registers; here the copies come first (the
-// same code matches in SiArray<SiGfxFreeTypeGlyph>'s destructor). The block's
-// null test is explicit: written as SI_DELETE's alone, clang drops it.
-// Also tried: the block loop's counter as s32, s64, size_t or u32, the
-// test nested or as `continue`, the block not in a local, the array emptied
-// through Unk_4e3050 or Unk_FreeData, field_c zeroed first.
 // 0x71005000e0 (SiGfxFreeTypeGlyph; SiCore_Pool.h declares it): frees every
 // block but the first, and empties the lists. Its delete's __FILE__ is the
-// header's (the last function of this file for that #line).
+// header's (the last function of this file for that #line). The block's null
+// test is explicit: written as SI_DELETE's alone, clang drops it.
 template <class T, int ALIGN>
 void SiPool<T, ALIGN>::Unk_4be7d0() {
     m_usedList.RemoveAll();

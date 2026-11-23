@@ -115,12 +115,9 @@ void SiGfxFreeTypeFaceCache::Unk_531710() {
 }
 
 // 0x7100531420
-// NON_MATCHING: one branch: the original goes to the shared `mov w0, wzr`
-// when no node is found (`cbz x0`); here that edge's copy is dropped as
-// redundant and the branch goes straight to the return (also with the root's
-// test and the call in one expression, a null-initialised node set under the
-// root's test, a ternary, and the rest of the function under `node !=
-// nullptr`).
+// The rectangle's scope ends before `return true`: the two failed lookups
+// then leave through one cleanup block, which keeps the `mov w0, wzr` of the
+// no-node branch (`cbz x0`).
 bool SiGfxFreeTypeFaceCache::Unk_531420(SiGfxFreeTypeGlyph* glyph) {
     if (field_30 == nullptr) {
         return false;
@@ -150,46 +147,48 @@ bool SiGfxFreeTypeFaceCache::Unk_531420(SiGfxFreeTypeGlyph* glyph) {
     }
     s32 width = slot->field_98.field_4 + field_308;
     s32 height = slot->field_98.field_0 + field_308;
-    Unk_FaceCacheRect rect = {{0, width}, {0, height}};
-    if (field_1c0.field_138 == nullptr) {
-        return false;
-    }
-    SiGfxQuadTree<CacheData>::QuadNode* node = field_1c0.Unk_532ca0(field_1c0.field_138, &rect);
-    if (node == nullptr) {
-        return false;
-    }
-    node->field_54 = true;
-    node->field_50 = static_cast<s32>(glyph->field_10);
-    glyph->field_58 = static_cast<s32>(slot->field_50) >> 6;
-    glyph->field_5c = static_cast<s32>(slot->field_68) >> 6;
-    glyph->field_60 = static_cast<s32>(slot->field_40) >> 6;
-    glyph->field_64 = static_cast<s32>(slot->field_48) >> 6;
-    glyph->field_68 = slot->field_98.field_4;
-    glyph->field_6c = slot->field_98.field_0;
-    f32 textureWidth = static_cast<f32>(field_30->vf19()->field_14);
-    f32 textureHeight = static_cast<f32>(field_30->vf19()->field_18);
-    glyph->field_70 = node->field_40.field_0;
-    glyph->field_74 = node->field_48.field_0;
-    glyph->field_78 = node->field_40.field_4 - node->field_40.field_0;
-    glyph->field_7c = node->field_48.field_4 - node->field_48.field_0;
-    glyph->field_90 = node->field_40.field_4 - node->field_40.field_0 - field_308;
-    glyph->field_94 = node->field_48.field_4 - node->field_48.field_0 - field_308;
-    glyph->field_80 = static_cast<f32>(node->field_40.field_0) / textureWidth;
-    glyph->field_84 = static_cast<f32>(node->field_48.field_0) / textureHeight;
-    glyph->field_88 = static_cast<f32>(glyph->field_90) / textureWidth;
-    glyph->field_8c = static_cast<f32>(glyph->field_94) / textureHeight;
-    vf8(glyph, &slot->field_98, &field_40);
-    if (node->field_40.field_0 < field_30c.field_0) {
-        field_30c.field_0 = node->field_40.field_0;
-    }
-    if (node->field_48.field_0 < field_314.field_0) {
-        field_314.field_0 = node->field_48.field_0;
-    }
-    if (node->field_40.field_4 > field_30c.field_4) {
-        field_30c.field_4 = node->field_40.field_4;
-    }
-    if (node->field_48.field_4 > field_314.field_4) {
-        field_314.field_4 = node->field_48.field_4;
+    {
+        Unk_FaceCacheRect rect = {{0, width}, {0, height}};
+        if (field_1c0.field_138 == nullptr) {
+            return false;
+        }
+        SiGfxQuadTree<CacheData>::QuadNode* node = field_1c0.Unk_532ca0(field_1c0.field_138, &rect);
+        if (node == nullptr) {
+            return false;
+        }
+        node->field_54 = true;
+        node->field_50 = static_cast<s32>(glyph->field_10);
+        glyph->field_58 = static_cast<s32>(slot->field_50) >> 6;
+        glyph->field_5c = static_cast<s32>(slot->field_68) >> 6;
+        glyph->field_60 = static_cast<s32>(slot->field_40) >> 6;
+        glyph->field_64 = static_cast<s32>(slot->field_48) >> 6;
+        glyph->field_68 = slot->field_98.field_4;
+        glyph->field_6c = slot->field_98.field_0;
+        f32 textureWidth = static_cast<f32>(field_30->vf19()->field_14);
+        f32 textureHeight = static_cast<f32>(field_30->vf19()->field_18);
+        glyph->field_70 = node->field_40.field_0;
+        glyph->field_74 = node->field_48.field_0;
+        glyph->field_78 = node->field_40.field_4 - node->field_40.field_0;
+        glyph->field_7c = node->field_48.field_4 - node->field_48.field_0;
+        glyph->field_90 = node->field_40.field_4 - node->field_40.field_0 - field_308;
+        glyph->field_94 = node->field_48.field_4 - node->field_48.field_0 - field_308;
+        glyph->field_80 = static_cast<f32>(node->field_40.field_0) / textureWidth;
+        glyph->field_84 = static_cast<f32>(node->field_48.field_0) / textureHeight;
+        glyph->field_88 = static_cast<f32>(glyph->field_90) / textureWidth;
+        glyph->field_8c = static_cast<f32>(glyph->field_94) / textureHeight;
+        vf8(glyph, &slot->field_98, &field_40);
+        if (node->field_40.field_0 < field_30c.field_0) {
+            field_30c.field_0 = node->field_40.field_0;
+        }
+        if (node->field_48.field_0 < field_314.field_0) {
+            field_314.field_0 = node->field_48.field_0;
+        }
+        if (node->field_40.field_4 > field_30c.field_4) {
+            field_30c.field_4 = node->field_40.field_4;
+        }
+        if (node->field_48.field_4 > field_314.field_4) {
+            field_314.field_4 = node->field_48.field_4;
+        }
     }
     return true;
 }
