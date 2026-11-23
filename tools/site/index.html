@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sword &amp; Shield Decomp Progress</title>
+<meta name="description" content="Progress of the Pokémon Sword and Shield matching decompilation: per game, per library and subsystem, per function, and over time.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232da44e'/%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' stroke='white' stroke-width='2' fill='none'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-row">
+    <a class="brand" href="#/">Sword &amp; Shield Decomp <span class="brand-sub">progress</span></a>
+    <nav class="tabs" id="tabs">
+      <a href="#/" data-route="overview">Overview</a>
+      <a href="#/modules" data-route="modules">Modules</a>
+      <a href="#/functions" data-route="functions">Functions</a>
+      <a href="#/history" data-route="history">History</a>
+    </nav>
+    <div class="game-switch" role="group" aria-label="Game">
+      <button type="button" data-game="sword">Sword</button>
+      <button type="button" data-game="shield">Shield</button>
+    </div>
+  </div>
+</header>
+<main class="wrap" id="app"><p class="muted loading">Loading…</p></main>
+<footer class="wrap foot" id="foot"></footer>
+<div class="tooltip" id="tooltip" hidden></div>
+<script src="site.js"></script>
+</body>
+</html>

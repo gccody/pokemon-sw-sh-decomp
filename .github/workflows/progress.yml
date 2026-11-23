@@ -4,21 +4,20 @@ name: Progress
 # (no game files needed) and publishes them to the `progress` branch. The
 # README links to the files there, so they're always current and nobody has to
 # commit generated images or resolve conflicts in them.
+#
+# It also builds the progress website (tools/progress_site.py: per module, per
+# function and over time, from the git history of data/functions.csv) and
+# deploys it to GitHub Pages. Pages must be set to deploy from GitHub Actions
+# (Settings -> Pages -> Source).
 on:
   push:
     branches: [master]
-    paths:
-      - data/functions.csv
-      - data/areas.csv
-      - tools/common.py
-      - tools/versions.json  # read by common.py at import
-      - tools/progress.py
-      - tools/progress_svg.py
-      - .github/workflows/progress.yml
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: write  # the progress branch
+  pages: write     # deploy-pages
+  id-token: write  # deploy-pages
 
 concurrency:
   group: progress
@@ -26,10 +25,15 @@ concurrency:
 
 jobs:
   publish:
-    name: Publish progress images
+    name: Publish progress images and site
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # the site's history is every commit of data/functions.csv
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -48,3 +52,14 @@ jobs:
               -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
               commit -q -m "Progress for ${GITHUB_SHA::12}"
           git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" progress
+      # c++filt (binutils, on the runner) demangles the names it shows.
+      - name: Generate the site
+        run: |
+          python tools/progress_site.py site
+          cp out/*.svg out/progress.json site/
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v5
