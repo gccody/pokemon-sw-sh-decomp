@@ -1153,43 +1153,44 @@ ISiGfxShaderEffectPackage::ShaderEffectData* SiGfxShaderEffectPackage::vf20(s32 
 }
 
 // 0x710056c880
-// NON_MATCHING: the original returns through one block (the misses share
-// `mov x8, xzr`) and tests the count against 3 before its search, a loop
-// with the low and high bounds in w12/w10; here the returns are duplicated
-// and the bound is computed as high - 1 (tried: the count as s32 first; the
-// count's test forms, continue/else-if loops, the tail and the whole function
-// with one result variable, the search as an inline template: the original
-// has no select at all).
+// NON_MATCHING: block placement copies the search loop's latch (`sub ; cmp ;
+// mov ; b.lt`) into the path that sets high (232 bytes for 216); the original
+// branches to its one latch. What the code shows otherwise: the misses fall
+// through to one `return nullptr` (its `mov x8, xzr` shared by the empty
+// array, the one entry's miss and the search's), the data pointer is read
+// before the count's tests, and high is `(s32)count - 1` (nsw: the loop's
+// guard is `count < 3`). Tried for the latch: the loop as do-while, for(;;)
+// with a break, `continue`s, the comparisons in other orders or with a key
+// local, the search as an inline helper.
 ISiGfxShaderEffectPackage::ShaderEffectData* SiGfxShaderEffectPackage::vf21(const char* name) {
     u32 hash = Unk_4c34a0(name);
     size_t count = field_190.m_itemCount;
-    if (count == 0) {
-        return nullptr;
-    }
     ISiGfxShaderEffectPackage::ShaderEffectData** data = field_190.m_pData;
-    if (count == 1) {
-        if (data[0] == nullptr || data[0]->field_38 == hash) {
-            return data[0];
-        }
-        return nullptr;
-    }
-    s32 low = 0;
-    s32 high = count - 1;
-    while (low < high - 1) {
-        s32 middle = (low + high) >> 1;
-        if (hash < data[middle]->field_38) {
-            high = middle;
-        } else if (hash > data[middle]->field_38) {
-            low = middle;
+    if (count != 0) {
+        if (count == 1) {
+            if (data[0] == nullptr || data[0]->field_38 == hash) {
+                return data[0];
+            }
         } else {
-            return data[middle];
+            s32 high = static_cast<s32>(count) - 1;
+            s32 low = 0;
+            while (low < high - 1) {
+                s32 middle = (low + high) >> 1;
+                if (hash < data[middle]->field_38) {
+                    high = middle;
+                } else if (hash > data[middle]->field_38) {
+                    low = middle;
+                } else {
+                    return data[middle];
+                }
+            }
+            if (hash == data[low]->field_38) {
+                return data[low];
+            }
+            if (hash == data[high]->field_38) {
+                return data[high];
+            }
         }
-    }
-    if (hash == data[low]->field_38) {
-        return data[low];
-    }
-    if (hash == data[high]->field_38) {
-        return data[high];
     }
     return nullptr;
 }

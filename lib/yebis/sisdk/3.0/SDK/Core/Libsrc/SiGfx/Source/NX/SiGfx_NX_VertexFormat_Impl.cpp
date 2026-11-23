@@ -58,21 +58,13 @@ u32 SiGfxNXVertexFormat::vf37() {
     return field_60;
 }
 
-// NON_MATCHING: the elements' loop is the original's, but not how the two
-// tables are filled before it. The original stores fourteen of field_400's
-// sixteen values as seven 64-bit constants, then field_440's zero and
-// field_6c8's zeroes in ascending order, and field_400's last two values
-// from a register last; this has eight 64-bit constants and the zeroes
-// descending (320 bytes for 324).
 // 0x7100564cd0
 void SiGfxNXVertexFormat::Unk_564cd0() {
-    for (s32 i = 0; i < 16; i++) {
-        field_400[i] = 0x7fffffff;
-    }
+    field_440 = 0;
     for (s32 i = 0; i < 16; i++) {
         field_6c8[i] = 0;
+        field_400[i] = 0x7fffffff;
     }
-    field_440 = 0;
     for (s32 i = 0; i < field_3fc && i < 32; i++) {
         const Unk_Element& element = field_7c[i];
         s64 stream = element.field_c;
@@ -97,12 +89,12 @@ void SiGfxNXVertexFormat::Unk_564cd0() {
     }
 }
 
-// The elements' offsets and the tables, after a change: what slots 17 and 20
-// end with. (A macro: the code is in both, and it is too large for an inline
-// function to have been inlined twice.)
-#define UNK_VERTEXFORMAT_UPDATE() \
+// The elements' offsets, after a change: what slots 17 and 20 start with. (A
+// macro: the code is in both, and as an inline function, even a small one, it
+// compiles to other code.)
+#define UNK_VERTEXFORMAT_OFFSETS()                                                                                     \
     s32 offsets[16] = {};                                                                                              \
-    for (s32 i = 0; i < field_3fc && i < 32; i++) {                                                                    \
+    for (s64 i = 0; i < field_3fc && i < 32; i++) {                                                                    \
         Unk_Element& element = field_7c[i];                                                                            \
         s64 stream = element.field_c;                                                                                  \
         if (static_cast<u32>(stream) <= 15) {                                                                          \
@@ -115,42 +107,50 @@ void SiGfxNXVertexFormat::Unk_564cd0() {
             }                                                                                                          \
             offsets[stream] = Unk_4ed0c0(element.field_8) + offset;                                                    \
         }                                                                                                              \
-    }                                                                                                                  \
-    Unk_564cd0();                                                                                                      \
-    memset(field_448, 0xff, sizeof(field_448) + sizeof(field_4e8));                                                    \
-    memset(field_628, 0, sizeof(field_628));                                                                           \
-    for (s32 i = 0; i < field_3fc; i++) {                                                                              \
-        const Unk_Element& element = field_7c[i];                                                                      \
-        if (element.field_c <= 15 && element.field_8 != 0 && element.field_4 <= 15) {                                  \
-            field_448[element.field_0][element.field_4] = element.field_c;                                             \
-            field_4e8[element.field_0][element.field_4] = element.field_10;                                            \
-            field_628[element.field_0][element.field_4] = element.field_8;                                             \
-        }                                                                                                              \
-    }                                                                                                                  \
-    field_444 = field_3fc > 0 ? Unk_4c3410(field_3fc * sizeof(Unk_Element), reinterpret_cast<const u8*>(field_7c)) : 0
+    }
 
-// NON_MATCHING (and slot 20, which ends with the same code): the first loop
-// is the original's but for where its pointer is advanced; in the second the
-// original reads the offset before the first of the three stores and keeps
-// the checksum's size as a 64-bit product of the sign-extended count
-// (slot 20: 460 bytes for 464; this one, which also keeps the elements'
-// address in a register of its own, 540 for 528). With the hash's 64-bit size
-// the product is the original's; the count's sign extension (a `sxtw` of its own
-// in the original's loop, shared with the product) and the test before the hash
-// (`cmp #1; b.lt`) aren't. Tried: the second loop with s32/s64 indexes, a
-// pointer, the offset read first; the hash's test both ways, an if, a result.
+// The streams' tables and the elements' checksum, after a change: what slots
+// 17 and 20 end with (inlined in both; the checksum's size shares the
+// sign-extended count with the loop's test only when this is a function of its
+// own)
+inline void SiGfxNXVertexFormat::Unk_UpdateTables() {
+    memset(field_448, 0xff, sizeof(field_448) + sizeof(field_4e8));
+    memset(field_628, 0, sizeof(field_628));
+    for (s32 i = 0; i < field_3fc; i++) {
+        const Unk_Element& element = field_7c[i];
+        if (element.field_c <= 15) {
+            u32 format = element.field_8;
+            if (format != 0 && element.field_4 <= 15) {
+                s32 offset = element.field_10;
+                field_448[element.field_0][element.field_4] = element.field_c;
+                field_4e8[element.field_0][element.field_4] = offset;
+                field_628[element.field_0][element.field_4] = format;
+            }
+        }
+    }
+    field_444 = field_3fc < 1 ? 0 : Unk_4c3410(field_3fc * sizeof(Unk_Element), reinterpret_cast<const u8*>(field_7c));
+}
+
+// NON_MATCHING (and slot 20, which has the same code): 1 instruction: the
+// first of the three stores' row index is sign-extended by a `sxtw` of its
+// own in the original (`ldr w13, [x9, #4]` for the test, `sxtw x13, w13`
+// where the address is computed); here CodeGenPrepare moves the extension to
+// the test's load and it becomes `ldrsw`. The extension's operand is the load
+// in the IR here, so it moves whatever the source order; the original's was
+// something else (a phi?). Tried: the test as `< 16`, as a 64-bit compare, the
+// index in an s32 or s64 local, the row through a pointer.
 // 0x7100564ac0
 bool SiGfxNXVertexFormat::vf17(s32 count, const Unk_Element* elements) {
     vf21();
-    if (static_cast<u32>(count - 1) > 31) {
-        return false;
-    }
-    if (field_20 == nullptr) {
+    SiGfxNXDevice* device = field_20;
+    if (static_cast<u32>(count - 1) > 31 || device == nullptr) {
         return false;
     }
     field_3fc = count;
     memcpy(field_7c, elements, count * sizeof(Unk_Element));
-    UNK_VERTEXFORMAT_UPDATE();
+    UNK_VERTEXFORMAT_OFFSETS();
+    Unk_564cd0();
+    Unk_UpdateTables();
     return true;
 }
 
@@ -173,11 +173,13 @@ bool SiGfxNXVertexFormat::vf19(u32 a1, s32 a2, u32 a3, s32 a4, s32 a5, u32 a6, u
     return true;
 }
 
-// NON_MATCHING: see slot 17
+// NON_MATCHING: see slot 17 (1 instruction)
 // 0x7100564ee0
 bool SiGfxNXVertexFormat::vf20() {
     field_78 = false;
-    UNK_VERTEXFORMAT_UPDATE();
+    UNK_VERTEXFORMAT_OFFSETS();
+    Unk_564cd0();
+    Unk_UpdateTables();
     return true;
 }
 

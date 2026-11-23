@@ -154,6 +154,25 @@ struct Unk_SiGfxTexture {
     virtual void vf24();
     virtual void* vf25(u32 index);
     virtual void* vf26(u32 layer, u32 level);  // a level's surface in a layer
+    virtual void vf27();
+    virtual void vf28();
+    virtual void vf29();
+    virtual void vf30();
+    virtual void vf31();
+    virtual void vf32();
+    virtual void vf33();
+    virtual void vf34();
+    virtual void vf35();
+    virtual void vf36();
+    virtual void vf37();
+    virtual void vf38();
+    virtual void vf39();
+    virtual void vf40();
+    virtual void vf41();
+    virtual void vf42();
+    virtual void vf43();
+    // made from an NVN texture and a view of it (0x710043b590)
+    virtual bool vf44(const void* texture, const void* view);
 };
 
 // GPUSiGfxLazyDrawCommand (its Execute() is named in CPostEffect's log): a
@@ -440,7 +459,7 @@ public:
     virtual void vf53();
     virtual s32 vf54(bool enable, s32 value);  // 0x7100442de0
     virtual s32 vf55(f32 a, f32 b);  // 0x7100442e10
-    virtual void vf56();
+    virtual s32 vf56();  // 0x7100441040
     virtual s32 vf57(s32 primitive, u32 arg2, u32 arg3);  // 0x7100441050: "IGPUDevice::DrawVertices"
     virtual s32 vf58(s32 primitive, s32 count, s32 arg3, s32 arg4, s32 arg5);  // 0x71004411e0: "IGPUDevice::DrawIndices"
     virtual s32 vf59(s32 primitive, u32 arg2, u32 instances, u32 arg4);  // 0x71004413d0: "IGPUDevice::DrawIndicesInstanced"
@@ -527,7 +546,8 @@ public:
     u32 field_2c;
     Unk_SiGfxDrawContext* field_30;
     Unk_SiGfxDevice* field_38;
-    std::vector<void*, Unk_StlAllocator<void*>> field_40;
+    // the lazy draw commands, executed when the post effect ends its command list
+    std::vector<GPUSiGfxLazyDrawCommand, Unk_StlAllocator<GPUSiGfxLazyDrawCommand>> field_40;
     bool field_58;  // the viewport's origin is the lower left
     bool field_59;  // the clip volume's near plane is at -1
     Unk_PipelineStateMap field_60;  // the pipeline states made so far
@@ -603,5 +623,8 @@ PKMN_OFFSET_ASSERT(IGPUDevice, field_14dc8, 0x14dc8);
 PKMN_OFFSET_ASSERT(IGPUDevice, field_15000, 0x15000);
 PKMN_OFFSET_ASSERT(IGPUDevice, field_30, 0x30);
 PKMN_OFFSET_ASSERT(IGPUDevice, field_38, 0x38);
+
+// 0x710043e2b0 (GPUInterfaceDevice.cpp)
+s32 Unk_43e2b0(IGPUDevice* self);
 
 }  // namespace PPFX

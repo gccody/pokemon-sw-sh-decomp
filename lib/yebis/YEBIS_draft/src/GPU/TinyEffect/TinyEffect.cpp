@@ -1536,6 +1536,9 @@ s32 CTinyEffect::Unk_44eac0() {
 // 0x710044f250
 // NON_MATCHING: the end of the first loop is `start + count` in the original
 // (`add w8, w5, w6`) and `count + start` here, whichever way it is written.
+// Copies of the two (`u32 first = start; u32 number = count;` after the
+// defaults, used only by this loop) give the original, a difference of debug
+// values alone.
 s32 CTinyEffect::ApplyVertexInputs(Unk_TinyLayout* layout, IGPUBuffer** buffers, const u32* offsets,
                                    const u32* strides, u32 start, u32 count) {
     if (layout == nullptr || buffers == nullptr) {
@@ -1831,6 +1834,181 @@ CManualProgramParameterTable::~CManualProgramParameterTable() {
         }
     }
     field_10.clear();
+}
+
+// the kind of a uniform's type (1 to 3 numbers, 4 a texture, 10 an image;
+// inline)
+static inline s32 Unk_UniformKind(u32 type) {
+    switch (type) {
+    case 36: case 40:
+        return 1;
+    case 37: case 38: case 39: case 41: case 42: case 43:
+        return 2;
+    case 48: case 49: case 50: case 51: case 52: case 53: case 54: case 55: case 56:
+        return 3;
+    case 66: case 67: case 68: case 69: case 70: case 71: case 72: case 73: case 74: case 75: case 76: case 77: case 78: case 80: case 81: case 82: case 83: case 84: case 85: case 86: case 87: case 88: case 89: case 91: case 92: case 93: case 94: case 95: case 96: case 97: case 98: case 101: case 135: case 136: case 137: case 138:
+        return 4;
+    case 79: case 90: case 100: case 102: case 103: case 104: case 105: case 106: case 107: case 108: case 109: case 110: case 111: case 112: case 113: case 114: case 115: case 116: case 117: case 118: case 119: case 120: case 121: case 122: case 123: case 124: case 125: case 126: case 127: case 128: case 129: case 130: case 131: case 132: case 133: case 134:
+        return 10;
+    default:
+        return 0;
+    }
+}
+
+// the stages' bits and indices (placeholders)
+static const u32 Unk_1aa18e0[2] = {1, 2};
+static const s32 Unk_1aa1928[2] = {0, 1};
+
+// 0x710044fca0: the uniforms of the pass's two programs: one item each (a
+// texture's with its sampler, kind 10, after it), the stages that use them,
+// and the textures' and samplers' tables
+// NON_MATCHING: the original adds the stage's offset to `pass` in the loop
+// (here `pass + 0x58` is computed once and spilled), keeps the texture's
+// binding on the stack and `this + stage * 0x100` in x27 (the other way round
+// here), and rereads the item count for the inner loop of the samplers' search;
+// the rest differs by registers.
+s32 CManualProgramParameterTable::Unk_44fca0(Unk_TinyPass* pass) {
+    s32 index = 0;
+    field_10.clear();
+    s32 samplers[2] = {};
+    s32 textures[2] = {};
+    for (s32 stage = 0; stage < 2; stage++) {
+        const Unk_ReflProgram* program = reinterpret_cast<const Unk_ReflProgram*>((&pass->field_58)[stage]);
+        for (u32 i = 0; i < program->field_4c; i++) {
+            const Unk_ReflTable* table = &program->field_90[i];
+            if (table->field_8 != 3) {
+                continue;
+            }
+            const u8* data = reinterpret_cast<const u8*>(program) + table->field_4;
+            const char* strings = reinterpret_cast<const char*>(data + table->field_68);
+            const Unk_ReflUniform* uniforms = reinterpret_cast<const Unk_ReflUniform*>(data + table->field_38);
+            const Unk_ReflBlock* blocks = reinterpret_cast<const Unk_ReflBlock*>(data + table->field_30);
+            for (u32 j = 0; j < table->field_2c; j++) {
+                u32 size = blocks[j].field_2c;
+                if (field_28 == 0) {
+                    field_28 = blocks[j].field_28;
+                }
+                if (stage == 0) {
+                    field_10.reserve(size);
+                }
+            }
+            for (u32 j = 0; j < table->field_34; j++) {
+                const Unk_ReflUniform* uniform = &uniforms[j];
+                const char* name = strings + uniform->field_0;
+                const char* member = strchr(name, '.');
+                char buffer[0x100];
+                memset(buffer, 0, sizeof(buffer));
+                memcpy(buffer, name, uniform->field_4);
+                if (member != nullptr) {
+                    memset(buffer, 0, sizeof(buffer));
+                    strcpy(buffer, member + 1);
+                }
+                const char* bracket = strchr(buffer, '[');
+                if (bracket != nullptr) {
+                    size_t length = strlen(bracket);
+                    size_t count = strlen(buffer) - length;
+                    char base[0x100];
+                    memset(base, 0, sizeof(base));
+                    strncpy(base, buffer, count);
+                    memset(buffer, 0, sizeof(buffer));
+                    strcpy(buffer, base);
+                }
+                u32 used = uniform->field_44;
+                u32 type = uniform->field_28;
+                s32 a = uniform->field_2c;
+                s32 b = uniform->field_30;
+                s32 count = uniform->field_34;
+                Unk_Item* item = nullptr;
+                if (stage != 0) {
+                    s32 found = -1;
+                    for (u32 k = 0; k < field_10.size(); k++) {
+                        if (field_10[k]->field_8 == buffer) {
+                            found = k;
+                            break;
+                        }
+                    }
+                    if (found >= 0) {
+                        item = field_10[found];
+                    }
+                }
+                if (item != nullptr) {
+                    if (!item->field_18) {
+                        item->field_18 = used != 0;
+                    }
+                    item->field_44 = Unk_1aa18e0[stage];
+                    continue;
+                }
+#line 13439
+                item = UNK_NEW(Unk_Item)(pass->field_0);
+                field_10.push_back(item);
+                item->field_1c = index;
+                s32 next = index + 1;
+                item->field_40 = 1;
+                item->field_8 = buffer;
+                item->field_24 = count;
+                item->field_28 = -1;
+                item->field_20 = Unk_UniformKind(type);
+                item->field_2c = a;
+                item->field_30 = b;
+                item->field_18 = used != 0;
+                item->field_44 = Unk_1aa18e0[stage];
+                switch (item->field_20 & 0xf) {
+                case 1:
+                case 2:
+                case 3:
+                    item->field_40 = 1;
+                    index = next;
+                    break;
+                case 4: {
+                    s32 binding = uniform->field_48[Unk_1aa1928[stage]];
+                    item->field_40 = 2;
+                    item->field_2c = binding;
+                    item->field_30 = -1;
+                    field_240[stage][textures[stage]++] = item;
+#line 13501
+                    Unk_Item* sampler = UNK_NEW(Unk_Item)(pass->field_0);
+                    sampler->field_1c = next;
+                    index += 2;
+                    field_10.push_back(sampler);
+                    sampler->field_20 = 10;
+                    sampler->field_24 = count;
+                    sampler->field_28 = -1;
+                    sampler->field_2c = binding;
+                    sampler->field_30 = -1;
+                    sampler->field_40 = 2;
+                    sampler->field_44 = Unk_1aa18e0[stage];
+                    sampler->field_18 = used != 0;
+                    field_40[stage][samplers[stage]++] = sampler;
+                    break;
+                }
+                default:
+                    index = next;
+                    break;
+                }
+            }
+        }
+    }
+    s32 texture = 0;
+    for (u32 i = 0; i < static_cast<u32>(field_10.size()); i++) {
+        Unk_Item* item = field_10[i];
+        if (item->field_20 != 4) {
+            continue;
+        }
+        s32 sampler = 0;
+        for (u32 j = 0; j < static_cast<u32>(field_10.size()); j++) {
+            if (field_10[j]->field_20 == 10) {
+                if (texture == sampler) {
+                    item->field_30 = field_10[j]->field_2c;
+                    break;
+                }
+                sampler++;
+            }
+        }
+        texture++;
+    }
+    memcpy(field_2c, samplers, sizeof(field_2c));
+    memcpy(field_34, textures, sizeof(field_34));
+    return 0;
 }
 
 }  // namespace PPFX

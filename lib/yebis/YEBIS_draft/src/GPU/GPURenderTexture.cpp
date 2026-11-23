@@ -719,15 +719,20 @@ static inline void Unk_StoreViewports(CRenderTexture* self, bool current) {
 // 0x710049d250
 // NON_MATCHING: the original's slot is unsigned (its indices are `uxtw`; the
 // declaration keeps the signed parameter its callers' names use), the tiling
-// flag and the 0x100000 bit are tested by two branches here (one `ccmp` in
-// the original), and `first` and `changed` swap their callee-saved register
-// and stack slot.
+// flag and the 0x100000 bit are tested by two branches here, the bit first
+// (the original: `cmp` of the flag, `ccmp` of the bit, as from an i1 `and`
+// with the loaded test first, which Reassociate's rank order never keeps),
+// and `first` and `changed` swap their callee-saved register and stack slot.
 s32 CRenderTexture::Unk_49d250(s32 slot, u32 flags, s32 first, u32 level, s32 arg5) {
     Unk_49b230_Object* target = field_d0[field_a0][level];
     bool done;
     if ((flags & 2) != 0 && !Unk_24e53e8) {
         done = false;
-    } else if (Unk_24e53e8 && (flags & 0x100000) != 0) {
+    } else if (Unk_24e53e8 && (flags & 0x100000) == 0) {
+        s32 result = EndTiling(nullptr, 0, reinterpret_cast<s32*>(&done), nullptr, 1.0f);
+        if (result < 0)
+            return result;
+    } else {
         done = false;
         CRenderTexture* current = Unk_24e53a0[slot];
         if (current != nullptr) {
@@ -740,10 +745,6 @@ s32 CRenderTexture::Unk_49d250(s32 slot, u32 flags, s32 first, u32 level, s32 ar
                 Unk_238d228[slot] = 0;
             }
         }
-    } else {
-        s32 result = EndTiling(nullptr, 0, reinterpret_cast<s32*>(&done), nullptr, 1.0f);
-        if (result < 0)
-            return result;
     }
     bool changed;
     if (field_9c != 0) {
@@ -1010,10 +1011,8 @@ s32 Unk_49df00(CRenderTexture* target, u32 flags, s32 arg2, s32 arg3, s32 arg4, 
 inline void Unk_EndTiles(void* arg0, s32 arg1, s32* arg2, bool* arg3, f32 arg4) {}
 
 // 0x710049e080
-// NON_MATCHING: the search for the first target. The original turns it into
-// two selects per element (the element's test outside, the target's inside);
-// here clang ands the two tests and makes one select (or exits the loop
-// early, with `&&`). The rest is the original's.
+// (the search's inner test as selects: written as nested ifs, SimplifyCFG
+// merges the two tests into one before it folds them)
 s32 CRenderTexture::EndTiling(void* arg0, s32 arg1, s32* arg2, bool* arg3, f32 arg4) {
     Unk_EndTiles(arg0, arg1, arg2, arg3, arg4);
     if (!Unk_24e53e8) {
@@ -1026,10 +1025,8 @@ s32 CRenderTexture::EndTiling(void* arg0, s32 arg1, s32* arg2, bool* arg3, f32 a
     CRenderTexture* target = nullptr;
     for (u32 i = 0; i < 8; i++) {
         if (Unk_24e53a0[i] != nullptr) {
-            if (target == nullptr) {
-                target = Unk_24e53a0[i];
-                index = i;
-            }
+            index = target == nullptr ? i : index;
+            target = target == nullptr ? Unk_24e53a0[i] : target;
         }
     }
     if (static_cast<s32>(target->field_2c.field_0) < 0 ||
@@ -1046,10 +1043,13 @@ s32 CRenderTexture::EndTiling(void* arg0, s32 arg1, s32* arg2, bool* arg3, f32 a
 
 // 0x710049e290
 // NON_MATCHING: the original tests both conditions of the first `if` in one
-// block (`ccmp`) and bit 20 of the flags again after the call, which clang
-// folds here; the paths are the same.
+// block (`ccmp`, the flag first) and lays the EndTiling call out last; here
+// they are two branches (bit 20 first). The original's IR had the i1 `and`
+// with the loaded test first (verified by compiling edited IR); Reassociate
+// puts the argument's test first in any source form tried (nested ifs, a
+// bool local, an inline helper, a result variable, goto, a negated `||`).
 s32 Unk_49e290(u32 flags, CRenderTexture* target, s32 arg2, bool* done, f32 arg4) {
-    if (!Unk_24e53e8 || !(flags & 0x100000)) {
+    if (Unk_24e53e8 && !(flags & 0x100000)) {
         s32 result = CRenderTexture::EndTiling(nullptr, arg2, nullptr, done, arg4);
         return result < 0 ? result : 0;
     }

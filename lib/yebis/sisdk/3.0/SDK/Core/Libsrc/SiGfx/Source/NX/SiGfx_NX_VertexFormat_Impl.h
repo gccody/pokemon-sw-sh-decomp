@@ -68,6 +68,8 @@ public:
 
     // 0x7100564cd0: the streams' sizes and how many there are
     void Unk_564cd0();
+    // the streams' tables and the elements' checksum (inline)
+    void Unk_UpdateTables();
 
     Unk_4bf660 field_10;
     SiGfxNXDevice* field_20;

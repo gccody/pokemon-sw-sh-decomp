@@ -221,8 +221,8 @@ public:
     virtual u64 vf18();
     virtual u64 vf19();
     virtual u64 vf20();
-    virtual ISiGfxDrawContext* vf21(u32 a1, u64 a2, const void* desc, ISiAllocator* pAllocator);
-    virtual ISiGfxCommandList* vf22(u32 a1, u64 a2, ISiAllocator* pAllocator);
+    virtual ISiGfxDrawContext* vf21(u32 a1, u32 a2, const void* desc, ISiAllocator* pAllocator);
+    virtual ISiGfxCommandList* vf22(u32 a1, u32 a2, ISiAllocator* pAllocator);
     virtual ISiGfxCommandListPool* vf23(u32 a1, u64 a2, ISiAllocator* pAllocator);
     virtual ISiGfxCommandCache* vf24(u32 a1, u64 a2, ISiAllocator* pAllocator);
     virtual ISiGfxPipelineState* vf25(u32 a1, u64 a2, ISiAllocator* pAllocator);
@@ -288,8 +288,10 @@ public:
     virtual u64 vf85();
     virtual u32 vf86();
     virtual u32 vf87();
-    virtual bool vf88(const Unk_4f96c0_Desc* desc, void* nvnDevice, u64 window, u64 a4, u64 a5, u64 a6, u64 a7, u64 a8, u64 a9,
-                      u64 a10, u64 a11);
+    // a4-a7: the descriptor handles' register and release callbacks (field_760
+    // to field_778), a8-a11 their arguments
+    virtual bool vf88(const Unk_4f96c0_Desc* desc, void* nvnDevice, u64 window, s32 (*a4)(u64, u64, u64),
+                      u64 (*a5)(u64, u64), u64 (*a6)(u32, u64), u64 (*a7)(u32, u64), u64 a8, u64 a9, u64 a10, u64 a11);
     virtual s32 vf89();
     virtual s32 vf90();
     virtual u64 vf91();

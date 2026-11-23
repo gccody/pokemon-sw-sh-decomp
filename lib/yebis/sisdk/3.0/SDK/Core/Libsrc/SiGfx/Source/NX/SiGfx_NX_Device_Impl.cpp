@@ -557,17 +557,18 @@ void SiGfxNXDevice::Unk_4f88f0() {
 
 // 0x71004f8a80: sets the device up for another's NVN device, which gives its
 // own functions for descriptors
-bool SiGfxNXDevice::vf88(const Unk_4f96c0_Desc* desc, void* nvnDevice, u64 window, u64 a4, u64 a5, u64 a6, u64 a7, u64 a8,
-                         u64 a9, u64 a10, u64 a11) {
+bool SiGfxNXDevice::vf88(const Unk_4f96c0_Desc* desc, void* nvnDevice, u64 window, s32 (*a4)(u64, u64, u64),
+                         u64 (*a5)(u64, u64), u64 (*a6)(u32, u64), u64 (*a7)(u32, u64), u64 a8, u64 a9, u64 a10,
+                         u64 a11) {
     Unk_4f7760();
     memcpy(&field_50, desc, 0xb6);
     field_2b8 = nvnDevice;
     field_2c8 = true;
     field_2c9 = true;
-    field_760 = reinterpret_cast<s32 (*)(u64, u64, u64)>(a4);
-    field_768 = reinterpret_cast<u64 (*)(u64, u64)>(a5);
-    field_770 = reinterpret_cast<u64 (*)(u32, u64)>(a6);
-    field_778 = reinterpret_cast<u64 (*)(u32, u64)>(a7);
+    field_760 = a4;
+    field_768 = a5;
+    field_770 = a6;
+    field_778 = a7;
     field_780 = a8;
     field_788 = a9;
     field_790 = a10;
@@ -733,7 +734,7 @@ Unk_4f96e0_Desc* SiGfxNXDevice::vf13(s32 index) {
 // device's allocator unless another is given.
 
 // 0x71004f9780
-ISiGfxDrawContext* SiGfxNXDevice::vf21(u32 a1, u64 a2, const void* desc, ISiAllocator* pAllocator) {
+ISiGfxDrawContext* SiGfxNXDevice::vf21(u32 a1, u32 a2, const void* desc, ISiAllocator* pAllocator) {
     if (pAllocator == nullptr) {
         pAllocator = Unk_Allocator();
     }
@@ -750,7 +751,7 @@ ISiGfxDrawContext* SiGfxNXDevice::vf21(u32 a1, u64 a2, const void* desc, ISiAllo
 }
 
 // 0x71004f9840
-ISiGfxCommandList* SiGfxNXDevice::vf22(u32 a1, u64 a2, ISiAllocator* pAllocator) {
+ISiGfxCommandList* SiGfxNXDevice::vf22(u32 a1, u32 a2, ISiAllocator* pAllocator) {
     if (pAllocator == nullptr) {
         pAllocator = Unk_Allocator();
     }

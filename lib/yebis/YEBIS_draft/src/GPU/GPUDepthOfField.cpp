@@ -320,12 +320,8 @@ s32 CDepthOfField::vf2() {
 }
 
 // 0x71004aa030
-// NON_MATCHING: in the block the 8 and 24 paths share, the store and the move of the
-// constant the last test uses are the other way round.
 s32 CDepthOfField::Unk_4aa030(s32 value) {
-    if (value >= 0) {
-        field_170 = value;
-    } else {
+    if (value < 0) {
         field_170 = 0;
         switch (field_c0.field_14) {
         case 11:
@@ -368,6 +364,8 @@ s32 CDepthOfField::Unk_4aa030(s32 value) {
                 field_170 = 24;
             break;
         }
+    } else {
+        field_170 = value;
     }
     field_16c = (field_170 != 0) | field_1e0;
     return 0;
@@ -637,8 +635,8 @@ f32 CDepthOfField::Unk_4af690(f32 angle, f32 distance, f32 width) {
             size1 = Unk_PairSize(field_3cc, distance, width);
         } else if (field_198 < field_3c8) {
             value0 = field_3bc;
-            value1 = field_3c8;
             size0 = Unk_PairSize(field_3c0, distance, width);
+            value1 = field_3c8;
             size1 = Unk_PairSize(field_3cc, distance, width);
         } else {
             value0 = field_3c8;
@@ -671,9 +669,9 @@ s32 CDepthOfField::Unk_4afae0(f32* nearSize, f32* farSize) {
         f32 focal = field_1b0;
         f32 near = field_1a8;
         f32 scale = focal * near / (focal - near);
+        f32 depth = distance > -scale ? distance : -scale;
         f32 absDistance = Unk_Abs(distance);
         f32 coc = aperture * 0.5f * scale / absDistance;
-        f32 depth = distance > -scale ? distance : -scale;
         f32 blur;
         if (depth > 0.0f)
             blur = (depth - focal) * field_1c4;
@@ -719,14 +717,14 @@ s32 CDepthOfField::Unk_4afd80(f32 size, f32 distance, f32 angle) {
         aperture = 0.0f;
         focus = 0.0f;
     } else {
-        f32 coc = field_1b8 * size * 0.5f;
         f32 depth = distance == 0.0f ? -2.9802322e-8f : distance * -0.5f;
         f32 near = field_1a8;
         f32 focal = field_1b0;
+        f32 coc = field_1b8 * size * 0.5f;
         f32 position = Unk_Sign(depth) * (near * 0.5f);
         f32 scale = near * focal / (focal - near);
-        f32 absPosition = Unk_Abs(position);
         f32 ratio = coc * 2.0f / scale;
+        f32 absPosition = Unk_Abs(position);
         f32 view = tanf(angle * 0.5f) / field_19c;
         focal = field_1b0;
         near = field_1a8;
@@ -739,15 +737,15 @@ s32 CDepthOfField::Unk_4afd80(f32 size, f32 distance, f32 angle) {
             blur = far * (near * limit / (limit - near)) - near * far;
         else if (limit < 0.0f)
             blur = -(far * (near + limit)) / limit;
-        factor = Unk_Abs(factor / (blur * 0.5f));
         f32 value = absPosition * ratio;
-        if (depth > 0.0f) {
-            factor = 1.0f / factor / near;
+        factor = Unk_Abs(factor / (blur * 0.5f));
+        if (depth <= 0.0f) {
+            factor = 2.0f / (factor + 1.0f);
             aperture = value * factor;
             if (aperture < 0.0f)
                 return -6;
         } else {
-            factor = 2.0f / (factor + 1.0f);
+            factor = 1.0f / factor / near;
             aperture = value * factor;
             if (aperture < 0.0f)
                 return -6;
@@ -838,8 +836,8 @@ s32 CDepthOfField::Unk_4aff50(u8* data, u32 width, u32 height, const f32* scale,
                     f64 b = Unk_Channel2(pixel);
                     r = Unk_SqrtPositive(fr * r);
                     g = Unk_SqrtPositive(fg * g);
-                    b = Unk_SqrtPositive(fb * b);
                     f64 a = static_cast<f32>(pixel >> 24) * (1.0 / 255.0);
+                    b = Unk_SqrtPositive(fb * b);
                     u32 cr = Unk_ToByte(r, 16);
                     u32 cg = Unk_ToByte(g, 8);
                     u32 cb = Unk_ToByte(b, 0);
@@ -1416,8 +1414,8 @@ s32 CDepthOfField::Unk_4b4ff0(CRenderTexture* source) {
 }
 
 // 0x71004afc40
-void CDepthOfField::Unk_4afc40(f32 width, f32 height, f32 tanHalfFov, f32 a3, f32 a4, f32 a5, f32 a6, f32 a7,
-                               s32 mode, f32 b0, f32 b1, f32 b2, f32 b3, f32 b4, f32 width2, f32 height2) {
+s32 CDepthOfField::Unk_4afc40(f32 width, f32 height, f32 tanHalfFov, f32 a3, f32 a4, f32 a5, f32 a6, f32 a7,
+                              s32 mode, f32 b0, f32 b1, f32 b2, f32 b3, f32 b4, f32 width2, f32 height2) {
     if (tanHalfFov <= 0.0f) {
         tanHalfFov = 0.41421356f;
     }
@@ -1440,6 +1438,7 @@ void CDepthOfField::Unk_4afc40(f32 width, f32 height, f32 tanHalfFov, f32 a3, f3
     s32 result = Unk_4af020(mode, field_198, a5, a6, a7, b0, b1, b2, b3, &field_1a8, &field_1b4, &field_1ac,
                             &field_1c4, &field_1e4, &field_1e8, b4);
     field_184 = result == 0 && field_198 > 0.0f && field_198 < 3.14159265f;
+    return result;
 }
 
 // 0x7100442bc0 (GPUInterfaceDevice.cpp): the first of some formats that a
@@ -1923,40 +1922,16 @@ static inline f32 Unk_Saturate(f32 value) {
 }
 
 // 0x71004b4ab0
-// NON_MATCHING: block placement: the original lays the search through
-// field_398 out after the return (as if unlikely) and falls through to the
-// bias; the instructions are the same. Tried: the tests as one condition, as
-// nested ifs and through an inline clamp.
+// NON_MATCHING: 400 vs 396 bytes, block placement: the original lays the clamp
+// of the ratio to 1 and the tests after it out after the return (as if
+// unlikely) and falls through to the bias; the instructions are the same.
+// Tried: the tests negated (`!(ratio < 0)`, nested) and the search written out
+// here instead of through Unk_NearPosition.
 f32 CDepthOfField::Unk_4b4ab0(bool near) {
     if (!near) {
         return field_27c;
     }
-    f32 t = 0.0f;
-    if (field_c0.field_6d) {
-        f32 size = field_1c0;
-        f32 ratio = field_3e4 / size;
-        if (!(field_3e4 > 0.0f)) {
-            ratio = 0.0f;
-        }
-        f32 bias = field_3ec;
-        t = bias;
-        if (!(ratio < 0.0f)) {
-            f32 m = ratio > 1.0f ? 1.0f : ratio;
-            if (m > 0.0f && field_3e8 != 1) {
-                t = 0.0f;
-                f32 value = 1.0f / powf(m, powf(10.0f, -(bias * 2.0f - 1.0f)));
-                s32 count = field_2f0;
-                for (s32 i = 0; i < count; i++) {
-                    if (value < field_398[i + 1]) {
-                        f32 frac = (value - field_398[i]) / (field_398[i + 1] - field_398[i]);
-                        f32 s = 1.0f - (frac + static_cast<f32>(i)) / static_cast<f32>(count);
-                        t = Unk_Saturate(s);
-                        break;
-                    }
-                }
-            }
-        }
-    }
+    f32 t = Unk_NearPosition(near);
     s32 count = field_2f0;
     f32 pos = (1.0f - t) * static_cast<f32>(count) * 0.9999f;
     s32 index = static_cast<s32>(pos);
@@ -2106,9 +2081,6 @@ static inline void Unk_ScaleBy(Unk_Float2* value, f32 scale) {
 }
 
 // 0x71004a7dc0
-// NON_MATCHING: scheduling: the original multiplies the first level's range by
-// 0.25 before the four additions and reads the level's height and size before
-// it stores field_e8; the last addition's operands are swapped (y + x * bias).
 s32 CDepthOfField::Unk_4a7dc0() {
     for (s32 i = 0; i < field_c0.field_10; i++) {
         Unk_Level* level = &field_4a8[i];
@@ -2156,8 +2128,10 @@ s32 CDepthOfField::Unk_4a7dc0() {
             scale2 = field_1e8.field_0[2].field_0;
             bias = field_1e8.field_0[3].field_0;
         }
-        level->field_f0 = level->field_e8.field_0[0].field_0 * scale2;
-        level->field_f4 = level->field_e8.field_0[1].field_0 + level->field_e8.field_0[0].field_0 * bias;
+        f32 x = level->field_e8.field_0[0].field_0;
+        f32 y = level->field_e8.field_0[1].field_0;
+        level->field_f0 = x * scale2;
+        level->field_f4 = y + x * bias;
     }
     return 0;
 }
@@ -2254,8 +2228,8 @@ s32 CDepthOfField::Unk_4a79e0() {
     static const f32 weights[4] = {0.0f, 0.5f, 0.75f, 1.0f};
     s32 count = field_c0.field_10;
     s32 kind = field_c0.field_18;
-    s32 step = 0;
     s32 index = 0;
+    s32 step = 0;
     for (s32 i = 0; i < count; i++) {
         bool unused = false;
         bool same = false;
@@ -2275,8 +2249,8 @@ s32 CDepthOfField::Unk_4a79e0() {
                 step = 1;
             }
         } else if (!same) {
-            width = static_cast<u32>(static_cast<f32>(width) * 0.5f + 0.99f);
             height = static_cast<u32>(static_cast<f32>(height) * 0.5f + 0.99f);
+            width = static_cast<u32>(static_cast<f32>(width) * 0.5f + 0.99f);
             width = width > 3 ? width : 3;
             height = height > 3 ? height : 3;
             bool grow;
@@ -2676,17 +2650,20 @@ static inline void Unk_Identity(MATRIXT44* out) {
 }
 
 // the near blur's position in field_398's table, 0 to 1 (inline; as
-// 0x71004b4ab0's search, but with the division only when field_3e4 is
-// positive)
+// 0x71004b4ab0's search). `frac` and `s` are declared outside the loop: with
+// them in the loop's scope, the two returns of the clamp meet in their
+// cleanup block and SimplifyCFG folds the clamp into a select (the original
+// keeps it a branch to the shared exit)
 inline f32 CDepthOfField::Unk_NearPosition(bool far) {
     if (!field_c0.field_6d) {
         return 0.0f;
     }
+    f32 size = field_1c0;
     f32 distance = field_3e4;
     f32 bias = field_3ec;
-    f32 ratio = 0.0f;
-    if (distance > 0.0f) {
-        ratio = distance / field_1c0;
+    f32 ratio = distance / size;
+    if (!(distance > 0.0f)) {
+        ratio = 0.0f;
     }
     if (ratio < 0.0f) {
         return bias;
@@ -2697,10 +2674,12 @@ inline f32 CDepthOfField::Unk_NearPosition(bool far) {
     }
     f32 value = 1.0f / powf(m, powf(10.0f, -(bias * 2.0f - 1.0f)));
     s32 count = field_2f0;
+    f32 frac;
+    f32 s;
     for (s32 i = 0; i < count; i++) {
         if (value < field_398[i + 1]) {
-            f32 frac = (value - field_398[i]) / (field_398[i + 1] - field_398[i]);
-            f32 s = 1.0f - (frac + static_cast<f32>(i)) / static_cast<f32>(count);
+            frac = (value - field_398[i]) / (field_398[i + 1] - field_398[i]);
+            s = 1.0f - (frac + static_cast<f32>(i)) / static_cast<f32>(count);
             if (s < 0.0f) {
                 return 0.0f;
             }
@@ -2712,11 +2691,13 @@ inline f32 CDepthOfField::Unk_NearPosition(bool far) {
 
 // 0x71004b1100: the taps' offsets (the points of `count` rings, scaled to the
 // aspect ratio and rotated), as the constants of field_c8
-// NON_MATCHING: the same size and stack layout; the searches' clamps are
-// if-converted to fcsel here (the original keeps a branch to the shared
-// exit), which moves the blocks after them; the scale matrix's third element
-// is stored as a constant merged with its neighbours (the original stores a
-// register), and the near loop walks the points with another register.
+// NON_MATCHING: 2184 vs 2196 bytes, same stack layout; the searches' clamps
+// are branches as in the original now, but the ratio's zero path is laid out
+// differently (the original duplicates its `< 0` test into that path and
+// falls through to the clamp to 0-1 from there); the scale matrix's third
+// element is stored as a constant merged with its neighbours (the original
+// stores a register), and the near loop walks the points with another
+// register.
 s32 CDepthOfField::Unk_4b1100(bool near, bool far, s32 count, f32 angle) {
     CTextureUtil* util = Unk_GetTextureUtil();
     Unk_ReleaseTextureUtil();
@@ -2756,9 +2737,9 @@ s32 CDepthOfField::Unk_4b1100(bool near, bool far, s32 count, f32 angle) {
         f32 jitter = 0.0f / rings;
         s32 index = static_cast<s32>((1.0f - t) * static_cast<f32>(size) * 0.9999f);
         for (s32 i = 0; i < taps; i++) {
-            Unk_462090_Params params = field_378[field_2a8][index];
             f32 x = points[i].field_0[0].field_0;
             f32 y = points[i].field_0[1].field_0;
+            Unk_462090_Params params = field_378[field_2a8][index];
             Unk_Float2 p(-x, -y);
             Unk_Float2 position(0.5f - x * 0.5f, y * -0.5f + 0.5f);
             Unk_Float2 area(0.0078125f, 0.0078125f);
@@ -2808,11 +2789,12 @@ s32 CDepthOfField::Unk_4b1100(bool near, bool far, s32 count, f32 angle) {
 // 0x71004b35f0: a pass of the second kind: the blur of `source` (and
 // `target`, through the mask `arg3`) into `arg4`, drawn with the vertices
 // `arg7` and indices `arg8` (placeholder parameter names)
-// NON_MATCHING: 3928 vs 3920 bytes, same calls, constants and stack layout up
+// NON_MATCHING: 3912 vs 3920 bytes, same calls, constants and stack layout up
 // to registers: the original keeps near/far and 0.5f in callee-saved
-// registers (more spills here), keeps the near position's 0-1 clamp as a
-// branch (if-converted to fcsel here, as in 0x71004b1100) and lays the
-// technique selection's two near branches out differently.
+// registers (more spills here) and lays the near position's ratio test and
+// the technique selection's two near branches out differently. `first` is
+// handed to Unk_NearPosition, which ignores it: an argument used only there
+// survives DeadArgElim, so 0x71004b4c40 passes `i == 0` as the original does.
 s32 CDepthOfField::Unk_4b35f0(f32 scale, CRenderTexture* source, CRenderTexture* target, void* arg3, void* arg4,
                               s32 arg5, s32 arg6, void* arg7, void* arg8, Unk_Pass* arg9, Unk_Pass* arg10, bool first,
                               bool last) {
@@ -2984,7 +2966,7 @@ s32 CDepthOfField::Unk_4b35f0(f32 scale, CRenderTexture* source, CRenderTexture*
     Unk_GPUTexture* noise;
     Unk_GPUTexture* blades;
     if (near) {
-        s32 index = static_cast<s32>((1.0f - Unk_NearPosition(far)) * static_cast<f32>(field_2f0) * 0.9999f);
+        s32 index = static_cast<s32>((1.0f - Unk_NearPosition(first)) * static_cast<f32>(field_2f0) * 0.9999f);
         blades = reinterpret_cast<Unk_GPUTexture*>(field_2f8[field_2a8][index]);
         noise = reinterpret_cast<Unk_GPUTexture*>(field_2c8[field_2ac]);
     } else {
@@ -3002,7 +2984,7 @@ s32 CDepthOfField::Unk_4b35f0(f32 scale, CRenderTexture* source, CRenderTexture*
     if (blades != nullptr)
         blades->vf15(7);
     if (near) {
-        f32 position = (1.0f - Unk_NearPosition(far)) * static_cast<f32>(field_2f0) * 0.9999f;
+        f32 position = (1.0f - Unk_NearPosition(first)) * static_cast<f32>(field_2f0) * 0.9999f;
         if (position > 1.0f) {
             position = position - static_cast<f32>(static_cast<s32>(position));
         } else if (position < 0.0f) {
@@ -3433,7 +3415,8 @@ s32 CDepthOfField::Unk_4b29b0(s32 level) {
         same &= field_224 == 0;
     s32 mode = same ? field_224 : field_220;
     CRenderTexture* list[7] = {};
-    for (s32 i = 0; i < item->field_60; i++)
+    s32 i;
+    for (i = 0; i < item->field_60; i++)
         list[i] = item->field_68[i];
     s32 result = 0;
     if ((field_154 & 4) != 0 && field_210 > level) {
@@ -3476,8 +3459,8 @@ s32 CDepthOfField::Unk_4b29b0(s32 level) {
         u32 width = target->field_54;
         u32 height = target->field_58;
         target->Unk_49d250(0, 0, 1, 0, 0);
-        f32 scale = -item->field_d8;
         f32 bias = item->field_dc;
+        f32 scale = -item->field_d8;
         if (field_16c == 1) {
             bias = field_1e8.field_0[3].field_0 * scale + item->field_dc;
             scale = field_1e8.field_0[2].field_0 * scale;
@@ -3492,7 +3475,7 @@ s32 CDepthOfField::Unk_4b29b0(s32 level) {
         Unk_GetTexture(source)->vf15(9);
         if ((field_154 & 8) == 0) {
             Unk_GPUTexture* mask = nullptr;
-            if (level >= 2 && field_c0.field_6d) {
+            if (field_c0.field_6d && level >= 2) {
                 s32 index;
                 switch (level) {
                 case 2:
@@ -3522,7 +3505,7 @@ s32 CDepthOfField::Unk_4b29b0(s32 level) {
             if (field_16c == 1)
                 range = Unk_Float2(-item->field_d8, item->field_dc);
             CRenderTexture* mask = nullptr;
-            if (level >= 2 && field_c0.field_6d) {
+            if (field_c0.field_6d && level >= 2) {
                 s32 index;
                 switch (level) {
                 case 2:
@@ -4220,10 +4203,9 @@ s32 CDepthOfField::CreateScatterBokehOpticsTexture(u32 width, u32 height, const 
 
 // 0x7100461f20 (GPUTextureUtil.cpp): a cosine falloff to the edge
 void Unk_461f20(Unk_Float4* out, const Unk_Float2* position, const Unk_Float2* size, const f32* params);
-// 0x7100462330 (GPUTextureUtil.cpp; placeholder signature, from its callers):
-// a texture's levels from an image (`levels`: the levels' data, made for the
-// caller)
-void Unk_462330(IGPUBaseTexture* texture, const void* data, s32 arg2, s32 arg3, u8*** levels, f32 arg5);
+// 0x7100462330 (GPUTextureUtil.cpp): a texture's levels from an image
+// (`levels`: the levels' data, made for the caller)
+s32 Unk_462330(IGPUBaseTexture* texture, const void* data, bool arg2, bool arg3, u8*** levels, f32 arg5);
 // 0x710040f610 (Unk_415f40.cpp)
 s32 Unk_40f610(s32 value, bool up, s32 count);
 
@@ -4539,7 +4521,7 @@ s32 CDepthOfField::CreateDeviceResources() {
                 *reinterpret_cast<u32*>(row + x * bpp) = Unk_PackABGR(color);
             }
         }
-        Unk_462330(static_cast<IGPUTexture*>(field_3a0), image, 1, 0, nullptr, 1.0f);
+        Unk_462330(static_cast<IGPUTexture*>(field_3a0), image, true, false, nullptr, 1.0f);
         static_cast<IGPUTexture*>(field_3a0)->vf15(3);
         Unk_FreeArray(image);
     }
@@ -4639,7 +4621,7 @@ s32 CDepthOfField::CreateDeviceResources() {
                 field_338[s][i] = params->field_14;
                 field_358[s][i] = static_cast<f32>(covered / 16384.0);
                 u8** levels = nullptr;
-                Unk_462330(static_cast<IGPUTexture*>(field_2f8[s][i]), image, 0, 0, &levels, 1.0f);
+                Unk_462330(static_cast<IGPUTexture*>(field_2f8[s][i]), image, false, false, &levels, 1.0f);
                 u32 level = static_cast<u32>(logf(128.0f / static_cast<f32>(size)) / 0.6931472f);
                 static_cast<IGPUTexture*>(field_318[s][i])->vf9(levels[level], 0, 0, true);
                 for (s32 k = 0; k < 6; k++) {

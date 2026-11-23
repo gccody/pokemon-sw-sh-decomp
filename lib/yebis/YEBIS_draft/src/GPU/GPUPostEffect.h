@@ -13,12 +13,28 @@
 #include <yebis/YEBIS_draft/src/GPU/GPUMemoryAllocator.h>
 #include <yebis/YEBIS_draft/src/GPU/Unk_410f90.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_Interface.h>
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_FixedHeapAllocator2.h>
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/SiGfx_Kernel_Impl.h>
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_Device_Impl.h>
+
+// 0x71024e09bc (placeholder; GPUPostEffect.cpp)
+extern s32 Unk_24e09bc;
+// 0x7100440c00 (lib/yebis/leaf/Unk_43dc00.cpp)
+u32 Unk_440c00_get(u64 device, u32 arg);
+// 0x71024e09b8 (placeholder; GPUPostEffect.cpp): EndPostEffectScene_Process
+// ORs it into field_67b
+extern bool Unk_24e09b8;
 
 namespace PPFX {
 
 class CRenderTexture;
 class CRenderTextureArray;
 class CTextureLuminanceManage;
+struct Unk_49b230_Object;
+struct Unk_GPUTexture;
+// 0x710049da70 (GPURenderTexture.h)
+s32 Unk_49da70(s32 count, CRenderTexture** targets, Unk_49b230_Object* depth, Unk_49b230_Object* arg3, s32 arg4,
+               void* arg5, s32 arg6, s32 arg7, s32 arg8, f32 arg9);
 
 // CRenderTexture (0x7100481000 and on), as this file reads it
 struct Unk_RenderTexture {
@@ -57,7 +73,8 @@ struct Unk_4a5d10_Self {
     u8 pad_40[0x10];
     Unk_RenderTexture* field_50;
     void* field_58;
-    u8 pad_60[0x20];
+    Unk_GPUTexture* field_60[2];  // its depth textures' device textures
+    u8 pad_70[0x10];
     Unk_RenderTexture* field_80[2];  // its depth textures
     s32 field_90;  // the current one
     u32 field_94;
@@ -153,25 +170,34 @@ struct Unk_45eb90_Self {
     s32 field_d4;  // its format
     u8 pad_d8[0x30];
     bool field_108;
-    u8 pad_109[0x7];
+    u8 pad_109[0x3];
+    s32 field_10c;  // how many light shafts it can draw
     bool field_110;
     u8 pad_111[0x3];
     s32 field_114;  // how many light ghosts it can draw
     u8 pad_118[0xc];
     f32 field_124;
     f32 field_128;
-    u8 pad_12c[0x1c];
+    u8 pad_12c[0xc];
+    f32 field_138;
+    u8 pad_13c[0xc];
     f32 field_148;
     f32 field_14c;
     f32 field_150;
-    u8 pad_154[0x58];
+    u8 pad_154[0x2c];
+    bool field_180;  // whether there is a vignette
+    u8 pad_181[0x7];
+    f32 field_188;
+    bool field_18c;
+    u8 pad_18d[0x1f];
     bool field_1ac;
     u8 pad_1ad[0x37];
     s32 field_1e4;
     f32 field_1e8;
     s32 field_1ec;
     f32 field_1f0;
-    u8 pad_1f4[0xc];
+    s32 field_1f4;  // how many light shafts it draws
+    u8 pad_1f8[0x8];
     s32 field_200;  // how many light ghosts it draws
     u8 pad_204[0x4];
     struct Unk_423ba0_Item* field_208;  // the light ghosts
@@ -192,7 +218,11 @@ struct Unk_45eb90_Self {
     s32 field_2ec;
     u8 pad_2f0[0x120];
     bool field_410;
+    u8 pad_411[0xf];
+    Unk_RenderTexture* field_420;
 };
+PKMN_OFFSET_ASSERT(Unk_45eb90_Self, field_138, 0x138);
+PKMN_OFFSET_ASSERT(Unk_45eb90_Self, field_420, 0x420);
 PKMN_OFFSET_ASSERT(Unk_45eb90_Self, field_248, 0x248);
 PKMN_OFFSET_ASSERT(Unk_45eb90_Self, field_2ec, 0x2ec);
 // a view's light shaft and light ghost settings
@@ -299,6 +329,42 @@ s32 Unk_45eb90(PPFX::Unk_45eb90_Self* self, f32 width, f32 height, f32 x, f32 y)
 s32 Unk_4aa5a0(PPFX::Unk_4aa5a0_Self* self, f32 width, f32 height, f32 x, f32 y);
 // 0x71004a6160
 s32 Unk_4a6160(PPFX::Unk_4a5d10_Self* self, void* arg1, s32 arg2, f32 arg3);
+// 0x710043dc00 (lib/yebis/leaf/Unk_43dc00.cpp): a lazy draw command's release
+// (placeholder type: GPUSiGfxLazyDrawCommand's layout)
+struct Unk_43dc00;
+u32 Unk_43dc00_get(Unk_43dc00* self);
+// 0x71004bc760 (Unk_4bc640.cpp), 0x71004cbd40 and 0x71004cbdd0 (Unk_4cbd40.cpp:
+// SiGfx's initialisation and its end)
+// 0x710049eb10, 0x710049eb20 (lib/yebis/leaf/Unk_49eb10.cpp), 0x710049fdc0
+// (lib/yebis/leaf/Unk_49fdc0.cpp: a render texture pool's release of a texture)
+u32 Unk_49eb10_get();
+u32 Unk_49eb20_get(u32 value);
+void Unk_49fdc0_call(void* self, u64 value);
+void Unk_4bc760(u64 value);
+bool Unk_4cbd40(SiSDK3::ISiAllocator* pAllocator);
+void Unk_4cbdd0();
+// 0x71024e09c0, 0x71024e09c8: the memory pool storage buffer and its size;
+// 0x71024e09d0, 0x71024e09d8: the NVN texture and sampler pools (GPUPostEffect.cpp)
+extern u64 Unk_24e09c0;
+extern s32 Unk_24e09c8;
+extern void* Unk_24e09d0;
+extern void* Unk_24e09d8;
+// 0x710238c2e4, 0x710238c2e8: the first descriptor the post effect's texture
+// and sampler pools keep for themselves (-1: the pool's last ones) and how
+// many (placeholders)
+extern s32 Unk_238c2e4;
+extern s32 Unk_238c2e8;
+
+// what SiSDK3::SiGfxKernel's slot 37 (Unk_4cbf40_get()->vf37()) gives, as
+// CreateInternalResource_SiGfx calls it (placeholder)
+struct Unk_4cbf40_Object {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5(SiSDK3::ISiAllocator* pAllocator);  // sets the allocator
+};
 
 namespace PPFX {
 
@@ -568,11 +634,69 @@ struct Unk_417b30_Desc {
     u64 field_8;  // the frame buffer
     u32 field_10;
     u32 field_14;
-    u8 pad_18[0x48];
+    void* field_18;  // the NVN device
+    // the callbacks that register and release the texture and sampler
+    // descriptors, and what each is given (null: the post effect's own)
+    void* field_20;
+    void* field_28;
+    void* field_30;
+    void* field_38;
+    void* field_40;
+    void* field_48;
+    void* field_50;
+    void* field_58;
     u64 field_60;
     u64 field_68;
     u64 field_70;
 };
+
+// four numbers that 0x71004320b0 hands on by address, copied (placeholder)
+struct Unk_4320b0_Vector {
+    f32 field_0[4];
+};
+PKMN_SIZE_ASSERT(Unk_4320b0_Vector, 0x10);
+
+// what 0x71004306b0 hands 0x7100430250 and 0x710042f540 (placeholder)
+struct Unk_42f540_Params {
+    void* field_0;  // the target surface (its size at 0x4c)
+    f32 field_8;
+    f32 field_c;
+    f32 field_10;
+    s32 field_14;
+    Unk_Float4 field_18;
+    s32 field_28;
+    s32 field_2c;
+    MATRIXT44 field_30;
+    MATRIXT44 field_70;
+    f32 field_b0;
+    f32 field_b4;
+    f32 field_b8;
+    f32 field_bc;
+    f32 field_c0;
+    f32 field_c4;
+    bool field_c8;
+    u8 pad_c9[0x3];
+    f32 field_cc;
+    f32 field_d0;
+    f32 field_d4;
+    f32 field_d8;
+    f32 field_dc;
+};
+PKMN_SIZE_ASSERT(Unk_42f540_Params, 0xe0);
+
+// a depth cast type kept if it is one of the four (-1 otherwise; inline: the
+// callers of GPUPostEffect.cpp's Unk_DepthCastType that check its result)
+inline s32 Unk_CheckDepthCastType(s32 type) {
+    switch (type) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+        return type;
+    default:
+        return -1;
+    }
+}
 
 class CPostEffect {
 public:
@@ -580,11 +704,12 @@ public:
     ~CPostEffect();              // 0x7100419550
     // 0x710041afb0 (its log lines name it)
     s32 Initialize(const Unk_417b30_Desc* desc, u32 arg2, u32 arg3, u32 arg4, void* arg5);
-    s32 Unk_419690(void* arg);   // 0x7100419690: its uninitialisation
-    // 0x71004229e0 (not written yet; placeholder signature, from the call):
-    // makes what the description doesn't give (Initialize's first step)
-    s32 Unk_4229e0(void** device, const Unk_417b30_Desc* desc);
-    s32 Unk_425750();  // 0x7100425750 (not written yet)
+    s32 Uninitialize(void* arg);   // 0x7100419690: its uninitialisation
+    // 0x71004229e0 (its log lines name it): makes what the description
+    // doesn't give (Initialize's first step)
+    s32 CreateInternalResource_SiGfx(void** device, const Unk_417b30_Desc* desc);
+    s32 Unk_425750();  // 0x7100425750
+    s32 UpdateParameters_Base();  // 0x710042a7e0 (its log lines name it)
     s32 Unk_426a50();  // 0x7100426a50
     // 0x7100423160: the object of two device objects (key) made or found
     u64 Unk_423160(u64 arg1, u64 arg2, void* device);
@@ -604,10 +729,12 @@ public:
     // 0x71004346f0, 0x71004347e0 (their log lines name them)
     s32 EndPostEffectScene(u32 flags, s32 samples);
     s32 EndPostEffectScene_Process(u32 flags, s32 samples);
+    // 0x7100435180 (EndPostEffectScene_Process's log line names it)
+    s32 EndPostEffectScene_PreProcess(u32 flags, s32 samples);
     s32 Unk_438510();  // 0x7100438510: the end of the scene (EndPostEffectScene_Process)
     // 0x710042cc90
-    s32 Unk_42cc90(s32 view, s32 arg2, void* arg3, void* arg4, bool arg5, void* arg6, u32 arg7, u32 arg8, u32 arg9,
-                   f32 arg10);
+    s32 Unk_42cc90(s32 view, bool clear, void* source, void* target, bool keep, void* mask, u32 maskSpace,
+                   u32 depthSpace, u32 flags, f32 offset);
     s32 Unk_42cba0(bool arg);  // 0x710042cba0
     // 0x710042df80
     s32 Unk_42df80(s32* outFormat, f32* outScale, f32* outScale2, f32* outDither, bool* outHasGamma, f32* outGamma,
@@ -646,19 +773,37 @@ public:
     // 0x7100435ed0: CPostEffect::EndPostEffectScene_InternalProcess (its log
     // lines name it)
     s32 Unk_435ed0();
-    s32 Unk_42c300();  // 0x710042c300 (not written yet)
-    // 0x71004320b0 (not written yet; placeholder signature, from the call)
-    s32 Unk_4320b0(Unk_RenderTexture* source, void* arg2, s32 arg3, s32 arg4);
+    // 0x710042c300 (its log line names it)
+    s32 ApplyEffects_GenerateNormalAndLinearDepth();
+    // 0x71004320b0: Unk_48cc30 from `source` (`target`: its texture, else
+    // the one field_5f8 names) when field_10de or `force` says so
+    s32 Unk_4320b0(Unk_RenderTexture* source, Unk_RenderTexture* target, bool flag, bool force);
     s32 Unk_432570();  // 0x7100432570 (not written yet)
     s32 Unk_433450();  // 0x7100433450 (not written yet)
     s32 Unk_42d490(Unk_RenderTexture* source);  // 0x710042d490 (not written yet)
-    s32 Unk_434000(Unk_RenderTexture* source);  // 0x7100434000 (not written yet)
-    s32 Unk_433d00(Unk_RenderTexture* source);  // 0x7100433d00 (not written yet)
+    s32 Unk_434000(Unk_RenderTexture* source);  // 0x7100434000
+    s32 Unk_433d00(Unk_RenderTexture* source);  // 0x7100433d00
+    // 0x7100431b40: the colour chart's look-up textures, drawn again when
+    // the colour spaces or field_bc4 and field_bc8 changed (1: none drawn)
+    s32 Unk_431b40();
+    // 0x71004306b0: the colour chart (0x7100430250) drawn into `surface`,
+    // once more for the second output when there is one
+    s32 Unk_4306b0(void* surface, f32 a, f32 b, f32 c, s32 arg4, const Unk_Float4* color, s32 arg6,
+                   const MATRIXT44* matrix, f32 d, f32 e, f32 f, f32 g);
+    // 0x710042f540: part `kind` of the colour chart in the `w` by `h`
+    // rectangle at `x`, `y` of the `width` by `height` area
+    s32 Unk_42f540(s32 kind, bool second, bool hdr, const Unk_42f540_Params* params, f32 width, f32 height, f32 x,
+                   f32 y, f32 w, f32 h, f32 a, f32 b, f32 c, f32 d);
+    // 0x7100430250: its parts (0x710042f540) laid out in a `width` by
+    // `height` area from `x`, `y`
+    s32 Unk_430250(bool second, bool hdr, bool pq, bool flag, const Unk_42f540_Params* params, f32 x, f32 y,
+                   f32 width, f32 height);
     // 0x7100430a10 (not written yet; placeholder signature, from the call)
     s32 Unk_430a10(Unk_RenderTexture* source, void* arg2, void* surface, bool arg4);
-    void Unk_4386d0();  // 0x71004386d0 (not written yet)
+    void DrawDebugBuffers();  // 0x71004386d0 (not written yet)
     // 0x7100428220
-    void Unk_428220();
+    s32 Unk_428220();
+    bool Unk_4291c0();  // 0x71004291c0
     // 0x710042a590: what changed since the last frame's view (placeholder)
     s32 Unk_42a590(bool* far, bool* moved, bool* projection, bool* rotation, bool* any);
     // field_895 set: what 0x7100428220 brings up to date is out of date
@@ -672,6 +817,14 @@ public:
     // space `from` to `to` (6: field_5c's), for depths scaled by `a` and moved
     // by `b`
     s32 Unk_428cc0(f32* out, s32 from, s32 to, f32 a, f32 b);
+    // its four numbers as one (inline: its array takes the caller's highest
+    // stack slot)
+    Unk_Rect Unk_DepthFactors(s32 from, s32 to, f32 a, f32 b) {
+        f32 factors[4];
+        Unk_428cc0(factors, from, to, a, b);
+        Unk_Rect result = {factors[0], factors[1], factors[2], factors[3]};
+        return result;
+    }
     f32 Unk_4280e0();  // 0x71004280e0
     bool Unk_427ad0();  // 0x7100427ad0
     MATRIXT44 Unk_429c50(bool arg);  // 0x7100429c50
@@ -684,13 +837,14 @@ public:
     s32 Unk_432ca0(f32 scale, Unk_RenderTexture* arg1, Unk_RenderTexture* arg2, Unk_RenderTexture* arg3,
                    Unk_RenderTexture* arg4, const Unk_Float4* color, s32 filter, bool list, bool negate);
     bool Unk_434570();  // 0x7100434570
-    s32 Unk_426210();  // 0x7100426210
+    s32 EndCommandList_SiGfx();  // 0x7100426210
     // 0x7100426070: a view's (0x7fffffff: every view's) exposure history set
     // to `value` (when not positive, from field_6c4 and field_6c8)
     s32 Unk_426070(s32 view, f32 value);
     // 0x7100425dd0: CPostEffect::InitializeAutoExposure (its log line names it)
     s32 InitializeAutoExposure(s32 view, f32 luminance, f32 adjusted);
-    s32 Unk_426700(s32 arg1, void* arg2, s32 arg3, s32 arg4, f32 arg5);  // 0x7100426700
+    // 0x7100426700 (its log line names it)
+    s32 BeginPostEffectScene(u32 clearFlags, const void* clearColor, f32 clearDepth, u32 clearStencil, s32 aux);
     s32 BeginCommandList_SiGfx();  // 0x7100425c50 (its log lines name it)
     s32 Unk_423630(bool enable);        // 0x7100423630
     s32 SetAntialiasType(s32 type);     // 0x7100423850
@@ -703,10 +857,35 @@ public:
         return Unk_4a5d10(field_190, 0x7fffffff, width, height, x, y);
     }
 
+    // whether the output is an HDR one (inline)
+    bool Unk_IsHdrOutput() const { return field_96c || Unk_24e09bc != 0; }
+    // whether it is one in field_970's way (inline)
+    bool Unk_IsHdrDirect() const { return field_96c && field_970 != 0; }
+    // `target` as the device's only target (inline: its array takes the
+    // caller's highest stack slot)
+    static s32 Unk_SetTarget(CRenderTexture* target) {
+        CRenderTexture* targets[8] = {target};
+        return Unk_49da70(8, targets, nullptr, nullptr, 0, nullptr, 0, 0, 0, 1.0f);
+    }
+
     // per-view records (inline: the callers read the index before the array)
     s32 Unk_Frame(s32 view) const { return field_290[view]; }
     Unk_423990_Item& Unk_LightShaft(s32 view) { return field_858[view]; }
     Unk_423ba0_Item& Unk_LightGhost(s32 view) { return field_868[view]; }
+    // what field_e04 holds from 0xe88 on, as 0x71004320b0 reads it (a
+    // number, a render texture and four numbers; inline)
+    s32 Unk_E88() const { return *reinterpret_cast<const s32*>(&field_e04[(0xe88 - 0xe04) / 4]); }
+    // the same of 0xe04 (a mode) and 0xe48 (a matrix), as 0x710042c300 reads them
+    s32 Unk_E04() const { return *reinterpret_cast<const s32*>(&field_e04[0]); }
+    const MATRIXT44& Unk_E48() const {
+        return *reinterpret_cast<const MATRIXT44*>(&field_e04[(0xe48 - 0xe04) / 4]);
+    }
+    CRenderTexture* Unk_E90() const {
+        return *reinterpret_cast<CRenderTexture* const*>(&field_e04[(0xe90 - 0xe04) / 4]);
+    }
+    const Unk_4320b0_Vector& Unk_E98() const {
+        return *reinterpret_cast<const Unk_4320b0_Vector*>(&field_e04[(0xe98 - 0xe04) / 4]);
+    }
 
     // UNK_FIELDS_BEGIN
     bool field_0;  // between BeginPostEffectScene() and EndPostEffectScene()
@@ -976,11 +1155,13 @@ public:
     u32 field_5dc;  // whether the render buffer has mip textures
     s32 field_5e0;
     u32 field_5e4;
-    u8 pad_5e8[0x4];
+    s32 field_5e8;  // the render buffer's texture in use
     s32 field_5ec;
     s32 field_5f0;
     s32 field_5f4;
-    u8 pad_5f8[0xc];
+    s32 field_5f8;
+    s32 field_5fc;
+    s32 field_600;
     s32 field_604;
     s32 field_608;
     s32 field_60c;
@@ -1006,7 +1187,8 @@ public:
     s32 field_668;
     s32 field_66c;
     s32 field_670;
-    u8 pad_674[0x5];
+    u8 pad_674[0x4];
+    bool field_678;
     bool field_679;
     bool field_67a;
     bool field_67b;
@@ -1026,7 +1208,9 @@ public:
     s32 field_6ac;
     u32 field_6b0;
     u32 field_6b4;
-    u8 pad_6b8[0xc];
+    u32 field_6b8;  // the scene's clear flags, depth and stencil
+    f32 field_6bc;
+    u32 field_6c0;
     f32 field_6c4;
     f32 field_6c8;
     f32 field_6cc;
@@ -1110,13 +1294,20 @@ public:
     f32 field_924;
     Unk_Rect field_928;
     f32 field_938;
-    u8 pad_93c[0x11];
+    f32 field_93c;
+    f32 field_940;
+    f32 field_944;
+    f32 field_948;
+    bool field_94c;  // whether field_93c and field_944 are scaled by field_89c
     bool field_94d;
     u8 pad_94e[0x2];
     f32 field_950;
     f32 field_954;
     f32 field_958;
-    u8 pad_95c[0xc];
+    f32 field_95c;
+    f32 field_960;
+    bool field_964;  // field_960's side is the far one
+    u8 pad_965[0x3];
     f32 field_968;  // the dither's offset scale
     bool field_96c;
     u8 pad_96d[0x3];
@@ -1125,8 +1316,8 @@ public:
     s32 field_978;
     u32 field_97c;
     f32 field_980;
-    s32 field_984;
-    s32 field_988;
+    f32 field_984;
+    f32 field_988;
     f32 field_98c;
     f32 field_990;
     f32 field_994;
@@ -1153,9 +1344,15 @@ public:
     bool field_bcd;
     bool field_bce;
     u8 pad_bcf[0x1];
-    s32 field_bd0;
+    f32 field_bd0;
     f32 field_bd4;
-    u64 field_bd8;
+    union {
+        u64 field_bd8;  // (the constructor zeroes it as one)
+        struct {
+            f32 field_bd8_f;  // the feedback's numbers (0x7100434000)
+            f32 field_bdc;
+        };
+    };
     u32 field_be0;
     bool field_be4;
     u8 pad_be5[0x3];
@@ -1194,7 +1391,7 @@ public:
     f32 field_c64;
     f32 field_c68;
     bool field_c6c;
-    u8 pad_c6d[0x1];
+    bool field_c6d;  // there are light shafts to draw
     bool field_c6e;  // there are light ghosts to draw
     bool field_c6f;
     bool field_c70;
@@ -1275,32 +1472,48 @@ public:
     bool field_de8;
     u8 pad_de9[0x7];
     Unk_RenderTexture* field_df0;
-    u64 field_df8;
+    union {
+        u64 field_df8;  // (the constructor zeroes it as one)
+        struct {
+            s32 field_df8_i;  // the normal's mode (0x710042c300)
+            s32 field_dfc;
+        };
+    };
     bool field_e00;
     u8 pad_e01[0x3];
     f32 field_e04[41];
-    u64 field_ea8;
-    u64 field_eb0;
+    union {
+        struct {
+            u64 field_ea8;
+            u64 field_eb0;
+        };
+        Unk_4320b0_Vector field_ea8_v;
+    };
     bool field_eb8;
     u8 pad_eb9[0x3];
     s32 field_ebc;
     f32 field_ec0;
-    s32 field_ec4;
-    s32 field_ec8;
+    f32 field_ec4;
+    f32 field_ec8;
     f32 field_ecc;
     f32 field_ed0;
-    s32 field_ed4;
+    f32 field_ed4;
     f32 field_ed8;
-    f32 field_edc;
-    f32 field_ee0;
-    f32 field_ee4;
-    f32 field_ee8;
+    union {
+        struct {
+            f32 field_edc;
+            f32 field_ee0;
+            f32 field_ee4;
+            f32 field_ee8;
+        };
+        Unk_4320b0_Vector field_edc_v;
+    };
     f32 field_eec;
     f32 field_ef0;
     s32 field_ef4;
     f32 field_ef8;
     f32 field_efc;
-    s32 field_f00;
+    f32 field_f00;
     s32 field_f04;
     bool field_f08;
     u8 pad_f09[0x3];
@@ -1308,11 +1521,11 @@ public:
     bool field_f10;
     u8 pad_f11[0x3];
     f32 field_f14;
-    s32 field_f18;
+    f32 field_f18;
     f32 field_f1c;
     f32 field_f20;
     f32 field_f24;
-    s32 field_f28;
+    f32 field_f28;
     s32 field_f2c;
     s32 field_f30;
     f32 field_f34;
@@ -1377,7 +1590,9 @@ public:
     f32 field_1070;
     bool field_1074;
     bool field_1075;
-    u8 pad_1076[0xa];
+    u8 pad_1076[0x2];
+    s32 field_1078;  // the depth of field's mode this frame (-1: none)
+    u8 pad_107c[0x4];
     bool field_1080;
     u8 pad_1081[0x3];
     Unk_Float2 field_1084;
@@ -1395,7 +1610,7 @@ public:
     bool field_10da;
     bool field_10db;
     bool field_10dc;
-    u8 pad_10dd[0x1];
+    bool field_10dd;  // the normal and linear depth are drawn
     bool field_10de;
     bool field_10df;
     u8 pad_10e0[0x1];
@@ -1403,7 +1618,23 @@ public:
     u8 pad_10e2[0x2];
     u32 field_10e4[18];
     u32 field_112c;
-    u64 field_1130[6];
+    union {
+        u64 field_1130[6];  // (the constructor zeroes them as these)
+        struct {
+            f32 field_1130_0;  // the colour chart's numbers (0x7100430a10)
+            f32 field_1134;
+            f32 field_1138;
+            f32 field_113c;
+            f32 field_1140;
+            f32 field_1144;
+            f32 field_1148;
+            f32 field_114c;
+            f32 field_1150;
+            f32 field_1154;
+            f32 field_1158;
+            f32 field_115c;
+        };
+    };
     u32 field_1160;
     u8 pad_1164[0x4];
     u64 field_1168;
@@ -1479,6 +1710,17 @@ PKMN_OFFSET_ASSERT(CPostEffect, field_f64, 0xf64);
 PKMN_OFFSET_ASSERT(CPostEffect, field_1024, 0x1024);
 PKMN_OFFSET_ASSERT(CPostEffect, field_1080, 0x1080);
 PKMN_OFFSET_ASSERT(CPostEffect, field_10e1, 0x10e1);
+PKMN_OFFSET_ASSERT(CPostEffect, field_bdc, 0xbdc);
+PKMN_OFFSET_ASSERT(CPostEffect, field_ea8_v, 0xea8);
+PKMN_OFFSET_ASSERT(CPostEffect, field_edc_v, 0xedc);
+PKMN_OFFSET_ASSERT(CPostEffect, field_f00, 0xf00);
+PKMN_OFFSET_ASSERT(CPostEffect, field_115c, 0x115c);
+PKMN_OFFSET_ASSERT(CPostEffect, field_94c, 0x94c);
+PKMN_OFFSET_ASSERT(CPostEffect, field_964, 0x964);
+PKMN_OFFSET_ASSERT(CPostEffect, field_f18, 0xf18);
+PKMN_OFFSET_ASSERT(CPostEffect, field_1078, 0x1078);
 PKMN_OFFSET_ASSERT(Unk_45eb90_Self, field_410, 0x410);
+PKMN_OFFSET_ASSERT(Unk_4a5d10_Self, field_60, 0x60);
+PKMN_OFFSET_ASSERT(Unk_4a5d10_Self, field_80, 0x80);
 
 }  // namespace PPFX

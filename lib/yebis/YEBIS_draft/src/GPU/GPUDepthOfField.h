@@ -225,8 +225,8 @@ public:
     }
     // 0x71004afc40: the camera (placeholder parameter names)
     // (the mode's position among the floats decides the order of the entry's copies)
-    void Unk_4afc40(f32 width, f32 height, f32 tanHalfFov, f32 a3, f32 a4, f32 a5, f32 a6, f32 a7, s32 mode, f32 b0,
-                    f32 b1, f32 b2, f32 b3, f32 b4, f32 width2, f32 height2);
+    s32 Unk_4afc40(f32 width, f32 height, f32 tanHalfFov, f32 a3, f32 a4, f32 a5, f32 a6, f32 a7, s32 mode, f32 b0,
+                   f32 b1, f32 b2, f32 b3, f32 b4, f32 width2, f32 height2);
     // 0x71004afae0: the near and far blur sizes (1 when there is no blur)
     s32 Unk_4afae0(f32* nearSize, f32* farSize);
     // 0x71004b35a0: a level's texture of one of two sets

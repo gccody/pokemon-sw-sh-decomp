@@ -148,7 +148,9 @@ public:
     virtual void vf5(ISiAllocator* pAllocator);  // 0x71004cde00: sets the allocator
     virtual u64 vf6();
     virtual u64 vf7();
-    virtual ISiGfxDevice* vf8(u32 kind);  // 0x71004ce080: makes a device of a kind
+    // 0x71004ce080: makes a device of a kind (the second argument is unread;
+    // PPFX gives it 0)
+    virtual ISiGfxDevice* vf8(u32 kind, u32 arg2);
     virtual u32 vf9();
     virtual ISiGfxDevice* vf10(s32 index);   // 0x71004ce1c0
     virtual void vf11(ISiGfxDevice* device);  // 0x71004ce210: takes one out

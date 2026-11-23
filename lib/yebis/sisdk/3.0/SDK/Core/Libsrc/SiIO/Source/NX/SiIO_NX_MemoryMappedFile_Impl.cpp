@@ -26,16 +26,18 @@ SiIONXMemoryMappedFile::~SiIONXMemoryMappedFile() {
 }
 
 // 0x710058bab0
-// NON_MATCHING: the tail's two tests are in the other order: the original
-// branches on the read's comparison first (`cset w0, eq; b.ne ret; tbz w19,
-// #3, ret; mov w0, #1`), this tests the mode's bit 3 first. With the mode
-// string's scope ending before `return true` the test stays at all (without
-// it clang folds the two results into one; 38 instructions off). What the code
-// shows otherwise: the mode's flags are tested as (mode & flag) == flag, the
-// mode string has 16 bytes, and each character is stored before the length
-// grows. Tried: the tests split, nested, joined either way, the read as
-// int/u8/size_t, the text flag in a local; `!read || (mode & 8) != 8` gives the
-// tail's order but moves the mode tests' blocks.
+// NON_MATCHING: 2 instructions: the tail's two tests are in the other order.
+// The original branches on the read's comparison first (`cset w0, eq; b.ne
+// ret; tbz w19, #3, ret; mov w0, #1`). Here SimplifyCFG joins the two tests
+// into one `and i1` and Reassociate puts the operand of lower rank first: the
+// mode's test (computed from an argument) ranks below the read's (computed
+// from a call), whatever the source order. The mode's test must stay the one
+// the mode string's 'r' test uses (two uses keep that branch's polarity and so
+// the blocks' layout at the top); a separate `(mode & 8) != 8` gives the
+// tail's order but flips the top. With the mode string's scope ending before
+// `return true` the test stays at all (without it clang folds the two results
+// into one; 38 instructions off). Tried: the tests split, nested, joined
+// either way, `!(a == b)`, a goto, the read as int/u8/size_t.
 bool SiIONXMemoryMappedFile::vf5(const char* path, u32 mode) {
     vf6();
     {

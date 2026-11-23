@@ -42,15 +42,12 @@ s32 CRenderTexturePool::Unk_49f6a0(const char* name) {
 }
 
 // 0x710049f7b0
-// NON_MATCHING: the original's three failed comparisons share one `return
-// false` block (64 bytes); here each gets its own copy (80 bytes), whether
-// the test is written as one && chain or as early returns. Inlined in
-// AllocateTextures it is the same code as the original's.
 bool CRenderTexturePool::Unk_49f7b0(const CRenderTexture* texture, s32 width, s32 height, s32 format, u32 flags,
                                     u32 mask) {
-    if (texture->field_54 != width || texture->field_58 != height || texture->field_2c.field_c != format)
+    if (texture->field_54 != width || texture->field_58 != height || texture->field_2c.field_c != format ||
+        ((texture->field_2c.field_0 ^ flags) & mask) != 0)
         return false;
-    return ((texture->field_2c.field_0 ^ flags) & mask) == 0;
+    return true;
 }
 
 // 0x710049f7f0
@@ -197,10 +194,11 @@ s32 CRenderTexturePool::vf3() {
 }  // namespace PPFX
 
 // 0x710049fc60
-// NON_MATCHING: 4 instructions. The original reads the erased node's links
-// before it clears the node's entry pointer (here the store comes first), and
-// in the copy of the loop for a count below 1 one comparison has its operands
-// the other way round.
+// NON_MATCHING: 1 instruction: in the copy of the loop for a count below 1
+// the end test compares the iterator with the end (the iterator is a pointer
+// phi there, so InstCombine puts it first); the original compares the end
+// with it. (The entry pointer is cleared whether or not it was set: the
+// original's store comes after the links are read.)
 s32 Unk_49fc60(void* self, u32 count_, void* textures_) {
     using namespace PPFX;
     CRenderTexturePool* pool = static_cast<CRenderTexturePool*>(self);
@@ -219,7 +217,9 @@ s32 Unk_49fc60(void* self, u32 count_, void* textures_) {
                 if (texture->Unk_Release() == 0) {
                     entry->field_8 = nullptr;
                     destroyed++;
-                    UNK_DELETE(*it);
+                    if (*it != nullptr)
+                        PPFX::Unk_Delete(Unk_238d5f8, *it);
+                    *it = nullptr;
                     it = pool->field_30.erase(it);
                     break;
                 }
