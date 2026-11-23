@@ -5,6 +5,8 @@
 [![Sword progress](https://raw.githubusercontent.com/gccody/pokemon-sw-sh-decomp/progress/sword.svg)](#progress)
 [![Shield progress](https://raw.githubusercontent.com/gccody/pokemon-sw-sh-decomp/progress/shield.svg)](#progress)
 
+**[Progress website →](https://gccody.github.io/pokemon-sw-sh-decomp/)** per library and subsystem, per function, and over time.
+
 A matching decompilation of **Pokémon Sword and Shield 1.0.0** (Nintendo Switch).
 Both games are built from **one source tree**, and every function is checked
 against **both** original executables.
@@ -14,6 +16,11 @@ against **both** original executables.
 > `*.nso` and keys are gitignored, so never force-add them.
 
 ## Progress
+
+For more detail, see the **[progress website](https://gccody.github.io/pokemon-sw-sh-decomp/)**:
+progress per library and Game Freak subsystem, every function with its status
+(searchable, sortable by size to find work), and history back to the first
+commit, with what each commit matched.
 
 [![Progress treemap: each cell is a run of neighbouring functions, sized by code and coloured by how much of it matches](https://raw.githubusercontent.com/gccody/pokemon-sw-sh-decomp/progress/treemap.svg)](https://raw.githubusercontent.com/gccody/pokemon-sw-sh-decomp/progress/treemap.svg)
 
@@ -28,8 +35,12 @@ Shield-only functions).
 
 CI regenerates these images from `data/functions.csv` on every push to `master`
 ([progress.yml](.github/workflows/progress.yml)) and publishes them to the
-[`progress`](https://github.com/gccody/pokemon-sw-sh-decomp/tree/progress) branch, along with `progress.json`. For local
-numbers, run `python tools/progress.py`.
+[`progress`](https://github.com/gccody/pokemon-sw-sh-decomp/tree/progress) branch, along with `progress.json`.
+The same workflow builds the website with `tools/progress_site.py` (its history
+comes from `git log -p data/functions.csv`, so no commit has to record anything)
+and deploys it to GitHub Pages. For local numbers, run `python tools/progress.py`;
+for a local copy of the site, `python tools/progress_site.py <dir>` and serve
+`<dir>` with any static file server.
 
 ## How the work is split
 
@@ -132,6 +143,7 @@ python tools/progress.py
 | `tools/funcs.py name <addr> <mangled>` | Assign a symbol name to a function |
 | `tools/check.py [name] [--diff] [--update]` | Build both games and check against both originals |
 | `tools/progress.py [--json] [--svg DIR]` | Progress per game, scope and area; `--svg` writes the README badges and treemap |
+| `tools/progress_site.py DIR` | The progress website (static files from `tools/site/` + JSON data, history from git) |
 | `tools/lint.py` | Validate the CSVs and that no game data is tracked (runs in CI) |
 | `tools/compiler_sweep.py` | Rank compilers/flags by how much known source matches the original exactly (docs/compiler.md) |
 
