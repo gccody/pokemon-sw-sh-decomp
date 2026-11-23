@@ -34,9 +34,9 @@ public:
         field_20 = false;
     }
     ~IGPUBuffer() override;                     // 0x7100448b70, 0x7100448c30
-    // 0x7100448c60: makes SiGfx's buffers (what the makers' log lines call
-    // BuildVertexBuffer and BuildIndexBuffer)
-    s32 Unk_448c60(u32 size, u32 count, void* data);
+    // 0x7100448c60 (its log lines name it): makes SiGfx's buffers (what the
+    // makers' log lines call BuildVertexBuffer and BuildIndexBuffer)
+    s32 BuildBuffer(u32 size, u32 count, void* data);
     void* Map(s32 mode, u32 offset, u32 size);  // 0x71004491b0
     void Unmap();                               // 0x7100449380
 

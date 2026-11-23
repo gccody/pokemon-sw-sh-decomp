@@ -20,7 +20,8 @@ class ISiGfxShaderEffectDefinition;
 class ISiGfxShaderEffectVariationList;
 
 // What a package's slot 23 returns (placeholder name): slot 19 is what the
-// utility's slot 11 asks of it.
+// utility's slot 11 asks of it. It is the package's variation list (vf14
+// writes them: SiGfxShaderEffectVariationList's slots).
 class Unk_4e40b0_Object {
 public:
     virtual void vf0();
@@ -136,7 +137,10 @@ public:
     virtual void vf11();  // 0x71004e40b0
     virtual void vf12(const char* path, bool flag);  // 0x71004e4120
     virtual const u8* vf13();
-    virtual void vf14();
+    // 0x71004e4c30: writes the packages' variation lists to the file of
+    // field_110 (merged with the file's own if field_1a1 says so), and the
+    // names they didn't find to a text file next to it
+    virtual bool vf14();
     // reads the variation lists of a file (placeholder types)
     virtual bool vf15(const char* path, SiArray<ISiGfxShaderEffectVariationList*>* lists);  // 0x71004e5f50
     // sets the binary cache package

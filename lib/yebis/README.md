@@ -130,11 +130,13 @@ progressions) were generated from a symbolic trace of the original's calls
 and stores and then kept as source.
 
 The helpers' suffix tables and their "filled in" flags are static variables
-of YEBIS's src/GPU translation unit, which LLVM merged into one object
-(0x71024e45d0, used by functions from 0x7100462fe0 to 0x7100499b70: the TU is
-every src/GPU file) and whose flags it shrank to one bit. They can't be
-defined before the whole TU is here, so the file declares the block as it is
-in the executable (`Unk_24e45d0_Statics`) and tests bit 0 of each flag.
+of the GPUTextureUtil translation unit, which LLVM merged into one object
+(0x71024e45d0, `.L_MergedGlobals`, used by functions from 0x7100462fe0 to
+0x7100499b70) and whose flags it shrank to one bit. They are written as the
+real statics (file-scope tables and flags, function-local statics), and the
+TU's static initialiser 0x7100499b70 matches: the comment above
+`Unk_24e4a18` in `GPUTextureUtil.cpp` gives the layout and why the order of
+the functions and their statics decides it.
 
 `YEBIS_draft/src/GPU/TinyEffect/TFXString.{h,cpp}` is the string those use
 (`TFXString.cpp` is the `__FILE__` of its allocations and asserts; `Clear`
@@ -530,8 +532,9 @@ From CTextureUtil's rectangles and the DrawRectGPU functions that draw them
   `TEXSHADERSET`'s tables with the dimensions the functions index them by
   (`[2][8][22]`, `[2][8][8][22]`, the motion blur's groups of 7).
 - The scratch vectors are part of the TU's merged statics: an element with a
-  variable index is `block + 0x448 + index * 16` in the original, so they are
-  members of `Unk_24e45d0_Statics`, not symbols of their own.
+  variable index is `block + 0x448 + index * 16` in the original. They are
+  the file's `static Unk_Float4 Unk_24e4a18[32]` and `Unk_24e4c18[32]`, which
+  GlobalMerge places at +0x448 and +0x648.
 - `(a + b + 1) < 1` stays a comparison of the sum plus one (no `tbnz` on the
   sum's sign) when the source's association is `a + 1 + b`: reassociating
   drops the no-wrap flags the fold needs. Where a count is computed (before
@@ -552,8 +555,8 @@ From CTextureUtil's rectangles and the DrawRectGPU functions that draw them
   the select into the predecessors before the inliner runs, and the range
   check becomes a table load; after inlining, jump threading sees the select
   first and the range check stays a branch to the block the cases share.
-- Floats written into the scratch vectors four to an element are indexed from
-  the statics block (`Unk_24e45d0.field_448[0].field_0[i].field_0`): with a
+- Floats written into the scratch vectors four to an element are indexed
+  through the first element (`Unk_24e4a18[0].field_0[i].field_0`): with a
   global at the root of the address the copy loop costs one more unit and
   unrolls by 2, through a `f32*` to the member it unrolls by 4.
 - The matrix helpers of the first TU (Unk_415f40.cpp) zero their elements

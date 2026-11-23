@@ -73,7 +73,7 @@ struct Unk_SiGfxDevice {
     virtual void vf27();
     virtual void vf28();
     virtual Unk_SiGfxRenderTarget* vf29(u32 arg1, u32 arg2, void* arg3);  // "ISiGfxDevice::CreateRenderPassState()"
-    virtual void vf30();
+    virtual Unk_SiGfxInterface* vf30(u32 arg1, void* arg2);  // makes a memory heap (IGPUBuffer)
     virtual void vf31();
     virtual void vf32();
     virtual void vf33();
@@ -102,7 +102,7 @@ struct Unk_SiGfxDevice {
     virtual void vf56();
     virtual void vf57();
     virtual void vf58();
-    virtual void vf59();
+    virtual Unk_SiGfxInterface* vf59(void* arg1, u32 arg2, void* arg3);  // makes a buffer (IGPUBuffer)
     virtual void vf60();
     virtual void vf61();
     virtual void vf62();
@@ -137,13 +137,20 @@ struct Unk_SiGfxDevice {
 };
 
 // the draw context (pSiGfxDrawContext)
+// what draw context slot 33 gives (placeholder): the back buffer's render
+// target is at 0x18
+struct Unk_SiGfxBackBuffer {
+    u8 pad_0[0x18];
+    Unk_SiGfxRenderTarget* field_18;
+};
+
 struct Unk_SiGfxDrawContext {
     virtual void vf0();
     virtual void vf1();
-    virtual void vf2();
+    virtual void vf2();  // adds a reference
     virtual void vf3();
     virtual void vf4();
-    virtual void vf5();
+    virtual Unk_SiGfxDevice* vf5();  // the device
     virtual void vf6();
     virtual void vf7();
     virtual bool vf8(void* list);  // BeginCommandList
@@ -171,7 +178,7 @@ struct Unk_SiGfxDrawContext {
     virtual void vf30(void* resource, u32 from, u32 to);  // changes a resource's state
     virtual void vf31();
     virtual void vf32();
-    virtual void vf33();
+    virtual Unk_SiGfxBackBuffer* vf33();  // the back buffer
     virtual void vf34();
     virtual void vf35();
     virtual void vf36();

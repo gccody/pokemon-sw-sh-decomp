@@ -2,6 +2,8 @@
 // as the functions written so far read it.
 #pragma once
 
+#include <string.h>
+
 #include <unordered_map>
 #include <vector>
 
@@ -168,9 +170,10 @@ PKMN_OFFSET_ASSERT(Unk_IndexBuffer, field_50, 0x50);
 // what vf6 keeps in Unk_24e1500 (the TU's initialiser leaves field_18 as it
 // is)
 struct Unk_DeviceSettings {
-    Unk_DeviceSettings() : field_0(0), field_8(0), field_10(0), field_20(-1), field_24(-1), field_28(0) {}
+    Unk_DeviceSettings() : field_0(0), field_4(0), field_8(0), field_10(0), field_20(-1), field_24(-1), field_28(0) {}
 
-    u64 field_0;
+    u32 field_0;  // the back buffer's width (0: the viewport's)
+    u32 field_4;  // and height
     u64 field_8;
     u32 field_10;  // the number of frame slots
     u64 field_18;
@@ -194,6 +197,157 @@ struct Unk_PixelContainer : IGPUInterface {
 };
 PKMN_OFFSET_ASSERT(Unk_PixelContainer, field_a8, 0xa8);
 PKMN_OFFSET_ASSERT(Unk_PixelContainer, field_4c, 0x4c);
+
+// SiGfx's description of a pipeline state as the device keeps one for each
+// blend state (0x530 bytes, placeholder names; SiGfx's own view of it is
+// SiGfxNXPipelineState::Unk_Desc). The parts the blend states are copied to
+// from constants are plain structs.
+struct Unk_PipelineDesc {
+    // the rasterizer: the faces culled, the polygon mode, the samples, the
+    // front face and multisampling
+    struct Unk_Raster {
+        u32 field_0;
+        u32 field_4;
+        u32 field_8;
+        u32 field_c;
+        u32 field_10;
+        u32 field_14;
+        bool field_18;
+        bool field_19;
+        bool field_1a;
+        bool field_1b;
+        bool field_1c;
+        bool field_1d;
+        u8 pad_1e[2];
+    };
+    // the depth function, test and writes
+    struct Unk_Depth {
+        u32 field_0;
+        bool field_4;
+        bool field_5;
+        u8 pad_6[2];
+    };
+    // the stencil test, its masks and the two faces' operations
+    struct Unk_Stencil {
+        bool field_0;
+        u8 field_1;
+        u8 field_2;
+        u8 field_3;
+        u32 field_4;
+        u32 field_8;
+        u32 field_c;
+        u32 field_10;
+        u32 field_14;
+        u32 field_18;
+        u32 field_1c;
+        u32 field_20;
+    };
+    struct Unk_5c {
+        bool field_0;
+        bool field_1;
+    };
+    // a colour target's blending: enabled, the colour's factors and
+    // operation, the alpha's, and the channels written
+    struct Unk_Blend {
+        bool field_0;
+        u32 field_4;
+        u32 field_8;
+        u32 field_c;
+        u32 field_10;
+        u32 field_14;
+        u32 field_18;
+        u8 field_1c[4];
+    };
+    struct Unk_VertexElement {
+        u32 field_0;
+        s32 field_4;
+        u32 field_8;
+        s32 field_c;
+        s32 field_10;
+        u8 field_14[8];
+    };
+    // what SetupSiGfxDrawContext copies from the input attribute
+    struct Unk_4ec {
+        u32 field_0[10];
+    };
+
+    inline Unk_PipelineDesc() {
+        memset(this, 0, sizeof(*this));
+        field_10.field_0 = 3;
+        field_10.field_4 = 3;
+        field_10.field_8 = 0;
+        field_10.field_c = 0;
+        field_10.field_10 = 0;
+        field_10.field_14 = 0;
+        field_10.field_18 = false;
+        field_10.field_19 = false;
+        field_10.field_1a = false;
+        field_10.field_1b = false;
+        field_10.field_1c = false;
+        field_10.field_1d = false;
+        field_30.field_0 = 2;
+        field_30.field_4 = false;
+        field_30.field_5 = true;
+        field_38.field_0 = false;
+        field_38.field_1 = 0xff;
+        field_38.field_2 = 0xff;
+        field_38.field_3 = 0;
+        field_38.field_4 = 1;
+        field_38.field_8 = 1;
+        field_38.field_c = 1;
+        field_38.field_10 = 8;
+        field_38.field_14 = 1;
+        field_38.field_18 = 1;
+        field_38.field_1c = 1;
+        field_38.field_20 = 8;
+        field_5c.field_0 = false;
+        field_5c.field_1 = false;
+        for (s32 i = 0; i < 8; i++) {
+            field_60[i].field_0 = false;
+            field_60[i].field_c = 1;
+            field_60[i].field_4 = 2;
+            field_60[i].field_8 = 1;
+            field_60[i].field_18 = 1;
+            field_60[i].field_10 = 2;
+            field_60[i].field_14 = 1;
+            field_60[i].field_1c[0] = 1;
+            field_60[i].field_1c[1] = 1;
+            field_60[i].field_1c[2] = 1;
+            field_60[i].field_1c[3] = 1;
+        }
+        field_514 = 0;
+        field_518 = 0;
+        field_51c = -1;
+        field_52c = false;
+    }
+
+    void* field_0;  // the shaders (SetupSiGfxDrawContext)
+    void* field_8;
+    Unk_Raster field_10;
+    Unk_Depth field_30;
+    Unk_Stencil field_38;
+    Unk_5c field_5c;
+    Unk_Blend field_60[8];
+    u32 field_160;  // what is drawn
+    u8 field_164[4];
+    Unk_VertexElement field_168[32];
+    s32 field_4e8;
+    Unk_4ec field_4ec;
+    u32 field_514;
+    u32 field_518;
+    s32 field_51c;
+    void* field_520;  // the render target
+    u8 field_528[4];
+    bool field_52c;
+    u8 field_52d[3];
+};
+PKMN_OFFSET_ASSERT(Unk_PipelineDesc, field_30, 0x30);
+PKMN_OFFSET_ASSERT(Unk_PipelineDesc, field_5c, 0x5c);
+PKMN_OFFSET_ASSERT(Unk_PipelineDesc, field_60, 0x60);
+PKMN_OFFSET_ASSERT(Unk_PipelineDesc, field_168, 0x168);
+PKMN_OFFSET_ASSERT(Unk_PipelineDesc, field_4ec, 0x4ec);
+PKMN_OFFSET_ASSERT(Unk_PipelineDesc, field_520, 0x520);
+PKMN_SIZE_ASSERT(Unk_PipelineDesc, 0x530);
 
 // PPFX::IGPUBuffer: GPUInterfaceBuffer.h
 class IGPUBuffer;
@@ -234,7 +388,7 @@ public:
     virtual void vf27();
     virtual void vf28();
     virtual void vf29();
-    virtual void vf30();
+    virtual u32 vf30(s32 arg);
     virtual void vf31();
     virtual void vf32();
     virtual void vf33(s32 arg);  // (called with 0 before targets are cleared)
@@ -359,17 +513,19 @@ public:
     // the resources made with the device (IGPUResource's constructor and
     // destructor keep the list)
     std::vector<IGPUResource*, Unk_StlAllocator<IGPUResource*>> field_10;
-    u64 field_28;
+    s32 field_28;  // the number of frame slots (Unk_DeviceSettings::field_10)
+    u32 field_2c;
     Unk_SiGfxDrawContext* field_30;
     Unk_SiGfxDevice* field_38;
     std::vector<void*, Unk_StlAllocator<void*>> field_40;
     bool field_58;  // the viewport's origin is the lower left
     bool field_59;  // the clip volume's near plane is at -1
     Unk_PipelineStateMap field_60;  // the pipeline states made so far
-    u8 field_88[0x14c88 - 0x88];
+    Unk_PipelineDesc field_88[64];  // one for each blend state
     Unk_SiGfxInterface* field_14c88[16];  // SiGfx objects the device holds
     bool field_14d08;  // set when a target changes
     bool field_14d09;  // set while the draw context is between its begin and end
+    u8 field_14d0a[2];
     s32 field_14d0c;
     // the viewport and its depth range
     Unk_ViewportF field_14d10;
@@ -395,15 +551,27 @@ public:
     u64 field_14df0[16];
     u32 field_14e70[16];
     u32 field_14eb0[16];
-    u8 field_14ef0[0x14efa - 0x14ef0];
+    // flags Unk_43fdd0 sets (the last three from the number of frame slots)
+    bool field_14ef0;
+    bool field_14ef1;
+    bool field_14ef2;
+    bool field_14ef3;
+    bool field_14ef4;
+    bool field_14ef5;
+    bool field_14ef6;
+    bool field_14ef7;
+    bool field_14ef8;
+    bool field_14ef9;
     bool field_14efa;
-    u8 field_14efb[0x14f00 - 0x14efb];
+    bool field_14efb;
+    u8 field_14efc[0x14f00 - 0x14efc];
     Unk_PixelContainer* field_14f00[8];  // the render targets
     IGPUInterface* field_14f40;          // the depth target
     IGPUInterface* field_14f48[16];      // the textures
     Unk_IndexBuffer* field_14fc8;  // the index buffer
     s32 field_14fd0;               // and its format
-    u8 field_14fd4[0x14ff0 - 0x14fd4];
+    Unk_Viewport field_14fd4;      // the back buffer's viewport
+    u8 field_14fec[0x14ff0 - 0x14fec];
     IGPUInterface* field_14ff0;
     IGPUInterface* field_14ff8;
     s32 field_15000;

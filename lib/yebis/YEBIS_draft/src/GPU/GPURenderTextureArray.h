@@ -20,6 +20,10 @@ public:
     ~CRenderTextureArray() override;                 // 0x71004a4760, 0x71004a47a0
 
     s32 Unk_4a46a0(const char* name);  // 0x71004a46a0
+    // 0x71004a5610 (its log lines name it): `count` textures from one description
+    // (`same`) or one each, and the chain of mip textures for the first that
+    // needs it (placeholder parameter names)
+    s32 Initialize(s32 count, const Unk_49ab20_Desc* descs, s32 arg3, bool same, u32 flags);
     // 0x71004a5f50: a texture's (-1: the current one's, 0x7fffffff: every texture's) two values
     s32 Unk_4a5f50(s32 index, f32 a, f32 b);
     // 0x71004a5ff0: a texture's field_a0, likewise
@@ -43,7 +47,7 @@ public:
         return index < field_30 ? field_38[index] : nullptr;
     }
 
-    u32 _2c;       // nothing here uses it (the base's last member ends at 0x29)
+    u32 field_2c;  // flags (Initialize's; bit 16: no 0x200 for the cleared textures)
     s32 field_30;  // the number of textures
     s32 field_34;
     CRenderTexture** field_38;

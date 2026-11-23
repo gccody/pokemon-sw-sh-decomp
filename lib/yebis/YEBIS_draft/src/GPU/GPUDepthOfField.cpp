@@ -1,4 +1,6 @@
 // Scope: common
+// NON_MATCHING: the static initialiser 0x71004b72d0 doesn't match yet: the TU's
+// statics aren't all written.
 // PPFX::CDepthOfField (lib/yebis/YEBIS_draft/src/GPU/GPUDepthOfField.h): so
 // far its destructors and three small virtual functions. The TU has statics
 // of its own besides the common ones (its static initialiser, 0x71004b72d0,
@@ -6,9 +8,12 @@
 #include <math.h>
 #include <string.h>
 
+#include <algorithm>
+
 #include <yebis/YEBIS_draft/src/GPU/GPUClassUtil.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUDepthOfField.h>
 #include <yebis/YEBIS_draft/src/GPU/TinyEffect/TFXString.h>
+#include <yebis/YEBIS_draft/src/GPU/Unk_Statics.h>
 
 #define PPFX_FILE "C:/workspace/YEBIS_draft/src/GPU/GPUDepthOfField.cpp"
 #include <yebis/YEBIS_draft/src/GPU/Unk_Log.h>
@@ -48,6 +53,25 @@ struct Unk_Random {
     f32 Unk_Get() { return static_cast<f32>(Unk_Next() & 0x7fffffff) * 4.65661287e-10f; }
 
     u32 field_0[4];
+};
+
+// 0x7100415370 (Unk_415f40.cpp): the points of `rings` rings around the
+// centre of a disc of `radius`; their count
+s32 Unk_415370(s32 rings, Unk_Float2* out, f32 radius);
+
+// The TU's own statics (placeholder names). LLVM merged them with
+// Unk_Statics.h's into one block (0x71024e7500), sorted by size: the angle,
+// the number of points of three rings (+0x4), Unk_4b19a0's warning counter
+// (+0x8), the generators of 0x71004b0650 and 0x71004b1100 (+0xc, +0x1c,
+// each split into four words), the white points (+0x2c), the two
+// generators' guards (+0xf0), Unk_StaticsBase.h's objects (+0x100) and the
+// levels' colours (+0x1b8).
+static const s32 Unk_RingPoints = Unk_415370(3, nullptr, 1.0f);
+// what a level is drawn with when field_174 says the levels are coloured
+static const Unk_Float4 Unk_LevelColours[8] = {
+    Unk_Float4(0.25f, 1.0f, 0.25f, 1.0f), Unk_Float4(1.0f, 0.25f, 1.0f, 1.0f),  Unk_Float4(1.0f, 1.0f, 0.25f, 1.0f),
+    Unk_Float4(0.25f, 0.25f, 1.0f, 1.0f), Unk_Float4(1.0f, 0.25f, 0.25f, 1.0f), Unk_Float4(0.25f, 1.0f, 0.75f, 1.0f),
+    Unk_Float4(0.25f, 1.0f, 0.25f, 1.0f), Unk_Float4(1.0f, 0.25f, 1.0f, 1.0f),
 };
 
 // 0x7101eba3f4: "CDepthOfField"
@@ -394,15 +418,174 @@ s32 CDepthOfField::Unk_4aeed0(s32 arg0, s32 arg1, s32 arg2) {
 void CDepthOfField::Unk_4aef30() {
     CTextureUtil* util = Unk_GetTextureUtil();
     Unk_ReleaseTextureUtil();
-    util->Unk_47abf0(field_1e8);
+    util->Unk_47abf0(field_1e8.field_0[0].field_0);
 }
 
 // 0x71004afaa0
 f32 CDepthOfField::Unk_4afaa0(f32 arg0, f32 arg1) {
     f32 focal = field_1b0;
     f32 near = field_1a8;
-    f32 scale = focal * field_1b4 / (focal - near);
+    f32 scale = focal * field_1b4.field_0 / (focal - near);
     return arg0 * 2.4392f * scale / arg1 / field_1b8;
+}
+
+static inline f32 Unk_Abs(f32 x) {
+    return x > 0.0f ? x : -x;
+}
+static inline f32 Unk_Sign(f32 x) {
+    return x > 0.0f ? 1.0f : (x < 0.0f ? -1.0f : 0.0f);
+}
+static inline f32 Unk_Min(f32 a, f32 b) {
+    return a < b ? a : b;
+}
+
+// the larger of two elements, by reference (inline)
+static inline const Unk_Float& Unk_MaxRef(const Unk_Float& a, const Unk_Float& b) {
+    return a.field_0 > b.field_0 ? a : b;
+}
+
+// the larger of two values, by reference (inline)
+static inline const f32& Unk_MaxRefF(const f32& a, const f32& b) {
+    return a > b ? a : b;
+}
+
+// the size of a view whose tangent of half the angle is `tanHalf` (inline)
+static inline f32 Unk_ViewSizeTan(f32 tanHalf, f32 distance, f32 width) {
+    if (!(distance > 0.0f))
+        return width / (2.0f * tanHalf);
+    return distance * width * 0.5f / (tanHalf * distance + width * 0.5f);
+}
+
+// 0x71004af020
+// NON_MATCHING: registers only: the entry copies of `mode` and `value` come in
+// the other order, the rounding's product lands in s3 instead of s0, and the
+// clip's default elements get w12/w11 swapped (so the invalid path reuses a
+// register the original sets again).
+s32 CDepthOfField::Unk_4af020(s32 mode, f32 fov, f32 distance, f32 width, f32 value, f32 exponent, f32 angle,
+                              f32 focus, f32 a7, f32* outSize, Unk_Float* outFNumber, Unk_Float* outValue, f32* outCoc,
+                              f32* outRatio, Unk_Float4* outClip, f32 limit) {
+    f32 minimum = Unk_4af690(field_198, field_1b0, field_1b8);
+    minimum = minimum < 0.0f ? 0.0f : minimum;
+    field_3e4 = minimum;
+    f32 height = 2.0f * tanf(fov * 0.5f);
+    f32 size = Unk_ViewSizeTan(height * 0.5f, distance, width);
+    f32 angleSize = 0.0f;
+    if (angle > 0.0f)
+        angleSize = width / (2.0f * tanf(angle * 0.5f));
+    if (mode == 1 || mode == 3) {
+        if (focus > 0.0f && a7 != 0.0f) {
+            value = Unk_Abs(a7) * Unk_Sign(focus - distance) * height * (distance - size) * (focus - size) /
+                    (focus - distance);
+        }
+    }
+    field_1c0 = 0.0f;
+    f32 fNumber;
+    Unk_Float n;
+    switch (mode) {
+    case 2:
+        field_1c0 = Unk_Quantize(value);
+        value = value / angleSize * powf(size, 1.0f - exponent) * powf(angleSize, exponent);
+        // fall through
+    case 0:
+        if (value > 0.0f) {
+            fNumber = Unk_Quantize(value);
+            if (field_3b4)
+                fNumber = Unk_MaxRefF(fNumber, minimum);
+            n = size / fNumber;
+        } else {
+            fNumber = value;
+            n = 0.0f;
+        }
+        break;
+    case 3:
+        value = value / angleSize * powf(size, exponent) * powf(angleSize, 1.0f - exponent);
+        // fall through
+    case 1:
+        n = value;
+        if (value > 0.0f) {
+            fNumber = size / value;
+            if (field_3b0 > 0.0f) {
+                fNumber = Unk_Quantize(fNumber);
+                n = size / fNumber;
+            }
+            if (field_3b4 && fNumber < minimum) {
+                fNumber = minimum;
+                n = size / minimum;
+            }
+        } else {
+            fNumber = 0.0f;
+        }
+        break;
+    default:
+        fNumber = 0.0f;
+        n = 0.0f;
+        break;
+    }
+    if (field_1c0 <= 0.0f)
+        field_1c0 = fNumber;
+    if (field_3b4)
+        field_1c0 = Unk_MaxRefF(field_1c0, minimum);
+    bool valid = distance > 0.0f && fNumber > 0.0f && n.field_0 > 0.0f && width > 0.0f;
+    if (!valid && distance > 0.0f && width > 0.0f) {
+        fNumber = 1.0e20f;
+        n = size / fNumber;
+        valid = true;
+    }
+    s32 result;
+    f32 coc;
+    f32 ratio;
+    Unk_Float4 clip(1.0f, 0.0f, 1.0f, 0.0f);
+    if (valid) {
+        coc = size * n.field_0 / (distance - size);
+        ratio = coc / width;
+        if (field_16c == 1) {
+            f32 scale;
+            f32 bias;
+            if (field_170 > 0) {
+                f32 least = field_170 < 9 ? 0.2f : (field_170 < 11 ? 0.4f : 1.0f);
+                if (limit > 0.0f && limit < distance) {
+                    f32 blur;
+                    if (limit == 0.0f)
+                        blur = 0.0f;
+                    else
+                        blur = (limit - distance) / limit * coc;
+                    blur = -(blur / width);
+                    least = least > blur ? least : blur;
+                }
+                f32 fraction = ratio / (ratio + least);
+                scale = fraction < 1.0e-4f ? 1.0e-4f : std::min(fraction, 0.5f);
+                bias = 1.0f - scale;
+            } else {
+                f32 far = field_190;
+                if (limit > 0.0f)
+                    far = std::min(limit, far);
+                if (far > 0.0f)
+                    scale = 64000.0f / Unk_Abs((far - distance) / far - 1.0f);
+                else
+                    scale = 1.0f;
+                bias = -scale;
+            }
+            clip = Unk_Float4(scale, bias, 1.0f / scale, -bias / scale);
+        }
+        result = 0;
+    } else {
+        coc = 0.0f;
+        ratio = 0.0f;
+        result = 1;
+    }
+    if (outSize != nullptr)
+        *outSize = size;
+    if (outFNumber != nullptr)
+        *outFNumber = Unk_Float(fNumber);
+    if (outValue != nullptr)
+        *outValue = n;
+    if (outCoc != nullptr)
+        *outCoc = coc;
+    if (outRatio != nullptr)
+        *outRatio = ratio;
+    if (outClip != nullptr)
+        *outClip = clip;
+    return result;
 }
 
 // 0x71004af690
@@ -448,16 +631,6 @@ f32 CDepthOfField::Unk_4af690(f32 angle, f32 distance, f32 width) {
     return value0 * powf(Unk_ViewSize(angle, distance, width) / size0, 1.0f - exponent);
 }
 
-static inline f32 Unk_Abs(f32 x) {
-    return x > 0.0f ? x : -x;
-}
-static inline f32 Unk_Sign(f32 x) {
-    return x > 0.0f ? 1.0f : (x < 0.0f ? -1.0f : 0.0f);
-}
-static inline f32 Unk_Min(f32 a, f32 b) {
-    return a < b ? a : b;
-}
-
 // 0x71004afae0
 // NON_MATCHING: the original compares the distance with zero once (the
 // absolute value reuses the flags of the early exit's test) and returns from
@@ -484,7 +657,7 @@ s32 CDepthOfField::Unk_4afae0(f32* nearSize, f32* farSize) {
         if (depth > 0.0f)
             blur = (depth - focal) * field_1c4;
         else
-            blur = -((scale + depth) * field_1ac);
+            blur = -((scale + depth) * field_1ac.field_0);
         blur = blur / depth * 0.5f;
         f32 absBlur = Unk_Abs(blur);
         coc = fmaxf(coc, 0.0f);
@@ -536,9 +709,9 @@ s32 CDepthOfField::Unk_4afd80(f32 size, f32 distance, f32 angle) {
         f32 view = tanf(angle * 0.5f) / field_19c;
         focal = field_1b0;
         near = field_1a8;
-        f32 factor = field_1b8 * (view / (focal * field_1b4 / (focal - near)));
+        f32 factor = field_1b8 * (view / (focal * field_1b4.field_0 / (focal - near)));
         f32 limit = position > -near ? position : -near;
-        f32 far = field_1ac;
+        f32 far = field_1ac.field_0;
         factor = depth * factor;
         f32 blur = 0.0f;
         if (limit > 0.0f)
@@ -563,6 +736,98 @@ s32 CDepthOfField::Unk_4afd80(f32 size, f32 distance, f32 angle) {
     field_1c8 = 0;
     field_1cc = aperture;
     field_1d0 = focus;
+    return 0;
+}
+
+// a channel of an RGBA8 pixel, squared (inline)
+static inline f64 Unk_Channel2(u32 value) {
+    f64 x = static_cast<f32>(value & 0xff) * (1.0 / 255.0);
+    return x * x;
+}
+
+// a square root of what isn't negative (inline)
+static inline f64 Unk_SqrtPositive(f64 x) {
+    return x > 0.0 ? sqrt(x) : x;
+}
+
+// a value from 0 to 1 as a byte (inline)
+static inline u32 Unk_ToByte(f64 x, s32 shift) {
+    if (x >= 1.0)
+        return 0xff << shift;
+    if (x <= 0.0)
+        return 0;
+    return static_cast<u32>(x * 255.9999f) << shift;
+}
+
+// 0x71004aff50
+// NON_MATCHING: the same operations; the original duplicates more of the
+// byte conversions' blocks into their predecessors and converts the alpha
+// channels earlier (about 100 bytes of tail-duplicated code).
+s32 CDepthOfField::Unk_4aff50(u8* data, u32 width, u32 height, const f32* scale, bool merge) {
+    u32 stride = width * 4;
+    if (width != 0 && merge) {
+        u8* next = data + stride;
+        for (u32 i = 0; i < width; i++) {
+            u32 pixel = *reinterpret_cast<u32*>(data + i * 4);
+            f64 r = Unk_Channel2(pixel >> 16);
+            f64 g = Unk_Channel2(pixel >> 8);
+            f64 b = Unk_Channel2(pixel);
+            if (r > 0.0 || g > 0.0 || b > 0.0) {
+                u32 other = *reinterpret_cast<u32*>(next + i * 4);
+                f32 alpha = static_cast<f32>(pixel >> 24);
+                f64 r2 = Unk_Channel2(other >> 16);
+                f64 g2 = Unk_Channel2(other >> 8);
+                f64 b2 = Unk_Channel2(other);
+                f64 sr = Unk_SqrtPositive(r + r2);
+                f64 sg = Unk_SqrtPositive(g + g2);
+                f64 sb = Unk_SqrtPositive(b + b2);
+                f32 alpha2 = static_cast<f32>(other >> 24);
+                *reinterpret_cast<u32*>(data + i * 4) = Unk_ToByte(alpha * (1.0 / 255.0), 24);
+                u32 cr = Unk_ToByte(sr, 16);
+                u32 cg = Unk_ToByte(sg, 8);
+                u32 cb = Unk_ToByte(sb, 0);
+                u32 ca = Unk_ToByte(alpha2 * (1.0 / 255.0), 24);
+                *reinterpret_cast<u32*>(next + i * 4) = cr | cg | cb | ca;
+            }
+        }
+    }
+    if (width != 0) {
+        f64 inverse = 1.0 / height;
+        for (u32 x = 0; x < width; x++) {
+            f64 sr = 0.0;
+            f64 sg = 0.0;
+            f64 sb = 0.0;
+            u8* column = data + x * 4;
+            for (u32 y = 0; y < height; y++) {
+                u32 pixel = *reinterpret_cast<u32*>(column + y * stride);
+                f32 position = static_cast<f32>(height - y) - 0.5f;
+                f64 angle = inverse * position * 3.14159265f;
+                sr += inverse * (angle * Unk_Channel2(pixel >> 16));
+                sg += inverse * (angle * Unk_Channel2(pixel >> 8));
+                sb += inverse * (angle * Unk_Channel2(pixel));
+            }
+            if (height != 0) {
+                f64 fr = scale[0] / (sr * (2.0 / 3.14159265f));
+                f64 fg = scale[1] / (sg * (2.0 / 3.14159265f));
+                f64 fb = scale[2] / (sb * (2.0 / 3.14159265f));
+                for (u32 y = 0; y < height; y++) {
+                    u32 pixel = *reinterpret_cast<u32*>(column + y * stride);
+                    f64 r = Unk_Channel2(pixel >> 16);
+                    f64 g = Unk_Channel2(pixel >> 8);
+                    f64 b = Unk_Channel2(pixel);
+                    r = Unk_SqrtPositive(fr * r);
+                    g = Unk_SqrtPositive(fg * g);
+                    b = Unk_SqrtPositive(fb * b);
+                    f64 a = static_cast<f32>(pixel >> 24) * (1.0 / 255.0);
+                    u32 cr = Unk_ToByte(r, 16);
+                    u32 cg = Unk_ToByte(g, 8);
+                    u32 cb = Unk_ToByte(b, 0);
+                    u32 ca = Unk_ToByte(a, 24);
+                    *reinterpret_cast<u32*>(column + y * stride) = cr | cg | cb | ca;
+                }
+            }
+        }
+    }
     return 0;
 }
 
@@ -689,7 +954,7 @@ s32 CDepthOfField::ApplyDepthOfField(CRenderTexture* source, void* arg2, CRender
     }
     util = Unk_GetTextureUtil();
     Unk_ReleaseTextureUtil();
-    util->Unk_47abf0(field_1e8);
+    util->Unk_47abf0(field_1e8.field_0[0].field_0);
     if (field_238 != nullptr) {
         Unk_4b4e10();
     }
@@ -1027,8 +1292,8 @@ s32 CDepthOfField::Unk_4a7dc0() {
         f32 scale2 = 1.0f;
         f32 bias = 0.0f;
         if (field_16c == 1) {
-            scale2 = field_1f0;
-            bias = field_1f4;
+            scale2 = field_1e8.field_0[2].field_0;
+            bias = field_1e8.field_0[3].field_0;
         }
         level->field_f0 = level->field_e8.field_0[0].field_0 * scale2;
         level->field_f4 = level->field_e8.field_0[1].field_0 + level->field_e8.field_0[0].field_0 * bias;
@@ -1284,13 +1549,10 @@ static inline f32 Unk_MaxF(f32 a, f32 b) {
     return a > b ? a : b;
 }
 
-// the larger of two elements, by reference (inline)
-static inline const Unk_Float& Unk_MaxRef(const Unk_Float& a, const Unk_Float& b) {
-    return a.field_0 > b.field_0 ? a : b;
-}
-
-// the technique of a blur with `count` taps (0: none) (inline)
-static inline s32 Unk_BlurTechnique(CTextureUtil* util, s32 mode, bool flag, bool second, bool far, s32 count) {
+// the technique of a blur with `count` taps (0: none) (inline; it ignores
+// the last two arguments, which 0x71004b0650's callers still pass)
+inline s32 Unk_BlurTechnique(CTextureUtil* util, s32 mode, bool flag, bool second, bool far, s32 count, bool arg6,
+                             s32 arg7) {
     s32 technique = 0;
     switch (mode) {
     case 0:
@@ -1312,7 +1574,8 @@ static inline s32 Unk_BlurTechnique(CTextureUtil* util, s32 mode, bool flag, boo
 // NON_MATCHING: only the generator's guard: the TU's merged statics aren't all
 // here yet, so the guard isn't at the generator plus 0xe4 as in the original.
 s32 CDepthOfField::Unk_4b0650(s32 count, s32 mode, CRenderTexture* source, CRenderTexture* target,
-                              CRenderTexture* second, const Unk_Float4* color, bool flag, f32 a, f32 b) {
+                              CRenderTexture* second, const Unk_Float4* color, bool flag, bool arg9, s32 arg10, f32 a,
+                              f32 b) {
     s32 filter = Unk_GetTexture(source)->vf16();
     Unk_GetTexture(source)->vf15(8);
     s32 secondFilter;
@@ -1329,10 +1592,10 @@ s32 CDepthOfField::Unk_4b0650(s32 count, s32 mode, CRenderTexture* source, CRend
     CRenderTexture::Unk_49cf50(nullptr, nullptr);
     bool near = field_251;
     s32 taps = count;
-    s32 technique = Unk_BlurTechnique(util, mode, flag, near, far, taps);
+    s32 technique = Unk_BlurTechnique(util, mode, flag, near, far, taps, arg9, arg10);
     if (technique == 0) {
         taps = count - 1;
-        technique = Unk_BlurTechnique(util, mode, flag, near, far, taps);
+        technique = Unk_BlurTechnique(util, mode, flag, near, far, taps, arg9, arg10);
     }
     Unk_463fd0_Effect* effect = util->field_30.field_0;
     effect->vf29(technique);
@@ -1405,7 +1668,7 @@ void CDepthOfField::Unk_4b0db0(bool near, bool far) {
     Unk_ReleaseTextureUtil();
     Unk_463fd0_Effect* effect = util->field_30.field_0;
     Unk_4b0db0_Constants* constants = reinterpret_cast<Unk_4b0db0_Constants*>(const_cast<u8*>(Unk_4738c0_get()));
-    const f32* clip = &field_1e8;
+    const f32* clip = &field_1e8.field_0[0].field_0;
     effect->vf20(util->field_30.field_b0, clip);
     f32 half = field_1e4 * 0.5f;
     constants->field_0 = half;
@@ -1417,7 +1680,7 @@ void CDepthOfField::Unk_4b0db0(bool near, bool far) {
         f32 scale = Unk_4b4ab0(true);
         constants->field_4 = 1.0f / (size * (scale / 0.7853982f) * 0.87890625f) * 0.5f;
         f32 depth = field_2b0;
-        f32 a = powf(field_1b4 * 0.5f, field_2b8);
+        f32 a = powf(field_1b4.field_0 * 0.5f, field_2b8);
         f32 b = powf(field_19c * 4.0f, field_2b4);
         f32 focal = field_1b0;
         f32 nearPlane = field_1a8;
@@ -1461,6 +1724,222 @@ void CDepthOfField::Unk_4b0db0(bool near, bool far) {
         constants->field_2c = 0.0f - start * scale;
     }
     effect->vf22(util->field_30.field_d4, reinterpret_cast<const Unk_Float4*>(constants), 4);
+}
+
+// 0x71004100f0 (Unk_415f40.cpp): a point through a matrix
+void Unk_4100f0(Unk_Float2* out, const Unk_Float2* v, const MATRIXT44* m);
+
+// what 0x7100462090 reads (GPUTextureUtil.cpp): an aperture's blades. The
+// tables of field_358[4 + kind] hold them; a copy of one is assigned with a
+// test for itself.
+struct Unk_462090_Params {
+    Unk_462090_Params(const Unk_462090_Params& other) { *this = other; }
+    Unk_462090_Params& operator=(const Unk_462090_Params& other) {
+        if (this != &other) {
+            memcpy(this, &other, sizeof(*this));
+        }
+        return *this;
+    }
+
+    s32 field_0;  // the number of blades
+    f32 field_4;  // their rotation
+    f32 field_8;
+    f32 field_c;
+    f32 field_10;
+    f32 field_14;  // set: the cosine of half a blade's angle
+};
+PKMN_SIZE_ASSERT(Unk_462090_Params, 0x18);
+
+// 0x7100462090 (GPUTextureUtil.cpp): a polygonal aperture's falloff
+void Unk_462090(Unk_Float4* out, const Unk_Float2* position, const Unk_Float2* size, Unk_462090_Params* params);
+
+// a square root that gives 0 and 1 as they are (inline)
+inline f32 Unk_Sqrt(f32 value) {
+    if (value == 0.0f || value == 1.0f) {
+        return value;
+    }
+    return sqrtf(value);
+}
+
+// a point through a matrix (inline)
+static inline Unk_Float2 Unk_Transform(const Unk_Float2& v, const MATRIXT44& m) {
+    Unk_Float2 result;
+    Unk_4100f0(&result, &v, &m);
+    return result;
+}
+
+// A rotation about a unit axis (inline; as Unk_415f40.cpp's)
+static inline void Unk_RotationAxis(MATRIXT44* out, f32 x, f32 y, f32 z, f32 angle) {
+    f32 c = cosf(angle);
+    f32 s = sinf(angle);
+    out->field_0[0][0] = x * x + (1.0f - x * x) * c;
+    out->field_0[0][1] = x * y * (1.0f - c) + z * s;
+    out->field_0[0][2] = x * z * (1.0f - c) - y * s;
+    out->field_0[1][0] = x * y * (1.0f - c) - z * s;
+    out->field_0[1][1] = y * y + (1.0f - y * y) * c;
+    out->field_0[1][2] = y * z * (1.0f - c) + x * s;
+    out->field_0[2][0] = x * z * (1.0f - c) + y * s;
+    out->field_0[2][1] = y * z * (1.0f - c) - x * s;
+    out->field_0[2][2] = z * z + (1.0f - z * z) * c;
+    out->field_0[0][3] = out->field_0[1][3] = out->field_0[2][3] = 0.0f;
+    out->field_0[3][0] = out->field_0[3][1] = out->field_0[3][2] = 0.0f;
+    out->field_0[3][3] = 1.0f;
+}
+
+// a scale and a translation (inline; as Unk_415f40.cpp's 0x710040f660)
+static inline void Unk_ScaleTranslation(MATRIXT44* out, const Unk_Vector3* scale, const Unk_Vector3* translation) {
+    out->field_0[0][1] = out->field_0[0][2] = out->field_0[0][3] = out->field_0[1][0] = out->field_0[1][2] =
+        out->field_0[1][3] = out->field_0[2][0] = out->field_0[2][1] = out->field_0[2][3] = 0.0f;
+    if (scale != nullptr) {
+        out->field_0[0][0] = scale->field_0[0];
+        out->field_0[1][1] = scale->field_0[1];
+        out->field_0[2][2] = scale->field_0[2];
+    } else {
+        out->field_0[0][0] = out->field_0[1][1] = out->field_0[2][2] = 1.0f;
+    }
+    out->field_0[3][3] = 1.0f;
+    if (translation != nullptr) {
+        out->field_0[3][0] = translation->field_0[0];
+        out->field_0[3][1] = translation->field_0[1];
+        out->field_0[3][2] = translation->field_0[2];
+    } else {
+        out->field_0[3][0] = out->field_0[3][1] = out->field_0[3][2] = 0.0f;
+    }
+}
+
+// the identity (inline; as Unk_415f40.cpp's)
+static inline void Unk_Identity(MATRIXT44* out) {
+    out->field_0[0][1] = out->field_0[0][2] = out->field_0[0][3] = out->field_0[1][0] = out->field_0[1][2] =
+        out->field_0[1][3] = out->field_0[2][0] = out->field_0[2][1] = out->field_0[2][3] = out->field_0[3][0] =
+            out->field_0[3][1] = out->field_0[3][2] = 0.0f;
+    out->field_0[0][0] = out->field_0[1][1] = out->field_0[2][2] = out->field_0[3][3] = 1.0f;
+}
+
+// the near blur's position in field_398's table, 0 to 1 (inline; as
+// 0x71004b4ab0's search, but with the division only when field_3e4 is
+// positive)
+inline f32 CDepthOfField::Unk_NearPosition(bool far) {
+    if (!field_c0.field_6d) {
+        return 0.0f;
+    }
+    f32 distance = field_3e4;
+    f32 bias = field_3ec;
+    f32 ratio = 0.0f;
+    if (distance > 0.0f) {
+        ratio = distance / field_1c0;
+    }
+    if (ratio < 0.0f) {
+        return bias;
+    }
+    f32 m = ratio > 1.0f ? 1.0f : ratio;
+    if (m <= 0.0f || field_3e8 == 1) {
+        return bias;
+    }
+    f32 value = 1.0f / powf(m, powf(10.0f, -(bias * 2.0f - 1.0f)));
+    s32 count = field_2f0;
+    for (s32 i = 0; i < count; i++) {
+        if (value < field_398[i + 1]) {
+            f32 frac = (value - field_398[i]) / (field_398[i + 1] - field_398[i]);
+            f32 s = 1.0f - (frac + static_cast<f32>(i)) / static_cast<f32>(count);
+            if (s < 0.0f) {
+                return 0.0f;
+            }
+            return s > 1.0f ? 1.0f : s;
+        }
+    }
+    return 0.0f;
+}
+
+// NON_MATCHING: written this round, not matching yet (tools/check.py --diff shows
+// what differs).
+// 0x71004b1100: the taps' offsets (the points of `count` rings, scaled to the
+// aspect ratio and rotated), as the constants of field_c8
+s32 CDepthOfField::Unk_4b1100(bool near, bool far, s32 count, f32 angle) {
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    Unk_463fd0_Effect* effect = util->field_30.field_0;
+    s32 taps = Unk_415370(count, nullptr, 1.0f);
+    Unk_Float4* constants = reinterpret_cast<Unk_Float4*>(const_cast<u8*>(Unk_4738c0_get()));
+    Unk_Float2 points[96];
+    f32 rings = static_cast<f32>(count);
+    Unk_415370(count, points, rings / (rings + 1.0f));
+    f32 aspect = field_c0.field_74;
+    if (!field_c0.field_84 && field_c0.field_78 != 1.0f) {
+        aspect = static_cast<f32>(static_cast<u32>(field_c0.field_0[1])) /
+                 static_cast<f32>(static_cast<u32>(field_c0.field_0[2]));
+    }
+    if (angle > 0.0f && aspect != angle) {
+        aspect = aspect * (aspect / angle);
+    }
+    Unk_Vector3 scale = {{1.0f / aspect, 1.0f, 1.0f}};
+    if (near) {
+        s32 index = static_cast<s32>((1.0f - Unk_NearPosition(far)) * static_cast<f32>(field_2f0) * 0.9999f);
+        f32 value = reinterpret_cast<const f32*>(field_2f8[8 + field_2a8])[index];
+        scale.field_0[0] = scale.field_0[0] * value;
+        scale.field_0[1] = value;
+    }
+    MATRIXT44 matrix;
+    Unk_Identity(&matrix);
+    MATRIXT44 rotation;
+    Unk_RotationAxis(&rotation, 0.0f, 0.0f, 1.0f, field_1bc);
+    MATRIXT44_MatrixMultiply(&matrix, &matrix, &rotation);
+    MATRIXT44 scaling;
+    Unk_ScaleTranslation(&scaling, &scale, nullptr);
+    MATRIXT44_MatrixMultiply(&matrix, &matrix, &scaling);
+    if (near) {
+        f32 t = Unk_NearPosition(far);
+        s32 size = field_2f0;
+        static Unk_Random random(1);
+        f32 jitter = 0.0f / rings;
+        s32 index = static_cast<s32>((1.0f - t) * static_cast<f32>(size) * 0.9999f);
+        for (s32 i = 0; i < taps; i++) {
+            Unk_462090_Params params = reinterpret_cast<const Unk_462090_Params*>(field_358[4 + field_2a8])[index];
+            f32 x = points[i].field_0[0].field_0;
+            f32 y = points[i].field_0[1].field_0;
+            Unk_Float2 p(-x, -y);
+            Unk_Float2 position(0.5f - x * 0.5f, y * -0.5f + 0.5f);
+            Unk_Float2 area(0.0078125f, 0.0078125f);
+            Unk_Float4 falloff;
+            Unk_462090(&falloff, &position, &area, &params);
+            falloff.field_0[0].field_0 =
+                Unk_Saturate(falloff.field_0[0].field_0 + jitter * (random.Unk_Get() * 2.0f - 1.0f));
+            falloff.field_0[3].field_0 = falloff.field_0[0].field_0 > 0.0f ? 1.0f : 0.0f;
+            f32 length = Unk_Sqrt(x * x + y * y);
+            f32 factor = 1.0f;
+            if (length > 0.0f) {
+                factor = length / (1.0f - falloff.field_0[0].field_0) / params.field_14;
+            }
+            p = Unk_Float2(factor * points[i].field_0[0].field_0, factor * points[i].field_0[1].field_0);
+            p = Unk_Transform(p, matrix);
+            constants[i].field_0[0] = p.field_0[0];
+            constants[i].field_0[1] = p.field_0[1];
+            f32 distance = Unk_Sqrt(points[i].field_0[0].field_0 * points[i].field_0[0].field_0 +
+                                    points[i].field_0[1].field_0 * points[i].field_0[1].field_0);
+            constants[i].field_0[2].field_0 = distance;
+            constants[i].field_0[3].field_0 = 1.0f - distance;
+        }
+    } else {
+        MATRIXT44 coords;
+        Unk_Identity(&coords);
+        Unk_Vector3 flip = {{-0.5f, -0.5f, 1.0f}};
+        Unk_ScaleTranslation(&scaling, &flip, nullptr);
+        MATRIXT44_MatrixMultiply(&coords, &coords, &scaling);
+        MATRIXT44 offset;
+        Unk_Vector3 centre = {{0.5f, 0.5f, 0.0f}};
+        Unk_ScaleTranslation(&offset, nullptr, &centre);
+        MATRIXT44_MatrixMultiply(&coords, &coords, &offset);
+        for (s32 i = 0; i < taps; i++) {
+            Unk_Float2 p = points[i];
+            p = Unk_Transform(p, matrix);
+            constants[i].field_0[0] = p.field_0[0];
+            constants[i].field_0[1] = p.field_0[1];
+            Unk_Float2 q = Unk_Transform(points[i], coords);
+            constants[i].field_0[2] = q.field_0[0];
+            constants[i].field_0[3] = q.field_0[1];
+        }
+    }
+    effect->vf22(util->field_30.field_c8, constants, taps);
+    return 0;
 }
 
 // 0x71004b3280: a level of the seventh kind: two hexagonal blurs and their

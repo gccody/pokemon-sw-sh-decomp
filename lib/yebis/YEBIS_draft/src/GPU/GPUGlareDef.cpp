@@ -141,6 +141,50 @@ s32 Unk_4a0a30() {
     return 0;
 }
 
+// a glare definition of the table (0x38 bytes; GPUGlareDef.cpp's static
+// initialiser fills the table)
+struct Unk_4a1010_Desc {
+    const char* field_0;  // the name
+    f32 field_8;
+    f32 field_c;
+    f32 field_10;
+    f32 field_14;
+    f32 field_18;
+    u32 field_1c;  // the star
+    f32 field_20;
+    f32 field_24;
+    f32 field_28;
+    f32 field_2c;
+    f32 field_30;
+};
+PKMN_SIZE_ASSERT(Unk_4a1010_Desc, 0x38);
+// 0x71024e7070: the table
+extern Unk_4a1010_Desc Unk_24e7070[14] __attribute__((visibility("hidden")));
+
+// 0x71004a06e0: makes the stars (not written yet)
+s32 Unk_4a06e0();
+
+// 0x71004a1010: makes the glare definitions
+// NON_MATCHING: the 14 inlined constructors' zero stores are scheduled in
+// another order (the original starts the next element's star earlier).
+s32 Unk_4a1010() {
+    if (Unk_24e5948 != nullptr)
+        return 0;
+    Unk_4a06e0();
+#line 654
+    Unk_24e5948 = UNK_NEW_ARRAY(PPFX::Unk_4a0b00, 14);
+    for (s32 i = 0; i < 14; i++) {
+        const Unk_4a1010_Desc& desc = Unk_24e7070[i];
+        Unk_24e5948[i].Unk_4a0cf0(
+            desc.field_0, desc.field_1c, PPFX::Unk_Float4(desc.field_8, desc.field_8, desc.field_8, desc.field_8),
+            PPFX::Unk_Float4(desc.field_c, desc.field_c, desc.field_c, desc.field_c),
+            PPFX::Unk_Float4(desc.field_10, desc.field_10, desc.field_10, desc.field_10), desc.field_14,
+            PPFX::Unk_Float4(desc.field_18, desc.field_18, desc.field_18, desc.field_18), desc.field_20, desc.field_24,
+            desc.field_28, PPFX::Unk_Float4(desc.field_2c, desc.field_2c, desc.field_2c, desc.field_2c), desc.field_30);
+    }
+    return 0;
+}
+
 // 0x71004a15b0
 s32 Unk_4a15b0() {
     UNK_DELETE_ARRAY(Unk_24e5948);

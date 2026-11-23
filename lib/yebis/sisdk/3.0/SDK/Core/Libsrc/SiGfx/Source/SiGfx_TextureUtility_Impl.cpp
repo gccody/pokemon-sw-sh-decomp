@@ -2,6 +2,8 @@
 // SiSDK3::SiGfxTextureUtility: their functions, so far the constructor, the
 // destructors and the reference counts their header defines.
 #define UNK_SIGFX_TEXTUREUTILITY_IMPL
+#include <string.h>
+
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/SiGfx_TextureUtility_Impl.h>
 
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_Guid.h>
@@ -21,6 +23,13 @@ u32 Unk_4c9b90_get(u32 platform);
 const char* Unk_4cbae0(const char* path, char* out, size_t size);
 s64 Unk_4c5630(const char* a, const char* b, bool caseSensitive);
 u32 Unk_4ed080(u32 value);
+// 0x71004ed0c0: a format's bytes per pixel; 0x71004ed0f0: a compressed
+// format's bytes per block; 0x71004ed120: whether a format is compressed
+s32 Unk_4ed0c0(u32 format);
+s32 Unk_4ed0f0(u32 format);
+bool Unk_4ed120(u32 format);
+// 0x71004efa70: a new texture chunk
+SiSDK3::SiGfxTextureChunkHandler* Unk_4efa70(SiSDK3::ISiAllocator* pAllocator);
 // 0x7101eec778: the texture chunk's identifier
 extern const SiSDK3::ISiIOBinaryArchive::Unk_Id Unk_1eec778;
 
@@ -225,7 +234,7 @@ bool SiGfxTextureUtility::vf13(void* device, ISiInterface** texture, const Unk_T
 
 // 0x71004ebb20
 bool SiGfxTextureUtility::vf17(void* texture, const char* path, u32 platform, u32 a4) {
-    ISiIOBinaryArchive::ChunkHandler* chunk = vf18(texture, platform);
+    ISiIOBinaryArchive::ChunkHandler* chunk = vf18(static_cast<SiGfxImage*>(texture), platform);
     if (chunk == nullptr) {
         return false;
     }
@@ -243,6 +252,218 @@ bool SiGfxTextureUtility::vf17(void* texture, const char* path, u32 platform, u3
     chunk->vf3();
     archive->vf3();
     return result;
+}
+
+
+// NON_MATCHING: 4 bytes longer, register allocation only: in the 3D image's
+// case the original keeps the bytes per pixel in w23 and spills the width
+// (this keeps the width in w20 and spills the bytes per pixel, so the 2D
+// image's case shares its tail), and in the array's case it spills the width
+// after the count's test, not before the calls. Tried: the locals' order,
+// the sizes' types and operand orders, the loops' counters and the
+// declarations' order (which placed the zeroed counters as the original's).
+// 0x71004ebc60: the chunk of an image's texture: its name, the description
+// and the pixels of each level (copied in the order the texture has them:
+// the faces' or the images' levels one after the other). Only the 2D image's
+// case gives up when an array can't be made bigger.
+ISiIOBinaryArchive::ChunkHandler* SiGfxTextureUtility::vf18(SiGfxImage* image, u32 platform) {
+    SiGfxTextureChunkHandler* handler = Unk_4efa70(field_8.m_pAllocator);
+    if (handler == nullptr) {
+        return nullptr;
+    }
+    Unk_4efb80* chunk = &handler->field_b8;
+    static_cast<SiString<char>&>(chunk->field_0) = *image->vf6();
+    s32 kind = image->field_58.field_0;
+    u32 format = image->field_58.field_4;
+    s32 width = image->field_58.field_8;
+    s32 height = image->field_58.field_c;
+    s32 depth = image->field_58.field_10;
+    s32 mipCount = image->field_58.field_14;
+    s32 count = image->field_58.field_18;
+    switch (kind) {
+    case 2: {
+        if (!chunk->field_188.Unk_SetCount(image->field_78)) {
+            return nullptr;
+        }
+        if (!chunk->field_1d8.Unk_SetCount(image->field_58.field_14)) {
+            return nullptr;
+        }
+        s32 bpp = Unk_4ed0c0(format);
+        s32 blockBytes = Unk_4ed120(format) ? Unk_4ed0f0(format) : 0;
+        (void)blockBytes;
+        size_t offset = 0;
+        for (s32 level = 0; level < image->field_58.field_14; level++) {
+            SiGfxImage::ImageData2D* data = image->vf17(0, level);
+            SIGFX_TEXTURE_INITDATA* init = &chunk->field_1d8.m_pData[level];
+            init->field_0 = chunk->field_188.m_pData + offset;
+            init->field_14 = 0;
+            s32 size;
+            if (Unk_4ed120(format)) {
+                s32 blocksWide = data->field_14 < 1 ? 1 : (data->field_14 + 3) / 4;
+                s32 blocksHigh = data->field_18 < 1 ? 1 : (data->field_18 + 3) / 4;
+                init->field_10 = Unk_4ed0f0(format) * blocksWide;
+                size = init->field_10 * blocksHigh;
+            } else {
+                init->field_10 = data->field_14 * bpp;
+                size = data->field_18 * init->field_10;
+            }
+            size_t n = static_cast<s64>(data->field_8) > size ? size : data->field_8;
+            memcpy(init->field_0, data->field_0, n);
+            init->field_8 = n;
+            offset += n;
+        }
+        break;
+    }
+    case 3: {
+        chunk->field_188.Unk_SetCount(image->field_78);
+        chunk->field_1d8.Unk_SetCount(image->field_58.field_14);
+        s32 bpp = Unk_4ed0c0(format);
+        s32 blockBytes = Unk_4ed120(format) ? Unk_4ed0f0(format) : 0;
+        (void)blockBytes;
+        size_t offset = 0;
+        for (s32 level = 0; level < image->field_58.field_14; level++) {
+            SiGfxImage::ImageData3D* data = image->vf19(level);
+            SIGFX_TEXTURE_INITDATA* init = &chunk->field_1d8.m_pData[level];
+            init->field_0 = chunk->field_188.m_pData + offset;
+            init->field_14 = 0;
+            s32 size;
+            if (Unk_4ed120(format)) {
+                s32 blocksWide = data->field_14 < 1 ? 1 : (data->field_14 + 3) / 4;
+                s32 blocksHigh = data->field_18 < 1 ? 1 : (data->field_18 + 3) / 4;
+                init->field_10 = Unk_4ed0f0(format) * blocksWide;
+                init->field_14 = init->field_10 * blocksHigh;
+                size = init->field_14 * depth;
+            } else {
+                init->field_10 = data->field_14 * bpp;
+                init->field_14 = data->field_18 * init->field_10;
+                size = data->field_1c * init->field_14;
+            }
+            size_t n = static_cast<s64>(data->field_8) > size ? size : data->field_8;
+            memcpy(init->field_0, data->field_0, n);
+            init->field_8 = n;
+            offset += n;
+        }
+        break;
+    }
+    case 4: {
+        chunk->field_188.Unk_SetCount(image->field_78);
+        chunk->field_1d8.Unk_SetCount(image->field_58.field_14 * 6);
+        s32 bpp = Unk_4ed0c0(format);
+        s32 blockBytes = Unk_4ed120(format) ? Unk_4ed0f0(format) : 0;
+        (void)blockBytes;
+        size_t offset = 0;
+        s32 face = 0;
+        s32 index = 0;
+        for (; face < 6; face++) {
+            for (s32 level = 0; level < image->field_58.field_14; level++) {
+                SiGfxImage::ImageData2D* data = image->vf17(face, level);
+                SIGFX_TEXTURE_INITDATA* init = &chunk->field_1d8.m_pData[index];
+                init->field_0 = chunk->field_188.m_pData + offset;
+                init->field_14 = 0;
+                s32 size;
+                if (Unk_4ed120(format)) {
+                    s32 blocksWide = data->field_14 < 1 ? 1 : (data->field_14 + 3) / 4;
+                    s32 blocksHigh = data->field_18 < 1 ? 1 : (data->field_18 + 3) / 4;
+                    init->field_10 = Unk_4ed0f0(format) * blocksWide;
+                    size = init->field_10 * blocksHigh;
+                } else {
+                    init->field_10 = data->field_14 * bpp;
+                    size = data->field_18 * init->field_10;
+                }
+                size_t n = static_cast<s64>(data->field_8) > size ? size : data->field_8;
+                memcpy(init->field_0, data->field_0, n);
+                init->field_8 = n;
+                offset += n;
+                index++;
+            }
+        }
+        break;
+    }
+    case 5: {
+        chunk->field_188.Unk_SetCount(image->field_78);
+        chunk->field_1d8.Unk_SetCount(image->field_58.field_14 * image->field_58.field_18);
+        s32 bpp = Unk_4ed0c0(format);
+        s32 blockBytes = Unk_4ed120(format) ? Unk_4ed0f0(format) : 0;
+        (void)blockBytes;
+        s32 index = 0;
+        s32 i = 0;
+        size_t offset = 0;
+        for (; i < image->field_58.field_18; i++) {
+            for (s32 level = 0; level < image->field_58.field_14; level++) {
+                SiGfxImage::ImageData2D* data = image->vf17(i, level);
+                SIGFX_TEXTURE_INITDATA* init = &chunk->field_1d8.m_pData[index];
+                init->field_0 = chunk->field_188.m_pData + offset;
+                init->field_14 = 0;
+                s32 size;
+                if (Unk_4ed120(format)) {
+                    s32 blocksWide = data->field_14 < 1 ? 1 : (data->field_14 + 3) / 4;
+                    s32 blocksHigh = data->field_18 < 1 ? 1 : (data->field_18 + 3) / 4;
+                    init->field_10 = Unk_4ed0f0(format) * blocksWide;
+                    size = init->field_10 * blocksHigh;
+                } else {
+                    init->field_10 = data->field_14 * bpp;
+                    size = data->field_18 * init->field_10;
+                }
+                size_t n = static_cast<s64>(data->field_8) > size ? size : data->field_8;
+                memcpy(init->field_0, data->field_0, n);
+                init->field_8 = n;
+                offset += n;
+                index++;
+            }
+        }
+        break;
+    }
+    case 6: {
+        chunk->field_188.Unk_SetCount(image->field_78);
+        chunk->field_1d8.Unk_SetCount(6 * image->field_58.field_14 * image->field_58.field_18);
+        s32 bpp = Unk_4ed0c0(format);
+        s32 blockBytes = Unk_4ed120(format) ? Unk_4ed0f0(format) : 0;
+        (void)blockBytes;
+        size_t offset = 0;
+        s32 i = 0;
+        s32 index = 0;
+        for (; i < image->field_58.field_18 * 6; i++) {
+            for (s32 level = 0; level < image->field_58.field_14; level++) {
+                SiGfxImage::ImageData2D* data = image->vf17(i, level);
+                SIGFX_TEXTURE_INITDATA* init = &chunk->field_1d8.m_pData[index];
+                init->field_0 = chunk->field_188.m_pData + offset;
+                init->field_14 = 0;
+                s32 size;
+                if (Unk_4ed120(format)) {
+                    s32 blocksWide = data->field_14 < 1 ? 1 : (data->field_14 + 3) / 4;
+                    s32 blocksHigh = data->field_18 < 1 ? 1 : (data->field_18 + 3) / 4;
+                    init->field_10 = Unk_4ed0f0(format) * blocksWide;
+                    size = init->field_10 * blocksHigh;
+                } else {
+                    init->field_10 = data->field_14 * bpp;
+                    size = data->field_18 * init->field_10;
+                }
+                size_t n = static_cast<s64>(data->field_8) > size ? size : data->field_8;
+                memcpy(init->field_0, data->field_0, n);
+                init->field_8 = n;
+                offset += n;
+                index++;
+            }
+        }
+        break;
+    }
+    }
+    chunk->field_70 = Unk_4ed080(kind);
+    chunk->field_78.field_0 = format;
+    chunk->field_78.field_4 = format;
+    chunk->field_78.field_10 = width;
+    chunk->field_78.field_14 = height;
+    chunk->field_78.field_18 = depth;
+    chunk->field_78.field_1c = mipCount;
+    chunk->field_78.field_20 = count;
+    chunk->field_78.field_38 = 0;
+    chunk->field_78.field_24 = 0;
+    chunk->field_78.field_28 = 0;
+    chunk->field_78.field_30 = 1;
+    chunk->field_78.field_34 = 8;
+    chunk->field_78.field_50 = static_cast<u32>(image->field_78);
+    chunk->field_78.field_54 = static_cast<u32>(chunk->field_1d8.m_itemCount);
+    return handler;
 }
 
 }  // namespace SiSDK3

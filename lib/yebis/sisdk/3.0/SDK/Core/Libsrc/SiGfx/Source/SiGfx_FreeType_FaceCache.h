@@ -63,7 +63,7 @@ public:
     virtual void vf29();
     virtual void vf30();
     virtual void vf31();
-    virtual void vf32();
+    virtual void vf32(void* pSampler);  // the sampler it's read with
     virtual void vf33();
     virtual void vf34();
     virtual void vf35();
@@ -242,7 +242,7 @@ public:
     u32 vf4() override;                         // 0x7100531a80
     virtual bool vf5(u32 width, u32 height);    // 0x7100530f50: makes the texture
     virtual void vf6();                         // 0x7100531390: lets go of it
-    virtual u32 vf7() = 0;
+    virtual u32 vf7(void* pContext) = 0;  // before a draw context draws with it
     // 0x7100531880: draws a glyph's bitmap into the image
     virtual bool vf8(SiGfxFreeTypeGlyph* glyph, const Unk_FTBitmap* bitmap, SiGfxImage* image);
 
@@ -296,7 +296,7 @@ public:
     ~SiGfxNXFreeTypeFaceCache() override;
     bool vf5(u32 width, u32 height) override;  // 0x7100533b10
     void vf6() override;                       // 0x7100533da0
-    u32 vf7() override;                        // 0x7100533e00
+    u32 vf7(void* pContext) override;          // 0x7100533e00
     // 0x7100533e10: draws it into the texture
     bool vf8(SiGfxFreeTypeGlyph* glyph, const Unk_FTBitmap* bitmap, SiGfxImage* image) override;
 };

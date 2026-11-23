@@ -37,6 +37,11 @@ const char* Unk_4c9b30(u32 value);
 s64 Unk_4c5630(const char* a, const char* b, bool caseSensitive);
 // 0x7100570cb0: makes a variation list
 SiSDK3::SiGfxShaderEffectVariationList* Unk_570cb0(SiSDK3::ISiAllocator* pAllocator);
+// 0x7100582e30: makes a directory (and the ones it's in)
+bool Unk_582e30(const char* path);
+// 0x71004c5520: copies at most count characters of src, terminated, into
+// dst's size
+void Unk_4c5520(char* dst, size_t size, const char* src, s64 count);
 // 0x7100567750: makes a package (it returns SiGfxShaderEffectPackage*)
 SiSDK3::ISiGfxShaderEffectPackage* Unk_567750(SiSDK3::ISiAllocator* pAllocator);
 
@@ -304,7 +309,9 @@ namespace SiSDK3 {
 
 // The header of a file of variation lists (placeholder name)
 struct Unk_4e5f50_Header {
-    char field_0[0x28];  // "SSKK.ShaderVariationList"
+    char field_0[0x20];  // "SSKK.ShaderVariationList"
+    u8 field_20;         // 1 in what vf14 writes
+    u8 field_21[7];
     Unk_567750_Version field_28;
     s32 field_38;  // how many lists
     s32 field_3c;  // what they are aligned to
@@ -403,6 +410,9 @@ void Unk_4e5a60(SiString<char>* path, const char* extension) {
 // 0x71004e5f50
 // NON_MATCHING: registers. The original keeps `this` in x21 and the path (then
 // the stream) in x20; here the two are exchanged. The rest is the original's.
+// (The allocator read into a local after the reserve gives the original's
+// registers but hoists its load out of the loop, which the original reloads
+// each time; tried: the loop counter as s64/int/u32/outside, a while loop.)
 bool SiGfxShaderUtility::vf15(const char* path, SiArray<ISiGfxShaderEffectVariationList*>* lists) {
     ISiIOStream* stream = reinterpret_cast<SiIOKernel*>(Unk_57d030_get())->vf9(path, 9, nullptr);
     if (stream == nullptr) {
@@ -749,7 +759,98 @@ bool Unk_NameSorter<T>::Unk_4e59e0(s64 count, T** items) {
     return true;
 }
 
-// vf14 (not written yet) is its only user.
+
+// Unk_ReleaseAll for the variation lists (their reference counts are
+// SiGfxShaderEffectVariationList's)
+static inline void Unk_ReleaseLists(SiArray<ISiGfxShaderEffectVariationList*>* array) {
+    for (size_t i = 0; i < array->m_itemCount; i++) {
+        ISiGfxShaderEffectVariationList* item = array->m_pData[i];
+        if (item != nullptr) {
+            array->m_pData[i] = nullptr;
+            static_cast<SiGfxShaderEffectVariationList*>(item)->vf3();
+        }
+    }
+    array->Unk_4e3050();
+}
+
+// 0x71004e4c30 (here because it sorts with Unk_NameSorter)
+bool SiGfxShaderUtility::vf14() {
+    if (field_110.field_10 == 0) {
+        return false;
+    }
+    if (field_140.field_10 != 0 && !Unk_582e30(Unk_StringCStr(&field_140))) {
+        return false;
+    }
+    SiArray<ISiGfxShaderEffectVariationList*> loaded(field_8.m_pAllocator);
+    if (field_1a1 && Unk_582d80(Unk_StringCStr(&field_110), true)) {
+        vf15(Unk_StringCStr(&field_110), &loaded);
+    }
+    SiArray<ISiGfxShaderEffectVariationList*> lists(field_8.m_pAllocator);
+    for (s64 i = 0; i < static_cast<s32>(field_68.m_itemCount); i++) {
+        SiGfxShaderEffectVariationList* list =
+            reinterpret_cast<SiGfxShaderEffectVariationList*>(field_68.m_pData[i]->vf23());
+        if (list == nullptr || list->vf9() == 0) {
+            continue;
+        }
+        lists.Unk_Add(list);
+    }
+    Unk_4e57e0(&lists, &loaded);
+    ISiIOStream* stream = reinterpret_cast<SiIOKernel*>(Unk_57d030_get())->vf9(Unk_StringCStr(&field_110), 0x15, nullptr);
+    if (stream == nullptr) {
+        Unk_ReleaseLists(&loaded);
+        return false;
+    }
+    Unk_4e5f50_Header header = {};
+    Unk_4c5520(header.field_0, sizeof(header.field_0), "SSKK.ShaderVariationList", -1);
+    header.field_20 = 1;
+    header.field_3c = 0x10;
+    header.field_28 = Unk_567750_Version(3, 0, 0, 1);
+    header.field_38 = lists.m_itemCount;
+    stream->vf44(&header, sizeof(header), true);
+    for (s64 i = 0; i < static_cast<s32>(lists.m_itemCount); i++) {
+        static_cast<SiGfxShaderEffectVariationList*>(lists.m_pData[i])->vf17(stream, header.field_3c);
+    }
+    stream->vf3();
+    typedef ISiGfxShaderEffectVariationList::RequestNotFoundEntry Entry;
+    SiArray<Entry*> notFound(field_8.m_pAllocator);
+    for (s64 i = 0; i < static_cast<s32>(lists.m_itemCount); i++) {
+        static_cast<SiGfxShaderEffectVariationList*>(lists.m_pData[i])->vf22(&notFound);
+    }
+    if (notFound.m_itemCount != 0) {
+        Unk_NameSorter<Entry> sorter;
+        sorter.Unk_4e59e0(static_cast<s32>(notFound.m_itemCount), notFound.m_pData);
+    }
+    {
+        SiString<char> directory = Unk_4e4230(&field_110);
+        SiString<char> name = Unk_4e4400(&field_110, false);
+        Unk_StringAppendGrow(&name, "_NotFoundList");
+        Unk_4e5a60(&name, "txt");
+        SiString<char> path(field_8.m_pAllocator);
+        if (directory.field_10 != 0) {
+            path = directory;
+            Unk_StringAppend(&path, '/');
+        }
+        Unk_StringAppendString(&path, &name);
+        ISiIOStream* text = reinterpret_cast<SiIOKernel*>(Unk_57d030_get())->vf9(Unk_StringCStr(&path), 0x16, nullptr);
+        if (text == nullptr) {
+            Unk_ReleaseLists(&loaded);
+            return false;
+        }
+        for (s64 i = 0; i < static_cast<s32>(notFound.m_itemCount); i++) {
+            Entry* entry = notFound.m_pData[i];
+            for (s64 j = 0; j < static_cast<s32>(entry->field_10.field_10); j++) {
+                text->vf46(entry->field_10.m_pBuffer[j], true);
+            }
+            text->vf46('\r', true);
+            text->vf46('\n', true);
+        }
+        text->vf3();
+    }
+    Unk_ReleaseLists(&loaded);
+    return true;
+}
+
+// vf14 is its only user.
 template s64 Unk_NameSorter<ISiGfxShaderEffectVariationList::RequestNotFoundEntry>::Unk_4e7e40(
     s64 count, ISiGfxShaderEffectVariationList::RequestNotFoundEntry** items);
 template bool Unk_NameSorter<ISiGfxShaderEffectVariationList::RequestNotFoundEntry>::Unk_4e59e0(

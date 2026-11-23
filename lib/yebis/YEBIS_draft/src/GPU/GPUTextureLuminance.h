@@ -32,6 +32,18 @@ public:
     // whether the device and the four objects are ready (inline)
     inline s32 Unk_CheckReady();
     // 0x71004b7d60: draws the source down the chain of textures smaller than it
+    // whether what was measured can be read back: 0 when it can, 1 when not
+    // yet, negative on an error (inline)
+    s32 Unk_Poll();
+    // the luminance and the colour read back (inline)
+    f32 Unk_GetLuminance() {
+        Unk_4b8450(false);
+        return field_74;
+    }
+    const f32* Unk_GetColor() {
+        Unk_4b8450(false);
+        return &field_64;
+    }
     s32 Unk_4b7d60(CRenderTexture* source);
     // (re)creates it for a target (inline in the manager)
     s32 Unk_Create(CRenderTexture* target, s32 count, s32 format) {
@@ -125,6 +137,7 @@ public:
     // 0x71004b8a40
     s32 Unk_4b8a40(bool flag, f32 a, f32 b, f32 c, f32 d);
     f32 Unk_4b8ae0(f32 a, f32 b, f32 c);  // 0x71004b8ae0
+    s32 Unk_4b8b50();                     // 0x71004b8b50: takes the frame's measurement into the history
     // 0x71004b9140: every frame of the history gets the same values
     s32 Unk_4b9140(const Unk_Value* value, bool flag, f32 a, f32 b, f32 c, f32 d, f32 e);
 
@@ -160,7 +173,7 @@ public:
     f32 field_5c;
     f32 field_60;
     Unk_Value field_64;
-    s32 field_74[17];
+    u32 field_74[17];  // the frame counts
     Unk_Value field_b8[17];
     f32 field_1c8[17];
     f32 field_20c[17];

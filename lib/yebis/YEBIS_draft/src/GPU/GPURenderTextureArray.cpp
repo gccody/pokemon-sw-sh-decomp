@@ -77,6 +77,72 @@ CRenderTextureArray::~CRenderTextureArray() {
     Unk_49ec80();
 }
 
+// 0x71004a5610
+// NON_MATCHING: registers only: `arg3` and the mip loop's values get other
+// callee-saved registers (the original keeps the allocation's line, 1610, in
+// one through the loop).
+s32 CRenderTextureArray::Initialize(s32 count, const Unk_49ab20_Desc* descs, s32 arg3, bool same, u32 flags) {
+#line 1445
+    PPFX_LOG("==== CRenderTextureArray::Initialize() ====\n");
+#line 1446
+    PPFX_LOG("Instance name: %s\n", field_10.field_8);
+    IGPUDevice* device = field_20;
+    Unk_49ec80();
+    field_30 = count;
+    if (count == 0)
+        return -1;
+    field_2c = flags;
+#line 1473
+    field_38 = UNK_NEW_ARRAY(CRenderTexture*, count);
+    memset(field_38, 0, field_30 * sizeof(CRenderTexture*));
+    for (s32 i = 0; i < field_30; i++) {
+        Unk_TFXString name = field_10 + "::m_ppTexture[" + Unk_4525a0(i) + "]";
+#line 1491
+        field_38[i] = UNK_NEW(CRenderTexture)(name.field_8);
+        Unk_49ab20_Desc desc = same ? descs[0] : descs[i];
+        if ((desc.field_0 & 0x100) != 0 && (desc.field_14 | desc.field_18) != 0 && (field_2c & 0x10000) == 0)
+            desc.field_0 |= 0x200;
+        s32 result = field_38[i]->Unk_49ab20(&desc);
+        if (result < 0)
+            return result;
+#line 1538
+        PPFX_LOG("CRenderTextureArray::Initialize(): %s->Initialize() succeeded.\n", field_38[i]->field_10.field_8);
+    }
+    field_34 = 0;
+    for (s32 i = 0; i < field_30; i++) {
+        CRenderTexture* texture = field_38[i];
+        if (texture == nullptr || static_cast<s32>(texture->field_2c.field_0) < 0 || texture->field_2c.field_10 == 1)
+            continue;
+        u32 width = texture->field_2c.field_4;
+        if (width < 2)
+            break;
+        u32 height = texture->field_2c.field_8;
+        if (height < 2)
+            break;
+        s32 format = texture->field_2c.field_c;
+        u32 levels = static_cast<u32>(ceilf(logf(static_cast<f32>(width)) / 0.6931472f));
+        field_34 = levels;
+        u32 heightLevels = static_cast<u32>(ceilf(logf(static_cast<f32>(height)) / 0.6931472f));
+#line 1605
+        field_40 = UNK_NEW_ARRAY(CRenderTexture*, field_34);
+        for (s32 j = 0; j < field_34; j++) {
+            Unk_TFXString name = field_10 + "::m_ppTexGenMipMap[" + Unk_4525a0(j) + "]";
+#line 1610
+            field_40[j] = UNK_NEW(CRenderTexture)(name.field_8);
+            s32 result = field_40[j]->Unk_Create(1, 1 << (levels - 1), 1 << (heightLevels - 1), format);
+            if (result < 0) {
+#line 1620
+                PPFX_ERROR("CRenderTextureArray::Initialize(): m_ppTexGenMipMap[%d]->Initialize() failed (0x%x: %s).\n",
+                           j, result, Unk_446df0(result));
+                return result;
+            }
+        }
+        break;
+    }
+    field_48 = arg3;
+    return Unk_49ec30(device);
+}
+
 // 0x71004a52a0
 s32 CRenderTextureArray::vf1() {
     for (s32 i = 0; i < field_30; i++) {

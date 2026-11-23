@@ -1,7 +1,9 @@
 // Scope: common
 // PPFX::CRenderTexture (lib/yebis/YEBIS_draft/src/GPU/GPURenderTexture.h).
+#include <math.h>
 #include <string.h>
 
+#include <yebis/YEBIS_draft/src/GPU/GPUClassUtil.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUInterfaceDevice.h>
 #include <yebis/YEBIS_draft/src/GPU/GPURenderTexture.h>
 #include <yebis/YEBIS_draft/src/GPU/Unk_Statics.h>
@@ -267,6 +269,94 @@ s32 CRenderTexture::vf0(IGPUDevice* device) {
     return result < 0 ? result : 0;
 }
 
+// 0x710049bb30: the render texture of an existing texture
+// NON_MATCHING: the description's reset: the original zeroes fields 0x4 to
+// 0xc with one store each and field 0 apart (here one 16-byte store), and it
+// sets the -6 for both null checks before the first.
+s32 CRenderTexture::vf6(IGPUDevice* device, Unk_49b230_Object* texture) {
+    IGPUDevice* previous = field_20;
+    Unk_49ec80();
+    if (static_cast<s32>(field_2c.field_0) < 0)
+        return 1;
+    s32 result = CGPUResourceManage::vf0(device);
+    if (result < 0)
+        return result;
+    if (device != nullptr && previous != field_20) {
+        if (Unk_24e5408 == 0) {
+            Unk_24e5410 = device;
+            Unk_ClearShared();
+        }
+        Unk_24e5408++;
+    }
+    if (texture == nullptr)
+        return -6;
+    if (field_20 == nullptr)
+        return -6;
+    field_a8 = texture;
+    texture->vf0();
+#line 750
+    field_68 = UNK_NEW_ARRAY(Unk_Viewport, Unk_FrameSlots());
+    field_98 = field_a8->vf12();
+    field_a8->vf23(0, &field_b0);
+#line 759
+    field_c8 = UNK_NEW_ARRAY(Unk_49b230_Object*, field_98);
+#line 760
+    field_80 = UNK_NEW_ARRAY(Unk_Level, field_98);
+    for (u32 i = 0; i < field_98; i++)
+        field_a8->vf23(i, &field_c8[i]);
+    for (s32 set = 0; set < 2; set++) {
+#line 767
+        field_d0[set] = UNK_NEW_ARRAY(Unk_49b230_Object*, field_98);
+#line 768
+        field_e0[set] = UNK_NEW_ARRAY(Unk_49a890*, field_98);
+        for (u32 i = 0; i < field_98; i++) {
+            field_d0[set][i] = nullptr;
+            field_e0[set][i] = nullptr;
+        }
+    }
+    if (field_a8->field_24) {
+        for (s32 set = 0; set < 2; set++) {
+            field_b8[set] = field_b0;
+            field_b8[set]->vf0();
+            for (u32 i = 0; i < field_98; i++) {
+                field_d0[set][i] = field_c8[i];
+                field_d0[set][i]->vf0();
+            }
+        }
+    }
+    field_2c = Unk_49ab20_Desc();
+    u32 width = texture->field_4c;
+    field_2c.field_4 = width;
+    u32 height = texture->field_50;
+    field_2c.field_8 = height;
+    field_50 = 0;
+    field_2c.field_c = texture->field_44;
+    field_2c.field_10 = field_98;
+    field_9c = 0;
+    f32 widthLog = logf(static_cast<f32>(width)) / 0.6931472f;
+    f32 heightLog = logf(static_cast<f32>(height)) / 0.6931472f;
+    if (widthLog != static_cast<f32>(static_cast<u32>(ceilf(widthLog))) ||
+        heightLog != static_cast<f32>(static_cast<u32>(ceilf(heightLog))))
+        field_78 |= 2;
+    for (u32 i = 0; i < field_98; i++) {
+        Unk_49b230_Desc desc;
+        field_c8[i]->vf8(&desc);
+        Unk_Level level;
+        level.field_0 = 0;
+        level.field_8 = desc.field_8;
+        level.field_c = desc.field_c;
+        level.field_10 = 0.0f;
+        level.field_14 = 1.0f;
+        field_80[i] = level;
+    }
+    Unk_49ad30(reinterpret_cast<Unk_RenderTexture*>(this), 0, 0, 0, 0);
+    Unk_StoreViewport();
+    field_70 = 0.0f;
+    field_74 = 1.0f;
+    field_120 = nullptr;
+    return 0;
+}
+
 // 0x710049c0b0
 s32 CRenderTexture::vf1() {
     if (field_20 != nullptr) {
@@ -425,6 +515,105 @@ s32 CRenderTexture::Unk_49cf50(Unk_49b230_Object* depth, void* owner) {
     if (result < 0)
         return result;
     Unk_24e53e0 = owner;
+    return 0;
+}
+
+// the frame slots' viewports: the current frame's, or every one (inline)
+static inline void Unk_StoreViewports(CRenderTexture* self, bool current) {
+    if (self->field_20 != nullptr) {
+        s32 count = Unk_FrameSlots();
+        s32 slot = 0x7fffffff;
+        if (current)
+            slot = reinterpret_cast<Unk_49b230_Device*>(self->field_20)->field_28 % Unk_FrameSlots();
+        for (s32 i = 0; i < count; i++) {
+            if (slot == 0x7fffffff || i == slot) {
+                self->field_68[i].field_0 = self->field_54;
+                self->field_68[i].field_4 = self->field_58;
+                self->field_68[i].field_8 = self->field_5c;
+                self->field_68[i].field_c = self->field_60;
+            }
+        }
+    }
+}
+
+// 0x710049d250
+// NON_MATCHING: the original's slot is unsigned (its indices are `uxtw`; the
+// declaration keeps the signed parameter its callers' names use), the tiling
+// flag and the 0x100000 bit are tested by two branches here (one `ccmp` in
+// the original), and `first` and `changed` swap their callee-saved register
+// and stack slot.
+s32 CRenderTexture::Unk_49d250(s32 slot, u32 flags, s32 first, u32 level, s32 arg5) {
+    Unk_49b230_Object* target = field_d0[field_a0][level];
+    bool done;
+    if ((flags & 2) != 0 && !Unk_24e53e8) {
+        done = false;
+    } else if (Unk_24e53e8 && (flags & 0x100000) != 0) {
+        done = false;
+        CRenderTexture* current = Unk_24e53a0[slot];
+        if (current != nullptr) {
+            s32 result = current->Unk_49cfa0(slot, Unk_238d228[slot], flags, flags, 1, false, nullptr, 0, nullptr, 0,
+                                             &done, 1.0f, 1.0f);
+            if (result < 0)
+                return result;
+            if ((flags & 0x100000) == 0) {
+                Unk_24e53a0[slot] = nullptr;
+                Unk_238d228[slot] = 0;
+            }
+        }
+    } else {
+        s32 result = EndTiling(nullptr, 0, reinterpret_cast<s32*>(&done), nullptr, 1.0f);
+        if (result < 0)
+            return result;
+    }
+    bool changed;
+    if (field_9c != 0) {
+        changed = true;
+    } else {
+        Unk_Level* info = &field_80[level];
+        if (info->field_8 != static_cast<u32>(field_54) >> level)
+            changed = true;
+        else
+            changed = info->field_c != static_cast<u32>(field_58) >> level;
+    }
+    Unk_Viewport& viewport = Unk_Slot();
+    bool larger = static_cast<u32>(field_54) < viewport.field_0 || static_cast<u32>(field_58) < viewport.field_4;
+    s32 result = field_20->vf7(slot, target, arg5);
+    if (result < 0)
+        return result;
+    Unk_24e53a0[slot] = this;
+    Unk_238d228[slot] = level;
+    if ((flags & 4) == 0 && Unk_SlotTiles(-1, level) != nullptr)
+        BeginTiling(8, nullptr, 0, 1.0f);
+    if (larger && (flags & 0x10) == 0) {
+        CTextureUtil* util = Unk_GetTextureUtil();
+        Unk_ReleaseTextureUtil();
+        f32 width = static_cast<f32>(static_cast<u32>(field_54) >> level);
+        f32 height = static_cast<f32>(static_cast<u32>(field_58) >> level);
+        f32 oldWidth = floorf(static_cast<f32>(Unk_Slot().field_0 >> level) + 0.9999f);
+        f32 oldHeight = floorf(static_cast<f32>(Unk_Slot().field_4 >> level) + 0.9999f);
+        f32 pad = static_cast<f32>(static_cast<u32>(field_9c));
+        f32 right = (oldWidth > width ? oldWidth : width) + (pad + pad);
+        f32 bottom = (oldHeight > height ? oldHeight : height) + (pad + pad);
+        f32 color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+        util->Unk_4783a0(pad, pad, right - pad, bottom - pad, pad, pad, width + pad - pad, height + pad - pad, color, 0);
+        Unk_StoreViewports(this, true);
+    }
+    if (changed | (field_70 != 0.0f || field_74 != 1.0f)) {
+        if (first & 1) {
+            PPFX::Unk_Viewport rect;
+            rect.field_0 = (static_cast<u32>(field_5c) >> level) + field_9c;
+            rect.field_4 = (static_cast<u32>(field_60) >> level) + field_9c;
+            rect.field_8 = static_cast<u32>(field_54) >> level;
+            rect.field_c = static_cast<u32>(field_58) >> level;
+            rect.field_10 = field_70;
+            rect.field_14 = field_74;
+            result = field_20->vf16(&rect);
+            if (result < 0)
+                return result;
+        }
+    }
+    if (field_120 != nullptr)
+        field_120 = nullptr;
     return 0;
 }
 

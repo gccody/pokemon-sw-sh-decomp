@@ -1,5 +1,7 @@
 // Scope: common
 // PPFX::IGPUBuffer (C:/workspace/YEBIS_draft/src/GPU/GPUInterfaceBuffer.cpp, the __FILE__ of its log lines).
+#include <string.h>
+
 #define PPFX_FILE "C:/workspace/YEBIS_draft/src/GPU/GPUInterfaceBuffer.cpp"
 #include <yebis/YEBIS_draft/src/GPU/Unk_Statics.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUInterfaceBuffer.h>
@@ -7,10 +9,13 @@
 
 // 0x7100446df0: a result's name
 const char* Unk_446df0(s32 result);
+// 0x7100563620 (SiGfx's): an NVN memory pool's flags
+u32 Unk_563620(u32 kind, u32 a1, u32 a2, u32 a3);
 
 namespace PPFX {
 
 s32 Unk_43e620(IGPUDevice* self, s32 n);
+s32 Unk_43e600(IGPUDevice* self, s32 n);
 // 0x7100447030: a vertex element's usage as SiGfx has it
 u32 Unk_447030(s32 usage);
 struct Unk_SiGfxVertexFormat;
@@ -50,6 +55,228 @@ static inline u32 Unk_MapAccess(s32 mode) {
     default:
         return 0;
     }
+}
+
+// what SiGfx's memory heap is made with (placeholder)
+struct Unk_SiGfxHeapDesc {
+    u32 field_0;  // the size
+    u32 field_4;
+    u64 field_8;
+    u32 field_10;  // the access: 1 static, 2 dynamic
+    u32 field_14;
+    u32 field_18;  // 1 for vertices, 2 for indices
+    u32 field_1c;
+    u32 field_20;
+    u32 field_24;  // how many buffers
+    u64 field_28;
+    u32 field_30;  // the NVN pool's flags
+    u32 field_34;
+    u64 field_38;
+    u64 field_40;
+    s64 field_48;
+    s64 field_50;
+};
+PKMN_SIZE_ASSERT(Unk_SiGfxHeapDesc, 0x58);
+
+// what a SiGfx buffer is made with (placeholder)
+struct Unk_SiGfxBufferDesc {
+    u32 field_0;  // the index format
+    u32 field_4;  // the size
+    u32 field_8;  // the element's
+    u32 field_c;
+    u32 field_10;
+    u16 field_14;
+    u8 field_16;
+    u32 field_18;
+    u32 field_1c;
+    u32 field_20;
+    u32 field_24;
+    u32 field_28;  // the size again
+    void* field_30;  // the data
+    Unk_SiGfxInterface* field_38;  // the heap
+    u32 field_40;
+    s32 field_44;
+    s32 field_48;
+    s32 field_4c;
+    s32 field_50;
+};
+PKMN_SIZE_ASSERT(Unk_SiGfxBufferDesc, 0x58);
+
+// SiGfx's heap and buffers as BuildBuffer makes them (placeholder)
+struct Unk_SiGfxBufferObject {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual bool vf8(const Unk_SiGfxHeapDesc* desc);  // the heap's Create
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual bool vf21(const Unk_SiGfxBufferDesc* desc);  // the buffer's Create
+};
+
+// 0x7100448c60
+// NON_MATCHING: the original's loop is unswitched on the kind (a loop for
+// vertex buffers and one for the rest), this one is a little over
+// LoopUnswitch's budget; the descriptors' stores also come in another order.
+// The Map and Unmap at the end are inline.
+s32 IGPUBuffer::BuildBuffer(u32 size, u32 count, void* data) {
+    field_20 = false;
+    field_44 = size;
+    field_48 = count;
+    field_50 = nullptr;
+    if (size == 0 || count == 0) {
+        return -6;
+    }
+    u32 usage = field_24;
+    u32 kind = field_c;
+    Unk_SiGfxHeapDesc heap;
+    heap.field_0 = (size + 4) * count;
+    heap.field_4 = 0;
+    heap.field_8 = 0;
+    heap.field_10 = 0;
+    heap.field_14 = 0;
+    heap.field_18 = 0;
+    heap.field_1c = 0;
+    heap.field_20 = 0;
+    heap.field_24 = count;
+    heap.field_28 = 0;
+    heap.field_30 = 0;
+    heap.field_34 = 0;
+    heap.field_38 = 0;
+    heap.field_40 = 0;
+    heap.field_48 = -1;
+    heap.field_50 = -1;
+    if (usage & 0x200) {
+        heap.field_1c = 0x10000;
+        heap.field_10 = 2;
+    }
+    if (usage & 0x800) {
+        heap.field_10 = 1;
+    }
+    if (kind == 8 || kind == 9) {
+        heap.field_18 = kind == 8 ? 1 : 2;
+    }
+    heap.field_30 = (Unk_563620(10, heap.field_10, heap.field_18, heap.field_1c) & ~7) | 2;
+    field_a0 = nullptr;
+    field_a0 = field_18->field_38->vf30(0, nullptr);
+    if (!reinterpret_cast<Unk_SiGfxBufferObject*>(field_a0)->vf8(&heap)) {
+        if (field_a0 != nullptr) {
+            field_a0->vf3();
+            field_a0 = nullptr;
+        }
+#line 344
+        PPFX_ERROR("error : m_pSiGfxMemoryHeap->Create()");
+        return -1;
+    }
+#line 351
+    field_50 = UNK_NEW_ARRAY(Unk_SiGfxInterface*, field_48);
+    memset(field_50, 0, field_48 * sizeof(Unk_SiGfxInterface*));
+    bool upload = (usage & 0x800) != 0;
+    for (u64 i = 0; i < field_48; i++) {
+        upload = false;
+        Unk_SiGfxInterface** buffers = field_50;
+        if (kind == 8) {
+            Unk_SiGfxBufferObject* buffer =
+                reinterpret_cast<Unk_SiGfxBufferObject*>(field_18->field_38->vf59(nullptr, 0, nullptr));
+            bool created = false;
+            if (buffer != nullptr) {
+                Unk_SiGfxBufferDesc desc;
+                desc.field_0 = 0;
+                desc.field_4 = (size + 3) & ~3;
+                desc.field_8 = 4;
+                desc.field_c = 0;
+                desc.field_10 = 1;
+                desc.field_14 = 0;
+                desc.field_16 = 0;
+                desc.field_18 = heap.field_10;
+                desc.field_1c = 1;
+                desc.field_20 = heap.field_1c;
+                desc.field_24 = heap.field_20;
+                desc.field_28 = (size + 3) & ~3;
+                desc.field_30 = data;
+                desc.field_38 = field_a0;
+                desc.field_40 = 0;
+                desc.field_44 = -1;
+                desc.field_48 = -1;
+                desc.field_4c = -1;
+                desc.field_50 = -1;
+                created = buffer->vf21(&desc);
+                if (!created) {
+                    buffer->vf3();
+                }
+            }
+            if (!created) {
+#line 639
+                PPFX_ERROR("IGPUBuffer::BuildBuffer(): ISiGfxVertexBuffer::Create() failed.\n");
+                return -5;
+            }
+            buffers[i] = reinterpret_cast<Unk_SiGfxInterface*>(buffer);
+        } else if (kind == 9) {
+            Unk_SiGfxBufferObject* buffer =
+                reinterpret_cast<Unk_SiGfxBufferObject*>(field_18->field_38->vf59(nullptr, 0, nullptr));
+            bool created = false;
+            if (buffer != nullptr) {
+                s32 format = static_cast<IGPUIndexBuffer*>(this)->field_b0;
+                u32 stride = format == 0x2a ? 4 : 2;
+                u32 elements = format == 0x2a ? (size + 3) >> 2 : (size + 1) >> 1;
+                Unk_SiGfxBufferDesc desc;
+                desc.field_0 = format == 0x2a ? 0x2a : 0x39;
+                desc.field_4 = elements * stride;
+                desc.field_8 = stride;
+                desc.field_c = 0;
+                desc.field_10 = 1;
+                desc.field_14 = 0;
+                desc.field_16 = 0;
+                desc.field_18 = heap.field_10;
+                desc.field_1c = 2;
+                desc.field_20 = heap.field_1c;
+                desc.field_24 = heap.field_20;
+                desc.field_28 = elements * stride;
+                desc.field_30 = data;
+                desc.field_38 = field_a0;
+                desc.field_40 = 0;
+                desc.field_44 = -1;
+                desc.field_48 = -1;
+                desc.field_4c = -1;
+                desc.field_50 = -1;
+                created = buffer->vf21(&desc);
+                if (!created) {
+                    buffer->vf3();
+                }
+            }
+            if (!created) {
+#line 692
+                PPFX_ERROR("IGPUBuffer::BuildBuffer(): ISiGfxIndexBuffer::Create() failed.\n");
+                return -5;
+            }
+            buffers[i] = reinterpret_cast<Unk_SiGfxInterface*>(buffer);
+        }
+        Unk_43e600(field_18, field_44);
+    }
+    field_5c = false;
+    field_5d = false;
+    field_58 = field_48 - 1;
+    field_5e = false;
+    if (upload) {
+        void* bytes = Map(1, 0, field_44);
+        memcpy(bytes, data, field_44);
+        Unmap();
+    }
+    return 0;
 }
 
 // 0x71004491b0
@@ -121,7 +348,7 @@ IGPUIndexBuffer::~IGPUIndexBuffer() {}
 IGPUBuffer* Unk_449450(IGPUDevice* device, u32 size, u32 count, u32 usage, u32 flags, void* data) {
 #line 1404
     IGPUVertexBuffer* buffer = UNK_NEW(IGPUVertexBuffer)(device, usage, flags);
-    s32 result = buffer->Unk_448c60(size, count, data);
+    s32 result = buffer->BuildBuffer(size, count, data);
     if (result < 0) {
 #line 1409
         PPFX_ERROR("IGPUVertexBuffer::CreateVertexBufferpGPUVertexBuffer->BuildVertexBuffer(Size: %d, nBuffers: %d, Usage: 0x%x, Flag:0x%x) failed (0x%x: %s).\n",
@@ -138,7 +365,7 @@ const char* Unk_446d60(s32 format, char* buffer);
 IGPUBuffer* Unk_449600(IGPUDevice* device, u32 size, u32 count, s32 format, u32 usage, u32 flags, void* data) {
 #line 1498
     IGPUIndexBuffer* buffer = UNK_NEW(IGPUIndexBuffer)(device, format, usage, flags);
-    s32 result = buffer->Unk_448c60(size, count, data);
+    s32 result = buffer->BuildBuffer(size, count, data);
     if (result < 0) {
 #line 1503
         PPFX_ERROR("IGPUIndexBuffer::CreateIndexBufferpGPUIndexBuffer->BuildIndexBuffer(Size: %d, nBuffers: %d, %s, Usage: 0x%x, Flag:0x%x) failed (0x%x: %s).\n",

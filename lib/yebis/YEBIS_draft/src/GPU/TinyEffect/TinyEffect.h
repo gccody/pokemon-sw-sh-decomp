@@ -333,7 +333,8 @@ public:
     s32 field_350;  // the number of field_370's entries
     u8 pad_354[0x4];
     Unk_TFXString field_358;
-    u8 pad_368[0x8];
+    s32 field_368;
+    u8 pad_36c[0x4];
     Unk_TinyEntry* field_370;
     char* field_378;
     s32 field_380;  // the current technique

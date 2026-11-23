@@ -1030,9 +1030,11 @@ public:
     void vf52();
     bool vf53(const char* text, SiGfxFontDrawHelper::Unk_Vec2* pSize, u32 flags, f32 scale);
     void vf54();
-    void vf55();
-    void vf56();
-    void vf57();
+    bool vf55(const char* text, const SiGfxFontDrawHelper::Unk_Vec4* pRect, u32 flags, const Unk_TextColor* pColor,
+              f32 scale);
+    bool vf56(const char* text, const SiGfxFontDrawHelper::Unk_Vec4* pRect, u32 flags, const Unk_TextColor* pColor,
+              const Unk_TextColor* pOutlineColor, f32 scale, u32 outline);
+    bool vf57();
     bool vf58(Unk_PrimitiveTexture* pTexture, const Unk_PrimitiveTextureDesc* desc, const Unk_PrimitiveRect* dest,
               const Unk_PrimitiveRect* source);
     bool vf59(Unk_PrimitiveTexture* pPlane0, Unk_PrimitiveTexture* pPlane1, Unk_PrimitiveTexture* pPlane2,

@@ -240,7 +240,11 @@ static inline bool Unk_MatchRest(const char* a, const char* b, bool caseSensitiv
 // (-1: nowhere)
 // NON_MATCHING: three instructions. Before the case-sensitive comparison's
 // loop the original copies its two pointers ahead of the test for the end of
-// sub, in the same block; here they're in a preheader of their own after it.
+// sub, in the same block; here they're in a preheader of their own after it
+// (PHI elimination splits that edge: -disable-phi-elim-edge-splitting moves
+// them, among much else). Tried: the helper's tests in other orders, both
+// characters read first, a result variable, index loops, `&buffer[i] + 1`,
+// the helper not static or returning int, the match nested, `return i`.
 s64 Unk_4c99a0(const SiSDK3::SiString<char>* self, const char* sub, size_t start, bool caseSensitive) {
     s64 result = -1;
     size_t length = self->field_10;

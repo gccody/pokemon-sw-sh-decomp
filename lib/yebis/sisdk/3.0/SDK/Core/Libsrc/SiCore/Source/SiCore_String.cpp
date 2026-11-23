@@ -80,23 +80,23 @@ f64 Unk_4c5920(const char* s) {
     return atof(s);
 }
 
-// 0x71004c5a40: the three bases share one format
-// NON_MATCHING: the original tests the bases in this order, 16, 10 and 8;
-// clang makes a switch of any spelling tried, and tests 8 first.
+// 0x71004c5a40: the three bases share one format. Three separate tests
+// setting a result (8, 10, 16): the compares come out as 16, 10, 8.
 bool Unk_4c5a40(char* dst, size_t, s64 value, int base) {
-    if (base == 16) {
+    bool result = false;
+    if (base == 8) {
         sprintf(dst, "%llo", value);
-        return true;
+        result = true;
     }
     if (base == 10) {
         sprintf(dst, "%llo", value);
-        return true;
+        result = true;
     }
-    if (base == 8) {
+    if (base == 16) {
         sprintf(dst, "%llo", value);
-        return true;
+        result = true;
     }
-    return false;
+    return result;
 }
 
 // the formatted print with its arguments in a list
@@ -284,14 +284,13 @@ char* Unk_4c51e0(const char* s, char* dst, s64 size) {
 
 // 0x71004c4d90: UTF-8 to wide characters, at most size of them (a four-byte
 // sequence makes none)
-// NON_MATCHING: the original clears the count's register once, before the
-// test of size, for both early exits; here they share a block that clears it
-// (one instruction more, the rest is the same).
+// The load-free size test is written last (it still comes first): that
+// clears the count's register once, before both tests.
 wchar_t* Unk_4c4d90(const char* s, wchar_t* dst, s64 size) {
     wchar_t* end = dst;
     if (s != nullptr) {
         s64 count = 0;
-        if (size >= 1 && s[0] != 0) {
+        if (s[0] != 0 && size >= 1) {
             s64 i = 0;
             do {
                 wchar_t c = static_cast<u8>(s[i]);
@@ -632,20 +631,32 @@ static inline s64 Unk_EndOrder(T a, T b) {
 // NON_MATCHING: the original computes the result for the ends as a value
 // before it tests them (`orr ; cmp ; csetm ; csinc`, then the branches), for
 // the pointers and again for the first characters, and unswitches the loop on
-// the case; here the results are computed after the tests.
+// the case. With the results taken before the tests (as here) they are
+// computed first too, but as `cneg ; csel` of the other operand order, and
+// the characters' two tests stay branches (the original ORs two csets and
+// tests them after the case's branch). Tried: the end order as `a != 0 ? 1 :
+// ...`, `a == 0 ? (b == 0 ? 0 : -1) : 1`, the header's form, `|` for `||`, a
+// break out of the loop and one return.
 s64 Unk_4c5630(const char* a, const char* b, bool caseSensitive) {
+    s64 result = Unk_EndOrder(a, b);
     if (a == nullptr || b == nullptr) {
-        return Unk_EndOrder(a, b);
+        return result;
     }
-    while (*a != 0 && *b != 0) {
+    for (;;) {
+        char c1 = *a;
+        char c2 = *b;
+        result = Unk_EndOrder(c1, c2);
+        if (c1 == 0 || c2 == 0) {
+            return result;
+        }
         u8 ca;
         u8 cb;
         if (caseSensitive) {
-            ca = *a;
-            cb = *b;
+            ca = c1;
+            cb = c2;
         } else {
-            ca = toupper(static_cast<u8>(*a));
-            cb = toupper(static_cast<u8>(*b));
+            ca = toupper(static_cast<u8>(c1));
+            cb = toupper(static_cast<u8>(c2));
         }
         if (ca < cb) {
             return -1;
@@ -656,22 +667,21 @@ s64 Unk_4c5630(const char* a, const char* b, bool caseSensitive) {
         a++;
         b++;
     }
-    return Unk_EndOrder(*a, *b);
 }
 
 // 0x71004c5930: a number's digits, in groups of three (false for more than
 // 255 digits)
-// NON_MATCHING: two instructions. The original still sign-extends the count's
-// low 32 bits for the pointer to the last digit (`add x11, x11, w8, sxtw #2`)
-// and zero-extends them for the loop's limit (`mov w10, w8`); here LLVM knows
-// the count is under 256 and uses the 64-bit register (`lsl #2`, `and`).
+// The count is 64-bit while the digits are taken and kept in a 32-bit one
+// after (assigned in each branch): the pointer to the last digit sign-extends
+// it and the loop's limit zero-extends it (`sxtw #2`, `mov w10, w8`).
 bool Unk_4c5930(char* dst, size_t size, u64 value) {
     u32 digits[0x100];
-    s64 count = 0;
+    u32 n;
     if (static_cast<s64>(value) < 1) {
         digits[0] = 0;
-        count = 1;
+        n = 1;
     } else {
+        s64 count = 0;
         do {
             digits[count] = value % 10;
             count++;
@@ -680,11 +690,12 @@ bool Unk_4c5930(char* dst, size_t size, u64 value) {
             }
             value /= 10;
         } while (count < 0x100);
-        if (static_cast<u32>(count) > 0xff) {
+        n = count;
+        if (n > 0xff) {
             return false;
         }
     }
-    int left = static_cast<int>(count);
+    int left = n;
     const u32* digit = digits + left - 1;
     size_t i = 0;
     int pos = 0;
@@ -702,7 +713,7 @@ bool Unk_4c5930(char* dst, size_t size, u64 value) {
         }
         i++;
         digit--;
-    } while (i < static_cast<u32>(count));
+    } while (i < n);
     dst[pos] = 0;
     return true;
 }

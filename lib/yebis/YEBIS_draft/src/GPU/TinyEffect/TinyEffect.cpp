@@ -308,6 +308,32 @@ s32 CTinyEffect::CreateGlobalParameter(const Unk_TFXString& name, s32 type, s32 
     return index;
 }
 
+// the index of the entry named `name` (a number is the index itself)
+// NON_MATCHING (its four callers): the test that ends the digits' loop is
+// `cmp w10, #0x3a ; b.lo` here, `cmp w10, #0x39 ; b.ls` in the original: the
+// same IR (`icmp ugt 57`), but here the search's block follows the loop's
+// latch when instructions are selected, so the branch is inverted there
+// (and the DAG makes `ule 57` `ult 58`); the original inverts it only in
+// block placement. Seven loop shapes and helpers were tried.
+static inline s32 Unk_FindEntry(const CTinyEffect* effect, const Unk_TFXString& name) {
+    s32 i = 0;
+    char c;
+    while (i < name.field_0) {
+        c = name.field_8[i];
+        if (c < '0') goto search;
+        i++;
+        if (c > '9') goto search;
+    }
+    return atoi(name.field_8);
+search:
+    for (s32 j = 0; j < effect->field_350; j++) {
+        if (name == effect->field_370[j].field_0) {
+            return j;
+        }
+    }
+    return -1;
+}
+
 // the SiGfx root signature CreateSiGfxProgramResources fills in (placeholder)
 struct Unk_TinyRootSignature {
     virtual void vf0();
@@ -326,6 +352,43 @@ struct Unk_TinyRootSignature {
     virtual void vf13();
     virtual void vf14(s32 index, s32 kind, s32 count);
     virtual void vf15(s32 index, s32 item, s32 arg2, s32 binding, s32 arg4, s32 size, s32 arg6);
+};
+
+// a SiGfx shader as CreateProgram uses it (placeholder)
+struct Unk_TinyShader : SiSDK3::ISiInterface {
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual bool vf18(u32 size, const char* code, s32 arg3);  // pSiGfxShader->Create()
+};
+
+// a SiGfx shader program as CreateProgram uses it (placeholder)
+struct Unk_TinyShaderProgram : SiSDK3::ISiInterface {
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    // pSiGfxShaderProgram->Create()
+    virtual bool vf18(Unk_TinyShader* vertex, Unk_TinyShader* fragment, void* arg3, void* arg4, void* arg5);
 };
 
 // the SiGfx device as CreateSiGfxProgramResources uses it (placeholder)
@@ -359,6 +422,23 @@ struct Unk_TinyGfxDevice {
     virtual Unk_TinyRootSignature* vf26(s32 arg0, s32 arg1, void* arg2);  // CreateRootSignature
     virtual void vf27();
     virtual SiSDK3::ISiInterface* vf28(s32 arg0, s32 arg1, void* arg2);  // CreateDescriptorSet
+    virtual void vf29();
+    virtual void vf30();
+    virtual void vf31();
+    virtual void vf32();
+    virtual void vf33();
+    virtual void vf34();
+    virtual void vf35();
+    virtual void vf36();
+    virtual void vf37();
+    virtual void vf38();
+    virtual void vf39();
+    virtual void vf40();
+    virtual void vf41();
+    virtual Unk_TinyShader* vf42(s32 stage, void* arg1, s32 arg2, void* arg3);  // CreateShader
+    virtual void vf43();
+    virtual void vf44();
+    virtual Unk_TinyShaderProgram* vf45(void* arg0, s32 arg1, void* arg2);  // a shader program
 };
 
 // 0x710044c060 (its log lines name it)
@@ -442,7 +522,104 @@ s32 CTinyEffect::CreateSiGfxProgramResources(Unk_TinyPass* pass) {
     return 0;
 }
 
+// NON_MATCHING: written this round, not matching yet (tools/check.py --diff shows
+// what differs).
+// 0x710044c370 (its log lines name it)
+s32 CTinyEffect::CreateProgram(Unk_TinyProgram* program) {
+    Unk_TinyGfxDevice* device = reinterpret_cast<Unk_TinyGfxDevice*>(field_80);
+    const Unk_TFXString& programNames = program->field_8;
+    const Unk_TFXString& codeNames = program->field_20;
+    Unk_TFXString vertexName;
+    Unk_TFXString fragmentName;
+    Unk_TFXString vertexCodeName;
+    Unk_TFXString fragmentCodeName;
+    {
+        Unk_TFXString names(programNames);
+        vertexName = Token(&names, " \t\n", "//", "\"'", -1, -1, -1);
+        fragmentName = Token(&names, " \t\n", "//", "\"'", -1, -1, -1);
+        Unk_TFXString codes(codeNames);
+        vertexCodeName = Token(&codes, " \t\n", "//", "\"'", -1, -1, -1);
+        fragmentCodeName = Token(&codes, " \t\n", "//", "\"'", -1, -1, -1);
+    }
+    const char* fragmentCode = nullptr;
+    Unk_TinyShader* vertex = nullptr;
+    Unk_TinyShader* fragment = nullptr;
+    Unk_TinyShaderProgram* shaderProgram = nullptr;
+    const char* vertexCode = nullptr;
+    u32 vertexSize = 0;
+    u32 fragmentSize = 0;
+    if (field_348 != nullptr) {
+        if (field_368 != 6) {
+            s32 index = Unk_FindEntry(this, vertexCodeName);
+            if (index >= 0) {
+                Unk_TinyEntry* entry = &field_370[index];
+                u32 offset = atoi(entry->field_e0);
+                vertexCode = field_378 + offset;
+                vertexSize = atoi(entry->field_f0);
+            }
+            index = Unk_FindEntry(this, fragmentCodeName);
+            if (index >= 0) {
+                Unk_TinyEntry* entry = &field_370[index];
+                u32 offset = atoi(entry->field_e0);
+                fragmentCode = field_378 + offset;
+                fragmentSize = atoi(entry->field_f0);
+            }
+        }
+        vertex = device->vf42(1, nullptr, 0, nullptr);
+        bool vertexCreated = vertex != nullptr ? vertex->vf18(vertexSize, vertexCode, 1) : false;
+        fragment = device->vf42(2, nullptr, 0, nullptr);
+        bool fragmentCreated = fragment != nullptr ? fragment->vf18(fragmentSize, fragmentCode, 1) : false;
+        if (!(vertexCreated & fragmentCreated)) {
+            if (vertex != nullptr) {
+                vertex->vf3();
+            }
+            if (fragment != nullptr) {
+                fragment->vf3();
+            }
+            if (!vertexCreated) {
+#line 5097
+                PPFX_ERROR("CTinyEffect::CreateProgram(): pSiGfxDevice->CreateShader() failed: \"%s\".\n",
+                           vertexName.field_8);
+            }
+            if (!fragmentCreated) {
+#line 5102
+                PPFX_ERROR("CTinyEffect::CreateProgram(): pSiGfxDevice->CreateShader() failed: \"%s\".\n",
+                           fragmentName.field_8);
+            }
+            return -1;
+        }
+        shaderProgram = device->vf45(nullptr, 0, nullptr);
+        if (shaderProgram == nullptr || !shaderProgram->vf18(vertex, fragment, nullptr, nullptr, nullptr)) {
+            if (shaderProgram != nullptr) {
+                shaderProgram->vf3();
+            }
+            if (vertex != nullptr) {
+                vertex->vf3();
+            }
+            fragment->vf3();
+#line 5128
+            PPFX_ERROR("CTinyEffect::CreateProgram(): pSiGfxShaderProgram->Create() failed.\n");
+            return -1;
+        }
+    }
+    program->field_30.field_0 = vertex;
+    program->field_30.field_8 = fragment;
+    program->field_30.field_10 = shaderProgram;
+    program->field_58 = vertexCode;
+    program->field_60 = fragmentCode;
+    program->field_4c = vertexSize;
+    program->field_50 = fragmentSize;
+    if (vertex == nullptr || fragment == nullptr || shaderProgram == nullptr) {
+        return -4;
+    }
+    return 0;
+}
+
 // 0x710044c920
+// NON_MATCHING: the order of the local program's zero stores (the original
+// stores field_58/field_60 second, here last); the rest is the same.
+// Every order of the constructor's body gives this one (MemCpyOpt makes it
+// two memsets).
 s32 CTinyEffect::Unk_44c920(const Unk_TFXString& name, const Unk_TFXString& code, u32 arg,
                             const Unk_TinyResult* objects) {
     if (!(objects->field_0 != nullptr && objects->field_8 != nullptr && objects->field_10 != nullptr &&
@@ -724,32 +901,6 @@ Unk_TinyResult CTinyEffect::vf21(s32 technique) {
     }
     Unk_TinyTechnique* item = field_2f8[technique - 1];
     return item->field_0->field_310[item->field_1c]->field_30;
-}
-
-// the index of the entry named `name` (a number is the index itself)
-// NON_MATCHING (its four callers): the test that ends the digits' loop is
-// `cmp w10, #0x3a ; b.lo` here, `cmp w10, #0x39 ; b.ls` in the original: the
-// same IR (`icmp ugt 57`), but here the search's block follows the loop's
-// latch when instructions are selected, so the branch is inverted there
-// (and the DAG makes `ule 57` `ult 58`); the original inverts it only in
-// block placement. Seven loop shapes and helpers were tried.
-static inline s32 Unk_FindEntry(const CTinyEffect* effect, const Unk_TFXString& name) {
-    const char* p = name.field_8;
-    s32 i = 0;
-    while (i < name.field_0) {
-        char c = p[i];
-        if (c < '0') goto search;
-        i++;
-        if (c > '9') goto search;
-    }
-    return atoi(name.field_8);
-search:
-    for (s32 j = 0; j < effect->field_350; j++) {
-        if (name == effect->field_370[j].field_0) {
-            return j;
-        }
-    }
-    return -1;
 }
 
 }  // namespace PPFX

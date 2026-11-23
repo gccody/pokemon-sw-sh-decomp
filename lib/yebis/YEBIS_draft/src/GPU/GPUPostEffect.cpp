@@ -19,6 +19,25 @@
 // 0x7100418e20: the post effect
 u64 Unk_418e20_get();
 
+// The TU's merged statics (0x71024e0c38 to 0x71024e14f8, sorted by size) are
+// not complete yet: the static initialiser (0x710043d330) and every function
+// that indexes them from the block's start need all of them, and some belong
+// to functions not written yet (Initialize, 0x7100435ed0, 0x710042df80). From
+// their users: nine one-byte flags at 0xc38 to 0xc40, each guarding a table of
+// s32 that a function fills the first time (0xc38: 0xd58 {0, 0, 2, 6, 6} and
+// 0xc39: 0xdac {0, 1, 2, 3, 4, 5, 5, 5}, Initialize's; 0xc3a: 0xdf0, 0 to 13,
+// 0x7100427900's and 0x7100435ed0's; 0xc3b: 0xd28 {0, 0, 1, 0}, Initialize's;
+// 0xc3c: 0xf28, 0 to 19, 0x7100429460's; 0xc3d: 0xd38 {0, 1, 2, 3},
+// 0x7100428220's and 0x710042b9f0's; 0xc3e: 0xd48 {0, 1, 2, 3}, six
+// functions'; 0xc3f: 0xdcc {0, 1, 10, 2, 4, 6, 8, 14, 1}, 0x710042a0f0's and
+// 0x7100435ed0's; 0xc40: 0xd20 {1, 3}, 0x7100435ed0's), the angle at 0xc44,
+// the white points from 0xc48, three __cxa_guard variables at 0xd08, 0xd10
+// (0x710042df80's two function-local MATRIXT44 at 0xea8 and 0xee8) and 0xd18
+// (0x7100435ed0's 0xa8-byte object at 0xff0), Unk_Static_Object0 and 1 at
+// 0xd6c and 0xd8c, the initialiser's two tables of eight {f32, s32} at 0xe28
+// and 0xe68 (Initialize's), the reflection handle at 0xf78 and two 0x230-byte
+// tables at 0x1098 and 0x12c8 that only the initialiser writes.
+
 #define PPFX_FILE "C:/workspace/YEBIS_draft/src/GPU/GPUPostEffect.cpp"
 #include <yebis/YEBIS_draft/src/GPU/Unk_Log.h>
 
@@ -2500,6 +2519,174 @@ MATRIXT44 CPostEffect::Unk_429c50(bool arg) {
     return result;
 }
 
+// 0x7100410400
+s32 Unk_410400(s32 type);
+
+// 0x710040f8d0
+void Unk_40f8d0(MATRIXT44* out, bool arg1, bool arg2, f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far);
+
+// 0x71004297b0: CTextureUtil::Unk_488380 with field_d84 and field_d88 and the
+// view's off-centre frustum; whether it or an earlier call set field_1090
+bool CPostEffect::Unk_4297b0() {
+    field_1090 = false;
+    field_1091 = false;
+    if (!field_d80 || field_8b6) {
+        return false;
+    }
+    if (field_d84 < 0 || field_d88 == nullptr) {
+        return false;
+    }
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    f32 near = field_6c4;
+    f32 height = field_6d0;
+    f32 width = height * field_420;
+    f32 halfHeight = near * height;
+    f32 halfWidth = near * width;
+    f32 x = field_6d4 * halfWidth;
+    f32 y = halfHeight * field_6d8;
+    f32 far = field_6c8;
+    f32 right = halfWidth + x;
+    f32 bottom = y - halfHeight;
+    f32 top = halfHeight + y;
+    f32 left = x - halfWidth;
+    s32 index = field_d84;
+    void* data = field_d88;
+    const MATRIXT44* view = &field_734;
+    MATRIXT44 projection;
+    Unk_40f8d0(&projection, false, true, left, right, bottom, top, near, far);
+    s32 result =
+        util->Unk_488380(field_de4, field_de0, field_d94, index, data, view, &projection, field_d90, &field_d9c);
+    field_1091 = true;
+    if (result != 0) {
+        field_1090 = true;
+        return true;
+    }
+    return field_1090;
+}
+
+// the smaller of two numbers (std::min's order)
+static inline const Unk_Float& Unk_Min(const Unk_Float& a, const Unk_Float& b) {
+    return a.field_0 < b.field_0 ? a : b;
+}
+
+// 0x7100433270: Unk_432ca0 with the textures field_630, field_634 and
+// field_638 name and a colour from field_1070 and the first's height
+s32 CPostEffect::Unk_433270() {
+    if (!field_106e) {
+        return 0;
+    }
+    Unk_RenderTexture* first = Unk_TextureAt(field_630);
+    Unk_RenderTexture* second = Unk_TextureAt(field_634);
+    Unk_RenderTexture* third = Unk_TextureAt(field_638);
+    f32 scale = first->field_58 * field_1070;
+    Unk_Float size = scale * 0.344375193f;
+    Unk_Float limit = 5.0f;
+    Unk_Float4 color;
+    if (field_c78) {
+        size = field_568 == 0 ? Unk_Min(size, Unk_Float(4.77691078f)) : size;
+        color.field_0[0].field_0 = size.field_0 * 1.04670167f;
+        color.field_0[1].field_0 = size.field_0 * 0.919055104f;
+        color.field_0[2].field_0 = size.field_0 * 0.791408539f;
+        color.field_0[3].field_0 = size.field_0;
+    } else {
+        size = field_568 != 0 || size.field_0 < limit.field_0 ? size : limit;
+        color = Unk_Float4(size, size, size, size);
+    }
+    color.field_0[0].field_0 = -color.field_0[0].field_0;
+    s32 result = Unk_432ca0(0.005f, first, second, nullptr, third, &color, 2, 1, true);
+    return result < 0 ? result : 0;
+}
+
+// 0x7100410070
+void Unk_410070(Unk_Vector3* out, const Unk_Vector3* v, const MATRIXT44* m);
+
+// the luminance weights of a colour space: Rec. 709's for the default one,
+// else the Y row of its RGB to XYZ matrix (inline)
+static inline Unk_Vector3 Unk_LuminanceWeights(const Unk_410f90& space) {
+    if (Unk_SameColorSpace(space, Unk_410f90_Object(0))) {
+        Unk_Vector3 weights = {{0.2126f, 0.7152f, 0.0722f}};
+        return weights;
+    }
+    MATRIXT44 m;
+    Unk_411b00(&m, &space.field_0, &space.field_8, &space.field_10, &space.field_18);
+    Unk_Vector3 y = {{m.field_0[0][1], m.field_0[1][1], m.field_0[2][1]}};
+    return y;
+}
+
+// the output's gamma (inline)
+static inline f32 Unk_OutputGamma(const CPostEffect* self) {
+    return self->field_8c4.field_0;
+}
+
+// 0x710042f320: `value` scaled by what `m` makes of white (its luminance for
+// modes 4 and 8, else its largest component), then through the output gamma
+// when it isn't 2.2
+f32 CPostEffect::Unk_42f320(f32 value, const MATRIXT44* m, s32 mode) {
+    bool gamma;
+    if (field_96c && field_97c == 0) {
+        gamma = field_8c4.field_0 <= 0.0f || Unk_OutputGamma(this) != 2.2f;
+    } else {
+        gamma = false;
+    }
+    if (m == nullptr && !gamma) {
+        return value;
+    }
+    bool luminance = mode == 4 || mode == 8;
+    Unk_Vector3 v;
+    {
+        Unk_Vector3 transformed;
+        Unk_Vector3 white;
+        white.field_0[0] = 1.0f;
+        white.field_0[1] = 1.0f;
+        white.field_0[2] = 1.0f;
+        Unk_410070(&transformed, &white, m);
+        v = transformed;
+    }
+    f32 max = v.field_0[0] > v.field_0[1] ? v.field_0[0] : v.field_0[1];
+    max = max > v.field_0[2] ? max : v.field_0[2];
+    f32 y = Unk_Dot(v, Unk_LuminanceWeights(Unk_410f90_Object(0)));
+    value = (luminance ? y : max) * value;
+    if (gamma) {
+        value = powf(value, field_8c4.field_0 <= 0.0f ? 1.0f : 1.0f / (field_8c4.field_0 / 2.2f));
+    }
+    return value;
+}
+
+// field_b84 and field_ba4 as colour spaces
+static inline Unk_410f90& Unk_ColorSpace(f32* p) {
+    return *reinterpret_cast<Unk_410f90*>(p);
+}
+
+// the colour space field_b80 or the default one gives (0 or the one of
+// field_978, for HDR output)
+static inline u32 Unk_DefaultSpace(const CPostEffect* self) {
+    if (self->field_96c || Unk_24e09bc != 0) {
+        return Unk_410400(self->field_96c ? self->field_978 : 13);
+    }
+    return 0;
+}
+
+// 0x71004299a0: field_b84 and field_ba4 from the colour spaces field_b7c and
+// field_b80 name, or, without one, the static colour space 0x19 replaced
+s32 CPostEffect::Unk_4299a0() {
+    if (field_b7c != -1) {
+        Unk_ColorSpace(field_b84) = Unk_410f90_Object(field_b7c == 0x19 ? 0 : field_b7c);
+    } else if (Unk_SameColorSpace(Unk_ColorSpace(field_b84), Unk_Static_Object1)) {
+        Unk_ColorSpace(field_b84) = Unk_410f90_Object(0);
+    }
+    if (field_b80 != -1) {
+        u32 space = field_b80;
+        if (space == 0x19) {
+            space = Unk_DefaultSpace(this);
+        }
+        Unk_ColorSpace(field_ba4) = Unk_410f90_Object(space);
+    } else if (Unk_SameColorSpace(Unk_ColorSpace(field_ba4), Unk_Static_Object1)) {
+        Unk_ColorSpace(field_ba4) = Unk_410f90_Object(Unk_DefaultSpace(this));
+    }
+    return 0;
+}
+
 // 0x71004385e0: whether a format is a fixed-point one
 // NON_MATCHING: here the three switches become one table; the original keeps
 // one table for the 32-bit floats and the sRGB formats (case 0 on its own),
@@ -2652,6 +2839,300 @@ s32 CPostEffect::Unk_426070(s32 view, f32 value) {
         }
     }
     return Unk_426210();
+}
+
+// 0x710043cd40: the Planckian locus in CIE 1960 u and v at a reciprocal
+// colour temperature (in mireds: 0 to 640, every 10 tabulated). Its statics
+// are reached through the GOT: an inline function's.
+inline Unk_Float2 Unk_43cd40(const f32* mired) {
+    static const Unk_Float2 table[65] = {
+        Unk_Float2(0.180046f, 0.263577f),
+        Unk_Float2(0.180638f, 0.265948f),
+        Unk_Float2(0.181309f, 0.268506f),
+        Unk_Float2(0.182067f, 0.271236f),
+        Unk_Float2(0.182919f, 0.274118f),
+        Unk_Float2(0.183872f, 0.277131f),
+        Unk_Float2(0.184932f, 0.280251f),
+        Unk_Float2(0.186103f, 0.283452f),
+        Unk_Float2(0.187389f, 0.286709f),
+        Unk_Float2(0.188792f, 0.289997f),
+        Unk_Float2(0.190312f, 0.293293f),
+        Unk_Float2(0.191949f, 0.296575f),
+        Unk_Float2(0.193701f, 0.299825f),
+        Unk_Float2(0.195566f, 0.303025f),
+        Unk_Float2(0.19754f, 0.306162f),
+        Unk_Float2(0.199619f, 0.309223f),
+        Unk_Float2(0.201799f, 0.312199f),
+        Unk_Float2(0.204074f, 0.315083f),
+        Unk_Float2(0.20644f, 0.317868f),
+        Unk_Float2(0.208891f, 0.32055f),
+        Unk_Float2(0.211423f, 0.323126f),
+        Unk_Float2(0.21403f, 0.325595f),
+        Unk_Float2(0.216706f, 0.327956f),
+        Unk_Float2(0.219449f, 0.330208f),
+        Unk_Float2(0.222251f, 0.332354f),
+        Unk_Float2(0.22511f, 0.334393f),
+        Unk_Float2(0.22802f, 0.336329f),
+        Unk_Float2(0.230978f, 0.338163f),
+        Unk_Float2(0.233979f, 0.339897f),
+        Unk_Float2(0.23702f, 0.341536f),
+        Unk_Float2(0.240097f, 0.34308f),
+        Unk_Float2(0.243206f, 0.344534f),
+        Unk_Float2(0.246345f, 0.345901f),
+        Unk_Float2(0.249511f, 0.347183f),
+        Unk_Float2(0.252699f, 0.348384f),
+        Unk_Float2(0.255909f, 0.349508f),
+        Unk_Float2(0.259136f, 0.350557f),
+        Unk_Float2(0.262379f, 0.351534f),
+        Unk_Float2(0.265635f, 0.352443f),
+        Unk_Float2(0.268902f, 0.353287f),
+        Unk_Float2(0.272179f, 0.354069f),
+        Unk_Float2(0.275462f, 0.354791f),
+        Unk_Float2(0.27875f, 0.355457f),
+        Unk_Float2(0.282042f, 0.35607f),
+        Unk_Float2(0.285335f, 0.356631f),
+        Unk_Float2(0.288629f, 0.357144f),
+        Unk_Float2(0.291922f, 0.357611f),
+        Unk_Float2(0.295211f, 0.358034f),
+        Unk_Float2(0.298497f, 0.358417f),
+        Unk_Float2(0.301778f, 0.35876f),
+        Unk_Float2(0.305053f, 0.359066f),
+        Unk_Float2(0.30832f, 0.359338f),
+        Unk_Float2(0.311579f, 0.359577f),
+        Unk_Float2(0.314829f, 0.359785f),
+        Unk_Float2(0.318068f, 0.359964f),
+        Unk_Float2(0.321297f, 0.360115f),
+        Unk_Float2(0.324514f, 0.36024f),
+        Unk_Float2(0.327718f, 0.360342f),
+        Unk_Float2(0.330909f, 0.36042f),
+        Unk_Float2(0.334087f, 0.360477f),
+        Unk_Float2(0.33725f, 0.360513f),
+        Unk_Float2(0.340397f, 0.360531f),
+        Unk_Float2(0.34353f, 0.360531f),
+        Unk_Float2(0.346646f, 0.360515f),
+        Unk_Float2(0.349746f, 0.360483f)
+    };
+    f32 t = *mired < 0.0f ? 0.0f : (*mired > 640.0f ? 640.0f : *mired) / 10.0f;
+    s32 i = static_cast<s32>(floorf(t));
+    s32 next = i + 1 < 64 ? i + 1 : 64;
+    f32 f = t - static_cast<f32>(i);
+    Unk_Float2 hi = table[next];
+    Unk_Float2 lo = table[i];
+    f32 du = hi.field_0[0].field_0 - lo.field_0[0].field_0;
+    f32 dv = hi.field_0[1].field_0 - lo.field_0[1].field_0;
+    return Unk_Float2(lo.field_0[0].field_0 + du * f, lo.field_0[1].field_0 + dv * f);
+}
+
+// 0x710043cae0: a colour (its negative parts cut) scaled to a luminance:
+// positive, the luminance in the colour space; negative, its largest
+// component (set to it). An inline function: its static is reached through
+// the GOT.
+inline Unk_Float3 Unk_43cae0(const Unk_Vector3& color, const f32* luminance, const Unk_410f90* space) {
+    Unk_Float3 c(fmaxf(color.field_0[0], 0.0f), fmaxf(color.field_0[1], 0.0f), fmaxf(color.field_0[2], 0.0f));
+    if (*luminance > 0.0f) {
+        Unk_Vector3 v = {{c.field_0[0].field_0, c.field_0[1].field_0, c.field_0[2].field_0}};
+        f32 y = Unk_Dot(v, Unk_LuminanceWeights(*space));
+        if (y != 0.0f) {
+            f32 scale = *luminance / y;
+            c.field_0[0].field_0 = v.field_0[0] * scale;
+            c.field_0[1].field_0 = v.field_0[1] * scale;
+            c.field_0[2].field_0 = v.field_0[2] * scale;
+        }
+    } else if (*luminance < 0.0f) {
+        static const Unk_Float lowest(-3.40282347e+38f);
+        f32 max = lowest.field_0;
+        s32 index = -1;
+        for (s32 i = 0; i < 3; i++) {
+            if (c.v(i).field_0 > max) {
+                max = c.v(i).field_0;
+                index = i;
+            }
+        }
+        if (max != 0.0f) {
+            f32 scale = -(*luminance / max);
+            c.field_0[0].field_0 *= scale;
+            c.field_0[1].field_0 *= scale;
+            c.field_0[2].field_0 *= scale;
+            c.v(index).field_0 = -*luminance;
+        }
+    }
+    return c;
+}
+
+// 0x71004155f0 (Unk_415f40.cpp): the inverse of a matrix
+void Unk_4155f0(MATRIXT44* out, const MATRIXT44* m);
+
+// the XYZ to RGB matrix of a colour space (inline: Unk_4114f0 with the space
+// given)
+static inline MATRIXT44* Unk_XyzToRgb(MATRIXT44* out, const Unk_410f90* space) {
+    MATRIXT44 toXyz;
+    Unk_411b00(&toXyz, &space->field_0, &space->field_8, &space->field_10, &space->field_18);
+    MATRIXT44 inverse;
+    Unk_4155f0(&inverse, &toXyz);
+    *out = inverse;
+    return out;
+}
+
+// XYZ from x, y and the luminance: Y itself, or (negative) Y over y
+// (inline)
+static inline Unk_Vector3 Unk_XYZ(f32 x, f32 y, const f32* luminance) {
+    f32 Y = *luminance;
+    if (Y < 0.0f) {
+        Y = -(Y * y);
+    }
+    f32 scale = Y / y;
+    Unk_Vector3 result = {{x * scale, Y, (1.0f - x - y) * scale}};
+    return result;
+}
+
+// the XYZ of white light of a colour temperature (K) and a luminance: on the
+// Planckian locus, or the CIE daylight locus between 2000 and 25000 K
+// (inline)
+static inline Unk_Vector3 Unk_WhiteXYZ(f32 temperature, bool planck, const f32* luminance) {
+    if (planck) {
+        f32 mired = temperature < 1562.5f ? 640.0f
+                                          : 1000000.0f / (temperature > 3.40282347e+38f ? 3.40282347e+38f : temperature);
+        Unk_Float2 uv = Unk_43cd40(&mired);
+        f32 u = uv.field_0[0].field_0;
+        f32 v = uv.field_0[1].field_0;
+        f32 d = 2.0f * u - 8.0f * v + 4.0f;
+        return Unk_XYZ(3.0f * u / d, 2.0f * v / d, luminance);
+    }
+    if (temperature < 2000.0f) {
+        temperature = 2000.0f;
+    } else if (temperature > 25000.0f) {
+        temperature = 25000.0f;
+    }
+    f64 t = temperature;
+    f64 x;
+    if (temperature < 4000.0f) {
+        f64 l = log(t);
+        x = -0.012 * (l * l) + 1.208;
+    } else if (temperature <= 7000.0f) {
+        x = -4.6070 * 1e9 / (t * t * t) + 2.9678 * 1e6 / (t * t) + 0.09911 * 1e3 / t + 0.244063;
+    } else {
+        x = -2.0064 * 1e9 / (t * t * t) + 1.9018 * 1e6 / (t * t) + 0.24748 * 1e3 / t + 0.237040;
+    }
+    f64 y = -3.0 * (x * x) + 2.87 * x - 0.275;
+    return Unk_XYZ(static_cast<f32>(x), static_cast<f32>(y), luminance);
+}
+
+// the RGB of white light of a colour temperature (inline)
+static inline Unk_Vector3 Unk_WhiteRGB(f32 temperature, bool planck, const f32* luminance, const MATRIXT44* toRgb) {
+    Unk_Vector3 xyz = Unk_WhiteXYZ(temperature, planck, luminance);
+    Unk_Vector3 rgb;
+    Unk_410070(&rgb, &xyz, toRgb);
+    return rgb;
+}
+
+// 0x710043c690: the RGB colour, in a colour space, of white light of a
+// colour temperature (relative to 6500 K's) at a luminance (see Unk_43cae0),
+// optionally inverted, and an alpha
+inline Unk_Float4 Unk_43c690(const f32* temperature, const Unk_410f90* space, const f32* tint, const f32* luminance,
+                             const f32* alpha, bool invert, bool planck) {
+    if (*temperature == 6500.0f) {
+        f32 l = *luminance;
+        f32 value = l == 0.0f ? 1.0f : (l > 0.0f ? l : -l);
+        return Unk_Float4(value, value, value, *alpha);
+    }
+    MATRIXT44 toRgb;
+    Unk_XyzToRgb(&toRgb, space);
+    Unk_Vector3 white = Unk_WhiteRGB(6500.0f, planck, tint, &toRgb);
+    f32 r = 1.0f / white.field_0[0];
+    f32 g = 1.0f / white.field_0[1];
+    f32 b = 1.0f / white.field_0[2];
+    Unk_Vector3 rgb = Unk_WhiteRGB(*temperature, planck, tint, &toRgb);
+    rgb.field_0[0] *= r;
+    rgb.field_0[1] *= g;
+    rgb.field_0[2] *= b;
+    if (invert) {
+        rgb.field_0[0] = 1.0f / rgb.field_0[0];
+        rgb.field_0[1] = 1.0f / rgb.field_0[1];
+        rgb.field_0[2] = 1.0f / rgb.field_0[2];
+    }
+    if (*luminance >= 0.0f) {
+        rgb.field_0[0] *= *luminance;
+        rgb.field_0[1] *= *luminance;
+        rgb.field_0[2] *= *luminance;
+    } else {
+        Unk_Float3 c = Unk_43cae0(rgb, luminance, space);
+        rgb.field_0[0] = c.field_0[0].field_0;
+        rgb.field_0[1] = c.field_0[1].field_0;
+        rgb.field_0[2] = c.field_0[2].field_0;
+    }
+    return Unk_Float4(rgb.field_0[0], rgb.field_0[1], rgb.field_0[2], *alpha);
+}
+
+// a view's frustum at unit distance: its bottom, left, right and top
+struct Unk_Frustum {
+    bool operator!=(const Unk_Frustum& other) const {
+        return !(field_0 == other.field_0 && field_4 == other.field_4 && field_8 == other.field_8 &&
+                 field_c == other.field_c);
+    }
+
+    f32 field_0;
+    f32 field_4;
+    f32 field_8;
+    f32 field_c;
+};
+
+// the square root, without the call for 0 and 1 (inline)
+static inline f32 Unk_Sqrt(f32 x) {
+    if (x == 0.0f || x == 1.0f) {
+        return x;
+    }
+    return sqrtf(x);
+}
+
+// NON_MATCHING: written this round, not matching yet (tools/check.py --diff shows
+// what differs).
+// 0x710042a590: what changed since the last frame's view: whether the eye
+// moved further than field_d08, whether it moved, whether the projection and
+// the rotation changed, and whether anything did
+s32 CPostEffect::Unk_42a590(bool* far, bool* moved, bool* projection, bool* rotation, bool* any) {
+    f32 scale = field_6c4;
+    f32 w = scale * (field_6d0 * field_420);
+    f32 xw = field_6d4 * w;
+    f32 h = scale * field_6d0;
+    f32 yh = h * field_6d8;
+    f32 w2 = scale * (field_420 * field_6e8);
+    f32 xw2 = field_6ec * w2;
+    f32 h2 = scale * field_6e8;
+    f32 yh2 = h2 * field_6f0;
+    Unk_Frustum current = {yh - h, xw - w, w + xw, h + yh};
+    Unk_Frustum previous = {yh2 - h2, xw2 - w2, w2 + xw2, h2 + yh2};
+    bool projectionChanged = current != previous || field_6c4 != field_6c4 || field_6c8 != field_6c8;
+    f32 dx = field_6f4.field_0[3][0] - field_774.field_0[3][0];
+    f32 dy = field_6f4.field_0[3][1] - field_774.field_0[3][1];
+    f32 dz = field_6f4.field_0[3][2] - field_774.field_0[3][2];
+    f32 distance = Unk_Sqrt(dx * dx + dy * dy + dz * dz);
+    bool isFar = distance > field_d08;
+    bool hasMoved = distance > 0.0f;
+    bool rotationChanged = !(field_6f4.field_0[0][0] == field_774.field_0[0][0] &&
+                             field_6f4.field_0[0][1] == field_774.field_0[0][1] &&
+                             field_6f4.field_0[0][2] == field_774.field_0[0][2] &&
+                             field_6f4.field_0[1][0] == field_774.field_0[1][0] &&
+                             field_6f4.field_0[1][1] == field_774.field_0[1][1] &&
+                             field_6f4.field_0[1][2] == field_774.field_0[1][2] &&
+                             field_6f4.field_0[2][0] == field_774.field_0[2][0] &&
+                             field_6f4.field_0[2][1] == field_774.field_0[2][1] &&
+                             field_6f4.field_0[2][2] == field_774.field_0[2][2]);
+    if (far != nullptr) {
+        *far = isFar;
+    }
+    if (moved != nullptr) {
+        *moved = hasMoved;
+    }
+    if (projection != nullptr) {
+        *projection = projectionChanged;
+    }
+    if (rotation != nullptr) {
+        *rotation = rotationChanged;
+    }
+    if (any != nullptr) {
+        *any = (distance > 0.0f) || projectionChanged || rotationChanged;
+    }
+    return 0;
 }
 
 }  // namespace PPFX

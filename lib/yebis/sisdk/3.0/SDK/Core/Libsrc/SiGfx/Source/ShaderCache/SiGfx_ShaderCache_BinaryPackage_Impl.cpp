@@ -110,11 +110,14 @@ struct Unk_EntryCompare {
 
 // 0x71004e8d50: ends changes (counted): the shaders being edited become the
 // package's entries, their names and code in one block, sorted by name
-// NON_MATCHING: two things. The sorter's test of its room is `cmp x8, #1 ;
-// b.lt` in the original and `cmp x8, #0 ; b.le` here (every spelling of the
-// test tried), and in the copies' loop the code's block and the name's offset
-// are in each other's registers for the name's copy. The rest is the
-// original's.
+// The name's offset is read into a local before its copy (that gives the
+// original's registers for the block and the offset).
+// NON_MATCHING: the sorter's test of its room is `cmp x8, #1 ; b.lt` in the
+// original and `cmp x8, #0 ; b.le` here: the IR has an empty block for the
+// test's skip (the stack's address for the destructor's phi), laid out next,
+// so the branch is inverted. Tried: every spelling of the test, the reserve as
+// `>= 1`/`> 0` around the allocation, its count as size_t, a stack local,
+// a bool result, the capacity set after the allocation.
 void SiGfxShaderBinaryCachePackage::vf6() {
     if (static_cast<s32>(field_158) <= 0) {
         return;
@@ -144,7 +147,8 @@ void SiGfxShaderBinaryCachePackage::vf6() {
         for (s64 i = 0; i < static_cast<s32>(field_18.m_itemCount); i++) {
             EditEntry* edit = field_18.m_pData[i];
             Entry* entry = &field_68.m_pData[i];
-            memcpy(field_108.m_pData + entry->field_0, edit->field_0.m_pBuffer, entry->field_4);
+            s32 nameOffset = entry->field_0;
+            memcpy(field_108.m_pData + nameOffset, edit->field_0.m_pBuffer, entry->field_4);
             s32 end = entry->field_0 + entry->field_4;
             field_108.m_pData[end] = 0;
             memcpy(field_108.m_pData + entry->field_8, edit->field_30.m_pData, entry->field_c);
@@ -156,8 +160,7 @@ void SiGfxShaderBinaryCachePackage::vf6() {
         }
     }
     if (field_b8.m_itemCount != 0) {
-        SiQSorter<Entry*, Unk_EntryCompare> sorter(field_8.m_pAllocator);
-        sorter.Unk_Reserve(field_b8.m_itemCount);
+        SiQSorter<Entry*, Unk_EntryCompare> sorter(field_8.m_pAllocator, field_b8.m_itemCount);
         sorter.Unk_Sort(field_b8.m_itemCount, field_b8.m_pData);
         Unk_566a00(field_8.m_pAllocator, &field_18, false);
     }

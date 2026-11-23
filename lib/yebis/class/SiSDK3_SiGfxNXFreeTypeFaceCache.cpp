@@ -7,11 +7,11 @@
 namespace SiSDK3 {
 class SiGfxNXFreeTypeFaceCache {
 public:
-    u32 vf7();
+    u32 vf7(void* pContext);
 };
 }  // namespace SiSDK3
 
 // 0x7100533e00
-u32 SiSDK3::SiGfxNXFreeTypeFaceCache::vf7() {
+u32 SiSDK3::SiGfxNXFreeTypeFaceCache::vf7(void* pContext) {
     return 1;
 }

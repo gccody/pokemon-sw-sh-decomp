@@ -92,7 +92,7 @@ public:
             field_6c = false;
             field_6d = false;
             field_70 = 2;
-            field_74 = 0;
+            field_74 = 0.0f;
             field_78 = 0.0f;
             field_7c = 0.75f;
             field_80 = 0.75f;
@@ -117,7 +117,7 @@ public:
         bool field_6c;
         bool field_6d;
         s32 field_70;
-        s32 field_74;
+        f32 field_74;  // the taps' aspect ratio
         f32 field_78;
         f32 field_7c;
         f32 field_80;
@@ -180,10 +180,18 @@ public:
     f32 Unk_PairSize(const f32& angle, f32 distance, f32 width) {
         return field_3c4 ? angle : Unk_ViewSize(angle, distance, width);
     }
-    // 0x71004af020: the lens's numbers from the camera's (declared for its
-    // caller; not written yet)
-    s32 Unk_4af020(s32 mode, f32 fov, f32 a1, f32 a2, f32 a3, f32 a4, f32 a5, f32 a6, f32 a7, f32* out1a8,
-                   f32* out1b4, f32* out1ac, f32* out1c4, f32* out1e4, f32* out1e8, f32 a8);
+    // 0x71004af020: the lens's numbers from the camera's (placeholder parameter
+    // names)
+    s32 Unk_4af020(s32 mode, f32 fov, f32 distance, f32 width, f32 value, f32 exponent, f32 angle, f32 focus,
+                   f32 a7, f32* outSize, Unk_Float* outFNumber, Unk_Float* outValue, f32* outCoc, f32* outRatio, Unk_Float4* outClip,
+                   f32 limit);
+    // field_3b0's rounding of a value (inline)
+    f32 Unk_Quantize(f32 x) {
+        f32 step = field_3b0;
+        if (step <= 0.0f)
+            return x;
+        return exp2f(floorf(2.0f * (logf(x) / 0.6931472f) / step + 0.49999f) * step * 0.5f);
+    }
     // 0x71004afc40: the camera (placeholder parameter names)
     // (the mode's position among the floats decides the order of the entry's copies)
     void Unk_4afc40(f32 width, f32 height, f32 tanHalfFov, f32 a3, f32 a4, f32 a5, f32 a6, f32 a7, s32 mode, f32 b0,
@@ -198,8 +206,13 @@ public:
     void Unk_4b0db0(bool near, bool far);  // 0x71004b0db0: the composite's constants
     // 0x71004b0650: a blur of `source` into `target` with the technique for
     // `count` taps (one less when there is none; placeholder parameter names)
+    // (arg9 and arg10 are passed on to an inline that ignores them)
     s32 Unk_4b0650(s32 count, s32 mode, CRenderTexture* source, CRenderTexture* target, CRenderTexture* second,
-                   const Unk_Float4* color, bool flag, f32 a, f32 b);
+                   const Unk_Float4* color, bool flag, bool arg9, s32 arg10, f32 a, f32 b);
+    // 0x71004b19a0: a level's blur by its kind (`list`: its temporary
+    // textures; placeholder parameter names)
+    s32 Unk_4b19a0(s32 level, bool first, CRenderTexture* source, CRenderTexture* target, CRenderTexture** list,
+                   CRenderTexture* extra, s32 mode);
     // 0x71004b1100 (not written yet): the taps' offsets
     s32 Unk_4b1100(bool near, bool far, s32 count, f32 angle);
     // 0x71004b35f0, 0x71004b48d0, 0x71004b4540 (not written yet): the passes of
@@ -212,8 +225,14 @@ public:
     s32 Unk_4b3280(s32 level);
     s32 Unk_4b4c40();  // 0x71004b4c40: all of them
     f32 Unk_4b4ab0(bool near);  // 0x71004b4ab0: a blur scale from the tables of field_358
+    // the near blur's position in field_398's table, 0 to 1 (inline in
+    // 0x71004b4ab0 and 0x71004b1100)
+    f32 Unk_NearPosition(bool far);
     // 0x71004afd80: mode 0's two values from a blur size, a distance and an angle
     s32 Unk_4afd80(f32 size, f32 distance, f32 angle);
+    // 0x71004aff50: an RGBA8 image's columns weighted and normalised (placeholder
+    // parameter names)
+    s32 Unk_4aff50(u8* data, u32 width, u32 height, const f32* scale, bool merge);
 
     u8 _29[0x2c - 0x29];  // from the end of the base's members
     Unk_Desc field_2c;  // the description Initialize was given
@@ -225,7 +244,8 @@ public:
     f32 field_168;  // the source's width over the description's
     s32 field_16c;
     s32 field_170;
-    u8 _174[0x178 - 0x174];
+    bool field_174;  // the levels are drawn in their colours
+    u8 _175[0x178 - 0x175];
     f32 field_178;
     u8 _17c[0x180 - 0x17c];
     s32 field_180;  // the number of a level's field_48
@@ -239,11 +259,11 @@ public:
     f32 field_1a0;
     f32 field_1a4;
     f32 field_1a8;
-    f32 field_1ac;
+    Unk_Float field_1ac;
     f32 field_1b0;
-    f32 field_1b4;
+    Unk_Float field_1b4;
     f32 field_1b8;
-    u8 _1bc[0x1c0 - 0x1bc];
+    f32 field_1bc;  // the taps' rotation
     f32 field_1c0;
     f32 field_1c4;
     s32 field_1c8;  // the mode
@@ -255,10 +275,7 @@ public:
     bool field_1e0;
     u8 _1e1[0x1e4 - 0x1e1];
     f32 field_1e4;
-    f32 field_1e8;
-    u8 _1ec[0x1f0 - 0x1ec];
-    f32 field_1f0;
-    f32 field_1f4;
+    Unk_Float4 field_1e8;  // the depth's scale and bias, and their inverse
     s32 field_1f8[4];
     u8 _208[0x20c - 0x208];
     s32 field_20c;
@@ -298,7 +315,7 @@ public:
     bool field_3a8;
     u8 _3a9[0x3ac - 0x3a9];
     f32 field_3ac;
-    s32 field_3b0;
+    f32 field_3b0;
     bool field_3b4;
     u8 _3b5[0x3b8 - 0x3b5];
     f32 field_3b8;

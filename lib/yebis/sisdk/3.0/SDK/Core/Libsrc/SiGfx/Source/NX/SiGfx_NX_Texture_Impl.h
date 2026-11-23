@@ -7,6 +7,7 @@
 #pragma once
 
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_RefCountDeferred.h>
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiGfx/Image/SiGfx_Image.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_MemoryHeap_Impl.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_Surface_Impl.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_Volume_Impl.h>
@@ -182,7 +183,7 @@ public:
         inline explicit Unk_Desc(u32 format = 0, u32 width = 0, u32 height = 0, u32 a18 = 0, u32 a1c = 0, u32 a20 = 0,
                           u32 a30 = 0, u32 a38 = 0, u32 a54 = 0, const void* a60 = nullptr)
             : field_0(format), field_4(0), field_8(0), field_10(width), field_14(height), field_18(a18),
-              field_1c(a1c), field_20(a20), field_24(0), field_28(0), field_30(a30), field_34(8), field_38(a38), field_3c(0),
+              field_1c(a1c), field_20(a20), field_24(0), field_28(0), field_2c(0), field_30(a30), field_34(8), field_38(a38), field_3c(0),
               field_40(0), field_44(0), field_50(0), field_54(a54), field_58(0), field_60(a60),
               field_68(0), field_70(0), field_78(1.0f), field_7c(0), field_80(0), field_84(0), field_e8(0),
               field_ec(-1), field_f0(-1) {
@@ -197,6 +198,17 @@ public:
 
         // 0x710055ffd0: back to the defaults
         void Unk_55ffd0();
+
+        // two numbers copied one by one (placeholder): slot 23's copy of a
+        // description copies them member by member between the two blocks
+        // it copies whole, so their copy constructor isn't trivial
+        struct Unk_Pair2 {
+            Unk_Pair2(u32 a0 = 0, u32 a4 = 0) : field_0(a0), field_4(a4) {}
+            Unk_Pair2(const Unk_Pair2& other) : field_0(other.field_0), field_4(other.field_4) {}
+            Unk_Pair2& operator=(const Unk_Pair2& other) = default;
+            u32 field_0;
+            u32 field_4;
+        };
 
         // two numbers stored together (placeholder)
         struct Unk_Pair {
@@ -214,7 +226,8 @@ public:
         u32 field_1c;
         u32 field_20;
         u32 field_24;
-        u64 field_28;
+        u32 field_28;  // (a 32-bit member: the texture utility's slot 18 zeroes it alone)
+        u32 field_2c;
         u32 field_30;
         u32 field_34;
         u32 field_38;
@@ -226,8 +239,8 @@ public:
         u32 field_54;
         u64 field_58;
         const void* field_60;
-        u64 field_68;
-        u64 field_70;
+        Unk_Pair2 field_68;
+        Unk_Pair2 field_70;
         f32 field_78;
         u32 field_7c;
         u32 field_80;
@@ -281,7 +294,9 @@ public:
     virtual void vf21();
     // 0x710055f3d0: makes the texture from a description
     virtual bool vf22(const Unk_Desc* desc);
-    virtual void vf23();
+    // 0x71005604c0: makes the texture from an image (its pixels, levels and
+    // layers) and a description of the rest
+    virtual bool vf23(const Unk_Desc* desc, SiGfxImage* image);
     virtual void vf24();  // 0x7100560e10: releases what it was made with
     virtual SiGfxNXSurface* vf25(s32 level);                            // 0x7100561040
     virtual SiGfxNXSurface* vf26(s32 layer, s32 level);                 // 0x7100561080
