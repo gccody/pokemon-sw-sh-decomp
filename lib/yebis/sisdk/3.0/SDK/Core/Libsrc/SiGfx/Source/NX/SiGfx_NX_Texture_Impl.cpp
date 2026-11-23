@@ -1,12 +1,33 @@
 // Scope: common
-// SiSDK3::SiGfxNXTexture: its name, its class's GUID, the accessors of its
-// surfaces, volumes and views, and the reference counts its header defines.
-// (Its constructor, destructor and the functions that make it aren't written
-// yet; its other small accessors are lib/yebis/class's.)
+// SiSDK3::SiGfxNXTexture: its construction and destruction, its name, its
+// class's GUID, the functions that make its surfaces and volumes, the
+// accessors of its surfaces, volumes and views, and the reference counts its
+// header defines. (Most of the functions that make it aren't written yet; its
+// other small accessors are lib/yebis/class's.)
 #define UNK_SIGFX_NX_TEXTURE_IMPL
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_Texture_Impl.h>
 
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_Alloc.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_StringFuncs.h>
+
+// nvn.h declares these three without their types
+inline int Unk_nvnTextureGetFlags(const void* texture) {
+    return reinterpret_cast<int (*)(const void*)>(Unk_27fcce0)(texture);
+}
+inline NvnBoolean Unk_nvnTextureViewGetDepthStencilMode(const void* view, int* mode) {
+    return reinterpret_cast<NvnBoolean (*)(const void*, int*)>(Unk_27fcc98)(view, mode);
+}
+inline NvnBoolean Unk_nvnTextureViewGetFormat(const void* view, int* format) {
+    return reinterpret_cast<NvnBoolean (*)(const void*, int*)>(Unk_27fcc88)(view, format);
+}
+
+// 0x7100562f10: an NVN texture format as SiGfx numbers it
+u32 Unk_562f10(u32 format);
+// 0x71004ed0f0: a format's block's size, 0x71004ed120: whether it's one of
+// blocks, 0x71004ed6e0
+s32 Unk_4ed0f0(u32 format);
+bool Unk_4ed120(u32 format);
+bool Unk_4ed6e0(u32 format);
 
 // 0x71004c8f80: whether two GUIDs are the same
 bool Unk_4c8f80(const void* a, const void* b);
@@ -33,6 +54,96 @@ const SiString<char>* SiGfxNXTexture::vf46() {
 // 0x710055f2e0 (0x710055f2f0: its thunk)
 u32 SiGfxNXTexture::vf47() {
     return field_a8;
+}
+
+// NON_MATCHING: the original copies the first eight bytes apart from the
+// other 128 of the trivially copied members, which it copies inline (one of
+// their loads, 0x48's, is the zero just stored: `stp xzr, x8`); here the 0x88
+// bytes are one memcpy, a call, as slot 22's copy of a description is in the
+// original too. A base class for the first eight bytes gives the inline copy,
+// but its copy comes first then (and slot 22's would be split as well). The
+// temporary's zero stores at 0x40 and 0x50 are exchanged (the texture's
+// constructor's near miss).
+// 0x710055ffd0
+void SiGfxNXTexture::Unk_Desc::Unk_55ffd0() {
+    *this = Unk_Desc();
+}
+
+// 0x7100560e10: what it is cleared (the zero, then the one, stored at 0x1c0:
+// the zeros of 0x1c0 to 0x1cc are one memset that stops at the one) and what
+// it was made with released
+void SiGfxNXTexture::vf24() {
+    field_1c0 = 0;
+    field_1c4 = 0;
+    field_1c8 = 0;
+    field_1cc = 0;
+    field_1c0 = 1;
+    field_1d0 = 0;
+    field_1d8 = 0;
+    field_1e8 = 0;
+    field_1ec = 0;
+    field_1f0 = 0;
+    field_1f4 = 0;
+    field_1f8 = 0;
+    field_204 = 0;
+    field_208 = 0;
+    field_20e = false;
+    field_210 = 0;
+    field_214 = 0;
+    field_218 = 0;
+    if (field_28 != nullptr) {
+        for (s64 i = 0; i < static_cast<s32>(field_398.m_itemCount); i++) {
+            field_28->Unk_4fb290(field_398.m_pData[i]);
+        }
+        if (field_338 != -1) {
+            field_28->Unk_4fb290(field_338);
+            field_338 = -1;
+        }
+    }
+    if (field_451) {
+        field_330 = 0;
+        field_328 = nullptr;
+    } else {
+        if (field_450) {
+            nvnTextureFinalize(field_328);
+            if (field_328 != nullptr) {
+#line 877
+                UNK_FREE(field_18.m_pAllocator, field_328);
+            }
+            if (field_330 != 0) {
+#line 878
+                UNK_FREE(field_18.m_pAllocator, reinterpret_cast<void*&>(field_330));
+            }
+            if (field_348.m_itemCount > 1) {
+                for (s64 i = 0; i < static_cast<s32>(field_348.m_itemCount); i++) {
+                    if (field_348.m_pData[i] != nullptr) {
+                        if (field_18.m_pAllocator != nullptr) {
+#line 886
+                            SI_FREE(field_18.m_pAllocator, field_348.m_pData[i]);
+                        }
+                        field_348.m_pData[i] = nullptr;
+                    }
+                }
+            }
+            field_450 = false;
+        }
+        if (field_438 != nullptr) {
+            field_438->Unk_553010(field_440);
+            field_448 = 0;
+            field_440 = 0;
+            if (field_438 != nullptr) {
+                field_438->vf3();
+                field_438 = nullptr;
+            }
+            field_438 = nullptr;
+        }
+    }
+    field_450 = false;
+    field_451 = false;
+    if (field_318 != nullptr) {
+        field_318->vf3();
+        field_318 = nullptr;
+    }
 }
 
 // 0x7100561040
@@ -150,6 +261,92 @@ bool SiGfxNXTexture::vf32(Unk_NXTextureOwner* pOwner) {
     return true;
 }
 
+// 0x71005601b0
+// NON_MATCHING: the original peels the volumes' loop's first iteration (its
+// element is the buffer the reserve just made) and lays the cube and array
+// cases out after the volumes' (44 bytes more); the surfaces' case matches.
+bool SiGfxNXTexture::Unk_5601b0() {
+    field_238.Unk_FreeAll();
+    field_288.Unk_FreeAll();
+    switch (field_1d4) {
+    case 2:
+        field_238.Unk_SetCount(field_22c);
+        for (s64 i = 0; i < static_cast<s32>(field_238.m_itemCount); i++) {
+            SiGfxNXSurface* surface = &field_238.m_pData[i];
+            surface->Unk_55cb60(field_28);
+            surface->Unk_55d300(reinterpret_cast<Unk_NXSurfaceTexture*>(this), i, 0);
+        }
+        break;
+    case 3:
+        field_288.Unk_SetCount(field_22c);
+        for (s64 i = 0; i < static_cast<s32>(field_288.m_itemCount); i++) {
+            SiGfxNXVolume* volume = &field_288.m_pData[i];
+            volume->Unk_565ab0(field_28);
+            volume->Unk_565c10(this, i);
+        }
+        break;
+    case 4:
+        Unk_561730();
+        break;
+    case 5:
+        Unk_561970();
+        break;
+    case 6:
+        Unk_561aa0();
+        break;
+    default:
+        return false;
+    }
+    return true;
+}
+
+// 0x7100561730: a cube's six faces
+bool SiGfxNXTexture::Unk_561730() {
+    field_238.Unk_SetCount(field_22c * 6);
+    for (s64 i = 0; i < static_cast<s32>(field_238.m_itemCount); i++) {
+        field_238.m_pData[i].Unk_55cb60(field_28);
+    }
+    for (s32 face = 0; face < 6; face++) {
+        for (s32 level = 0; level < field_22c; level++) {
+            field_238.m_pData[face * field_22c + level].Unk_55d300(reinterpret_cast<Unk_NXSurfaceTexture*>(this),
+                                                                  level, face);
+        }
+    }
+    return true;
+}
+
+// 0x7100561970
+bool SiGfxNXTexture::Unk_561970() {
+    field_238.Unk_SetCount(field_22c * field_230);
+    for (s64 i = 0; i < static_cast<s32>(field_238.m_itemCount); i++) {
+        field_238.m_pData[i].Unk_55cb60(field_28);
+    }
+    for (s32 layer = 0; layer < field_230; layer++) {
+        for (s32 level = 0; level < field_22c; level++) {
+            field_238.m_pData[layer * field_22c + level].Unk_55d300(reinterpret_cast<Unk_NXSurfaceTexture*>(this),
+                                                                   level, layer);
+        }
+    }
+    return true;
+}
+
+// 0x7100561aa0: each layer's six faces
+bool SiGfxNXTexture::Unk_561aa0() {
+    field_238.Unk_SetCount(field_22c * 6 * field_230);
+    for (s64 i = 0; i < static_cast<s32>(field_238.m_itemCount); i++) {
+        field_238.m_pData[i].Unk_55cb60(field_28);
+    }
+    for (s32 layer = 0; layer < field_230; layer++) {
+        for (s32 face = 0; face < 6; face++) {
+            for (s32 level = 0; level < field_22c; level++) {
+                field_238.m_pData[(layer * 6 + face) * field_22c + level].Unk_55d300(
+                    reinterpret_cast<Unk_NXSurfaceTexture*>(this), level, layer * 6 + face);
+            }
+        }
+    }
+    return true;
+}
+
 // 0x7100561dc0
 void* SiGfxNXTexture::vf42(s32 level, s32 layer) {
     s32 index = nvnTextureGetLevels(field_328) * layer + level;
@@ -183,6 +380,105 @@ bool SiGfxNXTexture::vf39(u32 kind) {
     return true;
 }
 
+// NON_MATCHING: two registers exchanged: the original keeps the 3D flag in
+// w22 and the access flags in w23, here the other way round. Tried: the
+// three locals' declarations in each order, their types, the access flags
+// as `~flags & 8`, declared first, from a local of the flags, the 3D flag as
+// `kind == 3`.
+// 0x7100561ef0
+bool SiGfxNXTexture::vf44(void* texture, void* view) {
+    if (texture == nullptr || view == nullptr) {
+        return false;
+    }
+    field_328 = texture;
+    field_330 = reinterpret_cast<u64>(view);
+    field_338 = field_28->Unk_4fb380(reinterpret_cast<u64>(texture), reinterpret_cast<u64>(view));
+    field_450 = true;
+    field_451 = true;
+    u32 kind = 0;
+    bool volume = false;
+    bool array = false;
+    switch (nvnTextureGetTarget(field_328)) {
+    case 0:
+        kind = 1;
+        break;
+    case 1:
+    case 5:
+    case 7:
+        kind = 2;
+        break;
+    case 2:
+        kind = 3;
+        volume = true;
+        break;
+    case 3:
+        kind = 1;
+        array = true;
+        break;
+    case 4:
+        kind = 5;
+        array = true;
+        break;
+    case 6:
+        kind = 2;
+        array = true;
+        break;
+    case 8:
+        kind = 4;
+        break;
+    case 9:
+        kind = 6;
+        break;
+    }
+    u32 access = (Unk_nvnTextureGetFlags(field_328) & 8) ? 0 : 8;
+    int mode;
+    NvnBoolean hasMode = Unk_nvnTextureViewGetDepthStencilMode(reinterpret_cast<void*>(field_330), &mode);
+    int viewFormat;
+    Unk_nvnTextureViewGetFormat(reinterpret_cast<void*>(field_330), &viewFormat);
+    u32 format = Unk_562f10(viewFormat);
+    field_1c0 = 1;
+    field_1c4 = 0;
+    field_1c8 = 8;
+    field_1cc = 0;
+    field_1d0 = 0;
+    field_1d4 = kind;
+    field_1d8 = Unk_562f10(nvnTextureGetFormat(field_328));
+    field_1dc = hasMode == 1 ? 0 : format;
+    field_1e0 = hasMode == 1 ? format : 0;
+    field_1e4 = 0;
+    field_1e8 = nvnTextureGetWidth(field_328);
+    field_1ec = nvnTextureGetHeight(field_328);
+    field_1f0 = volume ? nvnTextureGetDepth(field_328) : 0;
+    field_1f4 = nvnTextureGetLevels(field_328);
+    field_1f8 = array ? nvnTextureGetDepth(field_328) : 0;
+    field_1fc = field_1f4 * (array ? field_1f8 : 1);
+    field_200 = field_1f4;
+    field_204 = nvnTextureGetSamples(field_328);
+    field_208 = 0;
+    field_20c = true;
+    field_20d = Unk_4ed6e0(format);
+    field_20e = Unk_4ed120(field_1d8);
+    field_20f = false;
+    field_21c = access;
+    if (field_20e) {
+        field_210 = (field_1e8 + 3) / 4;
+        field_214 = (field_1ec + 3) / 4;
+        field_218 = Unk_4ed0f0(field_1d8);
+    } else {
+        field_210 = 0;
+        field_214 = 0;
+        field_218 = 0;
+    }
+    field_22c = field_1f4;
+    field_230 = field_1f8;
+    s32 count = (field_230 > 1 ? field_230 : 1) * field_22c;
+    field_348.Unk_SetCount(count);
+    for (s32 i = 0; i < count; i++) {
+        field_348.m_pData[i] = reinterpret_cast<NVNtextureView*>(field_330);
+    }
+    return Unk_5601b0();
+}
+
 // 0x71005624f0 (0x7100562530: its thunk)
 bool SiGfxNXTexture::vf17(const void* guid) {
     return Unk_4c8f80(guid, &Unk_1f0028c);
@@ -191,6 +487,29 @@ bool SiGfxNXTexture::vf17(const void* guid) {
 // 0x7100562510 (0x7100562550: its thunk)
 const void* SiGfxNXTexture::vf18() {
     return &Unk_1f0028c;
+}
+
+// 0x710055e7c0
+SiGfxNXTexture::SiGfxNXTexture(ISiAllocator* pAllocator, SiGfxNXDevice* pDevice, u32 kind)
+    : field_18(pAllocator), field_28(pDevice), field_30(0), field_38(pDevice->Unk_Allocator()), field_a8(0),
+      field_22c(0), field_230(0), field_238(pAllocator), field_288(pAllocator), field_2d8(0xc), field_2dc(1),
+      field_2e0(1), field_2e4(1), field_2e8(0), field_2f0(100.0f), field_2f4(1), field_2f8(8), field_2fc(),
+      field_318(nullptr), field_320(0), field_328(nullptr), field_330(0), field_338(-1), field_340(0),
+      field_438(nullptr), field_440(0), field_448(0), field_450(false) {
+    memset(&field_1c0, 0, 0x6c);
+    field_1c0 = 1;
+    field_1d4 = kind;
+}
+
+// 0x710055eb20 (D2), 0x710055f130 (D0); 0x710055f110, 0x710055f160,
+// 0x710055f120 and 0x710055f190 are their thunks for the second and third
+// bases
+SiGfxNXTexture::~SiGfxNXTexture() {
+    if (field_28 != nullptr && field_30 != 0) {
+        field_28->Unk_4f9640(Unk_NXResource(this));
+        field_30 = 0;
+    }
+    vf24();
 }
 
 }  // namespace SiSDK3

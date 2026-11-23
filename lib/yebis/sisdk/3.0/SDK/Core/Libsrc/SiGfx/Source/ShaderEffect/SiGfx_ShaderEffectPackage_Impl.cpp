@@ -14,6 +14,9 @@
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/ShaderEffect/SiGfx_ShaderEffect_Impl.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiIO/Source/SiIO_Kernel_Impl.h>
 
+// 0x71004c34a0: a name's hash
+u32 Unk_4c34a0(const char* name);
+
 // 0x7100582f10, 0x7100582f70: skip to, and fill up to, a multiple of alignment
 s64 Unk_582f10(SiSDK3::ISiIOStream* stream, s64 alignment);
 s64 Unk_582f70(SiSDK3::ISiIOStream* stream, s64 alignment, u8 fill);
@@ -34,7 +37,7 @@ void Unk_578bc0_call(Unk_578bc0* self);
 // 0x7100582d80: whether a file exists
 bool Unk_582d80(const char* path, bool searchArchives);
 // 0x710056ca20 (leafgen's name): whether an effect may be added
-bool Unk_56ca20(void* package, void* effect);
+bool Unk_56ca20(void* pPackage, void* pEffect);
 
 namespace SiSDK3 {
 
@@ -93,6 +96,42 @@ ISiGfxShaderEffectPackage::ShaderEffectData::ShaderEffectData(ISiAllocator* pAll
 #line 174
     field_b0 = UNK_SI_NEW(pAllocator, 0x10) SiGfxShaderEffect::ShaderProgramMap(pAllocator);
 }
+
+// 0x7100566cc0: the programs' map's entries are deleted, each in its turn
+// (an entry takes itself out of the map), as the effect's 0x71005769e0 does
+ISiGfxShaderEffectPackage::ShaderEffectData::~ShaderEffectData() {
+    SiGfxShaderEffect::ShaderProgramMap* map = field_b0;
+    if (map != nullptr) {
+        {
+            Unk_596640 lock(map->field_18.Unk_Get(), true);
+            while (map->field_48.m_count != 0) {
+                auto first = decltype(map->field_48)::Unk_Iterator(&map->field_48, map->field_48.m_pRoot);
+                SiGfxShaderEffect::ShaderProgramCompileEntry* entry = first.m_pNode->m_value;
+                map->field_48.Unk_4c0e60(first);
+                if (entry != nullptr) {
+                    ISiAllocator* pAllocator = field_0;
+                    if (pAllocator != nullptr) {
+                        entry->~ShaderProgramCompileEntry();
+#line 198
+                        SI_FREE(pAllocator, entry);
+                    }
+                }
+            }
+        }
+        map->vf3();
+        field_b0 = nullptr;
+    }
+    if (field_58 != nullptr) {
+        field_58->vf3();
+        field_58 = nullptr;
+    }
+    Unk_566a00(field_0, &field_60, false);
+}
+
+// The techniques' programs' array (SiGfx_ShaderEffect_Impl.h), whose
+// destructors this translation unit has.
+// 0x710056e5b0 (D2), 0x710056e680 (D0)
+template SiArray<SiGfxShaderEffect::ShaderProgramData, 16>::~SiArray();
 
 // SiCore_Array.h's delete of what an array of pointers holds, for the three
 // kinds of data (the programs' is the technique's destructor's).
@@ -198,13 +237,11 @@ bool SiGfxShaderEffectPackage::vf11() {
 }
 
 // 0x71005686f0
-// NON_MATCHING: the same instructions, but x20 and x21 are exchanged from the release of
-// field_190 to that of field_280. The addresses of an array's count and of its buffer live
-// equally long there, and the allocator takes the count's first; the original took the
-// buffer's.
+// (field_190 is emptied through Unk_FreeAll: with Unk_4e3050 called directly,
+// x20 and x21 are exchanged from there to the release of field_280)
 void SiGfxShaderEffectPackage::Unk_5686f0() {
     Unk_566a00(field_8.m_pAllocator, &field_140, false);
-    field_190.Unk_4e3050();
+    field_190.Unk_FreeAll();
     Unk_ReleaseAll(&field_230);
     Unk_ReleaseAll(&field_280);
     if (field_bf0) {
@@ -276,11 +313,148 @@ bool SiGfxShaderEffectPackage::vf14(s64 value108, void* valueBe8, u32 value104, 
     return true;
 }
 
+// Sorts effects' data by their hash (placeholder name).
+struct Unk_5692a0_Sorter {
+    static int Unk_Compare(ISiGfxShaderEffectPackage::ShaderEffectData* a,
+                           ISiGfxShaderEffectPackage::ShaderEffectData* b) {
+        if (a->field_38 < b->field_38) {
+            return -1;
+        }
+        if (a->field_38 > b->field_38) {
+            return 1;
+        }
+        return 0;
+    }
+    inline s64 Unk_Partition(s64 count, ISiGfxShaderEffectPackage::ShaderEffectData** items);
+    bool Unk_5692a0(s64 count, ISiGfxShaderEffectPackage::ShaderEffectData** items);
+};
+
+inline s64 Unk_5692a0_Sorter::Unk_Partition(s64 count, ISiGfxShaderEffectPackage::ShaderEffectData** items) {
+    s64 pivot = count < 2 ? 1 : count / 2;
+    if (pivot >= count) {
+        return 0;
+    }
+    if (pivot != 0) {
+        ISiGfxShaderEffectPackage::ShaderEffectData* t = items[0];
+        items[0] = items[pivot];
+        items[pivot] = t;
+    }
+    ISiGfxShaderEffectPackage::ShaderEffectData* first = items[0];
+    s64 i = 1;
+    s64 j = count - 1;
+    while (i <= j) {
+        if (Unk_Compare(first, items[i]) > 0) {
+            do {
+                if (++i >= j) {
+                    break;
+                }
+            } while (Unk_Compare(first, items[i]) > 0);
+        }
+        if (Unk_Compare(first, items[j]) <= 0) {
+            do {
+                if (--j <= i) {
+                    break;
+                }
+            } while (Unk_Compare(first, items[j]) <= 0);
+        }
+        if (i < j) {
+            ISiGfxShaderEffectPackage::ShaderEffectData* t = items[i];
+            items[i] = items[j];
+            items[j] = t;
+        }
+    }
+    s64 middle = i - 1;
+    ISiGfxShaderEffectPackage::ShaderEffectData* t = items[0];
+    items[0] = items[middle];
+    items[middle] = t;
+    return middle;
+}
+
+// 0x71005692a0
+bool Unk_5692a0_Sorter::Unk_5692a0(s64 count, ISiGfxShaderEffectPackage::ShaderEffectData** items) {
+    if (count < 2) {
+        return true;
+    }
+    s64 middle = Unk_Partition(count, items);
+    Unk_5692a0(middle, items);
+    Unk_5692a0(count - middle - 1, &items[middle + 1]);
+    return true;
+}
+
+// 0x7100568e60: ends a change: the effects' data sorted by hash, and the
+// definitions and variations they use, each once, with their indices
+// NON_MATCHING: 68 bytes longer: the loops' guards test the count as
+// `cmp w1, #1` in the original (here through a 64-bit shift), and the two
+// searches and adds are laid out differently (first attempt, not iterated).
+bool SiGfxShaderEffectPackage::vf13(ISiIOStream*) {
+    if (field_138 < 1) {
+        return false;
+    }
+    field_138--;
+    if (field_138 != 0) {
+        return true;
+    }
+    field_190.Unk_SetCount(field_140.m_itemCount);
+    for (s64 i = 0; i < static_cast<s32>(field_140.m_itemCount); i++) {
+        ISiGfxShaderEffectPackage::ShaderEffectData* data = field_140.m_pData[i];
+        data->field_3c = i;
+        field_190.m_pData[i] = data;
+    }
+    if (field_190.m_itemCount != 0) {
+        Unk_5692a0_Sorter sorter;
+        sorter.Unk_5692a0(static_cast<s32>(field_140.m_itemCount), field_190.m_pData);
+    }
+    field_280.Unk_ReserveAtLeast(field_140.m_itemCount);
+    field_280.Unk_Clear();
+    field_230.Unk_ReserveAtLeast(field_140.m_itemCount);
+    field_230.Unk_Clear();
+    for (s64 i = 0; i < static_cast<s32>(field_140.m_itemCount); i++) {
+        ISiGfxShaderEffectPackage::ShaderEffectData* data = field_140.m_pData[i];
+        ISiGfxShaderEffectDefinition* definition = data->field_58;
+        if (definition == nullptr) {
+            continue;
+        }
+        ISiGfxShaderEffectVariation* variation = definition->vf17();
+        s32 variationIndex = -1;
+        if (variation != nullptr) {
+            s32 count = static_cast<s32>(field_230.m_itemCount);
+            variationIndex = count;
+            for (s64 k = 0; k < count; k++) {
+                if (field_230.m_pData[k] == variation) {
+                    variationIndex = k;
+                    break;
+                }
+            }
+            if (variationIndex == count) {
+                field_230.Unk_Add(variation);
+                variation->vf2();
+            }
+        }
+        s32 count = static_cast<s32>(field_280.m_itemCount);
+        s32 definitionIndex = count;
+        for (s64 k = 0; k < count; k++) {
+            if (field_280.m_pData[k] == definition) {
+                definitionIndex = k;
+                break;
+            }
+        }
+        data->field_40 = definitionIndex;
+        data->field_44 = variationIndex;
+        if (definitionIndex == count) {
+            field_280.Unk_Add(definition);
+            definition->vf2();
+            reinterpret_cast<SiGfxShaderEffectDefinition*>(definition)->field_a8 = variationIndex;
+        } else if (variationIndex != definition->vf8()) {
+            return false;
+        }
+    }
+    return true;
+}
+
 // 0x7100569460
-// NON_MATCHING: the original has one `mov w0, wzr` before the two tests and one return for them;
-// this has a copy of the return for each test (28 bytes more).
+// (the member's test first: with the pointer's first, each test gets a copy of the return)
 bool SiGfxShaderEffectPackage::vf15(ISiGfxShaderEffectPackage::ShaderEffectData* data) {
-    if (data == nullptr || field_138 < 1) {
+    if (field_138 < 1 || data == nullptr) {
         return false;
     }
     field_140.Unk_Add(data);
@@ -967,6 +1141,48 @@ ISiGfxShaderEffectPackage::ShaderEffectData* SiGfxShaderEffectPackage::vf20(s32 
     return field_140.m_pData[index];
 }
 
+// 0x710056c880
+// NON_MATCHING: the original returns through one block (the misses share
+// `mov x8, xzr`) and tests the count against 3 before its search, a loop
+// with the low and high bounds in w12/w10; here the returns are duplicated
+// and the bound is computed as high - 1 (tried: the count as s32 first; the
+// count's test forms, continue/else-if loops, the tail and the whole function
+// with one result variable, the search as an inline template: the original
+// has no select at all).
+ISiGfxShaderEffectPackage::ShaderEffectData* SiGfxShaderEffectPackage::vf21(const char* name) {
+    u32 hash = Unk_4c34a0(name);
+    size_t count = field_190.m_itemCount;
+    if (count == 0) {
+        return nullptr;
+    }
+    ISiGfxShaderEffectPackage::ShaderEffectData** data = field_190.m_pData;
+    if (count == 1) {
+        if (data[0] == nullptr || data[0]->field_38 == hash) {
+            return data[0];
+        }
+        return nullptr;
+    }
+    s32 low = 0;
+    s32 high = count - 1;
+    while (low < high - 1) {
+        s32 middle = (low + high) >> 1;
+        if (hash < data[middle]->field_38) {
+            high = middle;
+        } else if (hash > data[middle]->field_38) {
+            low = middle;
+        } else {
+            return data[middle];
+        }
+    }
+    if (hash == data[low]->field_38) {
+        return data[low];
+    }
+    if (hash == data[high]->field_38) {
+        return data[high];
+    }
+    return nullptr;
+}
+
 // 0x710056c960
 bool SiGfxShaderEffectPackage::vf22(SiGfxShaderEffect* effect) {
     if (!Unk_56ca20(this, effect)) {
@@ -976,8 +1192,90 @@ bool SiGfxShaderEffectPackage::vf22(SiGfxShaderEffect* effect) {
     return true;
 }
 
+}  // namespace SiSDK3
+
+// 0x710056ca20: gives an effect its package's data of its name (its
+// definition, variation, programs' map and techniques)
+// The first loop's element address is computed before the program's null
+// test: in the block of the test, the technique isn't otherwise used, so the
+// buffer's load keeps the address the constructor's store left in x24.
+bool Unk_56ca20(void* pPackage, void* pEffect) {
+    using namespace SiSDK3;
+    SiGfxShaderEffect* effect = static_cast<SiGfxShaderEffect*>(pEffect);
+    SiGfxShaderEffectPackage* package = static_cast<SiGfxShaderEffectPackage*>(pPackage);
+    if (effect == nullptr) {
+        return false;
+    }
+    ISiGfxShaderEffectPackage::ShaderEffectData* data =
+        package->vf21(Unk_StringCStr(reinterpret_cast<const SiString<char>*>(effect->vf8())));
+    if (data == nullptr) {
+        return false;
+    }
+    if (data->field_58 == nullptr) {
+        return false;
+    }
+    effect->field_b0 = package;
+    effect->vf7(Unk_StringCStr(&data->field_8));
+    effect->field_54 = package->field_78.field_20;
+    effect->field_90 = package->field_78.field_0.field_4;
+    effect->field_94 = package->field_78.field_0.field_8;
+    effect->field_a8 = reinterpret_cast<ISiInterface*>(data->field_58);
+    effect->field_a8->vf2();
+    SiGfxShaderEffect::ShaderProgramMap* map = data->field_b0;
+    if (map != nullptr) {
+        map->vf2();
+    }
+    if (effect->field_110 != nullptr) {
+        effect->field_110->vf3();
+    }
+    effect->field_110 = map;
+    s32 index = reinterpret_cast<ISiGfxShaderEffectDefinition*>(effect->field_a8)->vf8();
+    if (index >= 0 && index < static_cast<s32>(package->field_230.m_itemCount)) {
+        effect->field_a0 = reinterpret_cast<ISiInterface*>(package->field_230.m_pData[index]);
+        effect->field_a0->vf2();
+    }
+    effect->field_b8 = data;
+    effect->field_c0.Unk_SetCount(data->field_60.m_itemCount);
+    for (s64 i = 0; i < static_cast<s32>(data->field_60.m_itemCount); i++) {
+        ISiGfxShaderEffectPackage::TechniqueData* source = data->field_60.m_pData[i];
+#line 2283
+        SiGfxShaderEffect::TechniqueData* technique = UNK_SI_NEW(effect->field_8.m_pAllocator, 0x10)
+            SiGfxShaderEffect::TechniqueData(effect->field_8.m_pAllocator);
+        effect->field_c0.m_pData[i] = technique;
+        technique->field_0 = source;
+        technique->field_8 = i;
+        technique->field_10.Unk_SetCount(source->field_a70.m_itemCount);
+        technique->field_60.Unk_SetCount(source->field_ac0.m_itemCount);
+        for (s64 j = 0; j < static_cast<s32>(source->field_a70.m_itemCount); j++) {
+            ISiGfxShaderEffectPackage::ShaderProgramData* program = source->field_a70.m_pData[j];
+            SiGfxShaderEffect::ShaderProgramData* data = &technique->field_10.m_pData[j];
+            if (program != nullptr) {
+                data->field_8 = reinterpret_cast<u64>(program);
+                data->field_10 = reinterpret_cast<u64>(technique);
+            }
+        }
+        for (s64 j = 0; j < static_cast<s32>(source->field_a70.m_itemCount); j++) {
+            ISiGfxShaderEffectPackage::ShaderProgramData* program = source->field_ac0.m_pData[j];
+            if (program != nullptr) {
+                s32 index = program->field_114;
+                technique->field_60.m_pData[j] = &technique->field_10.m_pData[index];
+            }
+        }
+    }
+    effect->field_168 = reinterpret_cast<u64>(&package->field_e38);
+    return true;
+}
+
+namespace SiSDK3 {
+
+// 0x710056d040
+void SiGfxShaderEffectPackage::Unk_56d040(SiGfxShaderEffect* effect) {
+    effect->field_110 = nullptr;
+    field_1e0.Unk_RemoveValue(effect);
+}
+
 // 0x710056d100
-void SiGfxShaderEffectPackage::Unk_56d100() {
+void SiGfxShaderEffectPackage::Unk_56d100(SiGfxNXDevice*) {
     for (s64 i = 0; i < static_cast<s32>(field_c58[0].m_itemCount); i++) {
         if (field_c58[0].m_pData[i] != nullptr) {
             field_c58[0].m_pData[i]->vf3();
@@ -1017,11 +1315,92 @@ void SiGfxShaderEffectPackage::Unk_56d100() {
 }
 
 // 0x710056d2c0
-bool SiGfxShaderEffectPackage::vf28() {
+void SiGfxShaderEffectPackage::vf28() {
     for (s32 i = 0; i < static_cast<s32>(field_1e0.m_itemCount); i++) {
         field_1e0.m_pData[i]->vf20();
     }
     return Unk_56d320();
+}
+
+}  // namespace SiSDK3
+
+// 0x71004cbf40: SiGfx's kernel (leafgen's name and type)
+u64 Unk_4cbf40_get();
+
+// SiGfx's kernel as the package uses it (placeholders): slot 12 is what keeps
+// the shaders, whose slot 17 is what programs are asked from.
+class Unk_PackageShaderSystem {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual SiSDK3::Unk_56d630_Target* vf17();
+};
+class Unk_PackageGfxKernel {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual Unk_PackageShaderSystem* vf12();
+};
+
+namespace SiSDK3 {
+
+// 0x710056d320
+void SiGfxShaderEffectPackage::Unk_56d320() {
+    Unk_PackageShaderSystem* system = reinterpret_cast<Unk_PackageGfxKernel*>(Unk_4cbf40_get())->vf12();
+    if (system == nullptr) {
+        return;
+    }
+    Unk_56d630_Target* target = system->vf17();
+    for (ISiGfxShaderEffectPackage::ShaderEffectData **it = field_140.field_30, **end = field_140.field_38; it != end;
+         it++) {
+        ISiGfxShaderEffectPackage::ShaderEffectData* data = *it;
+        SiGfxShaderEffect::ShaderProgramMap* map = data->field_b0;
+        if (map == nullptr) {
+            continue;
+        }
+        while (map->field_48.m_count != 0) {
+            Unk_596640 lock(map->field_18.Unk_Get(), true);
+            auto first = decltype(map->field_48)::Unk_Iterator(&map->field_48, map->field_48.m_pRoot);
+            SiGfxShaderEffect::ShaderProgramCompileEntry* entry = first.m_pNode->m_value;
+            if (target != nullptr) {
+                Unk_56d630(target, data, entry->field_f0, &entry->field_8, &entry->field_70);
+            }
+            if (entry != nullptr) {
+                ISiAllocator* pAllocator = field_8.m_pAllocator;
+                if (pAllocator != nullptr) {
+                    entry->~ShaderProgramCompileEntry();
+#line 2613
+                    SI_FREE(pAllocator, entry);
+                }
+            }
+            map->field_48.Unk_4c0e60(first);
+        }
+    }
 }
 
 // 0x710056d630
@@ -1061,6 +1440,194 @@ void SiGfxShaderEffectPackage::Unk_56d630(Unk_56d630_Target* target, ISiGfxShade
                      field_78.field_10.field_4, pair1, 6,
                      Unk_StringCStr(&technique->field_1f0), Unk_StringCStr(&technique->field_220), key0, key1, nullptr);
     }
+}
+
+// The device as the package's shaders are made by it (placeholder): slot
+// 42 makes a shader of a stage.
+class Unk_PackageDevice {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+    virtual void vf25();
+    virtual void vf26();
+    virtual void vf27();
+    virtual void vf28();
+    virtual void vf29();
+    virtual void vf30();
+    virtual void vf31();
+    virtual void vf32();
+    virtual void vf33();
+    virtual void vf34();
+    virtual void vf35();
+    virtual void vf36();
+    virtual void vf37();
+    virtual void vf38();
+    virtual void vf39();
+    virtual void vf40();
+    virtual void vf41();
+    virtual ISiGfxShader* vf42(s32 stage, void* a2, u32 a3, void* a4);
+};
+
+// (The code's pointer is read into a local before the first two tests: that
+// makes them one block that returns the null result set before it.)
+// 0x710056ce60
+ISiGfxShader* SiGfxShaderEffectPackage::Unk_56ce60(ISiGfxDevice* pDevice, s32 stage, s32 index) {
+    Unk_596640 lock(field_c28.Unk_Get(), true);
+    u8* data = field_be8;
+    if (index < 0 || data == nullptr) {
+        return nullptr;
+    }
+    SiArray<ISiGfxShader*>* shaders;
+    Unk_5693e0* code;
+    switch (stage) {
+    case 1:
+        shaders = &field_c58[0];
+        code = field_bf8[0];
+        break;
+    case 2:
+        shaders = &field_c58[1];
+        code = field_bf8[1];
+        break;
+    case 3:
+        shaders = &field_c58[2];
+        code = field_bf8[2];
+        break;
+    case 4:
+        shaders = &field_c58[4];
+        code = field_bf8[4];
+        break;
+    case 5:
+        shaders = &field_c58[3];
+        code = field_bf8[3];
+        break;
+    case 6:
+        shaders = &field_c58[5];
+        code = field_bf8[5];
+        break;
+    default:
+        return nullptr;
+    }
+    if (code == nullptr || index >= static_cast<s32>(shaders->m_itemCount)) {
+        return nullptr;
+    }
+    ISiGfxShader* shader = shaders->m_pData[index];
+    if (shader != nullptr) {
+        return shader->vf5() == pDevice ? shader : nullptr;
+    }
+    s64 offset = static_cast<s64>(code[index].field_0[0]);
+    if (offset < 0 || offset >= field_a0.field_68) {
+        return nullptr;
+    }
+    s64 size = static_cast<s64>(code[index].field_0[1]);
+    if (size < 0 || offset + size > field_a0.field_68) {
+        return nullptr;
+    }
+    shader = reinterpret_cast<Unk_PackageDevice*>(pDevice)->vf42(stage, nullptr, 0, nullptr);
+    if (shader->vf18(code[index].field_0[1], field_be8 + code[index].field_0[0], 0)) {
+        shaders->m_pData[index] = shader;
+        return shader;
+    }
+    if (shader != nullptr) {
+        shader->vf3();
+    }
+    return nullptr;
+}
+
+// 0x710056e820
+void SiGfxShaderEffect::ShaderProgramCompileEntry::Unk_56e820() {
+    for (int i = 0; i < 6; i++) {
+        if (field_f8[i] != nullptr) {
+            field_f8[i]->vf3();
+            field_f8[i] = nullptr;
+        }
+        if (field_128[i] != nullptr) {
+            field_128[i]->vf3();
+            field_128[i] = nullptr;
+        }
+    }
+    if (field_160 != nullptr) {
+        field_160->vf3();
+        field_160 = nullptr;
+    }
+}
+
+// (at the end of the file: its #line names SiCore_Array.h)
+// The alignment and the line are 64-bit parameters (`mov x3, x2`, `mov x5,
+// x4` where they are handed on) and a null allocation returns at once (with
+// the loop in an `if`, its count test is merged with the null test: `ccmp`).
+// 0x710056e4e0: the array new of a class with a constructor, as a function of
+// its own (placeholder name: the preprocessor definitions' reserve calls it
+// where SiCore_Array.h expands SI_NEW_ARRAY)
+template <class T>
+T* Unk_NewArray(ISiAllocator* pAllocator, size_t count, size_t alignment, const char* file, s64 line) {
+    if (pAllocator == nullptr) {
+        return nullptr;
+    }
+    T* p = static_cast<T*>(pAllocator->vf8(sizeof(T), count, alignment, file, line));
+    if (p == nullptr) {
+        return nullptr;
+    }
+    T* q = p;
+    for (s64 i = 0; i < static_cast<s64>(count); i++, q++) {
+        new (Unk_Placement(), q) T;
+    }
+    return p;
+}
+
+// 0x710056e380: SiCore_Array.h's reserve with that array new (it tests the
+// allocator itself)
+template <>
+bool SiArray<SIGFX_SHADER_PREPROCESSOR, 16>::Unk_4bf190(size_t count, bool keep) {
+    if (m_reservedCount == count) {
+        return true;
+    }
+    if (count == 0) {
+        Unk_4e3050();
+        return true;
+    }
+    size_t itemCount = m_itemCount;
+#line 1489 "../../../../Include\\SiCore/SiCore_Array.h"
+    SIGFX_SHADER_PREPROCESSOR* pData = Unk_NewArray<SIGFX_SHADER_PREPROCESSOR>(m_pAllocator, count, 16, __FILE__, __LINE__);
+    size_t n = itemCount > count ? count : itemCount;
+    if (pData == nullptr) {
+        return false;
+    }
+    if (n != 0 && keep) {
+        for (size_t i = 0; i < n; i++) {
+            pData[i] = m_pData[i];
+        }
+    }
+    Unk_FreeData();
+    field_48 = 0;
+    field_30 = nullptr;
+    field_38 = nullptr;
+    m_pData = pData;
+    m_itemCount = n;
+    m_reservedCount = count;
+    return true;
 }
 
 }  // namespace SiSDK3

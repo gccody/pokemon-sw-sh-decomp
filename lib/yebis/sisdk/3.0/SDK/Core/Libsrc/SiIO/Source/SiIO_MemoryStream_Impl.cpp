@@ -718,12 +718,12 @@ bool SiIOMemoryStream::vf63(const wchar_t* s, bool advance) {
 }
 
 // 0x7100582550
-bool SiIOMemoryStream::vf64(const wchar_t* s, bool advance) {
+bool SiIOMemoryStream::vf64(const char* s, bool advance) {
     s64 pos = advance ? 0 : vf17();
     bool result;
     {
         SiString<char> str(field_8.m_pAllocator);
-        if (Unk_4c5b30_call(&str, const_cast<wchar_t*>(s))) {
+        if (Unk_4c5b30_call(&str, const_cast<char*>(s))) {
             s32 length = static_cast<s32>(str.field_10);
             vf50(length, true);
             vf44(str.m_pBuffer, length, true);

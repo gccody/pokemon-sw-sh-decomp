@@ -2,6 +2,7 @@
 // SiSDK3::SiGfxImageUtility: its constructor and destructors, the lists of
 // loaders and savers, and loading and saving an image with them. The
 // reference counts are its header's.
+#define UNK_SIGFX_IMAGEUTILITY_IMPL
 #include <string.h>
 
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_String.h>
@@ -10,6 +11,8 @@
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/SiGfx_ImageUtility_Impl.h>
 
 bool Unk_582d80(const char* path, bool searchArchives);
+// 0x71004f5040: makes the DDS loader (it returns SiGfxImageLoaderDDS*)
+SiSDK3::ISiGfxImageLoader* Unk_4f5040(SiSDK3::ISiAllocator* pAllocator);
 
 namespace SiSDK3 {
 
@@ -21,6 +24,16 @@ SiGfxImageUtility::SiGfxImageUtility(ISiAllocator* pAllocator)
 SiGfxImageUtility::~SiGfxImageUtility() {
     Unk_ReleaseAll(&field_18);
     vf12();
+}
+
+// 0x71004d1150
+bool SiGfxImageUtility::Unk_4d1150() {
+    ISiGfxImageLoader* pLoader = Unk_4f5040(field_8.m_pAllocator);
+    vf5(pLoader);
+    if (pLoader != nullptr) {
+        pLoader->vf3();
+    }
+    return true;
 }
 
 // 0x71004d11b0
@@ -137,6 +150,56 @@ bool SiGfxImageUtility::vf17(SiGfxImage* image, const char* path, const void* op
         }
     }
     return false;
+}
+
+// 0x71004d2280: fills a mip level of a 2D image with noise
+bool Unk_4d2280(SiGfxImage::ImageData2D* data, f32 scaleX, f32 scaleY, s32 octaves);
+
+// 0x71004d1970: a 3D image isn't filled (the test that says so comes before
+// its case). The kind's test is the last of the three: Reassociate puts it in
+// front of the height's, which it is merged with (a test of the kind written
+// first is merged with the width's instead, and moves in front of that).
+bool SiGfxImageUtility::vf18(SiGfxImage* image, f32 scaleX, f32 scaleY, s32 octaves) {
+    if (image == nullptr) {
+        return false;
+    }
+    s32 kind = image->field_58.field_0;
+    switch (kind) {
+    case 2:
+    case 3:
+    case 4:
+        break;
+    default:
+        return false;
+    }
+    if (image->field_58.field_8 < 1 || image->field_58.field_c < 1 || kind == 3) {
+        return false;
+    }
+    switch (kind) {
+    case 2:
+        if (image->field_58.field_14 < 1) {
+            return false;
+        }
+        return Unk_4d2280(image->vf17(0, 0), scaleX, scaleY, octaves);
+    case 3:
+        return Unk_4d1a70(image, scaleX, scaleY, octaves);
+    case 4:
+        return Unk_4d2110(image, scaleX, scaleY, octaves);
+    }
+    return false;
+}
+
+// 0x71004d2110: each face of the cube
+bool SiGfxImageUtility::Unk_4d2110(SiGfxImage* image, f32 scaleX, f32 scaleY, s32 octaves) {
+    if (image->field_58.field_14 < 1) {
+        return false;
+    }
+    for (s32 face = 0; face < 6; face++) {
+        if (!Unk_4d2280(image->vf18(0, face, 0), scaleX, scaleY, octaves)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 }  // namespace SiSDK3

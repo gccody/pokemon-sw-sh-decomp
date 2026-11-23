@@ -4,6 +4,7 @@
 // their own (SiGfxResourcePool's translation unit calls them; with their
 // definitions there, one would be inlined in its caller).
 #define UNK_SIPOOL_WHOLE_ELEMENT
+#define UNK_SIPOOL_CLEAR
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/SiGfx_ResourcePool.h>
 
 using namespace SiSDK3;
@@ -18,3 +19,5 @@ template bool SiArray<SiPool<SiGfxResourcePool::ResourceItem, 16>::DataArray*, 1
 template bool SiPool<SiGfxResourcePool::ResourceItem, 16>::vf5(size_t);
 // 0x71004ff090 = _ZN6SiSDK36SiPoolINS_17SiGfxResourcePool12ResourceItemELi16EE10Unk_4be3f0EPS2_
 template void SiPool<SiGfxResourcePool::ResourceItem, 16>::Unk_4be3f0(SiGfxResourcePool::ResourceItem*);
+// 0x7100534580
+template void SiPool<SiGfxResourcePool::ResourceItem, 16>::Unk_4be7d0();

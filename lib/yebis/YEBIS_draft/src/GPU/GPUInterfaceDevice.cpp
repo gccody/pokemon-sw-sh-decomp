@@ -6,6 +6,8 @@
 
 #include <string.h>
 
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/Unk_27703d8.h>
+
 #define PPFX_FILE "C:/workspace/YEBIS_draft/src/GPU/GPUInterfaceDevice.cpp"
 #include <yebis/YEBIS_draft/src/GPU/Unk_Log.h>
 
@@ -84,6 +86,35 @@ s32 Unk_43e410(IGPUDevice* self);
 // 0x71024e14f8: the device there is
 extern IGPUDevice* Unk_24e14f8;
 
+// 0x710043dc70
+s32 GPUSiGfxLazyDrawCommand::Execute(Unk_SiGfxDrawContext* context) {
+    if (field_0 != 0) {
+        return -1;
+    }
+    void* target = field_10->vf25(field_1c);
+    void* source = field_8->vf25(field_18);
+    return context->vf71(source, target) ? 0 : -1;
+}
+
+// 0x710043e640
+bool IGPUDevice::Unk_PipelineKey::operator==(const Unk_PipelineKey& other) const {
+    if (field_10 != other.field_10 || field_18 != other.field_18 || field_118 != other.field_118 ||
+        field_fc != other.field_fc || field_110 != other.field_110) {
+        return false;
+    }
+    for (s32 i = 0; i < field_fc; i++) {
+        if (!(field_1c[i] == other.field_1c[i])) {
+            return false;
+        }
+    }
+    for (s32 i = 0; i < field_110; i++) {
+        if (field_100[i] != other.field_100[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
 // 0x710043e170
 IGPUDevice::~IGPUDevice() {
     Unk_43e2b0(this);
@@ -141,6 +172,85 @@ s32 Unk_43f080(IGPUDevice* self) {
         SI_DELETE(states->m_pAllocator, states);
     }
     self->field_60.clear();
+    return 0;
+}
+
+// 0x710043f940: IGPUDevice::InitializeDevice_CreateDeviceStates_SamplerStateMode
+// (its log line): the sampler of a mode, bits 0 and 1 the filter and bits 2 and
+// 3 the addressing
+// NON_MATCHING: the stores of the description are scheduled in another
+// order (the original pairs field_8 with field_c and stores field_4 last, and
+// field_18 after the second table's load); every order of the last three
+// statements was tried.
+s32 Unk_43f940(IGPUDevice* self, s32 mode) {
+    if (mode < 0 || mode > 15) {
+        return -6;
+    }
+    Unk_27703d8_Item desc(12, 1);
+    switch (mode & 3) {
+    case 0:
+        desc.field_0 = 3;
+        desc.field_18 = 0.0f;
+        break;
+    case 1:
+        desc.field_0 = 0;
+        desc.field_18 = 0.0f;
+        break;
+    case 2:
+        desc.field_0 = 10;
+        desc.field_18 = 3.40282347e+38f;
+        break;
+    case 3:
+        desc.field_0 = 11;
+        desc.field_18 = 3.40282347e+38f;
+        break;
+    }
+    u32 address;
+    switch ((mode >> 2) & 3) {
+    case 0:
+        address = 4;
+        break;
+    case 1:
+        address = 3;
+        break;
+    case 2:
+        address = 2;
+        break;
+    case 3:
+        address = 1;
+        break;
+    }
+    desc.field_4 = address;
+    desc.field_8 = address;
+    desc.field_c = 3;
+    Unk_SiGfxInterface* sampler = self->field_38->vf52(&desc, nullptr, 0, nullptr);
+    if (sampler == nullptr) {
+#line 3811
+        PPFX_ERROR("IGPUDevice::InitializeDevice_CreateDeviceStates_SamplerStateMode(): pSiGfxDevice->CreateSampler() failed.\n");
+        return -1;
+    }
+    self->field_14c88[mode] = sampler;
+    return 0;
+}
+
+// 0x710043f670
+s32 Unk_43f670(IGPUDevice* self, u32 state);
+
+// 0x710043fac0: the device's blend states and samplers
+s32 Unk_43fac0(IGPUDevice* self) {
+    s32 result;
+    for (u32 i = 0; i < 64; i++) {
+        result = Unk_43f670(self, i);
+        if (result < 0) {
+            return result;
+        }
+    }
+    for (s32 i = 0; i < 16; i++) {
+        result = Unk_43f940(self, i);
+        if (result < 0) {
+            return result;
+        }
+    }
     return 0;
 }
 
@@ -1009,3 +1119,61 @@ s32 Unk_43fd00(void* self, void* value) {
     static_cast<PPFX::IGPUDevice*>(self)->field_14de0 = value;
     return 0;
 }
+
+namespace PPFX {
+
+// 0x710043fdd0: the device's set-up
+s32 Unk_43fdd0(IGPUDevice* self, const Unk_DeviceSettings* settings, void* arg);
+
+// 0x7100442c60
+IGPUDevice* IGPUDevice::CreateDevice(const Unk_DeviceSettings* settings, void* arg) {
+#line 13634
+    IGPUDevice* device = UNK_NEW(IGPUDevice)();
+    if (Unk_43fdd0(device, settings, arg) < 0) {
+        PPFX_SAFE_RELEASE_INTERFACE(device);
+        return nullptr;
+    }
+    bool lowerLeft;
+    switch (settings->field_20) {
+    case 0:
+        lowerLeft = false;
+        break;
+    case 1:
+        lowerLeft = true;
+        break;
+    case 3:
+        lowerLeft = device->field_38->vf89() == 0;
+        break;
+    default:
+#line 13681
+        PPFX_ERROR("IGPUDevice::CreateDevice(): m_eViewportOriginMode is invalid.\n");
+        return nullptr;
+    }
+    device->field_58 = lowerLeft;
+    switch (settings->field_24) {
+    case 0:
+        device->field_59 = false;
+        break;
+    case 1:
+        device->field_59 = true;
+        break;
+    case 3:
+        device->field_59 = device->field_38->vf90() == 0;
+        break;
+    default:
+#line 13727
+        PPFX_ERROR("IGPUDevice::CreateDevice(): eClipVolumeNearPlaneMode is invalid.\n");
+        return nullptr;
+    }
+    return device;
+}
+
+}  // namespace PPFX
+
+// 0x71004431c0, 0x71004432d0: the pipeline states' table's rehash and
+// __rehash (libc++'s), which SetupSiGfxDrawContext's insertion instantiates
+template void PPFX::IGPUDevice::Unk_PipelineStateMap::__table::rehash(size_t);
+
+// 0x7100442f60: the pipeline states' arrays' reserve (SiCore_Array.h), which
+// SetupSiGfxDrawContext instantiates
+template bool SiSDK3::SiArray<PPFX::IGPUDevice::PipelineStateData, 16>::Unk_4bf190(size_t, bool);

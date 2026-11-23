@@ -13,9 +13,28 @@
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_NamedObject.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_RefCount.h>
 
-struct Unk_4f3dc0_arg1;
-
 namespace SiSDK3 {
+
+class SiGfxImage;
+
+// What slot 24 converts an image with (placeholder name and members; passed
+// by value). The texture utility's description has one at 0xe8.
+struct Unk_ImageConvertDesc {
+    u32 field_0;
+    s32 field_4;
+    s32 field_8;
+    // two numbers stored together (placeholder)
+    struct Unk_Pair {
+        Unk_Pair() : field_0(-1), field_4(0) {}
+        s32 field_0;
+        u32 field_4;
+    };
+    Unk_Pair field_c;
+    bool field_14;
+    bool field_15;
+    bool field_16;  // whether field_c.field_4 is the image's to read
+};
+PKMN_SIZE_ASSERT(Unk_ImageConvertDesc, 0x18);
 
 // The named object's functions are the image's slots 5 to 7.
 UNK_NAMED_OBJECT(Unk_ImageNamedObject, vf5, vf6, vf7);
@@ -70,15 +89,17 @@ public:
     };
     PKMN_SIZE_ASSERT(ImageData2D, 0x20);
     struct ImageData3D {
-        ImageData3D() : field_0(nullptr), field_8(0), field_10(0), field_14(0), field_18(0), field_1c(0), field_20(0) {}
+        ImageData3D()
+            : field_0(nullptr), field_8(0), field_10(0), field_14(0), field_18(0), field_1c(0), field_20(0), field_24(0) {}
 
         u8* field_0;
         u64 field_8;
-        u32 field_10;
-        s32 field_14;
-        s32 field_18;
-        s32 field_1c;
-        u64 field_20;
+        u32 field_10;  // the format
+        s32 field_14;  // the width
+        s32 field_18;  // the height
+        s32 field_1c;  // the depth
+        s32 field_20;  // how many bytes a row is
+        s32 field_24;  // how many bytes a slice is
     };
     PKMN_SIZE_ASSERT(ImageData3D, 0x28);
 
@@ -106,12 +127,16 @@ public:
     virtual bool vf21(u64 a1, const void* options);  // 0x71004f3c00
     virtual bool vf22(u64 a1, const void* options);  // 0x71004f3cf0
     virtual bool vf23(SiGfxImage* other);            // 0x71004f3d60: copies itself into another image
-    virtual u32 vf24(Unk_4f3dc0_arg1* value);
+    // 0x71004f3dc0: an image converted by desc, or none if it needn't be
+    virtual bool vf24(SiGfxImage** pConverted, Unk_ImageConvertDesc desc);
     virtual bool vf25();
     virtual bool vf26(s32 kind);  // 0x71004f4320
 
     // 0x71004f3680
     bool Unk_4f3680();
+    // 0x71004f3700 (SiGfxFreeTypeFaceCache calls it with 0, 0, -1, -1 to
+    // clear the whole image)
+    bool Unk_4f3700(s32 a1, s32 a2, s32 a3, s32 a4);
 
     Unk_4bf660 field_10;
     SiString<char> field_20;  // the name

@@ -5,8 +5,10 @@
 #include <string.h>
 
 #define UNK_SISTRINGTABLE_DEFINE
+#define UNK_SICORE_STRING_ASSIGN_IMPL
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiCore/Source/SiCore_StringTable_Impl.h>
 
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_StringAssign.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_StringFuncs.h>
 
 // 0x71004c3510: a string's hash
@@ -278,6 +280,38 @@ ISiStringTable::IEntry* SiStringTable::vf15(int id) {
 ISiStringTable::IEntry* SiStringTable::vf16(int id) {
     return Unk_Find(id);
 }
+
+}  // namespace SiSDK3
+
+// 0x71004c8020
+// NON_MATCHING: the path for an empty string loads the flags (field_28) and
+// doesn't use them in the original (as 0x71004c4700 does), and the growth's
+// maximum compares its operands the other way round (`cmp x8, x9 ; csel lo`
+// for the original's `cmp x9, x8 ; csel hi`, from the same IR as
+// 0x71004c4700's, which has the original's); the rest is the original's. (The
+// test is `count < 1`: with `count == 0`, call-site splitting gives the copy
+// a second copy for the path that grows the buffer.)
+SiSDK3::SiString<char>* Unk_4c8020(SiSDK3::SiString<char>* self, const SiSDK3::SiString<char>* other) {
+    if (other->field_10 == 0) {
+        SiSDK3::Unk_StringSetEmpty(self);
+        return self;
+    }
+    SiSDK3::Unk_StringReserve(self, other->field_10 + 1);
+    size_t count = other->field_10;
+    if (count < 1) {
+        SiSDK3::Unk_StringSetEmpty(self);
+    } else {
+        if (self->field_20 <= count) {
+            SiSDK3::Unk_StringGrow(self, count + 1);
+        }
+        SiSDK3::Unk_StringCopyN(self->m_pBuffer, other->m_pBuffer, count);
+        self->field_10 = count;
+    }
+    self->field_10 = other->field_10;
+    return self;
+}
+
+namespace SiSDK3 {
 
 // what a's id is to b's: below, above or the same (inline)
 inline int SiStringTable::Unk_Sorter::Unk_Compare(Entry* a, Entry* b) {

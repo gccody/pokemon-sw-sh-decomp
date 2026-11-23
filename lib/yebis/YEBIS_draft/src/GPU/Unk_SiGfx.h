@@ -7,6 +7,9 @@
 
 namespace PPFX {
 
+struct Unk_SiGfxInterface;
+struct Unk_SiGfxRenderTarget;
+
 // what ISiGfxQuery::Create() takes
 struct Unk_SiGfxQueryDesc {
     s32 field_0;
@@ -67,7 +70,7 @@ struct Unk_SiGfxDevice {
     virtual void vf26();
     virtual void vf27();
     virtual void vf28();
-    virtual void vf29();
+    virtual Unk_SiGfxRenderTarget* vf29(u32 arg1, u32 arg2, void* arg3);  // "ISiGfxDevice::CreateRenderPassState()"
     virtual void vf30();
     virtual void vf31();
     virtual void vf32();
@@ -90,7 +93,7 @@ struct Unk_SiGfxDevice {
     virtual void vf49();
     virtual void vf50();
     virtual void vf51();
-    virtual void vf52();
+    virtual Unk_SiGfxInterface* vf52(const void* desc, void* arg2, u32 arg3, void* arg4);  // "pSiGfxDevice->CreateSampler()"
     virtual void vf53();
     virtual void vf54();
     virtual void vf55();
@@ -105,6 +108,30 @@ struct Unk_SiGfxDevice {
     virtual void vf64();
     virtual void vf65();
     virtual Unk_SiGfxQuery* vf66(void* arg1, s32 arg2, void* arg3);  // "ISiGfxDevice::CreateQuery()"
+    virtual void vf67();
+    virtual void vf68();
+    virtual void vf69();
+    virtual void vf70();
+    virtual void vf71();
+    virtual Unk_SiGfxInterface* vf72(void* arg1, u32 arg2, void* arg3);  // "ISiGfxDevice::CreateRenderTarget()"
+    virtual void vf73();
+    virtual void vf74();
+    virtual void vf75();
+    virtual void vf76();
+    virtual void vf77();
+    virtual void vf78();
+    virtual void vf79();
+    virtual void vf80();
+    virtual void vf81();
+    virtual void vf82();
+    virtual void vf83();
+    virtual void vf84();
+    virtual void vf85();
+    virtual void vf86();
+    virtual void vf87();
+    virtual void vf88();
+    virtual s32 vf89();  // IGPUDevice::CreateDevice's viewport origin (0: upper left)
+    virtual s32 vf90();  // its clip volume's near plane (0: at zero)
 };
 
 // the draw context (pSiGfxDrawContext)
@@ -117,9 +144,9 @@ struct Unk_SiGfxDrawContext {
     virtual void vf5();
     virtual void vf6();
     virtual void vf7();
-    virtual void vf8();
+    virtual bool vf8(void* list);  // BeginCommandList
     virtual void vf9();
-    virtual void vf10();
+    virtual void* vf10();  // the command list it records to
     virtual void vf11(void* target, const void* clearValues);  // begins drawing to a target
     virtual void vf12();  // ends what the device began
     virtual void vf13();
@@ -178,8 +205,9 @@ struct Unk_SiGfxDrawContext {
     virtual void vf66();
     virtual void vf67();
     virtual void vf68();
-    virtual void vf69();
+    virtual bool vf69(void* buffer, void* info);  // maps a buffer
     virtual void vf70(void* buffer, void* info);  // unmaps a buffer
+    virtual bool vf71(void* source, void* target);  // copies a surface
 };
 
 }  // namespace PPFX

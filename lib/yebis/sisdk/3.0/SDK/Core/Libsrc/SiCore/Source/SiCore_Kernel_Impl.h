@@ -11,6 +11,7 @@
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_Array.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_CriticalSection.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_Map.h>
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_Reflection.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_String.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_4bf660.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_Guid.h>
@@ -18,19 +19,6 @@
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiCore/Source/SiCore_StringTable_Impl.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiCore/Source/SiCore_SystemInfo_Impl.h>
 
-namespace SiSDK3 {
-
-// a reflected class, as far as the kernel uses it: its name is the key of the
-// kernel's map
-class SiReflectionObject {
-public:
-    const char* Unk_GetName() const { return field_40; }
-
-    u8 _0[0x40];
-    const char* field_40;
-};
-
-}  // namespace SiSDK3
 
 // 0x71004c5630: compares two strings (below zero: a is before b)
 s64 Unk_4c5630(const char* a, const char* b, bool);

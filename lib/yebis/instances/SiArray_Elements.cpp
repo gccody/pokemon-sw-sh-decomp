@@ -11,10 +11,6 @@
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_Array.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_String.h>
 
-struct Unk_53ad10 {
-    u64 field_0[10];
-};
-
 struct Unk_5461d0 {
     Unk_5461d0() : field_10(0), field_18(0), field_20(0), field_28(0), field_30(0) {}
     u64 field_0;
@@ -36,16 +32,6 @@ struct Unk_546490 {
     u32 field_10;
 };
 PKMN_SIZE_ASSERT(Unk_546490, 0x14);
-
-struct Unk_557e60 {
-    Unk_557e60() : field_0(1), field_4(0), field_8(0), field_c(0), field_10(0) {}
-    u32 field_0;
-    u32 field_4;
-    u32 field_8;
-    u32 field_c;
-    u32 field_10;
-};
-PKMN_SIZE_ASSERT(Unk_557e60, 0x14);
 
 struct Unk_562770 {
     u64 field_0;
@@ -109,23 +95,19 @@ using namespace SiSDK3;
 template bool SiArray<SiGfxResourcePool::ResourceItem, 16>::Unk_4bf190(size_t, bool);
 // 0x7100501930 = _ZN6SiSDK37SiArrayINS_18SiGfxFreeTypeGlyphELi16EE10Unk_4bf190Emb
 template bool SiArray<SiGfxFreeTypeGlyph, 16>::Unk_4bf190(size_t, bool);
-// 0x710053ad10 = _ZN6SiSDK37SiArrayI10Unk_53ad10Li16EE10Unk_4bf190Emb
-template bool SiArray<Unk_53ad10, 16>::Unk_4bf190(size_t, bool);
-// (0x710053af60 is SiArray<SiGfxNXCommandList::OverwrittenEntry>'s: SiGfx_NX_CommandList_Impl.cpp instantiates it.
-// 0x710053ad10 above is SiArray<SiGfxNXCommandList::DiscontinuedEntry>'s, for when that file's Unk_53a790 is written.)
+// (0x710053ad10 and 0x710053af60 are SiArray<SiGfxNXCommandList::DiscontinuedEntry>'s and
+// SiArray<SiGfxNXCommandList::OverwrittenEntry>'s: SiGfx_NX_CommandList_Impl.cpp instantiates them.)
 // 0x71005461d0 = _ZN6SiSDK37SiArrayI10Unk_5461d0Li16EE10Unk_4bf190Emb
 template bool SiArray<Unk_5461d0, 16>::Unk_4bf190(size_t, bool);
 // 0x7100546490 = _ZN6SiSDK37SiArrayI10Unk_546490Li16EE10Unk_4bf190Emb
 template bool SiArray<Unk_546490, 16>::Unk_4bf190(size_t, bool);
-// 0x7100557e60 = _ZN6SiSDK37SiArrayI10Unk_557e60Li16EE10Unk_4bf190Emb
-template bool SiArray<Unk_557e60, 16>::Unk_4bf190(size_t, bool);
+// (0x7100557e60 is SiArray<SiGfxNXRootSignature::DescriptorRangeEntry>'s: SiGfx_NX_RootSignature_Impl.cpp instantiates it.)
 // 0x7100562770 = _ZN6SiSDK37SiArrayI10Unk_562770Li16EE10Unk_4bf190Emb
 template bool SiArray<Unk_562770, 16>::Unk_4bf190(size_t, bool);
 // 0x7100574090 = _ZN6SiSDK37SiArrayINS_31ISiGfxShaderEffectVariationList16ShaderEffectDataELi16EE10Unk_4bf190Emb
 template bool SiArray<ISiGfxShaderEffectVariationList::ShaderEffectData, 16>::Unk_4bf190(size_t, bool);
 
-// The assignment's copy for strings (NON_MATCHING: SiCore_Array.h). The
-// copies for pointers, 0x7100542fe0 and 0x7100586ea0, differ the same way and
-// aren't instantiated.
+// The assignment's copy for strings (the copies for pointers, 0x7100542fe0
+// and 0x7100586ea0, come from their callers' translation units).
 // 0x710056e140 = _ZN6SiSDK37SiArrayINS_8SiStringIcEELi16EEaSERKS3_
 template void SiArray<SiString<char>, 16>::operator=(const SiArray&);

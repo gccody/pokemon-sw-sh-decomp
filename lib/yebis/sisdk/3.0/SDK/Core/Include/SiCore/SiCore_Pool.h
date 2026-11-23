@@ -216,4 +216,28 @@ void SiPool<T, ALIGN>::Unk_4be3f0(T* item) {
 
 #endif  // UNK_SIPOOL_WHOLE_ELEMENT
 
+// 0x71004be7d0: frees every block but the first, and empties the lists (for
+// the files that ask: SiGfx_FreeType_Face.cpp has its own copy for its
+// glyphs' pool). The block's null test is explicit: written as SI_DELETE's
+// alone, clang drops it.
+#ifdef UNK_SIPOOL_CLEAR
+template <class T, int ALIGN>
+void SiPool<T, ALIGN>::Unk_4be7d0() {
+    m_usedList.RemoveAll();
+    m_freeList.RemoveAll();
+    for (int i = 0; i < static_cast<int>(m_blocks.m_itemCount); i++) {
+        DataArray* block = m_blocks.m_pData[i];
+        block->m_items.Unk_FreeAll();
+        block->field_c = 0;
+        if (i != 0 && block != nullptr) {
+#line 231
+            SI_DELETE(m_pAllocator, block);
+        }
+    }
+    m_blocks.Unk_FreeAll();
+    field_110 = 0;
+    field_118 = 0;
+}
+#endif  // UNK_SIPOOL_CLEAR
+
 }  // namespace SiSDK3

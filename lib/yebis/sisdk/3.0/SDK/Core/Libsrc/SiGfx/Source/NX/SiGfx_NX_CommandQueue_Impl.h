@@ -33,7 +33,7 @@ public:
     virtual u64 vf9();
     virtual bool vf10(s32 count, SiGfxNXCommandList** lists);  // 0x710054e330: submits command lists
     virtual void vf11();
-    virtual u32 vf12();            // 0x710054e4a0: a fence; its sync's index
+    virtual u64 vf12();            // 0x710054e4a0: a fence; its sync's index
     virtual bool vf13(u64 fence);  // 0x710054e520: waits for a fence (its low 32 bits: the sync's index)
     virtual u32 vf14();
     virtual void vf15();  // 0x710054e5a0

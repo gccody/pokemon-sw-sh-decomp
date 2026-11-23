@@ -110,6 +110,30 @@ public:
         m_count--;
     }
 
+    // the element at index, counted from the head (inline in its callers:
+    // placeholder name; SiGfxShaderEffectVariationList's slot 10)
+    T Unk_GetAt(s64 index) {
+        T node = m_pHead;
+        for (s64 i = 0; i < index; i++) {
+            node = node->m_pNext;
+        }
+        return node;
+    }
+
+    // (the empty list's case first, tested by the tail: SiReflectionObject's
+    // 0x71004cb420)
+    void AddHead(T node) {
+        if (m_pTail == nullptr) {
+            m_pHead = node;
+            m_pTail = node;
+        } else {
+            m_pHead->m_pPrev = node;
+            node->m_pNext = m_pHead;
+            m_pHead = node;
+        }
+        m_count++;
+    }
+
     // (the empty list's case first: SiIOKernel's 0x710057d9a0 shows the order)
     void AddTail(T node) {
         if (m_pHead == nullptr) {
@@ -120,6 +144,43 @@ public:
         }
         m_pTail = node;
         m_count++;
+    }
+
+    // links node in front of where (inline in its callers: placeholder name;
+    // SiFixedHeapAllocator2's vf8 and vf9)
+    void Unk_InsertBefore(T where, T node) {
+        if (m_pHead == where) {
+            if (m_pTail == nullptr) {
+                m_pTail = node;
+            } else {
+                m_pHead->m_pPrev = node;
+                node->m_pNext = m_pHead;
+            }
+            m_pHead = node;
+            m_count++;
+            return;
+        }
+        T prev = where->m_pPrev;
+        where->m_pPrev = node;
+        node->m_pPrev = prev;
+        node->m_pNext = where;
+        if (prev != nullptr) {
+            prev->m_pNext = node;
+        }
+        if (m_pHead == where) {
+            m_pHead = node;
+        }
+        m_count++;
+    }
+
+    // links node behind where (inline in its callers: placeholder name)
+    void Unk_InsertAfter(T where, T node) {
+        T next = where->m_pNext;
+        if (next == nullptr) {
+            AddTail(node);
+        } else {
+            Unk_InsertBefore(next, node);
+        }
     }
 
     void* field_8;
@@ -136,8 +197,13 @@ template <class T>
 class SiLinkedList {
 public:
     struct Node {
+        // (the next link is cleared in the body: the original stores the list
+        // and the previous link first, the next link and field_18 last;
+        // SiIOVFSManager's 0x7100583980)
         Node(SiLinkedList* pList, const T& value)
-            : m_pList(pList), m_pPrev(nullptr), m_pNext(nullptr), field_18(nullptr), m_value(value) {}
+            : m_pList(pList), m_pPrev(nullptr), field_18(nullptr), m_value(value) {
+            m_pNext = nullptr;
+        }
 
         SiLinkedList* m_pList;
         Node* m_pPrev;

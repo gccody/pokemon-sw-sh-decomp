@@ -4,6 +4,7 @@
 // in the executable, so the functions with one keep the original's lines.
 #undef NDEBUG
 #include <assert.h>
+#include <ctype.h>
 #include <string.h>
 
 #include <miniz/miniz_yebis.h>
@@ -245,6 +246,67 @@ Unk_TFXString& Unk_TFXString::Unk_451e00(s32 start, s32 count) {
     return *this;
 }
 
+// 0x7100451f00
+// NON_MATCHING: the last character's address is computed before the first
+// character is loaded here (into another register); the original loads the
+// first character, then reuses its register for the address.
+Unk_TFXString& Unk_TFXString::Unk_451f00(const char* quotes) {
+    s32 length = field_0;
+    if (length >= 1) {
+        s32 i;
+        for (i = 1; i <= length; i++) {
+            char c = field_8[i - 1];
+            if (c != ' ' && c != '\t' && c != '\n')
+                break;
+        }
+        if (i >= 2)
+            Unk_451e00(i, length);
+    }
+    Unk_452b30();
+    length = field_0;
+    if (length >= 1 && field_8[0] == field_8[length - 1] && length != 1) {
+        char c = field_8[0];
+        s32 count = strlen(quotes);
+        for (s32 i = 0; i < count; i++) {
+            if (c == quotes[i]) {
+                Unk_451e00(2, length - 2);
+                break;
+            }
+        }
+    }
+    return *this;
+}
+
+// 0x71004520d0
+s32 Unk_TFXString::Unk_4520d0(const char* text, s32 start, s32 count) const {
+    if (text == nullptr)
+        return 0;
+    char first = text[0];
+    if (first == '\0')
+        return 0;
+    if (count < 0)
+        count = strlen(text);
+    if (count == 0)
+        return 0;
+    s32 from = start - 1 > 0 ? start - 1 : 0;
+    if (field_0 < from)
+        return 0;
+    s32 end = field_0 + 1 - count;
+    for (s32 i = from; i < end; i++) {
+        if (first == field_8[i]) {
+            if (count == 1)
+                return i + 1;
+            s32 j;
+            for (j = 1; j < count; j++)
+                if (field_8[i + j] != text[j])
+                    break;
+            if (j == count)
+                return i + 1;
+        }
+    }
+    return 0;
+}
+
 // 0x71004522d0
 Unk_TFXString Unk_TFXString::Unk_4522d0(s32 start, s32 count) const {
     s32 length = field_0;
@@ -261,6 +323,35 @@ Unk_TFXString Unk_TFXString::Unk_452340(s32 start, s32 end) const {
     if (end <= 0)
         return Unk_4522d0(start, field_0);
     return Unk_4522d0(start, end - start + 1);
+}
+
+// 0x7100452400
+s32 Unk_TFXString::Unk_452400(const char* text, s32 start, s32 count) const {
+    if (text == nullptr)
+        return 0;
+    char first = text[0];
+    if (first == '\0')
+        return 0;
+    if (count < 0)
+        count = strlen(text);
+    if (start <= 0)
+        start = field_0;
+    s32 from = start - count;
+    if (from < count)
+        return 0;
+    for (s32 i = from; i >= 0; i--) {
+        if (first == field_8[i]) {
+            if (count == 1)
+                return i + 1;
+            s32 j;
+            for (j = 1; j < count; j++)
+                if (field_8[i + j] != text[j])
+                    break;
+            if (j == count)
+                return i + 1;
+        }
+    }
+    return 0;
 }
 
 // 0x71004525a0
@@ -300,12 +391,13 @@ s32 Unk_TFXString::Unk_452790(const char* text, s32 count) const {
 }
 
 // 0x71004527b0
-bool Unk_TFXString::operator!=(const Unk_TFXString& other) const {
+// (an int: its caller, the license check, tests the whole register)
+s32 Unk_TFXString::operator!=(const Unk_TFXString& other) const {
     return strcmp(field_8, other.field_8) != 0;
 }
 
 // 0x71004527e0
-bool Unk_TFXString::operator==(const char* text) const {
+s32 Unk_TFXString::operator==(const char* text) const {
     return strcmp(field_8, text) == 0;
 }
 
@@ -319,6 +411,92 @@ Unk_TFXString Unk_TFXString::operator+(const char* text) const {
     Unk_TFXString sum(field_8, field_0 + length, -1);
     memcpy(sum.field_8 + field_0, text, length);
     return sum;
+}
+
+// 0x71004529a0: `text` followed by `other`
+Unk_TFXString Unk_4529a0(const char* text, const Unk_TFXString& other) {
+    if (text == nullptr)
+        return other;
+    s32 length = strlen(text);
+    if (length == 0)
+        return other;
+    Unk_TFXString sum(text, other.field_0 + length, -1);
+    for (s32 i = 0; i < other.field_0; i++)
+        sum.field_8[length + i] = other.field_8[i];
+    return sum;
+}
+
+// 0x7100452b30
+Unk_TFXString& Unk_TFXString::Unk_452b30() {
+    s32 length = field_0;
+    if (length >= 1) {
+        s32 end = length;
+        for (; end > 0; end--) {
+            if (!isspace(Unk_At(end))) {
+                break;
+            }
+        }
+        Unk_451530(end);
+    }
+    return *this;
+}
+
+// 0x7100452c00
+Unk_TFXString& Unk_TFXString::Unk_452c00(const Unk_TFXString& chars) {
+    s32 length = field_0;
+    if (length >= 1 && chars.field_0 >= 1) {
+        s32 count = chars.field_0;
+        const char* set = chars.field_8;
+        s32 i;
+        for (i = 1; i <= length; i++) {
+            char c = field_8[i - 1];
+            bool other = true;
+            for (s32 j = 1; j <= count; j++) {
+                if (c == set[j - 1]) {
+                    other = false;
+                }
+            }
+            if (other) {
+                break;
+            }
+        }
+        if (i >= 2) {
+            Unk_451e00(i, length);
+        }
+    }
+    return *this;
+}
+
+// 0x7100452d20
+// NON_MATCHING: the original tests the string's length before `count`; here
+// the two tests come out the other way round (with the registers after
+// them), however the condition is written.
+Unk_TFXString& Unk_TFXString::CutLeft(const char* szDefSpace, s32 count) {
+#line 2216
+    assert(szDefSpace);
+    if (count < 0) {
+        count = strlen(szDefSpace);
+    }
+    s32 length = field_0;
+    if (length >= 1 && count >= 1) {
+        s32 i;
+        for (i = 1; i <= length; i++) {
+            char c = field_8[i - 1];
+            bool other = true;
+            for (s32 j = 1; j <= count; j++) {
+                if (c == szDefSpace[j - 1]) {
+                    other = false;
+                }
+            }
+            if (other) {
+                break;
+            }
+        }
+        if (i >= 2) {
+            Unk_451e00(i, length);
+        }
+    }
+    return *this;
 }
 
 }  // namespace PPFX

@@ -63,7 +63,8 @@ public:
     virtual void vf13();
     virtual void vf14();
     virtual Unk_SystemInfoInterface* vf15();
-    virtual void vf16();
+    // the value of a variable (SiKernel has none: slot 16 returns a constant)
+    virtual u32 vf16(const char* name, SiString<char>* value);
     virtual void vf17();
     virtual void vf18();
     virtual void vf19();
@@ -91,12 +92,25 @@ s64 Unk_4c5170(const char* s);
 // 0x71004c51e0: Latin-1 to UTF-8, 0x71004c4e80: wide to UTF-8
 char* Unk_4c51e0(const char* s, char* dst, s64 size);
 char* Unk_4c4e80(const wchar_t* s, char* dst, s64 size);
-// 0x71004c4f60: UTF-8 to a wide string
+// 0x71004c49f0: a string of s's characters (in the kernel's allocator)
+SiSDK3::SiString<char> Unk_4c49f0(const char* s);
+// 0x71004c4f60: UTF-8 to a wide string (the string TU, which defines it,
+// declares that it returns whether s wasn't null)
+#ifdef UNK_SICORE_STRING_IMPL
+bool Unk_4c4f60(const char* s, SiSDK3::SiString<wchar_t>* dst, s64 size);
+#else
 void Unk_4c4f60(const char* s, SiSDK3::SiString<wchar_t>* dst, s64 size);
+#endif
 
-// 0x71004c4700, 0x71004c42b0: assigns
+// 0x71004c4700, 0x71004c42b0: assigns (they return the string: the string
+// TU, which defines them, declares them so)
+#ifdef UNK_SICORE_STRING_IMPL
+SiSDK3::SiString<char>* Unk_4c4700(void*, void*);
+SiSDK3::SiString<wchar_t>* Unk_4c42b0(SiSDK3::SiString<wchar_t>* self, const wchar_t* s);
+#else
 void Unk_4c4700(void*, void*);
 void Unk_4c42b0(SiSDK3::SiString<wchar_t>* self, const wchar_t* s);
+#endif
 // 0x71004c5d50, 0x71004c5eb0: sets the capacity, keeping the contents if keep
 bool Unk_4c5d50(SiSDK3::SiString<char>* self, size_t capacity, bool keep);
 bool Unk_4c5eb0(SiSDK3::SiString<wchar_t>* self, size_t capacity, bool keep);
@@ -188,6 +202,66 @@ inline void Unk_StringAppend(SiString<T>* self, const T* s) {
         self->field_10 += count;
         self->m_pBuffer[length + count] = 0;
     }
+}
+
+// Appends a string (nothing for a null or empty one), growing as the
+// character append does when it's full.
+template <class T>
+inline void Unk_StringAppendGrow(SiString<T>* self, const T* s) {
+    if (s != nullptr && *s != 0) {
+        size_t count = 0;
+        while (s[count] != 0) {
+            count++;
+        }
+        if (self->field_20 <= self->field_10 + count) {
+            size_t step = self->field_18;
+            size_t length = self->field_10 + count + 1;
+            size_t capacity;
+            if (step != 0) {
+                capacity = step + length;
+            } else {
+                capacity = length > self->field_20 * 2 ? length : self->field_20 * 2;
+            }
+            Unk_StringSetCapacity(self, capacity, true);
+        }
+        size_t length = self->field_10;
+        memcpy(self->m_pBuffer + length, s, count * sizeof(T));
+        self->field_10 += count;
+        self->m_pBuffer[length + count] = 0;
+    }
+}
+
+// Appends another string (nothing for an empty one), growing as the
+// character append does when it's full.
+template <class T>
+inline void Unk_StringAppendString(SiString<T>* self, const SiString<T>* other) {
+    size_t count = other->field_10;
+    if (count != 0) {
+        if (self->field_20 <= self->field_10 + count) {
+            size_t step = self->field_18;
+            size_t length = self->field_10 + count + 1;
+            size_t capacity;
+            if (step != 0) {
+                capacity = step + length;
+            } else {
+                capacity = length > self->field_20 * 2 ? length : self->field_20 * 2;
+            }
+            Unk_StringSetCapacity(self, capacity, true);
+        }
+        size_t length = self->field_10;
+        const T* src = other->m_pBuffer;
+        memcpy(self->m_pBuffer + length, src, count * sizeof(T));
+        self->field_10 += count;
+        self->m_pBuffer[length + count] = 0;
+    }
+}
+
+// A string and another after it, in the kernel's allocator.
+template <class T>
+inline SiString<T> Unk_StringConcat(const SiString<T>& a, const T* b) {
+    SiString<T> result(a, nullptr);
+    Unk_StringAppendGrow(&result, b);
+    return result;
 }
 
 }  // namespace SiSDK3

@@ -77,4 +77,58 @@ inline int Unk_CompareNoCase(const SiString<char>* self, const char* s) {
     return Unk_CompareNoCase(s, self->m_pBuffer);
 }
 
+// Compares two strings without case: an empty other is tested by its length
+// and its first character, not its buffer (SiGfxShaderEffectVariationList's
+// slot 22). The two tests return on their own: the second one's then reads
+// self's length before it branches (SiGfxShaderUtility's 0x71004e57e0).
+inline int Unk_CompareNoCase(const SiString<char>* self, const SiString<char>* other) {
+    if (other->field_10 == 0) {
+        return self->field_10 != 0;
+    }
+    if (other->m_pBuffer[0] == 0) {
+        return self->field_10 != 0;
+    }
+    if (self->field_10 == 0) {
+        return -1;
+    }
+    return Unk_CompareNoCase(other->m_pBuffer, self->m_pBuffer);
+}
+
+// The same with case (placeholder name: SiGfxShaderUtility's search of its
+// packages by name, 0x71004e3f80).
+inline int Unk_Compare(const char* a, const char* b) {
+    int i = 0;
+    char c1;
+    char c2;
+    u8 u1;
+    u8 u2;
+    for (;;) {
+        c1 = a[i];
+        c2 = b[i];
+        if (c1 == 0 || c2 == 0) {
+            break;
+        }
+        u1 = static_cast<u8>(c1);
+        u2 = static_cast<u8>(c2);
+        if (u1 < u2) {
+            return 1;
+        }
+        if (u1 > u2) {
+            return -1;
+        }
+        i++;
+    }
+    return c1 != 0 ? -1 : ((c1 == 0 && c2 == 0) ? 0 : 1);
+}
+
+inline int Unk_Compare(const SiString<char>* self, const char* s) {
+    if (s == nullptr || *s == 0) {
+        return self->field_10 != 0;
+    }
+    if (self->field_10 == 0) {
+        return -1;
+    }
+    return Unk_Compare(s, self->m_pBuffer);
+}
+
 }  // namespace SiSDK3

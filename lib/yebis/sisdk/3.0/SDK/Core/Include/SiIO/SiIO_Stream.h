@@ -81,7 +81,7 @@ public:
     virtual bool vf61(const wchar_t* s, bool advance);
     virtual bool vf62(const char* s, bool advance);
     virtual bool vf63(const wchar_t* s, bool advance);
-    virtual bool vf64(const wchar_t* s, bool advance);
+    virtual bool vf64(const char* s, bool advance);  // writes a string as it is (0x71004c5b30 assigns char text)
     virtual bool vf65(const wchar_t* s, bool advance);
     virtual bool vf66(const char* format, ...);
     virtual bool vf67(const wchar_t* format, ...);

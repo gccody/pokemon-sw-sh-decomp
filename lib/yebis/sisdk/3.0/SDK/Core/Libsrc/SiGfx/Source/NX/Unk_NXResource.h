@@ -58,7 +58,9 @@ inline size_t Unk_NXAlign(size_t value, size_t alignment) {
 
 // What the device's slot 11 returns (placeholder name): its settings.
 struct Unk_NXDeviceSettings {
-    u8 field_0[0xb5];
+    u8 field_0[0x52];
+    bool field_52;  // whether the pools make their own resources (slot 7)
+    u8 field_53[0x62];
     bool field_b5;  // whether resources get a name when they're made
 };
 
@@ -67,13 +69,24 @@ struct Unk_NXDeviceSettings {
 // shows it as a 64-bit value that is truncated here (their other use of it
 // keeps it from being narrowed). It also takes field_24: SiGfxNXDevice's code
 // for its own heaps has its 1 where the constructor's stores are, ahead of
-// the stores of the fields the device assigns (0x71004faac0).
+// the stores of the fields the device assigns (0x71004faac0). The zeros up to
+// field_24 are its initialisers, the rest is assigned in its body: so the
+// first 0x24 bytes are one memset and the rest its own stores when the
+// constructor is inlined (the surface's colour buffer 0x710055cfd0 and the
+// command list's heaps show the original's pairs of 8-byte stores; all
+// initialisers, or all assignments, give other pairs).
 struct Unk_NXMemoryHeapDesc {
     explicit Unk_NXMemoryHeapDesc(size_t size = 0, s32 count = 4)
-        : field_0(0), field_4(0), field_8(0), field_10(0), field_14(0), field_18(0), field_1c(0), field_20(0),
-          field_24(count), field_28(0), field_30(0), field_34(0), field_38(0), field_40(nullptr), field_48(-1),
-          field_50(-1) {
+        : field_0(0), field_4(0), field_8(0), field_10(0), field_14(0), field_18(0), field_1c(0), field_20(0) {
         field_0 = static_cast<s32>(size);
+        field_24 = count;
+        field_28 = 0;
+        field_30 = 0;
+        field_34 = 0;
+        field_38 = 0;
+        field_40 = nullptr;
+        field_48 = -1;
+        field_50 = -1;
     }
 
     s32 field_0;  // its size
@@ -217,6 +230,14 @@ public:
     virtual void vf5();
     virtual ISiAllocator* vf6();
 };
+// What the kernel's slot 27 returns (placeholder name): its settings, as
+// far as SiGfxShaderProgramPoolBase's slot 7 reads them.
+struct Unk_NXKernelSettings {
+    u8 field_0[0x30];
+    SiString<char> field_30;  // the directory the font pool's own font is in
+    bool field_60;
+    bool field_61;  // whether the font pool makes its own font
+};
 class Unk_NXKernelInterface {
 public:
     virtual void vf0();
@@ -246,7 +267,7 @@ public:
     virtual void vf24();
     virtual void vf25();
     virtual void vf26();
-    virtual void vf27();
+    virtual const Unk_NXKernelSettings* vf27();
     virtual void vf28();
     virtual void vf29();
     virtual void vf30();

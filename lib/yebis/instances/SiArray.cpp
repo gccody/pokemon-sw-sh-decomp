@@ -13,21 +13,12 @@ class NVNtextureView;
 
 // The element types of the copies of Unk_4bf190 that no caller ties to a type
 // (placeholders named after each copy: the code doesn't depend on the type).
-struct Unk_4cb8c0;
-struct Unk_4e7a40;
-struct Unk_4e7c40;
-struct Unk_4ea9b0;
 struct Unk_4f6f70;
 struct Unk_4fb4b0;
 struct Unk_536a10;
-struct Unk_542aa0;
 struct Unk_56f0a0;
 struct Unk_56f240;
 struct Unk_56f3e0;
-struct Unk_56f720;
-struct Unk_56fb40;
-struct Unk_5744f0;
-struct Unk_579a40;
 
 namespace SiSDK3 {
 class ISiAllocator;
@@ -383,8 +374,6 @@ template bool SiSDK3::SiArray<SiSDK3::SiReflectionObject*, 16>::Unk_4bf190(size_
 // The other copies of Unk_4bf190: called only from inline Adds of no known
 // class, so their element types aren't known; each gets a placeholder. (Five
 // of the shader graph's are among them under their real types now.)
-// 0x71004cb8c0
-template bool SiSDK3::SiArray<Unk_4cb8c0*, 16>::Unk_4bf190(size_t, bool);
 // 0x71004db5f0 (the utility's arrays of data types: lib/yebis/sisdk's shader graph classes call it)
 template bool SiSDK3::SiArray<SiSDK3::SiGfxShaderGraphDataType*, 16>::Unk_4bf190(size_t, bool);
 // 0x71004db790 (the utility's array of operator node types: lib/yebis/sisdk's shader graph classes call it)
@@ -395,16 +384,11 @@ template bool SiSDK3::SiArray<SiSDK3::SiGfxShaderGraphIOSlotType*, 16>::Unk_4bf1
 template bool SiSDK3::SiArray<SiSDK3::SiGfxShaderGraphDataValue*, 16>::Unk_4bf190(size_t, bool);
 // 0x71004e0d50 (a node's slots, a slot's parts: lib/yebis/sisdk's shader graph classes call it)
 template bool SiSDK3::SiArray<SiSDK3::SiGfxShaderGraphIOSlot*, 16>::Unk_4bf190(size_t, bool);
-// 0x71004e7a40
-template bool SiSDK3::SiArray<Unk_4e7a40*, 16>::Unk_4bf190(size_t, bool);
-// 0x71004e7c40
-template bool SiSDK3::SiArray<Unk_4e7c40*, 16>::Unk_4bf190(size_t, bool);
-// 0x71004ea9b0
-template bool SiSDK3::SiArray<Unk_4ea9b0*, 16>::Unk_4bf190(size_t, bool);
+// (0x71004e7c40 is SiArray<ISiGfxShaderEffectVariationList*>'s: SiGfx_ShaderUtility_Impl.cpp instantiates it)
+// (0x71004ea9b0 is SiArray<SiGfxShaderBinaryCachePackage::Entry*>'s: SiGfx_ShaderCache_BinaryPackage_Impl.cpp instantiates it)
 // (0x71004f6f70 is SiArray<SiGfxNXDevice*>'s: SiGfx_NX_Manager_Impl.cpp instantiates it)
 // (0x71004fb4b0 is SiArray<SiGfxNXMemoryHeap*>'s: SiGfx_NX_Device_Impl.cpp instantiates it)
-// 0x7100542aa0
-template bool SiSDK3::SiArray<Unk_542aa0*, 16>::Unk_4bf190(size_t, bool);
+// (0x7100542aa0 is SiArray<SiGfxNXDrawContext::DirectBuffer*>'s: SiGfx_NX_DrawContext_Impl.cpp instantiates it)
 // (0x710054f7e0 is SiArray<SiGfxNXCommandList*>'s: SiGfx_NX_CommandListPool_Impl.cpp instantiates it)
 // 0x710056ed60 (SiGfxShaderEffectPackage's functions call it on its array of
 // definitions, and the next one on its array of variations)
@@ -417,11 +401,10 @@ template bool SiSDK3::SiArray<SiSDK3::ISiGfxShader*, 16>::Unk_4bf190(size_t, boo
 template bool SiSDK3::SiArray<SiSDK3::ISiGfxShaderEffectPackage::TechniqueData*, 16>::Unk_4bf190(size_t, bool);
 // 0x710056f3e0
 template bool SiSDK3::SiArray<SiSDK3::ISiGfxShaderEffectPackage::ShaderProgramData*, 16>::Unk_4bf190(size_t, bool);
-// 0x710056f720
-template bool SiSDK3::SiArray<Unk_56f720*, 16>::Unk_4bf190(size_t, bool);
-// 0x710056fb40
-template bool SiSDK3::SiArray<Unk_56fb40*, 16>::Unk_4bf190(size_t, bool);
-// 0x71005744f0
-template bool SiSDK3::SiArray<Unk_5744f0*, 16>::Unk_4bf190(size_t, bool);
-// 0x7100579a40
-template bool SiSDK3::SiArray<Unk_579a40*, 16>::Unk_4bf190(size_t, bool);
+// (0x710056f720 and 0x710056fb40, SiArray<SiGfxShaderEffect::TechniqueData*>'s
+// and SiArray<SiGfxShaderEffect::ShaderProgramData*>'s, are instantiated by
+// their caller, the package's Unk_56ca20)
+// (0x71005744f0, SiArray<ISiGfxShaderEffectVariationList::RequestNotFoundEntry*>'s, is
+// instantiated by its caller, SiGfxShaderEffectVariationList's slot 22)
+// (0x7100579a40, SiArray<SiGfxShaderEffect::ShaderProgramCompileEntry*>'s, is
+// instantiated by its caller, SiGfxShaderEffect's slot 12)

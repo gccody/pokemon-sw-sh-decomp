@@ -18,7 +18,7 @@ extern s32 Unk_24e0014;
 extern s32 Unk_24e000c;
 
 // 0x7100417a30: printf to the log
-void Unk_417a30(const char* format, ...);
+s32 Unk_417a30(const char* format, ...);
 
 #define UNK_PPFX_PRINT(enabled, tag, ...)                   \
     do {                                                    \

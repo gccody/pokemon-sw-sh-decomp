@@ -27,7 +27,7 @@ public:
     virtual u64 vf7();
     virtual u64 vf8();
     virtual SiString<char>* vf9();  // the name
-    virtual const u8* vf10();
+    virtual SiString<char>* vf10();  // the path
     virtual bool vf11();  // whether it's a directory
     virtual s64 vf12();                    // the number of entries in field_c8
     virtual SiIOVFSEntry* vf13(s64 index);  // one of them

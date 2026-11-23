@@ -162,10 +162,12 @@ struct Unk_69c250 {
 };
 PKMN_OFFSET_ASSERT(Unk_69c250, field_50, 0x50);
 
-u32 Unk_418310(u64);
+// 0x7100418310 (YEBIS): the post effect's SetDeltaTime, which takes the
+// elapsed time as its float (it's passed through in s0)
+u32 Unk_418310(u64, f32 elapsed);
 
 // 0x710069c250
-bool Unk_69c250_call(const Unk_69c250* self) {
-    u32 r0 = Unk_418310(self->field_50->field_68);
+bool Unk_69c250_call(const Unk_69c250* self, f32 elapsed) {
+    u32 r0 = Unk_418310(self->field_50->field_68, elapsed);
     return r0 == 0;
 }

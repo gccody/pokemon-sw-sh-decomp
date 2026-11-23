@@ -168,6 +168,20 @@ public:
         m_itemCount--;
     }
 
+    // takes an element out, moving the last one into its place (the name and
+    // the parameter's are its assert's; its __LINE__ is the original's, and
+    // every later __LINE__ of this header has its own #line)
+    void RemoveByIndexNonStable(size_t iIndex) {
+        // (an assert that the build's NDEBUG doesn't compile out)
+        if (!(iIndex < m_itemCount)) {
+#line 1036
+            __assert_fail("iIndex < m_itemCount", __FILE__, __LINE__, __func__);
+        }
+        m_pData[iIndex] = m_pData[m_itemCount - 1];
+        m_itemCount--;
+        Unk_UpdateRange();
+    }
+
     // takes out every element equal to value, from the last one (inline in
     // every caller: placeholder name)
     void Unk_RemoveValue(const T& value) {
@@ -299,25 +313,27 @@ bool SiArray<T, ALIGN>::Unk_4bf190(size_t count, bool keep) {
     return true;
 }
 
-// NON_MATCHING (0x710056e140 and the other copies): the same instructions but
-// for one address. The original computes the address of field_30 where the
-// loop starts and stores through `this` in the reserve's failure before it;
-// this computes it once, before the reserve, for both.
+// (0x710056e140 and the other copies.) The buffer is freed through
+// Unk_FreeAll: one inline function more, whose own optimisation merges the
+// three pointers' zeroing into one block before it is inlined here, so the
+// later stores of field_30 aren't merged with that one's address (calling
+// Unk_4e3050 directly, the reserve's failure and the loop's share an address
+// computed before the reserve). The room's test is `!= 0` with the empty
+// case last: with `== 0` first, the loop's end is duplicated into the
+// element's two paths of an array of pointers.
 template <class T, int ALIGN>
 void SiArray<T, ALIGN>::operator=(const SiArray& other) {
     field_40 = other.field_40;
-    if (other.m_reservedCount == 0) {
-        if (m_itemCount != 0) {
-            m_itemCount = 0;
-            field_30 = nullptr;
-            field_38 = nullptr;
-        }
-    } else {
-        Unk_4e3050();
+    if (other.m_reservedCount != 0) {
+        Unk_FreeAll();
         Unk_SetReserved(other.m_reservedCount);
         for (size_t i = 0; i < other.m_itemCount; i++) {
             Unk_Add(other.m_pData[i]);
         }
+    } else if (m_itemCount != 0) {
+        m_itemCount = 0;
+        field_30 = nullptr;
+        field_38 = nullptr;
     }
 }
 

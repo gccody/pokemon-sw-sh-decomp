@@ -8,7 +8,7 @@
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_StringFuncs.h>
 
 // 0x71004c3410: a checksum
-u32 Unk_4c3410(int size, const u8* data);
+u32 Unk_4c3410(s64 size, const u8* data);
 // 0x71004ed0c0: a format's size
 s32 Unk_4ed0c0(u32 format);
 
@@ -134,7 +134,11 @@ void SiGfxNXVertexFormat::Unk_564cd0() {
 // original reads the offset before the first of the three stores and keeps
 // the checksum's size as a 64-bit product of the sign-extended count
 // (slot 20: 460 bytes for 464; this one, which also keeps the elements'
-// address in a register of its own, 540 for 528).
+// address in a register of its own, 540 for 528). With the hash's 64-bit size
+// the product is the original's; the count's sign extension (a `sxtw` of its own
+// in the original's loop, shared with the product) and the test before the hash
+// (`cmp #1; b.lt`) aren't. Tried: the second loop with s32/s64 indexes, a
+// pointer, the offset read first; the hash's test both ways, an if, a result.
 // 0x7100564ac0
 bool SiGfxNXVertexFormat::vf17(s32 count, const Unk_Element* elements) {
     vf21();

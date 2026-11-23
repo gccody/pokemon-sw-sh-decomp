@@ -110,8 +110,57 @@ PKMN_SIZE_ASSERT(SiGfxNXPipelineState, 0x6d8);
 
 class SiGfxNXRootSignature {
 public:
+    // (SiGfx_NX_RootSignature_Impl.h's, as the device's own drawing fills
+    // one)
+    struct Unk_SamplerDesc {
+        Unk_SamplerDesc()
+            : field_0(0xc), field_4(1), field_8(1), field_c(1), field_10(0), field_14(0), field_18(100.0f),
+              field_1c(1), field_20(8) {
+            for (int i = 0; i < 7; i++) {
+                field_24[i] = 0;
+            }
+        }
+        // with another first value (inline in the device's own drawing's
+        // set-up, 0x71004fa590: its first two values are stored first, as
+        // one 8-byte store; assigned after the constructor they're stored
+        // last)
+        explicit Unk_SamplerDesc(u32 a0)
+            : field_0(a0), field_4(1), field_8(1), field_c(1), field_10(0), field_14(0), field_18(100.0f),
+              field_1c(1), field_20(8) {
+            for (int i = 0; i < 7; i++) {
+                field_24[i] = 0;
+            }
+        }
+
+        u32 field_0;
+        u32 field_4;
+        u32 field_8;
+        u32 field_c;
+        u32 field_10;
+        u32 field_14;
+        f32 field_18;
+        u32 field_1c;
+        u32 field_20;
+        u32 field_24[7];
+    };
+
     SiGfxNXRootSignature(ISiAllocator* pAllocator, SiGfxNXDevice* pDevice);  // 0x7100556cf0
     UNK_DEVICE_OBJECT_SLOTS;
+    // (slots 8 to 18 as SiGfx_NX_RootSignature_Impl.h has them)
+    virtual void vf5();
+    virtual void vf6();
+    virtual u32 vf7();
+    virtual bool vf8();
+    virtual bool vf9();
+    virtual bool vf10(s32 count);
+    virtual u32 vf11();
+    virtual bool vf12(s32 index, u32 kind, u32 a3, u32 a4, u32 a5);
+    virtual bool vf13(s32 index, u32 a2, u32 a3, u32 a4, u32 a5);
+    virtual bool vf14(s32 index, u32 a2, s32 count);
+    virtual bool vf15(s32 index, s32 range, u32 a3, u32 a4, u32 a5, u32 a6, u32 a7);
+    virtual bool vf16(s32 count);
+    virtual u32 vf17();
+    virtual bool vf18(s32 index, u32 a2, u32 a3, u32 a4, const Unk_SamplerDesc* desc);
     bool Unk_Init(u32 a1) { return Unk_556fe0_update(reinterpret_cast<Unk_556fe0*>(this), a1); }
 
     u8 field_8[0x330];
@@ -251,7 +300,7 @@ public:
     ~Unk_5518d0_Pool() { Unk_551910(); }
     void Unk_551910();
     bool Unk_551a50(SiGfxNXDevice* pDevice, s32 a2, s32 a3);
-    u64 Unk_551ed0(u64 a1, u64 a2, bool a3);
+    s32 Unk_551ed0(u64 a1, u64 a2, bool a3);
     u64 Unk_551fd0(u32 a1);
     u32 Unk_Count() const { return Unk_552080_get(reinterpret_cast<const Unk_552080*>(this)); }
 

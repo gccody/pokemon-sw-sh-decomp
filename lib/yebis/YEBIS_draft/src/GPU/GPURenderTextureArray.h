@@ -7,6 +7,9 @@
 
 namespace PPFX {
 
+struct Unk_GPUTexture;
+struct Unk_Float4;
+
 class CRenderTextureArray : public CGPUResourceManage {
 public:
     explicit CRenderTextureArray(const char* name);  // 0x71004a4660
@@ -21,6 +24,15 @@ public:
     s32 Unk_4a5f50(s32 index, f32 a, f32 b);
     // 0x71004a5ff0: a texture's field_a0, likewise
     s32 Unk_4a5ff0(s32 value, s32 index);
+    // 0x71004a6070: a texture (-1: the current one) as the device's target `slot`
+    // 0x71004a6aa0 ("CRenderTextureArray::CopyToSurface()" in its log line):
+    // draws a texture's rectangle into a surface
+    static s32 CopyToSurface(Unk_49b230_Object* surface, Unk_GPUTexture* source, s32 index, f32 scale,
+                             const Unk_Float4* rect, f32 u1, bool arg4, f32 v1, s32 arg5);
+    // 0x71004a6a50: the same from a render texture's viewport
+    static s32 Unk_4a6a50(Unk_49b230_Object* surface, CRenderTexture* source, s32 index, const Unk_Float4* rect,
+                          bool arg4, s32 arg5, f32 scale);
+    s32 Unk_4a6070(s32 index, bool depth, s32 arg2, void* arg3, s32 arg4, s32 slot, s32 arg6, s32 arg7);
 
     u32 _2c;       // nothing here uses it (the base's last member ends at 0x29)
     s32 field_30;  // the number of textures

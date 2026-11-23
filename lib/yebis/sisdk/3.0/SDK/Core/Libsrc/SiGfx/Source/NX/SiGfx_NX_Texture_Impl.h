@@ -7,9 +7,12 @@
 #pragma once
 
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_RefCountDeferred.h>
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_MemoryHeap_Impl.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_Surface_Impl.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_Volume_Impl.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/Unk_NXResource.h>
+
+class NVNtextureView;
 
 namespace SiSDK3 {
 
@@ -57,6 +60,85 @@ public:
 
 class SiGfxNXTexture : public Unk_NXInterface, public Unk_NXTextureNamedObject, public Unk_NXTextureTypedObject {
 public:
+    // What a texture is made from (placeholder name and members): 0x110
+    // bytes, two strings among them.
+    struct Unk_Desc {
+        // the first members given (placeholder parameters) or zero. The
+        // level data and their count are parameters too: with all of 0x50 to
+        // 0x78 constant, the constructor's own zero stores there become a
+        // memset before it is inlined, and every user's zero stores at 0x38
+        // to 0x48 then come out after those at 0x50 (the original has them
+        // first: the NX texture's constructor, the face cache's slot 5, the
+        // texture chunk's data)
+        inline explicit Unk_Desc(u32 format = 0, u32 width = 0, u32 height = 0, u32 a18 = 0, u32 a1c = 0, u32 a20 = 0,
+                          u32 a30 = 0, u32 a38 = 0, u32 a54 = 0, const void* a60 = nullptr)
+            : field_0(format), field_4(0), field_8(0), field_10(width), field_14(height), field_18(a18),
+              field_1c(a1c), field_20(a20), field_24(0), field_28(0), field_30(a30), field_34(8), field_38(a38), field_3c(0),
+              field_40(0), field_44(0), field_50(0), field_54(a54), field_58(0), field_60(a60),
+              field_68(0), field_70(0), field_78(1.0f), field_7c(0), field_80(0), field_84(0), field_e8(0),
+              field_ec(-1), field_f0(-1) {
+            field_f4 = Unk_Pair();
+            field_fe = false;
+            field_fc = false;
+            field_fd = false;
+            field_48 = 0;
+            field_100 = -1;
+            field_108 = -1;
+        }
+
+        // 0x710055ffd0: back to the defaults
+        void Unk_55ffd0();
+
+        // two numbers stored together (placeholder)
+        struct Unk_Pair {
+            Unk_Pair() : field_0(-1), field_4(0) {}
+            s32 field_0;
+            u32 field_4;
+        };
+
+        u32 field_0;  // the format
+        u32 field_4;
+        u64 field_8;
+        u32 field_10;  // the width
+        u32 field_14;  // the height
+        u32 field_18;
+        u32 field_1c;
+        u32 field_20;
+        u32 field_24;
+        u64 field_28;
+        u32 field_30;
+        u32 field_34;
+        u32 field_38;
+        u32 field_3c;  // (0x34 to 0x3c: what the texture chunk's reader adds its flags to)
+        u32 field_40;
+        u32 field_44;
+        u64 field_48;
+        u32 field_50;
+        u32 field_54;
+        u64 field_58;
+        const void* field_60;
+        u64 field_68;
+        u64 field_70;
+        f32 field_78;
+        u32 field_7c;
+        u32 field_80;
+        u32 field_84;
+        SiString<char> field_88;
+        SiString<char> field_b8;
+        u32 field_e8;
+        s32 field_ec;
+        s32 field_f0;
+        Unk_Pair field_f4;
+        bool field_fc;
+        bool field_fd;
+        bool field_fe;
+        s64 field_100;
+        s64 field_108;
+    };
+    PKMN_SIZE_ASSERT(Unk_Desc, 0x110);
+
+    // 0x710055e7c0: a texture of a kind (2: 2D, ...)
+    SiGfxNXTexture(ISiAllocator* pAllocator, SiGfxNXDevice* pDevice, u32 kind);
     ~SiGfxNXTexture() override;                 // 0x710055eb20, 0x710055f130
     u32 vf2() override;                         // 0x71005623c0
     u32 vf3() override;                         // 0x71005623e0
@@ -80,7 +162,7 @@ public:
     virtual void vf21();
     virtual void vf22();
     virtual void vf23();
-    virtual void vf24();
+    virtual void vf24();  // 0x7100560e10: releases what it was made with
     virtual SiGfxNXSurface* vf25(s32 level);                            // 0x7100561040
     virtual SiGfxNXSurface* vf26(s32 layer, s32 level);                 // 0x7100561080
     virtual SiGfxNXSurface* vf27(s32 layer, s32 level);                 // 0x71005610c0
@@ -100,11 +182,18 @@ public:
     virtual void vf41();
     virtual void* vf42(s32 level, s32 layer);                           // 0x7100561dc0
     virtual void vf43();
-    virtual void vf44();
+    virtual bool vf44(void* texture, void* view);  // 0x7100561ef0: takes an NVN texture and its view
     bool vf45(const char* name) override;       // 0x710055f1e0
     const SiString<char>* vf46() override;      // 0x710055f2c0
     u32 vf47() override;                        // 0x710055f2e0
 
+    // 0x71005601b0: makes its surfaces or volumes for its kind (0x7100561730
+    // and 0x7100561aa0 make a cube's and a cube array's, not written yet)
+    bool Unk_5601b0();
+    bool Unk_561730();
+    // 0x7100561970: makes a surface of each level of each layer
+    bool Unk_561970();
+    bool Unk_561aa0();
     // 0x7100561e10: maps its memory pool; 0x7100561e50: tells NVN that its
     // memory was written
     void* Unk_561e10();
@@ -115,32 +204,82 @@ public:
     size_t field_30;              // its index in the pool (0: it isn't in one)
     Unk_NXString<0x40> field_38;  // the name
     u32 field_a8;                 // its hash
-    u8 field_ac[0x128];
-    u32 field_1d4;  // its kind (2: 2D, 3: 3D, 4: cube, 5: 2D array, 6: cube array)
-    u32 field_1d8;
-    u8 field_1dc[0xc];
-    u32 field_1e8;
-    u32 field_1ec;
-    u32 field_1f0;
-    u32 field_1f4;
-    u8 field_1f8[0x34];
+    u32 field_ac;
+    Unk_Desc field_b0;            // what it was made from
+    // 0x1c0 to 0x22c: what it is (the constructor zeroes it, then sets the
+    // first member and the kind)
+    u32 field_1c0;
+    u32 field_1c4;
+    u32 field_1c8;
+    u32 field_1cc;
+    u32 field_1d0;
+    u32 field_1d4;  // its kind (1: 1D, 2: 2D, 3: 3D, 4: cube, 5: 2D array, 6: cube array)
+    u32 field_1d8;  // the format
+    u32 field_1dc;  // the view's format, or
+    u32 field_1e0;  // the view's format with a depth and stencil mode
+    u32 field_1e4;
+    s32 field_1e8;  // the width
+    s32 field_1ec;  // the height
+    s32 field_1f0;  // the depth (3D)
+    s32 field_1f4;  // how many levels
+    s32 field_1f8;  // how many layers (arrays)
+    s32 field_1fc;  // levels times layers
+    s32 field_200;
+    s32 field_204;  // the samples
+    u32 field_208;
+    bool field_20c;
+    bool field_20d;
+    bool field_20e;  // whether the format is one of blocks
+    bool field_20f;
+    s32 field_210;  // the width and height in blocks
+    s32 field_214;
+    s32 field_218;  // a block's size
+    u32 field_21c;
+    u8 field_220[0xc];
     s32 field_22c;  // how many levels
     s32 field_230;  // how many layers
     u32 field_234;
     SiArray<SiGfxNXSurface, 16> field_238;
     SiArray<SiGfxNXVolume, 16> field_288;
-    u8 field_2d8[0x40];
+    u32 field_2d8;
+    u32 field_2dc;
+    u32 field_2e0;
+    u32 field_2e4;
+    u64 field_2e8;
+    f32 field_2f0;
+    u32 field_2f4;
+    u32 field_2f8;
+    u8 field_2fc[0x1c];
     Unk_NXTextureOwner* field_318;
-    u64 field_320;
+    u32 field_320;
+    u32 field_324;
     void* field_328;  // NVNtexture
-    u8 field_330[0x18];
-    SiArray<void*, 16> field_348;  // the levels' and layers' NVN views
+    u64 field_330;
+    s32 field_338;
+    u32 field_33c;
+    u64 field_340;
+    SiArray<NVNtextureView*, 16> field_348;  // the levels' and layers' NVN views
+    SiArray<int, 16> field_398;
+    SiArray<unsigned long, 16> field_3e8;
+    // Three words and a flag, which the constructor zeroes. The flag being
+    // the last member (0x450, the class's size minus 8) decides the thunks:
+    // clang's -8 adjustment of `this` becomes an index of the member there,
+    // and only for a scalar the thunk of slot 45 keeps `sub x8, x19, #8`.
+    SiGfxNXMemoryHeap* field_438;  // the heap of its memory, its offset there and size
+    s64 field_440;
+    u64 field_448;
+    bool field_450;
+    bool field_451;
 };
 PKMN_OFFSET_ASSERT(SiGfxNXTexture, field_a8, 0xa8);
 PKMN_OFFSET_ASSERT(SiGfxNXTexture, field_1d4, 0x1d4);
+PKMN_OFFSET_ASSERT(SiGfxNXTexture, field_20c, 0x20c);
+PKMN_OFFSET_ASSERT(SiGfxNXTexture, field_22c, 0x22c);
 PKMN_OFFSET_ASSERT(SiGfxNXTexture, field_238, 0x238);
 PKMN_OFFSET_ASSERT(SiGfxNXTexture, field_328, 0x328);
 PKMN_OFFSET_ASSERT(SiGfxNXTexture, field_348, 0x348);
+PKMN_OFFSET_ASSERT(SiGfxNXTexture, field_b0, 0xb0);
+PKMN_SIZE_ASSERT(SiGfxNXTexture, 0x458);
 
 }  // namespace SiSDK3
 

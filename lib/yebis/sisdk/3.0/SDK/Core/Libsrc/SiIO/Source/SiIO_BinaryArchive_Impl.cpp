@@ -364,8 +364,9 @@ bool SiIOBinaryArchive::Unk_57b7d0(ISiIOStream* stream) {
 }
 
 // 0x710057b9c0
-// NON_MATCHING: the original passes the header writer its last argument (`mov w3, wzr`),
-// which that function doesn't use in the end: here its callers leave it out.
+// The header writer gets its last argument (`mov w3, wzr`) although it doesn't use it in the
+// end: it passes it to an inline helper, so dead argument elimination (before inlining) keeps
+// it. The count of children is tested as a signed number.
 bool SiIOBinaryArchive::Unk_57b9c0(ISiIOStream* stream, ChunkHandler* handler, bool first) {
     Unk_57bd30(stream, handler, false);
     if (first) {
@@ -379,7 +380,7 @@ bool SiIOBinaryArchive::Unk_57b9c0(ISiIOStream* stream, ChunkHandler* handler, b
         if (size >= 1) {
             handler->field_28.field_38 = start;
         }
-        if (handler->field_88.m_count >= 1) {
+        if (static_cast<s64>(handler->field_88.m_count) >= 1) {
             handler->field_28.field_50 = Unk_582f70(stream, field_28, 0);
             for (ChunkHandler* child = handler->field_88.m_pHead; child != nullptr; child = child->m_pNext) {
                 Unk_57b9c0(stream, child, true);
@@ -426,9 +427,10 @@ bool SiIOBinaryArchive::Unk_57bb60(ISiIOStream* stream) {
     return true;
 }
 
-// 0x710057bd30
-bool SiIOBinaryArchive::Unk_57bd30(ISiIOStream* stream, ChunkHandler* handler, bool flag) {
-    handler->field_28.field_20 = sizeof(Unk_ChunkHeader);
+namespace {
+// writes a chunk's header (the flag isn't used: see Unk_57b9c0)
+inline void Unk_WriteChunkHeader(ISiIOStream* stream, ISiIOBinaryArchive::ChunkHandler* handler, bool flag) {
+    handler->field_28.field_20 = sizeof(ISiIOBinaryArchive::Unk_ChunkHeader);
     handler->field_28.field_48 = handler->field_88.m_count;
     stream->vf54(handler->field_28.field_0.field_0, true);
     stream->vf53(handler->field_28.field_0.field_4, true);
@@ -446,6 +448,12 @@ bool SiIOBinaryArchive::Unk_57bd30(ISiIOStream* stream, ChunkHandler* handler, b
     stream->vf51(handler->field_28.field_48, true);
     stream->vf51(handler->field_28.field_50, true);
     stream->vf51(handler->field_28.field_58, true);
+}
+}  // namespace
+
+// 0x710057bd30
+bool SiIOBinaryArchive::Unk_57bd30(ISiIOStream* stream, ChunkHandler* handler, bool flag) {
+    Unk_WriteChunkHeader(stream, handler, flag);
     return true;
 }
 

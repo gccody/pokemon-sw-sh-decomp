@@ -41,11 +41,15 @@ public:
     virtual void vf5();
     virtual void vf6();
     virtual void vf7();
-    virtual void vf8();
+    // the first string with the first list's values written into it, from
+    // a key's bytes (values that don't fit are put in through a placeholder)
+    virtual bool vf8(SiString<char>* out, void* unused0, void* unused1, s32 size, const u8* bytes);
     virtual void vf9();
     virtual void vf10();
     virtual void vf11();
-    virtual void vf12();
+    // the second string with the second list's values written into it, from
+    // a key's bytes
+    virtual bool vf12(SiString<char>* out, void* unused0, void* unused1, s32 size, const u8* bytes);
     virtual void vf13();
     virtual bool vf14(ISiIOStream* stream);  // writes it
     virtual bool vf15(ISiIOStream* stream);  // reads it

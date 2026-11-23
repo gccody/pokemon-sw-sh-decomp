@@ -80,11 +80,76 @@ struct Unk_SiGfxRenderTarget {
     virtual void vf5();
     virtual void vf6();
     virtual void vf7();
-    virtual void vf8();
+    virtual bool vf8();  // whether its resources can be set (vf10, then vf9)
     virtual void vf9();
     virtual void** vf10();
     virtual Unk_SiGfxInterface** vf11();
 };
+
+// what a SiGfx texture's slots 19 and 8 give (placeholders): its description
+// and its format's
+struct Unk_SiGfxTextureDesc {
+    u32 field_0;  // the kind (2: 2D, 3: volume)
+    u32 field_4;  // the format
+    u32 field_8;  // the formats of other views
+    u32 field_c;
+    u32 field_10;
+    u32 field_14;  // the width
+    u32 field_18;  // the height
+    u32 field_1c;  // the depth
+    u32 field_20;  // how many levels
+    u8 pad_24[0xc];
+    u32 field_30;
+    u32 field_34;
+};
+struct Unk_SiGfxFormatInfo {
+    u8 pad_0[0x8];
+    u32 field_8;  // flags
+};
+// a SiGfx texture as a lazy command and the textures' slot 22 read it: slot
+// 25 gives a level's surface (placeholder)
+struct Unk_SiGfxTexture {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();  // adds a reference
+    virtual void vf3();  // releases one
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual const Unk_SiGfxFormatInfo* vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual const Unk_SiGfxTextureDesc* vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+    virtual void* vf25(u32 index);
+};
+
+// GPUSiGfxLazyDrawCommand (its Execute() is named in CPostEffect's log): a
+// copy between two textures' surfaces, done when the post effect asks
+struct GPUSiGfxLazyDrawCommand {
+    s32 Execute(Unk_SiGfxDrawContext* context);  // 0x710043dc70
+
+    u32 field_0;  // the kind (0: the copy)
+    u8 pad_4[0x4];
+    Unk_SiGfxTexture* field_8;
+    Unk_SiGfxTexture* field_10;
+    u32 field_18;
+    u32 field_1c;
+};
+PKMN_OFFSET_ASSERT(GPUSiGfxLazyDrawCommand, field_1c, 0x1c);
 
 // An index buffer as the device reads it (PPFX::IGPUIndexBuffer by RTTI:
 // placeholder until that class is written): SiGfx buffers and which is used.
@@ -97,8 +162,12 @@ PKMN_OFFSET_ASSERT(Unk_IndexBuffer, field_50, 0x50);
 
 // what vf6 keeps in Unk_24e1500
 struct Unk_DeviceSettings {
-    u64 field_0[6];
+    u64 field_0[4];
+    u32 field_20;  // the viewport's origin (m_eViewportOriginMode)
+    u32 field_24;  // the clip volume's near plane (eClipVolumeNearPlaneMode)
+    u64 field_28;
 };
+PKMN_SIZE_ASSERT(Unk_DeviceSettings, 0x30);
 
 // A surface or texture as the device reads it when it becomes a render
 // target (PPFX::IGPUPixelContainer by RTTI: placeholder until that class is
@@ -124,7 +193,10 @@ class IGPUResource;
 class IGPUDevice : public IGPUInterface {
 public:
     // slots 4 to 75: only those this code calls are typed
+    IGPUDevice();                        // 0x710043dd00
     ~IGPUDevice() override;              // 0x710043e170, 0x710043e5d0
+    // 0x7100442c60 (its log lines name it)
+    static IGPUDevice* CreateDevice(const Unk_DeviceSettings* settings, void* arg);
     virtual s32 vf4(IGPUDevice* other);  // 0x71004400a0
     virtual void vf5();
     virtual s32 vf6(const Unk_DeviceSettings* settings);  // 0x71004400d0
@@ -154,7 +226,7 @@ public:
     virtual void vf30();
     virtual void vf31();
     virtual void vf32();
-    virtual void vf33();
+    virtual void vf33(s32 arg);  // (called with 0 before targets are cleared)
     virtual void vf34();
     virtual void vf35();
     virtual void vf36();
@@ -204,19 +276,51 @@ public:
     // RTTI: SiSDK3::SiArray<PPFX::IGPUDevice::PipelineStateData, 16>. A
     // pipeline state SiGfx made, after 0x120 bytes that tell which.
     struct PipelineStateData {
-        u8 field_0[0x120];
+        PipelineStateData() : field_0(0), field_8(0) {}
+
+        u64 field_0;
+        u64 field_8;
+        u8 field_10[0x110];
         Unk_SiGfxInterface* field_120;
     };
     typedef SiSDK3::SiArray<PipelineStateData, 16> Unk_PipelineStates;
     // what the states are kept by (0x120 bytes; placeholder names)
     struct Unk_PipelineKey {
-        u8 field_0[0x120];
+        struct Unk_Element {
+            bool operator==(const Unk_Element& other) const {
+                return field_0 == other.field_0 && field_4 == other.field_4 && field_8 == other.field_8 &&
+                       field_c == other.field_c && field_10 == other.field_10 && field_14 == other.field_14 &&
+                       field_18 == other.field_18;
+            }
+
+            u32 field_0;
+            u32 field_4;
+            u32 field_8;
+            u32 field_c;
+            u32 field_10;
+            u32 field_14;
+            u32 field_18;
+        };
+
+        bool operator==(const Unk_PipelineKey& other) const;  // 0x710043e640
+
+        u64 field_0;  // the hash, which is all the table compares
+        u8 pad_8[0x8];
+        void* field_10;
+        u32 field_18;
+        Unk_Element field_1c[8];
+        s32 field_fc;  // how many of field_1c there are
+        u32 field_100[4];
+        s32 field_110;  // how many of field_100 there are
+        u8 pad_114[0x4];
+        void* field_118;
     };
+    static_assert(sizeof(Unk_PipelineKey) == 0x120, "Unk_PipelineKey");
     struct Unk_PipelineKeyHash {
         size_t operator()(const Unk_PipelineKey& key) const;
     };
     struct Unk_PipelineKeyEqual {
-        bool operator()(const Unk_PipelineKey& a, const Unk_PipelineKey& b) const;
+        bool operator()(const Unk_PipelineKey& a, const Unk_PipelineKey& b) const { return a.field_0 == b.field_0; }
     };
     typedef std::unordered_map<Unk_PipelineKey, Unk_PipelineStates*, Unk_PipelineKeyHash, Unk_PipelineKeyEqual,
                                Unk_StlAllocator<std::pair<const Unk_PipelineKey, Unk_PipelineStates*>>>
@@ -248,7 +352,8 @@ public:
     Unk_SiGfxDrawContext* field_30;
     Unk_SiGfxDevice* field_38;
     std::vector<void*, Unk_StlAllocator<void*>> field_40;
-    bool field_58;
+    bool field_58;  // the viewport's origin is the lower left
+    bool field_59;  // the clip volume's near plane is at -1
     Unk_PipelineStateMap field_60;  // the pipeline states made so far
     u8 field_88[0x14c88 - 0x88];
     Unk_SiGfxInterface* field_14c88[16];  // SiGfx objects the device holds
@@ -279,7 +384,9 @@ public:
     u64 field_14df0[16];
     u32 field_14e70[16];
     u32 field_14eb0[16];
-    u8 field_14ef0[0x14f00 - 0x14ef0];
+    u8 field_14ef0[0x14efa - 0x14ef0];
+    bool field_14efa;
+    u8 field_14efb[0x14f00 - 0x14efb];
     Unk_PixelContainer* field_14f00[8];  // the render targets
     IGPUInterface* field_14f40;          // the depth target
     IGPUInterface* field_14f48[16];      // the textures

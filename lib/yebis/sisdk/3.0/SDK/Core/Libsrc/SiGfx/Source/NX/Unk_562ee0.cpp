@@ -422,53 +422,31 @@ u32 Unk_562f10(u32 value) {
     }
 }
 
-// NON_MATCHING: the cases and what each stores are the original's (its jump
-// table's), but not how the cases share code. The original's cases that
-// don't compare end in one tail with several entries, and each of those that
-// do is a whole block of its own with its return (356 bytes); here every
-// case is a block of its own (428).
+// Each filter is a case of its own, in ascending order: grouped labels give
+// other block probabilities, and block placement then shares other tails.
 // 0x7100562f40: a filter's NVN minification and magnification filters, and
 // whether it compares and whether it's anisotropic
 void Unk_562f40(u32 filter, s32* minFilter, s32* magFilter, bool* compare, bool* anisotropic) {
     *anisotropic = false;
     switch (filter) {
+    case 0:
+        *minFilter = 0;
+        *magFilter = 0;
+        *compare = false;
+        break;
     case 1:
-    case 6:
-    case 7:
         *minFilter = 0;
         *magFilter = 1;
         *compare = false;
         break;
-    case 14:
-    case 19:
-    case 20:
-        *minFilter = 0;
-        *magFilter = 1;
-        *compare = true;
-        break;
-    case 15:
-    case 21:
-    case 22:
-        *minFilter = 1;
-        *magFilter = 0;
-        *compare = true;
-        break;
     case 2:
-    case 8:
         *minFilter = 1;
         *magFilter = 0;
         *compare = false;
         break;
     case 3:
-    case 9:
         *minFilter = 1;
         *magFilter = 1;
-        *compare = false;
-        break;
-    case 0:
-    case 26:
-        *minFilter = 0;
-        *magFilter = 0;
         *compare = false;
         break;
     case 4:
@@ -478,6 +456,26 @@ void Unk_562f40(u32 filter, s32* minFilter, s32* magFilter, bool* compare, bool*
         break;
     case 5:
         *minFilter = 4;
+        *magFilter = 1;
+        *compare = false;
+        break;
+    case 6:
+        *minFilter = 0;
+        *magFilter = 1;
+        *compare = false;
+        break;
+    case 7:
+        *minFilter = 0;
+        *magFilter = 1;
+        *compare = false;
+        break;
+    case 8:
+        *minFilter = 1;
+        *magFilter = 0;
+        *compare = false;
+        break;
+    case 9:
+        *minFilter = 1;
         *magFilter = 1;
         *compare = false;
         break;
@@ -502,6 +500,16 @@ void Unk_562f40(u32 filter, s32* minFilter, s32* magFilter, bool* compare, bool*
         *magFilter = 0;
         *compare = true;
         break;
+    case 14:
+        *minFilter = 0;
+        *magFilter = 1;
+        *compare = true;
+        break;
+    case 15:
+        *minFilter = 1;
+        *magFilter = 0;
+        *compare = true;
+        break;
     case 16:
         *minFilter = 1;
         *magFilter = 1;
@@ -515,6 +523,26 @@ void Unk_562f40(u32 filter, s32* minFilter, s32* magFilter, bool* compare, bool*
     case 18:
         *minFilter = 4;
         *magFilter = 1;
+        *compare = true;
+        break;
+    case 19:
+        *minFilter = 0;
+        *magFilter = 1;
+        *compare = true;
+        break;
+    case 20:
+        *minFilter = 0;
+        *magFilter = 1;
+        *compare = true;
+        break;
+    case 21:
+        *minFilter = 1;
+        *magFilter = 0;
+        *compare = true;
+        break;
+    case 22:
+        *minFilter = 1;
+        *magFilter = 0;
         *compare = true;
         break;
     case 23:
@@ -532,6 +560,11 @@ void Unk_562f40(u32 filter, s32* minFilter, s32* magFilter, bool* compare, bool*
         *magFilter = 1;
         *compare = true;
         *anisotropic = true;
+        break;
+    case 26:
+        *minFilter = 0;
+        *magFilter = 0;
+        *compare = false;
         break;
     }
 }
@@ -753,6 +786,149 @@ u32 Unk_563250(u32 value) {
     }
 }
 
+// What Unk_563270 sets a texture builder up from (placeholder name and
+// members: a texture's description as SiGfx has it).
+struct Unk_563270_Desc {
+    u32 field_0;   // the format
+    u32 field_4;   // the formats of the views (0: the format)
+    u32 field_8;
+    u32 field_c;
+    s32 field_10;  // width
+    s32 field_14;  // height
+    s32 field_18;  // depth
+    s32 field_1c;  // levels
+    s32 field_20;  // layers
+    s32 field_24;  // samples
+    u8 _28[0xc];
+    u32 field_34;  // the usage flags
+    u8 _38[8];
+    s32 field_40;
+};
+PKMN_OFFSET_ASSERT(Unk_563270_Desc, field_34, 0x34);
+PKMN_OFFSET_ASSERT(Unk_563270_Desc, field_40, 0x40);
+
+// NVN's procedures as the function calls them (the loader's pointers:
+// placeholder names after their addresses): the device's integer, then the
+// texture builder's defaults, stride, device, size, levels, format, target
+// and flags.
+extern void (*Unk_27fc6a0)(void* device, s32 name, s32* value);
+extern void (*Unk_27fcaf0)(void* builder);
+extern void (*Unk_27fcb88)(void* builder, s64 stride);
+extern void (*Unk_27fcae8)(void* builder, void* device);
+extern void (*Unk_27fcb08)(void* builder, s32 width);
+extern void (*Unk_27fcb10)(void* builder, s32 height);
+extern void (*Unk_27fcb18)(void* builder, s32 depth);
+extern void (*Unk_27fcb38)(void* builder, s32 levels);
+extern void (*Unk_27fcb40)(void* builder, u32 format);
+extern void (*Unk_27fcb00)(void* builder, u32 target);
+extern void (*Unk_27fcaf8)(void* builder, u32 flags);
+
+// 0x71004ed0c0: a format's bytes a pixel, 0x71004ed120: whether it's
+// compressed
+s32 Unk_4ed0c0(u32 format);
+bool Unk_4ed120(u32 format);
+
+// 0x7100563270: sets an NVN texture builder up for a texture of a kind
+// NON_MATCHING: the cases and the calls are the original's, the registers
+// aren't: the original spills the width, height and depth and keeps the
+// device in x24, and tests the target against 6, 4 and 3 as it is, where
+// clang narrows the second switch's value to four bits (`and w9, w28, #0xf`)
+// and spills the device. Tried: the second switch as an if chain, in another
+// case order, the target signed or initialised before the switch; then (17
+// scripted variants) the targets as `8 + (layers > 1)` or if statements, the
+// clamped `layers` in the tests, two separate ifs (3 first or 4/6 first, with
+// `||` or `|`) and if/else-if chains in both orders. The original's compare
+// chain after each case's select is what a switch on a value whose known bits
+// InstCombine couldn't see (no narrowing) gives once tail duplication copies
+// it into the cases.
+void Unk_563270(void* device, s32 kind, const Unk_563270_Desc* desc, void* builder) {
+    s32 width = desc->field_10 > 1 ? desc->field_10 : 1;
+    s32 height = desc->field_14 > 1 ? desc->field_14 : 1;
+    s32 depth = desc->field_18 > 1 ? desc->field_18 : 1;
+    s32 levels = desc->field_1c > 1 ? desc->field_1c : 1;
+    s32 layers = desc->field_20 > 1 ? desc->field_20 : 1;
+    u32 target;
+    switch (kind) {
+    case 1:
+        target = desc->field_20 > 1 ? 3 : 0;
+        break;
+    case 2:
+        target = desc->field_24 != 0 ? 5 : 1;
+        break;
+    case 3:
+        target = 2;
+        break;
+    case 4:
+    case 6:
+        target = desc->field_20 > 1 ? 9 : 8;
+        depth = layers * 6;
+        break;
+    case 5:
+        target = desc->field_24 == 0 ? 4 : 6;
+        break;
+    default:
+        target = 1;
+        break;
+    }
+    switch (target) {
+    case 3:
+        height = layers;
+        break;
+    case 4:
+    case 6:
+        depth = layers;
+        break;
+    }
+    u32 format = Unk_562ee0(desc->field_0);
+    u32 format0 = desc->field_4 != 0 ? desc->field_4 : desc->field_0;
+    u32 format1 = desc->field_8 != 0 ? desc->field_8 : desc->field_0;
+    u32 usage = desc->field_34;
+    if (usage & 0x20) {
+        format = Unk_562ee0(desc->field_c != 0 ? desc->field_c : desc->field_0);
+    }
+    if (usage & 0x4000) {
+        format = Unk_562ee0(format1);
+    }
+    if (usage & 8) {
+        format = Unk_562ee0(format0);
+    }
+    s32 alignment = 0;
+    u32 flags;
+    if (usage & 0x4020) {
+        if (desc->field_40 == 8) {
+            Unk_27fc6a0(device, 0x39, &alignment);
+            flags = 0x44;
+        } else {
+            flags = 0xc;
+        }
+    } else {
+        flags = 4;
+        if ((usage & 8) && desc->field_40 == 8) {
+            Unk_27fc6a0(device, 0x38, &alignment);
+            flags = 0x14;
+        }
+    }
+    Unk_27fcaf0(builder);
+    if (alignment != 0) {
+        s32 block = (desc->field_10 + 4) / 4;
+        bool compressed = Unk_4ed120(desc->field_0);
+        s32 columns = desc->field_10;
+        if (compressed) {
+            columns = (block + columns - 1) / block;
+        }
+        s32 stride = (Unk_4ed0c0(desc->field_0) * columns + alignment - 1) & -alignment;
+        Unk_27fcb88(builder, stride);
+    }
+    Unk_27fcae8(builder, device);
+    Unk_27fcb08(builder, width);
+    Unk_27fcb10(builder, height);
+    Unk_27fcb18(builder, depth);
+    Unk_27fcb38(builder, levels);
+    Unk_27fcb40(builder, format);
+    Unk_27fcb00(builder, target);
+    Unk_27fcaf8(builder, flags);
+}
+
 // 0x7100563600
 s32 Unk_563600(u32 value) {
     switch (value) {
@@ -775,15 +951,11 @@ s32 Unk_563600(u32 value) {
     }
 }
 
-// NON_MATCHING: the same result in the same number of instructions, but the
-// last step is selected differently. The original chooses between the flags
-// with 2 and with 4 by a3's bit 17 and then between that and the flags by
-// its bit 16, having already replaced the flags by those with 4 for bit 17.
-// (The flags are a byte: the mask that clears the CPU's three is 0xf8.)
 // 0x7100563620: an NVN memory pool's flags for a kind of resource and its
-// usage (the kind isn't used)
+// usage (the kind isn't used). The CPU's access is chosen by bit 16 first,
+// then 17 (the selects' nesting).
 u32 Unk_563620(u32 kind, u32 a1, u32 a2, u32 a3) {
-    u8 flags = 0;
+    u32 flags = 0;
     if (a1 < 2) {
         flags = 0x21;
     }
@@ -798,10 +970,14 @@ u32 Unk_563620(u32 kind, u32 a1, u32 a2, u32 a3) {
     } else if (a2 & 0x4000) {
         flags |= 0x80;
     }
-    if (a3 & 0x20000) {
+    if (a3 & 0x10000) {
+        if (a3 & 0x20000) {
+            flags = (flags & 0xf8) | 4;
+        } else {
+            flags = (flags & 0xf8) | 2;
+        }
+    } else if (a3 & 0x20000) {
         flags = (flags & 0xf8) | 4;
-    } else if (a3 & 0x10000) {
-        flags = (flags & 0xf8) | 2;
     }
     return flags;
 }

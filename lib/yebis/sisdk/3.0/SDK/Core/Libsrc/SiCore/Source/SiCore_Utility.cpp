@@ -4,17 +4,23 @@
 // callback's __FILE__, C:/workspace/sisdk/3.0/SDK/Core/Libsrc/SiCore/Source/
 // SiCore_Utility.cpp; the report function and the languages aren't written.)
 #include <nn/os.h>
+#include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_LinkedList.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_Reflection.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/SiCore_String.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_4bf660.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_RefCount.h>
 
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_Guid.h>
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_StringAssign.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_StringFuncs.h>
+
+// 0x71004c5630: compares two strings, with case or without
+s64 Unk_4c5630(const char* a, const char* b, bool caseSensitive);
 
 // 0x71004c8f70
 SiSDK3::SI_GUID Unk_4c8f70() {
@@ -86,6 +92,49 @@ void Unk_4c9fe0(SiSDK3::SiString<char>* self, const char* format, va_list args) 
     self->field_10 = count;
 }
 
+// 0x71004c9390: a language's codes (its language and its country)
+bool Unk_4c9390(const Unk_4ca820_arg0& language, SiSDK3::SiString<char>* lang, SiSDK3::SiString<char>* country) {
+    SiSDK3::Unk_StringAssign(lang, "");
+    SiSDK3::Unk_StringAssign(country, "");
+    switch (language.field_0) {
+    case 1:
+        SiSDK3::Unk_StringAssign(lang, "en");
+        switch (language.field_4) {
+        case 1:
+            SiSDK3::Unk_StringAssign(country, "us");
+            break;
+        case 2:
+            SiSDK3::Unk_StringAssign(country, "uk");
+            break;
+        case 3:
+            SiSDK3::Unk_StringAssign(country, "au");
+            break;
+        case 4:
+            SiSDK3::Unk_StringAssign(country, "ca");
+            break;
+        case 5:
+            SiSDK3::Unk_StringAssign(country, "nz");
+            break;
+        }
+        break;
+    case 2:
+        SiSDK3::Unk_StringAssign(lang, "ja");
+        break;
+    case 3:
+        SiSDK3::Unk_StringAssign(lang, "zh");
+        switch (language.field_4) {
+        case 6:
+            SiSDK3::Unk_StringAssign(country, "tw");
+            break;
+        case 7:
+            SiSDK3::Unk_StringAssign(country, "cn");
+            break;
+        }
+        break;
+    }
+    return true;
+}
+
 // 0x71004c9ba0: bits of a block of bytes, as a number (none for more than 32
 // or past the block's end)
 u32 Unk_4c9ba0(s32 size, const u8* data, s32 offset, s32 count) {
@@ -104,6 +153,25 @@ u32 Unk_4c9ba0(s32 size, const u8* data, s32 offset, s32 count) {
     return result;
 }
 
+// 0x71004c9c20: sets bits of a block of bytes to a number's (none for more
+// than 32 or past the block's end)
+bool Unk_4c9c20(s32 size, u8* data, s32 offset, s32 count, u32 value) {
+    if (count > 32) {
+        return false;
+    }
+    if (count + offset > size * 8) {
+        return false;
+    }
+    for (s32 i = 0; i < count; i++) {
+        s32 bit = offset + i;
+        s32 index = bit / 8;
+        s32 shift = bit & 7;
+        bool set = (value & (1 << i)) != 0;
+        data[index] = (set << shift) | (data[index] & ~(1 << shift));
+    }
+    return true;
+}
+
 // 0x71004c9090
 void Unk_4c9090(SiSDK3::SiString<char>* self, const char* format, ...) {
     va_list args;
@@ -115,6 +183,63 @@ void Unk_4c9090(SiSDK3::SiString<char>* self, const char* format, ...) {
 // 0x71004c9380
 void* Unk_4c9380(void* dst, const void* src, size_t size) {
     return memcpy(dst, src, size);
+}
+
+// Whether a starts with b, with case or without (placeholder name).
+static inline bool Unk_MatchRest(const char* a, const char* b, bool caseSensitive) {
+    for (;;) {
+        u8 cb = *b;
+        if (!caseSensitive) {
+            cb = toupper(cb);
+        }
+        if (cb == 0) {
+            return true;
+        }
+        u8 ca = *a;
+        if (!caseSensitive) {
+            ca = toupper(ca);
+        }
+        if (ca != cb) {
+            return false;
+        }
+        a++;
+        b++;
+    }
+}
+
+// 0x71004c99a0: where sub is in a string from start on, with case or without
+// (-1: nowhere)
+// NON_MATCHING: three instructions. Before the case-sensitive comparison's
+// loop the original copies its two pointers ahead of the test for the end of
+// sub, in the same block; here they're in a preheader of their own after it.
+s64 Unk_4c99a0(const SiSDK3::SiString<char>* self, const char* sub, size_t start, bool caseSensitive) {
+    s64 result = -1;
+    size_t length = self->field_10;
+    if (sub == nullptr || length == 0) {
+        return result;
+    }
+    if (SiSDK3::Unk_StringLength(sub) + 1 == 1) {
+        return result;
+    }
+    u8 first = sub[0];
+    if (!caseSensitive) {
+        first = toupper(first);
+    }
+    if (start >= length) {
+        return result;
+    }
+    const char* buffer = self->m_pBuffer;
+    for (size_t i = start; i < length; i++) {
+        u8 c = buffer[i];
+        if (!caseSensitive) {
+            c = toupper(c);
+        }
+        if (c == first && Unk_MatchRest(buffer + i + 1, sub + 1, caseSensitive)) {
+            result = i;
+            break;
+        }
+    }
+    return result;
 }
 
 // 0x71004c9b30, 0x71004c9b60: a number's name (the same code twice)
@@ -196,6 +321,233 @@ const char* Unk_4c9cb0(u32 value) {
     default:
         return "Unknown";
     }
+}
+
+// 0x71004c9ce0: the number of a name (the other way round, without case;
+// UINT32 and QWORD aren't there)
+u32 Unk_4c9ce0(const char* name) {
+    if (Unk_4c5630(name, "BOOL", false) == 0) {
+        return 1;
+    }
+    if (Unk_4c5630(name, "CHAR", false) == 0) {
+        return 2;
+    }
+    if (Unk_4c5630(name, "BYTE", false) == 0) {
+        return 3;
+    }
+    if (Unk_4c5630(name, "INT16", false) == 0) {
+        return 4;
+    }
+    if (Unk_4c5630(name, "WORD", false) == 0) {
+        return 5;
+    }
+    if (Unk_4c5630(name, "INT32", false) == 0) {
+        return 6;
+    }
+    if (Unk_4c5630(name, "DWORD", false) == 0) {
+        return 8;
+    }
+    if (Unk_4c5630(name, "INT64", false) == 0) {
+        return 9;
+    }
+    if (Unk_4c5630(name, "FLOAT", false) == 0) {
+        return 11;
+    }
+    if (Unk_4c5630(name, "DOUBLE", false) == 0) {
+        return 12;
+    }
+    if (Unk_4c5630(name, "GUID", false) == 0) {
+        return 13;
+    }
+    return 0;
+}
+
+// 0x71004ca0b0
+void Unk_4ca0b0(SiSDK3::SiString<char>* self, const char* from, const char* to, size_t start, size_t end,
+                bool caseSensitive);
+
+// Where c is in a string from pos on (-1: nowhere) (inline: placeholder name)
+static inline s64 Unk_StringFindChar(const SiSDK3::SiString<char>* self, char c, size_t pos) {
+    size_t length = self->field_10;
+    if (pos >= length) {
+        return -1;
+    }
+    for (size_t i = pos; i < length; i++) {
+        if (self->m_pBuffer[i] == c) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+// count characters of another string from pos on (0: all of them) (inline:
+// placeholder name)
+static inline void Unk_StringAssignSub(SiSDK3::SiString<char>* self, const SiSDK3::SiString<char>* other, size_t pos,
+                                       size_t count) {
+    if (count == 0) {
+        count = other->field_10 - pos;
+    }
+    if (self->field_20 <= count) {
+        size_t step = self->field_18;
+        size_t length = count + 1;
+        size_t capacity;
+        if (step != 0) {
+            capacity = step + length;
+        } else {
+            capacity = length > self->field_20 * 2 ? length : self->field_20 * 2;
+        }
+        SiSDK3::Unk_StringSetCapacity(self, capacity, false);
+    }
+    SiSDK3::Unk_StringCopyN(self->m_pBuffer, other->m_pBuffer + pos, count);
+    self->field_10 = count;
+}
+
+// Puts a character in front of a string (inline: placeholder name)
+static inline void Unk_StringPrepend(SiSDK3::SiString<char>* self, char c) {
+    if (self->field_20 < self->field_10 + 2) {
+        size_t step = self->field_18;
+        size_t length = self->field_10 + 2;
+        size_t capacity;
+        if (step != 0) {
+            capacity = step + length;
+        } else {
+            capacity = length > self->field_20 * 2 ? length : self->field_20 * 2;
+        }
+        SiSDK3::Unk_StringSetCapacity(self, capacity, true);
+    }
+    size_t length = self->field_10;
+    for (size_t i = 0; i < length; i++) {
+        self->m_pBuffer[length - i] = self->m_pBuffer[length - i - 1];
+    }
+    self->m_pBuffer[0] = c;
+    self->field_10++;
+    self->m_pBuffer[self->field_10] = 0;
+}
+
+// 0x71004c94d0 (leafgen's name and type): replaces each %name% in a string by
+// the kernel's value of name
+void Unk_4c94d0(void* p) {
+    SiSDK3::SiString<char>* self = static_cast<SiSDK3::SiString<char>*>(p);
+    SiSDK3::SiString<char> name(SiSDK3::Unk_GetKernel()->vf12());
+    SiSDK3::SiString<char> value(SiSDK3::Unk_GetKernel()->vf12());
+    size_t pos = 0;
+    while (self->field_10 != 0) {
+        s64 start = Unk_StringFindChar(self, '%', pos);
+        if (start < 0) {
+            break;
+        }
+        s64 end = Unk_StringFindChar(self, '%', start + 1);
+        if (end < 0) {
+            break;
+        }
+        if (end > start + 1) {
+            Unk_StringAssignSub(&name, self, start + 1, end - start - 1);
+            SiSDK3::Unk_GetKernel()->vf16(SiSDK3::Unk_StringCStr(&name), &value);
+            if (value.field_10 != 0) {
+                Unk_StringPrepend(&name, '%');
+                SiSDK3::Unk_StringAppend(&name, '%');
+                Unk_4ca0b0(self, name.m_pBuffer, value.m_pBuffer, start, end, true);
+                end += value.field_10 - name.field_10;
+            }
+        }
+        pos = end + 1;
+    }
+}
+
+// Moves count characters of a string from src to dst (the ranges may
+// overlap), terminating it after them if they were its end (inline in the
+// replacement: placeholder name)
+static inline void Unk_StringMove(SiSDK3::SiString<char>* self, size_t dst, size_t src, size_t count) {
+    if (src == dst || count == 0) {
+        return;
+    }
+    size_t length = self->field_10;
+    size_t end = src + count < length ? 0 : dst + count;
+    if (src < dst) {
+        for (s64 i = static_cast<s64>(count) - 1; i >= 0; i--) {
+            self->m_pBuffer[dst + i] = self->m_pBuffer[src + i];
+        }
+    } else {
+        memcpy(self->m_pBuffer + dst, self->m_pBuffer + src, count);
+    }
+    if (src + count >= length) {
+        self->m_pBuffer[end] = 0;
+    }
+}
+
+// 0x71004ca0b0: replaces every from in a string by to, between start and end
+// (0: the string's end)
+// NON_MATCHING: the backward loop and registers. The original loads each node
+// through a phi of addresses (&m_pTail at the entry, the decrement's select
+// in the latch), which late SimplifyCFG makes by sinking the two loads into
+// the header; here LICM hoists &m_pBuffer into the preheader after the tail's
+// load, so the loads aren't sunk (with any m_pBuffer access before the loop
+// they are). toLength and the difference also swap callee-saved registers.
+void Unk_4ca0b0(SiSDK3::SiString<char>* self, const char* from, const char* to, size_t start, size_t end,
+                bool caseSensitive) {
+    if (end == 0) {
+        end = self->field_10;
+    }
+    SiSDK3::SiLinkedList<size_t> found(self->m_pAllocator);
+    size_t fromLength = SiSDK3::Unk_StringLength(from);
+    size_t pos = start;
+    do {
+        size_t index = Unk_4c99a0(self, from, pos, caseSensitive);
+        if (index == static_cast<size_t>(-1)) {
+            break;
+        }
+        found.AddTail(index);
+        pos = index + fromLength;
+    } while (pos < end);
+    size_t count = found.m_count;
+    if (count == 0) {
+        return;
+    }
+    size_t toLength = SiSDK3::Unk_StringLength(to);
+    size_t length = self->field_10;
+    s64 diff = toLength - fromLength;
+    size_t newLength = diff * count + length;
+    if (newLength >= self->field_20) {
+        SiSDK3::Unk_StringReserve(self, newLength + 1);
+    }
+    if (toLength < fromLength) {
+        s64 offset = 0;
+        for (SiSDK3::SiLinkedList<size_t>::Node* node = found.m_pHead; node != nullptr; node = node->m_pNext) {
+            size_t at = node->m_value + offset;
+            size_t src = at + fromLength;
+            size_t dst = at + toLength;
+            size_t rest = self->field_10 - src;
+            Unk_StringMove(self, dst, src, rest);
+            if (rest == 0) {
+                self->m_pBuffer[dst] = 0;
+                self->field_10 = dst;
+            }
+            memcpy(self->m_pBuffer + at, to, toLength);
+            offset += diff;
+        }
+        self->m_pBuffer[newLength] = 0;
+    } else {
+        size_t last = self->field_10;
+        s64 offset = diff * (count - 1);
+        SiSDK3::SiLinkedList<size_t>::Node* node = found.m_pTail;
+        for (;;) {
+            size_t at = node->m_value;
+            size_t src = at + fromLength;
+            size_t dst = at + offset;
+            Unk_StringMove(self, dst + toLength, src, last - src);
+            memcpy(self->m_pBuffer + dst, to, toLength);
+            if (dst + toLength >= length) {
+                self->m_pBuffer[newLength] = 0;
+            }
+            last = at;
+            offset -= diff;
+            if (node == found.m_pHead) {
+                break;
+            }
+            node = node != nullptr ? node->m_pPrev : found.m_pTail;
+        }
+    }
+    self->field_10 = newLength;
 }
 
 // 0x71004ca610 (leafgen's name and type): the static allocator

@@ -1,6 +1,7 @@
 // Scope: common
 // SiSDK3::SiGfxDisplayUtility: its constructor and destructors and the list
 // of display adapters. The reference counts are its header's.
+#define UNK_SIGFX_DISPLAYUTILITY_IMPL
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/SiGfx_DisplayUtility_Impl.h>
 
 namespace SiSDK3 {

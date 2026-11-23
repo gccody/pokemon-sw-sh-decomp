@@ -47,6 +47,7 @@ struct Unk_GPUTexture {
     virtual s32 vf16();
     virtual void vf17(s32 arg);
     virtual void vf18(s32 arg);
+    virtual s32 vf19();  // what vf17 sets
 
     u8 pad_8[0x3c];
     s32 field_44;  // its format
@@ -84,6 +85,8 @@ inline bool Unk_47b560_Format(s32 format) {
     }
 }
 
+class CTinyEffect;
+
 // PPFX::IGPUEffect, as this file calls it
 struct Unk_463fd0_Effect {
     virtual void vf0();
@@ -110,7 +113,7 @@ struct Unk_463fd0_Effect {
     virtual void vf21(s32 parameter, f32* value);  // reads what vf20 sets
     virtual void vf22(s32 parameter, const Unk_Float4* values, s32 count);
     virtual void vf23();
-    virtual void vf24();
+    virtual void vf24(s32 parameter, const void* value);
     virtual void vf25(s32 parameter, const void* values, s32 count);
     virtual void vf26(s32 parameter, Unk_GPUTexture* texture);
     virtual s32 vf27(s32 technique);
@@ -137,6 +140,9 @@ struct Unk_463fd0_Effect {
     virtual void vf40();
     virtual void vf41();
     virtual void vf42(IGPUInterface* layout, IGPUBuffer* vertices, u32 offset, s32 arg4, s32 arg5, s32 arg6);
+
+    u8 pad_8[0x70];
+    CTinyEffect* field_78;
 };
 
 // 0x710049a300: "IGPUEffect::CreateEffectFromFile()" in the log
@@ -469,13 +475,19 @@ public:
     s32 field_22760;
     s32 field_22764;
     u8 pad_22768[0x4];
-    s32 field_2276c;
-    s32 field_22770;
-    s32 field_22774;
-    s32 field_22778;
+    union {
+        struct {
+            s32 field_2276c;
+            s32 field_22770;
+            s32 field_22774;
+            s32 field_22778;
+        };
+        // tech_Smaa_BlendingWeightCalculation(_Diag)(_Corner): [diagonal][corner]
+        s32 field_2276c_table[2][2];
+    };
     s32 field_2277c;
     s32 field_22780;
-    u8 pad_22784[0x4];
+    s32 field_22784;  // tech_ColorModulateByChannel_<n> from field_22788 for n = 1 on (0 unused)
     s32 field_22788;
     s32 field_2278c;
     s32 field_22790;
@@ -669,7 +681,10 @@ public:
     u8 pad_29890[0x80];
     s32 field_29910[16];
     s32 field_29950[16];
-    u8 pad_29990[0x24];
+    s32 field_29990;
+    s32 field_29994;
+    u8 pad_29998[0x18];
+    s32 field_299b0;
     s32 field_299b4;  // the constructor clears what's before it at once
     IGPUInterface* field_299b8[13];
     u8* field_29a20;  // the effect file
@@ -750,6 +765,20 @@ struct Unk_47a030_Arg1 {
     f32 field_30;
 };
 
+// 0x7100411df0 (Unk_415f40.cpp's TU; placeholder signature, from its callers):
+// the weights of a downsampling filter, and how many there are
+s32 Unk_411df0(s32 width, s32 height, Unk_Float4* weights, s32 arg3, bool arg4, s32 arg5, f32 arg6, f32 arg7,
+               f32 arg8, f32 arg9, f32 arg10, f32 arg11, f32 arg12);
+
+// 0x7100412560 (Unk_415f40.cpp's TU; placeholder signature, from its caller):
+// the offsets and weights of a 5x5 filter
+void Unk_412560(u32 width, u32 height, Unk_Float4* offsets, f32* weights, f32 scale);
+// 0x7100412400 (Unk_415f40.cpp): the same for a 3x3 filter
+// 0x7100412940 (Unk_415f40.cpp's TU; placeholder signature, from its caller):
+// the same for a filter of 24 taps, or 28
+void Unk_412940(u32 width, u32 height, Unk_Float4* offsets, f32* weights, bool large, f32 scale);
+void Unk_412400(u32 width, u32 height, Unk_Float4* offsets, f32* weights, f32 scale);
+
 class CTextureUtil : public CGPUResourceManage {
 public:
     CTextureUtil(const char* name);  // 0x710046db60
@@ -758,7 +787,25 @@ public:
     s32 Unk_46e740(s32 width, s32 height, s32 format);  // 0x710046e740: the chromaticity diagrams
     s32 Unk_46ea80(s32 width, s32 height);              // 0x710046ea80: the waveform monitor
     s32 Unk_46ec80(u32 width, u32 height);              // 0x710046ec80: all of the colour chart's
-    void Unk_471410();                                  // 0x7100471410
+    // 0x7100471410: the callers in other files pass three numbers it doesn't
+    // read; this file's calls are inlined, and what they passed is gone (the
+    // defaults are placeholders)
+    void Unk_471410(s32 arg0 = 0, s32 arg1 = 0, s32 arg2 = 0);
+    // 0x710047ba90 (not written yet): the parameters of tone curve `mode`
+    Unk_Float4 Unk_47ba90(s32 mode, const f32* params, f32 arg0, f32 arg1);
+    // 0x710047bf10: a value through tone curve `mode`, with its shoulder
+    // scaled to `white`
+    f32 Unk_47bf10(f32 x, f32 white, f32 scale, s32 mode, const f32* params, f32 arg0, f32 arg1, f32 exposure);
+    // 0x710047c090: Unk_47bf10 applied `count` times (up to 16), the last
+    // time by the fraction of `count`
+    // 0x710047c2f0
+    f32 Unk_47c2f0(s32 encoding, s32 mode, const f32* params, f32 value, f32 base, f32 scale, f32 exponent, f32 gamma,
+                   f32 threshold, f32 count, f32 arg0, f32 arg1, f32 exposure);
+    f32 Unk_47c090(f32 x, s32 mode, const f32* params, f32 white, f32 limit, f32 count, f32 arg0, f32 arg1,
+                   f32 exposure);
+    // 0x710048d220 (not written yet; placeholder signature)
+    s32 Unk_48d220(f32 arg6, f32 arg7, void* target, s32 count, CRenderTexture** sources, void* arg3, s32 arg4,
+                   s32 arg5);
 
     // the members as the constructor leaves them (inline in Unk_46dc60 and vf3)
     inline void Unk_Clear() {
@@ -809,6 +856,141 @@ public:
     s32 Unk_4708b0(void* arg);  // 0x71004708b0
     // 0x7100471960: draws a rectangle (or the triangle that covers it) in the current target
     s32 Unk_471960(f32 x, f32 y, f32 width, f32 height, u32 flags);
+    // 0x7100481340
+    s32 Unk_481340(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, bool arg8, bool arg9,
+                   s32 count, const Unk_Float4* weights, Unk_GPUTexture* texture, u32 flags);
+    // 0x710048b6e0: tech_DepthFromDofFactor_R to _A (`channel`)
+    s32 Unk_48b6e0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1,
+                   const Unk_Float2* factor, Unk_GPUTexture* texture, s32 channel, u32 flags);
+    // 0x710048f470
+    s32 Unk_48f470(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg8, f32 arg9,
+                   CRenderTexture* target, CRenderTexture* source, const Unk_Float4* arg12, s32 arg13, s32 arg14,
+                   u32 flags);
+    // 0x710048b540: a depth texture's cast to colour (its format chooses the technique)
+    s32 Unk_48b540(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, Unk_GPUTexture* texture,
+                   bool arg9, u32 flags);
+    // 0x710048ba10
+    s32 Unk_48ba10(CRenderTexture* source, CRenderTexture* target, const Unk_Float2* arg2, s32 index, bool clear);
+    // 0x710048f900
+    s32 Unk_48f900(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, CRenderTexture* target,
+                   CRenderTexture* source0, CRenderTexture* source1, const Unk_Float4* arg11,
+                   const Unk_Float2* arg12, u32 flags);
+    // 0x710048f620
+    s32 Unk_48f620(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, CRenderTexture* target,
+                   CRenderTexture* source, const Unk_Float4* arg10, s32 arg11, s32 arg12, s32 arg13, u32 flags);
+    // field_29ad8's textures (inline)
+    Unk_GPUTexture* Unk_Texture29ad8(s32 index) { return reinterpret_cast<Unk_GPUTexture*>(field_29ad8[index]); }
+    // and field_29ab8's (inline)
+    Unk_GPUTexture* Unk_Texture29ab8(s32 index) { return reinterpret_cast<Unk_GPUTexture*>(field_29ab8[index]); }
+    // 0x7100490e70 (not written yet) and 0x71004915e0, which calls it with
+    // two of its arguments fixed
+    s32 Unk_490e70(f32 arg0, f32 arg1, f32 arg2, void* arg3, void* arg4, void* arg5, s32 arg6, void* arg7,
+                   s32 arg8, s32 arg9, void* arg10, void* arg11, void* arg12, bool clear, s32 arg14, s32 arg15);
+    s32 Unk_4915e0(f32 arg0, f32 arg1, f32 arg2, void* arg3, void* arg4, void* arg5, s32 arg6, s32 arg9,
+                   void* arg10, void* arg11, void* arg12, bool clear, s32 arg14, s32 arg15);
+    // 0x7100478890 (not written yet; placeholder parameter names)
+    s32 Unk_478890(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg8, f32 ratio,
+                   f32 arg10, f32 arg11, f32 arg12, f32 arg13, f32 arg14, f32 arg15, f32 arg16, f32 arg17, f32 arg18,
+                   f32 arg19, f32 arg20, f32 arg21, u32 arg22, bool arg23, bool arg24, bool arg25,
+                   Unk_GPUTexture* texture, s32 arg27, s32 arg28);
+    // 0x7100481bc0: 0x7100478890 from one render texture into another (`ratio`
+    // 0 or less: the source's width over its height)
+    s32 Unk_481bc0(f32 arg0, f32 ratio, f32 arg2, f32 arg3, f32 arg4, f32 arg5, f32 arg6, f32 arg7, f32 arg8,
+                   f32 arg9, f32 arg10, f32 arg11, f32 arg12, f32 arg13, CRenderTexture* source,
+                   CRenderTexture* target, u32 arg14, bool arg15, bool arg16, bool arg17, s32 arg18, s32 arg19);
+    // 0x7100478e90 (GPUTextureUtil.cpp's first half; not written yet: placeholder signature, from its
+    // caller; it ignores arg8)
+    s32 Unk_478e90(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg8, f32 ratio,
+                   f32 arg10, f32 arg11, f32 arg12, s32 arg13, void* arg14, void* arg15, void* arg16, void* arg17,
+                   void* arg18, bool arg19, Unk_GPUTexture* texture, void* arg21, s32 arg22, s32 arg23);
+    // 0x7100482010: 0x7100478e90 from one render texture into another (`ratio`
+    // 0 or less: the source's width over its height)
+    s32 Unk_482010(f32 arg0, f32 ratio, f32 arg2, f32 arg3, f32 arg4, CRenderTexture* source, CRenderTexture* target,
+                   s32 arg5, void* arg6, void* arg7, void* arg8, void* arg9, void* arg10, bool arg11, void* arg12,
+                   s32 arg13, s32 arg14);
+    // 0x710048b810: DrawRectGPU_DepthOfFieldLayerMask from one render texture
+    // into another (scaled by `scaleX`/`scaleY` when they're positive)
+    s32 Unk_48b810(f32 scaleX, f32 scaleY, CRenderTexture* source, CRenderTexture* target, const Unk_Float2* arg2,
+                   const Unk_Float2* arg3, s32 arg4, s32 index, bool background, bool clear, bool arg8, s32 arg9);
+    // 0x710048f230: 0x710048f470, 0x710048f620 and 0x710048f900 in turn (through
+    // `temp`); arg2 to arg5, arg15 and arg16 aren't read
+    s32 Unk_48f230(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, CRenderTexture* target,
+                   CRenderTexture* source, CRenderTexture* temp, CRenderTexture* temp2, const Unk_Float2* arg10,
+                   s32 arg11, s32 arg12, s32 arg13, bool arg14, void* arg15, bool clear);
+    // 0x7100481db0: 0x71004773e0 from one render texture into another, with a
+    // projection from a field of view (`ratio` 0 or less: the source's width
+    // over its height)
+    s32 Unk_481db0(CRenderTexture* source, f32 arg0, f32 arg1, f32 arg2, f32 fov, f32 ratio, CRenderTexture* target,
+                   const Unk_Float4* arg5, s32 index, u32 flags);
+    // 0x710048e710 (placeholder parameter names)
+    s32 Unk_48e710(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg8, f32 arg9,
+                   f32 arg10, f32 arg11, f32 arg12, f32 arg13, f32 arg14, Unk_GPUTexture* texture,
+                   const Unk_Float2* center, const f32* color, u32 flags);
+    // 0x7100481540: 0x7100481340 between two render textures, with the weights 0x7100411df0 makes
+    s32 Unk_481540(CRenderTexture* source, CRenderTexture* target, bool arg2, bool arg3);
+    // 0x7100481180
+    s32 Unk_481180(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg8, f32 arg9,
+                   f32 arg10, Unk_GPUTexture* texture, bool arg12, u32 flags);
+    // 0x710048ad80 (not written yet) and 0x710048b1e0, which calls it with a
+    // mirroring or plain scale
+    s32 Unk_48ad80(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg8, f32 arg9,
+                   f32 arg10, bool arg11, Unk_GPUTexture* texture, s32 arg13, void* arg14, s32 arg15, s32 arg16,
+                   const Unk_Float4* scale, void* arg18, void* arg19, void* arg20, void* arg21, s32 arg22, f32 arg23,
+                   void* arg24, u32 flags);
+    s32 Unk_48b1e0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg8, f32 arg9,
+                   f32 arg10, Unk_GPUTexture* texture, s32 arg12, void* arg13, s32 arg14, bool mirror, void* arg16,
+                   void* arg17, void* arg18, void* arg19, s32 arg20, f32 arg21, void* arg22, u32 flags);
+    // 0x71004827b0 (not written yet): a position through two matrices, as a texture offset
+    Unk_Float2 Unk_4827b0(const MATRIXT44* arg1, const MATRIXT44* arg2, void* arg3, f32 x, f32 y);
+    // 0x71004823b0 (not written yet)
+    s32 Unk_4823b0(f32 arg0, CRenderTexture* target, void* arg2, void* arg3, const Unk_Float2* offset, s32 arg5,
+                   s32 arg6, void* arg7, bool arg8);
+    // 0x7100482f10: 0x71004823b0 with the offset 0x71004827b0 gives
+    s32 Unk_482f10(f32 x, f32 y, CRenderTexture* target, void* arg4, void* arg5, const MATRIXT44* arg6,
+                   const MATRIXT44* arg7, void* arg8, s32 arg9, f32 arg2, void* arg10, s32 arg11, void* arg12, bool arg13);
+    // 0x71004930d0, 0x71004934a0, 0x71004937b0 (not written yet): filters of
+    // 3x3 weights, of 5 and of 9; 0x7100493e20 chooses one by its size
+    s32 Unk_4930d0(CRenderTexture* source, CRenderTexture* target, const f32* weights, s32 arg3, s32 mode,
+                   const Unk_Float4* color, bool clear, bool arg7, s32 arg8, s32 arg9);
+    s32 Unk_4934a0(f32 scale, CRenderTexture* source, CRenderTexture* target, s32 mode, const Unk_Float4* color,
+                   bool arg5, bool clear, s32 arg7, s32 arg8);
+    s32 Unk_4937b0(f32 scale, CRenderTexture* source, CRenderTexture* target, s32 mode, const Unk_Float4* color,
+                   bool clear, bool arg6, s32 arg7, s32 arg8);
+    // the start of the filters (inline: the flag it doesn't read stays an
+    // argument of their callers)
+    void Unk_BeginFilter(bool clear, bool arg) {
+        if (clear) {
+            Unk_471410();
+        }
+    }
+    // 0x71004816a0: 0x7100473d90 between two render textures, with the weights 0x7100411df0 makes
+    s32 Unk_4816a0(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, CRenderTexture* source, CRenderTexture* target,
+                   const Unk_Float4* arg7, const Unk_Float4* arg8);
+    // 0x71004809a0 (GPUTextureUtil.cpp's first half; placeholder signature, from its caller)
+    s32 Unk_4809a0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg8, f32 arg9,
+                   f32 arg10, bool arg11, void* arg12, bool arg13, bool arg14, void* arg15, s32 arg16);
+    // 0x7100481000: 0x71004809a0 into a render texture
+    s32 Unk_481000(CRenderTexture* target, bool arg4, const Unk_Float2* arg5, const Unk_Float2* arg6, f32 arg0,
+                   f32 arg1, f32 arg2, void* arg7, bool arg8, bool arg9, void* arg10, bool clear, s32 arg12);
+    // 0x710048eb30 (not written yet) and 0x710048e9a0, which draws it between two render textures
+    s32 Unk_48eb30(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg8, f32 arg9,
+                   f32 arg10, f32 arg11, f32 arg12, Unk_GPUTexture* texture, const void* arg14,
+                   const Unk_Float2* arg15, u32 flags);
+    s32 Unk_48e9a0(f32 arg0, f32 arg1, f32 arg2, f32 arg3, CRenderTexture* target, f32 arg4, CRenderTexture* source,
+                   const void* arg7, const Unk_Float2* arg8, bool clear);
+    // 0x710048ef10 (not written yet) and 0x710048edb0, which draws it between two render textures
+    s32 Unk_48ef10(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg8, f32 arg9,
+                   Unk_GPUTexture* texture, const f32* scaleOffset, const void* arg12, u32 flags);
+    s32 Unk_48edb0(f32 arg0, f32 arg1, CRenderTexture* target, CRenderTexture* source, const void* arg4, bool clear);
+    // 0x710048d7f0 (not written yet)
+    s32 Unk_48d7f0(Unk_GPUTexture* texture, Unk_49b230_Object** objects, s32 count, void* arg4);
+    s32 Unk_4939c0(f32 scale, CRenderTexture* source, CRenderTexture* target, bool large, s32 mode,
+                   const Unk_Float4* color, bool clear, bool arg7, s32 arg8, s32 arg9);
+    s32 Unk_493e20(f32 scale, CRenderTexture* source, CRenderTexture* target, s32 size, s32 mode,
+                   const Unk_Float4* color, bool clear, bool arg7, s32 arg8, s32 arg9);
+    // 0x7100489c50 (GPUTextureUtil.cpp's second half, the PPFX src/GPU range's notes)
+    s32 Unk_489c50(f32 x, f32 y, f32 width, f32 height, Unk_GPUTexture* texture, f32 arg4, f32 arg5,
+                   const Unk_Float2* arg9, f32 arg6, f32 arg7, s32 mode, s32 index, u32 flags);
     // 0x7100471470: the corners of a rectangle (or of the triangle that
     // covers it) and of `sets` rectangles of texture coordinates
     s32 Unk_471470(s32 sets, const Unk_Float2* from, const Unk_Float2* to, u32 flags, s32* count,
@@ -870,6 +1052,15 @@ public:
     s32 Unk_47aa60(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, const Unk_Float4* value,
                    Unk_GPUTexture* texture, void* arg3, u32 flags);
     void Unk_47abf0(f32 value);
+    void Unk_470610(f32 value, f32 scale);  // 0x7100470610
+    // 0x7100480740
+    s32 Unk_480740(CRenderTexture* target, bool second, bool positive, const void* value, bool clear, u32 flags,
+                   f32 a, f32 b, f32 c);
+    // 0x710048d020
+    s32 Unk_48d020(CRenderTexture* source, CRenderTexture* target, CRenderTexture* mask, u32 arg3,
+                   const Unk_Float2* arg4, s32 usnorm, s32 bits, bool background, s32 dense, bool clear);
+    // 0x7100490570
+    s32 Unk_490570(CRenderTexture* target, CRenderTexture* a, CRenderTexture* b, s32 channel, bool clear);
     s32 Unk_47ac50(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 u2, f32 v2, f32 u3,
                    f32 v3, s32 count, Unk_GPUTexture** textures, const Unk_Float2* weights, bool arg4, s32 arg5,
                    s32 index, u32 flags);

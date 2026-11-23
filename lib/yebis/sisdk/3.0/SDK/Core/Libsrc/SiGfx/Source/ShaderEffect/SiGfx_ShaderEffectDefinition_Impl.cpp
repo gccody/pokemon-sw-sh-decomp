@@ -49,9 +49,8 @@ SiGfxShaderEffectTechnique* SiGfxShaderEffectDefinition::vf10(s32 index) {
 }
 
 // 0x7100570070
-// NON_MATCHING: the same instructions up to the last two returns, which the original has as
-// their own copies (`mov x0, x8; ret` after the test of the low technique, `csel x0, ...; ret`
-// for the high one) and this shares with the first return's.
+// The last two tests set a result returned once (with two returns, their blocks are merged
+// with the first return's; the original has each its own `ret`).
 // (The loop's two `continue`s are two back edges, which become the nested loops the original
 // has; low is declared before high for the inner one to be the one that moves high.)
 SiGfxShaderEffectTechnique* SiGfxShaderEffectDefinition::vf11(const char* name) {
@@ -85,15 +84,17 @@ SiGfxShaderEffectTechnique* SiGfxShaderEffectDefinition::vf11(const char* name) 
         }
         return technique;
     }
+    SiGfxShaderEffectTechnique* result = nullptr;
     technique = field_b8[low];
     if (hash == technique->field_48) {
-        return technique;
+        result = technique;
+    } else {
+        technique = field_b8[high];
+        if (hash == technique->field_48) {
+            result = technique;
+        }
     }
-    technique = field_b8[high];
-    if (hash == technique->field_48) {
-        return technique;
-    }
-    return nullptr;
+    return result;
 }
 
 // 0x7100570150

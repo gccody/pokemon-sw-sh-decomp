@@ -22,12 +22,31 @@ namespace SiSDK3 {
 
 class ISiIOStream;
 
-// A shader as the package uses it: slots 2 and 3 are the reference count.
+class ISiGfxDevice;
+class SiGfxNXDevice;
+
+// A shader as the package uses it: slots 2 and 3 are the reference count,
+// slot 5 is its device, slot 18 makes it from code.
 class ISiGfxShader {
 public:
     virtual ~ISiGfxShader();
     virtual u32 vf2();
     virtual u32 vf3();
+    virtual void vf4();
+    virtual ISiGfxDevice* vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual bool vf18(s64 size, const void* code, u32 a3);
 };
 
 // A variation and a definition as the package uses them: slots 2 and 3 are
@@ -224,13 +243,6 @@ struct SIGFX_SHADER_PREPROCESSOR {
 };
 PKMN_SIZE_ASSERT(SIGFX_SHADER_PREPROCESSOR, 0x60);
 
-// Two numbers that are read and written one after the other and copied as one
-// (placeholder name).
-struct Unk_567750_Pair {
-    s32 field_0;
-    s32 field_4;
-};
-
 // Two numbers and such a pair, copied as one (placeholder name).
 struct Unk_567750_Half {
     u32 field_0;
@@ -365,15 +377,17 @@ public:
     virtual const u8* vf18();
     virtual u32 vf19();
     virtual ISiGfxShaderEffectPackage::ShaderEffectData* vf20(s32 index);
-    virtual void* vf21(const char* name);
+    virtual ISiGfxShaderEffectPackage::ShaderEffectData* vf21(const char* name);  // an effect's data by name
     virtual bool vf22(SiGfxShaderEffect* effect);  // adds an effect
     virtual const u8* vf23();
     virtual void vf24(bool value);
-    virtual u8 vf25();
+    virtual bool vf25();
     virtual void vf26(bool value);
     virtual bool vf27();
-    virtual bool vf28();
+    virtual void vf28();  // asks for the effects' programs again
 
+    // 0x710056d040: forgets an effect
+    void Unk_56d040(SiGfxShaderEffect* effect);
     // 0x71005686f0: releases the effects' data, definitions and variations
     void Unk_5686f0();
     // 0x7100569c40: writes the shaders' code, 0x7100569dd0: an effect's data
@@ -415,10 +429,15 @@ public:
     // for each stage it has
     void Unk_56d630(Unk_56d630_Target* target, ISiGfxShaderEffectPackage::ShaderEffectData* data, u32 stages,
                     SiGfxShaderEffectKey* key0, SiGfxShaderEffectKey* key1);
-    // 0x710056d100: releases the shaders
-    void Unk_56d100();
-    // 0x710056d320
-    bool Unk_56d320();
+    // 0x710056d100: releases the shaders (of a device that goes away: its caller
+    // passes it, the function doesn't read it)
+    void Unk_56d100(SiGfxNXDevice* pDevice);
+    // 0x710056d320: asks the shader system's queue for the programs of the
+    // effects' data and forgets them
+    void Unk_56d320();
+    // 0x710056ce60: a shader of a stage from the package's code, made once
+    // for a device
+    ISiGfxShader* Unk_56ce60(ISiGfxDevice* pDevice, s32 stage, s32 index);
 
     Unk_4bf660 field_8;
     SiString<char> field_18;  // the name

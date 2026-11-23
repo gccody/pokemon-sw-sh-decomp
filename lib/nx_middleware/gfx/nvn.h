@@ -47,7 +47,10 @@ extern u64 (*Unk_27fc6c0)(const void* device, int textureId);  // nvnDeviceGetTe
 inline u64 nvnDeviceGetTexelFetchHandle(const void* device, int textureId) {
     return Unk_27fc6c0(device, textureId);
 }
-extern NvnProc Unk_27fc6c8;  // nvnDeviceGetImageHandle
+extern u64 (*Unk_27fc6c8)(const void* device, int imageId);  // nvnDeviceGetImageHandle
+inline u64 nvnDeviceGetImageHandle(const void* device, int imageId) {
+    return Unk_27fc6c8(device, imageId);
+}
 extern NvnProc Unk_27fc6d0;  // nvnDeviceInstallDebugCallback
 extern NvnProc Unk_27fc6d8;  // nvnDeviceGenerateDebugDomainId
 extern NvnProc Unk_27fc6e0;  // nvnDeviceSetWindowOriginMode
@@ -112,11 +115,26 @@ extern int (*Unk_27fc850)(void* queue, void* window, int* index);  // nvnQueueAc
 inline int nvnQueueAcquireTexture(void* queue, void* window, int* index) {
     return Unk_27fc850(queue, window, index);
 }
-extern NvnProc Unk_27fc858;  // nvnWindowBuilderSetDevice
-extern NvnProc Unk_27fc860;  // nvnWindowBuilderSetDefaults
-extern NvnProc Unk_27fc868;  // nvnWindowBuilderSetNativeWindow
-extern NvnProc Unk_27fc870;  // nvnWindowBuilderSetTextures
-extern NvnProc Unk_27fc878;  // nvnWindowBuilderSetPresentInterval
+extern void (*Unk_27fc858)(void* builder, void* device);  // nvnWindowBuilderSetDevice
+inline void nvnWindowBuilderSetDevice(void* builder, void* device) {
+    Unk_27fc858(builder, device);
+}
+extern void (*Unk_27fc860)(void* builder);  // nvnWindowBuilderSetDefaults
+inline void nvnWindowBuilderSetDefaults(void* builder) {
+    Unk_27fc860(builder);
+}
+extern void (*Unk_27fc868)(void* builder, u64 nativeWindow);  // nvnWindowBuilderSetNativeWindow
+inline void nvnWindowBuilderSetNativeWindow(void* builder, u64 nativeWindow) {
+    Unk_27fc868(builder, nativeWindow);
+}
+extern void (*Unk_27fc870)(void* builder, int count, void* const* textures);  // nvnWindowBuilderSetTextures
+inline void nvnWindowBuilderSetTextures(void* builder, int count, void* const* textures) {
+    Unk_27fc870(builder, count, textures);
+}
+extern void (*Unk_27fc878)(void* builder, int interval);  // nvnWindowBuilderSetPresentInterval
+inline void nvnWindowBuilderSetPresentInterval(void* builder, int interval) {
+    Unk_27fc878(builder, interval);
+}
 extern NvnProc Unk_27fc880;  // nvnWindowBuilderSetNumActiveTextures
 extern NvnProc Unk_27fc888;  // nvnWindowBuilderGetDevice
 extern NvnProc Unk_27fc890;  // nvnWindowBuilderGetNumTextures
@@ -124,7 +142,10 @@ extern NvnProc Unk_27fc898;  // nvnWindowBuilderGetTexture
 extern NvnProc Unk_27fc8a0;  // nvnWindowBuilderGetNativeWindow
 extern NvnProc Unk_27fc8a8;  // nvnWindowBuilderGetPresentInterval
 extern NvnProc Unk_27fc8b0;  // nvnWindowBuilderGetNumActiveTextures
-extern NvnProc Unk_27fc8b8;  // nvnWindowInitialize
+extern NvnBoolean (*Unk_27fc8b8)(void* window, const void* builder);  // nvnWindowInitialize
+inline NvnBoolean nvnWindowInitialize(void* window, const void* builder) {
+    return Unk_27fc8b8(window, builder);
+}
 extern void (*Unk_27fc8c0)(void* window);  // nvnWindowFinalize
 inline void nvnWindowFinalize(void* window) {
     Unk_27fc8c0(window);
@@ -134,7 +155,10 @@ extern int (*Unk_27fc8d0)(void* window, void* sync, int* index);  // nvnWindowAc
 inline int nvnWindowAcquireTexture(void* window, void* sync, int* index) {
     return Unk_27fc8d0(window, sync, index);
 }
-extern NvnProc Unk_27fc8d8;  // nvnWindowGetNativeWindow
+extern void* (*Unk_27fc8d8)(const void* window);  // nvnWindowGetNativeWindow
+inline void* nvnWindowGetNativeWindow(const void* window) {
+    return Unk_27fc8d8(window);
+}
 extern int (*Unk_27fc8e0)(const void* window);  // nvnWindowGetPresentInterval
 inline int nvnWindowGetPresentInterval(const void* window) {
     return Unk_27fc8e0(window);
@@ -194,7 +218,10 @@ extern void (*Unk_27fc9a8)(const void* pool, s64 offset, s64 size);  // nvnMemor
 inline void nvnMemoryPoolFlushMappedRange(const void* pool, s64 offset, s64 size) {
     Unk_27fc9a8(pool, offset, size);
 }
-extern NvnProc Unk_27fc9b0;  // nvnMemoryPoolInvalidateMappedRange
+extern void (*Unk_27fc9b0)(const void* pool, s64 offset, s64 size);  // nvnMemoryPoolInvalidateMappedRange
+inline void nvnMemoryPoolInvalidateMappedRange(const void* pool, s64 offset, s64 size) {
+    Unk_27fc9b0(pool, offset, size);
+}
 extern NvnProc Unk_27fc9b8;  // nvnMemoryPoolGetBufferAddress
 extern NvnProc Unk_27fc9c0;  // nvnMemoryPoolMapVirtual
 extern NvnProc Unk_27fc9c8;  // nvnMemoryPoolGetSize
@@ -313,7 +340,10 @@ inline void nvnTextureBuilderSetDepth(void* builder, int depth) {
     Unk_27fcb18(builder, depth);
 }
 extern NvnProc Unk_27fcb20;  // nvnTextureBuilderSetSize1D
-extern NvnProc Unk_27fcb28;  // nvnTextureBuilderSetSize2D
+extern void (*Unk_27fcb28)(void* builder, int width, int height);  // nvnTextureBuilderSetSize2D
+inline void nvnTextureBuilderSetSize2D(void* builder, int width, int height) {
+    Unk_27fcb28(builder, width, height);
+}
 extern NvnProc Unk_27fcb30;  // nvnTextureBuilderSetSize3D
 extern void (*Unk_27fcb38)(void* builder, int levels);  // nvnTextureBuilderSetLevels
 inline void nvnTextureBuilderSetLevels(void* builder, int levels) {
@@ -805,7 +835,10 @@ extern void (*Unk_27fd240)(void* commandBuffer, int index, u64 address, size_t s
 inline void nvnCommandBufferBindVertexBuffer(void* commandBuffer, int index, u64 address, size_t size) {
     Unk_27fd240(commandBuffer, index, address, size);
 }
-extern NvnProc Unk_27fd248;  // nvnCommandBufferBindVertexBuffers
+extern void (*Unk_27fd248)(void* commandBuffer, int first, int count, const void* buffers);  // nvnCommandBufferBindVertexBuffers
+inline void nvnCommandBufferBindVertexBuffers(void* commandBuffer, int first, int count, const void* buffers) {
+    Unk_27fd248(commandBuffer, first, count, buffers);
+}
 extern void (*Unk_27fd250)(void* commandBuffer, int stage, int index, u64 address, size_t size);  // nvnCommandBufferBindUniformBuffer
 inline void nvnCommandBufferBindUniformBuffer(void* commandBuffer, int stage, int index, u64 address, size_t size) {
     Unk_27fd250(commandBuffer, stage, index, address, size);
@@ -822,8 +855,14 @@ extern void (*Unk_27fd280)(void* commandBuffer, int stage, int index, u64 handle
 inline void nvnCommandBufferBindTexture(void* commandBuffer, int stage, int index, u64 handle) {
     Unk_27fd280(commandBuffer, stage, index, handle);
 }
-extern NvnProc Unk_27fd288;  // nvnCommandBufferBindTextures
-extern NvnProc Unk_27fd290;  // nvnCommandBufferBindImage
+extern void (*Unk_27fd288)(void* commandBuffer, int stage, int first, int count, const u64* handles);  // nvnCommandBufferBindTextures
+inline void nvnCommandBufferBindTextures(void* commandBuffer, int stage, int first, int count, const u64* handles) {
+    Unk_27fd288(commandBuffer, stage, first, count, handles);
+}
+extern void (*Unk_27fd290)(void* commandBuffer, int stage, int index, u64 handle);  // nvnCommandBufferBindImage
+inline void nvnCommandBufferBindImage(void* commandBuffer, int stage, int index, u64 handle) {
+    Unk_27fd290(commandBuffer, stage, index, handle);
+}
 extern NvnProc Unk_27fd298;  // nvnCommandBufferBindImages
 extern NvnProc Unk_27fd2a0;  // nvnCommandBufferSetPatchSize
 extern NvnProc Unk_27fd2a8;  // nvnCommandBufferSetInnerTessellationLevels
@@ -858,7 +897,10 @@ inline void nvnCommandBufferDrawElementsIndirect(void* commandBuffer, int mode, 
 }
 extern NvnProc Unk_27fd320;  // nvnCommandBufferMultiDrawArraysIndirectCount
 extern NvnProc Unk_27fd328;  // nvnCommandBufferMultiDrawElementsIndirectCount
-extern NvnProc Unk_27fd330;  // nvnCommandBufferClearColor
+extern void (*Unk_27fd330)(void* commandBuffer, int index, const float* color, int mask);  // nvnCommandBufferClearColor
+inline void nvnCommandBufferClearColor(void* commandBuffer, int index, const float* color, int mask) {
+    Unk_27fd330(commandBuffer, index, color, mask);
+}
 extern NvnProc Unk_27fd338;  // nvnCommandBufferClearColori
 extern NvnProc Unk_27fd340;  // nvnCommandBufferClearColorui
 extern void (*Unk_27fd348)(void* commandBuffer, float depth, NvnBoolean depthMask, int stencil, int stencilMask);  // nvnCommandBufferClearDepthStencil

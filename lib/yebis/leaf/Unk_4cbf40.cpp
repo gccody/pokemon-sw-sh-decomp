@@ -3,6 +3,8 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/SiGfx_PerformanceUtility_Impl.h>
+
 extern u64 Unk_276cff0 __attribute__((visibility("hidden")));
 
 // 0x71004cbf40
@@ -133,16 +135,15 @@ struct Unk_4cddb0 {
     virtual void vf35();
     virtual void vf36();
     u8 _8[0x58];
-    u64 field_60;
+    SiSDK3::SiGfxPerformanceUtility* field_60;  // the kernel's performance utility
 };
 PKMN_OFFSET_ASSERT(Unk_4cddb0, field_60, 0x60);
-void Unk_4e2430(u64, void*);
 
 // 0x71004cddb0
 void Unk_4cddb0_call(Unk_4cddb0* self, Unk_4cddb0_arg1* value) {
     value->vf80(0);
-    if (self->field_60 != 0) {
-        Unk_4e2430(self->field_60, value);
+    if (self->field_60 != nullptr) {
+        self->field_60->Unk_4e2430(value);
     }
     self->vf36();
 }

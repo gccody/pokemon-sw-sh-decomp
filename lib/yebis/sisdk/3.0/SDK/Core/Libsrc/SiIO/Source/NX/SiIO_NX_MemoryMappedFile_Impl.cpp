@@ -34,7 +34,9 @@ SiIONXMemoryMappedFile::~SiIONXMemoryMappedFile() {
 // SiIOBinaryArchive::vf5 tests this function's result as a bool. What the
 // code shows otherwise: the mode's flags are tested as (mode & flag) == flag,
 // the mode string has 16 bytes, and each character is stored before the
-// length grows.
+// length grows. Tried: ~20 forms of the tail (int/size_t results, nested and
+// joined tests, the text flag in a local before or after the read and returned:
+// that one gets the mode tests' layout, but a select at the end).
 bool SiIONXMemoryMappedFile::vf5(const char* path, u32 mode) {
     vf6();
     char modeString[16];

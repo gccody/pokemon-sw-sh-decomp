@@ -132,6 +132,72 @@ PKMN_SIZE_ASSERT(SiGfxShaderGraphObject, 0xb8);
 
 }  // namespace SiSDK3
 
+#ifdef UNK_SIGFX_SHADERGRAPH_OBJECT_IMPL
 // 0x71004dc340 (vf2), 0x71004dc360 (vf3)
 #line 34
 UNK_REFCOUNT_DEFINE(SiSDK3::SiGfxShaderGraphObject, field_30.m_pAllocator, field_30.m_count)
+#endif
+
+#ifdef UNK_SIGFX_SHADERGRAPH_REFLECTION
+// The class's registration with the reflection (placeholder names: the
+// inline functions SiGfx's kernel calls, 0x71004cd490 and 0x71004cd960), for
+// the translation unit that asks: they need the reflection's headers.
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_ReflectionRegister.h>
+
+// 0x710238fa30: the class's typeinfo
+extern const SiSDK3::Unk_TypeInfo Unk_238fa30;
+// 0x7101eeae80, 0x7101eeaf10: typeid(SiSDK3::SiString<char>).name(),
+// typeid(SiSDK3::SI_GUID).name()
+extern const char Unk_1eeae80[];
+extern const char Unk_1eeaf10[];
+
+namespace SiSDK3 {
+
+template <>
+inline const char* Unk_RttiName<SiString<char>>() {
+    return Unk_1eeae80;
+}
+template <>
+inline const char* Unk_RttiName<SI_GUID>() {
+    return Unk_1eeaf10;
+}
+
+// A string property's value is a copy in the kernel's allocator.
+template <>
+inline SiReflectionProperty<SiString<char>>::SiReflectionProperty(const char* name, const char* typeName, s64 offset,
+                                                                 ISiAllocator* pAllocator,
+                                                                 const SiString<char>& value)
+    : SiReflectionPropertyBase(name, typeName, offset, pAllocator), field_value(value, nullptr) {
+    field_a0 = Unk_RttiName<SiString<char>>();
+    field_a8 = Unk_4c34a0(field_a0);
+    field_90 = sizeof(SiString<char>);
+}
+
+// 0x71004cec00: the class, the handler of its events, its name, the text
+// shown for it and its id
+inline void Unk_4cec00(ISiAllocator* pAllocator) {
+#line 139
+    UNK_REFLECTION_BEGIN(Unk_276d590, SiGfxShaderGraphObject, Unk_238fa30);
+#line 141
+    SiReflectionEventHandlerClassMethod<SiGfxShaderGraphObject>* pHandler = UNK_SI_NEW(pAllocator, 0x10) SiReflectionEventHandlerClassMethod<SiGfxShaderGraphObject>(pAllocator);
+    static_cast<SiReflectionObject*>(Unk_276d590)->Unk_4cb7b0(reinterpret_cast<ISiInterface*>(pHandler));
+    if (pHandler != nullptr) {
+        pHandler->vf3();
+    }
+#line 142
+    UNK_REFLECTION_PROPERTY(Unk_276d590, SiReflectionProperty<SiString<char>>, "Name", "SiStringT", 0x50, pAllocator, SiString<char>());
+#line 143
+    UNK_REFLECTION_PROPERTY(Unk_276d590, SiReflectionProperty<SiString<char>>, "DisplayName", "SiStringT", 0x88, pAllocator, SiString<char>());
+#line 144
+    UNK_REFLECTION_PROPERTY(Unk_276d590, SiReflectionProperty<SI_GUID>, "GUID", "SI_GUID", 0x40, pAllocator, SI_GUID());
+    UNK_REFLECTION_END(Unk_276d590);
+}
+
+// (inline in 0x71004cd960)
+inline void Unk_UnregisterObject() {
+#line 146
+    UNK_REFLECTION_DELETE(Unk_276d590)
+}
+
+}  // namespace SiSDK3
+#endif

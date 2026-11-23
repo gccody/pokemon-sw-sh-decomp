@@ -64,11 +64,14 @@ struct Unk_423b80 {
 };
 PKMN_OFFSET_ASSERT(Unk_423b80, field_198, 0x198);
 
-void Unk_4534a0(void*, void*);
+namespace PPFX {
+struct Unk_GlareRect;
+}
+void Unk_4534a0(void*, const PPFX::Unk_GlareRect*, f32, f32, f32, f32, f32);
 
 // 0x7100423b80
-void Unk_423b80_call(const Unk_423b80* self, void* value) {
-    Unk_4534a0(self->field_198, value);
+void Unk_423b80_call(const Unk_423b80* self, const PPFX::Unk_GlareRect* value, f32 a, f32 b, f32 c, f32 d, f32 e) {
+    Unk_4534a0(self->field_198, value, a, b, c, d, e);
 }
 
 struct Unk_423b90 {

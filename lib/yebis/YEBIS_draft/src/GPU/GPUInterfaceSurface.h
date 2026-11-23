@@ -24,13 +24,22 @@ struct Unk_SurfaceUser {
     virtual void vf7();
     virtual void vf8();
     virtual void vf9();
-    virtual void vf10();
+    // 0x7100444bc0: makes the surface a level and layer of a SiGfx texture
+    // (IGPUSurface::RegisterSiGfxTexture, its log lines say)
+    virtual s32 RegisterSiGfxTexture(Unk_SiGfxTexture* texture, u32 level, u32 layer, u32 flags);
     virtual void vf11();
     virtual void vf12();
     virtual void vf13();
     virtual void vf14();
     virtual s32 vf15(IGPUSurface* surface, s32 index);
     virtual s32 vf16(IGPUSurface* surface, s32 index);
+};
+
+// what a surface keeps in field_90: a surface attached to it, and the index
+// it is attached at (placeholder)
+struct Unk_SurfaceAttachment {
+    s32 field_0;
+    IGPUSurface* field_8;
 };
 
 class IGPUSurface : public IGPUPixelContainer {
@@ -55,19 +64,33 @@ public:
         return result < 0 ? result : 0;
     }
     s32 vf9(void* a1, u32 a2, u32 a3, bool a4) override { return 0; }  // 0x7100445b20
-    virtual void vf10();
-    virtual void vf11();
+    // 0x7100444bc0: makes the surface a level and layer of a SiGfx texture
+    // (IGPUSurface::RegisterSiGfxTexture, its log lines say)
+    virtual s32 RegisterSiGfxTexture(Unk_SiGfxTexture* texture, u32 level, u32 layer, u32 flags);
+    // 0x7100444f80: makes the surface SiGfx's render target `target`
+    virtual s32 vf11(Unk_SiGfxRenderTarget* target, u32 width, u32 height, s32 format, u32 msaa, u32 quality);
     virtual s32 vf12(s32 index, Unk_SurfaceUser* user);  // 0x7100443c70
     virtual s32 vf13(s32 index);                         // 0x7100443cd0
-    virtual void vf14();                                 // 0x7100443d20: frees what SiGfx made for it
-    virtual void vf15();
-    virtual void vf16();
+    virtual s32 vf14();                                  // 0x7100443d20: frees what SiGfx made for it
+    // 0x7100444720: attaches the surface to `surface`'s framebuffer at `index`
+    // (IGPUSurface::AttachToOtherSurfaceFramebuffer, its log lines say)
+    virtual s32 vf15(IGPUSurface* surface, s32 index);
+    // 0x71004449a0: detaches `surface` (all of them for null) at `index` (all
+    // of them for -1)
+    virtual s32 vf16(IGPUSurface* surface, s32 index);
+
+    // 0x7100443b80 (its log line names it)
+    void SetSiGfxRenderTarget(Unk_SiGfxInterface* resource);
+    s32 CreateSiGfxRenderTarget();  // 0x7100443920 (its log line names it)
+    s32 Unk_443a60();               // 0x7100443a60: releases what CreateSiGfxRenderTarget made
+    s32 DetachFromSiGfxRenderTarget(s32 index);  // 0x71004443b0 (its log line names it)
+    s32 Unk_443ea0(s32 index, IGPUSurface* owner);  // 0x7100443ea0 (placeholder signature)
 
     IGPUInterface* field_70;
     u64 field_78;
     Unk_SurfaceUser** field_80;  // ten of them
     s32 field_88;
-    std::list<void*, Unk_StlAllocator<void*>> field_90;
+    std::list<Unk_SurfaceAttachment, Unk_StlAllocator<Unk_SurfaceAttachment>> field_90;
     Unk_SiGfxInterface* field_a8;      // SiGfx's resource, and whether it is the surface's own
     bool field_b0;
     Unk_SiGfxRenderTarget* field_b8;   // what SiGfx draws to, and whether it is the surface's own

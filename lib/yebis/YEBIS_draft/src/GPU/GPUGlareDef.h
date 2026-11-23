@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include <types.h>
+#include <yebis/YEBIS_draft/include/PPFX/ppfxTypes.h>
 
 namespace PPFX {
 
@@ -48,9 +49,59 @@ public:
     void Unk_Clear() {
         memset(this, 0, sizeof(*this));
     }
+    void Unk_Set(const char* name, s32 lines, f32 arg2, f32 arg3, f32 arg4, bool arg5) {
+        field_0 = name;
+        field_8 = lines;
+        field_c = arg2;
+        field_10 = arg3;
+        field_14 = arg4;
+        field_18 = arg5;
+    }
 
     Unk_4a0540_Line* field_20;
 };
 PKMN_SIZE_ASSERT(Unk_4a0540, 0x28);
+
+// A glare definition (0xa8 bytes): its name, parameters and the star it
+// draws. The constructor and the destructor are out of line (a function-local
+// static of GPUPostEffect.cpp has them).
+struct Unk_4a0b00 {
+    Unk_4a0b00();   // 0x71004a0b00
+    ~Unk_4a0b00();  // 0x71004a0b40
+
+    // 0x71004a0cf0: sets everything (`star` -1: no star)
+    s32 Unk_4a0cf0(const char* name, u32 star, Unk_Float4 arg2, Unk_Float4 arg3, Unk_Float4 arg4, f32 arg5,
+                   Unk_Float4 arg6, f32 arg7, f32 arg8, f32 arg9, Unk_Float4 arg10, f32 arg11);
+    // 0x71004a0f10: the same without a star, then the user's values and star ("UserDef")
+    s32 Unk_4a0f10(const char* name, Unk_Float4 arg6, Unk_Float4 arg7, f32 arg8, Unk_Float4 arg9, f32 arg10,
+                   f32 arg11, Unk_Float4 arg12, f32 arg13, f32 arg14, f32 arg15, f32 arg16, f32 arg17, f32 arg18,
+                   Unk_Float4 arg19, f32 arg20, s32 arg1, bool arg2, s32 lines, bool arg4, bool arg5);
+
+    const char* field_0;
+    f32 field_8[8];
+    f32 field_28;
+    s32 field_2c;
+    f32 field_30[4];
+    f32 field_40;
+    f32 field_44;
+    bool field_48;
+    f32 field_4c[4];
+    f32 field_5c;
+    f32 field_60;
+    bool field_64;
+    f32 field_68;
+    f32 field_6c[4];
+    f32 field_7c;
+    Unk_4a0540 field_80;
+};
+PKMN_OFFSET_ASSERT(Unk_4a0b00, field_48, 0x48);
+PKMN_OFFSET_ASSERT(Unk_4a0b00, field_64, 0x64);
+PKMN_OFFSET_ASSERT(Unk_4a0b00, field_80, 0x80);
+PKMN_SIZE_ASSERT(Unk_4a0b00, 0xa8);
+
+// what 0x71024e5950 holds (0x1b04 bytes each)
+struct Unk_24e5950_Item {
+    u32 field_0[0x1b04 / 4];
+};
 
 }  // namespace PPFX

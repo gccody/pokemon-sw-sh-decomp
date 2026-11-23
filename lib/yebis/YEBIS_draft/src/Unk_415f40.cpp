@@ -6,6 +6,7 @@
 #include <math.h>
 
 #include <yebis/YEBIS_draft/src/Unk_415f40.h>
+#include <yebis/YEBIS_draft/src/GPU/Unk_410f90.h>
 
 namespace PPFX {
 
@@ -78,6 +79,35 @@ void Unk_40f980(const MATRIXT44* matrix, f32* x, f32* y) {
     if (y != nullptr) {
         *y = scaleY;
     }
+}
+
+// 0x710040f9b0: a perspective projection rebuilt (with Unk_40f8d0's depth
+// range of -1 to 1) from one with a depth range of 0 to 1 (the two atanf calls
+// are the fields of view, which nothing uses)
+// NON_MATCHING: register allocation only: the left edge's product and the
+// constant -0.5 are in s6 and s7 here, s7 and s16 in the original (and far
+// times -2 in s3, not s6)
+MATRIXT44* Unk_40f9b0(MATRIXT44* out, const MATRIXT44* m, bool flip) {
+    f32 sign = m->field_0[2][3] > 0.0f ? 1.0f : -1.0f;
+    f32 b = -m->field_0[3][2];
+    f32 a = sign * m->field_0[2][2];
+    f32 near = b / a;
+    f32 far = b / (a - 1.0f);
+    f32 width = (near + near) / m->field_0[0][0];
+    f32 height = (near + near) / m->field_0[1][1];
+    f32 x = sign * m->field_0[2][0];
+    f32 y = sign * m->field_0[2][1];
+    f32 left = width * (x + 1.0f) * -0.5f;
+    f32 right = width * (1.0f - x) * 0.5f;
+    f32 bottom = height * (y + 1.0f) * -0.5f;
+    f32 top = height * (1.0f - y) * 0.5f;
+    f32 rx;
+    f32 ry;
+    Unk_40f980(m, &rx, &ry);
+    atanf(rx);
+    atanf(ry);
+    Unk_40f8d0(out, true, sign > 0.0f && !flip, left, right, bottom, top, near, far);
+    return out;
 }
 
 // A rotation about a unit axis (inline in the three functions below)
@@ -157,6 +187,26 @@ MATRIXT44* Unk_40fde0(MATRIXT44* out, f32 yaw, f32 pitch, f32 roll) {
     MATRIXT44_MatrixMultiply(&result, &rollPitch, &y);
     *out = result;
     return out;
+}
+
+// 0x710040fd00: the angles of a rotation (the inverse of Unk_40fde0)
+void Unk_40fd00(const MATRIXT44* m, f32* roll, f32* pitch, f32* yaw) {
+    f32 y = atan2f(m->field_0[0][1], m->field_0[1][1]);
+    f32 p = asinf(-m->field_0[2][1]);
+    f32 r = atan2f(m->field_0[2][0], m->field_0[2][2]);
+    if (fabsf(cosf(p)) < 1e-6f) {
+        y += m->field_0[0][1] > 0.0f ? 3.1415927f : -3.1415927f;
+        r += m->field_0[2][0] > 0.0f ? 3.1415927f : -3.1415927f;
+    }
+    if (roll != nullptr) {
+        *roll = r;
+    }
+    if (pitch != nullptr) {
+        *pitch = p;
+    }
+    if (yaw != nullptr) {
+        *yaw = y;
+    }
 }
 
 // 0x710040ffc0: a row vector times a matrix
@@ -348,6 +398,145 @@ s32 Unk_410400(s32 type) {
     return Unk_410300_Is(type) ? 0 : -1;
 }
 
+// 0x71004155f0 (not written yet): the inverse of a matrix
+void Unk_4155f0(MATRIXT44* out, const MATRIXT44* m);
+
+// 0x7100411b00: the RGB to XYZ matrix of three primaries and a white point
+// (their CIE x and y)
+// NON_MATCHING: the two 8-byte zero stores of primaries' [2][3] to [3][2]
+// come in descending order here (a memset), ascending in the original
+MATRIXT44* Unk_411b00(MATRIXT44* out, const Unk_410f90_Point* red, const Unk_410f90_Point* green,
+                      const Unk_410f90_Point* blue, const Unk_410f90_Point* white) {
+    f32 rx = red->field_0;
+    f32 ry = red->field_4;
+    f32 gx = green->field_0;
+    f32 gy = green->field_4;
+    f32 bx = blue->field_0;
+    f32 by = blue->field_4;
+    f32 wx = white->field_0;
+    f32 wy = white->field_4;
+    f32 rz = 1.0f - rx - ry;
+    f32 gz = 1.0f - gx - gy;
+    f32 bz = 1.0f - bx - by;
+    f32 wz = 1.0f - wx - wy;
+    MATRIXT44 primaries = {{
+        {rx, ry, rz, 0.0f},
+        {gx, gy, gz, 0.0f},
+        {bx, by, bz, 0.0f},
+        {0.0f, 0.0f, 0.0f, 1.0f},
+    }};
+    MATRIXT44 inverse;
+    Unk_4155f0(&inverse, &primaries);
+    f32 scale = 1.0f / wy;
+    f32 x = wx * scale;
+    f32 y = wy * scale;
+    f32 z = scale * wz;
+    MATRIXT44 weights;
+    weights.field_0[0][1] = 0.0f;
+    weights.field_0[0][2] = 0.0f;
+    weights.field_0[0][3] = 0.0f;
+    weights.field_0[1][0] = 0.0f;
+    weights.field_0[1][2] = 0.0f;
+    weights.field_0[1][3] = 0.0f;
+    weights.field_0[2][0] = 0.0f;
+    weights.field_0[2][1] = 0.0f;
+    weights.field_0[2][3] = 0.0f;
+    weights.field_0[3][0] = 0.0f;
+    weights.field_0[3][1] = 0.0f;
+    weights.field_0[3][2] = 0.0f;
+    weights.field_0[3][3] = 1.0f;
+    f32 r = x * inverse.field_0[0][0] + y * inverse.field_0[1][0] + z * inverse.field_0[2][0];
+    f32 g = x * inverse.field_0[0][1] + y * inverse.field_0[1][1] + z * inverse.field_0[2][1];
+    f32 b = x * inverse.field_0[0][2] + y * inverse.field_0[1][2] + z * inverse.field_0[2][2];
+    weights.field_0[0][0] = r;
+    weights.field_0[1][1] = g;
+    weights.field_0[2][2] = b;
+    MATRIXT44 result;
+    MATRIXT44_MatrixMultiply(&result, &weights, &primaries);
+    *out = result;
+    return out;
+}
+
+// 0x7100411c70: how many levels of a pyramid that shrinks by `base` each
+// level a `size` needs (at most `maxLevels` when that is not negative), the
+// first level's count (odd for mode 1, even for mode 2) and the scale that
+// goes with them
+// NON_MATCHING: the original computes the even case's `(mode == 2) & count`
+// before the odd case's `~count & 1` and selects with `csel ne` (here the
+// other way round, `csel eq`), and the last product lands in s3 here.
+// Tried: if/else, switch and select forms of the adjustment
+void Unk_411c70(f32 size, f32 ratio, s32 base, s32 mode, s32 maxLevels, s32* outLevels, s32* outCount, f32* outScale) {
+    f32 b = static_cast<f32>(base);
+    if (ratio > 1.0f && b * ratio >= size) {
+        ratio = fmaxf(size / b, 1.0f);
+    }
+    f32 t = size / ratio + 1.0f;
+    s32 levels;
+    s32 count;
+    f32 scale;
+    if (t > 1.1f) {
+        levels = static_cast<s32>(ceilf(fmaxf(logf(t) / logf(b), 1.0f)));
+        count = static_cast<s32>(ceilf(t * b / powf(b, static_cast<f32>(levels))));
+        if (count == 0) {
+            count = base;
+        }
+        count = (mode == 1 ? (~count & 1) : (mode == 2) & count) + count;
+        bool over = count > base;
+        bool clamp = maxLevels >= 0 && levels > maxLevels;
+        if (clamp | over) {
+            count = base;
+        }
+        if (clamp) {
+            levels = maxLevels;
+        }
+        scale = size / (powf(b, static_cast<f32>(levels - 1)) * static_cast<f32>(count) - 1.0f);
+    } else {
+        levels = 0;
+        count = 0;
+        scale = 0.0f;
+    }
+    if (outLevels != nullptr) {
+        *outLevels = levels;
+    }
+    if (outCount != nullptr) {
+        *outCount = count;
+    }
+    if (outScale != nullptr) {
+        *outScale = scale;
+    }
+}
+
+// 0x7100412170: four sample offsets around a texel of a `width` by
+// `height` texture, and their weights
+void Unk_412170(u32 width, u32 height, Unk_Float4* offsets, Unk_Float4* weights, f32 scale) {
+    f32 dx = 1.0f / static_cast<f32>(width);
+    f32 dy = 1.0f / static_cast<f32>(height);
+    f32 s = scale - 0.5f;
+    offsets[0] = Unk_Float4(-(dx * s), -(dy * s), 0.0f, 0.0f);
+    offsets[1] = Unk_Float4(dx * s, -(dy * s), 0.0f, 0.0f);
+    offsets[2] = Unk_Float4(-(dx * s), dy * s, 0.0f, 0.0f);
+    offsets[3] = Unk_Float4(dx * s, dy * s, 0.0f, 0.0f);
+    if (weights != nullptr) {
+        weights[0] = Unk_Float4(0.25f, 0.25f, 0.25f, 0.25f);
+        weights[1] = Unk_Float4(0.25f, 0.25f, 0.25f, 0.25f);
+        weights[2] = Unk_Float4(0.25f, 0.25f, 0.25f, 0.25f);
+        weights[3] = Unk_Float4(0.25f, 0.25f, 0.25f, 0.25f);
+    }
+}
+
+// 0x71004121e0: a Gaussian's weights (divided by sigma * sqrt(2 pi) if `normalize`)
+void Unk_4121e0(s32 count, f32* weights, bool normalize, f32 sigma) {
+    f32 scale = 1.0f;
+    if (normalize) {
+        scale = 1.0f / (sigma * 2.5066283f);
+    }
+    f32 k = 1.0f / (2.0f * sigma * sigma);
+    for (s32 i = 0; i < count; i++) {
+        f32 x = static_cast<f32>(i);
+        weights[i] = scale * expf(-(k * (x * x)));
+    }
+}
+
 // 0x7100412270
 void Unk_412270(f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32* out1, f32* out2) {
     f32 sum = arg3 + arg4;
@@ -360,6 +549,236 @@ void Unk_412270(f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32* out1, f32* out2) {
     }
 }
 
+// 0x71004122b0: a 3x3 kernel's weights as five bilinear samples
+void Unk_4122b0(u32 width, u32 height, const f32* kernel, Unk_Float4* offsets, f32* weights, f32 scale) {
+    f32 dx = scale / static_cast<f32>(width);
+    f32 dy = scale / static_cast<f32>(height);
+    offsets[0].field_0[0].field_0 = 0.0f;
+    offsets[0].field_0[1].field_0 = 0.0f;
+    offsets[0].field_0[2].field_0 = 0.0f;
+    offsets[0].field_0[3].field_0 = 0.0f;
+    offsets[1].field_0[2].field_0 = 0.0f;
+    offsets[1].field_0[3].field_0 = 0.0f;
+    offsets[2].field_0[2].field_0 = 0.0f;
+    offsets[2].field_0[3].field_0 = 0.0f;
+    offsets[3].field_0[2].field_0 = 0.0f;
+    offsets[3].field_0[3].field_0 = 0.0f;
+    offsets[4].field_0[2].field_0 = 0.0f;
+    offsets[4].field_0[3].field_0 = 0.0f;
+    weights[0] = kernel[4];
+    Unk_412270(-dx, dx * 0.0f, kernel[0], kernel[1], &offsets[1].field_0[0].field_0, &weights[1]);
+    offsets[1].field_0[1].field_0 = -dy;
+    weights[1] *= 2.0f;
+    Unk_412270(-dy, dy * 0.0f, kernel[2], kernel[5], &offsets[2].field_0[1].field_0, &weights[2]);
+    offsets[2].field_0[0].field_0 = dx;
+    weights[2] *= 2.0f;
+    Unk_412270(dy * 0.0f, dy, kernel[3], kernel[6], &offsets[3].field_0[1].field_0, &weights[3]);
+    offsets[3].field_0[0].field_0 = -dx;
+    weights[3] *= 2.0f;
+    Unk_412270(dx * 0.0f, dx, kernel[7], kernel[8], &offsets[4].field_0[0].field_0, &weights[4]);
+    offsets[4].field_0[1].field_0 = dy;
+    weights[4] *= 2.0f;
+}
+
+// 0x7100412400: nine samples of a fixed kernel and their weights, which add up to 1
+void Unk_412400(u32 width, u32 height, Unk_Float4* offsets, f32* weights, f32 scale) {
+    f32 dx = scale / static_cast<f32>(width);
+    f32 dy = scale / static_cast<f32>(height);
+    offsets[0] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+    weights[0] = 1.0f;
+    offsets[1] = Unk_Float4(dx * -1.4444444f, dy * 0.0f, 0.0f, 0.0f);
+    weights[1] = 1.8f;
+    offsets[2] = Unk_Float4(dx * 1.4444444f, dy * 0.0f, 0.0f, 0.0f);
+    weights[2] = 1.8f;
+    offsets[3] = Unk_Float4(dx * 0.0f, dy * -1.4444444f, 0.0f, 0.0f);
+    weights[3] = 1.8f;
+    offsets[4] = Unk_Float4(dy * 0.0f, dy * 1.4444444f, 0.0f, 0.0f);
+    weights[4] = 1.8f;
+    offsets[5] = Unk_Float4(dx * -1.2982457f, dy * -1.2982457f, 0.0f, 0.0f);
+    weights[5] = 2.03062487f;
+    offsets[6] = Unk_Float4(dx * 1.2982457f, dy * -1.2982457f, 0.0f, 0.0f);
+    weights[6] = 2.03062487f;
+    offsets[7] = Unk_Float4(dx * -1.2982457f, dy * 1.2982457f, 0.0f, 0.0f);
+    weights[7] = 2.03062487f;
+    offsets[8] = Unk_Float4(dx * 1.2982457f, dy * 1.2982457f, 0.0f, 0.0f);
+    weights[8] = 2.03062487f;
+    f32 sum = 0.0f;
+    for (s32 i = 0; i < 9; i++) {
+        sum += weights[i];
+    }
+    f32 scaleWeights = 1.0f / sum;
+    for (s32 i = 0; i < 9; i++) {
+        weights[i] *= scaleWeights;
+    }
+}
+
+// 0x7100412d20: the sample offsets of a blur of a `width` by `height`
+// texture (at most `count` rings, `mode` / 4 decides how many it needs); the
+// number of offsets, -1 for all of them
+s32 Unk_412d20(u32 width, u32 height, s32 count, Unk_Float4* out, s32 mode, f32 scale) {
+    s32 needed = (1 << (mode / 4)) + 1;
+    if (needed < count) {
+        scale = static_cast<f32>(count) / static_cast<f32>(needed) * scale;
+    }
+    f32 dx = 1.0f / static_cast<f32>(width) * scale;
+    f32 dy = 1.0f / static_cast<f32>(height) * scale;
+    s32 rings = needed < count ? needed : count;
+    out[0] = Unk_Float4(dx * 0.0f, dy * 0.0f, 0.0f, 0.0f);
+    out[1] = Unk_Float4(dx * 0.0f, -dy, 0.0f, 0.0f);
+    out[2] = Unk_Float4(-dx, dy * 0.0f, 0.0f, 0.0f);
+    out[3] = Unk_Float4(dx * 0.0f, dy, 0.0f, 0.0f);
+    out[4] = Unk_Float4(dx, dy * 0.0f, 0.0f, 0.0f);
+    if (rings < 4) {
+        return 5;
+    }
+    out[5] = Unk_Float4(dx * 2.0f, dy, 0.0f, 0.0f);
+    out[6] = Unk_Float4(dx, dy * -2.0f, 0.0f, 0.0f);
+    out[7] = Unk_Float4(dx * -2.0f, -dy, 0.0f, 0.0f);
+    out[8] = Unk_Float4(-dx, dy * 2.0f, 0.0f, 0.0f);
+    if (rings < 6) {
+        return 9;
+    }
+    out[9] = Unk_Float4(dx * -4.0f, dy, 0.0f, 0.0f);
+    out[10] = Unk_Float4(dx, dy * 4.0f, 0.0f, 0.0f);
+    out[11] = Unk_Float4(dx * 4.0f, -dy, 0.0f, 0.0f);
+    out[12] = Unk_Float4(-dx, dy * -4.0f, 0.0f, 0.0f);
+    if (rings < 10) {
+        return 13;
+    }
+    out[13] = Unk_Float4(dx * 7.0f, dy * -8.0f, 0.0f, 0.0f);
+    out[14] = Unk_Float4(dx * -8.0f, dy * -7.0f, 0.0f, 0.0f);
+    out[15] = Unk_Float4(dx * -7.0f, dy * 8.0f, 0.0f, 0.0f);
+    out[16] = Unk_Float4(dx * 8.0f, dy * 7.0f, 0.0f, 0.0f);
+    if (rings < 18) {
+        return 17;
+    }
+    return -1;
+}
+
+// 0x7100412ed0: the same with more offsets per ring (`mode` / 8 decides)
+s32 Unk_412ed0(u32 width, u32 height, s32 count, Unk_Float4* out, s32 mode, f32 scale) {
+    s32 needed = (1 << (mode / 8)) + 1;
+    if (needed < count) {
+        scale = static_cast<f32>(count) / static_cast<f32>(needed) * scale;
+    }
+    f32 dx = 1.0f / static_cast<f32>(width) * scale;
+    f32 dy = 1.0f / static_cast<f32>(height) * scale;
+    s32 rings = needed < count ? needed : count;
+    out[0] = Unk_Float4(dx * 0.0f, dy * 0.0f, 0.0f, 0.0f);
+    out[1] = Unk_Float4(dx * 0.0f, -dy, 0.0f, 0.0f);
+    out[2] = Unk_Float4(-dx, -dy, 0.0f, 0.0f);
+    out[3] = Unk_Float4(-dx, dy * 0.0f, 0.0f, 0.0f);
+    out[4] = Unk_Float4(-dx, dy, 0.0f, 0.0f);
+    out[5] = Unk_Float4(dx * 0.0f, dy, 0.0f, 0.0f);
+    out[6] = Unk_Float4(dx, dy, 0.0f, 0.0f);
+    out[7] = Unk_Float4(dx, dy * 0.0f, 0.0f, 0.0f);
+    out[8] = Unk_Float4(dx, -dy, 0.0f, 0.0f);
+    if (rings < 4) {
+        return 9;
+    }
+    out[9] = Unk_Float4(dx * 2.0f, -dy, 0.0f, 0.0f);
+    out[10] = Unk_Float4(dx, dy * -2.0f, 0.0f, 0.0f);
+    out[11] = Unk_Float4(dx * 2.0f, dy, 0.0f, 0.0f);
+    out[12] = Unk_Float4(dx, dy * 2.0f, 0.0f, 0.0f);
+    out[13] = Unk_Float4(-dx, dy * 2.0f, 0.0f, 0.0f);
+    out[14] = Unk_Float4(dx * -2.0f, dy, 0.0f, 0.0f);
+    out[15] = Unk_Float4(dx * -2.0f, -dy, 0.0f, 0.0f);
+    out[16] = Unk_Float4(-dx, dy * -2.0f, 0.0f, 0.0f);
+    if (rings < 6) {
+        return 17;
+    }
+    out[17] = Unk_Float4(dx * -3.0f, dy * -2.0f, 0.0f, 0.0f);
+    out[18] = Unk_Float4(-dx, dy * -4.0f, 0.0f, 0.0f);
+    out[19] = Unk_Float4(dx * -4.0f, dy, 0.0f, 0.0f);
+    out[20] = Unk_Float4(dx * -2.0f, dy * 3.0f, 0.0f, 0.0f);
+    out[21] = Unk_Float4(dx, dy * 4.0f, 0.0f, 0.0f);
+    out[22] = Unk_Float4(dx * 3.0f, dy * 2.0f, 0.0f, 0.0f);
+    out[23] = Unk_Float4(dx * 4.0f, -dy, 0.0f, 0.0f);
+    out[24] = Unk_Float4(dx * 2.0f, dy * -3.0f, 0.0f, 0.0f);
+    if (rings < 10) {
+        return 25;
+    }
+    out[25] = Unk_Float4(dx * 8.0f, dy * 0.0f, 0.0f, 0.0f);
+    out[26] = Unk_Float4(dx * 7.0f, dy * -8.0f, 0.0f, 0.0f);
+    out[27] = Unk_Float4(dx * 0.0f, dy * -8.0f, 0.0f, 0.0f);
+    out[28] = Unk_Float4(dx * 8.0f, dy * 7.0f, 0.0f, 0.0f);
+    out[29] = Unk_Float4(dx * 0.0f, dy * 8.0f, 0.0f, 0.0f);
+    out[30] = Unk_Float4(dx * -7.0f, dy * 8.0f, 0.0f, 0.0f);
+    out[31] = Unk_Float4(dx * -8.0f, dy * 0.0f, 0.0f, 0.0f);
+    out[32] = Unk_Float4(dx * -8.0f, dy * -7.0f, 0.0f, 0.0f);
+    if (rings < 18) {
+        return 33;
+    }
+    return -1;
+}
+
+// 0x7100413160: one of the two
+s32 Unk_413160(u32 width, u32 height, u32 arg2, Unk_Float4* out, u32 mode, u32 second, f32 scale) {
+    if (second != 0) {
+        return Unk_412ed0(width, height, arg2, out, mode, scale);
+    }
+    return Unk_412d20(width, height, arg2, out, mode, scale);
+}
+
+// 0x7100413170: a 3x3 Gaussian kernel (divided by sigma * sqrt(2 pi) when
+// `normalize` and that is at least 1, else scaled to add up to 1)
+// NON_MATCHING: two instructions. The original multiplies 2 sigma by sigma
+// (here sigma by 2 sigma), and makes the flag with `csel` from the same
+// comparison as the scale (`cset` of the inverted one here).
+void Unk_413170(f32* weights, bool normalize, f32 sigma) {
+    sigma = fmaxf(sigma, 1e-8f);
+    f32 scale = 1.0f;
+    bool scaled = false;
+    if (normalize) {
+        f32 s = sigma * 2.5066283f;
+        if (!(s < 1.0f)) {
+            scale = 1.0f / s;
+            scaled = true;
+        }
+    }
+    f32 k = 1.0f / (2.0f * sigma * sigma);
+    f32 kernel[9];
+    for (s32 y = -1; y <= 1; y++) {
+        for (s32 x = -1; x <= 1; x++) {
+            s32 i = (y + 1) * 3 + (x + 1);
+            kernel[i] = scale * expf(-static_cast<f32>(x * x + y * y) * k);
+            weights[i] = kernel[i];
+        }
+    }
+    if (!scaled) {
+        f32 sum = 0.0f;
+        for (s32 i = 0; i < 9; i++) {
+            sum += kernel[i];
+        }
+        f32 inv = 1.0f / sum;
+        for (s32 i = 0; i < 9; i++) {
+            weights[i] *= inv;
+        }
+    }
+}
+
+// 0x7100413330: a 3x3 Gaussian as five bilinear samples
+void Unk_413330(u32 width, u32 height, Unk_Float4* offsets, f32* weights, bool normalize, f32 sigma, f32 scale) {
+    f32 kernel[9];
+    Unk_413170(kernel, normalize, sigma);
+    Unk_4122b0(width, height, kernel, offsets, weights, scale);
+}
+
+// 0x7100413730: the nine samples of a 3x3 Gaussian
+void Unk_413730(u32 width, u32 height, Unk_Float4* offsets, f32* weights, bool normalize, f32 sigma, f32 scale) {
+    f32 kernel[9];
+    Unk_413170(kernel, normalize, sigma);
+    f32 dx = scale / static_cast<f32>(width);
+    f32 dy = scale / static_cast<f32>(height);
+    for (s32 y = -1; y <= 1; y++) {
+        for (s32 x = -1; x <= 1; x++) {
+            s32 i = (y + 1) * 3 + (x + 1);
+            offsets[i] = Unk_Float4(dx * static_cast<f32>(x), dy * static_cast<f32>(y), 0.0f, 0.0f);
+            weights[i] = kernel[i];
+        }
+    }
+}
+
 // 0x7100412cd0
 void Unk_412cd0(f32 scale, u32 width, u32 height, Unk_Float4* out) {
     f32 dx = scale / static_cast<f32>(width);
@@ -369,6 +788,120 @@ void Unk_412cd0(f32 scale, u32 width, u32 height, Unk_Float4* out) {
     out[2] = Unk_Float4(dx * 1.0f, dy * 1.0f, 0.0f, 0.0f);
     out[3] = Unk_Float4(dx * -1.0f, dy * 1.0f, 0.0f, 0.0f);
     out[4] = Unk_Float4(dx * -1.0f, dy * -1.0f, 0.0f, 0.0f);
+}
+
+// 0x7100413b10: a 3-tap Gaussian at -1, 0 and +1 times `x` / `count` as
+// two samples (the centre and +1 tap merged into one bilinear sample), from
+// the last to the first
+// NON_MATCHING: Unk_414af0's differences (the test of `normalize` is a branch
+// in the original, with one block setting the scale to 1 for both failed
+// tests; 2 sigma times sigma), and the original keeps the two samples'
+// arrays on the stack (their stores stay, the loads are forwarded), so its
+// loops over them were unrolled later than here
+void Unk_413b10(u32 count, f32* offsets, f32* weights, bool normalize, f32 sigma, f32 x) {
+    sigma = fmaxf(sigma, 1e-8f);
+    f32 scale = 1.0f;
+    bool scaled = false;
+    if (normalize) {
+        f32 s = sigma * 2.5066283f;
+        if (!(s < 1.0f)) {
+            scale = 1.0f / s * 2.0f;
+            scaled = true;
+        }
+    }
+    f32 k = 1.0f / (2.0f * sigma * sigma);
+    f32 step = x / static_cast<f32>(count);
+    f32 kernel[3];
+    for (s32 i = -1; i <= 1; i++) {
+        kernel[i + 1] = scale * expf(-static_cast<f32>(i * i) * k);
+    }
+    f32 w[2];
+    f32 o[2];
+    w[0] = kernel[0];
+    o[0] = -step;
+    f32 sum = kernel[1] + kernel[2];
+    f32 t = 0.0f;
+    if (sum > 0.0f) {
+        t = kernel[1] / sum;
+    }
+    f32 p0 = step * 0.0f;
+    o[1] = step + (p0 - step) * t;
+    w[1] = sum * 0.5f * 2.0f;
+    if (!scaled) {
+        f32 total = 0.0f;
+        for (s32 i = 0; i < 2; i++) {
+            total += w[i];
+        }
+        f32 inv = 1.0f / total;
+        for (s32 i = 0; i < 2; i++) {
+            w[i] *= inv;
+        }
+    }
+    for (s32 i = 0; i < 2; i++) {
+        offsets[i] = o[1 - i];
+        weights[i] = w[1 - i];
+    }
+}
+
+// 0x7100414af0: three samples of a Gaussian at 0 and +-1 / `count`, its
+// weights at 0 and `x` (divided by sigma * sqrt(2 pi) when `normalize` and
+// that is at least 1, else scaled to add up to 1)
+// NON_MATCHING: Unk_413170's two differences: the original keeps the test of
+// `normalize` a branch (the flag a `csel` of the scale's comparison) and
+// multiplies 2 sigma by sigma; here both tests become selects and sigma is
+// multiplied by 2 sigma.
+void Unk_414af0(u32 count, f32* offsets, f32* weights, bool normalize, f32 sigma, f32 x) {
+    sigma = fmaxf(sigma, 1e-8f);
+    f32 s = sigma * 2.5066283f;
+    f32 norm = 1.0f;
+    bool scaled = false;
+    if (normalize) {
+        if (!(s < 1.0f)) {
+            norm = s;
+            scaled = true;
+        }
+    }
+    f32 k = 1.0f / (2.0f * sigma * sigma);
+    f32 step = 1.0f / static_cast<f32>(count);
+    f32 w1 = expf(-(k * (x * x)));
+    f32 t = x * 0.0f;
+    f32 w0 = expf(-(t * t * k));
+    if (!scaled) {
+        norm = w0 + 2.0f * w1;
+    }
+    f32 scale = 1.0f / norm;
+    weights[0] = scale * w0;
+    offsets[0] = 0.0f;
+    weights[1] = scale * w1;
+    offsets[1] = step;
+    weights[2] = scale * w1;
+    offsets[2] = -step;
+}
+
+// 0x7100415370: the points of `rings` rings around the centre of a disc of
+// the given radius (6 times the ring's number on each); their count
+s32 Unk_415370(s32 rings, Unk_Float2* out, f32 radius) {
+    s32 count = 3 * rings * (rings + 1) + 1;
+    if (out != nullptr) {
+        out[0].field_0[0].field_0 = radius * 0.0f;
+        out[0].field_0[1].field_0 = radius * 0.0f;
+        s32 index = 0;
+        for (s32 ring = 1; ring <= rings; ring++) {
+            s32 points = ring * 6;
+            f32 step = 6.2831855f / static_cast<f32>(points);
+            f32 start = step * 0.5f;
+            f32 r = static_cast<f32>(ring) * radius / static_cast<f32>(rings);
+            for (s32 i = 0; i < points; i++) {
+                f32 angle = start + step * static_cast<f32>(i);
+                f32 c = cosf(angle);
+                f32 s = sinf(angle);
+                out[index + 1].field_0[0].field_0 = r * c;
+                out[index + 1].field_0[1].field_0 = r * s;
+                index++;
+            }
+        }
+    }
+    return count;
 }
 
 }  // namespace PPFX

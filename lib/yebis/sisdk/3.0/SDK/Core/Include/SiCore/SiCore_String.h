@@ -14,8 +14,13 @@ template <class T>
 class SiString;
 }  // namespace SiSDK3
 
-// 0x71004c8020: a string's assignment
+// 0x71004c8020: a string's assignment (it returns the string: the string
+// table's TU, which defines it, declares it so)
+#ifdef UNK_SICORE_STRING_ASSIGN_IMPL
+SiSDK3::SiString<char>* Unk_4c8020(SiSDK3::SiString<char>* self, const SiSDK3::SiString<char>* other);
+#else
 void Unk_4c8020(SiSDK3::SiString<char>* self, const SiSDK3::SiString<char>* other);
+#endif
 
 namespace SiSDK3 {
 
@@ -37,6 +42,18 @@ public:
         }
         m_pBuffer[0] = 0;
     }
+    // a view of text, which isn't copied (inline in SiReflectionObject's
+    // constructor)
+    SiString(ISiAllocator* pAllocator, const T* text)
+        : m_pAllocator(pAllocator), m_pBuffer(nullptr), field_10(0), field_18(0), field_20(0), field_28(0) {
+        if (m_pAllocator == nullptr) {
+            m_pAllocator = Unk_4bc690() != nullptr ? Unk_4bc690() : Unk_4bc640();
+        }
+        Unk_SetExternal(text);
+    }
+    // 0x71004c45c0 (char): a copy of another with an allocator (null: the
+    // kernel's), out of line (declared for its callers; not written yet)
+    SiString(const SiString& other, ISiAllocator* pAllocator);
     ~SiString() { Unk_Release(); }
 
     // 0x71004c8020 (char): out of line

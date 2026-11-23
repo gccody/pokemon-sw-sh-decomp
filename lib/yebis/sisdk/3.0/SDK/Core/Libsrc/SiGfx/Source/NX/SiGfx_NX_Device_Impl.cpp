@@ -28,11 +28,27 @@ u64 Unk_5644d0_get(u64 pool);
 struct Unk_4cddb0;
 struct Unk_4cddb0_arg1;
 void Unk_4cddb0_call(Unk_4cddb0* self, Unk_4cddb0_arg1* value);
+// 0x7100539840: loads NVN's entry points (it takes an allocator and a number
+// it doesn't use: the device passes them)
+bool Unk_539840(SiSDK3::ISiAllocator* pAllocator, s32 a2);
+// 0x71004f7190 (leafgen's name and type): the NVN device's debug callback
+void Unk_4f7190_update();
+// 0x71004ecf40: the format of a kind's case (Unk_4ecbc0.cpp)
+u32 Unk_4ecf40(s32 kind, s32 index);
 // 0x71004cbec0: that object (Unk_RefCountDeferred.h's declaration)
 void* Unk_4cbec0();
 
 // NVN's entry points that only the device calls (nvn.h has them without
 // their types).
+inline void Unk_nvnDeviceSetWindowOriginMode(void* device, int mode) {
+    reinterpret_cast<void (*)(void*, int)>(Unk_27fc6e0)(device, mode);
+}
+inline void Unk_nvnDeviceSetDepthMode(void* device, int mode) {
+    reinterpret_cast<void (*)(void*, int)>(Unk_27fc6e8)(device, mode);
+}
+inline void Unk_nvnDeviceInstallDebugCallback(void* device, void (*callback)(), void* user, int enable) {
+    reinterpret_cast<void (*)(void*, void (*)(), void*, int)>(Unk_27fc6d0)(device, callback, user, enable);
+}
 inline int Unk_nvnDeviceGetWindowOriginMode(void* device) {
     return reinterpret_cast<int (*)(void*)>(Unk_27fc710)(device);
 }
@@ -186,6 +202,42 @@ inline Unk_4fa470_Kernel* Unk_GfxKernel() {
     return reinterpret_cast<Unk_4fa470_Kernel*>(Unk_4cbf40_get());
 }
 
+// 0x71004f71a0
+SiGfxNXDevice::SiGfxNXDevice(SiGfxNXManager* pManager)
+    : field_8(pManager->field_8.m_pAllocator), field_18(pManager), field_20(0), field_108(0), field_230(0),
+      field_238(0), field_240(0), field_244(0xc000), field_248(true), field_250(nullptr), field_258(nullptr),
+      field_260(nullptr), field_268(nullptr), field_270(0), field_2b8(nullptr), field_2c0(-1), field_2c4(-1),
+      field_2c8(false), field_2c9(false), field_338(nullptr), field_340(nullptr), field_348(nullptr),
+      field_350(nullptr), field_358(nullptr), field_360(nullptr), field_368(nullptr), field_370(nullptr),
+      field_378(nullptr), field_380(nullptr), field_388(nullptr), field_390(nullptr), field_398(nullptr),
+      field_650(pManager->field_8.m_pAllocator), field_6a0(pManager->field_8.m_pAllocator),
+      field_6f0(pManager->field_8.m_pAllocator), field_740(false), field_741(false) {
+    memset(&field_50, 0, sizeof(field_50));
+    for (s32 i = 0; i < 13; i++) {
+        field_2d0[i] = nullptr;
+    }
+    for (s32 i = 0; i < 8; i++) {
+        field_278[i] = nullptr;
+    }
+    field_3a0 = nullptr;
+    memset(field_3a8, 0, sizeof(field_3a8));
+    memset(field_4f8, 0, sizeof(field_4f8));
+    field_748 = nullptr;
+    field_750 = nullptr;
+    field_760 = nullptr;
+    field_768 = nullptr;
+    field_770 = nullptr;
+    field_778 = nullptr;
+    field_780 = 0;
+    field_788 = 0;
+    field_790 = 0;
+    field_798 = 0;
+    field_7a0 = nullptr;
+    field_7a8 = 0;
+    field_7b0 = 0;
+    field_7b8 = 0;
+}
+
 // 0x71004f7600 (D2), 0x71004f7890 (D0)
 SiGfxNXDevice::~SiGfxNXDevice() {
     Unk_4f7760();
@@ -278,6 +330,107 @@ inline void SiGfxNXDevice::Unk_MakeFreeTypeManager() {
         field_398 = UNK_SI_NEW(Unk_Allocator(), 0x10) SiGfxNXFreeTypeManager(this);
         field_398->vf5();
     }
+}
+
+// 0x71004f7db0: sets the device up: its NVN device (with the debug layer's
+// callback if the description asks for it), its descriptor pools, its
+// resources and its canvases (one of 1280 by 720 without descriptions)
+bool SiGfxNXDevice::vf5(u64 a1, const Unk_4f96c0_Desc* desc, s32 canvasCount, const Unk_4f96e0_Desc* canvasDescs) {
+    field_230 = a1;
+    memcpy(&field_50, desc, 0xb6);
+    field_2c9 = false;
+    if (!Unk_539840(Unk_Allocator(), 0)) {
+        return false;
+    }
+#line 372
+    field_2b8 = Unk_Allocator()->vf7(0x3000, 0x10, __FILE__, __LINE__);
+    if (field_2b8 == nullptr) {
+        return false;
+    }
+    s32 flags = (desc->field_8 & 2) ? 0x75 : 0;
+    u8 builder[0x40] = {};
+    nvnDeviceBuilderSetDefaults(builder);
+    nvnDeviceBuilderSetFlags(builder, flags);
+    if (nvnDeviceInitialize(field_2b8, builder) != 1) {
+        return false;
+    }
+    Unk_nvnDeviceSetWindowOriginMode(field_2b8, 1);
+    Unk_nvnDeviceSetDepthMode(field_2b8, 1);
+    nvnDeviceGetInteger(field_2b8, 0, &field_2c0);
+    nvnDeviceGetInteger(field_2b8, 1, &field_2c4);
+    if (field_2c0 != 0x35 || field_2c4 < 0x137) {
+        return false;
+    }
+    field_2c8 = true;
+    if (flags & 1) {
+        Unk_nvnDeviceInstallDebugCallback(field_2b8, Unk_4f7190_update, nullptr, 1);
+    }
+    s32 a24;
+    s32 a25;
+    s32 a11;
+    s32 a12;
+    nvnDeviceGetInteger(field_2b8, 0x24, &a24);
+    nvnDeviceGetInteger(field_2b8, 0x25, &a25);
+    nvnDeviceGetInteger(field_2b8, 0x11, &a11);
+    nvnDeviceGetInteger(field_2b8, 0x12, &a12);
+    s32 size11 = a11 + 0xd80;
+    s32 size12 = a12 + 0xd80;
+#line 457
+    field_748 = UNK_SI_NEW(Unk_Allocator(), 0x10) Unk_5518d0_Pool();
+    if (field_748 == nullptr || !field_748->Unk_551a50(this, size11, a11)) {
+        return false;
+    }
+#line 464
+    field_750 = UNK_SI_NEW(Unk_Allocator(), 0x10) Unk_5520b0_Pool();
+    if (field_750 == nullptr || !field_750->Unk_552230(this, size12, a12)) {
+        return false;
+    }
+#line 471
+    field_758 = UNK_SI_NEW(Unk_Allocator(), 0x10) Unk_5518d0_Pool();
+    if (field_758 == nullptr || !field_758->Unk_551a50(this, size11, a11)) {
+        return false;
+    }
+    field_760 = nullptr;
+    field_768 = nullptr;
+    field_770 = nullptr;
+    field_778 = nullptr;
+    field_780 = 0;
+    field_788 = 0;
+    field_790 = 0;
+    field_798 = 0;
+    Unk_4f82a0();
+    Unk_MakeFreeTypeManager();
+    if (!Unk_4f8660()) {
+        return false;
+    }
+    if (canvasCount < 1) {
+        field_108 = 1;
+        Unk_4f96e0_Desc* canvas = &field_10c[0];
+        canvas->field_4 = 0;
+        canvas->field_8 = 0;
+        canvas->field_c = 1280;
+        canvas->field_10 = 720;
+        canvas->field_14 = 1280;
+        canvas->field_18 = 720;
+        canvas->field_1c = 1;
+        canvas->field_20 = 0x1c;
+        canvas->field_24 = 0x2d;
+        canvas->field_30 = 0;
+        canvas->field_34 = 0;
+        canvas->field_38 = 1;
+        canvas->field_3c = 1;
+        canvas->field_40 = 0;
+        canvas->field_44 = true;
+        canvas->field_45 = false;
+    } else {
+        for (s32 i = 0; i < canvasCount; i++) {
+            field_10c[i] = canvasDescs[i];
+        }
+        field_108 = canvasCount;
+    }
+    Unk_4f87b0();
+    Unk_4f88f0();
+    return true;
 }
 
 // 0x71004f82a0
@@ -402,25 +555,22 @@ void SiGfxNXDevice::Unk_4f88f0() {
     }
 }
 
-// NON_MATCHING: two stores exchanged. The original stores field_778 (its
-// argument is reloaded from the stack) before field_798; this stores
-// field_798 first, whatever the statements' order.
 // 0x71004f8a80: sets the device up for another's NVN device, which gives its
 // own functions for descriptors
 bool SiGfxNXDevice::vf88(const Unk_4f96c0_Desc* desc, void* nvnDevice, u64 window, u64 a4, u64 a5, u64 a6, u64 a7, u64 a8,
                          u64 a9, u64 a10, u64 a11) {
     Unk_4f7760();
     memcpy(&field_50, desc, 0xb6);
+    field_2b8 = nvnDevice;
     field_2c8 = true;
     field_2c9 = true;
-    field_2b8 = nvnDevice;
-    field_760 = reinterpret_cast<u64 (*)(u64, u64, u64)>(a4);
+    field_760 = reinterpret_cast<s32 (*)(u64, u64, u64)>(a4);
     field_768 = reinterpret_cast<u64 (*)(u64, u64)>(a5);
     field_770 = reinterpret_cast<u64 (*)(u32, u64)>(a6);
+    field_778 = reinterpret_cast<u64 (*)(u32, u64)>(a7);
     field_780 = a8;
     field_788 = a9;
     field_790 = a10;
-    field_778 = reinterpret_cast<u64 (*)(u32, u64)>(a7);
     field_798 = a11;
     Unk_4f82a0();
     Unk_MakeFreeTypeManager();
@@ -664,7 +814,7 @@ ISiGfxPipelineState* SiGfxNXDevice::vf25(u32 a1, u64 a2, ISiAllocator* pAllocato
 }
 
 // 0x71004f9ac0
-ISiGfxRootSignature* SiGfxNXDevice::vf26(u32 a1, u64 a2, ISiAllocator* pAllocator) {
+ISiGfxRootSignature* SiGfxNXDevice::vf26(u32 a1, u32 a2, ISiAllocator* pAllocator) {
     if (pAllocator == nullptr) {
         pAllocator = Unk_Allocator();
     }
@@ -680,7 +830,7 @@ ISiGfxRootSignature* SiGfxNXDevice::vf26(u32 a1, u64 a2, ISiAllocator* pAllocato
 }
 
 // 0x71004f9b60
-ISiGfxDescriptorTable* SiGfxNXDevice::vf27(u32 a1, u64 a2, ISiAllocator* pAllocator) {
+ISiGfxDescriptorTable* SiGfxNXDevice::vf27(u32 a1, u32 a2, ISiAllocator* pAllocator) {
     if (pAllocator == nullptr) {
         pAllocator = Unk_Allocator();
     }
@@ -805,7 +955,7 @@ u64 SiGfxNXDevice::vf41() {
 }
 
 // 0x71004f9f20
-ISiGfxTexture* SiGfxNXDevice::vf49(u32 a1, const void* desc, u64 a3, ISiAllocator* pAllocator) {
+ISiGfxTexture* SiGfxNXDevice::vf49(u32 a1, const void* desc, u32 a3, ISiAllocator* pAllocator) {
     if (field_340 == nullptr) {
         return nullptr;
     }
@@ -1094,6 +1244,61 @@ bool SiGfxNXDevice::vf78() {
     return Unk_4fa590();
 }
 
+// Defined inline (not an exact definition to IPSCCP): the original's callers
+// tail-call it (slots 78 and 79), so its result, always true, wasn't a
+// constant to them. The format's cases are written one by one: with the
+// case groups the loop over them is small enough for LoopUnswitch to
+// unswitch it twice (kinds 1 and 2); the original's is unswitched once (kind
+// 1, its seven cases unrolled) and keeps a jump table for kinds 2 to 5.
+// 0x71004fa590: makes the root signature of its own drawing, then the
+// shader program and vertex format of each of 6 by 7 cases
+inline bool SiGfxNXDevice::Unk_4fa590() {
+    SiGfxNXRootSignature* signature = reinterpret_cast<SiGfxNXRootSignature*>(vf26(1, 0, nullptr));
+    signature->vf8();
+    signature->vf10(2);
+    signature->vf12(0, 2, 3, 0, 0);
+    signature->vf14(1, 2, 1);
+    signature->vf15(1, 0, 1, 0, 0, 1, 0xffffffff);
+    signature->vf16(1);
+    SiGfxNXRootSignature::Unk_SamplerDesc sampler(4);
+    signature->vf18(0, 2, 0, 0, &sampler);
+    signature->vf9();
+    field_3a0 = signature;
+    for (s32 i = 0; i < 6; i++) {
+        for (s32 j = 0; j < 7; j++) {
+            u32 id = Unk_4ecf40(i, j);
+            if (id != 0) {
+                ISiGfxShaderProgram* program = vf46(id);
+                if (program != nullptr) {
+                    ISiGfxVertexFormat* format = nullptr;
+                    switch (i) {
+                    case 1:
+                        format = vf39(5);
+                        break;
+                    case 2:
+                        format = vf39(5);
+                        break;
+                    case 3:
+                        format = vf39(6);
+                        break;
+                    case 4:
+                        format = vf39(6);
+                        break;
+                    case 5:
+                        format = vf39(6);
+                        break;
+                    }
+                    if (format != nullptr) {
+                        field_3a8[i][j] = program;
+                        field_4f8[i][j] = format;
+                    }
+                }
+            }
+        }
+    }
+    return true;
+}
+
 // 0x71004faa10
 bool SiGfxNXDevice::vf79() {
     if (field_378 != nullptr) {
@@ -1155,10 +1360,6 @@ SiGfxNXMemoryHeap* SiGfxNXDevice::Unk_4faea0(const Unk_4faac0_Request* request, 
     UNK_HEAP_ALLOC(field_6f0, field_50.field_94 > 0x400000 ? field_50.field_94 : 0x400000)
 }
 
-// NON_MATCHING: the same instructions in another order. The original stores
-// the description's pair at 0x18 and 0x20 first (`stp xzr, x9, [sp, #0x20]`),
-// then its zeroes, the zero at 0x10, the size and the pair of -1; this has
-// the zero at 0x10 first and the pair at 0x18 and 0x20 last.
 // 0x71004fb090: the memory its own drawing uses
 bool SiGfxNXDevice::Unk_4fb090() {
     void* nvnDevice = field_2b8;
@@ -1172,13 +1373,7 @@ bool SiGfxNXDevice::Unk_4fb090() {
         field_7a8 = field_7a8 > m ? field_7a8 : m;
         field_7a0 = reinterpret_cast<SiGfxNXMemoryHeap*>(vf30(0, nullptr));
         size_t heapSize = Unk_NXAlign(field_7a8, alignment);
-        Unk_NXMemoryHeapDesc desc;
-        desc.field_18 = 0;
-        desc.field_10 = 0;
-        desc.field_14 = 0;
-        desc.field_20 = 0;
-        desc.field_1c = 0;
-        desc.field_0 = static_cast<s32>(heapSize);
+        Unk_NXMemoryHeapDesc desc(heapSize);
         desc.field_30 = 0xa1;
         if (!field_7a0->vf8(&desc)) {
             return false;
@@ -1192,7 +1387,7 @@ bool SiGfxNXDevice::Unk_4fb090() {
 }
 
 // 0x71004fb1d0
-u64 SiGfxNXDevice::Unk_4fb1d0(u64 a1, u64 a2) {
+s32 SiGfxNXDevice::Unk_4fb1d0(u64 a1, u64 a2) {
     if (field_2c9) {
         return field_760(a1, a2, field_780);
     }
@@ -1200,7 +1395,7 @@ u64 SiGfxNXDevice::Unk_4fb1d0(u64 a1, u64 a2) {
 }
 
 // 0x71004fb200
-u64 SiGfxNXDevice::Unk_4fb200(u64 a1, u64 a2) {
+s32 SiGfxNXDevice::Unk_4fb200(u64 a1, u64 a2) {
     if (field_2c9) {
         return field_760(a1, a2, field_780);
     }
@@ -1208,7 +1403,7 @@ u64 SiGfxNXDevice::Unk_4fb200(u64 a1, u64 a2) {
 }
 
 // 0x71004fb230
-u64 SiGfxNXDevice::Unk_4fb230(u64 a1, u64 a2) {
+s32 SiGfxNXDevice::Unk_4fb230(u64 a1, u64 a2) {
     if (field_2c9) {
         return field_760(a1, a2, field_780);
     }
@@ -1248,7 +1443,7 @@ u64 SiGfxNXDevice::Unk_4fb2f0(u32 a1) {
 }
 
 // 0x71004fb380
-u64 SiGfxNXDevice::Unk_4fb380(u64 a1, u64 a2) {
+s32 SiGfxNXDevice::Unk_4fb380(u64 a1, u64 a2) {
     return field_760(a1, a2, field_780);
 }
 

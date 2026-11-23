@@ -2,6 +2,11 @@
 // Directly called leaf functions between two static initialisers (one or more
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
+#include <yebis/YEBIS_draft/include/PPFX/ppfxTypes.h>
+
+namespace PPFX {
+struct Unk_Rect;
+}
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
 void Unk_4234f0(u64, u32);
@@ -12,27 +17,27 @@ void Unk_4182e0_call(void* /*unused*/, u32 value) {
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_4276e0(u64);
+void Unk_4276e0(u64, f32, f32, f32, f32, f32);
 
 // 0x71004182f0
-void Unk_4182f0_call() {
-    Unk_4276e0(Unk_24e00e0);
+void Unk_4182f0_call(f32 a, f32 b, f32 c, f32 d, f32 e) {
+    Unk_4276e0(Unk_24e00e0, a, b, c, d, e);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_427760(u64);
+void Unk_427760(u64, f32, f32, f32, f32, f32);
 
 // 0x7100418300
-void Unk_418300_call() {
-    Unk_427760(Unk_24e00e0);
+void Unk_418300_call(f32 a, f32 b, f32 c, f32 d, f32 e) {
+    Unk_427760(Unk_24e00e0, a, b, c, d, e);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_4243c0(u64, u32);
+void Unk_4243c0(u64, u32, f32, f32, PPFX::Unk_Float);
 
 // 0x7100418320
-void Unk_418320_call(void* /*unused*/, u32 value) {
-    Unk_4243c0(Unk_24e00e0, value);
+void Unk_418320_call(void* /*unused*/, u32 value, f32 a, f32 b, PPFX::Unk_Float c) {
+    Unk_4243c0(Unk_24e00e0, value, a, b, c);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
@@ -52,7 +57,7 @@ void Unk_418350_call(void* /*unused*/, void* value, u32 arg2) {
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_423990(u64, u32);
+void Unk_423990(u64, bool);
 
 // 0x7100418360
 void Unk_418360_call(void* /*unused*/, bool value) {
@@ -60,19 +65,19 @@ void Unk_418360_call(void* /*unused*/, bool value) {
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_423a50(u64, void*, u32);
+void Unk_423a50(u64, const PPFX::Unk_Rect*, u32, f32, f32, f32, f32, f32, f32);
 
 // 0x7100418370
-void Unk_418370_call(void* /*unused*/, void* value, u32 arg2) {
-    Unk_423a50(Unk_24e00e0, value, arg2);
+void Unk_418370_call(void* /*unused*/, const PPFX::Unk_Rect* value, u32 arg2, f32 a, f32 b, f32 c, f32 d, f32 e, f32 f) {
+    Unk_423a50(Unk_24e00e0, value, arg2, a, b, c, d, e, f);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_423ae0(u64, void*);
+void Unk_423ae0(u64, const PPFX::Unk_Rect*, f32, f32, f32, f32);
 
 // 0x7100418380
-void Unk_418380_call(void* /*unused*/, void* value) {
-    Unk_423ae0(Unk_24e00e0, value);
+void Unk_418380_call(void* /*unused*/, const PPFX::Unk_Rect* value, f32 a, f32 b, f32 c, f32 d) {
+    Unk_423ae0(Unk_24e00e0, value, a, b, c, d);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
@@ -84,18 +89,18 @@ void Unk_418390_call(f32 a, f32 b) {
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_428ec0(u64);
+void Unk_428ec0(u64, f32, f32, f32);
 
 // 0x71004183b0
-void Unk_4183b0_call() {
-    Unk_428ec0(Unk_24e00e0);
+void Unk_4183b0_call(f32 a, f32 b, f32 c) {
+    Unk_428ec0(Unk_24e00e0, a, b, c);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_424740(u64, u64, u32);
+void Unk_424740(u64, s32, u32);
 
 // 0x71004183c0
-void Unk_4183c0_call(void* /*unused*/, u64 value, bool arg2) {
+void Unk_4183c0_call(void* /*unused*/, s32 value, bool arg2) {
     Unk_424740(Unk_24e00e0, value, arg2);
 }
 
@@ -108,43 +113,43 @@ void Unk_4183d0_call(void* /*unused*/, u32 value) {
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_424b20(u64, u64);
+void Unk_424b20(u64, s32, f32, f32);
 
 // 0x71004183e0
-void Unk_4183e0_call(void* /*unused*/, u64 value) {
-    Unk_424b20(Unk_24e00e0, value);
+void Unk_4183e0_call(void* /*unused*/, s32 value, f32 a, f32 b) {
+    Unk_424b20(Unk_24e00e0, value, a, b);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_424c90(u64, u64);
+void Unk_424c90(u64, s32, f32, f32);
 
 // 0x71004183f0
-void Unk_4183f0_call(void* /*unused*/, u64 value) {
-    Unk_424c90(Unk_24e00e0, value);
+void Unk_4183f0_call(void* /*unused*/, s32 value, f32 a, f32 b) {
+    Unk_424c90(Unk_24e00e0, value, a, b);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_424f40(u64, u64);
+s32 Unk_424f40(f32, f32, f32, f32, u64, s32);
 
 // 0x7100418400
-void Unk_418400_call(void* /*unused*/, u64 value) {
-    Unk_424f40(Unk_24e00e0, value);
+s32 Unk_418400_call(void* /*unused*/, s32 view, f32 width, f32 height, f32 x, f32 y) {
+    return Unk_424f40(width, height, x, y, Unk_24e00e0, view);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_424de0(u64, u64, u32);
+void Unk_424de0(u64, s32, u32, f32);
 
 // 0x7100418410
-void Unk_418410_call(void* /*unused*/, u64 value, u32 arg2) {
-    Unk_424de0(Unk_24e00e0, value, arg2);
+void Unk_418410_call(void* /*unused*/, s32 value, u32 arg2, f32 a) {
+    Unk_424de0(Unk_24e00e0, value, arg2, a);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_4248b0(u64, u64);
+s32 Unk_4248b0(f32, PPFX::Unk_Float, PPFX::Unk_Float, f32, f32, f32, f32, u64, s32);
 
 // 0x7100418420
-void Unk_418420_call(void* /*unused*/, u64 value) {
-    Unk_4248b0(Unk_24e00e0, value);
+s32 Unk_418420_call(void* /*unused*/, s32 view, f32 a, f32 b, f32 c, f32 d, f32 e, f32 f, f32 g) {
+    return Unk_4248b0(a, b, c, d, e, f, g, Unk_24e00e0, view);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
@@ -172,27 +177,27 @@ void Unk_418450_call(void* /*unused*/, bool value) {
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_4244a0(u64, u32);
+s32 Unk_4244a0(u64, u32 tonemap, f32 exposure, f32 gamma, f32 factor, f32 dither);
 
-// 0x7100418470
-void Unk_418470_call(void* /*unused*/, u32 value) {
-    Unk_4244a0(Unk_24e00e0, value);
+// 0x7100418470 (the post effect's tone map, whose four floats it passes on)
+void Unk_418470_call(void* /*unused*/, u32 value, f32 exposure, f32 gamma, f32 factor, f32 dither) {
+    Unk_4244a0(Unk_24e00e0, value, exposure, gamma, factor, dither);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_4246f0(u64, void*);
+void Unk_4246f0(u64, const PPFX::Unk_Rect*, f32, f32, f32);
 
 // 0x7100418480
-void Unk_418480_call(void* /*unused*/, void* value) {
-    Unk_4246f0(Unk_24e00e0, value);
+void Unk_418480_call(void* /*unused*/, const PPFX::Unk_Rect* value, f32 a, f32 b, f32 c) {
+    Unk_4246f0(Unk_24e00e0, value, a, b, c);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_4277e0(u64, u32, u32);
+void Unk_4277e0(u64, u32, u32, f32, f32, f32, f32, f32);
 
 // 0x7100418490
-void Unk_418490_call(void* /*unused*/, bool value, bool arg2) {
-    Unk_4277e0(Unk_24e00e0, value, arg2);
+void Unk_418490_call(void* /*unused*/, bool value, bool arg2, f32 a, f32 b, f32 c, f32 d, f32 e) {
+    Unk_4277e0(Unk_24e00e0, value, arg2, a, b, c, d, e);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
@@ -239,11 +244,11 @@ void Unk_418580_call(void* /*unused*/, bool value) {
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_423db0(u64, u32, u32);
+void Unk_423db0(u64, s32, u32, f32, f32, f32);
 
 // 0x71004185a0
-void Unk_4185a0_call(void* /*unused*/, u32 value, u32 arg2) {
-    Unk_423db0(Unk_24e00e0, value, arg2);
+void Unk_4185a0_call(void* /*unused*/, s32 value, u32 arg2, f32 a, f32 b, f32 c) {
+    Unk_423db0(Unk_24e00e0, value, arg2, a, b, c);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
@@ -255,11 +260,11 @@ void Unk_4185b0_call(void* /*unused*/, u32 value) {
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_424240(u64, u32);
+void Unk_424240(u64, u32, f32, f32, f32, f32);
 
 // 0x71004185c0
-void Unk_4185c0_call() {
-    Unk_424240(Unk_24e00e0, 0);
+void Unk_4185c0_call(f32 a, f32 b, f32 c, f32 d) {
+    Unk_424240(Unk_24e00e0, 0, a, b, c, d);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
@@ -271,7 +276,7 @@ void Unk_4185d0_call(f32 a, f32 b, f32 c, f32 d) {
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_423ba0(u64, u32);
+void Unk_423ba0(u64, bool);
 
 // 0x71004186e0
 void Unk_4186e0_call(void* /*unused*/, bool value) {
@@ -279,11 +284,11 @@ void Unk_4186e0_call(void* /*unused*/, bool value) {
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_423c60(u64, void*, u32, u32);
+void Unk_423c60(u64, const PPFX::Unk_Rect*, u32, u32, f32, f32);
 
 // 0x7100418710
-void Unk_418710_call(void* /*unused*/, void* value, u32 arg2, u32 arg3) {
-    Unk_423c60(Unk_24e00e0, value, arg2, arg3);
+void Unk_418710_call(void* /*unused*/, const PPFX::Unk_Rect* value, u32 arg2, u32 arg3, f32 a, f32 b) {
+    Unk_423c60(Unk_24e00e0, value, arg2, arg3, a, b);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
@@ -311,59 +316,59 @@ void Unk_418780_call(void* /*unused*/, u32 value) {
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_43a5b0(u64, u64, u32);
+void Unk_43a5b0(u64, u32, bool, f32);
 
 // 0x7100418790
-void Unk_418790_call(void* /*unused*/, u64 value, bool arg2) {
-    Unk_43a5b0(Unk_24e00e0, value, arg2);
+void Unk_418790_call(void* /*unused*/, u32 value, bool arg2, f32 a) {
+    Unk_43a5b0(Unk_24e00e0, value, arg2, a);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_43a670(u64, u32);
+void Unk_43a670(u64, u32, f32);
 
 // 0x71004187a0
-void Unk_4187a0_call(void* /*unused*/, u32 value) {
-    Unk_43a670(Unk_24e00e0, value);
+void Unk_4187a0_call(void* /*unused*/, u32 value, f32 a) {
+    Unk_43a670(Unk_24e00e0, value, a);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_43a760(u64, u32);
+void Unk_43a760(u64, u32, f32);
 
 // 0x71004187b0
-void Unk_4187b0_call(void* /*unused*/, u32 value) {
-    Unk_43a760(Unk_24e00e0, value);
+void Unk_4187b0_call(void* /*unused*/, u32 value, f32 a) {
+    Unk_43a760(Unk_24e00e0, value, a);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_43a6e0(u64, u32);
+void Unk_43a6e0(u64, u32, f32, f32, f32);
 
 // 0x71004187c0
-void Unk_4187c0_call(void* /*unused*/, u32 value) {
-    Unk_43a6e0(Unk_24e00e0, value);
+void Unk_4187c0_call(void* /*unused*/, u32 value, f32 a, f32 b, f32 c) {
+    Unk_43a6e0(Unk_24e00e0, value, a, b, c);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_43a610(u64, u32);
+void Unk_43a610(u64, u32, f32);
 
 // 0x71004187d0
-void Unk_4187d0_call(void* /*unused*/, u32 value) {
-    Unk_43a610(Unk_24e00e0, value);
+void Unk_4187d0_call(void* /*unused*/, u32 value, f32 a) {
+    Unk_43a610(Unk_24e00e0, value, a);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_43a7e0(u64, u32);
+void Unk_43a7e0(u64, u32, f32, f32, f32, f32);
 
 // 0x71004187e0
-void Unk_4187e0_call(void* /*unused*/, u32 value) {
-    Unk_43a7e0(Unk_24e00e0, value);
+void Unk_4187e0_call(void* /*unused*/, u32 value, f32 a, f32 b, f32 c, f32 d) {
+    Unk_43a7e0(Unk_24e00e0, value, a, b, c, d);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_43a840(u64, u32);
+void Unk_43a840(u64, u32, f32);
 
 // 0x71004187f0
-void Unk_4187f0_call(void* /*unused*/, u32 value) {
-    Unk_43a840(Unk_24e00e0, value);
+void Unk_4187f0_call(void* /*unused*/, u32 value, f32 a) {
+    Unk_43a840(Unk_24e00e0, value, a);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
@@ -383,19 +388,19 @@ void Unk_418810_call(void* /*unused*/, u64 value, bool arg2, void* arg3) {
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_43a460(u64, u32);
+void Unk_43a460(u64, u32, f32);
 
 // 0x7100418820
-void Unk_418820_call(void* /*unused*/, u32 value) {
-    Unk_43a460(Unk_24e00e0, value);
+void Unk_418820_call(void* /*unused*/, u32 value, f32 a) {
+    Unk_43a460(Unk_24e00e0, value, a);
 }
 
 extern u64 Unk_24e00e0 __attribute__((visibility("hidden")));
-void Unk_43a530(u64, u32);
+void Unk_43a530(u64, u32, f32);
 
 // 0x7100418830
-void Unk_418830_call(void* /*unused*/, u32 value) {
-    Unk_43a530(Unk_24e00e0, value);
+void Unk_418830_call(void* /*unused*/, u32 value, f32 a) {
+    Unk_43a530(Unk_24e00e0, value, a);
 }
 
 void Unk_43b920(u64, u32);

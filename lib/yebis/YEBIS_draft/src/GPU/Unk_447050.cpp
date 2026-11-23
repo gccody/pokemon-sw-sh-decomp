@@ -245,15 +245,17 @@ const char* Unk_446df0(s32 result) {
 
 namespace PPFX {
 
-// 0x7100446e20
-bool Unk_446e20(s32* a, s32* b, s32 valueA, s32 valueB) {
-    if (a != nullptr) {
-        *a = valueA;
+// 0x7100446e20: the size of a tile and how many there are (one, the
+// target's size, whatever the other parameters say)
+s32 Unk_446e20(u32* width, u32* height, u32 targetWidth, u32 targetHeight, s32 arg4, s32* format, s32 tiled,
+               s32 msaa, s32 arg8) {
+    if (width != nullptr) {
+        *width = targetWidth;
     }
-    if (b != nullptr) {
-        *b = valueB;
+    if (height != nullptr) {
+        *height = targetHeight;
     }
-    return true;
+    return 1;
 }
 
 // 0x7100446e40: a multisample type's sample count
@@ -305,6 +307,33 @@ u32 Unk_446e60(s32 count) {
     n = n < 16 ? n : 16;
     n = n > 1 ? n : 1;
     return Unk_446e40(n);
+}
+
+// 0x7100446eb0: the multisample type and quality of a number of samples
+// and a quality (both between 1 and 16, 16 for a negative one; no quality
+// for one sample)
+// NON_MATCHING: here the inlined switch of Unk_446e40 becomes a lookup
+// table; the original keeps it a jump table whose case 1 also sets the
+// quality to 0 (the test of one sample merged into the switch, which a
+// non-constant result then keeps from becoming a table) and branches on the
+// quality's sign. Eight orders of the tests were tried.
+s32 Unk_446eb0(s32 count, s32 quality, u32* outType, s32* outQuality) {
+    s32 n = count < 0 ? 16 : count;
+    n = n < 16 ? n : 16;
+    n = n > 1 ? n : 1;
+    s32 q = quality < 0 ? 16 : quality;
+    q = q < 16 ? q : 16;
+    if (n == 1) {
+        q = 0;
+    }
+    u32 type = Unk_446e40(n);
+    if (outType != nullptr) {
+        *outType = type;
+    }
+    if (outQuality != nullptr) {
+        *outQuality = q;
+    }
+    return 0;
 }
 
 // 0x7100447010

@@ -29,6 +29,19 @@ public:
     void Unk_451320(s32 length, s32 keep);
     // 0x7100451530: sets the length (pads with spaces)
     Unk_TFXString& Unk_451530(s32 length);
+    // 0x7100452b30: without the spaces at the end
+    Unk_TFXString& Unk_452b30();
+    // 0x7100452c00: without the characters of `chars` at the start
+    Unk_TFXString& Unk_452c00(const Unk_TFXString& chars);
+    // 0x7100452d20: the same with the first `count` characters of a C
+    // string (all of it when `count` is negative); `CutLeft` and `szDefSpace`
+    // are its assert's
+    Unk_TFXString& CutLeft(const char* szDefSpace, s32 count);
+    // the `pos`th character (counted from 1; 0 past the end)
+    char Unk_At(s32 pos) const {
+        s32 length = field_0;
+        return pos > length ? '\0' : field_8[pos - 1];
+    }
     Unk_TFXString& operator=(const Unk_TFXString& other);       // 0x71004515c0
     Unk_TFXString& operator=(const char* text);                 // 0x71004517b0
     Unk_TFXString operator+(const Unk_TFXString& other) const;  // 0x7100451630
@@ -53,9 +66,17 @@ public:
     Unk_TFXString operator+(char c) const;  // 0x7100452740
     // 0x7100452790: strcmp, or strncmp over `count` characters
     s32 Unk_452790(const char* text, s32 count) const;
-    bool operator!=(const Unk_TFXString& other) const;     // 0x71004527b0
-    bool operator==(const char* text) const;               // 0x71004527e0
+    s32 operator!=(const Unk_TFXString& other) const;      // 0x71004527b0 (an int to its caller)
+    // 0x71004527e0 (an int: CTinyEffect's callers test the whole register)
+    s32 operator==(const char* text) const;
     Unk_TFXString operator+(const char* text) const;       // 0x7100452820
+    // 0x7100451f00: without the spaces, tabs and line feeds around it, and
+    // without a pair of the characters of `quotes` around that
+    Unk_TFXString& Unk_451f00(const char* quotes);
+    // 0x71004520d0: where `text` (its first `count` characters, all of it
+    // when `count` is negative) is, from the `start`th character on (0 if
+    // nowhere)
+    s32 Unk_4520d0(const char* text, s32 start, s32 count) const;
     // 0x7100452400: where `text` is, searching backwards (0 if nowhere)
     s32 Unk_452400(const char* text, s32 arg2, s32 arg3) const;
 
@@ -70,5 +91,7 @@ PKMN_SIZE_ASSERT(Unk_TFXString, 0x10);
 
 // 0x71004525a0: a number's decimal digits
 Unk_TFXString Unk_4525a0(s32 value);
+// 0x71004529a0: `text` followed by `other`
+Unk_TFXString Unk_4529a0(const char* text, const Unk_TFXString& other);
 
 }  // namespace PPFX
