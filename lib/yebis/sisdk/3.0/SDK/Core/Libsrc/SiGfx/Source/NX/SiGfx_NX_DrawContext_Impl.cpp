@@ -243,7 +243,7 @@ bool SiGfxNXDrawContext::vf8(SiGfxNXCommandList* pCommandList) {
     field_3a68 = 0;
     field_3e0c = frame;
     for (s32 i = 0; i < 3; i++) {
-        FrameDirectBufferArray& buffers = field_3e10[i].m_pData[field_3e0c];
+        FrameDirectBufferArray& buffers = field_3e10[i][field_3e0c];
         buffers.field_8 = 0;
         if (buffers.field_10.m_itemCount != 0 && buffers.field_10.m_pData[0] != nullptr) {
             buffers.field_10.m_pData[0]->field_10 = 0;
@@ -2642,7 +2642,5 @@ void SiGfxNXDrawContext::vf95(u32 kind, s32 index, s32 count, const u32* values)
 }  // namespace SiSDK3
 
 // 0x7100542c80 (see the top of the file); 0x7100542e80, the arrays' reserve,
-// is instantiated by Unk_53b750: NON_MATCHING, the original calls this
-// release where SiCore_Array.h's reserve has Unk_FreeData inline (in both
-// places: after the copy and for a count of 0).
+// is instantiated by Unk_53b750 (it calls this release, out of line here).
 template void SiSDK3::SiArray<SiSDK3::SiGfxNXDrawContext::FrameDirectBufferArray, 16>::Unk_4e3050();

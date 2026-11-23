@@ -310,7 +310,7 @@ s32 CDepthOfField::vf2() {
     s32 result = CGPUResourceManage::vf2();
     if (result < 0)
         return result;
-    if (Unk_4a7390(field_228, &field_c0) < 0)
+    if (ValidateInitParam(field_228, &field_c0) < 0)
         return -1;
     for (s32 i = 0; i < field_c0.field_10; i++) {
         if (field_4a8[i].field_a0->field_2c.field_c == 0)
@@ -1270,8 +1270,8 @@ s32 CDepthOfField::Unk_4b4ff0(CRenderTexture* source) {
             y = y * 0.5f / field_1e4 * field_1e8.field_0[0].field_0 + field_1e8.field_0[1].field_0;
             Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
             Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
-            util->Unk_4816a0(size, field_3d8 / field_3ac, last / field_3ac, x, y, field_430[i],
-                             static_cast<CRenderTexture*>(field_488[i]), &color, &zero);
+            util->Unk_4816a0(size, field_3d8 / field_3ac, last / field_3ac, field_430[i],
+                             static_cast<CRenderTexture*>(field_488[i]), &color, &zero, x, y);
         }
     }
     // the levels' sources
@@ -1860,11 +1860,13 @@ s32 CDepthOfField::Unk_4a7f60() {
 }
 
 // 0x71004aa0d0
-// NON_MATCHING: the same instructions; the load of field_c0.field_6d is
-// scheduled before the first stores here (after the third in the original),
-// which swaps w8 and w9 in the constants, and two stores come in another order
+// NON_MATCHING: the same instructions; two stores are scheduled the other way
+// round (field_3a8's before field_1d0's; the original has field_1d0's first).
+// With field_3a8 set first the load of field_c0.field_6d comes after the
+// third store, as in the original (set later, it comes first and swaps w8/w9).
+// No other order of these stores is closer (every move and swap tried).
 s32 CDepthOfField::Initialize(CRenderTexture* source, const Unk_Desc* desc) {
-    s32 result = Unk_4a7390(source, const_cast<Unk_Desc*>(desc));
+    s32 result = ValidateInitParam(source, desc);
     if (result < 0) {
 #line 2896
         PPFX_ERROR("CDepthOfField::Initialize(): ValidateInitParam() failed (0x%x: %s).\n", result,
@@ -1877,6 +1879,7 @@ s32 CDepthOfField::Initialize(CRenderTexture* source, const Unk_Desc* desc) {
     field_c0 = *desc;
     field_2c = *desc;
     Unk_4a7f60();
+    field_3a8 = true;
     field_1c8 = 0;
     field_3b8 = 0.75f;
     field_3bc = 0.0f;
@@ -1885,7 +1888,6 @@ s32 CDepthOfField::Initialize(CRenderTexture* source, const Unk_Desc* desc) {
     field_3ec = 0.5f;
     field_1cc = 0.0f;
     field_1d0 = 0.0f;
-    field_3a8 = true;
     field_3b0 = 0;
     field_3c4 = false;
     field_3b4 = false;
@@ -2175,7 +2177,7 @@ static inline s32 Unk_SetViewport(PPFX::CRenderTexture* texture, f32 width, f32 
     if (height > 0.0f) {
         h = h > 1 ? h : 1;
     }
-    return Unk_49ad30(reinterpret_cast<PPFX::Unk_RenderTexture*>(texture), w, h, ix, iy);
+    return Unk_49ad30(texture, w, h, ix, iy);
 }
 
 // 0x71004aa5a0: every texture of the chain's viewport
@@ -2790,9 +2792,10 @@ s32 CDepthOfField::Unk_4b1100(bool near, bool far, s32 count, f32 angle) {
 // `target`, through the mask `arg3`) into `arg4`, drawn with the vertices
 // `arg7` and indices `arg8` (placeholder parameter names)
 // NON_MATCHING: 3912 vs 3920 bytes, same calls, constants and stack layout up
-// to registers: the original keeps near/far and 0.5f in callee-saved
-// registers (more spills here) and lays the near position's ratio test and
-// the technique selection's two near branches out differently. `first` is
+// to registers: the original spills `scale` and `last` at entry, keeps 0.5f
+// in a callee-saved register from the near test on and lays the near
+// position's ratio test and the technique selection's two near branches out
+// differently. `first` is
 // handed to Unk_NearPosition, which ignores it: an argument used only there
 // survives DeadArgElim, so 0x71004b4c40 passes `i == 0` as the original does.
 s32 CDepthOfField::Unk_4b35f0(f32 scale, CRenderTexture* source, CRenderTexture* target, void* arg3, void* arg4,
@@ -2859,6 +2862,7 @@ s32 CDepthOfField::Unk_4b35f0(f32 scale, CRenderTexture* source, CRenderTexture*
         offsetX = Unk_Float(Unk_4b0db0_Distance(this) * -0.002f);
         offsetY = Unk_Float(Unk_4b0db0_Distance(this) * 0.002f);
     }
+    const f32* clip = &field_1e8.field_0[0].field_0;
     f32 size;
     if (near) {
         size = field_2e0[field_2ac];
@@ -2899,7 +2903,7 @@ s32 CDepthOfField::Unk_4b35f0(f32 scale, CRenderTexture* source, CRenderTexture*
     effect->vf29(techniques[far]);
     Unk_Float4* constants = reinterpret_cast<Unk_Float4*>(const_cast<u8*>(Unk_4738c0_get()));
     Unk_Float4* sizes = reinterpret_cast<Unk_Float4*>(const_cast<u8*>(Unk_4738d0_get()));
-    effect->vf20(util->field_30.field_b0, &field_1e8.field_0[0].field_0);
+    effect->vf20(util->field_30.field_b0, clip);
     constants[5] = Unk_Float4(half, 0.0f, blur, amount);
     constants[6] = Unk_Float4(half, half, offsetX, offsetY);
     constants[7] = Unk_Float4(inverseSize, inverseScale, 0.0f, 0.0f);
@@ -3603,8 +3607,11 @@ s32 CDepthOfField::Unk_4b3280(s32 level) {
 // the previous one before it tests whether a pair was unused; here the unused
 // test comes second. Tried: the three conditions in every order, with && and
 // ||, the flag as a bool, an or of the values and per-pair variables.
-s32 CDepthOfField::Unk_4a7390(void* source, void* descArg) {
-    const Unk_Desc* desc = static_cast<const Unk_Desc*>(descArg);
+// At the IR level the original is `or i1 (begin > previous begin), unused`;
+// here Reassociate ranks the flag (set in the block before the previous
+// begin's load) lower and puts it first. Keeping the previous pair in
+// loop-carried locals gets that order, but then begin's compare comes first.
+s32 CDepthOfField::ValidateInitParam(CRenderTexture* source, const Unk_Desc* desc) {
     if (static_cast<u32>(desc->field_0[1]) < 16) {
         return -6;
     }

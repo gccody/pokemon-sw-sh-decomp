@@ -140,34 +140,19 @@ bool SiGfxNXCommandList::Unk_53a000(u32 kind) {
     return true;
 }
 
-// NON_MATCHING: a first draft, 8 bytes longer than the original. The
-// original tests the event for 1 first and falls through to the code for 0
-// (`cmp w1, #1 ; b.eq ; cbnz w1`: probably a switch), and its blocks and
-// registers follow from that.
+// NVN's memory callback (its data is the command list): event 0 asks for
+// command memory, 1 for control memory. (The heaps are read through the
+// array's operator[], which reads the index before the buffer.)
 // 0x710053a310
 void SiGfxNXCommandList::Unk_53a310(void* commandBuffer, int event, size_t minSize, void* data) {
     SiGfxNXCommandList* self = static_cast<SiGfxNXCommandList*>(data);
     if (self->field_121) {
         return;
     }
-    if (event == 1) {
+    switch (event) {
+    case 0: {
         self->field_58.vf2();
-        size_t size = self->field_108 * 2 > self->field_108 + minSize ? self->field_108 * 2 : self->field_108 + minSize;
-#line 478
-        void* memory = self->field_8.m_pAllocator->vf7(size, self->field_118, __FILE__, __LINE__);
-        if (memory != nullptr) {
-            nvnCommandBufferAddControlMemory(self->field_88, memory, size);
-            size_t index = self->field_150.m_itemCount;
-            self->field_150.Unk_SetCount(index + 1);
-            self->field_150.m_pData[index].field_0 = nullptr;
-            self->field_150.m_pData[index].field_8 = self->field_f0;
-            self->field_f0 = memory;
-            self->field_108 = size;
-        }
-        self->field_58.vf3();
-    } else if (event == 0) {
-        self->field_58.vf2();
-        size_t size = self->field_98.m_pData[self->field_e8]->vf7()->field_0 + minSize;
+        size_t size = static_cast<s32>(self->field_98[self->field_e8]->vf7()->field_0) + minSize;
         SiGfxNXMemoryHeap* heap;
         if (self->field_e8 < static_cast<s32>(self->field_98.m_itemCount) - 1) {
             heap = self->field_98.m_pData[self->field_e8 + 1];
@@ -183,16 +168,36 @@ void SiGfxNXCommandList::Unk_53a310(void* commandBuffer, int event, size_t minSi
             if (!heap->Unk_552fc0(static_cast<s32>(heapSize), alignment, &self->field_f8)) {
                 return;
             }
-            self->field_100 = (alignment - 1 + self->field_f8) & -alignment;
+            self->field_100 = (self->field_f8 + alignment - 1) & -alignment;
             self->field_98.Unk_Add(heap);
         }
         if (heap != nullptr) {
             nvnCommandBufferAddCommandMemory(self->field_88, heap->vf16(), self->field_100, size);
-            memcpy(heap->field_448, self->field_98.m_pData[self->field_e8]->field_448,
-                   self->field_98.m_pData[self->field_e8]->vf7()->field_0);
+            memcpy(heap->field_448, self->field_98[self->field_e8]->field_448,
+                   static_cast<s32>(self->field_98[self->field_e8]->vf7()->field_0));
             self->field_110 = size;
         }
         self->field_58.vf3();
+        break;
+    }
+    case 1: {
+        self->field_58.vf2();
+        size_t size = self->field_108 * 2 > self->field_108 + minSize ? self->field_108 * 2 : self->field_108 + minSize;
+#line 478
+        void* memory = self->field_8.m_pAllocator->vf7(size, self->field_118, __FILE__, __LINE__);
+        if (memory != nullptr) {
+            nvnCommandBufferAddControlMemory(self->field_88, memory, size);
+            size_t index = self->field_150.m_itemCount;
+            self->field_150.Unk_SetCount(index + 1);
+            OverwrittenEntry& entry = self->field_150.m_pData[index];
+            entry.field_0 = nullptr;
+            entry.field_8 = self->field_f0;
+            self->field_f0 = memory;
+            self->field_108 = size;
+        }
+        self->field_58.vf3();
+        break;
+    }
     }
 }
 

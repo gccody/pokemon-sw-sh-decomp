@@ -45,17 +45,18 @@ namespace SiSDK3 {
 
 // Sets an array's number of elements, making room when there isn't enough
 // (inline in the queue's function: a placeholder name; SiCore_Array.h's
-// Unk_SetCount makes room also when there's exactly enough).
+// Unk_SetCount makes room also when there's exactly enough). The room's test
+// as `reserved >= count ||` puts the reserve's block after the other, as in
+// the original.
 template <class T, int ALIGN>
 static inline bool Unk_Resize(SiArray<T, ALIGN>* array, size_t count) {
     if (array->m_itemCount != count) {
-        if (array->m_reservedCount < count) {
-            if (!array->Unk_4bf190(count, true)) {
-                array->m_itemCount = 0;
-                array->field_30 = nullptr;
-                array->field_38 = nullptr;
-                return false;
-            }
+        bool ok = array->m_reservedCount >= count || array->Unk_4bf190(count, true);
+        if (!ok) {
+            array->m_itemCount = 0;
+            array->field_30 = nullptr;
+            array->field_38 = nullptr;
+            return false;
         }
         array->m_itemCount = count;
         array->field_30 = array->m_pData;
@@ -142,11 +143,6 @@ bool SiGfxNXCommandQueue::Unk_54de30() {
     return true;
 }
 
-// NON_MATCHING: the array's reserve is inline here as in the original, but
-// its loop that copies the old syncs is unrolled by four where the original's
-// is unrolled by two (`and x8, x23, #1`), and the branch that skips the
-// reserve goes the other way round. An NVNsync whose copy costs LLVM one
-// instruction more than these 64 bytes' would give the original's count.
 // 0x710054e070
 bool SiGfxNXCommandQueue::Unk_54e070() {
     Unk_Resize(&field_2050, 0x80);

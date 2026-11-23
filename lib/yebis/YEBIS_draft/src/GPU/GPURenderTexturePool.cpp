@@ -194,14 +194,10 @@ s32 CRenderTexturePool::vf3() {
 }  // namespace PPFX
 
 // 0x710049fc60
-// NON_MATCHING: 1 instruction: in the copy of the loop for a count below 1
-// the end test compares the iterator with the end (the iterator is a pointer
-// phi there, so InstCombine puts it first); the original compares the end
-// with it. (The entry pointer is cleared whether or not it was set: the
-// original's store comes after the links are read.)
-s32 Unk_49fc60(void* self, u32 count_, void* textures_) {
+// (The entry pointer is cleared whether or not it was set: the original's
+// store comes after the links are read.)
+s32 Unk_49fc60(PPFX::CRenderTexturePool* pool, u32 count_, void* textures_) {
     using namespace PPFX;
-    CRenderTexturePool* pool = static_cast<CRenderTexturePool*>(self);
     s32 count = count_;
     CRenderTexture** textures = static_cast<CRenderTexture**>(textures_);
     s32 destroyed = 0;

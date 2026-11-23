@@ -30,6 +30,10 @@ public:
 
     virtual ~SiArray() { Unk_4e3050(); }
 
+    // the element at index (inline in every caller)
+    T& operator[](size_t index) { return m_pData[index]; }
+    const T& operator[](size_t index) const { return m_pData[index]; }
+
     // 0x710056e140 (SiString<char>): copies the other's elements (it returns
     // nothing)
     void operator=(const SiArray& other);
@@ -278,7 +282,9 @@ public:
 
 // Defined outside the class without `inline`, like the original's (inlined
 // only where the plain threshold allows: SiArray<RollingPerfData<float>>'s
-// destructor calls 0x71004e3050).
+// destructor calls 0x71004e3050). The old buffer is released through
+// Unk_4e3050 before the new one is set: for an element with a destructor
+// (SiGfxNXDrawContext's frames, 0x7100542e80) the original calls it.
 template <class T, int ALIGN>
 bool SiArray<T, ALIGN>::Unk_4bf190(size_t count, bool keep) {
     if (m_reservedCount == count) {
@@ -303,10 +309,7 @@ bool SiArray<T, ALIGN>::Unk_4bf190(size_t count, bool keep) {
             pData[i] = m_pData[i];
         }
     }
-    Unk_FreeData();
-    field_48 = 0;
-    field_30 = nullptr;
-    field_38 = nullptr;
+    Unk_4e3050();
     m_pData = pData;
     m_itemCount = n;
     m_reservedCount = count;

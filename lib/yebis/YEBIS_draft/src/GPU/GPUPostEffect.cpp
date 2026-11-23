@@ -204,7 +204,7 @@ s32 Unk_424240(u64 self, u32 flag, f32 width, f32 height, f32 x, f32 y);
 s32 Unk_427760(u64 self, f32 a, f32 b, f32 c, f32 d, f32 e);
 s32 Unk_424100(PPFX::CPostEffect* self, f32 nearZ, f32 farZ, f32 fov, f32 elapsed, f32 scale);
 s32 Unk_424670(PPFX::CPostEffect* self, f32 elapsed);
-s32 Unk_424740(u64 self, s32 view, u32 enable);
+s32 Unk_424740(u64 self, s32 view, bool enable);
 s32 Unk_4248b0(f32 sensitivity, PPFX::Unk_Float scale, PPFX::Unk_Float speed, f32 darkSensitivity, f32 darkScale,
                f32 darkSpeed, f32 border, u64 self, s32 view);
 s32 Unk_424b20(u64 self, s32 view, f32 minExposure, f32 maxExposure);
@@ -2596,9 +2596,8 @@ CPostEffect::~CPostEffect() {
 extern void* Unk_24e53e0;
 
 // 0x7100426700: CPostEffect::BeginPostEffectScene (its log line names it)
-// NON_MATCHING: one load: the original reads the texture util's pointer
-// before the user count's store (its acquire's read, kept for the release);
-// here the acquire's read is dead and the release reads it after the store
+// (the texture util's release is given the pointer its acquire read: the
+// original reads it before the user count's store)
 s32 CPostEffect::BeginPostEffectScene(u32 clearFlags, const void* clearColor, f32 clearDepth, u32 clearStencil,
                                       s32 aux) {
 #line 11315
@@ -2616,8 +2615,8 @@ s32 CPostEffect::BeginPostEffectScene(u32 clearFlags, const void* clearColor, f3
         clearDepth = field_1014 ? 0.0f : 1.0f;
     }
     // (the texture util is made, if no one has it, and released again)
-    Unk_GetTextureUtil();
-    Unk_ReleaseTextureUtil();
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil(util);
     field_5e8 = field_5d8;
     if (aux >= 0) {
         Unk_24e53e0 = nullptr;
@@ -3821,19 +3820,19 @@ s32 Unk_423c60(u64 self_, const PPFX::Unk_Rect* rect, u32 arg2, u32 arg3, f32 a,
 }
 
 // 0x7100423db0
-// NON_MATCHING: the original selects the three clamped numbers as integers in
-// registers (`fmov w8, s0 ; csel w8, w8, wzr, gt`); here the selection stays
-// a choice between two stack slots.
-s32 Unk_423db0(u64 self_, s32 count, u32 arg2, f32 a, f32 b, f32 c) {
+s32 Unk_423db0(u64 self_, s32 count, u32 arg2, PPFX::Unk_Float a, PPFX::Unk_Float b, PPFX::Unk_Float c) {
     PPFX::CPostEffect* self = reinterpret_cast<PPFX::CPostEffect*>(self_);
-    self->field_cf0 = Unk_Max(0.0f, a);
-    self->field_cf4 = Unk_Max(0.0f, b);
+    PPFX::Unk_Float x = a.field_0 > 0.0f ? a : PPFX::Unk_Float(0.0f);
+    PPFX::Unk_Float y = b.field_0 > 0.0f ? b : PPFX::Unk_Float(0.0f);
     if (count >= 0) {
-        count = count < 3 ? 3 : (count < 8 ? count : 8);
+        count = count < 3 ? 3 : std::min(count, 8);
     }
+    PPFX::Unk_Float z = c.field_0 > 1.0f ? c : PPFX::Unk_Float(1.0f);
+    self->field_cf0 = x;
+    self->field_cf4 = y;
     self->field_cf8 = count;
     self->field_cfc = arg2;
-    self->field_d00 = Unk_Max(1.0f, c);
+    self->field_d00 = z;
     return 0;
 }
 
@@ -4574,39 +4573,21 @@ s32 Unk_4277e0(u64 self_, u32 a_, u32 b_, f32 c, f32 d, f32 e, f32 f, f32 g) {
     return 0;
 }
 
-// NON_MATCHING: the register of one temporary and the order of two
-// instructions differ (the original ands the comparison with the parameter,
-// `and w12, w12, w2`, and compares the second loop's counter with a
-// sign-extended load).
 // 0x7100425170: which views' settings of the second kind are on (0x7fffffff:
 // all of them, -1: the active one); 1 if one of them can't be
-s32 Unk_425170(u64 self_, u64 view_, u32 enable_) {
+s32 Unk_425170(u64 self_, s32 view, bool enable) {
     PPFX::CPostEffect* self = reinterpret_cast<PPFX::CPostEffect*>(self_);
-    s32 view = view_;
-    bool enable = enable_ & 1;
     if (view == -1) {
         view = self->field_298;
     }
     s32 result = 0;
-    if (self->field_400 < 1) {
-        return 0;
-    }
-    if (view == 0x7fffffff) {
-        for (s32 i = 0; i < self->field_400; i++) {
-            bool available = self->field_2a8[i].field_48 != nullptr;
-            self->field_2a8[i].field_0 = enable && available;
-            if (!available) {
+    for (s32 i = 0; i < self->field_400; i++) {
+        if (view == 0x7fffffff || i == view) {
+            if (self->field_2a8[i].field_48 == nullptr) {
                 result = 1;
-            }
-        }
-    } else {
-        for (s32 i = 0; i < self->field_400; i++) {
-            if (i == view) {
-                bool available = self->field_2a8[i].field_48 != nullptr;
-                self->field_2a8[i].field_0 = enable && available;
-                if (!available) {
-                    result = 1;
-                }
+                self->field_2a8[i].field_0 = false;
+            } else {
+                self->field_2a8[i].field_0 = enable;
             }
         }
     }
@@ -4747,11 +4728,8 @@ s32 Unk_424b20(u64 self_, s32 view, f32 minExposure, f32 maxExposure) {
 }
 
 // 0x7100424740: CPostEffect::SetAutoExposureEnable
-// NON_MATCHING: as Unk_425170, the operands of the `and` and the registers of
-// the count and two temporaries.
-s32 Unk_424740(u64 self_, s32 view, u32 enable_) {
+s32 Unk_424740(u64 self_, s32 view, bool enable) {
     PPFX::CPostEffect* self = reinterpret_cast<PPFX::CPostEffect*>(self_);
-    bool enable = enable_ & 1;
 #line 18677
     PPFX_FN("Frame: %d, View: %d, SetAutoExposureEnable(iEffectViewIndex: %d, bAutoExposureEnable: %s);\n",
             self->Unk_Frame(self->field_298), self->field_298, view, enable ? "true" : "false");
@@ -4759,27 +4737,13 @@ s32 Unk_424740(u64 self_, s32 view, u32 enable_) {
         view = self->field_298;
     }
     s32 result = 0;
-    if (self->field_400 < 1) {
-        return 0;
-    }
-    if (view == 0x7fffffff) {
-        for (s32 i = 0; i < self->field_400; i++) {
-            PPFX::Unk_429da0_Item& item = self->field_2a0[i];
-            bool available = item.field_70 != nullptr;
-            item.field_0 = available && enable;
-            if (!available) {
+    for (s32 i = 0; i < self->field_400; i++) {
+        if (view == 0x7fffffff || i == view) {
+            if (self->field_2a0[i].field_70 == nullptr) {
                 result = 1;
-            }
-        }
-    } else {
-        for (s32 i = 0; i < self->field_400; i++) {
-            if (i == view) {
-                PPFX::Unk_429da0_Item& item = self->field_2a0[i];
-                bool available = item.field_70 != nullptr;
-                item.field_0 = available && enable;
-                if (!available) {
-                    result = 1;
-                }
+                self->field_2a0[i].field_0 = false;
+            } else {
+                self->field_2a0[i].field_0 = enable;
             }
         }
     }
@@ -5224,24 +5188,21 @@ s32 Unk_425410(PPFX::CPostEffect* self, u32 source, u64 object, u64 other, u32 m
 
 // 0x710043b150: the same with a device texture (its render texture, made if
 // it is neither one nor a device surface)
-// NON_MATCHING: the original has one call of Unk_425410 (the object a phi,
-// null for a device surface), with the floats copied into place first; with
-// one call here the result's test becomes a select, so this has two, and
-// the copies come in another order.
 s32 PPFX::CPostEffect::Unk_43b150(u32 arg1, u64 key, u32 arg3, u32 arg4, u32 format, u32 arg6, f32 a, f32 b) {
     field_895 = true;
     Unk_RenderTexture* texture = Unk_MapFind(field_108, key);
+    Unk_RenderTexture* object = texture;
     if (texture == nullptr) {
         Unk_43c490* surface = Unk_MapFind(field_f0, key);
-        if (surface != nullptr) {
-            return Unk_425410(this, arg1, 0, 0, arg6, a, b);
+        if (surface == nullptr) {
+            s32 result = Unk_427c10(key, arg3, arg4, format, &surface, &texture);
+            if (result < 0) {
+                return result;
+            }
         }
-        s32 result = Unk_427c10(key, arg3, arg4, format, &surface, &texture);
-        if (result < 0) {
-            return result;
-        }
+        object = texture;
     }
-    return Unk_425410(this, arg1, reinterpret_cast<u64>(texture), 0, arg6, a, b);
+    return Unk_425410(this, arg1, reinterpret_cast<u64>(object), 0, arg6, a, b);
 }
 
 // 0x710043bf90
@@ -5616,8 +5577,9 @@ s32 CPostEffect::Uninitialize(void* device) {
 #undef UNK_RELEASE_COUNTED
 #undef UNK_RELEASE_SI
 
-// 0x7100438510: the end of the scene: the targets set back
-s32 CPostEffect::Unk_438510() {
+// 0x7100438510: CPostEffect::EndPostEffectScene_PostProcess (0x71004347e0 logs
+// its name): the end of the scene, the targets set back
+s32 CPostEffect::EndPostEffectScene_PostProcess() {
     if (field_1168 == field_20) {
         field_18->vf8(field_28);
     }
@@ -5630,6 +5592,187 @@ s32 CPostEffect::Unk_438510() {
     }
     s32 result = Unk_43fc30(field_18);
     return result < 0 ? result : 0;
+}
+
+// (inline: DrawDebugBuffers)
+inline CTextureUtil* CPostEffect::Unk_TextureUtil() {
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil(util);
+    return util;
+}
+
+// 0x71004386d0: CPostEffect::DrawDebugBuffers (its log line names it): 61
+// intermediate textures drawn into the target as tiles a sixteenth of its size,
+// 16 to a row, then again into its texture 21 four rows lower (debug code, off
+// unless Unk_24e09b9 is set). The parts are reached through ppfx.cpp's getters
+// every time, as in the original (one call per helper below). The rectangle is
+// a POD of four floats (Unk_Rect): with Unk_Float4's constructor its constant
+// half isn't stored as one 8-byte constant.
+// NON_MATCHING: register allocation in the two loops (x and y of the
+// rectangle get s1/s3 instead of s2/s1, 22 instructions); the table matches.
+s32 CPostEffect::DrawDebugBuffers() {
+    // a texture to draw, or a device texture if there is none, and its scale
+    struct Unk_DebugBuffer {
+        // the first texture of a render texture array (none without one)
+        static CRenderTexture* Unk_First(CGPUResourceManage* textures) {
+            return textures != nullptr ? static_cast<CRenderTextureArray*>(textures)->Unk_Texture(0) : nullptr;
+        }
+        // the glare's afterimage of its active view
+        static CRenderTexture* Unk_Afterimage(CRenderGlare* glare) {
+            if (glare->m_ppAfterimageGeneration == nullptr) {
+                return nullptr;
+            }
+            return glare->m_ppAfterimageGeneration[static_cast<u32>(glare->field_2ec)]->Unk_Texture(-1);
+        }
+        // a depth of field level's result
+        static CRenderTexture* Unk_Level(const CDepthOfField::Unk_Level* level, bool second) {
+            if (second) {
+                return level->field_b0 != nullptr ? level->field_b0 : level->field_a0;
+            }
+            return level->field_b8 != nullptr ? level->field_b8 : level->field_a8;
+        }
+
+        Unk_DebugBuffer(CRenderTexture* texture, Unk_GPUTexture* deviceTexture, f32 scale)
+            : field_0(texture), field_8(deviceTexture), field_10(scale) {}
+
+        CRenderTexture* field_0;
+        Unk_GPUTexture* field_8;
+        f32 field_10;
+    };
+#define UNK_POSTEFFECT() reinterpret_cast<CPostEffect*>(Unk_418e20_get())
+#define UNK_TEXTURES() static_cast<CRenderTextureArray*>(Unk_418e30())
+#define UNK_GLARE() static_cast<CRenderGlare*>(Unk_418e40())
+#define UNK_DOF() static_cast<CDepthOfField*>(Unk_418e50())
+    if (!Unk_24e09b9) {
+        return 0;
+    }
+    static s32 frame = 0;
+    frame++;
+    if (frame % 100 == 25) {
+#line 35160
+        PPFX_WARNING("Debug code: CPostEffect::DrawDebugBuffers().\n");
+    }
+    f32 scale = field_7f8;
+    f32 exposure = field_8c0.field_0;
+    f32 luminance = exposure / (field_59a ? exposure * field_7fc : scale);
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil(util);
+    Unk_DebugBuffer buffers[] = {
+        {UNK_TEXTURES()->Unk_Texture(0), nullptr, luminance},
+        {UNK_TEXTURES()->Unk_Texture(1), nullptr, luminance},
+        {UNK_TEXTURES()->Unk_Texture(2), nullptr, luminance},
+        {util->field_29b08[3], nullptr, 1.0f},
+        {util->field_29b08[4], nullptr, 1.0f},
+        {util->field_29b08[6], nullptr, 1.0f},
+        {util->field_29b08[9], nullptr, 1.0f},
+        {util->field_29b08[8], nullptr, 1.0f},
+        {reinterpret_cast<CRenderTexture*>(UNK_POSTEFFECT()->field_1f8), nullptr, 1.0f},
+        {reinterpret_cast<CRenderTexture*>(UNK_POSTEFFECT()->field_208), nullptr, 1.0f},
+        {UNK_POSTEFFECT()->field_d70 != nullptr ? reinterpret_cast<CRenderTexture*>(UNK_POSTEFFECT()->field_d70)
+                                                : nullptr,
+         nullptr, 1.0f},
+        {UNK_POSTEFFECT()->Unk_ViewLuminance()->field_48, nullptr, 1.0f},
+        {UNK_POSTEFFECT()->Unk_ViewLuminance()->field_40->field_88, nullptr, 1.0f},
+        {UNK_POSTEFFECT()->Unk_ViewLuminance()->field_40->field_30, nullptr, 1.0f},
+        {UNK_POSTEFFECT()->Unk_ViewLuminance2()->field_48, nullptr, 1.0f},
+        {UNK_POSTEFFECT()->Unk_ViewLuminance2()->field_40->field_88, nullptr, 1.0f},
+        {UNK_POSTEFFECT()->Unk_ViewLuminance2()->field_40->field_30, nullptr, 1.0f},
+        {UNK_POSTEFFECT()->Unk_OetfBase(), nullptr, 1.0f},
+        {UNK_POSTEFFECT()->Unk_OetfResize(0), nullptr, 1.0f},
+        {UNK_POSTEFFECT()->Unk_OetfResize(1), nullptr, 1.0f},
+        {UNK_POSTEFFECT()->Unk_OetfResize(2), nullptr, 1.0f},
+        {UNK_POSTEFFECT()->Unk_OetfLastResize(), nullptr, 1.0f},
+        {UNK_POSTEFFECT()->Unk_Luminance588() != nullptr ? UNK_POSTEFFECT()->Unk_ViewLuminance588()->field_48 : nullptr,
+         nullptr, 1.0f},
+        {static_cast<CRenderTextureArray*>(UNK_GLARE()->m_pGlareSource)->Unk_Texture(0), nullptr, luminance},
+        {static_cast<CRenderTextureArray*>(UNK_GLARE()->m_pGlareSource)->Unk_Texture(1), nullptr, 4.0f},
+        {static_cast<CRenderTextureArray*>(UNK_GLARE()->m_pGlareSource)->Unk_Texture(2), nullptr, 4.0f},
+        {static_cast<CRenderTexture*>(UNK_GLARE()->m_pLightShaftBlurSource), nullptr, scale * 200.0f},
+        {static_cast<CRenderTexture*>(UNK_GLARE()->m_pLightShaftResult), nullptr, scale * 10.0f},
+        {static_cast<CRenderTexture*>(UNK_GLARE()->m_pBloomResult), nullptr, scale * 10.0f},
+        {static_cast<CRenderTexture*>(UNK_GLARE()->m_pStarResult), nullptr, scale * 10.0f},
+        {static_cast<CRenderTexture*>(UNK_GLARE()->m_pAnamorphicFlareResult), nullptr, scale * 10.0f},
+        {Unk_DebugBuffer::Unk_First(UNK_GLARE()->m_pGhostGeneration), nullptr, scale * 10.0f},
+        {Unk_DebugBuffer::Unk_Afterimage(UNK_GLARE()), nullptr, scale * 10.0f},
+        {static_cast<CRenderTexture*>(UNK_GLARE()->m_pGlareResult), nullptr, scale * 10.0f},
+        {UNK_GLARE()->field_420, nullptr, scale * 10.0f},
+        {nullptr, reinterpret_cast<Unk_GPUTexture*>(UNK_POSTEFFECT()->Unk_TextureUtil()->field_29a70[0]), 1.0f},
+        {nullptr, reinterpret_cast<Unk_GPUTexture*>(UNK_POSTEFFECT()->Unk_TextureUtil()->field_29ab8[0]), 1.0f},
+        {nullptr, reinterpret_cast<Unk_GPUTexture*>(UNK_GLARE()->field_348), 1.0f},
+        {nullptr, reinterpret_cast<Unk_GPUTexture*>(UNK_POSTEFFECT()->Unk_TextureUtil()->field_29ab8[2]), 1.0f},
+        {nullptr, reinterpret_cast<Unk_GPUTexture*>(UNK_POSTEFFECT()->Unk_TextureUtil()->field_29ab8[1]), 1.0f},
+        {UNK_DOF()->field_3f8 > 0 ? UNK_DOF()->field_438[0] : nullptr, nullptr, luminance},
+        {UNK_DOF()->field_3f8 > 1 ? UNK_DOF()->field_438[1] : nullptr, nullptr, luminance},
+        {UNK_DOF()->field_3f8 > 2 ? UNK_DOF()->field_438[2] : nullptr, nullptr, luminance},
+        {UNK_DOF()->field_c0.field_10 > 2 ? Unk_DebugBuffer::Unk_Level(&UNK_DOF()->field_4a8[2], false) : nullptr,
+         nullptr, luminance},
+        {UNK_DOF()->field_c0.field_10 > 3 ? Unk_DebugBuffer::Unk_Level(&UNK_DOF()->field_4a8[3], false) : nullptr,
+         nullptr, luminance},
+        {UNK_DOF()->field_c0.field_10 > 4 ? Unk_DebugBuffer::Unk_Level(&UNK_DOF()->field_4a8[4], false) : nullptr,
+         nullptr, luminance},
+        {UNK_DOF()->field_c0.field_10 > 5 ? Unk_DebugBuffer::Unk_Level(&UNK_DOF()->field_4a8[5], false) : nullptr,
+         nullptr, luminance},
+        {UNK_DOF()->field_c0.field_10 > 6 ? Unk_DebugBuffer::Unk_Level(&UNK_DOF()->field_4a8[6], false) : nullptr,
+         nullptr, luminance},
+        {UNK_DOF()->field_c0.field_10 > 2 ? Unk_DebugBuffer::Unk_Level(&UNK_DOF()->field_4a8[2], true) : nullptr,
+         nullptr, luminance},
+        {UNK_DOF()->field_c0.field_10 > 3 ? Unk_DebugBuffer::Unk_Level(&UNK_DOF()->field_4a8[3], true) : nullptr,
+         nullptr, luminance},
+        {UNK_DOF()->field_c0.field_10 > 4 ? Unk_DebugBuffer::Unk_Level(&UNK_DOF()->field_4a8[4], true) : nullptr,
+         nullptr, luminance},
+        {UNK_DOF()->field_c0.field_10 > 5 ? Unk_DebugBuffer::Unk_Level(&UNK_DOF()->field_4a8[5], true) : nullptr,
+         nullptr, luminance},
+        {UNK_DOF()->field_c0.field_10 > 6 ? Unk_DebugBuffer::Unk_Level(&UNK_DOF()->field_4a8[6], true) : nullptr,
+         nullptr, luminance},
+        {UNK_DOF()->field_3f8 > 0 ? UNK_DOF()->Unk_4b35a0(false, 0) : nullptr, nullptr, luminance},
+        {UNK_DOF()->field_3f8 > 1 ? UNK_DOF()->Unk_4b35a0(false, 1) : nullptr, nullptr, luminance},
+        {UNK_DOF()->field_3f8 > 2 ? UNK_DOF()->Unk_4b35a0(false, 2) : nullptr, nullptr, luminance},
+        {UNK_DOF()->field_3f8 > 0 ? UNK_DOF()->Unk_4b35a0(true, 0) : nullptr, nullptr, luminance},
+        {UNK_DOF()->field_3f8 > 1 ? UNK_DOF()->Unk_4b35a0(true, 1) : nullptr, nullptr, luminance},
+        {UNK_DOF()->field_3f8 > 2 ? UNK_DOF()->Unk_4b35a0(true, 2) : nullptr, nullptr, luminance},
+        {reinterpret_cast<CRenderTexture*>(field_228), nullptr, 1.0f},
+        {reinterpret_cast<CRenderTexture*>(field_230), nullptr, 1.0f},
+    };
+#undef UNK_POSTEFFECT
+#undef UNK_TEXTURES
+#undef UNK_GLARE
+#undef UNK_DOF
+    const s32 count = sizeof(buffers) / sizeof(buffers[0]);
+    for (s32 i = 0; i < count; i++) {
+        f32 x = i % 16;
+        f32 y = i / 16;
+        if (buffers[i].field_0 != nullptr) {
+            f32 factor = buffers[i].field_10 * Unk_238c2d8;
+            Unk_49b230_Object* target = reinterpret_cast<Unk_49b230_Object*>(field_1168);
+            Unk_Rect rect = {1.0f / 16, 1.0f / 16, x / 16, y / 16};
+            CRenderTextureArray::Unk_4a6a50(target, buffers[i].field_0, 0, reinterpret_cast<const Unk_Float4*>(&rect),
+                                            false, 3, factor);
+        } else if (buffers[i].field_8 != nullptr) {
+            f32 factor = buffers[i].field_10 * Unk_238c2d8;
+            Unk_49b230_Object* target = reinterpret_cast<Unk_49b230_Object*>(field_1168);
+            Unk_Rect rect = {1.0f / 16, 1.0f / 16, x / 16, y / 16};
+            CRenderTextureArray::CopyToSurface(target, buffers[i].field_8, 0, factor,
+                                               reinterpret_cast<const Unk_Float4*>(&rect), 1.0f, false, 1.0f, 3);
+        }
+    }
+    for (s32 i = 0; i < count; i++) {
+        f32 x = i % 16;
+        f32 y = i / 16 + 4.0f;
+        if (buffers[i].field_0 != nullptr) {
+            f32 factor = Unk_238c2dc;
+            Unk_49b230_Object* target = reinterpret_cast<Unk_49b230_Object*>(field_1168);
+            Unk_Rect rect = {1.0f / 16, 1.0f / 16, x / 16, y / 16};
+            CRenderTextureArray::Unk_4a6a50(target, buffers[i].field_0, 0x15,
+                                            reinterpret_cast<const Unk_Float4*>(&rect), false, 3, factor);
+        } else if (buffers[i].field_8 != nullptr) {
+            f32 factor = Unk_238c2dc;
+            Unk_49b230_Object* target = reinterpret_cast<Unk_49b230_Object*>(field_1168);
+            Unk_Rect rect = {1.0f / 16, 1.0f / 16, x / 16, y / 16};
+            CRenderTextureArray::CopyToSurface(target, buffers[i].field_8, 0x15, factor,
+                                               reinterpret_cast<const Unk_Float4*>(&rect), 1.0f, false, 1.0f, 3);
+        }
+    }
+    return 0;
 }
 
 bool Unk_4385e0(s32 format);
@@ -5722,8 +5865,8 @@ inline const T& Unk_Greater(const T& a, const T& b) {
 
 // 0x710042b8a0: field_8f4 to field_8f8 follows field_6c4 to field_6c8 from
 // last frame's range, and field_904 to field_908 follows that
-// NON_MATCHING: scheduling only: the move of field_904's value into s1 and
-// the store of field_908 come in the other order around the last select
+// (field_904's value read into a local before field_908's bound gives the
+// original's order of the last select and the store)
 s32 CPostEffect::Unk_42b8a0() {
     field_8f4 = field_8ec;
     field_8f8 = field_8f0;
@@ -5740,8 +5883,9 @@ s32 CPostEffect::Unk_42b8a0() {
     field_904 = Unk_Greater(field_904, field_8f4);
     field_904 = std::min(field_8f8 * 0.99f, field_904);
     f32 high2 = std::min(field_8f8, field_908);
+    f32 low = field_904;
     field_908 = high2 <= 0.0f ? field_8f8 : high2;
-    if (field_908 <= field_904) {
+    if (field_908 <= low) {
         field_908 = (field_8f8 - field_904) * 0.01f + field_904;
         field_908 = std::min(field_8f8, field_908);
     }
@@ -5838,11 +5982,8 @@ struct Unk_428f00_Target {
     u32 field_50;
 };
 
-// 0x7100428cc0
-// NON_MATCHING: scheduling only, the same instructions: the original computes
-// the first stage's 1 - f / near before its scale, the second stage's scale
-// between the offset's product and sum, and materialises 1.0 before the fneg
-// of the inversion
+// 0x7100428cc0: the scale and offset (and their inverse) that take depths of
+// one kind (`from`) to another (`to`), through the stages between them
 s32 CPostEffect::Unk_428cc0(f32* out, s32 from, s32 to, f32 a, f32 b) {
     if (from == 6) {
         from = field_5c;
@@ -5862,14 +6003,14 @@ s32 CPostEffect::Unk_428cc0(f32* out, s32 from, s32 to, f32 a, f32 b) {
         if (low < 1 && high >= 1) {
             f32 f = field_1064;
             f32 k = (far - near) * f / (near * far);
-            offset = offset * k + (1.0f - f / near);
+            offset = (1.0f - f / near) + offset * k;
             scale = scale * k;
         }
         if (low < 2 && high >= 2) {
             f32 k = field_1054;
             f32 m = field_1058;
-            offset = offset * k + m;
             scale = scale * k;
+            offset = offset * k + m;
         }
         if (low < 3 && high >= 3) {
             f32 c = field_105c;
@@ -5883,8 +6024,9 @@ s32 CPostEffect::Unk_428cc0(f32* out, s32 from, s32 to, f32 a, f32 b) {
             offset = o * e + 0.0f;
         }
         if (from >= to) {
+            f32 inverse = 1.0f / scale;
             offset = -offset / scale;
-            scale = 1.0f / scale;
+            scale = inverse;
         }
     }
     if (a != 1.0f || b != 0.0f) {
@@ -7138,6 +7280,329 @@ s32 CPostEffect::Unk_42a590(bool* far, bool* moved, bool* projection, bool* rota
     return 0;
 }
 
+// CPostEffect::GetMaxMotionBlurCameraRecurrences (its log line names it): how
+// many camera recurrences the motion blur can have (0, 2 or any number; one
+// view less without an internal velocity texture where the velocity is made)
+// (inline: UpdateParameters_Base, 0x7100433450)
+inline u32 CPostEffect::GetMaxMotionBlurCameraRecurrences() {
+    bool internal = false;
+    if (field_ce8 == 2 && field_d38 == nullptr) {
+        if (!field_1bd) {
+#line 14639
+            PPFX_ERROR("CPostEffect::GetMaxMotionBlurCameraRecurrences():\n\tFor using PFXMB_VELOCITYBASE at SetMotionBlurMode() and\n\tPFXVS_AUTOGEN or PFXVS_AUTOGEN_APPOVERWRITE at SetMotionBlurVelocitySource(),\n\tPFXINIT_MOTIONBLUR_INTERNALVELOCITYTEXTURE must be set at Initialize().\n");
+        }
+        internal = field_1d8 == nullptr;
+    }
+    s32 views = field_444 - internal;
+    if (views < 1) {
+        return 0;
+    }
+    if (views == 1) {
+        return 2;
+    }
+    return 0xffffffff;
+}
+
+// 0x710042a7e0: CPostEffect::UpdateParameters_Base (its log line names it):
+// which effects run this frame, from the parameters set (Unk_411190 is
+// declared here as GPUTextureUtil.cpp does)
+// NON_MATCHING: a draft (4100 of 4276 bytes): the tests, calls and their
+// arguments are the original's. The original computes !field_8b6 before the
+// float tests it ends (field_1074, field_c2d) and tests field_eb8 twice for
+// field_10de; the block layout, registers and stack slots differ.
+s32 CPostEffect::UpdateParameters_Base() {
+    void Unk_411190(MATRIXT44* out, const Unk_410f90* from, const Unk_410f90* to, bool arg3);
+    field_106d = field_c98;
+    bool bright = false;
+    if (field_c70 && !field_8b6 && field_1050 && (field_c79 || field_104f)) {
+        s32 index = field_5e0;
+        Unk_4a5d10_Self* textures = field_190;
+        if (index == -1) {
+            index = textures->field_90;
+        }
+        f32 value = field_1070 * static_cast<f32>(textures->field_38[index]->field_58);
+        if (field_c78) {
+            value = value * 7e-07f / 5.8756e-07f;
+        }
+        bright = !(value <= 0.7259524f);
+    }
+    field_106e = bright;
+    field_10de = !(field_ec0 <= 0.0f || field_ecc <= 0.0f || field_ed0 <= 0.0f) && field_eb8 && !field_8b6;
+    bool scatter = (field_f14 < 1.0f || field_f18 != 1.0f) && field_f08;
+    field_10df = scatter && !field_8b6;
+    field_10e0 = field_10df && scatter && field_f0c == 2;
+    field_1074 = field_c7a && (field_c7c.field_0 != 0.0f || field_c7c.field_4 != 0.0f || field_c7c.field_8 != 0.0f) &&
+                 !field_8b6;
+    bool shafts = false;
+    if (field_c2c) {
+        field_c2d = (field_c38.field_0[0].field_0 != 0.0f || field_c38.field_0[1].field_0 != 0.0f ||
+                     field_c40.field_0[0].field_0 != 0.0f || field_c40.field_0[1].field_0 != 0.0f) &&
+                    !field_8b6;
+        field_c35 = field_c34;
+        shafts = field_c2d && field_c36;
+    } else {
+        field_c2d = false;
+        field_c35 = false;
+    }
+    reinterpret_cast<CRenderGlare*>(field_198)->Unk_45e8a0(
+        shafts, field_c30, false, reinterpret_cast<const u64*>(&field_c38), reinterpret_cast<const u64*>(&field_c40),
+        reinterpret_cast<const u64*>(&field_c48), reinterpret_cast<const u64*>(&field_c50),
+        reinterpret_cast<const u64*>(&field_c58), field_c6c, field_c60, field_c64, field_c68);
+    field_c37 = shafts;
+    Unk_4291c0();
+    Unk_429460();
+    field_f39 = field_f38 && !field_8b6;
+    Unk_4297b0();
+    field_10d5 = field_be4 && !field_8b6;
+    field_10d4 = (field_10d5 || field_bec) && !field_8b6;
+    field_10d6 = field_180 && field_178 != nullptr && !field_8b6 && !(Unk_IsHdrOutput() && Unk_IsHdrDirect());
+    field_10d7 = (field_58 == 8 || field_50 != nullptr) && field_88 && field_104f && field_80 != nullptr;
+    field_1028 = false;
+    bool glow =
+        field_1029 && field_c8 != 0 && (field_102c[0] != 0.0f || field_102c[1] != 0.0f || field_102c[2] != 0.0f);
+    field_1028 = glow;
+    Unk_45e930_update(reinterpret_cast<Unk_45e930*>(field_198), glow);
+    if (glow) {
+        Unk_45e920_update(reinterpret_cast<Unk_45e920*>(field_198), field_c8);
+        reinterpret_cast<CRenderGlare*>(field_198)->Unk_45e940(reinterpret_cast<const Unk_GlareRect*>(&field_102c[0]),
+                                                               reinterpret_cast<const Unk_GlarePair*>(&field_102c[4]),
+                                                               reinterpret_cast<const Unk_GlarePair*>(&field_1044));
+    }
+    Unk_4299a0();
+    Unk_411190(&field_1094, &field_b84, &field_ba4, field_bcc);
+    field_1075 = false;
+    s32 mode = field_1078;
+    field_1078 = -1;
+    field_107c = 0;
+    field_108c = 0.0f;
+    if (field_cf0.field_0 > 0.0f && field_cf4.field_0 > 0.0f && field_ce5 && !field_8b6) {
+        CTextureUtil* util = Unk_GetTextureUtil();
+        Unk_ReleaseTextureUtil(util);
+        util->Unk_470860(field_cf8);
+        util->field_29a68 = field_cec ? 1 : 2;
+        MATRIXT44 projection;
+        {
+            f32 scale = field_6c4;
+            f32 w = scale * (field_6d0 * field_420);
+            f32 xw = field_6d4 * w;
+            f32 h = scale * field_6d0;
+            f32 yh = h * field_6d8;
+            Unk_40f8d0(&projection, false, true, xw - w, w + xw, yh - h, h + yh, scale, field_6c8);
+        }
+        MATRIXT44 previous;
+        {
+            f32 scale = field_6c4;
+            f32 w = scale * (field_6e8 * field_420);
+            f32 xw = field_6ec * w;
+            f32 h = scale * field_6e8;
+            f32 yh = h * field_6f0;
+            Unk_40f8d0(&previous, false, true, xw - w, w + xw, yh - h, h + yh, scale, field_6c8);
+        }
+        bool far;
+        bool moved;
+        bool projected;
+        bool rotated;
+        bool any;
+        Unk_42a590(&far, &moved, &projected, &rotated, &any);
+        if (mode != 2) {
+            far = false;
+        }
+        f32 scale = field_cf0.field_0;
+        f32 limit = field_cf4.field_0;
+        u32 levels = field_cfc;
+        u32 recurrences = GetMaxMotionBlurCameraRecurrences();
+        if (levels > recurrences) {
+            levels = recurrences;
+        }
+        f32 ratio = field_d00.field_0;
+        CRenderTexture* source = reinterpret_cast<CRenderTexture*>(Unk_TextureAt(field_5e0));
+        s32 count = 0;
+        s32 used = 0;
+        s32 first = 0;
+        field_1084.field_0[0] = 0.0f;
+        field_1084.field_0[1] = 0.0f;
+        const f32* range = nullptr;
+        if (field_ce5 && static_cast<u32>(field_ce8 - 1) < 2 &&
+            Unk_4622e0(field_6c4, field_6c8, field_d10, field_d14)) {
+            f32 near = field_6c4;
+            f32 farPlane = field_6c8;
+            f32 c = field_105c;
+            f32 offset = 0.0f * c + field_1060;
+            f32 f = field_1064;
+            f32 k = (farPlane - near) * f / (near * farPlane);
+            f32 inverse = 1.0f / k;
+            f32 s = c * inverse;
+            offset = offset * inverse - (1.0f - f / near) / k;
+            f32 a = farPlane * (field_d14 - near) / (farPlane - near) / field_d14;
+            f32 b = farPlane * (field_d10 - near) / (farPlane - near) / field_d10;
+            f32 span = 1.0f / (b - a);
+            field_1084.field_0[1] = offset * span + (0.0f - a * span);
+            field_1084.field_0[0] = s * span;
+            range = &field_1084.field_0[0].field_0;
+        }
+        Unk_Float2 unit(1.0f, 1.0f);
+        f32 length;
+        f32 motion;
+        f32 lengthRatio;
+        Unk_484f50_View view;
+        Unk_484f50_View lerped;
+        f32 amount;
+        f32 blur = 0.0f;
+        bool always = true;
+        switch (mode) {
+            case 0: {
+                if (!rotated) {
+                    goto done;
+                }
+                Unk_Float2 offset;
+                Unk_Float2 direction;
+                util->Unk_482d70(scale, limit, source, &field_6f4, &field_774, &projection, levels, ratio, &unit, 0,
+                                 &count, &used, &first, &offset, &direction);
+                offset.field_0[0].field_0 = field_420 * offset.field_0[0].field_0;
+                if (used > 0) {
+                    f32 x = offset.field_0[0].field_0;
+                    f32 y = offset.field_0[1].field_0;
+                    f32 squared = x * x + y * y;
+                    amount = squared == 0.0f || squared == 1.0f ? squared : sqrtf(squared);
+                } else {
+                    amount = 0.0f;
+                }
+                break;
+            }
+            case 1:
+                if (!rotated && !projected) {
+                    goto done;
+                }
+                util->Unk_482fd0(scale, limit, ratio, source, &field_6f4, &field_774, &projection, &previous, range,
+                                 levels, &unit, 0, &count, &used, &first, &length, &lengthRatio, &view, &lerped);
+                amount = used > 0 ? length : 0.0f;
+                break;
+            case 2: {
+                if (!any && field_d2c == 0) {
+                    goto done;
+                }
+                bool flag = field_d2c >= 2 ? field_d40 : false;
+                CRenderTexture* target = source;
+                if (field_1e8 != nullptr) {
+                    target = reinterpret_cast<CRenderTextureArray*>(field_1e8)->Unk_Texture(0);
+                }
+                util->Unk_483e50(scale, limit, ratio, target, &field_6f4, &field_774, &projection, &previous, flag,
+                                 levels, &unit, 0, &count, &used, &first, &length, &motion, &lengthRatio, &view,
+                                 &lerped);
+                amount = used > 0 ? motion : 0.0f;
+                if (used > 0) {
+                    blur = length / static_cast<f32>(reinterpret_cast<Unk_RenderTexture*>(target)->field_58);
+                }
+                always = field_d0c || field_d2c == 0;
+                break;
+            }
+            default:
+                amount = 0.0f;
+                break;
+        }
+        if (used != 0) {
+            if (always) {
+                amount = amount / static_cast<f32>(reinterpret_cast<Unk_RenderTexture*>(source)->field_58);
+                if (!(amount > field_d04) && !far) {
+                    goto done;
+                }
+            }
+            field_1075 = true;
+            field_1078 = mode;
+            field_107c = used;
+            field_108c = blur;
+        }
+    done:
+        field_1080 = false;
+        field_1081 = false;
+        if (field_1075) {
+            if (field_1078 >= 2) {
+                field_1081 = true;
+                field_1080 = true;
+            }
+            if (field_ce5 && static_cast<u32>(field_ce8 - 1) < 2 &&
+                Unk_4622e0(field_6c4, field_6c8, field_d10, field_d14)) {
+                field_1080 = true;
+            }
+        }
+    } else {
+        field_1080 = false;
+        field_1081 = false;
+    }
+    if (field_10df && static_cast<u32>(field_f0c - 1) < 2) {
+        field_108c = field_108c > field_f1c ? field_108c : field_f1c;
+    }
+    if (field_59d && (field_8c8 & 0xffff0000) == 0x70000) {
+        field_104f = false;
+    }
+    bool other = field_50 != nullptr || field_548;
+    field_10d8 = field_1080 || field_1090 || field_c6d || (field_c6e && field_c6f) ||
+                 (field_f38 && Unk_4622e0(field_6c4, field_6c8, field_f3c, field_f40)) || (field_10de && !other) ||
+                 (field_10e0 && !other);
+    field_10d9 = field_10d8 || field_104f;
+    field_10dc = field_10de;
+    field_10da = field_1081 || (field_10df && static_cast<u32>(field_f0c - 1) < 2);
+    field_10db = false;
+    field_d64 = *reinterpret_cast<const Unk_Float2*>(&field_d18);
+    field_d6c = -1;
+    if (field_d2c == 2) {
+        if (field_d38 != nullptr) {
+            field_10db = true;
+            field_d6c = field_d30;
+        }
+    } else if (field_d2c == 0 && field_108c > 0.0f) {
+        field_d64.field_0[0] = field_108c;
+        field_d64.field_0[1] = field_108c;
+    }
+    field_d78 = nullptr;
+    field_d70 = nullptr;
+    if (field_10da) {
+        if (field_d38 != nullptr) {
+            switch (field_d2c) {
+                case 1:
+                    field_d78 = field_d38;
+                    // fall through
+                case 0:
+                    field_d70 = field_1d8;
+                    break;
+                default:
+                    field_d70 = field_d38;
+                    break;
+            }
+        } else if (field_1d8 != nullptr) {
+            field_d70 = field_1d8;
+        } else {
+            field_d70 = Unk_TextureAt(field_624);
+        }
+    }
+    field_d0 = nullptr;
+    field_1051 = field_10d9;
+    if (field_1051) {
+        if (field_58 != 8) {
+            field_1051 = false;
+        }
+        if (field_50 != nullptr) {
+            field_1051 = false;
+        }
+    }
+    if (!field_9 && field_1051 && field_70 != nullptr && field_58 == 8) {
+#line 21214
+        PPFX_ERROR("CPostEffect::UpdateParameters_Base(): If SetEffectSource() is called, depth texture cannot be used as dpeth factor source.\n");
+        return -1;
+    }
+    field_10dd = false;
+    field_1052 = false;
+    field_1053 = false;
+    if (field_10d9 && !field_1051 && field_50 == nullptr) {
+        field_1052 = true;
+        field_1053 = true;
+    }
+    field_1068 = field_104f || field_10de || field_f39 || field_10df || field_c2d || field_c35 || field_10d5 ||
+                 field_106e || field_1074 || field_1075 || field_1090;
+    field_1069 = field_1051 || field_104c || (field_10de && field_50 == nullptr && field_548) ||
+                 (field_10e0 && field_50 == nullptr && field_548);
+    return 0;
+}
 
 }  // namespace PPFX
 
@@ -8104,11 +8569,13 @@ static inline bool Unk_ApplyDepthOfField(CPostEffect* self, s32* result) {
     return self->field_8b6;
 }
 
-// NON_MATCHING: written this round, not matching yet (tools/check.py --diff shows
-// what differs).
 // 0x710042c300: CPostEffect::ApplyEffects_GenerateNormalAndLinearDepth (its
 // log line names it): the normal and linear depth of the scene's depth into
 // texture field_1f0
+// NON_MATCHING: the original keeps the matrix pointer 0xe48 in x2 for the
+// identity test, orders the selects of the near and far planes differently
+// and allocates the registers of the coordinates otherwise: about 165
+// instructions.
 s32 CPostEffect::ApplyEffects_GenerateNormalAndLinearDepth() {
     s32 mode;
     Unk_Float offset;
@@ -8278,13 +8745,13 @@ s32 CPostEffect::ApplyEffects_GenerateNormalAndLinearDepth() {
         f32 next = now < before ? before : current;
         current = next < current ? next : current;
     }
-    f32 farPlane = high < current ? high : current;
     f32 u1 = su * dw + u0;
     f32 v1 = sv * dh + v0;
     f32 n = field_6c4;
     f32 f = field_6c8;
     Unk_GPUTexture* depthGpu = Unk_GetTexture(depthTexture);
     Unk_GPUTexture* normalGpu = normal != nullptr ? Unk_GetTexture(Unk_AsTexture(normal)) : nullptr;
+    f32 farPlane = high < current ? high : current;
     MATRIXT44 projection;
     if (mode == 2) {
         f32 pw = n * (field_6d0 * field_420);
@@ -8307,12 +8774,13 @@ s32 CPostEffect::ApplyEffects_GenerateNormalAndLinearDepth() {
     return 0;
 }
 
-// NON_MATCHING: written this round, not matching yet (tools/check.py --diff shows
-// what differs).
 // 0x710042cc90: the depth of field's composite (CTextureUtil::Unk_48b1e0, or
 // Unk_48b280 for a depth factor source) from `source` (null: texture field_5d8)
 // into `target` (null: texture field_5e0), with `mask` (field_80's) and its
 // depth spaces; a negative `view` draws for every view
+// NON_MATCHING: register allocation and scheduling only (the original keeps
+// `keep` in w28 where this spills it, and pairs the mask numbers' stores):
+// about 85 instructions.
 s32 CPostEffect::Unk_42cc90(s32 view, bool clear, void* source, void* target, bool keep, void* mask, u32 maskSpace,
                             u32 depthSpace, u32 flags, f32 offset) {
     if (!field_1051 && field_50 == nullptr) {
@@ -8404,10 +8872,10 @@ s32 CPostEffect::Unk_42cc90(s32 view, bool clear, void* source, void* target, bo
         maskTexture = Unk_GetTexture(static_cast<CRenderTexture*>(mask));
         maskTexture->vf15(4);
         maskScale = Unk_DepthFactors(6, maskSpace, 1.0f, 0.0f);
-        f32 scale = 1.0f;
-        f32 bias = 0.0f;
         f32 scale2 = 1.0f;
+        f32 scale = 1.0f;
         f32 bias2 = 0.0f;
+        f32 bias = 0.0f;
         if (field_50 != nullptr) {
             scale = field_60;
             bias = field_64;
@@ -8415,8 +8883,8 @@ s32 CPostEffect::Unk_42cc90(s32 view, bool clear, void* source, void* target, bo
             bias2 = field_6c;
         }
         if (maskSpace == 6) {
-            maskScale.field_0 = maskScale.field_0 * scale;
             maskScale.field_4 = maskScale.field_4 * scale + bias;
+            maskScale.field_0 = maskScale.field_0 * scale;
         }
         depthScale = Unk_DepthFactors(depthSpace, 1, 1.0f, 0.0f);
         if (depthSpace == 6) {
@@ -8430,8 +8898,8 @@ s32 CPostEffect::Unk_42cc90(s32 view, bool clear, void* source, void* target, bo
         f32 k = (mw - 1.0f) / mw;
         f32 x = maskScale.field_0;
         f32 y = maskScale.field_4;
-        maskScale.field_0 = x * k;
         maskScale.field_4 = 0.5f / mw + k * y;
+        maskScale.field_0 = x * k;
         maskV = (offset + 0.5f) / mh;
     } else {
         maskV = 0.5f;
@@ -8478,6 +8946,412 @@ s32 CPostEffect::Unk_42cc90(s32 view, bool clear, void* source, void* target, bo
         field_18->vf45(0);
     }
     field_1053 = true;
+    return 0;
+}
+
+// how far the adaptation goes this frame at `speed` (inline)
+inline f32 CPostEffect::Unk_AdaptationRate(f32 speed) const {
+    f32 rate = 1.0f - powf(1.0f - speed, field_7f4 / 0.15f);
+    return rate < 0.0f ? 0.0f : std::min(rate, 0.5f);
+}
+
+// 0x710042d490: the active view's auto exposure: the scene's luminance
+// measured from `source` every field_68 frames, and the exposure adapted to it
+// NON_MATCHING: a draft (252 of 700 instructions differ): the control flow is
+// the original's, the measurement's stack slots and the float chains are not
+s32 CPostEffect::Unk_42d490(Unk_RenderTexture* source) {
+    extern Unk_DeviceSettings Unk_24e1500;
+    if (field_67b) {
+        return 0;
+    }
+    s32 format;
+    f32 dither;
+    f32 scale;
+    f32 scale2;
+    Unk_42df80(&format, &scale, &scale2, &dither, nullptr, nullptr, nullptr, nullptr, true, false);
+    s32 view = field_298;
+    Unk_429da0_Item* items = field_2a0;
+    CTextureLuminanceManage*& luminance = reinterpret_cast<CTextureLuminanceManage*&>(items[view].field_70);
+    s32 fmt = format;
+    if (luminance != nullptr) {
+        Unk_4b79a0_set(reinterpret_cast<Unk_4b79a0*>(luminance->field_40), 2);
+    }
+    Unk_4b8b40_update(reinterpret_cast<Unk_4b8b40*>(luminance), field_f74 != 0 ? fmt : -1);
+    s32 levels;
+    if (luminance != nullptr) {
+        s32 delay;
+        switch (items[view].field_28) {
+        case 0: {
+            f32 time = items[view].field_2c;
+            delay = static_cast<s32>((time < 0.0f ? 0.5f : time) / field_7f4);
+            break;
+        }
+        case 1:
+            delay = static_cast<s32>(std::max(items[view].field_2c, 0.0f));
+            break;
+        default:
+            delay = 0;
+            break;
+        }
+        s32 slots = field_18 != nullptr ? static_cast<s32>(Unk_24e1500.field_10 > 1 ? Unk_24e1500.field_10 : 1) : -1;
+        levels = std::min(std::max(delay / 10 / slots, 1), 5);
+        items[view].field_68 = levels + 1;
+        s32 step = static_cast<s32>(static_cast<f32>((delay - (levels + 1)) / (levels + 1)) + 0.4999f);
+        luminance->field_4f8 = std::max(std::min(step, 15), 0);
+        f32 rate = 1.0f - powf(0.05f, field_7f4 * static_cast<f32>(items[view].field_68) / 0.1f);
+        luminance->field_4fc = rate < 0.5f ? rate : 0.5f;
+        luminance->Unk_4b8b50();
+    } else {
+        levels = 0;
+    }
+    Unk_429da0_Item* item = &items[view];
+    if (item->field_0 != item->field_64) {
+        item->field_58 = 0;
+    }
+    bool now;
+    if (Unk_24e1500.field_10 < 2) {
+        now = true;
+    } else {
+        now = field_18->field_28 % Unk_24e1500.field_10 == 0;
+    }
+    if (field_2a0[field_298].field_0 && now && item->field_24 <= 0.0f) {
+        f32 limit = field_f74 == 0 ? 100.0f : 1.0f;
+        f32 grey = field_2a0[field_298].field_4;
+        f32 exposure = 0.18f / (grey < 0.0001f ? 0.0001f : std::min(grey, limit));
+        if (item->field_54 == levels) {
+            CRenderTexture* target = luminance->field_48;
+            Unk_Float4 area = item->Unk_MeteringArea();
+            f32 width = static_cast<f32>(static_cast<u32>(target->field_54));
+            f32 height = static_cast<f32>(static_cast<u32>(target->field_58));
+            if (field_18->field_58) {
+                area.field_0[3] = 1.0f - area.field_0[3].field_0 - area.field_0[1].field_0;
+            }
+            area.field_0[2] = area.field_0[0].field_0 * 0.0f + area.field_0[2].field_0;
+            area.field_0[3] = area.field_0[1].field_0 * 0.0f + area.field_0[3].field_0;
+            Unk_SetTarget(target);
+            MATRIXT44 matrix = Unk_429c50(true);
+            f32 low = item->field_1c;
+            f32 high = item->field_20;
+            f32 sceneLuminance = Unk_SceneLuminance(this);
+            f32 x = width * 0.0f;
+            f32 y = height * 0.0f;
+            if (field_f74 != 0) {
+                CRenderGlare* glare = reinterpret_cast<CRenderGlare*>(field_198);
+                bool vignette = glare->field_180;
+                glare->field_180 = false;
+                Unk_Float4 colour(field_8e8, field_8e8, field_8e8, field_8e8);
+                glare->TonemapToSurface(
+                    reinterpret_cast<IGPUSurface*>(target->field_b8[target->field_a0]), false,
+                    Unk_AsTexture(source), false, fmt, &colour, nullptr, width, height, x, y,
+                    dither * item->field_8, 1.0f, scale, scale2, FLT_MAX, &matrix,
+                    field_8c0.field_0 / Unk_SceneLuminance(this), &field_8d4, field_8e4, 0.0f, 0.0f, 0.0f, 0.0f,
+                    0.0f, 0.0f, false, &area, -1, 0, -1, 0.6f, nullptr);
+                reinterpret_cast<CRenderGlare*>(field_198)->field_180 = vignette;
+            } else {
+                f32 amount = (Unk_434570() ? 1.0f : 0.0f) * reinterpret_cast<CRenderGlare*>(field_198)->field_138;
+                f32 compensation = item->field_8;
+                CTextureUtil* util = Unk_TextureUtil();
+                Unk_410f90 space;
+                Unk_CopyColorSpace(&space, &field_b84);
+                util->Unk_48de50(width, height, x, y, field_8c0.field_0 / Unk_SceneLuminance(this),
+                                 amount * dither * compensation, low * sceneLuminance, high * sceneLuminance,
+                                 Unk_AsTexture(source), reinterpret_cast<CRenderGlare*>(field_198)->field_420,
+                                 target, &area, &space, &matrix, false, exposure * 100.0f, 0.125f, 0);
+            }
+            Unk_49e3a0(0x1f, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+        }
+        if (item->field_54 >= levels && luminance->Unk_4b89b0() >= 0) {
+            item->field_54 = -1;
+            luminance->Unk_4b8a40(false, field_8c0.field_0, field_f74 == 0 ? exposure : field_f70, field_6c4,
+                                  field_6c8);
+        }
+        items[view].field_5c = Unk_4b91f0_get(reinterpret_cast<Unk_4b91f0*>(luminance));
+    }
+    if (field_2a0[field_298].field_0) {
+        f32 measured;
+        if (field_2a0[field_298].field_24 > 0.0f) {
+            measured = field_2a0[field_298].field_24;
+        } else if (field_2a0[field_298].field_70 != nullptr) {
+            measured = field_2a0[field_298].field_5c;
+        } else {
+            measured = 0.0f;
+        }
+        measured += FLT_MIN;
+        f32 current = field_8c0.field_0 + FLT_MIN;
+        f32 grey;
+        if (field_f74 != 0) {
+            f32 value = field_2a0[field_298].field_4;
+            grey = luminance->Unk_4b8ae0(value < 0.0001f ? 0.0001f : std::min(value, 1.0f), field_f70, 1.0f);
+        } else {
+            f32 value = field_2a0[field_298].field_4;
+            grey = value < 0.0001f ? 0.0001f : std::min(value, 100.0f);
+        }
+        f32 ratio = grey / measured;
+        Unk_429da0_Item* it = &items[view];
+        f32 range = ratio < it->field_38 ? it->field_40 : it->field_4c;
+        f32 from = logf(current) / 0.6931472f;
+        f32 to = logf(ratio) / 0.6931472f;
+        f32 border = logf(it->field_38) / 0.6931472f;
+        to = border + range * (to - border);
+        f32 result;
+        if (to > from) {
+            f32 rate = Unk_AdaptationRate(it->field_48);
+            f32 speed = Unk_AdaptationRate(it->field_48);
+            f32 velocity = it->field_58;
+            f32 limit = it->field_50 / field_f6c * field_7f4;
+            f32 delta = (from + (to - from) * rate) - from;
+            limit = delta < limit ? delta : limit;
+            f32 next = velocity + speed * (limit - velocity);
+            next = next < 0.0f ? 0.0f : (next > limit ? limit : next);
+            it->field_58 = next;
+            result = from + next;
+            if (result >= to) {
+                it->field_58 = 0.0f;
+                result = to;
+            }
+        } else {
+            f32 rate = Unk_AdaptationRate(it->field_3c);
+            f32 speed = Unk_AdaptationRate(it->field_3c);
+            f32 limit = -(it->field_44 / field_f6c * field_7f4);
+            f32 velocity = it->field_58;
+            f32 delta = (from + (to - from) * rate) - from;
+            limit = delta > limit ? delta : limit;
+            f32 next = velocity + speed * (limit - velocity);
+            next = next < limit ? limit : std::min(next, 0.0f);
+            result = from + next;
+            it->field_58 = result > to ? next : 0.0f;
+            result = result > to ? result : to;
+        }
+        f32 adjusted = exp2f(result);
+        items[view].field_60 =
+            adjusted < items[view].field_30 ? items[view].field_30
+                                             : (adjusted > items[view].field_34 ? items[view].field_34 : adjusted);
+        Unk_4b9200_get(reinterpret_cast<Unk_4b9200*>(luminance));
+    }
+    Unk_429da0_Item* last = &items[view];
+    if (now) {
+        last->field_54++;
+    }
+    last->field_54 = std::max(last->field_54, 0);
+    last->field_64 = last->field_0;
+    return 0;
+}
+
+// 0x710042e560: the active view's auto focus: the depth at the focus point
+// measured every field_40 frames, and the focus distance (field_38) adapted to
+// it within the depth of field's limits
+// NON_MATCHING: a draft; the control flow follows the original, the
+// registers and the float chains don't yet
+s32 CPostEffect::Unk_42e560() {
+    extern Unk_DeviceSettings Unk_24e1500;
+    field_679 = true;
+    if (field_67b || !field_104f) {
+        return 0;
+    }
+    s32 view = field_298;
+    Unk_429e60_Item* items = field_2a8;
+    CTextureLuminanceManage*& luminance = reinterpret_cast<CTextureLuminanceManage*&>(items[view].field_48);
+    if (luminance != nullptr) {
+        Unk_4b79a0_set(reinterpret_cast<Unk_4b79a0*>(luminance->field_40), 2);
+    }
+    s32 levels;
+    if (luminance != nullptr) {
+        f32 time = items[view].field_8;
+        u32 mode = items[view].field_4;
+        s32 delay;
+        if (mode != 0 && !(time < 0.0f)) {
+            delay = mode == 1 ? static_cast<s32>(time) : 0;
+        } else {
+            delay = static_cast<s32>((time < 0.0f ? 0.5f : time) / field_7f4);
+        }
+        s32 slots = field_18 != nullptr ? static_cast<s32>(Unk_24e1500.field_10 > 1 ? Unk_24e1500.field_10 : 1) : -1;
+        levels = std::min(std::max(delay / 6 / slots, 1), 7);
+        items[view].field_40 = levels + 1;
+        s32 step = static_cast<s32>(static_cast<f32>((delay - (levels + 1)) / (levels + 1)) + 0.4999f);
+        luminance->field_4f8 = std::max(std::min(step, 15), 0);
+        f32 rate = 1.0f - powf(0.05f, field_7f4 * static_cast<f32>(items[view].field_40) / 0.1f);
+        luminance->field_4fc = rate < 0.9f ? rate : 0.9f;
+        luminance->Unk_4b8b50();
+    } else {
+        levels = 0;
+    }
+    Unk_429e60_Item* item = &items[view];
+    if (item->field_0 != item->field_3c) {
+        item->field_30 = 0;
+    }
+    bool now;
+    if (Unk_24e1500.field_10 < 2) {
+        now = true;
+    } else {
+        now = field_18->field_28 % Unk_24e1500.field_10 == 0;
+    }
+    if (field_2a8[field_298].field_0 && now && item->field_1c <= 0.0f) {
+        if (item->field_2c >= levels && luminance->Unk_4b89b0() >= 0) {
+            CRenderTexture* target = luminance->field_48;
+            Unk_RenderTexture* scene = Unk_TextureAt(field_5d8);
+            if (Unk_AsTexture(scene)->Unk_Root()->field_a8 == nullptr) {
+                scene = Unk_TextureAt(field_5e0);
+            }
+            bool external;
+            bool linear;
+            Unk_RenderTexture* depth;
+            Unk_GPUTexture* texture;
+            if (field_50 != nullptr) {
+                depth = field_50;
+                texture = Unk_GetTexture(Unk_AsTexture(depth));
+                external = true;
+                linear = false;
+            } else if (field_678) {
+                depth = scene;
+                texture = reinterpret_cast<Unk_GPUTexture*>(field_190->field_60[field_190->field_94]);
+                external = false;
+                linear = true;
+            } else {
+                depth = Unk_TextureAt(field_604);
+                texture = Unk_GetTexture(Unk_AsTexture(depth));
+                external = false;
+                linear = false;
+            }
+            Unk_Float2 point(item->field_14, item->field_18);
+            if (field_10d5) {
+                f32 distance = field_6cc;
+                f32 shift;
+                switch (field_c14) {
+                case 0:
+                    distance = field_c18;
+                    shift = 0.0f;
+                    break;
+                case 2:
+                    shift = field_c1c;
+                    break;
+                default:
+                    shift = 0.0f;
+                    break;
+                }
+                point = Unk_4786d0(true, &point, field_c04, distance, field_420, field_be8, shift, field_c20,
+                                   field_c24, field_c28, field_c08);
+            }
+            if (field_18->field_58) {
+                point.field_0[1] = 1.0f - point.field_0[1].field_0;
+            }
+            CRenderTexture* source = Unk_AsTexture(depth);
+            f32 x = source->field_88 * (point.field_0[0].field_0 * static_cast<f32>(static_cast<u32>(source->field_54)));
+            f32 y = source->field_8c * (point.field_0[1].field_0 * static_cast<f32>(static_cast<u32>(source->field_58)));
+            f32 left = source->field_90;
+            f32 top = source->field_94;
+            texture->vf17(1);
+            Unk_SetTarget(target);
+            reinterpret_cast<CDepthOfField*>(field_1a0)->Unk_4aef30();
+            CTextureUtil* util = Unk_TextureUtil();
+            x = left + x;
+            y = top + y;
+            if (linear) {
+                util->Unk_48b540(0.0f, 0.0f, 1.0f, 1.0f, x, y, x, y, texture, field_1014, 0);
+            } else {
+                s32 type = Unk_DepthCastType(field_58);
+                bool own = texture != Unk_GetTexture(Unk_AsTexture(Unk_TextureAt(field_604)));
+                Unk_Rect factors = Unk_DepthFactors(own ? 6 : 2, 0, 1.0f, 0.0f);
+                Unk_Float2 scale(factors.field_0, factors.field_4);
+                if (external && own) {
+                    f32 a = 1.0f;
+                    f32 b = 0.0f;
+                    if (field_50 != nullptr) {
+                        a = field_68;
+                        b = field_6c;
+                    }
+                    scale.field_0[0] = factors.field_0 * a;
+                    scale.field_0[1] = factors.field_4 + factors.field_0 * b;
+                }
+                util->Unk_48b6e0(0.0f, 0.0f, 1.0f, 1.0f, x, y, x, y, &scale, texture, type, 0);
+            }
+            if (field_50 != nullptr) {
+                texture->vf17(0);
+            }
+            item->field_2c = -1;
+            luminance->Unk_4b8a40(false, 1.0f, 1.0f, field_6c4, field_6c8);
+        }
+        items[view].field_34 = Unk_4b91f0_get(reinterpret_cast<Unk_4b91f0*>(luminance));
+    }
+    if (field_2a8[field_298].field_0) {
+        f32 distance = field_898;
+        f32 aperture = field_89c;
+        Unk_Refresh();
+        CDepthOfField* dof = reinterpret_cast<CDepthOfField*>(field_1a0);
+        f32 focal = field_1050 ? dof->field_1a8 : 0.0f;
+        f32 far = field_6c8;
+        f32 near = field_6c4;
+        f32 measured;
+        if (field_2a8[field_298].field_1c > 0.0f) {
+            measured = field_2a8[field_298].field_1c;
+        } else if (field_2a8[field_298].field_48 != nullptr) {
+            measured = field_2a8[field_298].field_34;
+        } else {
+            measured = 0.0f;
+        }
+        Unk_429e60_Item* it = &items[view];
+        f32 current = distance * focal / (distance - focal);
+        f32 closest = focal * 1.01f;
+        measured = measured > closest ? measured : closest;
+        f32 low = it->field_c > FLT_MIN ? it->field_c : focal + focal;
+        f32 high = it->field_10;
+        if (high == FLT_MAX) {
+            f32 circle = dof->field_170 != 0 ? 0.0001f : 0.000001f;
+            f32 hyperfocal = focal * dof->field_1ac.field_0 / (aperture * circle);
+            high = far * 10.0f;
+            hyperfocal = hyperfocal < high ? hyperfocal : high;
+            if (low < hyperfocal) {
+                high = hyperfocal;
+            }
+        }
+        low = low > near ? low : near;
+        f32 limit = std::min(far, high);
+        f32 nearImage = focal * low / (low - focal);
+        f32 farImage = focal * limit / (limit - focal);
+        f32 image = focal * measured / (measured - focal);
+        f32 maxImage = image > nearImage ? nearImage : image;
+        f32 target = image < farImage ? farImage : maxImage;
+        f32 rate = 1.0f - powf(1.0f - it->field_20, field_7f4 / 0.05f);
+        rate = rate < 0.0f ? 0.0f : std::min(rate, 0.5f);
+        f32 speed = 1.0f - powf(1.0f - it->field_20, field_7f4 / 0.05f);
+        speed = speed < 0.0f ? 0.0f : std::min(speed, 0.5f);
+        f32 velocity = it->field_30;
+        f32 maxSpeed = focal * it->field_28 / field_f68 * field_7f4;
+        f32 step = current + (target - current) * rate - current;
+        f32 sign = step > 0.0f ? 1.0f : (step < 0.0f ? -1.0f : 0.0f);
+        f32 size = fabsf(current + (target - current) * rate - current);
+        step = sign * (size < maxSpeed ? size : maxSpeed);
+        velocity = velocity + speed * (step - velocity);
+        velocity = velocity < -maxSpeed ? -maxSpeed : (velocity > maxSpeed ? maxSpeed : velocity);
+        it->field_30 = velocity;
+        if (step != 0.0f) {
+            f32 a = step > 0.0f ? 0.0f : step;
+            f32 b = step > 0.0f ? step : 0.0f;
+            velocity = velocity < a ? a : (velocity > b ? b : velocity);
+            it->field_30 = velocity;
+        }
+        f32 highImage = focal * high / (high - focal);
+        f32 next = current + velocity;
+        bool reached = it->field_24 &&
+                       ((velocity < 0.0f && next <= target) || (next >= target && velocity > 0.0f));
+        f32 lowImage = focal * low / (low - focal);
+        highImage = highImage > focal ? highImage : focal;
+        if ((velocity < 0.0f && next <= highImage) || (velocity > 0.0f && next >= lowImage)) {
+            it->field_30 = 0.0f;
+        }
+        if (reached) {
+            next = target;
+            it->field_30 = 0.0f;
+        }
+        next = next < highImage ? highImage : (next > lowImage ? lowImage : next);
+        f32 focus = focal * next / (next - focal);
+        it->field_38 = focus < low ? low : (focus > high ? high : focus);
+    }
+    Unk_429e60_Item* last = &items[view];
+    if (now) {
+        last->field_2c++;
+    }
+    last->field_2c = std::max(last->field_2c, 0);
+    last->field_3c = last->field_0;
     return 0;
 }
 
@@ -8837,8 +9711,8 @@ s32 CPostEffect::Unk_4320b0(Unk_RenderTexture* source, Unk_RenderTexture* target
     const f32* range = nullptr;
     if (field_eb8 && Unk_4622e0(field_6c4, field_6c8, field_eec, field_ef0)) {
         f32 k = 1.0f / (field_eec - field_ef0);
-        fade[0] = k;
         fade[1] = 0.0f - field_ef0 * k;
+        fade[0] = k;
         range = fade;
     }
     s32 linear = field_ef4 == -2 ? 1 : field_ef4;
@@ -8852,11 +9726,13 @@ s32 CPostEffect::Unk_4320b0(Unk_RenderTexture* source, Unk_RenderTexture* target
     return 0;
 }
 
-// NON_MATCHING: written this round, not matching yet (tools/check.py --diff shows
-// what differs).
 // 0x7100432570: the view's adaptation (Unk_48fb40 from texture field_5fc to
 // texture field_600 with field_238's texture of the view), then its numbers
 // moved on a frame
+// NON_MATCHING: the original keeps Unk_CheckDepthCastType's switch as a jump
+// table whose four entries all go to the join (here a select, as in
+// 0x710042be10), spills the texture util where this keeps it, and schedules
+// |field_d64|'s minimum next to the call: about 120 instructions.
 s32 CPostEffect::Unk_432570() {
     if (!field_10df) {
         return 0;
@@ -8975,6 +9851,167 @@ s32 CPostEffect::Unk_432570() {
     return 0;
 }
 
+// 0x7100433450: the motion blur of field_618's texture into field_620's, in
+// field_1078's way (2: from the velocity, made first when it has to be)
+// NON_MATCHING: a draft (238 of 554 instructions differ): the velocity mode's
+// depth selection and stack slots differ, and the recurrences' minimum is a
+// select here where the original keeps GetMaxMotionBlurCameraRecurrences's
+// branches; CTextureUtil::Unk_4845c0 is given the range through a cast (its
+// parameter is probably a const Unk_Float2*)
+s32 CPostEffect::Unk_433450() {
+    if (!field_1075) {
+        return 0;
+    }
+    CTextureUtil* util = Unk_TextureUtil();
+    Unk_49e3a0(1, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+    reinterpret_cast<CRenderTextureArray*>(field_190)->Unk_4a5ff0(1, 0x7fffffff);
+    MATRIXT44 projection;
+    {
+        f32 scale = field_6c4;
+        f32 w = scale * (field_6d0 * field_420);
+        f32 xw = field_6d4 * w;
+        f32 h = scale * field_6d0;
+        f32 yh = h * field_6d8;
+        Unk_40f8d0(&projection, false, true, xw - w, w + xw, yh - h, h + yh, scale, field_6c8);
+    }
+    MATRIXT44 previous;
+    {
+        f32 scale = field_6c4;
+        f32 w = scale * (field_6e8 * field_420);
+        f32 xw = field_6ec * w;
+        f32 h = scale * field_6e8;
+        f32 yh = h * field_6f0;
+        Unk_40f8d0(&previous, false, true, xw - w, w + xw, yh - h, h + yh, scale, field_6c8);
+    }
+    f32 x = field_cf0.field_0;
+    f32 y = field_cf4.field_0;
+    u32 count = field_cfc;
+    u32 recurrences = GetMaxMotionBlurCameraRecurrences();
+    if (count > recurrences) {
+        count = recurrences;
+    }
+    f32 ratio = field_d00.field_0;
+    Unk_RenderTexture* source = Unk_TextureAt(field_618);
+    Unk_RenderTexture* target = Unk_TextureAt(field_620);
+    Unk_RenderTexture* temp = Unk_TextureAt(field_61c);
+    bool inside = false;
+    const Unk_Float2* range = nullptr;
+    if (field_ce5 && static_cast<u32>(field_ce8 - 1) < 2) {
+        inside = Unk_4622e0(field_6c4, field_6c8, field_d10, field_d14);
+        range = inside ? &field_1084 : nullptr;
+    }
+    switch (field_1078) {
+    case 0: {
+        Unk_Float2 ones(1.0f, 1.0f);
+        Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+        util->Unk_482f10(x, y, Unk_AsTexture(source), target, temp, &field_6f4, &field_774, &projection, count,
+                         ratio, &ones, 0, &color, false);
+        break;
+    }
+    case 1: {
+        Unk_Float2 ones(1.0f, 1.0f);
+        Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+        util->Unk_4845c0(x, y, ratio, Unk_AsTexture(source), Unk_AsTexture(target), Unk_AsTexture(temp),
+                         &field_6f4, &field_774, &projection, &previous, reinterpret_cast<const f32*>(range), count,
+                         &ones, 0, &color, false);
+        break;
+    }
+    case 2: {
+        Unk_42be10();
+        Unk_RenderTexture* external = field_50;
+        s32 kind = field_58;
+        bool own = kind == 8 || external != nullptr;
+        bool device = false;
+        Unk_RenderTexture* depth;
+        if (kind == 8) {
+            depth = field_190->field_80[static_cast<s32>(field_190->field_94)];
+            device = Unk_AsTexture(depth)->Unk_Root()->field_a8->field_54 == 0;
+            own = own && device;
+            depth = device ? depth : source;
+        } else {
+            depth = own ? external : Unk_TextureAt(field_5e0);
+        }
+        f32 scale;
+        f32 bias;
+        if (field_50 != nullptr) {
+            scale = field_60;
+            bias = field_64;
+        } else {
+            scale = 1.0f;
+            bias = 0.0f;
+        }
+        s32 from;
+        if (device) {
+            bias = field_1014 ? 1.0f : bias;
+            scale = field_1014 ? -1.0f : scale;
+            from = 0;
+        } else {
+            bias = own ? bias : 0.0f;
+            scale = own ? scale : 1.0f;
+            from = own ? 6 : 2;
+        }
+        f32 factors[4];
+        Unk_428cc0(factors, from, 0, scale, bias);
+        Unk_Float2 depthScale(factors[0], factors[1]);
+        Unk_428cc0(factors, 0, 2, 1.0f, 0.0f);
+        Unk_Float2 linear(factors[0], factors[1]);
+        s32 type;
+        if (device || Unk_IsDepthFormat(depth->field_38)) {
+            type = FXDCT_GetDepthCastTypeFromDepthFormat(depth->field_38);
+        } else {
+            type = Unk_CheckDepthCastType(Unk_DepthCastType(own ? field_58 : 3));
+        }
+        bool generate = true;
+        s32 mode;
+        if (field_d2c == 0) {
+            mode = -2;
+        } else {
+            if (field_d2c != 1) {
+                generate = false;
+            }
+            mode = field_d30;
+        }
+        Unk_Float2 falloff(1.0f, 0.0f);
+        if (own && inside) {
+            Unk_428cc0(factors, 0, 2, 1.0f, 0.0f);
+            f32 a = depthScale.field_0[1].field_0 * factors[0] + factors[1];
+            f32 b = depthScale.field_0[0].field_0 * factors[0];
+            falloff.field_0[0] = b * range->field_0[0].field_0;
+            falloff.field_0[1] = a * range->field_0[0].field_0 + range->field_0[1].field_0;
+            range = &falloff;
+        }
+        Unk_Float2 size(field_d24, field_d28);
+        bool reduce = field_d40;
+        Unk_RenderTexture* velocity = field_d70;
+        Unk_RenderTexture* reduced = field_d78;
+        Unk_Float2 offset = field_d64;
+        if (!field_10db && generate) {
+            util->Unk_484f50(field_108c, Unk_AsTexture(depth), Unk_AsTexture(velocity), Unk_AsTexture(reduced),
+                             &field_6f4, &field_774, &projection, &previous, type, &depthScale, range, mode, &offset,
+                             false, &field_d6c);
+            field_10db = true;
+        }
+        if (field_10db) {
+            reduced = nullptr;
+            reduce = false;
+            offset = field_d64;
+        }
+        Unk_Float2 ones(1.0f, 1.0f);
+        Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+        util->Unk_485610(x, y, field_d20, field_d04, ratio, Unk_AsTexture(source), Unk_AsTexture(target),
+                         Unk_AsTexture(temp), reinterpret_cast<CRenderTextureArray*>(field_1e8),
+                         Unk_AsTexture(velocity), Unk_AsTexture(reduced),
+                         reinterpret_cast<CRenderTextureArray*>(field_1e0), &field_d48, &field_d50, false,
+                         &field_6f4, &field_774, &projection, &previous, Unk_AsTexture(depth), type, &depthScale,
+                         &linear, range, mode, &offset, field_d60 != 1, reduce, &size, count, &ones, 0, &color,
+                         false);
+        field_10db = true;
+        break;
+    }
+    }
+    return 0;
+}
+
 // 0x7100433d00: `source` tone mapped into the history texture (or into
 // field_670's texture, then copied into it)
 // NON_MATCHING: register allocation only (s10 to s13, x21/x22, and `space`
@@ -9010,7 +10047,7 @@ s32 CPostEffect::Unk_433d00(Unk_RenderTexture* source) {
         target = history;
     } else {
         target = Unk_428f00_Previous(field_190);
-        Unk_49ad30(target, 0, 0, 0, 0);
+        Unk_49ad30(reinterpret_cast<CRenderTexture*>(target), 0, 0, 0, 0);
     }
     f32 w = static_cast<f32>(target->field_54);
     f32 h = static_cast<f32>(target->field_58);
@@ -9069,7 +10106,7 @@ s32 CPostEffect::Unk_434000(Unk_RenderTexture* source) {
         target = history;
     } else {
         target = Unk_428f00_Previous(field_190);
-        Unk_49ad30(target, 0, 0, 0, 0);
+        Unk_49ad30(reinterpret_cast<CRenderTexture*>(target), 0, 0, 0, 0);
     }
     f32 h = static_cast<f32>(target->field_58);
     f32 w = static_cast<f32>(target->field_54);
@@ -9121,11 +10158,12 @@ s32 CPostEffect::Unk_434000(Unk_RenderTexture* source) {
     return 0;
 }
 
-// NON_MATCHING: written this round, not matching yet (tools/check.py --diff shows
-// what differs).
 // 0x71004347e0: CPostEffect::EndPostEffectScene_Process (its log lines name
 // it): the pre-process, the passes (once more for the second eye), the copy
 // into the output and the post-process
+// NON_MATCHING: a draft; the calls, their arguments and the log lines are
+// the original's, the order of the second eye's saved fields and the copy's
+// texture selection are not yet (about 210 instructions).
 s32 CPostEffect::EndPostEffectScene_Process(u32 flags, s32 samples) {
     if (!field_0) {
 #line 30034
@@ -9174,6 +10212,7 @@ s32 CPostEffect::EndPostEffectScene_Process(u32 flags, s32 samples) {
         PPFX_ERROR("CPostEffect::EndPostEffectScene_Process(): EndPostEffectScene_InternalProcess() failed (0x%x: %s).\n", result, Unk_446df0(result));
     }
     if (field_5d0 == 2) {
+        field_78 = 1;
         Unk_RenderTexture* scene = field_70;
         field_70 = scene != nullptr ? scene : Unk_TextureAt(field_5d8);
         u32 toneMap = field_8c8;
@@ -9182,7 +10221,6 @@ s32 CPostEffect::EndPostEffectScene_Process(u32 flags, s32 samples) {
         f32 luminance = field_7f8;
         f32 vignette = field_848;
         bool fade = field_eb8;
-        field_78 = 1;
         MATRIXT44 matrix0 = field_9b4[0];
         MATRIXT44 matrix1 = field_9b4[1];
         f32 b = field_8d0;
@@ -9272,10 +10310,234 @@ s32 CPostEffect::EndPostEffectScene_Process(u32 flags, s32 samples) {
     if (field_8b6) {
         return result;
     }
-    result = Unk_438510();
+    result = EndPostEffectScene_PostProcess();
     if (result < 0) {
 #line 30436
         PPFX_ERROR("CPostEffect::EndPostEffectScene_Process(): EndPostEffectScene_PostProcess() failed (0x%x: %s).\n", result, Unk_446df0(result));
+    }
+    return result < 0 ? result : 0;
+}
+
+// the render buffer's texture after `index` (field_5e0's first is field_5e4,
+// the last wraps round to field_5e0; inline)
+inline s32 CPostEffect::Unk_NextTexture(s32 index) const {
+    return index == field_5e0 ? field_5e4
+                              : (static_cast<u32>(index + 1) > field_5e4 + field_444 - 1 ? field_5e0 : index + 1);
+}
+
+// the depth of field's textures from `index` on (inline)
+inline s32 CPostEffect::Unk_DepthOfFieldTextures(s32 index) {
+    field_604 = index;
+    field_608 = index;
+    if (field_104f && !field_5a1) {
+        index = Unk_NextTexture(index);
+        field_608 = index;
+        if (Unk_4b72c0_get(reinterpret_cast<const Unk_4b72c0*>(field_1a0))) {
+            index = Unk_NextTexture(index);
+        }
+    }
+    field_60c = index;
+    return index;
+}
+
+// the motion blur's textures from `index` on (inline)
+inline s32 CPostEffect::Unk_MotionBlurTextures(s32 index) {
+    field_618 = index;
+    if (field_1075) {
+        field_61c = index;
+        field_624 = index;
+        index = Unk_NextTexture(index);
+        if (field_107c >= 2) {
+            field_61c = index;
+            index = Unk_NextTexture(index);
+        }
+        if (field_1078 == 2 && field_d38 == nullptr && field_1d8 == nullptr) {
+            field_624 = index;
+            index = Unk_NextTexture(index);
+        }
+    }
+    field_620 = index;
+    return index;
+}
+
+// 0x7100435180: CPostEffect::EndPostEffectScene_PreProcess
+// (EndPostEffectScene_Process's log line names it): the frame numbers, the
+// viewport, which render buffer texture each effect uses this frame, and the
+// scene's depth resolved
+// NON_MATCHING: a draft (about 500 of 851 instructions differ): the
+// original threads the index chain's branches into far more copies
+s32 CPostEffect::EndPostEffectScene_PreProcess(u32 flags, s32 samples) {
+    if (!field_8 && !field_67b) {
+        for (s32 i = 0; i < field_400; i++) {
+            if (field_298 == 0x7fffffff || i == field_298) {
+                field_290[i]++;
+            }
+        }
+    }
+    if ((flags & 1) && field_18->field_14ef5) {
+        field_1 = true;
+    }
+    Unk_PixelContainer* surface = nullptr;
+    field_18->vf10(0, &surface);
+    s32 result;
+    if (surface != nullptr) {
+        Unk_Viewport viewport;
+        viewport.field_0 = 0;
+        viewport.field_4 = 0;
+        viewport.field_8 = surface->field_4c;
+        viewport.field_c = surface->field_50;
+        viewport.field_10 = 0.0f;
+        viewport.field_14 = 1.0f;
+        result = field_18->vf16(&viewport);
+        if (surface != nullptr) {
+            surface->vf1();
+            surface = nullptr;
+        }
+    } else {
+        result = 0;
+    }
+    bool direct;
+    if (field_70 != nullptr || field_1068) {
+        direct = false;
+    } else {
+        direct = field_59c ? field_106a : true;
+    }
+    field_106c = direct;
+    if (direct) {
+        Unk_RenderTexture* scene = Unk_TextureAt(field_5d8);
+        Unk_RenderTexture* work = Unk_TextureAt(field_5e0);
+        if (scene->field_54 > work->field_54 || scene->field_58 > work->field_58) {
+            field_106c = false;
+        }
+    }
+    s32 index = field_106c ? field_5d8 : field_5e0;
+    field_5ec = index;
+    bool dofFirst = field_10d7;
+    field_67c = dofFirst;
+    if (field_106d) {
+        index = Unk_NextTexture(index);
+    }
+    field_5f0 = index;
+    field_5f4 = index;
+    if (field_10de) {
+        index = Unk_NextTexture(index);
+    }
+    field_5f8 = index;
+    field_5fc = index;
+    if (field_10df) {
+        index = Unk_NextTexture(index);
+    }
+    field_600 = index;
+    if (dofFirst) {
+        index = Unk_DepthOfFieldTextures(index);
+    }
+    if (field_1080) {
+        index = Unk_MotionBlurTextures(index);
+    }
+    field_628 = index;
+    if (field_1090) {
+        index = Unk_NextTexture(index);
+    }
+    field_62c = index;
+    if (!field_67c) {
+        index = Unk_DepthOfFieldTextures(index);
+    }
+    field_610 = index;
+    if (field_5a2) {
+        index = Unk_NextTexture(index);
+    }
+    field_614 = index;
+    if (!field_1080) {
+        index = Unk_MotionBlurTextures(index);
+    }
+    field_630 = index;
+    if (field_106e) {
+        index = Unk_NextTexture(index);
+        field_634 = index;
+        index = Unk_NextTexture(index);
+    }
+    field_638 = index;
+    field_63c = index;
+    if (field_1074) {
+        index = Unk_NextTexture(index);
+        field_640 = index;
+        index = Unk_NextTexture(index);
+    }
+    field_644 = index;
+    field_660 = index;
+    if (field_f39) {
+        index = Unk_NextTexture(index);
+    }
+    field_664 = index;
+    field_650 = index;
+    if (field_c2d) {
+        index = Unk_NextTexture(index);
+    }
+    field_654 = index;
+    field_658 = index;
+    if (field_c35) {
+        index = Unk_NextTexture(index);
+    }
+    field_65c = index;
+    field_648 = index;
+    if (field_10d5) {
+        index = Unk_NextTexture(index);
+    }
+    field_64c = index;
+    field_668 = index;
+    field_66c = index;
+    if (Unk_IsHdrOutput()) {
+        index = Unk_NextTexture(index);
+    }
+    field_670 = index;
+    field_674 = index;
+    if (!field_1069) {
+        Unk_24e53e0 = nullptr;
+    }
+    CTextureUtil* util = Unk_TextureUtil();
+    field_104e = Unk_24e53e8;
+    if (field_104e) {
+        if (field_70 != nullptr) {
+            result = Unk_49e3a0(0, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+        } else {
+            result = Unk_49e3a0(0x1f, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+            if (result >= 0 && field_1069) {
+                field_678 = true;
+            }
+        }
+        reinterpret_cast<CRenderTextureArray*>(field_190)->Unk_4a5ff0(1, 0x7fffffff);
+    }
+    util->Unk_471410(0x10, 3, -1);
+    Unk_440d50_get(reinterpret_cast<u64>(field_18), 0);
+    s32 count = std::min(field_440, samples);
+    if (field_70 == nullptr && count != 0) {
+        if (field_1069) {
+            s32 resolved = Unk_49e290(0, nullptr, 0, nullptr, 1.0f);
+            if (resolved < 0) {
+#line 31099
+                PPFX_ERROR("CPostEffectEndPostEffectScene_PreProcess: CRenderTexture::ResolveCurrentDepthStencilTexture() failed (0x%x: %s).\n", resolved, Unk_446df0(resolved));
+            } else if (field_1069) {
+                field_678 = true;
+            }
+        }
+        s32 level = field_894 ? field_690 : 0;
+        util->Unk_470610(field_8cc, field_8d0);
+        if (Unk_49e3a0(0x1f, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f) >= 0 && field_1069) {
+            field_678 = true;
+        }
+        reinterpret_cast<CRenderTextureArray*>(field_190)->Unk_4a5ff0(1, 0x7fffffff);
+        result = reinterpret_cast<CRenderTextureArray*>(field_190)->Unk_4a65a0(
+            field_5d8, count < 0 ? field_5e8 : field_5dc, count, level, true, 1.0f);
+        field_5e8 = field_5d8;
+    }
+    if (field_1069 && !field_104e) {
+        result = Unk_49e290(0, nullptr, 0, nullptr, 1.0f);
+        if (result < 0) {
+#line 31255
+            PPFX_ERROR("CPostEffectEndPostEffectScene_PreProcess: CRenderTexture::ResolveCurrentDepthStencilTexture() failed (0x%x: %s).\n", result, Unk_446df0(result));
+        } else if (field_1069) {
+            field_678 = true;
+        }
     }
     return result < 0 ? result : 0;
 }

@@ -98,10 +98,12 @@ CRenderTextureArray::~CRenderTextureArray() {
 }
 
 // 0x71004a47e0 ("CRenderTextureArray::InitializeDevice()" in its log lines)
-// NON_MATCHING: 2724 of 2740 bytes, same structure: the original has one
-// return block (its result selected after the mip textures' and the depth
-// textures' calls, `csel w20, w0, w20, lt`), reloads field_2c between the
-// two flag tests of the second depth texture and allocates other registers.
+// The two depth textures and their views are loops over the two sets (fully
+// unrolled late: the original reloads field_2c in the second iteration and
+// carries its result through `csel w20, w0, w20, lt`).
+// NON_MATCHING: 2800 of 2740 bytes: the set loop's copy of set 0 for set 1
+// uses `set` as an index in the original (no constant 1 propagated into it)
+// and is laid out before the set's own textures; other registers.
 s32 CRenderTextureArray::vf0(IGPUDevice* device) {
     s32 result = CGPUResourceManage::vf0(device);
     if (result < 0)
@@ -128,8 +130,8 @@ s32 CRenderTextureArray::vf0(IGPUDevice* device) {
         Unk_24e5418[0] = 0;
         Unk_24e5418[1] = 0;
         if (depthFormat != 0 && !(field_38[i]->field_2c.field_0 & 0x40000)) {
-            Unk_24e5418[0] = depthFormat;
             Unk_24e5418[1] = (field_2c & 0x10000) ? depthFormat : 0;
+            Unk_24e5418[0] = depthFormat;
         }
         result = field_38[i]->vf0(field_20);
         Unk_24e5418[0] = 0;
@@ -142,7 +144,8 @@ s32 CRenderTextureArray::vf0(IGPUDevice* device) {
         }
     }
     for (s32 i = 0; i < field_34; i++) {
-        result = field_40[i]->vf0(field_20);
+        CRenderTexture* texture = field_40[i];
+        result = texture->vf0(field_20);
         if (result < 0)
             return result;
     }
@@ -194,6 +197,8 @@ s32 CRenderTextureArray::vf0(IGPUDevice* device) {
         s32 format = 0;
         if (field_48 != 0)
             format = tiled[set] ? depthFormat : field_48;
+        s32 sampleCount = msaas[set];
+        s32 sampleQuality = qualities[set];
         u32 width = 0;
         u32 height = 0;
         bool found = false;
@@ -246,7 +251,7 @@ s32 CRenderTextureArray::vf0(IGPUDevice* device) {
             if (!keep)
                 flags |= depthTiled ? 0x200 : 0x100;
             if (depthTexture) {
-                result = field_20->vf60(width, height, 1, 2, surfaceFormat, msaas[set], qualities[set],
+                result = field_20->vf60(width, height, 1, 2, surfaceFormat, sampleCount, sampleQuality,
                                         reinterpret_cast<IGPUInterface**>(&(&field_60)[set]), flags);
                 if (result < 0) {
 #line 828
@@ -256,7 +261,7 @@ s32 CRenderTextureArray::vf0(IGPUDevice* device) {
                 (&field_60)[set]->vf23(0, &(&field_50)[set]);
                 (&field_60)[set]->vf23(0, &(&field_70)[set]);
             } else {
-                result = field_20->vf65(width, height, surfaceFormat, msaas[set], qualities[set],
+                result = field_20->vf65(width, height, surfaceFormat, sampleCount, sampleQuality,
                                         reinterpret_cast<IGPUInterface**>(&(&field_50)[set]), flags, nullptr, 0);
                 if (result < 0) {
 #line 896
@@ -279,51 +284,42 @@ s32 CRenderTextureArray::vf0(IGPUDevice* device) {
         }
     }
     field_4c = 0;
-    if (field_50 != nullptr && (field_2c & 0x20000)) {
+    for (s32 set = 0; set < 2; set++) {
+        if (set == 1 && !(field_2c & 0x10000))
+            continue;
+        if (field_50 == nullptr || !(field_2c & 0x20000))
+            continue;
         Unk_49b230_Desc desc;
-        field_50->vf8(&desc);
+        (&field_50)[set]->vf8(&desc);
         field_4c = desc.field_0;
-        if (field_60 == nullptr) {
-            field_20->vf60(fullWidth, fullHeight, 1, 0, 0x1c, 0, 0, reinterpret_cast<IGPUInterface**>(&field_60), 0);
-            field_60->vf23(0, &field_70);
+        if ((&field_60)[set] == nullptr) {
+            if (set == 0) {
+                field_20->vf60(fullWidth, fullHeight, 1, 0, 0x1c, 0, 0,
+                               reinterpret_cast<IGPUInterface**>(&(&field_60)[set]), 0);
+            } else {
+                (&field_60)[set] = field_60;
+                (&field_60)[set]->vf0();
+            }
+            (&field_60)[set]->vf23(0, &(&field_70)[set]);
         }
-        if (field_60 != nullptr)
-            field_60->vf15(5);
+        if ((&field_60)[set] != nullptr)
+            (&field_60)[set]->vf15(5);
     }
-    if ((field_2c & 0x10000) && field_50 != nullptr && (field_2c & 0x20000)) {
-        Unk_49b230_Desc desc;
-        field_58->vf8(&desc);
-        field_4c = desc.field_0;
-        if (field_68 == nullptr) {
-            field_68 = field_60;
-            field_68->vf0();
-            field_68->vf23(0, &field_78);
+    for (s32 set = 0; set < 2; set++) {
+        if ((&field_60)[set] == nullptr)
+            continue;
+        if (set != 0 && (&field_60)[set] == field_60) {
+            (&field_80)[set] = field_80;
+            field_80->field_8++;
+            continue;
         }
-        if (field_68 != nullptr)
-            field_68->vf15(5);
-    }
-    if (field_60 != nullptr) {
-        Unk_TFXString name = Unk_TFXString("CRenderTexture::m_apTextureDepthTexture[") + Unk_4525a0(0) + "]";
+        Unk_TFXString name = Unk_TFXString("CRenderTexture::m_apTextureDepthTexture[") + Unk_4525a0(set) + "]";
 #line 1285
         CRenderTexture* texture = UNK_NEW(CRenderTexture)(name.field_8);
-        field_80 = texture;
-        result = texture->vf6(field_20, field_60);
+        (&field_80)[set] = texture;
+        result = texture->vf6(field_20, (&field_60)[set]);
         if (result < 0)
             return result;
-    }
-    if (field_68 != nullptr) {
-        if (field_68 == field_60) {
-            field_88 = field_80;
-            field_80->field_8++;
-        } else {
-            Unk_TFXString name = Unk_TFXString("CRenderTexture::m_apTextureDepthTexture[") + Unk_4525a0(1) + "]";
-#line 1285
-            CRenderTexture* texture = UNK_NEW(CRenderTexture)(name.field_8);
-            field_88 = texture;
-            result = texture->vf6(field_20, field_68);
-            if (result < 0)
-                return result;
-        }
     }
     return 0;
 }
@@ -493,7 +489,7 @@ static inline s32 Unk_SetViewport(PPFX::CRenderTexture* texture, f32 width, f32 
     if (height > 0.0f) {
         h = h > 1 ? h : 1;
     }
-    return Unk_49ad30(reinterpret_cast<PPFX::Unk_RenderTexture*>(texture), w, h, ix, iy);
+    return Unk_49ad30(texture, w, h, ix, iy);
 }
 
 // 0x71004a5d10: a texture's (-1: the current one's, 0x7fffffff: every

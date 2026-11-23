@@ -13,11 +13,12 @@ namespace PPFX {
 // what GPUPostEffect.h calls a render texture
 struct Unk_RenderTexture;
 class IGPUInterface;
+class CRenderTexture;
 }  // namespace PPFX
 
 // 0x710049ad30: a render texture's viewport. It keeps the name its first
 // caller (GPUPostEffect.h) gave it.
-s32 Unk_49ad30(PPFX::Unk_RenderTexture* texture, s32 width, s32 height, s32 x, s32 y);
+s32 Unk_49ad30(PPFX::CRenderTexture* texture, s32 width, s32 height, s32 x, s32 y);
 
 namespace PPFX {
 

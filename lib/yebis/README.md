@@ -197,8 +197,10 @@ are libc++'s (`std::vector`, `std::list`) on `Unk_StlAllocator`
 - `if (++count >= limit) break;` after `array[count] = x` keeps the counter
   in one register; `array[count++] = x; if (count >= limit)` doesn't.
 - Functions that lib/yebis/leaf's generated callers already name
-  (`Unk_49fc60`, `Unk_49ca70`, ...) keep that free-function name; the body
-  casts its first parameter to the class.
+  (`Unk_49fc60`, `Unk_49ca70`, ...) keep that free-function name. Their first
+  parameter is typed as the class (`CRenderTexturePool*` for `Unk_49fc60`):
+  casting a `void*` inside the body turns the member addresses into byte GEPs
+  that Reassociate ranks lower, which swaps compare and add operands.
 
 **Names**: `CGPUResourceManage::RegisterStaticGPUDevice` and
 `CRenderTexturePool::AllocateTextures` are named by their log lines, the

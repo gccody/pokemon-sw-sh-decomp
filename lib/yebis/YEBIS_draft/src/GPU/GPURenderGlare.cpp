@@ -3,6 +3,8 @@
 // __FILE__ of its log lines).
 #include <math.h>
 
+#include <algorithm>
+
 #include <yebis/YEBIS_draft/src/GPU/Unk_Statics.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUClassUtil.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUGlareDef.h>
@@ -1002,9 +1004,6 @@ s32 CRenderGlare::Unk_45e940(const Unk_GlareRect* a, const Unk_GlarePair* b, con
 }
 
 // 0x7100457650
-// NON_MATCHING: the blocks of the second condition are laid out the other way
-// round (`cbz` to the constant), the `and` of the two conditions has its
-// operands exchanged, and the last test becomes a `cset` here.
 bool CRenderGlare::Unk_457650() {
     bool a = Unk_456bf0();
     bool b = Unk_456f30();
@@ -1013,16 +1012,16 @@ bool CRenderGlare::Unk_457650() {
     s32 frames = field_1f4;
     bool idle = field_200 < 1 || (field_210 == -1 && field_220 < 1);
     bool released = !field_368 || field_360 == 0;
-    if ((idle & released) != true) {
+    if ((idle && released) != true) {
         return false;
     }
     if (a || b || c || d) {
         return false;
     }
-    if (frames > 0 || field_418 != 0.0f || field_b0.field_14 || field_26c) {
-        return false;
+    if (frames <= 0 && field_418 == 0.0f && !field_b0.field_14 && !field_26c) {
+        return true;
     }
-    return true;
+    return false;
 }
 
 // The kinds of formats 0x710045ed80 and 0x710045ee20 tell apart (inline)
@@ -1895,8 +1894,9 @@ s32 CRenderGlare::Unk_459730(const Unk_4a0540* star, CRenderTexture* target, CGP
                 Unk_GetTexture(outputs[i])->vf17(1);
             }
             f32 value = intensity * (16.0f / 3.0f);
-            util->Unk_48d550(value, value, value, value, field_1f0, static_cast<CRenderTexture*>(texture),
-                             outputCount, outputs, reinterpret_cast<const Unk_Float*>(weights), field_2e4, false);
+            util->Unk_48d550(static_cast<CRenderTexture*>(texture), outputCount, outputs,
+                             reinterpret_cast<const Unk_Float*>(weights), value, value, value, value, field_1f0,
+                             field_2e4, false);
             for (s32 i = 0; i < outputCount; i++) {
                 Unk_GetTexture(outputs[i])->vf17(0);
             }
@@ -1908,6 +1908,314 @@ s32 CRenderGlare::Unk_459730(const Unk_4a0540* star, CRenderTexture* target, CGP
 // the smaller of two numbers (inline)
 static inline const Unk_Float& Unk_MinFloat(const Unk_Float& a, const Unk_Float& b) {
     return a.field_0 < b.field_0 ? a : b;
+}
+
+// a ghost's size, the rest of it zero (inline)
+static inline void Unk_SetGhost(Unk_Float4* ghost, f32 size) {
+    ghost->field_0[1].field_0 = size;
+    ghost->field_0[2].field_0 = 0.0f;
+    ghost->field_0[3].field_0 = 0.0f;
+}
+
+// the largest of four numbers (inline)
+static inline f32 Unk_Max4(f32 a, f32 b, f32 c, f32 d) {
+    f32 m = a > b ? a : b;
+    m = m > c ? m : c;
+    return m > d ? m : d;
+}
+
+// the level `offset` after field_414, clamped to the levels, and the scale of
+// the colours drawn from it (inline)
+static inline s32 Unk_GhostLevel(const CRenderGlare* self, s32 offset, f32* scale) {
+    s32 wanted = self->field_414 + offset;
+    s32 last = self->field_3d8 - 1;
+    s32 level = wanted < 0 ? 0 : (wanted > last ? last : wanted);
+    s32 below = level - wanted;
+    f32 fade = powf(4.0f, static_cast<f32>(below < 0 ? below : 0));
+    f32 n = static_cast<f32>(level);
+    *scale = fade * (1.0f / (powf(self->field_1e4, n) * powf(self->field_3fc, n)));
+    return level;
+}
+
+// 0x710045a820: the light ghosts, from four of the glare's levels into
+// m_pGhostGeneration's second texture, then from that (and the bloom and the
+// anamorphic flare, if any) into its first
+// NON_MATCHING: the same calls, constants and stores; the colours' array is
+// 0x10 bytes higher on the stack, the first pass's parameters are stored in
+// other pairs, the blocks of field_170->field_48's two cases are laid out
+// the other way round and register allocation differs throughout
+s32 CRenderGlare::Unk_45a820() {
+    if (!Unk_4570b0()) {
+        return 0;
+    }
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    s32 levels = field_3d8;
+    f32 shine;
+    {
+        const Unk_45_170* color = field_170;
+        Unk_410f90 space;
+        Unk_410f90_set(&space, 0);
+        shine = Unk_Luminance(space, color->field_30);
+    }
+    f32 glare = Unk_458420();
+    f32 intensity = field_1c8 * Unk_Max4(field_1cc, field_1d0, field_1d4, field_1d8);
+    if (field_1ac) {
+        intensity = intensity > 5.96046448e-08f ? intensity : 5.96046448e-08f;
+    }
+    f32 intensity2 = field_1b0 * Unk_Max4(field_1b8, field_1bc, field_1c0, field_1c4);
+    if (field_1ac) {
+        intensity2 = intensity2 > 5.96046448e-08f ? intensity2 : 5.96046448e-08f;
+    }
+    s32 current = field_414;
+    f32 second;
+    {
+        const Unk_45_170* color = field_170;
+        Unk_410f90 space;
+        Unk_410f90_set(&space, 0);
+        second = Unk_Luminance(space, color->field_18);
+    }
+    f32 second2;
+    {
+        const Unk_45_170* color = field_170;
+        Unk_410f90 space;
+        Unk_410f90_set(&space, 0);
+        second2 = Unk_Luminance(space, color->field_18);
+    }
+    f32 half = field_1c8 * Unk_Max4(field_1cc, field_1d0, field_1d4, field_1d8);
+    if (field_1ac) {
+        half = half > 5.96046448e-08f ? half : 5.96046448e-08f;
+    }
+    half *= 0.5f;
+    bool anamorphic = Unk_456f30();
+
+    // the first pass: each ghost's place on the axis and size, and colour
+    Unk_Float4 params[8] = {
+        Unk_Float4(-0.33f, -0.33f, -0.33f, -0.33f), Unk_Float4(-0.56f, -0.56f, -0.56f, -0.56f),
+        Unk_Float4(-0.75f, -0.75f, -0.75f, -0.75f), Unk_Float4(-0.4f, -0.4f, -0.4f, -0.4f),
+        Unk_Float4(-0.85f, -0.85f, -0.85f, -0.85f), Unk_Float4(-0.25f, -0.25f, -0.25f, -0.25f),
+        Unk_Float4(-0.5f, -0.5f, -0.5f, -0.5f),     Unk_Float4(-1.0f, -1.0f, -1.0f, -1.0f),
+    };
+    Unk_SetGhost(&params[0], powf(2.5f, field_1dc * 0.857632875f));
+    Unk_SetGhost(&params[1], powf(2.5f, field_1dc * 0.444071203f));
+    Unk_SetGhost(&params[2], powf(2.5f, field_1dc * 0.508654892f));
+    Unk_SetGhost(&params[3], powf(2.5f, field_1dc * 0.821543097f));
+    Unk_SetGhost(&params[4], powf(2.5f, field_1dc * 0.558458388f));
+    Unk_SetGhost(&params[5], powf(2.5f, field_1dc * 0.610605538f));
+    Unk_SetGhost(&params[6], powf(2.5f, field_1dc * 0.0887189433f));
+    Unk_SetGhost(&params[7], powf(2.5f, field_1dc * 0.963040113f));
+    Unk_Float4 colors[8] = {
+        Unk_Float4(0.05f, 0.02f, 0.03f, 0.0f),    Unk_Float4(0.015f, 0.05f, 0.03f, 0.0f),
+        Unk_Float4(0.03f, 0.015f, 0.05f, 0.0f),   Unk_Float4(0.05f, 0.03f, 0.015f, 0.0f),
+        Unk_Float4(0.015f, 0.05f, 0.035f, 0.0f),  Unk_Float4(0.0225f, 0.045f, 0.075f, 0.0f),
+        Unk_Float4(0.015f, 0.05f, 0.025f, 0.0f),  Unk_Float4(0.175f, 0.125f, 0.25f, 0.0f),
+    };
+    CRenderTexture* sources[4];
+    f32 scale;
+    if (field_170->field_48) {
+        sources[0] = Unk_ArrayTexture(m_pGlareSource, 2);
+        s32 wanted = current + 1;
+        s32 level = wanted < 0 ? 0 : (wanted > levels - 1 ? levels - 1 : wanted);
+        f32 n = static_cast<f32>(level);
+        scale = 1.0f / (powf(field_1e4, n) * powf(field_3fc, n));
+        for (s32 i = 3; i < 5; i++) {
+            for (s32 j = 0; j < 4; j++) {
+                colors[i].field_0[j].field_0 *= scale;
+            }
+        }
+        sources[1] = field_320[level].Unk_Texture28();
+        scale = 1.0f / (powf(field_1e4, n) * powf(field_3fc, n));
+        sources[2] = field_320[level].Unk_Texture28();
+    } else {
+        s32 level = Unk_GhostLevel(this, 0, &scale);
+        sources[0] = field_320[level].field_18;
+        for (s32 i = 0; i < 3; i++) {
+            for (s32 j = 0; j < 4; j++) {
+                colors[i].field_0[j].field_0 *= scale;
+            }
+        }
+        level = Unk_GhostLevel(this, 1, &scale);
+        sources[1] = field_320[level].field_18;
+        for (s32 i = 3; i < 5; i++) {
+            for (s32 j = 0; j < 4; j++) {
+                colors[i].field_0[j].field_0 *= scale;
+            }
+        }
+        level = Unk_GhostLevel(this, 2, &scale);
+        sources[2] = field_320[level].field_18;
+    }
+    for (s32 i = 5; i < 7; i++) {
+        for (s32 j = 0; j < 4; j++) {
+            colors[i].field_0[j].field_0 *= scale;
+        }
+    }
+    s32 level = Unk_GhostLevel(this, 2, &scale);
+    sources[3] = field_320[level].field_18;
+    for (s32 j = 0; j < 4; j++) {
+        colors[7].field_0[j].field_0 = scale * colors[7].field_0[j].field_0 * 0.3333f;
+    }
+    // the sizes by the field of view
+    f32 fov = field_250_f > 0.0f ? field_268 / field_250_f * 0.5f : field_158;
+    f32 zoom = logf(fov);
+    params[1].field_0[0].field_0 *= cosf(zoom * 1.5f) * 0.25f + 0.75f;
+    params[3].field_0[0].field_0 *= cosf(zoom * -2.5f + 0.0f) * 0.5f + 1.5f;
+    params[4].field_0[0].field_0 *= cosf(zoom * -0.9f + -0.2f) * 0.25f + 0.7f;
+    params[6].field_0[0].field_0 *= cosf(zoom * -1.3f + 0.4f) * 0.3f + 0.7f;
+    for (s32 i = 0; i < 8; i++) {
+        params[i].field_0[0].field_0 = std::max(-1.0f, params[i].field_0[0].field_0);
+    }
+    f32 size = field_170->field_44;
+    if (field_1dc == 0.0f) {
+        size *= 0.5f;
+    }
+    s32 result = util->Unk_488d90(sources[0], sources[1], sources[2], sources[3],
+                                  reinterpret_cast<Unk_GPUTexture*>(field_348),
+                                  Unk_ArrayTexture(m_pGhostGeneration, 1), params, colors, size * 2.0f, field_2e4, 0);
+    if (result < 0) {
+        return result;
+    }
+
+    // the second pass, with the anamorphic flare's colours
+    f32 product = intensity * intensity2 * 0.5f;
+    f32 bright = glare * (shine * 0.05f * 20.0f);
+    f32 blue = 0.5f / second2 * 0.125f;
+    f32 red = product / second;
+    Unk_Float4 flare(red * 0.1299f, red * 0.09806f, red * 0.6682f, red * 0.0f);
+    Unk_Float4 streak(blue * 0.267f, blue * 0.128f, blue * 0.586f, blue * 0.0f);
+    Unk_Float4 color(field_1cc * half, field_1d0 * half, field_1d4 * half, field_1d8 * half);
+    params[0].field_0[0].field_0 = 1.0f;
+    Unk_SetGhost(&params[0], exp2f(field_1dc * 0.999957085f));
+    params[1].field_0[0].field_0 = 0.2f;
+    Unk_SetGhost(&params[1], exp2f(field_1dc * 0.937521279f));
+    params[2].field_0[0].field_0 = -0.3f;
+    Unk_SetGhost(&params[2], exp2f(field_1dc * 0.943598986f));
+    params[3].field_0[0].field_0 = -1.0f;
+    Unk_SetGhost(&params[3], exp2f(field_1dc * 0.797693849f));
+    params[4].field_0[0].field_0 = -7.0f;
+    Unk_SetGhost(&params[4], exp2f(field_1dc * 0.115039289f));
+    params[5].field_0[0].field_0 = 4.0f;
+    Unk_SetGhost(&params[5], exp2f(field_1dc * 0.57916832f));
+    params[6].field_0[0].field_0 = 2.0f;
+    Unk_SetGhost(&params[6], exp2f(field_1dc * 0.100258522f));
+    params[7].field_0[0].field_0 = -1.6f;
+    Unk_SetGhost(&params[7], exp2f(field_1dc * 0.11453905f));
+    colors[0] = Unk_Float4(bright * 0.15f, bright * 0.375f, bright * 1.5f, bright * 0.0f);
+    colors[1] = Unk_Float4(bright * 1.0f, bright * 0.2f, bright * 0.5f, bright * 0.0f);
+    colors[2] = Unk_Float4(bright * 0.6f, bright * 1.8f, bright * 1.6f, bright * 0.0f);
+    colors[3] = Unk_Float4(bright * 1.44f, bright * 0.72f, bright * 4.08f, bright * 0.0f);
+    colors[4] = Unk_Float4(bright * 0.032f, bright * 0.008f, bright * 0.16f, bright * 0.0f);
+    colors[5] = Unk_Float4(bright * 0.014f, bright * 0.002f, bright * 0.02f, bright * 0.0f);
+    colors[6] = Unk_Float4(bright * 0.001f, bright * 0.004f, bright * 0.02f, bright * 0.0f);
+    colors[7] = Unk_Float4(bright * 0.01f, bright * 0.0005f, bright * 0.002f, bright * 0.0f);
+    CRenderTexture* first = Unk_ArrayTexture(m_pGhostGeneration, 1);
+    CRenderTexture* bloom;
+    CRenderTexture* flareSource;
+    if (field_170->field_48) {
+        params[5].field_0[0].field_0 = -3.0f;
+        params[4].field_0[0].field_0 = -1.0f;
+        level = Unk_GhostLevel(this, 0, &scale);
+        bloom = field_320[level].field_18;
+        bool shown = false;
+        if (anamorphic) {
+            const Unk_45_170* color = field_170;
+            Unk_410f90 space;
+            Unk_410f90_set(&space, 0);
+            shown = Unk_Luminance(space, color->field_18) > 0.0f;
+        }
+        if (shown) {
+            bloom = static_cast<CRenderTexture*>(m_pBloomResult);
+            params[4].field_0[0].field_0 = -1.0f;
+            params[5].field_0[0].field_0 = -1.8f;
+            params[5].field_0[3].field_0 = 0.98f;
+            params[6].field_0[0].field_0 = -1.8f;
+            params[6].field_0[3].field_0 = 0.98f;
+            for (s32 j = 0; j < 4; j++) {
+                colors[4].field_0[j].field_0 = streak.field_0[j].field_0 * 2.0f;
+                colors[5].field_0[j].field_0 = flare.field_0[j].field_0 * 0.4f * 2.0f;
+                colors[6].field_0[j].field_0 = flare.field_0[j].field_0 * 2.0f;
+            }
+            colors[5].field_0[2].field_0 *= 1.5f;
+        } else {
+            for (s32 j = 0; j < 4; j++) {
+                colors[4].field_0[j].field_0 = scale * colors[4].field_0[j].field_0 * 8.0f;
+            }
+        }
+        for (s32 j = 0; j < 4; j++) {
+            colors[5].field_0[j].field_0 = scale * (colors[5].field_0[j].field_0 * 2.0f);
+        }
+        level = Unk_GhostLevel(this, 0, &scale);
+        if (anamorphic) {
+            flareSource = static_cast<CRenderTexture*>(m_pAnamorphicFlareResult);
+            params[7].field_0[0].field_0 = -1.0f;
+            colors[7] = color;
+        } else {
+            flareSource = field_320[level].field_18;
+            for (s32 j = 0; j < 4; j++) {
+                colors[7].field_0[j].field_0 *= scale;
+            }
+        }
+    } else {
+        level = Unk_GhostLevel(this, 2, &scale);
+        f32 falloff = field_170->field_40 * 1.414f;
+        f32 factor = 1.0f;
+        if (falloff != 1.0f) {
+            factor = powf(falloff, static_cast<f32>(level - field_414));
+        }
+        scale *= factor;
+        bloom = field_320[level].field_18;
+        bool shown = false;
+        if (anamorphic) {
+            const Unk_45_170* color = field_170;
+            Unk_410f90 space;
+            Unk_410f90_set(&space, 0);
+            shown = Unk_Luminance(space, color->field_18) > 0.0f;
+        }
+        if (shown) {
+            bloom = static_cast<CRenderTexture*>(m_pBloomResult);
+            params[4].field_0[0].field_0 = -1.0f;
+            params[5].field_0[0].field_0 = -1.8f;
+            params[5].field_0[3].field_0 = 0.98f;
+            params[6].field_0[0].field_0 = -1.8f;
+            params[6].field_0[3].field_0 = 0.98f;
+            for (s32 j = 0; j < 4; j++) {
+                colors[4].field_0[j].field_0 = streak.field_0[j].field_0 * 0.5f;
+                colors[5].field_0[j].field_0 = flare.field_0[j].field_0 * 0.4f;
+                colors[6].field_0[j].field_0 = flare.field_0[j].field_0;
+            }
+            colors[5].field_0[2].field_0 *= 1.5f;
+        } else {
+            for (s32 j = 0; j < 4; j++) {
+                colors[4].field_0[j].field_0 *= scale;
+            }
+        }
+        for (s32 j = 0; j < 4; j++) {
+            colors[5].field_0[j].field_0 *= scale;
+        }
+        level = Unk_GhostLevel(this, 0, &scale);
+        if (anamorphic) {
+            flareSource = static_cast<CRenderTexture*>(m_pAnamorphicFlareResult);
+            params[7].field_0[0].field_0 = -1.0f;
+            for (s32 j = 0; j < 4; j++) {
+                colors[7].field_0[j].field_0 = color.field_0[j].field_0 * 0.5f;
+            }
+        } else {
+            flareSource = field_320[level].field_18;
+            for (s32 j = 0; j < 4; j++) {
+                colors[7].field_0[j].field_0 *= scale;
+            }
+        }
+    }
+    for (s32 j = 0; j < 4; j++) {
+        colors[6].field_0[j].field_0 *= scale;
+    }
+    size = field_170->field_44;
+    if (field_1dc == 0.0f) {
+        size *= 0.5f;
+    }
+    result = util->Unk_489690(first, bloom, flareSource,
+                              m_pGhostGeneration != nullptr ? Unk_ArrayTexture(m_pGhostGeneration, 0) : nullptr,
+                              params, colors, size * 0.0f, field_2e4, 0);
+    return result < 0 ? result : 0;
 }
 
 // 0x7100458720: the ghosts' levels blurred, each from the one before (field_3fc
@@ -2782,7 +3090,10 @@ s32 CRenderGlare::GenerateGlare_Composite() {
 // NON_MATCHING: one instruction: the original combines `format != 26` with the
 // negated 32-bit float test as `bic`, here `eor` then `and` (and the code
 // after it is 4 bytes later). Tried: the test as `&&`, `&`, a select, `>`, the
-// 16-bit test as a value, an int result for the 32-bit one.
+// 16-bit test as a value, an int result for the 32-bit one, and 33 more forms
+// of Unk_IsFixedFormat. In IR, `or i1 %f32, %eq26` gives the bic; every
+// source form ends `or i1 %eq26, %f32` (Reassociate ranks the switch's phi
+// above the compare).
 s32 CRenderGlare::Unk_457f00(CRenderTexture* source, s32 arg2, CRenderTexture* arg3) {
     CTextureUtil* util = Unk_GetTextureUtil();
     Unk_ReleaseTextureUtil();
@@ -2823,16 +3134,12 @@ s32 CRenderGlare::Unk_457f00(CRenderTexture* source, s32 arg2, CRenderTexture* a
 // 0x710045ee80: the glare of a frame. field_170 points to one of
 // GPUGlareDef.cpp's definitions (Unk_24e5948, Unk_45_170 is how this file
 // reads it), `index` -1 taking `color` instead.
-// NON_MATCHING: scheduling at the start (the original converts the level count
-// first and adds 2 after the stores; the clamp and the ratio get s1/s2 there)
-// and the operands of `field_404 * k` are exchanged. The rest is the original.
 s32 CRenderGlare::Unk_45ee80(CRenderTexture* source, f32 f0, f32 f1, f32 f2, f32 f3, s32 arg2, f32 f4, u32 index,
                              const Unk_45_170* color, f32 f5, f32 f6, bool flag, s32 arg6, CRenderTexture* arg7) {
     s32 levels = static_cast<s32>(logf(static_cast<f32>(field_b0.field_c) / 1280.0f) / 0.693147182f);
     f32 intensity = f2 < 0.0f ? 1.0f : f2;
     f32 aspect = f0 / f1;
     field_140 = arg2;
-    bool skip = f5 <= 0.0f || flag;
     field_178 = f5;
     field_17c = f6;
     field_168 = f0;
@@ -2841,6 +3148,7 @@ s32 CRenderGlare::Unk_45ee80(CRenderTexture* source, f32 f0, f32 f1, f32 f2, f32
     field_138 = intensity;
     field_164 = aspect;
     field_414 = levels + 2;
+    bool skip = f5 <= 0.0f || flag;
     if (index != 0xffffffff) {
         color = reinterpret_cast<const Unk_45_170*>(&Unk_24e5948[index]);
     } else if (color == nullptr) {
@@ -2849,9 +3157,7 @@ s32 CRenderGlare::Unk_45ee80(CRenderTexture* source, f32 f0, f32 f1, f32 f2, f32
     field_170 = color;
     field_134 = Unk_45ed80();
     f32 k = field_b0.field_4a ? 1.8f : 2.2f;
-    s32 limit = field_3d8;
-    s32 n = field_b0.field_18[6] < limit ? field_b0.field_18[6] : limit;
-    field_1e0 = field_404 * k * exp2f(-(static_cast<f32>(n) - 1.0f));
+    field_1e0 = field_404 * k * exp2f(-(static_cast<f32>(Unk_LevelCount()) - 1.0f));
     CTextureUtil* util = Unk_GetTextureUtil();
     Unk_ReleaseTextureUtil();
     util->Unk_471410(0x10, 3, 4);
@@ -2903,7 +3209,7 @@ struct Unk_45eb90_Self;
 struct Unk_RenderTexture;
 }  // namespace PPFX
 // 0x710049ad30 (GPURenderTexture.cpp): a render texture's viewport
-s32 Unk_49ad30(PPFX::Unk_RenderTexture* texture, s32 width, s32 height, s32 x, s32 y);
+s32 Unk_49ad30(PPFX::CRenderTexture* texture, s32 width, s32 height, s32 x, s32 y);
 
 // a render texture's viewport from the fractions (at least one pixel; inline)
 static inline s32 Unk_SetViewport(PPFX::CRenderTexture* texture, f32 width, f32 height, f32 x, f32 y) {
@@ -2917,7 +3223,7 @@ static inline s32 Unk_SetViewport(PPFX::CRenderTexture* texture, f32 width, f32 
     if (height > 0.0f) {
         h = h > 1 ? h : 1;
     }
-    return Unk_49ad30(reinterpret_cast<PPFX::Unk_RenderTexture*>(texture), w, h, ix, iy);
+    return Unk_49ad30(texture, w, h, ix, iy);
 }
 
 // 0x710045eb90: the viewports of the glare's textures (its first argument is

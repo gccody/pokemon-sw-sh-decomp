@@ -1085,7 +1085,7 @@ public:
     Unk_DrawStates field_3a70;
     Unk_53b550_Object* field_3e00;
     s32 field_3e08;  // how many frames
-    u32 field_3e0c;
+    s32 field_3e0c;  // the current frame
     SiArray<FrameDirectBufferArray, 16> field_3e10[3];  // the frames' buffers
     Unk_3f00<4> field_3f00[2];
     Unk_3f00<10> field_3f80;

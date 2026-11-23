@@ -127,9 +127,10 @@ inline f32 Unk_Sqrt(f32 value) {
 
 // a position's distance from the centre of the area `size` leaves around it,
 // as -1 to 1 in each direction
-inline f32 Unk_Coord(f32 position, f32 size) {
+inline f32 Unk_Coord(const f32& position, const f32& size) {
     f32 scale = 1.0f / size;
-    return scale * (position - size * 0.5f) / (scale - 1.0f) * 2.0f - 1.0f;
+    f32 half = size * 0.5f;
+    return scale * (position - half) / (scale - 1.0f) * 2.0f - 1.0f;
 }
 inline f32 Unk_Distance(const Unk_Float2* position, const Unk_Float2* size) {
     f32 x = Unk_Coord(position->field_0[0].field_0, size->field_0[0].field_0);
@@ -138,9 +139,6 @@ inline f32 Unk_Distance(const Unk_Float2* position, const Unk_Float2* size) {
 }
 
 // 0x7100461e00: 1 inside `inner`, falling to 0 at the edge
-// NON_MATCHING: the instructions are the original's, but the original
-// computes the second coordinate's offset before its scale's division (and
-// its registers follow).
 void Unk_461e00(Unk_Float4* out, const Unk_Float2* position, const Unk_Float2* size, const f32* inner) {
     Unk_Float value;
     if (size->field_0[0].field_0 >= 1.0f || size->field_0[1].field_0 >= 1.0f) {
@@ -539,6 +537,123 @@ static inline f32 Unk_Interpolate(f32 x) {
     s32 next = index + 1 < 20 ? index + 1 : 20;
     f32 frac = position - index;
     return Unk_1b350ac[index] + (Unk_1b350ac[next] - Unk_1b350ac[index]) * frac;
+}
+
+// 0x710047ba90: the parameters of tone curve `mode` for the range `value` /
+// `scale` (the vector of Unk_470610's three the curve reads)
+// NON_MATCHING: the tests of the mode before the clamps, as in Unk_462c30 (LLVM
+// folds them into one range test here; the original threads them into bit
+// tests 0xb828/0x280): 852 bytes against 1152. From the ratio on it is the
+// original's code. The original calls expf(-ratio) and drops the result.
+Unk_Float4 CTextureUtil::Unk_47ba90(s32 mode, const f32* params, f32 value, f32 scale) {
+    switch (mode) {
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+    case 8:
+    case 9:
+    case 11:
+    case 12:
+    case 13:
+    case 14:
+    case 15:
+        Unk_470610(value, scale);
+        break;
+    }
+    if (Unk_IsLogMode(mode)) {
+        f32 ratio = value / scale;
+        if (ratio < 1.01f || ratio > 4096.0f) {
+            f32 clamped = ratio < 1.01f ? 1.01f : (ratio > 4096.0f ? 4096.0f : ratio);
+            scale = value / clamped;
+        }
+    }
+    if (Unk_IsLogMode(mode)) {
+        f32 ratio = value / scale;
+        if (ratio < 1.01f || ratio > 4096.0f) {
+            f32 clamped = ratio < 1.01f ? 1.01f : (ratio > 4096.0f ? 4096.0f : ratio);
+            scale = value / clamped;
+        }
+    }
+    f32 ratio = value / scale;
+    f32 decay = expf(-ratio);
+    Unk_Float4 result(0.0f, 0.0f, 0.0f, 0.0f);
+    f32 inverse = 1.0f / scale;
+    switch (mode) {
+    case 2:
+    case 3:
+    case 4:
+    case 5: {
+        f32 square = 1.0f / (ratio * ratio);
+        result = Unk_Float4(square * 4.0f - 2.0f, inverse, square, value * value / (scale + scale));
+        break;
+    }
+    case 6:
+    case 7:
+    case 8:
+    case 9: {
+        f32 x = fmaxf(ratio < 1.01f ? fmaxf(ratio, 1.01f) : ratio, 1.0f);
+        f32 y;
+        if (x <= 1.0f) {
+            y = 0.0f;
+        } else {
+            s32 count;
+            if (x >= 10.0f) {
+                count = 5;
+            } else if (x >= 1.7f) {
+                count = 10;
+            } else if (x >= 1.5f) {
+                count = 20;
+            } else if (x >= 1.1f) {
+                count = 100;
+            } else {
+                count = 0;
+            }
+            if (count != 0) {
+                y = 1.0f;
+                for (s32 i = 0; i < count; i++) {
+                    y = logf(x * y + 1.0f);
+                }
+            } else {
+                f32 y0 = 0.0f;
+                f32 y1 = 1.0f;
+                for (s32 i = 0; i < 100; i++) {
+                    y1 = logf(y1 * 1.1f + 1.0f);
+                }
+                y = y0 + (x - 1.0f) * (y1 - y0);
+            }
+        }
+        result = Unk_Float4(y, 1.0f / y, (expf(y) - 1.0f) / value, value / (expf(y) - 1.0f));
+        break;
+    }
+    case 10:
+    case 11:
+    case 13: {
+        // 0x7101b35100
+        static const f32 Unk_1b35100[21] = {
+            0.0f,      0.048482f, 0.090533f, 0.127458f,  0.16023f,  0.1896f,   0.217f,
+            0.246554f, 0.279004f, 0.3145025f, 0.353307f, 0.395699f, 0.441984f, 0.4927219f,
+            0.547603f, 0.6077f,   0.673252f, 0.7447f,   0.822589f, 0.907482f, 1.0f,
+        };
+        f32 p = powf(*params, 0.333333343f);
+        result.field_0[0] = p * 2.0891273f + 1.0f;
+        f32 position = Unk_Saturate(p) / 0.05f;
+        s32 index = static_cast<s32>(floorf(position));
+        s32 next = index + 1 < 20 ? index + 1 : 20;
+        f32 frac = position - index;
+        result.field_0[1] = Unk_1b35100[index] + (Unk_1b35100[next] - Unk_1b35100[index]) * frac;
+        break;
+    }
+    case 14:
+    case 15:
+        result.field_0[0] = inverse;
+        result.field_0[2] = ratio - 1.0f;
+        result.field_0[3] = 1.0f / (ratio - 1.0f);
+        break;
+    }
+    return result;
 }
 
 // 0x710047bf10
@@ -6647,19 +6762,21 @@ s32 CTextureUtil::Unk_482010(f32 arg0, f32 ratio, f32 arg2, f32 arg3, f32 arg4, 
     return result < 0 ? result : 0;
 }
 
-// 0x7100481540
-// NON_MATCHING: register allocation; the source's width and height swap
-// callee-saved registers (s10/s11), and two loads are scheduled earlier.
+// 0x7100481540 (the sizes in locals, the source's first, the coordinates
+// last: the order decides the registers)
 s32 CTextureUtil::Unk_481540(CRenderTexture* source, CRenderTexture* target, bool arg2, bool arg3) {
+    f32 sourceWidth = static_cast<f32>(static_cast<u32>(source->field_54));
+    f32 sourceHeight = static_cast<f32>(static_cast<u32>(source->field_58));
     f32 width = static_cast<f32>(static_cast<u32>(target->field_54));
+    f32 height = static_cast<f32>(static_cast<u32>(target->field_58));
+    u32 levelWidth = source->field_80->field_8;
+    u32 levelHeight = source->field_80->field_c;
     f32 u1;
     f32 v1;
     Unk_GetCoords(source, &u1, &v1);
-    f32 height = static_cast<f32>(static_cast<u32>(target->field_58));
     Unk_Float4 weights[16];
-    s32 count = Unk_411df0(source->field_80->field_8, source->field_80->field_c, weights, 4, true, 0,
-                           static_cast<f32>(static_cast<u32>(source->field_54)),
-                           static_cast<f32>(static_cast<u32>(source->field_58)), width, height, 0.0f, 0.0f, 0.0f);
+    s32 count = Unk_411df0(levelWidth, levelHeight, weights, 4, true, 0, sourceWidth, sourceHeight, width, height,
+                           0.0f, 0.0f, 0.0f);
     s32 result = target->Unk_49d250(0, 0, 1, 0, 0);
     if (result < 0)
         return result;
@@ -7719,21 +7836,23 @@ s32 CTextureUtil::Unk_4939c0(f32 scale, CRenderTexture* source, CRenderTexture* 
     return result < 0 ? result : 0;
 }
 
-// 0x71004816a0
-// NON_MATCHING: scheduling and two registers: the source's loads go through the copy of
-// its pointer and the target's height and the offset field_90 swap s13/s14.
-s32 CTextureUtil::Unk_4816a0(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, CRenderTexture* source,
-                             CRenderTexture* target, const Unk_Float4* arg7, const Unk_Float4* arg8) {
-    f32 u1;
-    f32 v1;
-    Unk_GetCoords(source, &u1, &v1);
+// 0x71004816a0 (as 0x7100481540: the sizes in locals, the source's first;
+// the last two floats after the pointers: the registers are the same, the
+// order decides the entry's spills)
+s32 CTextureUtil::Unk_4816a0(f32 arg0, f32 arg1, f32 arg2, CRenderTexture* source, CRenderTexture* target,
+                             const Unk_Float4* arg7, const Unk_Float4* arg8, f32 arg3, f32 arg4) {
     f32 sourceWidth = static_cast<f32>(static_cast<u32>(source->field_54));
     f32 sourceHeight = static_cast<f32>(static_cast<u32>(source->field_58));
     f32 width = static_cast<f32>(static_cast<u32>(target->field_54));
     f32 height = static_cast<f32>(static_cast<u32>(target->field_58));
+    u32 levelWidth = source->field_80->field_8;
+    u32 levelHeight = source->field_80->field_c;
+    f32 u1;
+    f32 v1;
+    Unk_GetCoords(source, &u1, &v1);
     Unk_Float4 weights[4];
-    Unk_411df0(source->field_80->field_8, source->field_80->field_c, weights, 2, true, 0, sourceWidth, sourceHeight,
-               width, height, 0.5f, 0.5f, 0.0f);
+    Unk_411df0(levelWidth, levelHeight, weights, 2, true, 0, sourceWidth, sourceHeight, width, height, 0.5f, 0.5f,
+               0.0f);
     s32 result = target->Unk_49d250(0, 0, 1, 0, 0);
     if (result < 0)
         return result;
@@ -8814,15 +8933,13 @@ inline s32 Unk_477d80_Sources(CTextureUtil* self, f32 width, f32 height, f32 u1,
                             index, 0);
 }
 
-// 0x710048d550
-// NON_MATCHING: `count` and the first source (later the result) have each
-// other's registers (w21/x20 in the original). The textures' array and the
+// 0x710048d550 (the floats after the pointers: with them first, `count` and
+// the first source have each other's registers). The textures' array and the
 // call are an inline function: its lifetime ends after the call, which stops
 // jump threading from copying the call into the path where `count` is below
-// 1, and inlined arrays sit above the caller's in the frame. Tried: the reads
-// in other orders, the loops as inline functions, a separate result.
-s32 CTextureUtil::Unk_48d550(f32 r, f32 g, f32 b, f32 a, f32 power, CRenderTexture* target, s32 count,
-                             CRenderTexture** sources, const Unk_Float* weights, s32 index, bool clear) {
+// 1, and inlined arrays sit above the caller's in the frame.
+s32 CTextureUtil::Unk_48d550(CRenderTexture* target, s32 count, CRenderTexture** sources, const Unk_Float* weights,
+                             f32 r, f32 g, f32 b, f32 a, f32 power, s32 index, bool clear) {
     Unk_Float4 color(r, g, b, a);
     s32 filters[16];
     if (field_20 == nullptr) {
@@ -9502,16 +9619,13 @@ s32 CTextureUtil::Unk_491640(f32 arg0, f32 arg1, void* arg2, void* arg3, void* a
 // `arg0`, scaled by `arg2` times `arg3` to the pass) in `passes` passes,
 // ping-ponging between `temp0` and `temp1` and ending in `target`; the
 // last pass weighted by `arg14`'s colour (DrawRectGPU_MadCocT2_Sn with
-// `arg15`'s texture, else DrawRectGPU_MadT1_Sn)
-// NON_MATCHING: register allocation only (same size): `count` and `arg19`
-// (and the reloaded `this`) have each other's registers, as do the weights'
-// base and the trip count, and the entry spills the arguments in another
-// order; the last pass's colour stores are paired here. Tried: the size
-// selects as ifs, the declarations' orders, the pass's selects as an if.
-s32 CTextureUtil::Unk_491bb0(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, CRenderTexture* source,
-                             CRenderTexture* target, CRenderTexture* temp0, CRenderTexture* temp1, s32 count,
-                             const Unk_Float4* offsets, s32 passes, s32 arg13, void* arg14, void* arg15, void* arg16,
-                             bool arg17, s32 arg18, s32 arg19) {
+// `arg15`'s texture, else DrawRectGPU_MadT1_Sn). The position of the four
+// scale floats among the parameters decides the registers and the entry's
+// spills: they come last.
+s32 CTextureUtil::Unk_491bb0(f32 arg0, f32 arg1, CRenderTexture* source, CRenderTexture* target,
+                             CRenderTexture* temp0, CRenderTexture* temp1, s32 count, const Unk_Float4* offsets,
+                             s32 passes, s32 arg13, void* arg14, void* arg15, void* arg16, bool arg17, s32 arg18,
+                             s32 arg19, f32 arg2, f32 arg3, f32 arg4, f32 arg5) {
     if (field_20 == nullptr) {
         return -1;
     }
@@ -9535,8 +9649,8 @@ s32 CTextureUtil::Unk_491bb0(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f
     f32 weights[25];
     Unk_Float4 values[25];
     Unk_Float4 colors[25];
-    s32 mode = 0;
     u32 next = 0;
+    s32 mode = 0;
     for (s32 pass = 0; pass < passes; pass++) {
         f32 scale = powf(arg3, static_cast<f32>(pass));
         f32 first = pass == passes - 1 ? arg4 : arg5;
@@ -9588,13 +9702,15 @@ s32 CTextureUtil::Unk_491bb0(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f
 // 0x71004920b0: 0x7100491bb0 with seven offsets, the centre and the corners
 // of a hexagon (filled in on the first call)
 // NON_MATCHING: only the guard path differs: it spills the arguments around
-// __cxa_guard_acquire to other slots (0x10 more frame here).
+// __cxa_guard_acquire to other slots (0x10 more frame here). The parameters'
+// order changes them (arg2 and arg3 after temp1 gives the original's frame
+// size, not its slots); tried every position of the four floats.
 s32 CTextureUtil::Unk_4920b0(f32 arg0, f32 arg1, f32 arg2, f32 arg3, CRenderTexture* source, CRenderTexture* target,
                              CRenderTexture* temp0, CRenderTexture* temp1, s32 arg8, s32 arg9, void* arg10,
                              void* arg11, void* arg12, bool arg13, s32 arg14, s32 arg15) {
     const Unk_Float4* offsets = Unk_HexagonOffsets();
-    return Unk_491bb0(arg0, arg1, arg2, 2.0f, arg3, 2.0f, source, target, temp0, temp1, 7, offsets, arg8, arg9,
-                      arg10, arg11, arg12, arg13, arg14, arg15);
+    return Unk_491bb0(arg0, arg1, source, target, temp0, temp1, 7, offsets, arg8, arg9, arg10, arg11, arg12, arg13,
+                      arg14, arg15, arg2, 2.0f, arg3, 2.0f);
 }
 
 // 0x71004922a0: a hexagonal bokeh of `arg3` into `arg4`: with arg6 3 or 5

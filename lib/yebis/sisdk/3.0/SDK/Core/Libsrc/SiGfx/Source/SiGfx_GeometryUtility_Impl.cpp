@@ -44,8 +44,8 @@ PKMN_SIZE_ASSERT(Unk_VertexAttribute, 0x8);
 static inline void Unk_Normalize(f32 (&v)[4]) {
     f32 x = v[0] > 0.0f ? v[0] : -v[0];
     f32 y = v[1] > 0.0f ? v[1] : -v[1];
-    f32 z = v[2] > 0.0f ? v[2] : -v[2];
     f32 m = x > y ? x : y;
+    f32 z = v[2] > 0.0f ? v[2] : -v[2];
     m = m > z ? m : z;
     if (m == 0.0f || m < Unk_1f072dc) {
         return;
@@ -683,8 +683,12 @@ bool SiGfxGeometryUtility::vf7(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
 // bottom up, then the top disc's centre and rim (its normals are its
 // positions normalised, the bottom's point down). The top disc's indices start
 // one vertex early, as the original has them.
-// NON_MATCHING: the registers, the spill slots, some of the arrays' stack
-// slots and the order of some blocks differ (not looked into further).
+// The rings' angle is computed and then set to 0 for the last slice (the
+// original selects it, `fcsel eq`; as a conditional expression the division
+// is branched around).
+// NON_MATCHING: the registers, the spill slots and some of the arrays' stack
+// slots differ, and the index buffer's element size is kept from the size's
+// computation (the original selects it again for the description).
 bool SiGfxGeometryUtility::vf8(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVertexBuffer,
                                SiGfxNXBuffer* pIndexBuffer, f32 bottomRadius, f32 topRadius, f32 height,
                                s32 slices, s32 stacks, Unk_GeometryBounds* pBounds) {
@@ -761,7 +765,10 @@ bool SiGfxGeometryUtility::vf8(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
             f32 texCoord[2];
             f32 tangent[4];
             normal[1] = 0.0f;
-            f32 angle = j == slices ? 0.0f : static_cast<f32>(-j) / static_cast<f32>(slices) * 6.2831855f;
+            f32 angle = static_cast<f32>(-j) / static_cast<f32>(slices) * 6.2831855f;
+            if (j == slices) {
+                angle = 0.0f;
+            }
             f32 c = cosf(angle);
             f32 s = sinf(angle);
             position[0] = c * bottomRadius;
@@ -791,7 +798,10 @@ bool SiGfxGeometryUtility::vf8(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
             f32 normal[4];
             f32 texCoord[2];
             f32 tangent[4];
-            f32 angle = j == slices ? 0.0f : static_cast<f32>(-j) / static_cast<f32>(slices) * 6.2831855f;
+            f32 angle = static_cast<f32>(-j) / static_cast<f32>(slices) * 6.2831855f;
+            if (j == slices) {
+                angle = 0.0f;
+            }
             f32 c = cosf(angle);
             f32 s = sinf(angle);
             position[0] = radius * c;
@@ -846,7 +856,10 @@ bool SiGfxGeometryUtility::vf8(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
             f32 normal[4];
             f32 texCoord[2];
             f32 tangent[4];
-            f32 angle = j == slices ? 0.0f : static_cast<f32>(-j) / static_cast<f32>(slices) * 6.2831855f;
+            f32 angle = static_cast<f32>(-j) / static_cast<f32>(slices) * 6.2831855f;
+            if (j == slices) {
+                angle = 0.0f;
+            }
             f32 c = cosf(angle);
             f32 s = sinf(angle);
             position[1] = s * topRadius;
