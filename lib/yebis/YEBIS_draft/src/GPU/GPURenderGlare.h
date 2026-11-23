@@ -11,6 +11,9 @@
 
 namespace PPFX {
 
+class IGPUSurface;
+class CRenderTextureArray;
+
 // 0x80 bytes that CRenderGlare has twice: the constructor's stores give the
 // members' sizes
 struct Unk_GlareRect {
@@ -62,9 +65,12 @@ class Unk_4a0540;
 
 // field_320's elements (placeholder): a texture at 0x18
 struct Unk_45_320 {
-    u8 pad_0[0x18];
+    u8 pad_0[0x8];
+    f32 field_8;
+    u8 pad_c[0x4];
+    CRenderTexture* field_10;
     CRenderTexture* field_18;
-    u8 pad_20[0x8];
+    CRenderTexture* field_20;
     CRenderTexture* field_28;
     CRenderTexture* field_30;
 
@@ -270,7 +276,7 @@ public:
     s32 Unk_459730(const Unk_4a0540* star, CRenderTexture* target, CGPUResourceManage* texture,
                    CRenderTexture** textures, CRenderTexture** pair, s32 count, bool flag);
     s32 Unk_45a820();          // 0x710045a820 (not written yet)
-    s32 Unk_45c1e0();          // 0x710045c1e0 (not written yet)
+    s32 GenerateGlare_Afterimage();  // 0x710045c1e0 (its log line names it)
     void Unk_45d3b0();         // 0x710045d3b0 (not written yet)
     // 0x710045ee80: the glare of a frame
     s32 Unk_45ee80(CRenderTexture* source, f32 f0, f32 f1, f32 f2, f32 f3, s32 arg2, f32 f4, u32 index,
@@ -278,11 +284,20 @@ public:
     f32 Unk_458580();   // 0x7100458580
     s32 Unk_457f00(CRenderTexture* source, s32 arg2, CRenderTexture* arg3);  // 0x7100457f00
     void Unk_457760(CRenderTexture* source, CRenderTexture* target);  // 0x7100457760 (not written yet)
+    // 0x710045f1c0 (its caller's log line names it): `source` and the glare
+    // tone mapped into `surface` (`format` -1: copied, `frames` 1: filtered)
+    s32 TonemapToSurface(IGPUSurface* surface, bool hasSurface, CRenderTexture* source, bool hasGamma, s32 format,
+                         const Unk_Float4* color, const MATRIXT44* matrix, f32 width, f32 height, f32 x, f32 y,
+                         f32 intensity, f32 gamma, f32 exposure, f32 white, f32 step, const MATRIXT44* matrix2,
+                         f32 luminance, const Unk_Float4* arg17, f32 arg18, f32 arg19, f32 arg20, f32 arg21,
+                         f32 arg22, f32 arg23, f32 aspect, bool arg25, const Unk_Float4* rect, s32 space, s32 blend,
+                         s32 frames, f32 arg30, void* arg31);
 
     // UNK_FIELDS_BEGIN
     Unk_453_30 field_30;
     Unk_453_30 field_b0;
-    u8 pad_130[0x4];
+    bool field_130;
+    u8 pad_131[0x3];
     f32 field_134;
     f32 field_138;
     f32 field_13c;
@@ -304,7 +319,11 @@ public:
     f32 field_184;
     f32 field_188;
     bool field_18c;
-    u8 pad_18d[0x1f];
+    u8 pad_18d[0x3];
+    f32 field_190;
+    f32 field_194;
+    f32 field_198;
+    Unk_Float4 field_19c;
     bool field_1ac;
     u8 pad_1ad[0x3];
     f32 field_1b0;
@@ -375,7 +394,7 @@ public:
     CGPUResourceManage* field_338;
     CGPUResourceManage* field_340;
     IGPUInterface* field_348;
-    CGPUResourceManage** field_350;
+    CRenderTextureArray** field_350;  // one per view
     f32* field_358;
     u64 field_360;
     bool field_368;
@@ -414,10 +433,12 @@ public:
     f32 field_418;
     bool field_41c;
     u8 pad_41d[0x3];
-    u64 field_420;
+    CRenderTexture* field_420;  // the glare's result
     bool field_428;
     // UNK_FIELDS_END
 };
+PKMN_OFFSET_ASSERT(CRenderGlare, field_190, 0x190);
+PKMN_OFFSET_ASSERT(CRenderGlare, field_19c, 0x19c);
 PKMN_OFFSET_ASSERT(CRenderGlare, field_1b0, 0x1b0);
 PKMN_OFFSET_ASSERT(CRenderGlare, field_1e8, 0x1e8);
 PKMN_OFFSET_ASSERT(CRenderGlare, field_3fc, 0x3fc);

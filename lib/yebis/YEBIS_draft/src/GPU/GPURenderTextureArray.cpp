@@ -38,6 +38,26 @@ u32 Unk_49afc0_update(Unk_49afc0* self, f32 fvalue, f32 farg1);
 
 namespace PPFX {
 
+// 0x71024e5418: the tiling setting of each set's targets (GPURenderTexture.cpp)
+extern s32 Unk_24e5418[2];
+
+// a depth surface, as vf0 calls it (slot 12 of a surface)
+struct Unk_4a47e0_Surface {
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12(u32 state);
+};
+
 // 0x7101eba12c: the class's name
 extern const char Unk_1eba12c[];
 const char Unk_1eba12c[] = "CRenderTextureArray";
@@ -75,6 +95,237 @@ s32 CRenderTextureArray::Unk_4a46a0(const char* name) {
 // 0x71004a4760, 0x71004a47a0
 CRenderTextureArray::~CRenderTextureArray() {
     Unk_49ec80();
+}
+
+// 0x71004a47e0 ("CRenderTextureArray::InitializeDevice()" in its log lines)
+// NON_MATCHING: 2724 of 2740 bytes, same structure: the original has one
+// return block (its result selected after the mip textures' and the depth
+// textures' calls, `csel w20, w0, w20, lt`), reloads field_2c between the
+// two flag tests of the second depth texture and allocates other registers.
+s32 CRenderTextureArray::vf0(IGPUDevice* device) {
+    s32 result = CGPUResourceManage::vf0(device);
+    if (result < 0)
+        return result;
+    if (field_20 == nullptr || field_30 == 0 || field_38 == nullptr)
+        return 0;
+    CRenderTexture* first = field_38[0];
+    if (first != nullptr && first->field_a8 != nullptr && first->field_b8[0] != nullptr)
+        return 0;
+    s32 depthFormat = field_48;
+    if (depthFormat == 0x7fffffff) {
+        Unk_49b230_Object* depth;
+        result = field_20->vf11(reinterpret_cast<IGPUInterface**>(&depth));
+        if (result >= 0 && depth != nullptr)
+            depthFormat = depth->field_44;
+        else
+            depthFormat = 0x2d;
+        UNK_RELEASE(depth);
+    }
+    bool tiled[2] = {false, false};
+    for (s32 i = 0; i < field_30; i++) {
+        if (field_38[i] == nullptr)
+            continue;
+        Unk_24e5418[0] = 0;
+        Unk_24e5418[1] = 0;
+        if (depthFormat != 0 && !(field_38[i]->field_2c.field_0 & 0x40000)) {
+            Unk_24e5418[0] = depthFormat;
+            Unk_24e5418[1] = (field_2c & 0x10000) ? depthFormat : 0;
+        }
+        result = field_38[i]->vf0(field_20);
+        Unk_24e5418[0] = 0;
+        Unk_24e5418[1] = 0;
+        if (result < 0)
+            return result;
+        for (s32 set = 0; set < 2; set++) {
+            if (field_38[i]->Unk_SlotTiles(set, 0) != nullptr)
+                tiled[set] = true;
+        }
+    }
+    for (s32 i = 0; i < field_34; i++) {
+        result = field_40[i]->vf0(field_20);
+        if (result < 0)
+            return result;
+    }
+    s32 msaa = -1;
+    s32 quality = -1;
+    for (s32 i = 0; i < field_30; i++) {
+        CRenderTexture* texture = field_38[i];
+        if (texture != nullptr && !(texture->field_2c.field_0 & 0x40000)) {
+            msaa = texture->field_2c.field_14;
+            quality = texture->field_2c.field_18;
+        }
+    }
+    if (msaa == -1) {
+        for (s32 i = 0; i < field_30; i++) {
+            if (field_38[i] != nullptr) {
+                msaa = field_38[0]->field_2c.field_14;
+                quality = field_38[0]->field_2c.field_18;
+                break;
+            }
+        }
+    }
+    s32 msaas[2] = {msaa, 0};
+    s32 qualities[2] = {quality, 0};
+    bool shared = false;
+    if (field_2c & 0x20000)
+        shared = field_20->field_14ef3;
+    bool depthTexture = msaa == 0 && shared;
+    field_60 = nullptr;
+    field_68 = nullptr;
+    field_80 = nullptr;
+    field_88 = nullptr;
+    field_70 = nullptr;
+    field_78 = nullptr;
+    u32 fullWidth = 0;
+    u32 fullHeight = 0;
+    for (s32 set = 0; set < 2; set++) {
+        if (msaa == 0 && quality == 0 && set == 1) {
+            (&field_50)[set] = field_50;
+            if ((&field_50)[set] != nullptr)
+                (&field_50)[set]->vf0();
+            (&field_60)[set] = field_60;
+            if ((&field_60)[set] != nullptr)
+                (&field_60)[set]->vf0();
+            (&field_70)[set] = field_70;
+            if ((&field_70)[set] != nullptr)
+                (&field_70)[set]->vf0();
+            continue;
+        }
+        s32 format = 0;
+        if (field_48 != 0)
+            format = tiled[set] ? depthFormat : field_48;
+        u32 width = 0;
+        u32 height = 0;
+        bool found = false;
+        for (s32 i = 0; i < field_30; i++) {
+            CRenderTexture* texture = field_38[i];
+            if (texture == nullptr || static_cast<s32>(texture->field_2c.field_0) < 0 ||
+                (texture->field_2c.field_0 & 0x40000))
+                continue;
+            if (set == 1 && !(field_2c & 0x10000))
+                continue;
+            Unk_49a890* tiles = texture->field_e0[set][0];
+            u32 w;
+            u32 h;
+            u32 fw;
+            u32 fh;
+            if (tiles != nullptr) {
+                w = tiles->field_10;
+                h = tiles->field_14;
+                fw = texture->field_2c.field_4;
+                fh = texture->field_2c.field_8;
+            } else {
+                w = texture->field_80[0].field_8;
+                h = texture->field_80[0].field_c;
+                fw = w;
+                fh = h;
+            }
+            width = CRenderTexture::Unk_Max(width, w);
+            height = CRenderTexture::Unk_Max(height, h);
+            fullWidth = CRenderTexture::Unk_Max(fullWidth, fw);
+            fullHeight = CRenderTexture::Unk_Max(fullHeight, fh);
+            found = true;
+        }
+        if (!found)
+            continue;
+        s32 surfaceFormat = format == 0x7fffffff ? 0x2d : format;
+        if (surfaceFormat != 0 && (&field_50)[set] == nullptr) {
+            u32 flags = 0;
+            bool depthTiled = false;
+            bool keep = false;
+            for (s32 i = 0; i < field_30; i++) {
+                CRenderTexture* texture = field_38[i];
+                if (texture == nullptr)
+                    continue;
+                Unk_49b230_Object* target = texture->field_d0[set][0];
+                if (target->field_4c == width && target->field_50 == height)
+                    flags |= target->field_28 & 0x10000000;
+                depthTiled |= (texture->field_2c.field_0 & 0x800) != 0;
+                keep |= (texture->field_2c.field_0 & 0x2800) != 0;
+            }
+            if (!keep)
+                flags |= depthTiled ? 0x200 : 0x100;
+            if (depthTexture) {
+                result = field_20->vf60(width, height, 1, 2, surfaceFormat, msaas[set], qualities[set],
+                                        reinterpret_cast<IGPUInterface**>(&(&field_60)[set]), flags);
+                if (result < 0) {
+#line 828
+                    PPFX_ERROR("CRenderTextureArray::InitializeDevice(): m_pGPUDevice->CreateTexture() failed (0x%x: %s).\n", result, Unk_446df0(result));
+                    return result;
+                }
+                (&field_60)[set]->vf23(0, &(&field_50)[set]);
+                (&field_60)[set]->vf23(0, &(&field_70)[set]);
+            } else {
+                result = field_20->vf65(width, height, surfaceFormat, msaas[set], qualities[set],
+                                        reinterpret_cast<IGPUInterface**>(&(&field_50)[set]), flags, nullptr, 0);
+                if (result < 0) {
+#line 896
+                    PPFX_ERROR("CRenderTextureArray::InitializeDevice(): m_pGPUDevice->CreateDepthStencilSurface() failed (0x%x: %s).\n", result, Unk_446df0(result));
+                    return result;
+                }
+            }
+        }
+        if ((&field_50)[set] != nullptr) {
+            for (s32 i = 0; i < field_30; i++) {
+                CRenderTexture* texture = field_38[i];
+                if (texture == nullptr)
+                    continue;
+                Unk_49b230_Object* target = texture->field_d0[set][0];
+                Unk_49b230_Object* depth = (&field_50)[set];
+                if (target->field_4c == depth->field_4c && target->field_50 == depth->field_50 &&
+                    target->field_54 == depth->field_54 && target->field_58 == depth->field_58)
+                    reinterpret_cast<Unk_4a47e0_Surface*>(target)->vf12(8);
+            }
+        }
+    }
+    field_4c = 0;
+    if (field_50 != nullptr && (field_2c & 0x20000)) {
+        Unk_49b230_Desc desc;
+        field_50->vf8(&desc);
+        field_4c = desc.field_0;
+        if (field_60 == nullptr) {
+            field_20->vf60(fullWidth, fullHeight, 1, 0, 0x1c, 0, 0, reinterpret_cast<IGPUInterface**>(&field_60), 0);
+            field_60->vf23(0, &field_70);
+        }
+        if (field_60 != nullptr)
+            field_60->vf15(5);
+    }
+    if ((field_2c & 0x10000) && field_50 != nullptr && (field_2c & 0x20000)) {
+        Unk_49b230_Desc desc;
+        field_58->vf8(&desc);
+        field_4c = desc.field_0;
+        if (field_68 == nullptr) {
+            field_68 = field_60;
+            field_68->vf0();
+            field_68->vf23(0, &field_78);
+        }
+        if (field_68 != nullptr)
+            field_68->vf15(5);
+    }
+    if (field_60 != nullptr) {
+        Unk_TFXString name = Unk_TFXString("CRenderTexture::m_apTextureDepthTexture[") + Unk_4525a0(0) + "]";
+#line 1285
+        CRenderTexture* texture = UNK_NEW(CRenderTexture)(name.field_8);
+        field_80 = texture;
+        result = texture->vf6(field_20, field_60);
+        if (result < 0)
+            return result;
+    }
+    if (field_68 != nullptr) {
+        if (field_68 == field_60) {
+            field_88 = field_80;
+            field_80->field_8++;
+        } else {
+            Unk_TFXString name = Unk_TFXString("CRenderTexture::m_apTextureDepthTexture[") + Unk_4525a0(1) + "]";
+#line 1285
+            CRenderTexture* texture = UNK_NEW(CRenderTexture)(name.field_8);
+            field_88 = texture;
+            result = texture->vf6(field_20, field_68);
+            if (result < 0)
+                return result;
+        }
+    }
+    return 0;
 }
 
 // 0x71004a5610
@@ -513,16 +764,16 @@ s32 CRenderTextureArray::CopyToSurface(Unk_49b230_Object* surface, Unk_GPUTextur
         reinterpret_cast<Unk_4a6aa0_Device*>(device)->vf7(0, surface, 0);
         CRenderTexture::Unk_49cf50(nullptr, nullptr);
     }
+    f32 rw = rect->field_0[0].field_0;
     f32 width = static_cast<f32>(desc.field_8);
     f32 height = static_cast<f32>(desc.field_c);
+    f32 ry = rect->field_0[3].field_0;
     Unk_Float4 colors(scale, scale, scale, scale);
     Unk_Float4 values(0.0f, 0.0f, 0.0f, 1.0f);
-    f32 rw = rect->field_0[0].field_0;
     f32 rh = rect->field_0[1].field_0;
     f32 rx = rect->field_0[2].field_0;
-    f32 ry = rect->field_0[3].field_0;
-    f32 w = rw * width;
     f32 h = rh * height;
+    f32 w = rw * width;
     bool same = w == static_cast<f32>(source->field_4c) && h == static_cast<f32>(source->field_50);
     f32 x = rx * width;
     f32 y = ry * height;

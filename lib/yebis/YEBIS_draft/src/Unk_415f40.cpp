@@ -1081,6 +1081,105 @@ void Unk_411c70(f32 size, f32 ratio, s32 base, s32 mode, s32 maxLevels, s32* out
     }
 }
 
+// 0x7100411df0: the sample offsets of a downsampling filter: up to `arg3`
+// (5 when negative) per axis, every `arg5`th one, over a source of arg6 by arg7
+// texels in steps of arg8 by arg9 (or arg6 * arg10 by arg7 * arg11), in texels
+// of a `width` by `height` texture (`arg4`: half as far apart); their count.
+// With a spread `arg12` and one sample, two at plus and minus arg12 instead.
+s32 Unk_411df0(s32 width, s32 height, Unk_Float4* weights, s32 arg3, bool arg4, s32 arg5, f32 arg6, f32 arg7,
+               f32 arg8, f32 arg9, f32 arg10, f32 arg11, f32 arg12) {
+    s32 limit = arg3 < 0 ? 5 : arg3;
+    if (arg10 > 0.0f) {
+        arg8 = arg6 * arg10;
+    }
+    if (arg11 > 0.0f) {
+        arg9 = arg7 * arg11;
+    }
+    s32 countX;
+    s32 countY;
+    if (arg4) {
+        countX = static_cast<s32>(ceilf(arg6 / arg8));
+        countY = static_cast<s32>(ceilf(arg7 / arg9));
+        if (arg8 >= 8.0f && countX >= 2) {
+            s32 n = countX - 1;
+            f32 t = arg8 * static_cast<f32>(n);
+            if (t < arg6 && t >= arg6 - static_cast<f32>(n)) {
+                countX = n;
+            }
+        }
+        if (arg9 >= 8.0f && countY >= 2) {
+            s32 n = countY - 1;
+            f32 t = arg9 * static_cast<f32>(n);
+            if (t < arg7 && t >= arg7 - static_cast<f32>(n)) {
+                countY = n;
+            }
+        }
+    } else {
+        countX = static_cast<s32>(ceilf(arg6 * 0.5f / arg8));
+        countY = static_cast<s32>(ceilf(arg7 * 0.5f / arg9));
+        if (arg8 >= 8.0f && countX >= 2) {
+            s32 n = countX - 1;
+            f32 t = arg8 * static_cast<f32>(n) * 2.0f;
+            if (t < arg6 && t >= arg6 - static_cast<f32>(n * 2)) {
+                countX = n;
+            }
+        }
+        if (arg9 >= 8.0f && countY >= 2) {
+            s32 n = countY - 1;
+            f32 t = arg9 * static_cast<f32>(n) * 2.0f;
+            if (t < arg7 && t >= arg7 - static_cast<f32>(n * 2)) {
+                countY = n;
+            }
+        }
+    }
+    f32 invWidth = 1.0f / static_cast<f32>(static_cast<u32>(width));
+    countX = countX < limit ? countX : limit;
+    countY = countY < limit ? countY : limit;
+    f32 scale = arg4 ? 0.5f : 1.0f;
+    f32 x[5];
+    f32 y[5];
+    if (countX >= 1) {
+        for (s32 i = 0; i != countX; i++) {
+            f32 n = static_cast<f32>(countX);
+            f32 position = scale * (2.0f * n / n * static_cast<f32>(i) - (n - 1.0f));
+            x[i] = invWidth * position;
+        }
+    }
+    f32 invHeight = 1.0f / static_cast<f32>(static_cast<u32>(height));
+    if (countY >= 1) {
+        for (s32 i = 0; i != countY; i++) {
+            f32 n = static_cast<f32>(countY);
+            f32 position = scale * (2.0f * n / n * static_cast<f32>(i) - (n - 1.0f));
+            y[i] = invHeight * position;
+        }
+    }
+    if (arg12 > 0.0f && countY == 1 && countX == 1 && !arg4) {
+        // (any step that compares with the size)
+        if (arg8 < arg6 || arg8 >= arg6) {
+            x[0] = invWidth * -arg12;
+            x[1] = invWidth * arg12;
+            y[0] = invHeight * -arg12;
+            y[1] = invHeight * arg12;
+            countY = 2;
+        } else {
+            countY = 1;
+        }
+        countX = countY;
+    }
+    s32 stride = arg5 > 1 ? arg5 : 1;
+    // the count, and the index of the last offset written (two variables)
+    s32 count = 0;
+    s32 index = -1;
+    for (s32 j = 0; j < countY; j += stride) {
+        for (s32 i = 0; i < countX; i += stride) {
+            count++;
+            index++;
+            weights[index] = Unk_Float4(x[i], y[j], 0.0f, 0.0f);
+        }
+    }
+    return count;
+}
+
 // 0x7100412170: four sample offsets around a texel of a `width` by
 // `height` texture, and their weights
 void Unk_412170(u32 width, u32 height, Unk_Float4* offsets, Unk_Float4* weights, f32 scale) {
@@ -1183,6 +1282,156 @@ void Unk_412400(u32 width, u32 height, Unk_Float4* offsets, f32* weights, f32 sc
     }
     f32 scaleWeights = 1.0f / sum;
     for (s32 i = 0; i < 9; i++) {
+        weights[i] *= scaleWeights;
+    }
+}
+
+// 0x7100412560: 25 samples of a fixed 5x5 kernel (bilinear pairs) and their
+// weights, which add up to 1
+void Unk_412560(u32 width, u32 height, Unk_Float4* offsets, f32* weights, f32 scale) {
+    f32 dx = scale / static_cast<f32>(width);
+    f32 dy = scale / static_cast<f32>(height);
+    offsets[0] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+    weights[0] = 1.0f;
+    offsets[1] = Unk_Float4(dx * -1.5f, dy * 0.0f, 0.0f, 0.0f);
+    weights[1] = 2.0f;
+    offsets[2] = Unk_Float4(dx * 1.5f, dy * 0.0f, 0.0f, 0.0f);
+    weights[2] = 2.0f;
+    offsets[3] = Unk_Float4(dx * 0.0f, dy * -1.5f, 0.0f, 0.0f);
+    weights[3] = 2.0f;
+    offsets[4] = Unk_Float4(dx * 0.0f, dy * 1.5f, 0.0f, 0.0f);
+    weights[4] = 2.0f;
+    offsets[5] = Unk_Float4(dx * -1.5f, dy * -1.5f, 0.0f, 0.0f);
+    weights[5] = 4.0f;
+    offsets[6] = Unk_Float4(dx * 1.5f, dy * -1.5f, 0.0f, 0.0f);
+    weights[6] = 4.0f;
+    offsets[7] = Unk_Float4(dx * -1.5f, dy * 1.5f, 0.0f, 0.0f);
+    weights[7] = 4.0f;
+    offsets[8] = Unk_Float4(dx * 1.5f, dy * 1.5f, 0.0f, 0.0f);
+    weights[8] = 4.0f;
+    offsets[9] = Unk_Float4(dx * -3.4285715f, dy * 0.0f, 0.0f, 0.0f);
+    weights[9] = 1.75f;
+    offsets[10] = Unk_Float4(dx * 3.4285715f, dy * 0.0f, 0.0f, 0.0f);
+    weights[10] = 1.75f;
+    offsets[11] = Unk_Float4(dx * 0.0f, dy * -3.4285715f, 0.0f, 0.0f);
+    weights[11] = 1.75f;
+    offsets[12] = Unk_Float4(dx * 0.0f, dy * 3.4285715f, 0.0f, 0.0f);
+    weights[12] = 1.75f;
+    offsets[13] = Unk_Float4(dx * -3.1666667f, dy * -3.1666667f, 0.0f, 0.0f);
+    weights[13] = 0.92160004f;
+    offsets[14] = Unk_Float4(dx * 3.1666667f, dy * -3.1666667f, 0.0f, 0.0f);
+    weights[14] = 0.92160004f;
+    offsets[15] = Unk_Float4(dx * -3.1666667f, dy * 3.1666667f, 0.0f, 0.0f);
+    weights[15] = 0.92160004f;
+    offsets[16] = Unk_Float4(dx * 3.1666667f, dy * 3.1666667f, 0.0f, 0.0f);
+    weights[16] = 0.92160004f;
+    offsets[17] = Unk_Float4(dx * -1.4011977f, dy * -3.3788047f, 0.0f, 0.0f);
+    weights[17] = 2.6883662f;
+    offsets[18] = Unk_Float4(dx * 1.4011977f, dy * -3.3788047f, 0.0f, 0.0f);
+    weights[18] = 2.6883662f;
+    offsets[19] = Unk_Float4(dx * 3.3788047f, dy * -1.4011977f, 0.0f, 0.0f);
+    weights[19] = 2.6883662f;
+    offsets[20] = Unk_Float4(dx * 3.3788047f, dy * 1.4011977f, 0.0f, 0.0f);
+    weights[20] = 2.6883662f;
+    offsets[21] = Unk_Float4(dx * 1.4011977f, dy * 3.3788047f, 0.0f, 0.0f);
+    weights[21] = 2.6883662f;
+    offsets[22] = Unk_Float4(dx * -1.4011977f, dy * 3.3788047f, 0.0f, 0.0f);
+    weights[22] = 2.6883662f;
+    offsets[23] = Unk_Float4(dx * -3.3788047f, dy * 1.4011977f, 0.0f, 0.0f);
+    weights[23] = 2.6883662f;
+    offsets[24] = Unk_Float4(dx * -3.3788047f, dy * -1.4011977f, 0.0f, 0.0f);
+    weights[24] = 2.6883662f;
+    f32 sum = 0.0f;
+    for (s32 i = 0; i < 25; i++) {
+        sum += weights[i];
+    }
+    f32 scaleWeights = 1.0f / sum;
+    for (s32 i = 0; i < 25; i++) {
+        weights[i] *= scaleWeights;
+    }
+}
+
+// 0x7100412940: 24 samples (28 when `large`) of a fixed kernel, most of them
+// bilinear pairs, and their weights, which add up to 1
+// NON_MATCHING: register allocation only: the first pairs' weight is
+// multiplied through s22 here, in place in s17 in the original
+void Unk_412940(u32 width, u32 height, Unk_Float4* offsets, f32* weights, bool large, f32 scale) {
+    f32 dx = scale / static_cast<f32>(width);
+    f32 dy = scale / static_cast<f32>(height);
+    offsets[0] = Unk_Float4(dx * -7.4736843f, dy, 0.0f, 0.0f);
+    weights[0] = 1.9f;
+    offsets[1] = Unk_Float4(dx, dy * -7.4736843f, 0.0f, 0.0f);
+    weights[1] = 1.9f;
+    offsets[2] = Unk_Float4(dx * 7.4736843f, dy, 0.0f, 0.0f);
+    weights[2] = 1.9f;
+    offsets[3] = Unk_Float4(dx, dy * 7.4736843f, 0.0f, 0.0f);
+    weights[3] = 1.9f;
+    offsets[4] = Unk_Float4(dx * -7.4736843f, dy * -0.5f, 0.0f, 0.0f);
+    weights[4] = 3.8f;
+    offsets[5] = Unk_Float4(dx * -0.5f, dy * -7.4736843f, 0.0f, 0.0f);
+    weights[5] = 3.8f;
+    offsets[6] = Unk_Float4(dx * 7.4736843f, dy * -0.5f, 0.0f, 0.0f);
+    weights[6] = 3.8f;
+    offsets[7] = Unk_Float4(dx * -0.5f, dy * 7.4736843f, 0.0f, 0.0f);
+    weights[7] = 3.8f;
+    f32 a = large ? 1.7f : 1.8f;
+    f32 b = large ? 1.85f : 1.9f;
+    f32 pa = 8.0f - 1.0f / a;
+    f32 pb = 3.0f - 1.0f / b;
+    f32 wab = a * 0.5f * (b * 0.5f) * 4.0f;
+    offsets[8] = Unk_Float4(dx * -pa, dy * pb, 0.0f, 0.0f);
+    weights[8] = wab;
+    offsets[9] = Unk_Float4(dx * -pa, dy * -pb, 0.0f, 0.0f);
+    weights[9] = wab;
+    offsets[10] = Unk_Float4(dx * -pb, dy * -pa, 0.0f, 0.0f);
+    weights[10] = wab;
+    offsets[11] = Unk_Float4(dx * pb, dy * -pa, 0.0f, 0.0f);
+    weights[11] = wab;
+    offsets[12] = Unk_Float4(dx * pa, dy * -pb, 0.0f, 0.0f);
+    weights[12] = wab;
+    offsets[13] = Unk_Float4(dx * pa, dy * pb, 0.0f, 0.0f);
+    weights[13] = wab;
+    offsets[14] = Unk_Float4(dx * pb, dy * pa, 0.0f, 0.0f);
+    weights[14] = wab;
+    offsets[15] = Unk_Float4(dx * -pb, dy * pa, 0.0f, 0.0f);
+    weights[15] = wab;
+    f32 c = large ? 1.05f : 1.1f;
+    f32 pc = 8.0f - 1.0f / c;
+    f32 pa5 = 5.0f - 1.0f / a;
+    f32 wca = c * 0.5f * (a * 0.5f) * 4.0f * 0.9f;
+    offsets[16] = Unk_Float4(dx * -pc, dy * pa5, 0.0f, 0.0f);
+    weights[16] = wca;
+    offsets[17] = Unk_Float4(dx * -pc, dy * -pa5, 0.0f, 0.0f);
+    weights[17] = wca;
+    offsets[18] = Unk_Float4(dx * -pa5, dy * -pc, 0.0f, 0.0f);
+    weights[18] = wca;
+    offsets[19] = Unk_Float4(dx * pa5, dy * -pc, 0.0f, 0.0f);
+    weights[19] = wca;
+    offsets[20] = Unk_Float4(dx * pc, dy * -pa5, 0.0f, 0.0f);
+    weights[20] = wca;
+    offsets[21] = Unk_Float4(dx * pc, dy * pa5, 0.0f, 0.0f);
+    weights[21] = wca;
+    offsets[22] = Unk_Float4(dx * pa5, dy * pc, 0.0f, 0.0f);
+    weights[22] = wca;
+    offsets[23] = Unk_Float4(dx * -pa5, dy * pc, 0.0f, 0.0f);
+    weights[23] = wca;
+    if (large) {
+        offsets[24] = Unk_Float4(dx * -6.0f, dy * -6.0f, 0.0f, 0.0f);
+        weights[24] = -0.5f;
+        offsets[25] = Unk_Float4(dx * 6.0f, dy * -6.0f, 0.0f, 0.0f);
+        weights[25] = -0.5f;
+        offsets[26] = Unk_Float4(dx * 6.0f, dy * 6.0f, 0.0f, 0.0f);
+        weights[26] = -0.5f;
+        offsets[27] = Unk_Float4(dx * -6.0f, dy * 6.0f, 0.0f, 0.0f);
+        weights[27] = -0.5f;
+    }
+    s32 count = large ? 28 : 24;
+    f32 sum = 0.0f;
+    for (s32 i = 0; i < count; i++) {
+        sum += weights[i];
+    }
+    f32 scaleWeights = 1.0f / sum;
+    for (s32 i = 0; i < count; i++) {
         weights[i] *= scaleWeights;
     }
 }
@@ -1297,19 +1546,19 @@ s32 Unk_413160(u32 width, u32 height, u32 arg2, Unk_Float4* out, u32 mode, u32 s
 
 // 0x7100413170: a 3x3 Gaussian kernel (divided by sigma * sqrt(2 pi) when
 // `normalize` and that is at least 1, else scaled to add up to 1)
-// NON_MATCHING: two instructions. The original multiplies 2 sigma by sigma
-// (here sigma by 2 sigma), and makes the flag with `csel` from the same
-// comparison as the scale (`cset` of the inverted one here).
+// The `&&` keeps the test a branch: SimplifyCFG can't fold the fcmp block into
+// the test of `normalize` (its fmul has a second use, the fdiv), nor
+// speculate the fdiv block (an fcmp condition, an expensive instruction);
+// early if-conversion makes the csel/fcsel pair.
+// NON_MATCHING: one instruction: the original multiplies 2 sigma by sigma,
+// here sigma by 2 sigma (see Unk_414af0)
 void Unk_413170(f32* weights, bool normalize, f32 sigma) {
     sigma = fmaxf(sigma, 1e-8f);
     f32 scale = 1.0f;
     bool scaled = false;
-    if (normalize) {
-        f32 s = sigma * 2.5066283f;
-        if (!(s < 1.0f)) {
-            scale = 1.0f / s;
-            scaled = true;
-        }
+    if (normalize && !(sigma * 2.5066283f < 1.0f)) {
+        scale = 1.0f / (sigma * 2.5066283f);
+        scaled = true;
     }
     f32 k = 1.0f / (2.0f * sigma * sigma);
     f32 kernel[9];
@@ -1339,6 +1588,68 @@ void Unk_413330(u32 width, u32 height, Unk_Float4* offsets, f32* weights, bool n
     Unk_4122b0(width, height, kernel, offsets, weights, scale);
 }
 
+// 0x71004134d0: a 5x5 Gaussian as nine bilinear samples (its taps at 1 and 2
+// merged by Unk_412270), divided by sigma * sqrt(2 pi) (times 0.36) when `arg4`
+// and that is at least 1, else scaled to add up to 1
+// (the flag set, then cleared, as in Unk_414af0: that keeps the test a branch)
+// NON_MATCHING: three instructions: Unk_414af0's 2 sigma times sigma, and the
+// registers of two products after it
+void Unk_4134d0(u32 width, u32 height, Unk_Float4* offsets, f32* weights, bool arg4, f32 sigma, f32 scale) {
+    sigma = fmaxf(sigma, 1e-8f);
+    bool scaled = false;
+    if (arg4) {
+        scaled = true;
+        if (sigma * 2.5066283f < 1.0f) {
+            scaled = false;
+        }
+    }
+    f32 dx = scale / static_cast<f32>(width);
+    f32 dy = scale / static_cast<f32>(height);
+    f32 k = 1.0f / (2.0f * sigma * sigma);
+    f32 centre = expf(-(k * 0.0f));
+    offsets[0] = Unk_Float4(dx * 0.0f, dy * 0.0f, 0.0f, 0.0f);
+    weights[0] = centre;
+    f32 e1 = expf(-(k * 1.0f));
+    f32 e2 = expf(-(k * 4.0f));
+    f32 position;
+    f32 weight;
+    Unk_412270(1.0f, 2.0f, e1, e2, &position, &weight);
+    f32 negative = -position;
+    f32 edge = weight + weight;
+    f32 corner = weight * weight * 4.0f;
+    offsets[1] = Unk_Float4(dx * negative, dy * 0.0f, 0.0f, 0.0f);
+    weights[1] = edge;
+    offsets[2] = Unk_Float4(dx * position, dy * 0.0f, 0.0f, 0.0f);
+    weights[2] = edge;
+    offsets[3] = Unk_Float4(dx * 0.0f, dy * negative, 0.0f, 0.0f);
+    weights[3] = edge;
+    offsets[4] = Unk_Float4(dy * 0.0f, dy * position, 0.0f, 0.0f);
+    weights[4] = edge;
+    offsets[5] = Unk_Float4(dx * negative, dy * negative, 0.0f, 0.0f);
+    weights[5] = corner;
+    offsets[6] = Unk_Float4(dx * position, dy * negative, 0.0f, 0.0f);
+    weights[6] = corner;
+    offsets[7] = Unk_Float4(dx * negative, dy * position, 0.0f, 0.0f);
+    weights[7] = corner;
+    offsets[8] = Unk_Float4(dx * position, dy * position, 0.0f, 0.0f);
+    weights[8] = corner;
+    if (scaled) {
+        f32 s = 1.0f / (sigma * 2.5066283f) * 0.36f;
+        for (s32 i = 0; i < 9; i++) {
+            weights[i] *= s;
+        }
+    } else {
+        f32 sum = 0.0f;
+        for (s32 i = 0; i < 9; i++) {
+            sum += weights[i];
+        }
+        f32 s = 1.0f / sum;
+        for (s32 i = 0; i < 9; i++) {
+            weights[i] *= s;
+        }
+    }
+}
+
 // 0x7100413730: the nine samples of a 3x3 Gaussian
 void Unk_413730(u32 width, u32 height, Unk_Float4* offsets, f32* weights, bool normalize, f32 sigma, f32 scale) {
     f32 kernel[9];
@@ -1350,6 +1661,41 @@ void Unk_413730(u32 width, u32 height, Unk_Float4* offsets, f32* weights, bool n
             s32 i = (y + 1) * 3 + (x + 1);
             offsets[i] = Unk_Float4(dx * static_cast<f32>(x), dy * static_cast<f32>(y), 0.0f, 0.0f);
             weights[i] = kernel[i];
+        }
+    }
+}
+
+// 0x7100413860: the 25 samples of a 5x5 Gaussian (divided by sigma * sqrt(2 pi)
+// when `normalize` and that is at least 1, else scaled to add up to 1); the
+// rows in a loop, as in the original (not unrolled)
+// NON_MATCHING: one instruction: Unk_414af0's 2 sigma times sigma
+void Unk_413860(u32 width, u32 height, Unk_Float4* offsets, f32* weights, bool normalize, f32 sigma, f32 scale) {
+    sigma = fmaxf(sigma, 1e-8f);
+    f32 norm = 1.0f;
+    bool scaled = false;
+    if (normalize && !(sigma * 2.5066283f < 1.0f)) {
+        norm = 1.0f / (sigma * 2.5066283f);
+        scaled = true;
+    }
+    f32 dx = scale / static_cast<f32>(width);
+    f32 dy = scale / static_cast<f32>(height);
+    f32 k = 1.0f / (2.0f * sigma * sigma);
+    f32 sum = 0.0f;
+    for (s32 iy = 0; iy < 5; iy++) {
+        f32 y = static_cast<f32>(iy) - 2.0f;
+        for (s32 ix = 0; ix < 5; ix++) {
+            f32 x = static_cast<f32>(ix) - 2.0f;
+            s32 i = iy * 5 + ix;
+            f32 w = norm * expf(-(k * (y * y + x * x)));
+            offsets[i] = Unk_Float4(dx * x, dy * y, 0.0f, 0.0f);
+            weights[i] = w;
+            sum += w;
+        }
+    }
+    if (!scaled) {
+        f32 inv = 1.0f / sum;
+        for (s32 i = 0; i < 25; i++) {
+            weights[i] *= inv;
         }
     }
 }
@@ -1366,97 +1712,384 @@ void Unk_412cd0(f32 scale, u32 width, u32 height, Unk_Float4* out) {
 }
 
 // 0x7100413b10: a 3-tap Gaussian at -1, 0 and +1 times `x` / `count` as
-// two samples (the centre and +1 tap merged into one bilinear sample), from
-// the last to the first
-// NON_MATCHING: Unk_414af0's differences (the test of `normalize` is a branch
-// in the original, with one block setting the scale to 1 for both failed
-// tests; 2 sigma times sigma), and the original keeps the two samples'
-// arrays on the stack (their stores stay, the loads are forwarded), so its
-// loops over them were unrolled later than here
+// two samples (the taps at 0 and +1 merged into one bilinear sample by
+// Unk_412270), the merged one first. 0x7100413b10, 0x7100413c60 and
+// 0x7100413ea0 are one body with 1, 3 and 5 taps a side: the first tap alone,
+// then pairs (the one at 0 and 1 is the middle sample), read back middle
+// first, then alternately left and right.
+// NON_MATCHING: the original keeps the samples' arrays on the stack (stores
+// stay, the far loads are not forwarded), and doesn't if-convert the block
+// that computes the scale (two instructions); plus Unk_414af0's 2 sigma times
+// sigma
 void Unk_413b10(u32 count, f32* offsets, f32* weights, bool normalize, f32 sigma, f32 x) {
     sigma = fmaxf(sigma, 1e-8f);
     f32 scale = 1.0f;
     bool scaled = false;
-    if (normalize) {
-        f32 s = sigma * 2.5066283f;
-        if (!(s < 1.0f)) {
-            scale = 1.0f / s * 2.0f;
-            scaled = true;
-        }
+    if (normalize && !(sigma * 2.5066283f < 1.0f)) {
+        scale = 1.0f / (sigma * 2.5066283f) * 2.0f;
+        scaled = true;
     }
     f32 k = 1.0f / (2.0f * sigma * sigma);
     f32 step = x / static_cast<f32>(count);
-    f32 kernel[3];
-    for (s32 i = -1; i <= 1; i++) {
-        kernel[i + 1] = scale * expf(-static_cast<f32>(i * i) * k);
-    }
     f32 w[2];
     f32 o[2];
-    w[0] = kernel[0];
-    o[0] = -step;
-    f32 sum = kernel[1] + kernel[2];
-    f32 t = 0.0f;
-    if (sum > 0.0f) {
-        t = kernel[1] / sum;
+    f32 tw[3];
+    f32 tp[3];
+    for (s32 i = 0; i < 3; i++) {
+        s32 t = i - 1;
+        tw[i] = scale * expf(-(k * static_cast<f32>(t * t)));
+        tp[i] = t < 0 ? -(step * static_cast<f32>(-t)) : step * static_cast<f32>(t);
     }
-    f32 p0 = step * 0.0f;
-    o[1] = step + (p0 - step) * t;
-    w[1] = sum * 0.5f * 2.0f;
+    w[0] = tw[0];
+    o[0] = tp[0];
+    for (s32 i = 1; i < 2; i++) {
+        Unk_412270(tp[2 * i - 1], tp[2 * i], tw[2 * i - 1], tw[2 * i], &o[i], &w[i]);
+        w[i] *= 2.0f;
+    }
     if (!scaled) {
-        f32 total = 0.0f;
+        f32 sum = 0.0f;
         for (s32 i = 0; i < 2; i++) {
-            total += w[i];
+            sum += w[i];
         }
-        f32 inv = 1.0f / total;
+        f32 inv = 1.0f / sum;
         for (s32 i = 0; i < 2; i++) {
             w[i] *= inv;
         }
     }
-    for (s32 i = 0; i < 2; i++) {
-        offsets[i] = o[1 - i];
-        weights[i] = w[1 - i];
+    for (s32 j = 0; j < 2; j++) {
+        s32 index = 1;
+        if ((j & 1) != 0) {
+            index = 1 - (j + 1) / 2;
+        } else {
+            index = 1 + j / 2;
+        }
+        offsets[j] = o[index];
+        weights[j] = w[index];
+    }
+}
+
+// 0x7100413c60: Unk_413b10's body with 3 taps a side (seven taps as four
+// samples)
+// NON_MATCHING: Unk_413b10's differences (frame 0xa0 in the original)
+void Unk_413c60(u32 count, f32* offsets, f32* weights, bool normalize, f32 sigma, f32 x) {
+    sigma = fmaxf(sigma, 1e-8f);
+    f32 scale = 1.0f;
+    bool scaled = false;
+    if (normalize && !(sigma * 2.5066283f < 1.0f)) {
+        scale = 1.0f / (sigma * 2.5066283f) * 2.0f;
+        scaled = true;
+    }
+    f32 k = 1.0f / (2.0f * sigma * sigma);
+    f32 step = x / static_cast<f32>(count);
+    f32 w[4];
+    f32 o[4];
+    f32 tw[7];
+    f32 tp[7];
+    for (s32 i = 0; i < 7; i++) {
+        s32 t = i - 3;
+        tw[i] = scale * expf(-(k * static_cast<f32>(t * t)));
+        tp[i] = t < 0 ? -(step * static_cast<f32>(-t)) : step * static_cast<f32>(t);
+    }
+    w[0] = tw[0];
+    o[0] = tp[0];
+    for (s32 i = 1; i < 4; i++) {
+        Unk_412270(tp[2 * i - 1], tp[2 * i], tw[2 * i - 1], tw[2 * i], &o[i], &w[i]);
+        w[i] *= 2.0f;
+    }
+    if (!scaled) {
+        f32 sum = 0.0f;
+        for (s32 i = 0; i < 4; i++) {
+            sum += w[i];
+        }
+        f32 inv = 1.0f / sum;
+        for (s32 i = 0; i < 4; i++) {
+            w[i] *= inv;
+        }
+    }
+    for (s32 j = 0; j < 4; j++) {
+        s32 index = 2;
+        if ((j & 1) != 0) {
+            index = 2 - (j + 1) / 2;
+        } else {
+            index = 2 + j / 2;
+        }
+        offsets[j] = o[index];
+        weights[j] = w[index];
+    }
+}
+
+// 0x7100413ea0: Unk_413b10's body with 5 taps a side (eleven taps as six
+// samples)
+// NON_MATCHING: Unk_413b10's differences
+void Unk_413ea0(u32 count, f32* offsets, f32* weights, bool normalize, f32 sigma, f32 x) {
+    sigma = fmaxf(sigma, 1e-8f);
+    f32 scale = 1.0f;
+    bool scaled = false;
+    if (normalize && !(sigma * 2.5066283f < 1.0f)) {
+        scale = 1.0f / (sigma * 2.5066283f) * 2.0f;
+        scaled = true;
+    }
+    f32 k = 1.0f / (2.0f * sigma * sigma);
+    f32 step = x / static_cast<f32>(count);
+    f32 w[6];
+    f32 o[6];
+    f32 tw[11];
+    f32 tp[11];
+    for (s32 i = 0; i < 11; i++) {
+        s32 t = i - 5;
+        tw[i] = scale * expf(-(k * static_cast<f32>(t * t)));
+        tp[i] = t < 0 ? -(step * static_cast<f32>(-t)) : step * static_cast<f32>(t);
+    }
+    w[0] = tw[0];
+    o[0] = tp[0];
+    for (s32 i = 1; i < 6; i++) {
+        Unk_412270(tp[2 * i - 1], tp[2 * i], tw[2 * i - 1], tw[2 * i], &o[i], &w[i]);
+        w[i] *= 2.0f;
+    }
+    if (!scaled) {
+        f32 sum = 0.0f;
+        for (s32 i = 0; i < 6; i++) {
+            sum += w[i];
+        }
+        f32 inv = 1.0f / sum;
+        for (s32 i = 0; i < 6; i++) {
+            w[i] *= inv;
+        }
+    }
+    for (s32 j = 0; j < 6; j++) {
+        s32 index = 3;
+        if ((j & 1) != 0) {
+            index = 3 - (j + 1) / 2;
+        } else {
+            index = 3 + j / 2;
+        }
+        offsets[j] = o[index];
+        weights[j] = w[index];
     }
 }
 
 // 0x7100414af0: three samples of a Gaussian at 0 and +-1 / `count`, its
 // weights at 0 and `x` (divided by sigma * sqrt(2 pi) when `normalize` and
-// that is at least 1, else scaled to add up to 1)
-// NON_MATCHING: Unk_413170's two differences: the original keeps the test of
-// `normalize` a branch (the flag a `csel` of the scale's comparison) and
-// multiplies 2 sigma by sigma; here both tests become selects and sigma is
-// multiplied by 2 sigma.
-// (Reassociate puts the operand of lower rank first, and 2 sigma's rank is
-// always above sigma's: the original's order needs the two sigmas to be two
-// loads at that point, merged by GVN later. A sigma[2] filled in a loop and
-// multiplied as 2 * s[0] * s[1] gives it, which isn't natural code. The
-// k-first products and the centre-first sum come from loops over the taps,
-// unrolled after Reassociate, as 0x7100414be0 shows: tap arrays on the stack.)
+// that is at least 1, else scaled to add up to 1). The four 1-D Gaussians
+// (0x7100414af0, 0x7100414be0, 0x7100414db0, 0x7100415030) are one body with
+// 1, 3, 5 and 7 taps a side: the taps in an array (the stack arrays of the
+// larger ones), the kernel and its positions filled positive side first
+// (LoopIdiomRecognize turns the copies into the memcpys of 0x7100414be0) and
+// read back interleaved by an index (the csel chain of 0x71004146f0's loop).
+// The flag is set and then cleared, which keeps its test a branch (see
+// Unk_413170).
+// NON_MATCHING: one instruction: the original multiplies 2 sigma by sigma,
+// here sigma by 2 sigma (Reassociate puts the operand of lower rank first; the
+// original's order needs the second sigma to be a separate, later load at
+// that point, e.g. two array elements merged by GVN after the loops are
+// unrolled; no natural source for that was found)
 void Unk_414af0(u32 count, f32* offsets, f32* weights, bool normalize, f32 sigma, f32 x) {
     sigma = fmaxf(sigma, 1e-8f);
     f32 s = sigma * 2.5066283f;
-    f32 norm = 1.0f;
     bool scaled = false;
     if (normalize) {
-        if (!(s < 1.0f)) {
-            norm = s;
-            scaled = true;
+        scaled = true;
+        if (s < 1.0f) {
+            scaled = false;
         }
     }
-    f32 k = 1.0f / (2.0f * sigma * sigma);
     f32 step = 1.0f / static_cast<f32>(count);
-    f32 w1 = expf(-(k * (x * x)));
-    f32 t = x * 0.0f;
-    f32 w0 = expf(-(t * t * k));
-    if (!scaled) {
-        norm = w0 + 2.0f * w1;
+    f32 k = 1.0f / (2.0f * sigma * sigma);
+    f32 taps[1];
+    for (s32 i = 0; i < 1; i++) {
+        f32 t = x * static_cast<f32>(i + 1);
+        taps[i] = expf(-(t * t * k));
     }
-    f32 scale = 1.0f / norm;
-    weights[0] = scale * w0;
-    offsets[0] = 0.0f;
-    weights[1] = scale * w1;
-    offsets[1] = step;
-    weights[2] = scale * w1;
-    offsets[2] = -step;
+    f32 t = x * 0.0f;
+    f32 centre = expf(-(t * t * k));
+    f32 kernel[3];
+    f32 position[3];
+    kernel[0] = centre;
+    position[0] = 0.0f;
+    for (s32 i = 0; i < 1; i++) {
+        kernel[1 + i] = taps[i];
+        position[1 + i] = step * static_cast<f32>(i + 1);
+        kernel[2 + i] = taps[i];
+        position[2 + i] = -(step * static_cast<f32>(i + 1));
+    }
+    f32 sum = centre;
+    for (s32 i = 0; i < 1; i++) {
+        sum += 2.0f * taps[i];
+    }
+    f32 scale = 1.0f / (scaled ? s : sum);
+    // the centre, then +1, -1, +2, -2, ...
+    for (s32 j = 0; j < 3; j++) {
+        s32 index = 0;
+        if (j != 0) {
+            if ((j & 1) != 0) {
+                index = j / 2 + 1;
+            } else {
+                index = j / 2 + 1;
+            }
+        }
+        weights[j] = scale * kernel[index];
+        offsets[j] = position[index];
+    }
+}
+
+// 0x7100414be0: seven samples of a Gaussian at 0 and +-1 .. +-3 / `count`, its
+// taps at 0 and +-1 .. +-3 times `x`; Unk_414af0's body with 3 taps a side
+// NON_MATCHING: Unk_414af0's 2 sigma times sigma, which moves the registers
+// of what follows (the sum and the memcpys come out interleaved differently)
+void Unk_414be0(u32 count, f32* offsets, f32* weights, bool normalize, f32 sigma, f32 x) {
+    sigma = fmaxf(sigma, 1e-8f);
+    f32 s = sigma * 2.5066283f;
+    bool scaled = false;
+    if (normalize) {
+        scaled = true;
+        if (s < 1.0f) {
+            scaled = false;
+        }
+    }
+    f32 step = 1.0f / static_cast<f32>(count);
+    f32 k = 1.0f / (2.0f * sigma * sigma);
+    f32 taps[3];
+    for (s32 i = 0; i < 3; i++) {
+        f32 t = x * static_cast<f32>(i + 1);
+        taps[i] = expf(-(t * t * k));
+    }
+    f32 t = x * 0.0f;
+    f32 centre = expf(-(t * t * k));
+    f32 kernel[7];
+    f32 position[7];
+    kernel[0] = centre;
+    position[0] = 0.0f;
+    for (s32 i = 0; i < 3; i++) {
+        kernel[1 + i] = taps[i];
+        position[1 + i] = step * static_cast<f32>(i + 1);
+        kernel[4 + i] = taps[i];
+        position[4 + i] = -(step * static_cast<f32>(i + 1));
+    }
+    f32 sum = centre;
+    for (s32 i = 0; i < 3; i++) {
+        sum += 2.0f * taps[i];
+    }
+    f32 scale = 1.0f / (scaled ? s : sum);
+    // the centre, then +1, -1, +2, -2, ...
+    for (s32 j = 0; j < 7; j++) {
+        s32 index = 0;
+        if (j != 0) {
+            if ((j & 1) != 0) {
+                index = j / 2 + 1;
+            } else {
+                index = j / 2 + 3;
+            }
+        }
+        weights[j] = scale * kernel[index];
+        offsets[j] = position[index];
+    }
+}
+
+// 0x7100414db0: eleven samples of a Gaussian at 0 and +-1 .. +-5 / `count`, its
+// taps at 0 and +-1 .. +-5 times `x`; Unk_414af0's body with 5 taps a side
+// NON_MATCHING: Unk_414af0's 2 sigma times sigma, which moves the registers
+// of what follows (the sum and the memcpys come out interleaved differently)
+void Unk_414db0(u32 count, f32* offsets, f32* weights, bool normalize, f32 sigma, f32 x) {
+    sigma = fmaxf(sigma, 1e-8f);
+    f32 s = sigma * 2.5066283f;
+    bool scaled = false;
+    if (normalize) {
+        scaled = true;
+        if (s < 1.0f) {
+            scaled = false;
+        }
+    }
+    f32 step = 1.0f / static_cast<f32>(count);
+    f32 k = 1.0f / (2.0f * sigma * sigma);
+    f32 taps[5];
+    for (s32 i = 0; i < 5; i++) {
+        f32 t = x * static_cast<f32>(i + 1);
+        taps[i] = expf(-(t * t * k));
+    }
+    f32 t = x * 0.0f;
+    f32 centre = expf(-(t * t * k));
+    f32 kernel[11];
+    f32 position[11];
+    kernel[0] = centre;
+    position[0] = 0.0f;
+    for (s32 i = 0; i < 5; i++) {
+        kernel[1 + i] = taps[i];
+        position[1 + i] = step * static_cast<f32>(i + 1);
+        kernel[6 + i] = taps[i];
+        position[6 + i] = -(step * static_cast<f32>(i + 1));
+    }
+    f32 sum = centre;
+    for (s32 i = 0; i < 5; i++) {
+        sum += 2.0f * taps[i];
+    }
+    f32 scale = 1.0f / (scaled ? s : sum);
+    // the centre, then +1, -1, +2, -2, ...
+    for (s32 j = 0; j < 11; j++) {
+        s32 index = 0;
+        if (j != 0) {
+            if ((j & 1) != 0) {
+                index = j / 2 + 1;
+            } else {
+                index = j / 2 + 5;
+            }
+        }
+        weights[j] = scale * kernel[index];
+        offsets[j] = position[index];
+    }
+}
+
+// 0x7100415030: fifteen samples of a Gaussian at 0 and +-1 .. +-7 / `count`, its
+// taps at 0 and +-1 .. +-7 times `x`; Unk_414af0's body with 7 taps a side
+// NON_MATCHING: Unk_414af0's 2 sigma times sigma, which moves the registers
+// of what follows; with the kernel filled after the scale (as in its siblings) it is
+// also 32 bytes shorter, so the sum comes first here
+void Unk_415030(u32 count, f32* offsets, f32* weights, bool normalize, f32 sigma, f32 x) {
+    sigma = fmaxf(sigma, 1e-8f);
+    f32 s = sigma * 2.5066283f;
+    bool scaled = false;
+    if (normalize) {
+        scaled = true;
+        if (s < 1.0f) {
+            scaled = false;
+        }
+    }
+    f32 step = 1.0f / static_cast<f32>(count);
+    f32 k = 1.0f / (2.0f * sigma * sigma);
+    f32 taps[7];
+    for (s32 i = 0; i < 7; i++) {
+        f32 t = x * static_cast<f32>(i + 1);
+        taps[i] = expf(-(t * t * k));
+    }
+    f32 t = x * 0.0f;
+    f32 centre = expf(-(t * t * k));
+    f32 sum = centre;
+    for (s32 i = 0; i < 7; i++) {
+        sum += 2.0f * taps[i];
+    }
+    f32 scale = 1.0f / (scaled ? s : sum);
+    f32 kernel[15];
+    f32 position[15];
+    kernel[0] = centre;
+    position[0] = 0.0f;
+    for (s32 i = 0; i < 7; i++) {
+        kernel[1 + i] = taps[i];
+        position[1 + i] = step * static_cast<f32>(i + 1);
+        kernel[8 + i] = taps[i];
+        position[8 + i] = -(step * static_cast<f32>(i + 1));
+    }
+    // the centre, then +1, -1, +2, -2, ...
+    for (s32 j = 0; j < 15; j++) {
+        s32 index = 0;
+        if (j != 0) {
+            if ((j & 1) != 0) {
+                index = j / 2 + 1;
+            } else {
+                index = j / 2 + 7;
+            }
+        }
+        weights[j] = scale * kernel[index];
+        offsets[j] = position[index];
+    }
 }
 
 // 0x71004155f0: the inverse of a matrix (Gauss-Jordan elimination with

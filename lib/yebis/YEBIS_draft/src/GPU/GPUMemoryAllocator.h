@@ -20,6 +20,8 @@ public:
         size_t field_8;
     };
 
+    // (inline: CPostEffect's constructor, 0x71004190f0, makes its own)
+    SiYebisAllocator() : field_8(nullptr), field_18(0) {}
     virtual ~SiYebisAllocator() {}  // 0x710041af50, 0x710043c100
     UNK_REFCOUNT_DECLARE;
     // slots 4 to 6 and 11 to 20 are lib/yebis/class's

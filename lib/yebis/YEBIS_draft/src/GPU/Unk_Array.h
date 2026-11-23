@@ -24,8 +24,10 @@ inline T* Unk_NewArray(s64 count, const char* file, int line) {
         return nullptr;
     *block++ = count;
     T* items = reinterpret_cast<T*>(block);
-    for (s64 i = 0; i < count; i++)
-        new (&items[i]) T;
+    // a pointer loop, as clang's own array new (0x71004a1010's fourteen
+    // inlined constructors are scheduled as the original's only with it)
+    for (T* item = items; item != items + count; item++)
+        new (item) T;
     return items;
 }
 

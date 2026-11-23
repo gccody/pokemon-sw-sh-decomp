@@ -247,12 +247,11 @@ static const PPFX::Unk_Float4 Unk_Colors1[] = {
 };
 
 // 0x71004a06e0: makes the stars and the channel masks
-// NON_MATCHING: scheduling only: the masks' stack stores and the 0x40-byte
-// copy's loads come out in another order (the original also stores the last
-// star's line pointer after the address of the masks' constant).
 // (The masks are default-constructed, then assigned: the constructor loop
 // keeps SROA off the array, so it stays on the stack and is copied whole,
-// and only the first row of Unk_24e5908 is read back from the stack.)
+// and only the first row of Unk_24e5908 is read back from the stack. Their
+// colours are set first, white last, and every alpha after: the merged
+// stack stores follow that order.)
 s32 Unk_4a06e0() {
     if (Unk_24e58c0 != nullptr)
         return 0;
@@ -261,10 +260,12 @@ s32 Unk_4a06e0() {
     for (s32 i = 0; i < 7; i++)
         Unk_24e58c0[i] = Unk_Stars[i];
     PPFX::Unk_Float4 masks[4];
-    masks[0] = PPFX::Unk_Float4(1.0f, 1.0f, 1.0f, 1.0f);
-    masks[1] = PPFX::Unk_Float4(0.0f, 0.0f, 1.0f, 1.0f);
-    masks[2] = PPFX::Unk_Float4(0.0f, 1.0f, 0.0f, 1.0f);
-    masks[3] = PPFX::Unk_Float4(1.0f, 0.0f, 0.0f, 1.0f);
+    masks[1] = PPFX::Unk_Float4(0.0f, 0.0f, 1.0f, 0.0f);
+    masks[2] = PPFX::Unk_Float4(0.0f, 1.0f, 0.0f, 0.0f);
+    masks[3] = PPFX::Unk_Float4(1.0f, 0.0f, 0.0f, 0.0f);
+    masks[0] = PPFX::Unk_Float4(1.0f, 1.0f, 1.0f, 0.0f);
+    for (s32 i = 0; i < 4; i++)
+        masks[i].field_0[3] = 1.0f;
     memcpy(Unk_24e58c8, masks, sizeof(masks));
     Unk_24e5908[0] = Unk_24e58c8[0];
     Unk_24e5908[1] = Unk_24e58c8[3];
@@ -274,8 +275,6 @@ s32 Unk_4a06e0() {
 }
 
 // 0x71004a1010: makes the glare definitions
-// NON_MATCHING: the 14 inlined constructors' zero stores are scheduled in
-// another order (the original starts the next element's star earlier).
 s32 Unk_4a1010() {
     if (Unk_24e5948 != nullptr)
         return 0;
@@ -917,8 +916,8 @@ namespace PPFX {
 // field_18 before the first seed's stores, here they come after them
 void Unk_4a2be0(Unk_4a3cc0_Self* self, u32 seed, Unk_4a2be0_Target* target, Unk_4a2e20_Item* items, s32 count,
                 const Unk_Float4* weights, s32 total, s32 arg7, f32 arg8) {
-    self->field_3c = arg7;
     self->field_10 = 0;
+    self->field_3c = arg7;
     self->field_14 = 0;
     self->field_18 = target;
     Unk_Seed(self, seed);

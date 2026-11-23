@@ -9,11 +9,16 @@
 
 #include <types.h>
 #include <yebis/YEBIS_draft/include/PPFX/ppfxTypes.h>
+#include <yebis/YEBIS_draft/src/GPU/GPUInterfaceResource.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUMemoryAllocator.h>
 #include <yebis/YEBIS_draft/src/GPU/Unk_410f90.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_Interface.h>
 
 namespace PPFX {
+
+class CRenderTexture;
+class CRenderTextureArray;
+class CTextureLuminanceManage;
 
 // CRenderTexture (0x7100481000 and on), as this file reads it
 struct Unk_RenderTexture {
@@ -61,19 +66,62 @@ struct Unk_4a5d10_Self {
 struct Unk_4aa5a0_Self {
     u8 pad_0[0xd4];
     s32 field_d4;  // the format of its description
-    u8 pad_d8[0x1e0 - 0xd8];
+    u8 pad_d8[0x12d - 0xd8];
+    bool field_12d;
+    u8 pad_12e[0x178 - 0x12e];
+    f32 field_178;
+    s32 field_17c;
+    u8 pad_180[0x1e0 - 0x180];
     bool field_1e0;
     u8 pad_1e1[0x3];
     f32 field_1e4;
-    u8 pad_1e8[0x3a8 - 0x1e8];
+    u8 pad_1e8[0x1f8 - 0x1e8];
+    s64 field_1f8;
+    u8 pad_200[0x240 - 0x200];
+    bool field_240;
+    u8 pad_241[0x251 - 0x241];
+    bool field_251;
+    u8 pad_252[0x2a8 - 0x252];
+    s32 field_2a8;
+    s32 field_2ac;
+    f32 field_2b0;
+    f32 field_2b4;
+    f32 field_2b8;
+    f32 field_2bc;
+    u8 pad_2c0[0x3a8 - 0x2c0];
     bool field_3a8;
     u8 pad_3a9[0x3];
     f32 field_3ac;
+    s32 field_3b0;
+    u8 pad_3b4[0x4];
+    f32 field_3b8;
+    f32 field_3bc;
+    f32 field_3c0;
+    bool field_3c4;
+    u8 pad_3c5[0x3];
+    u64 field_3c8;
+    u64 field_3d0;
+    f32 field_3d8;
+    f32 field_3dc;
+    f32 field_3e0;
+    u8 pad_3e4[0x4];
+    f32 field_3e8;
+    f32 field_3ec;
+    bool field_3f0;
+    u8 pad_3f1[0x3];
+    f32 field_3f4;
 };
 // what 0x71004278c0 copies
 // a glare's settings (0x7100427900 copies those of a glare definition,
 // GPUGlareDef.h's Unk_4a0b00, into one)
 struct Unk_4278c0_Data {
+    // (CPostEffect's constructor zeroes its member: member by member, the
+    // arrays value-initialised)
+    Unk_4278c0_Data()
+        : field_0(), field_10(), field_20(0.0f), field_24(0), field_28(), field_38(0.0f), field_3c(0.0f),
+          field_40(false), field_44(), field_54(0), field_58(0.0f), field_5c(0.0f), field_60(false), field_64(0.0f),
+          field_68(0.0f), field_6c(false), field_70(), field_80(0.0f) {}
+
     f32 field_0[4];  // a colour (its luminance tells whether there is a glare)
     f32 field_10[4];
     f32 field_20;
@@ -98,15 +146,29 @@ PKMN_OFFSET_ASSERT(Unk_4278c0_Data, field_70, 0x70);
 PKMN_SIZE_ASSERT(Unk_4278c0_Data, 0x84);
 // CRenderGlare, as this file reads it
 struct Unk_45eb90_Self {
-    u8 pad_0[0x108];
+    u8 pad_0[0xbc];
+    u32 field_bc;  // its width
+    u32 field_c0;  // its height
+    u8 pad_c4[0x10];
+    s32 field_d4;  // its format
+    u8 pad_d8[0x30];
     bool field_108;
     u8 pad_109[0x7];
     bool field_110;
     u8 pad_111[0x3];
     s32 field_114;  // how many light ghosts it can draw
-    u8 pad_118[0xcc];
+    u8 pad_118[0xc];
+    f32 field_124;
+    f32 field_128;
+    u8 pad_12c[0x1c];
+    f32 field_148;
+    f32 field_14c;
+    f32 field_150;
+    u8 pad_154[0x58];
+    bool field_1ac;
+    u8 pad_1ad[0x37];
     s32 field_1e4;
-    u8 pad_1e8[0x4];
+    f32 field_1e8;
     s32 field_1ec;
     f32 field_1f0;
     u8 pad_1f4[0xc];
@@ -120,11 +182,16 @@ struct Unk_45eb90_Self {
     f32 field_24c;
     f32 field_250;
     Unk_Float field_254;
-    u8 pad_258[0xc];
+    f32 field_258;
+    f32 field_25c;
+    s32 field_260;
     f32 field_264;
     f32 field_268;
-    u8 pad_26c[0x80];
+    bool field_26c;
+    u8 pad_26d[0x7f];
     s32 field_2ec;
+    u8 pad_2f0[0x120];
+    bool field_410;
 };
 PKMN_OFFSET_ASSERT(Unk_45eb90_Self, field_248, 0x248);
 PKMN_OFFSET_ASSERT(Unk_45eb90_Self, field_2ec, 0x2ec);
@@ -142,7 +209,7 @@ struct Unk_423990_Item {
     f32 field_30;
     Unk_Rect field_34;
     Unk_Float2 field_44;
-    u8 pad_4c[0x10];
+    Unk_Rect field_4c;
     f32 field_5c;
     bool field_60;
     u8 pad_61[0x3];
@@ -170,7 +237,8 @@ struct Unk_429da0_Item {
     f32 field_10;
     f32 field_14;
     f32 field_18;
-    u8 pad_1c[0x8];
+    f32 field_1c;
+    f32 field_20;
     f32 field_24;
     u32 field_28;  // the delay mode
     f32 field_2c;  // the delay
@@ -196,9 +264,18 @@ struct Unk_429da0_Item {
 PKMN_SIZE_ASSERT(Unk_429da0_Item, 0x78);
 struct Unk_429e60_Item {
     bool field_0;
-    u8 pad_1[0x1b];
+    u8 pad_1[0x3];
+    f32 field_4;
+    f32 field_8;
+    f32 field_c;
+    f32 field_10;
+    f32 field_14;
+    f32 field_18;
     f32 field_1c;
-    u8 pad_20[0xc];
+    f32 field_20;
+    bool field_24;
+    u8 pad_25[0x3];
+    f32 field_28;
     s32 field_2c;
     s32 field_30;
     f32 field_34;
@@ -303,9 +380,197 @@ struct Unk_CommandListMaker {
 struct Unk_43c490;
 struct Unk_43c4e0;
 
+// PFX_INITPARAM (the log names it and three of its members): what
+// Initialize is given, beside its flags; the other members are placeholders
+struct PFX_INITPARAM {
+    // (assigned in this order: the sizes and aspect ratios, the -1 block,
+    // the rest in member order, field_c last; it decides which of the
+    // constructors' stores LLVM merges)
+    PFX_INITPARAM() {
+        field_10 = 0;
+        field_14 = 0;
+        field_18 = 0;
+        field_1c = 0;
+        field_20 = 0.0f;
+        field_24 = 0.0f;
+        field_28 = 0.0f;
+        field_2c = 0.0f;
+        field_90 = -1;
+        field_94 = -1;
+        field_98 = -1;
+        field_9c = -1;
+        field_a0 = -1;
+        field_a4 = -1;
+        field_a8 = -1;
+        field_ac = -1;
+        field_b0 = -1;
+        field_b4 = -1;
+        field_b8 = -1;
+        field_bc = -1;
+        field_c0 = -1;
+        field_c4 = -1;
+        field_0 = 1;
+        field_4 = 0;
+        field_8 = 0;
+        field_30 = true;
+        field_34 = -1;
+        field_38 = 1;
+        field_3c = 0;
+        field_40 = 0;
+        field_44 = 0;
+        field_48 = 0;
+        field_4c = 0.0f;
+        field_50 = 0;
+        field_54 = 0;
+        field_58 = 0;
+        field_5c = 0;
+        field_60 = 0.25f;
+        field_64 = 0;
+        field_68 = true;
+        field_69 = true;
+        field_6c = 8;
+        field_70 = 0.25f;
+        field_74 = 0;
+        field_78 = 1;
+        field_7c = 0.0f;
+        field_80 = 0;
+        field_84 = 0;
+        field_88 = -1;
+        field_8c = -1;
+        field_c8 = 0;
+        field_cc = -1;
+        field_d0 = 0.85f;
+        field_d4 = 0.75f;
+        field_d8 = 0.0f;
+        field_dc = 1.0f;
+        field_e0 = 1.0f;
+        field_e4 = 0;
+        field_e8 = 0.0f;
+        field_ec = false;
+        field_f0 = 0.0f;
+        field_f4 = 0;
+        field_f8 = 0;
+        field_fc = 0.0f;
+        field_100 = 0;
+        field_104 = INT32_MIN;
+        field_108 = 0.0f;
+        field_10c = 0;
+        field_110 = 0;
+        field_114 = 0;
+        field_118 = 0;
+        field_11c = 0x100;
+        field_120 = 0x40;
+        field_124 = 0;
+        field_128 = 0;
+        field_12c = 0;
+        field_130 = 0;
+        field_134 = 0;
+        field_138 = 0;
+        field_13c = false;
+        field_140 = 0;
+        field_144 = 0x80000000u;
+        field_c = 0;
+    }
+
+    s32 field_0;  // m_nEffectViews (the log names it)
+    s32 field_4;
+    s32 field_8;
+    s32 field_c;
+    u32 field_10;  // the scene size (0: the device's)
+    u32 field_14;
+    u32 field_18;
+    u32 field_1c;
+    f32 field_20;  // the aspect ratio (0: from the size)
+    f32 field_24;
+    f32 field_28;
+    f32 field_2c;
+    bool field_30;
+    u8 pad_31[0x3];
+    s32 field_34;
+    s32 field_38;
+    s32 field_3c;
+    s32 field_40;
+    s32 field_44;
+    s32 field_48;
+    f32 field_4c;
+    s32 field_50;
+    s32 field_54;
+    s32 field_58;
+    s32 field_5c;
+    f32 field_60;
+    s32 field_64;
+    bool field_68;
+    bool field_69;
+    u8 pad_6a[0x2];
+    s32 field_6c;
+    f32 field_70;
+    s32 field_74;
+    u32 field_78;  // how many light shafts
+    f32 field_7c;
+    s32 field_80;
+    s32 field_84;
+    s32 field_88;
+    s32 field_8c;
+    s32 field_90;
+    s32 field_94;
+    s32 field_98;
+    s32 field_9c;
+    s32 field_a0;
+    s32 field_a4;
+    s32 field_a8;
+    s32 field_ac;
+    s32 field_b0;
+    s32 field_b4;
+    s32 field_b8;
+    s32 field_bc;
+    s32 field_c0;
+    s32 field_c4;
+    s32 field_c8;
+    s32 field_cc;
+    f32 field_d0;
+    f32 field_d4;
+    f32 field_d8;
+    f32 field_dc;
+    f32 field_e0;
+    s32 field_e4;
+    f32 field_e8;
+    bool field_ec;
+    u8 pad_ed[0x3];
+    f32 field_f0;
+    s32 field_f4;
+    s32 field_f8;
+    f32 field_fc;
+    s32 field_100;
+    s32 field_104;
+    f32 field_108;
+    s32 field_10c;
+    s32 field_110;
+    s32 field_114;
+    s32 field_118;  // m_eFeedbackFormat (the log names it)
+    s32 field_11c;
+    s32 field_120;
+    s32 field_124;  // how many light ghosts
+    s32 field_128;
+    s32 field_12c;
+    s32 field_130;
+    s32 field_134;
+    s32 field_138;
+    bool field_13c;
+    u8 pad_13d[0x3];
+    s32 field_140;
+    u32 field_144;  // m_uiAntialiasFlags (the log names it)
+};
+PKMN_SIZE_ASSERT(PFX_INITPARAM, 0x148);
+
 // what IPfxBaseContext::Initialize hands CPostEffect::Initialize (placeholder)
 struct Unk_417b30_Desc {
-    u8 pad_0[0x70];
+    void* field_0;  // what IGPUDevice::CreateDevice is given (null: made here)
+    u64 field_8;  // the frame buffer
+    u32 field_10;
+    u32 field_14;
+    u8 pad_18[0x48];
+    u64 field_60;
+    u64 field_68;
     u64 field_70;
 };
 
@@ -316,6 +581,10 @@ public:
     // 0x710041afb0 (its log lines name it)
     s32 Initialize(const Unk_417b30_Desc* desc, u32 arg2, u32 arg3, u32 arg4, void* arg5);
     s32 Unk_419690(void* arg);   // 0x7100419690: its uninitialisation
+    // 0x71004229e0 (not written yet; placeholder signature, from the call):
+    // makes what the description doesn't give (Initialize's first step)
+    s32 Unk_4229e0(void** device, const Unk_417b30_Desc* desc);
+    s32 Unk_425750();  // 0x7100425750 (not written yet)
     s32 Unk_426a50();  // 0x7100426a50
     // 0x7100423160: the object of two device objects (key) made or found
     u64 Unk_423160(u64 arg1, u64 arg2, void* device);
@@ -374,6 +643,20 @@ public:
     s32 Unk_42a0f0();
     // 0x710042be10: the velocity of the scene's depth (once a frame)
     s32 Unk_42be10();
+    // 0x7100435ed0: CPostEffect::EndPostEffectScene_InternalProcess (its log
+    // lines name it)
+    s32 Unk_435ed0();
+    s32 Unk_42c300();  // 0x710042c300 (not written yet)
+    // 0x71004320b0 (not written yet; placeholder signature, from the call)
+    s32 Unk_4320b0(Unk_RenderTexture* source, void* arg2, s32 arg3, s32 arg4);
+    s32 Unk_432570();  // 0x7100432570 (not written yet)
+    s32 Unk_433450();  // 0x7100433450 (not written yet)
+    s32 Unk_42d490(Unk_RenderTexture* source);  // 0x710042d490 (not written yet)
+    s32 Unk_434000(Unk_RenderTexture* source);  // 0x7100434000 (not written yet)
+    s32 Unk_433d00(Unk_RenderTexture* source);  // 0x7100433d00 (not written yet)
+    // 0x7100430a10 (not written yet; placeholder signature, from the call)
+    s32 Unk_430a10(Unk_RenderTexture* source, void* arg2, void* surface, bool arg4);
+    void Unk_4386d0();  // 0x71004386d0 (not written yet)
     // 0x7100428220
     void Unk_428220();
     // 0x710042a590: what changed since the last frame's view (placeholder)
@@ -428,11 +711,20 @@ public:
     // UNK_FIELDS_BEGIN
     bool field_0;  // between BeginPostEffectScene() and EndPostEffectScene()
     bool field_1;
-    u8 pad_2[0x16];
+    bool field_2;
+    u8 pad_3[0x5];
+    bool field_8;
+    bool field_9;
+    bool field_a;
+    u8 pad_b[0x5];
+    u64 field_10;
     IGPUDevice* field_18;
     u64 field_20;
     void* field_28;
-    u8 pad_30[0x20];
+    IGPUPixelContainer::Unk_Desc* field_30;  // the targets' descriptions
+    IGPUPixelContainer::Unk_Desc* field_38;
+    IGPUDevice* field_40;
+    u64 field_48;
     Unk_RenderTexture* field_50;  // the depth factor source's texture
     u32 field_58;                 // its source
     u32 field_5c;
@@ -444,7 +736,8 @@ public:
     u32 field_78;
     u8 pad_7c[0x4];
     void* field_80;
-    u8 pad_88[0x4];
+    bool field_88;
+    u8 pad_89[0x3];
     u32 field_8c;
     u32 field_90;
     u32 field_94;
@@ -455,35 +748,59 @@ public:
     Unk_RenderTexture* field_b0;
     Unk_RenderTexture* field_b8;
     u32 field_c0;
-    u8 pad_c4[0x14];
+    u8 pad_c4[0x4];
+    u64 field_c8;
+    Unk_RenderTexture* field_d0;
     Unk_TextureMap<Unk_43c4e0> field_d8;
     Unk_TextureMap<Unk_43c490> field_f0;
     Unk_TextureMap<Unk_RenderTexture> field_108;  // CRenderTexture::m_mapDeviceTextureRenderTexture
     Unk_43c4e0* field_120;
     u64 field_128;
     u64 field_130;
-    u8 pad_138[0x58];
+    u64 field_138;
+    u64 field_140;
+    u64 field_148;
+    u64 field_150;
+    u64 field_158;
+    u64 field_160;
+    u64 field_168;
+    u64 field_170;
+    void* field_178;
+    bool field_180;
+    u8 pad_181[0x7];
+    u64 field_188;
     Unk_4a5d10_Self* field_190;
     Unk_45eb90_Self* field_198;
     Unk_4aa5a0_Self* field_1a0;
-    u8 pad_1a8[0x10];
+    CRenderTextureArray* field_1a8;
+    Unk_4a5d10_Self* field_1b0;
     bool field_1b8;
     bool field_1b9;
     bool field_1ba;
-    u8 pad_1bb[0x1];
+    bool field_1bb;
     bool field_1bc;
-    u8 pad_1bd[0x3];
+    bool field_1bd;
+    bool field_1be;
+    bool field_1bf;
     bool field_1c0;
-    u8 pad_1c1[0x5];
+    bool field_1c1;
+    bool field_1c2;
+    bool field_1c3;
+    bool field_1c4;
+    bool field_1c5;
     bool field_1c6;
-    u8 pad_1c7[0x1];
+    bool field_1c7;
     bool field_1c8;
-    u8 pad_1c9[0x1];
+    bool field_1c9;
     bool field_1ca;
-    u8 pad_1cb[0x1];
+    bool field_1cb;
     bool field_1cc;
     bool field_1cd;
-    u8 pad_1ce[0x5];
+    bool field_1ce;
+    bool field_1cf;
+    bool field_1d0;
+    bool field_1d1;
+    bool field_1d2;
     bool field_1d3;  // the scene is external (PFXINIT_RENDERSCENE_EXTERNAL)
     u8 pad_1d4[0x4];
     Unk_RenderTexture* field_1d8;
@@ -499,9 +816,15 @@ public:
     Unk_RenderTexture* field_228;
     Unk_RenderTexture* field_230;
     Unk_RenderTexture** field_238;  // one per view
-    u8 pad_240[0x20];
+    f32* field_240;  // one per view
+    f32* field_248;
+    f32* field_250;
+    Unk_Rect* field_258;
     Unk_4a5d10_Self** field_260;  // one per view: the feedback textures
-    u8 pad_268[0x10];
+    Unk_RenderTexture* field_268;  // the feedback's tone map texture
+    bool field_270;
+    bool field_271;
+    u8 pad_272[0x6];
     Unk_RenderTexture* field_278;
     s32 field_280;
     u8 pad_284[0x4];
@@ -511,16 +834,103 @@ public:
     u8 pad_29c[0x4];
     Unk_429da0_Item* field_2a0;  // one per view
     Unk_429e60_Item* field_2a8;  // one per view
-    u8 pad_2b0[0x150];
-    s32 field_400;
-    u8 pad_404[0x1c];
-    f32 field_420;
-    u8 pad_424[0xf4];
-    s32 field_518;  // the feedback format
-    u8 pad_51c[0x8];
-    s32 field_524;  // how many light ghosts
-    u8 pad_528[0x1c];
-    u32 field_544;
+    u32 field_2b0;  // the flags Initialize was given (PFXINIT_*)
+    u32 field_2b4;  // the flags in use
+    PFX_INITPARAM field_2b8;  // the parameters Initialize was given
+    // the parameters in use: a copy of field_2b8 that Initialize adjusts,
+    // also read member by member
+    union {
+        PFX_INITPARAM field_400_param;
+        struct {
+            s32 field_400;  // m_nEffectViews (the log names it)
+            s32 field_404;
+            s32 field_408;
+            s32 field_40c;
+            u32 field_410;  // the scene size (0: the device's)
+            u32 field_414;
+            u32 field_418;
+            u32 field_41c;
+            f32 field_420;  // the aspect ratio (0: from the size)
+            f32 field_424;
+            f32 field_428;
+            f32 field_42c;
+            bool field_430;
+            u8 pad_431[0x3];
+            s32 field_434;
+            s32 field_438;
+            s32 field_43c;
+            s32 field_440;
+            s32 field_444;
+            s32 field_448;
+            f32 field_44c;
+            s32 field_450;
+            s32 field_454;
+            s32 field_458;
+            s32 field_45c;
+            f32 field_460;
+            s32 field_464;
+            bool field_468;
+            bool field_469;
+            u8 pad_46a[0x2];
+            s32 field_46c;
+            f32 field_470;
+            s32 field_474;
+            u32 field_478;  // how many light shafts
+            f32 field_47c;
+            s32 field_480;
+            s32 field_484;
+            s32 field_488;
+            s32 field_48c;
+            s32 field_490;
+            s32 field_494;
+            s32 field_498;
+            s32 field_49c;
+            s32 field_4a0;
+            s32 field_4a4;
+            s32 field_4a8;
+            s32 field_4ac;
+            s32 field_4b0;
+            s32 field_4b4;
+            s32 field_4b8;
+            s32 field_4bc;
+            s32 field_4c0;
+            s32 field_4c4;
+            s32 field_4c8;
+            s32 field_4cc;
+            f32 field_4d0;
+            f32 field_4d4;
+            f32 field_4d8;
+            f32 field_4dc;
+            f32 field_4e0;
+            s32 field_4e4;
+            f32 field_4e8;
+            bool field_4ec;
+            u8 pad_4ed[0x3];
+            f32 field_4f0;
+            s32 field_4f4;
+            s32 field_4f8;
+            f32 field_4fc;
+            s32 field_500;
+            s32 field_504;
+            f32 field_508;
+            s32 field_50c;
+            s32 field_510;
+            s32 field_514;
+            s32 field_518;  // m_eFeedbackFormat (the log names it)
+            s32 field_51c;
+            s32 field_520;
+            s32 field_524;  // how many light ghosts
+            s32 field_528;
+            s32 field_52c;
+            s32 field_530;
+            s32 field_534;
+            s32 field_538;
+            bool field_53c;
+            u8 pad_53d[0x3];
+            s32 field_540;
+            u32 field_544;  // m_uiAntialiasFlags (the log names it)
+        };
+    };
     bool field_548;
     u8 pad_549[0x7];
     Unk_RenderTexture** field_550;
@@ -528,17 +938,29 @@ public:
     u8 pad_55c[0x4];
     Unk_RenderTexturePair* field_560;  // field_568 pairs
     s32 field_568;
-    u8 pad_56c[0x28];
+    u8 pad_56c[0x4];
+    CRenderTexture** field_570;  // the OETF luminance's base work, one per view
+    CRenderTexture** field_578;  // and its resize work, field_580 of them
+    s32 field_580;
+    u8 pad_584[0x4];
+    CTextureLuminanceManage** field_588;  // one per view
+    s32 field_590;
     bool field_594;
-    u8 pad_595[0x3];
+    bool field_595;
+    bool field_596;
+    bool field_597;
     bool field_598;
     bool field_599;
     bool field_59a;
-    u8 pad_59b[0x1];
+    bool field_59b;
     bool field_59c;
     bool field_59d;
     bool field_59e;
-    u8 pad_59f[0x5];
+    bool field_59f;
+    bool field_5a0;
+    bool field_5a1;
+    bool field_5a2;
+    u8 pad_5a3[0x1];
     f32 field_5a4;
     f32 field_5a8;
     f32 field_5ac;
@@ -547,24 +969,49 @@ public:
     Unk_RenderTexture* field_5b8;
     Unk_RenderTexture* field_5c0;
     u32 field_5c8;
-    u8 pad_5cc[0xc];
+    u32 field_5cc;
+    s32 field_5d0;
+    f32 field_5d4;
     s32 field_5d8;
-    u8 pad_5dc[0x4];
+    u32 field_5dc;  // whether the render buffer has mip textures
     s32 field_5e0;
-    u8 pad_5e4[0x20];
+    u32 field_5e4;
+    u8 pad_5e8[0x4];
+    s32 field_5ec;
+    s32 field_5f0;
+    s32 field_5f4;
+    u8 pad_5f8[0xc];
     s32 field_604;
     s32 field_608;
     s32 field_60c;
-    u8 pad_610[0x20];
+    s32 field_610;
+    s32 field_614;
+    u8 pad_618[0x10];
+    s32 field_628;
+    s32 field_62c;
     s32 field_630;
     s32 field_634;
     s32 field_638;
-    u8 pad_63c[0x30];
+    s32 field_63c;
+    s32 field_640;
+    s32 field_644;
+    s32 field_648;
+    s32 field_64c;
+    s32 field_650;
+    s32 field_654;
+    s32 field_658;
+    s32 field_65c;
+    s32 field_660;
+    s32 field_664;
+    s32 field_668;
     s32 field_66c;
     s32 field_670;
-    u8 pad_674[0x6];
+    u8 pad_674[0x5];
+    bool field_679;
     bool field_67a;
-    u8 pad_67b[0x5];
+    bool field_67b;
+    bool field_67c;
+    u8 pad_67d[0x3];
     s32 field_680;  // the tone map's shader numbers
     s32 field_684;
     s32 field_688;
@@ -576,7 +1023,7 @@ public:
     s32 field_6a0;
     s32 field_6a4;  // the output format (Unk_42df80)
     s32 field_6a8;  // the format when there is no texture field_5d8
-    u8 pad_6ac[0x4];
+    s32 field_6ac;
     u32 field_6b0;
     u32 field_6b4;
     u8 pad_6b8[0xc];
@@ -607,7 +1054,10 @@ public:
     Unk_Rect field_834;
     f32 field_844;
     f32 field_848;
-    u8 pad_84c[0xc];
+    bool field_84c;
+    u8 pad_84d[0x3];
+    s32 field_850;
+    u8 pad_854[0x4];
     Unk_423990_Item* field_858;
     s32 field_860;
     u8 pad_864[0x4];
@@ -620,7 +1070,7 @@ public:
     f32 field_888;
     f32 field_88c;
     f32 field_890;
-    u8 pad_894[0x1];
+    bool field_894;
     bool field_895;
     u8 pad_896[0x2];
     f32 field_898;
@@ -629,7 +1079,8 @@ public:
     f32 field_8a4;
     Unk_Float2 field_8a8;
     f32 field_8b0;
-    u8 pad_8b4[0x2];
+    bool field_8b4;
+    bool field_8b5;
     bool field_8b6;
     u8 pad_8b7[0x1];
     Unk_Float2 field_8b8;
@@ -638,7 +1089,9 @@ public:
     u32 field_8c8;        // the tone map
     f32 field_8cc;
     f32 field_8d0;
-    u8 pad_8d4[0x18];
+    Unk_Float4 field_8d4;
+    f32 field_8e4;
+    f32 field_8e8;
     f32 field_8ec;  // the last frame's field_8f4 and field_8f8
     f32 field_8f0;
     f32 field_8f4;
@@ -668,12 +1121,24 @@ public:
     bool field_96c;
     u8 pad_96d[0x3];
     u32 field_970;
-    u8 pad_974[0x4];
+    s32 field_974;
     s32 field_978;
     u32 field_97c;
-    u8 pad_980[0x2c];
+    f32 field_980;
+    s32 field_984;
+    s32 field_988;
+    f32 field_98c;
+    f32 field_990;
+    f32 field_994;
+    bool field_998;
+    bool field_999;
+    u8 pad_99a[0x2];
+    s32 field_99c;
+    f32 field_9a0;
+    f32 field_9a4;
+    f32 field_9a8;
     s32 field_9ac;
-    u8 pad_9b0[0x4];
+    u32 field_9b0;
     MATRIXT44 field_9b4[6];  // the colour matrices
     bool field_b34[6];  // which of them changed
     u8 pad_b3a[0x2];
@@ -682,17 +1147,61 @@ public:
     s32 field_b80;
     Unk_410f90 field_b84;  // colour spaces
     Unk_410f90 field_ba4;
-    u8 pad_bc4[0x9];
+    f32 field_bc4;
+    f32 field_bc8;
+    bool field_bcc;
     bool field_bcd;
     bool field_bce;
-    u8 pad_bcf[0x15];
+    u8 pad_bcf[0x1];
+    s32 field_bd0;
+    f32 field_bd4;
+    u64 field_bd8;
+    u32 field_be0;
     bool field_be4;
-    u8 pad_be5[0x89];
+    u8 pad_be5[0x3];
+    f32 field_be8;
+    bool field_bec;
+    u8 pad_bed[0x3];
+    f32 field_bf0;
+    f32 field_bf4;
+    f32 field_bf8;
+    f32 field_bfc;
+    f32 field_c00;
+    u32 field_c04;
+    f32 field_c08;
+    f32 field_c0c;
+    f32 field_c10;
+    s32 field_c14;
+    f32 field_c18;
+    f32 field_c1c;
+    f32 field_c20;
+    f32 field_c24;
+    f32 field_c28;
+    bool field_c2c;
+    bool field_c2d;
+    u8 pad_c2e[0x2];
+    s32 field_c30;
+    bool field_c34;
+    bool field_c35;
+    bool field_c36;
+    u8 pad_c37[0x1];
+    Unk_Float2 field_c38;
+    Unk_Float2 field_c40;
+    Unk_Float2 field_c48;
+    Unk_Float2 field_c50;
+    Unk_Float2 field_c58;
+    f32 field_c60;
+    f32 field_c64;
+    f32 field_c68;
+    bool field_c6c;
+    u8 pad_c6d[0x1];
     bool field_c6e;  // there are light ghosts to draw
     bool field_c6f;
-    u8 pad_c70[0x8];
+    bool field_c70;
+    u8 pad_c71[0x3];
+    f32 field_c74;
     bool field_c78;
-    u8 pad_c79[0x1];
+    bool field_c79;
     bool field_c7a;
     u8 pad_c7b[0x1];
     Unk_Rect field_c7c;
@@ -701,27 +1210,45 @@ public:
     bool field_c91;
     u8 pad_c92[0x2];
     s32 field_c94;
-    u8 pad_c98[0x4d];
+    bool field_c98;
+    u8 pad_c99[0x3];
+    f32 field_c9c;
+    f32 field_ca0;
+    Unk_Float4 field_ca4[4];
+    u8 pad_ce4[0x1];
     bool field_ce5;
     u8 pad_ce6[0x2];
     s32 field_ce8;
-    u8 pad_cec[0x4];
+    bool field_cec;
+    u8 pad_ced[0x3];
     Unk_Float field_cf0;
     Unk_Float field_cf4;
     s32 field_cf8;
     u32 field_cfc;
     Unk_Float field_d00;
-    u8 pad_d04[0x4];
+    f32 field_d04;
     f32 field_d08;
-    u8 pad_d0c[0x4];
+    bool field_d0c;
+    u8 pad_d0d[0x3];
     f32 field_d10;
     f32 field_d14;
-    u8 pad_d18[0x14];
+    f32 field_d18;
+    f32 field_d1c;
+    f32 field_d20;
+    f32 field_d24;
+    s32 field_d28;
     s32 field_d2c;
     s32 field_d30;
     u8 pad_d34[0x4];
     Unk_RenderTexture* field_d38;
-    u8 pad_d40[0x24];
+    bool field_d40;
+    u8 pad_d41[0x7];
+    u64 field_d48;
+    f32 field_d50;
+    f32 field_d54;
+    f32 field_d58;
+    f32 field_d5c;
+    s32 field_d60;
     Unk_Float2 field_d64;
     s32 field_d6c;
     Unk_RenderTexture* field_d70;
@@ -733,27 +1260,81 @@ public:
     bool field_d90;
     u8 pad_d91[0x3];
     f32 field_d94;
-    u8 pad_d98[0x4];
+    f32 field_d98;
     Unk_Float4 field_d9c;
-    u8 pad_dac[0x34];
+    Unk_Float2 field_dac;
+    Unk_Vector3 field_db4;
+    s32 field_dc0;
+    f32 field_dc4;
+    f32 field_dc8;
+    bool field_dcc;
+    u8 pad_dcd[0x3];
+    Unk_Float4 field_dd0;
     f32 field_de0;
     f32 field_de4;
-    u8 pad_de8[0x8];
+    bool field_de8;
+    u8 pad_de9[0x7];
     Unk_RenderTexture* field_df0;
-    u8 pad_df8[0xf4];
+    u64 field_df8;
+    bool field_e00;
+    u8 pad_e01[0x3];
+    f32 field_e04[41];
+    u64 field_ea8;
+    u64 field_eb0;
+    bool field_eb8;
+    u8 pad_eb9[0x3];
+    s32 field_ebc;
+    f32 field_ec0;
+    s32 field_ec4;
+    s32 field_ec8;
+    f32 field_ecc;
+    f32 field_ed0;
+    s32 field_ed4;
+    f32 field_ed8;
+    f32 field_edc;
+    f32 field_ee0;
+    f32 field_ee4;
+    f32 field_ee8;
     f32 field_eec;
     f32 field_ef0;
-    u8 pad_ef4[0x38];
+    s32 field_ef4;
+    f32 field_ef8;
+    f32 field_efc;
+    s32 field_f00;
+    s32 field_f04;
+    bool field_f08;
+    u8 pad_f09[0x3];
+    s32 field_f0c;
+    bool field_f10;
+    u8 pad_f11[0x3];
+    f32 field_f14;
+    s32 field_f18;
+    f32 field_f1c;
+    f32 field_f20;
+    f32 field_f24;
+    s32 field_f28;
     s32 field_f2c;
     s32 field_f30;
-    u8 pad_f34[0x4];
+    f32 field_f34;
     bool field_f38;
-    u8 pad_f39[0xb];
+    bool field_f39;
+    u8 pad_f3a[0x2];
+    f32 field_f3c;
+    f32 field_f40;
     s32 field_f44;
-    u8 pad_f48[0x24];
+    f32 field_f48;
+    s32 field_f4c;
+    s32 field_f50;
+    s32 field_f54;
+    bool field_f58;
+    u8 pad_f59[0x3];
+    f32 field_f5c;
+    f32 field_f60;
+    f32 field_f64;
+    f32 field_f68;
     f32 field_f6c;
     f32 field_f70;
-    u8 pad_f74[0x4];
+    s32 field_f74;
     u32 field_f78;
     Unk_Float field_f7c;
     s32 field_f80;
@@ -762,9 +1343,20 @@ public:
     f32 field_100c;
     f32 field_1010;
     bool field_1014;
-    u8 pad_1015[0x38];
+    u8 pad_1015[0x3];
+    f32 field_1018;
+    f32 field_101c;
+    s32 field_1020;
+    s32 field_1024;
+    u8 pad_1028[0x1];
+    bool field_1029;
+    u8 pad_102a[0x2];
+    f32 field_102c[6];
+    s32 field_1044;
+    s32 field_1048;
+    bool field_104c;
     bool field_104d;
-    u8 pad_104e[0x1];
+    bool field_104e;
     bool field_104f;
     bool field_1050;
     bool field_1051;
@@ -779,29 +1371,48 @@ public:
     bool field_106a;
     bool field_106b;
     bool field_106c;
-    u8 pad_106d[0x1];
+    bool field_106d;
     bool field_106e;
     u8 pad_106f[0x1];
     f32 field_1070;
-    u8 pad_1074[0x10];
+    bool field_1074;
+    bool field_1075;
+    u8 pad_1076[0xa];
+    bool field_1080;
+    u8 pad_1081[0x3];
     Unk_Float2 field_1084;
     f32 field_108c;
     bool field_1090;
     bool field_1091;
     u8 pad_1092[0x2];
     MATRIXT44 field_1094;
-    u8 pad_10d4[0x2];
+    u8 pad_10d4[0x1];
+    bool field_10d5;
     bool field_10d6;
-    u8 pad_10d7[0x3];
+    bool field_10d7;
+    bool field_10d8;
+    bool field_10d9;
     bool field_10da;
     bool field_10db;
-    u8 pad_10dc[0x8c];
+    bool field_10dc;
+    u8 pad_10dd[0x1];
+    bool field_10de;
+    bool field_10df;
+    u8 pad_10e0[0x1];
+    bool field_10e1;
+    u8 pad_10e2[0x2];
+    u32 field_10e4[18];
+    u32 field_112c;
+    u64 field_1130[6];
+    u32 field_1160;
+    u8 pad_1164[0x4];
     u64 field_1168;
-    u8 pad_1170[0x8];
+    bool field_1170;
+    u8 pad_1171[0x7];
     SiYebisAllocator field_1178;
     Unk_CommandList* field_1198;  // the NVN command list's
     Unk_CommandListMaker* field_11a0;
-    u8 pad_11a8[0x8];
+    void* field_11a8;
     void* field_11b0;  // the command list in use
     bool field_11b8;  // it is field_11c0
     u8 pad_11b9[0x7];
@@ -814,7 +1425,7 @@ public:
     Unk_PairMap<std::pair<SiSDK3::ISiInterface*, void*>> field_11d0;
     Unk_PairMap<std::pair<SiSDK3::ISiInterface*, SiSDK3::ISiInterface*>> field_11e8;
     void* field_1200;  // the current NVN command buffer (SetCurrentCommandBuffer_Nvn)
-    u8 pad_1208[0x8];
+    u64 field_1208;
     // the free indices of the NVN texture and sampler pools that the default
     // callbacks hand out
     std::list<s32, Unk_StlAllocator<s32>> field_1210;
@@ -854,5 +1465,20 @@ PKMN_OFFSET_ASSERT(CPostEffect, field_11c8, 0x11c8);
 PKMN_OFFSET_ASSERT(CPostEffect, field_11e8, 0x11e8);
 PKMN_OFFSET_ASSERT(CPostEffect, field_1210, 0x1210);
 PKMN_OFFSET_ASSERT(CPostEffect, field_1228, 0x1228);
+PKMN_OFFSET_ASSERT(CPostEffect, field_d0, 0xd0);
+PKMN_OFFSET_ASSERT(CPostEffect, field_178, 0x178);
+PKMN_OFFSET_ASSERT(CPostEffect, field_5d0, 0x5d0);
+PKMN_OFFSET_ASSERT(CPostEffect, field_668, 0x668);
+PKMN_OFFSET_ASSERT(CPostEffect, field_850, 0x850);
+PKMN_OFFSET_ASSERT(CPostEffect, field_8e8, 0x8e8);
+PKMN_OFFSET_ASSERT(CPostEffect, field_be0, 0xbe0);
+PKMN_OFFSET_ASSERT(CPostEffect, field_c6c, 0xc6c);
+PKMN_OFFSET_ASSERT(CPostEffect, field_ca4, 0xca4);
+PKMN_OFFSET_ASSERT(CPostEffect, field_dd0, 0xdd0);
+PKMN_OFFSET_ASSERT(CPostEffect, field_f64, 0xf64);
+PKMN_OFFSET_ASSERT(CPostEffect, field_1024, 0x1024);
+PKMN_OFFSET_ASSERT(CPostEffect, field_1080, 0x1080);
+PKMN_OFFSET_ASSERT(CPostEffect, field_10e1, 0x10e1);
+PKMN_OFFSET_ASSERT(Unk_45eb90_Self, field_410, 0x410);
 
 }  // namespace PPFX

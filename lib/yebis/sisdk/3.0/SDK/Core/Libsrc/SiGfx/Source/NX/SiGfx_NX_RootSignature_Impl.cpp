@@ -241,12 +241,9 @@ bool SiGfxNXRootSignature::vf9() {
 // (The reserve this calls, 0x7100558360, calls the array's clear,
 // 0x71005581e0, where SiCore_Array.h's frees the buffer and empties the array
 // itself: the reserve is specialised for the parameters with that call. The
-// samplers' array's reserve, 0x7100558530, is SiCore_Array.h's and NON_MATCHING
-// for the order of three of its constructor's stores: the original stores
-// the sampler pointer, then the description's last words, then its first
-// (tried: the pointer set in the body or first, the description assigned in
-// the body, its loop counting down, unsigned, through a pointer, unrolled, a
-// memset or value-initialised).)
+// samplers' array's reserve, 0x7100558530, is SiCore_Array.h's: its
+// constructor stores the sampler pointer before the description's last
+// words, which the entry's constructor clears in its body.)
 // 0x7100557430
 bool SiGfxNXRootSignature::vf10(s32 count) {
     if (!field_25) {
