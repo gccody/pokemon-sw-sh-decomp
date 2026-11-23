@@ -46,6 +46,10 @@ public:
         field_c = 3;
     }
     ~IGPUTexture() override;                                // 0x7100447970, 0x7100447a10
+    // 0x7100447da0 (its log lines name it): a new texture of a SiGfx texture
+    // of its own
+    static IGPUTexture* CreateTexture(IGPUDevice* pDevice, u32 width, u32 height, u32 levels, s32 format, s32 msaa,
+                                      u32 quality, u32 usage, u32 flags);
     s32 vf5(void* a1, bool a2) override { return IGPUBaseTexture::vf5(a1, a2); }  // 0x7100447d80
     s32 vf6() override { return IGPUPixelContainer::vf6(); }                      // 0x7100447d90
     // 0x7100447d70

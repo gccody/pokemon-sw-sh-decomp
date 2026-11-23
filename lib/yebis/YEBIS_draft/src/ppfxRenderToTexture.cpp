@@ -4,9 +4,11 @@
 // The TU's statics are the ones every src/GPU TU has (Unk_Statics.h), which
 // its static initialiser, 0x71004ba330 (_GLOBAL__sub_I_ppfxRenderToTexture.cpp),
 // sets up.
+#include <yebis/YEBIS_draft/src/GPU/GPURenderTexture.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUResourceManage.h>
 #include <yebis/YEBIS_draft/src/GPU/Unk_Statics.h>
 #include <yebis/YEBIS_draft/src/Unk_4b9860.h>
+#include <yebis/YEBIS_draft/src/ppfxRenderToTexture.h>
 
 // log switches: PPFX_LOG's and PPFX_ERROR's
 extern s32 Unk_24e0008;
@@ -34,37 +36,7 @@ extern s32 Unk_238c1e8;
         }                            \
     } while (0)
 
-// 0x71004b9840 (lib/yebis/leaf): what an interface holds at 0x10
-struct Unk_4b9840;
-const u8* Unk_4b9840_get(const Unk_4b9840* self);
-
 namespace PPFX {
-
-class IPfxBaseRenderToTexture : public IPfxInterface {
-public:
-    IPfxBaseRenderToTexture() : field_18(nullptr) {}
-    ~IPfxBaseRenderToTexture() override;  // 0x71004b9b60, 0x71004b9cd0
-    virtual s32 vf6();           // 0x71004b9d00
-    virtual s32 Uninitialize();  // 0x71004ba140
-
-    // 0x71004ba020
-    s32 Initialize(void* context, CGPUBaseResourceManage* util);
-
-    // what the interface holds (field_10), and what its context does
-    CGPUBaseResourceManage** Unk_Util() {
-        return reinterpret_cast<CGPUBaseResourceManage**>(
-            const_cast<u8*>(Unk_4b9840_get(reinterpret_cast<const Unk_4b9840*>(this))));
-    }
-
-    void* field_18;  // the context
-};
-PKMN_SIZE_ASSERT(IPfxBaseRenderToTexture, 0x20);
-
-// RTTI: PPFX::IPfxRenderToTexture_Nvn. Its deleting destructor is 0x71004ba2a0.
-class IPfxRenderToTexture_Nvn : public IPfxBaseRenderToTexture {
-public:
-    ~IPfxRenderToTexture_Nvn() override {}
-};
 
 // 0x71004b9b60
 IPfxBaseRenderToTexture::~IPfxBaseRenderToTexture() {
@@ -83,6 +55,91 @@ IPfxBaseRenderToTexture::~IPfxBaseRenderToTexture() {
     }
 #line 105
     UNK_LOG("==== IPfxBaseRenderToTexture::~IPfxBaseRenderToTexture() succeeded. ====\n");
+}
+
+// what a context holds (placeholder)
+struct Unk_ContextState {
+    u8 field_0;  // whether a scene is begun
+    u8 _1[0x18 - 0x1];
+    IGPUDevice* field_18;
+};
+
+}  // namespace PPFX
+
+// 0x710238d258 (placeholder)
+extern u8 Unk_238d258;
+// 0x710049c8d0 (lib/yebis/leaf)
+s32 Unk_49c8d0_call(void* self, void* value);
+// 0x7100446df0: a result's name (Unk_447050.cpp)
+const char* Unk_446df0(s32 result);
+
+namespace PPFX {
+
+// 0x7100446eb0 (Unk_447050.cpp)
+s32 Unk_446eb0(s32 count, s32 quality, u32* outType, s32* outQuality);
+
+// a render texture made from all of a description's numbers (inline: its
+// description sits above the caller's locals)
+static inline s32 Unk_CreateTexture(CRenderTexture* texture, s32 width, s32 height, s32 arg3, s32 format, u32 type,
+                                    s32 quality, s32 arg7) {
+    Unk_49ab20_Desc desc(0, width, height, format);
+    desc.field_10 = arg3;
+    desc.field_14 = type;
+    desc.field_18 = quality;
+    desc.field_1c = arg7;
+    return texture->Unk_49ab20(&desc);
+}
+
+// 0x71004b9d00
+s32 IPfxBaseRenderToTexture::Initialize(void* context, s32 width, s32 height, s32 arg3, s32 format, s32 samples,
+                                        s32 quality, s32 arg7) {
+#line 135
+    UNK_LOG("==== IPfxBaseRenderToTexture::Initialize() ====\n");
+    if (context == nullptr)
+        return -6;
+    CGPUBaseResourceManage*& slot = *Unk_Util();
+    if (slot != nullptr) {
+        const Unk_ContextState* state =
+            *reinterpret_cast<const Unk_ContextState* const*>(Unk_4b9840_get(static_cast<const Unk_4b9840*>(context)));
+        if (state->field_0) {
+#line 159
+            UNK_ERROR("IPfxBaseRenderToTexture::Initialize(): IPfxBaseRenderToTexture::Uninitialize() implicitly called while BeginPostEffectScene() and EndPostEffectScene().\n");
+        }
+        UNK_RELEASE_COUNTED(slot);
+    }
+#line 170
+    CRenderTexture* texture = UNK_NEW(CRenderTexture)("IPfxBaseRenderToTexture");
+    slot = texture;
+    field_18 = context;
+    IGPUDevice* device =
+        (*reinterpret_cast<const Unk_ContextState* const*>(Unk_4b9840_get(static_cast<const Unk_4b9840*>(context))))
+            ->field_18;
+    if (device == nullptr)
+        return -6;
+    u32 type;
+    s32 typeQuality;
+    Unk_446eb0(samples, quality, &type, &typeQuality);
+    s32 result = Unk_CreateTexture(static_cast<CRenderTexture*>(slot), width, height, arg3, format, type, typeQuality,
+                                   arg7);
+    if (result < 0) {
+#line 209
+        UNK_ERROR("IPfxBaseRenderToTexture::Initialize(): pRenderTexture->Initialize() failed (0x%x: %s).\n", result,
+                  Unk_446df0(result));
+        return result;
+    }
+    Unk_238d258 = 0;
+    result = slot->vf0(device);
+    if (result < 0) {
+#line 222
+        UNK_ERROR("IPfxBaseRenderToTexture::Initialize(): pRenderTexture->InitializeDevice() failed (0x%x: %s).\n",
+                  result, Unk_446df0(result));
+        Uninitialize();
+        return result;
+    }
+    Unk_49c8d0_call(slot, nullptr);
+#line 242
+    UNK_LOG("==== IPfxBaseRenderToTexture::Initialize() succeeded. ====\n");
+    return 0;
 }
 
 // 0x71004ba020

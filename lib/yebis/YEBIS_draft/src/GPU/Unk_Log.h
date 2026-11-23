@@ -14,6 +14,9 @@ extern s32 Unk_238c1e8;
 extern s32 Unk_24e0008;
 extern s32 Unk_24e0014;
 
+// the switch of PPFX_FX's lines (TinyEffect's)
+extern s32 Unk_24e0010;
+
 // the switch of the lines that describe what is created (PPFX_INFO)
 extern s32 Unk_24e000c;
 
@@ -31,6 +34,7 @@ s32 Unk_417a30(const char* format, ...);
 #define PPFX_FN(...) UNK_PPFX_PRINT(Unk_24e0014, "PPFX FN: ", __VA_ARGS__)
 #define PPFX_WARNING(...) UNK_PPFX_PRINT(Unk_238c1e4, "PPFX WARNING: ", __VA_ARGS__)
 #define PPFX_ERROR(...) UNK_PPFX_PRINT(Unk_238c1e8, "PPFX ERROR: ", __VA_ARGS__)
+#define PPFX_FX(...) UNK_PPFX_PRINT(Unk_24e0010, "PPFX FX: ", __VA_ARGS__)
 // A line without file and line (placeholder name): the code that makes its
 // arguments is itself under `if (Unk_24e000c != 0)`.
 #define UNK_PPFX_INFO(...)                                  \

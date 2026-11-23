@@ -13,17 +13,6 @@ namespace PPFX {
 MATRIXT44* Unk_411b00(MATRIXT44* out, const Unk_410f90_Point* red, const Unk_410f90_Point* green,
                       const Unk_410f90_Point* blue, const Unk_410f90_Point* white);
 
-// whether two colour spaces are the same (inline). `&&`, not `&`: with one
-// block of tests the not-same block is the entry's immediate successor, and
-// MachineCSE then reuses the entry's `mov x0, sp` for Unk_411b00's arguments
-// (a register kept across the calls) where the original materialises it again.
-inline bool Unk_SameColorSpace(const Unk_410f90& a, const Unk_410f90& b) {
-    return a.field_0.field_0 == b.field_0.field_0 && a.field_0.field_4 == b.field_0.field_4 &&
-           a.field_8.field_0 == b.field_8.field_0 && a.field_8.field_4 == b.field_8.field_4 &&
-           a.field_10.field_0 == b.field_10.field_0 && a.field_10.field_4 == b.field_10.field_4 &&
-           a.field_18.field_0 == b.field_18.field_0 && a.field_18.field_4 == b.field_18.field_4;
-}
-
 // a dot product (inline)
 inline f32 Unk_Dot(const Unk_Vector3& a, const Unk_Vector3& b) {
     return a.field_0[0] * b.field_0[0] + a.field_0[1] * b.field_0[1] + a.field_0[2] * b.field_0[2];

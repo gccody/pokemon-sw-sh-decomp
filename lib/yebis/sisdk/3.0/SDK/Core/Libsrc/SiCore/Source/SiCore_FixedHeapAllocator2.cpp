@@ -228,8 +228,10 @@ void* SiFixedHeapAllocator2::vf8(size_t elementSize, size_t count, int alignment
         for (MemoryBlockPtr* node = field_e8.m_pHead; node != nullptr; node = node->m_pNext) {
             MemoryBlockHeader* header = node->m_pHeader;
             u8* base = header->field_50;
-            u8* p = reinterpret_cast<u8*>((reinterpret_cast<size_t>(base) + (static_cast<size_t>(alignment) - 1)) & ~(static_cast<size_t>(alignment) - 1));
-            if (header->field_60 >= (alignment == 0 ? size : size - reinterpret_cast<size_t>(base) + reinterpret_cast<size_t>(p))) {
+            size_t mask = static_cast<size_t>(alignment) - 1;
+            u8* p = reinterpret_cast<u8*>((reinterpret_cast<size_t>(base) + mask) & ~mask);
+            if (header->field_60 >=
+                (alignment == 0 ? size : size - reinterpret_cast<size_t>(base) + reinterpret_cast<size_t>(p))) {
                 header->field_58 = alignment == 0 ? base : p;
                 block = header;
                 break;

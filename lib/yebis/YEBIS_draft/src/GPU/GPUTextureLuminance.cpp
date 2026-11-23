@@ -3,6 +3,7 @@
 // (lib/yebis/YEBIS_draft/src/GPU/GPUTextureLuminance.h). The TU's statics
 // are the ones every src/GPU TU has (Unk_Statics.h), which its static
 // initialiser, 0x71004b94e0 (_GLOBAL__sub_I_GPUTextureLuminance.cpp), sets up.
+#include <math.h>
 #include <string.h>
 
 #include <yebis/YEBIS_draft/src/GPU/GPUClassUtil.h>
@@ -50,7 +51,7 @@ struct Unk_4b7a30_Texture {
     virtual void vf9();
     virtual s32 vf10();
     virtual void vf11();
-    virtual void vf12();
+    virtual void vf12(s32* value, bool flag);
     virtual void vf13();
     virtual void vf14();
     virtual void vf15(u32 filter);
@@ -126,6 +127,47 @@ s32 CTextureLuminance::Unk_4b75a0(const char* name) {
     else
         field_10 = Unk_1eea4bc;
     Unk_Reset();
+    return 0;
+}
+
+// 0x71004b7670: makes the texture it reads back and the chain of smaller
+// ones down to it (each `factor` times smaller)
+s32 CTextureLuminance::Unk_4b7670(CRenderTexture* target, s32 factor, s32 mode) {
+    {
+        Unk_TFXString name = field_10 + "::m_pLuminanceTexture";
+        const char* text = name.field_8;
+#line 151
+        field_30 = UNK_NEW(CRenderTexture)(text);
+    }
+    field_60 = mode;
+    s32 result = field_30->Unk_Create(0x4400, 1, 1, 0x1c);
+    if (result < 0)
+        return result;
+    field_80 = 0;
+    field_78 = nullptr;
+    if (target != nullptr) {
+        u32 width = static_cast<s32>(pow(2.0, static_cast<s32>(log(static_cast<f64>(target->field_54)) / log(2.0))));
+        f32 scale = static_cast<f32>(static_cast<u32>(factor) > 2 ? static_cast<u32>(factor) : 2);
+        u32 height = static_cast<s32>(pow(2.0, static_cast<s32>(log(static_cast<f64>(target->field_58)) / log(2.0))));
+        f32 ratio = 1.0f / scale;
+        f32 x = 1.0f / static_cast<f32>(width);
+        f32 y = 1.0f / static_cast<f32>(height);
+        s32 levels = static_cast<s32>(ceilf(logf(x > y ? x : y) / logf(ratio)));
+        field_80 = levels - 1 < 0 ? 0 : levels - 1;
+        if (levels > 1) {
+            CTextureUtil* util = Unk_GetTextureUtil();
+            Unk_ReleaseTextureUtil();
+#line 223
+            field_78 = UNK_NEW_ARRAY(CRenderTexture*, field_80);
+            memset(field_78, 0, field_80 * sizeof(CRenderTexture*));
+            for (s32 i = 0; i < field_80; i++) {
+                width = static_cast<u32>(static_cast<f32>(width) / scale + 0.99f);
+                height = static_cast<u32>(static_cast<f32>(height) / scale + 0.99f);
+                util->field_29a58->Unk_49fc10(&field_78[i], width, height, 0x1c, true, 0, 0);
+            }
+        }
+    }
+    field_98 = 2;
     return 0;
 }
 
@@ -301,6 +343,72 @@ s32 CTextureLuminance::Unk_4b8240(CRenderTexture* source, bool flag) {
     if (result < 0)
         return result;
     Unk_49e3a0(1, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+    return 0;
+}
+
+// 0x71004b8450: the luminance from what was read back
+// NON_MATCHING: register allocation in the conversion of the colour (the
+// original keeps red, green, blue and alpha in s0 to s3 and 1/255 in s4).
+s32 CTextureLuminance::Unk_4b8450(bool flag) {
+    if (field_74 >= 0.0f) {
+        return 0;
+    }
+    s32 mode = field_60;
+    if (mode == 1 || mode == 2) {
+    } else if (mode == 3 || mode == 4) {
+        s32 values[4] = {0, 0, 0, 0};
+        for (s32 i = 0; i < field_3c; i++) {
+            reinterpret_cast<Unk_4b7a30_Texture*>((&field_40)[i])->vf12(&values[i], flag);
+            values[i] = values[i] < 0xff ? values[i] : 0xff;
+        }
+        if (mode == 3) {
+            Unk_GetTexture(field_30);
+        } else if (mode == 4) {
+            if (field_3c > 2) {
+                field_90[0] = values[2];
+                field_90[1] = values[1];
+                field_90[2] = values[0];
+                field_90[3] = values[3];
+            } else {
+                for (s32 k = 0; k < 3; k++) {
+                    field_90[k] = values[0];
+                }
+                field_90[3] = values[1];
+            }
+        }
+    } else if (mode == 5) {
+        Unk_SiGfxDrawContext* context = field_20->field_30;
+        Unk_4b7f40_Resource* resource =
+            reinterpret_cast<Unk_4b7f40_Surface*>(field_30->field_b8[field_30->field_a0])->field_a8->vf27(0);
+        void* buffer = resource->field_20;
+        IGPUBuffer::Unk_MapInfo info;
+        info.field_8 = 4;
+        info.field_0 = 1;
+        if (context->vf69(buffer, &info)) {
+            u32 value = *reinterpret_cast<const u32*>(info.field_20);
+            u8 b = value;
+            u8 g = value >> 8;
+            u8 r = value >> 16;
+            u8 a = value >> 24;
+            field_90[2] = b;
+            field_90[0] = r;
+            field_90[1] = g;
+            field_90[3] = a;
+            context->vf70(buffer, &info);
+        }
+    }
+    if (field_74 >= 0.0f) {
+        return 0;
+    }
+    f32 b = field_90[0] * (1.0f / 255.0f);
+    f32 a = field_90[3] * (1.0f / 255.0f);
+    f32 r = field_90[2] * (1.0f / 255.0f);
+    f32 g = field_90[1] * (1.0f / 255.0f);
+    field_6c = b;
+    field_70 = a;
+    field_64 = r;
+    field_68 = g;
+    field_74 = r * 0.2126f + g * 0.7152f + b * 0.0722f;
     return 0;
 }
 

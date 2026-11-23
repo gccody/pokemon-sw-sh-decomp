@@ -15,6 +15,13 @@ namespace SiSDK3 {
 // The named object's functions are the shader program's slots 40 to 42.
 UNK_NAMED_OBJECT(Unk_NXShaderProgramNamedObject, vf40, vf41, vf42);
 
+// A shader's code as NVN takes it (NVNshaderData: its address and its
+// control section).
+struct Unk_NXShaderData {
+    u64 field_0;
+    const void* field_8;
+};
+
 // A shader or the shader input, as the program releases it (placeholder
 // name).
 class Unk_NXProgramPart {
@@ -23,6 +30,24 @@ public:
     virtual void vf1();
     virtual u32 vf2();
     virtual u32 vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual bool vf20();  // a shader: whether it has its code
+    virtual const Unk_NXShaderData* vf21();  // and the code (NVNshaderData)
 };
 
 class SiGfxNXShaderProgram : public Unk_NXInterface, public Unk_NXShaderProgramNamedObject {
@@ -81,7 +106,7 @@ public:
     const SiString<char>* vf41() override;      // 0x710055a1e0
     u32 vf42() override;                        // 0x710055a200
 
-    // 0x710055a2e0: links the program (not written yet)
+    // 0x710055a2e0: links the program
     bool Unk_55a2e0(Unk_NXProgramPart* a1, Unk_NXProgramPart* a2, Unk_NXProgramPart* a3, Unk_NXProgramPart* a4,
                     Unk_NXProgramPart* a5, Unk_NXProgramPart* a6);
 
@@ -100,10 +125,10 @@ public:
     Unk_NXProgramPart* field_a8;
     Unk_NXProgramPart* field_b0;  // the input
     u64 field_b8[0x18];           // NVNprogram
-    u64 field_178;
-    u64 field_180;
-    u64 field_188;
-    u64 field_190;
+    u32 field_178;                // the stages it has
+    s32 field_17c;                // how many
+    u32 field_180[6];             // and which
+
     bool field_198;  // whether the NVN program is made
 };
 PKMN_OFFSET_ASSERT(SiGfxNXShaderProgram, field_b8, 0xb8);

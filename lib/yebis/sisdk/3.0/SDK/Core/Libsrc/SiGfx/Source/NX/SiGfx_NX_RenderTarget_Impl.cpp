@@ -13,6 +13,9 @@
         (p) = nullptr;        \
     }
 
+// 0x71004ed190: whether a format has a stencil (SiGfx_Utility.cpp)
+bool Unk_4ed190(u32 format);
+
 namespace SiSDK3 {
 
 // NON_MATCHING: three instructions, the pairing of the first colour
@@ -193,6 +196,140 @@ bool SiGfxNXRenderTarget::vf25() {
     Unk_5564a0();
     Unk_556730();
     field_351 = false;
+    return true;
+}
+
+// A texture attached as the depth attachment, as the render target asks it
+// for the surface of a level (placeholder name: SiGfxNXTexture's slots 25
+// to 28, for a 2D texture, a 2D array's layer, a cube's face and a cube
+// array's face in a layer).
+class Unk_NXAttachmentTexture {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual u32 vf2();
+    virtual u32 vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual const Unk_NXAttachmentVolumeDesc* vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+    virtual Unk_NXAttachment* vf25(u32 level);
+    virtual Unk_NXAttachment* vf26(u32 face, u32 level);
+    virtual Unk_NXAttachment* vf27(u32 layer, u32 level);
+    virtual Unk_NXAttachment* vf28(u32 layer, u32 face, u32 level);
+};
+
+// The depth attachment's texture as such (inline: placeholder name).
+static inline Unk_NXAttachmentTexture* Unk_Texture(Unk_NXAttachment* attachment) {
+    return reinterpret_cast<Unk_NXAttachmentTexture*>(attachment);
+}
+
+// The larger of two values, the second evaluated again when it is the larger
+// (placeholder name).
+#define UNK_MAX(a, b) ((a) > (b) ? (a) : (b))
+
+// 0x71005560c0
+bool SiGfxNXRenderTarget::Unk_5560c0() {
+    s32 first = -1;
+    s32 last = -1;
+    s32 height = -1;
+    s32 width = -1;
+    for (s32 i = 0; i < 8; i++) {
+        Unk_Color& color = field_a0[i];
+        if (color.field_0 == 0) {
+            continue;
+        }
+        s32 w;
+        s32 h;
+        if (color.field_8 != nullptr) {
+            w = color.field_8->vf17()->field_8;
+            h = color.field_8->vf17()->field_c;
+        } else if (color.field_18 != nullptr) {
+            w = color.field_18->vf17()->field_14;
+            h = color.field_18->vf17()->field_18;
+        } else if (color.field_20 != nullptr) {
+            w = UNK_MAX(1, color.field_20->vf19()->field_14 >> color.field_30);
+            h = UNK_MAX(1, color.field_20->vf19()->field_18 >> color.field_30);
+        } else {
+            goto next;
+        }
+        if (w > 0) {
+            if (width < 0) {
+                width = w;
+            } else {
+                width = width < w ? width : w;
+            }
+        }
+        if (h > 0) {
+            if (height < 0) {
+                height = h;
+            } else {
+                height = height < h ? height : h;
+            }
+        }
+    next:
+        if (first < 0) {
+            first = i;
+        }
+        last = i;
+    }
+    field_78.field_18 = false;
+    field_78.field_19 = false;
+    if (last < 0) {
+        field_78.field_c = 0;
+        field_78.field_10 = 0;
+    } else {
+        field_78.field_c = first;
+        field_78.field_10 = last + 1 - first;
+    }
+    Unk_NXAttachment* surface = nullptr;
+    if (field_260.field_8 != nullptr) {
+        surface = field_260.field_8->vf25();
+    } else if (field_260.field_10 != nullptr) {
+        surface = field_260.field_10;
+    } else if (field_260.field_18 != nullptr) {
+        if (Unk_Texture(field_260.field_18)->vf19()->field_0 == 2) {
+            surface = Unk_Texture(field_260.field_18)->vf25(field_260.field_28);
+        } else if (Unk_Texture(field_260.field_18)->vf19()->field_0 == 5) {
+            surface = Unk_Texture(field_260.field_18)->vf27(field_260.field_20, field_260.field_28);
+        } else if (Unk_Texture(field_260.field_18)->vf19()->field_0 == 4) {
+            surface = Unk_Texture(field_260.field_18)->vf26(field_260.field_2c, field_260.field_28);
+        } else if (Unk_Texture(field_260.field_18)->vf19()->field_0 == 6) {
+            surface = Unk_Texture(field_260.field_18)->vf28(field_260.field_20, field_260.field_2c, field_260.field_28);
+        }
+    }
+    if (surface != nullptr) {
+        field_78.field_18 = true;
+        field_78.field_19 = Unk_4ed190(surface->vf17()->field_4);
+        s32 w = UNK_MAX(1, surface->vf17()->field_14 >> field_260.field_28);
+        s32 h = UNK_MAX(1, surface->vf17()->field_18 >> field_260.field_28);
+        width = width < 0 ? w : (width < w ? width : w);
+        height = height < 0 ? h : (height < h ? height : h);
+    }
+    if (width < 0 || height < 0) {
+        return false;
+    }
+    field_78.field_0 = width;
+    field_78.field_4 = height;
+    field_78.field_8 = 0;
+    field_78.field_20 = 0;
     return true;
 }
 

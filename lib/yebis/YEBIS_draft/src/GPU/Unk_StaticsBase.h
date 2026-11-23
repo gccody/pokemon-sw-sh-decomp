@@ -10,10 +10,6 @@
 
 namespace PPFX {
 
-struct Unk_410f90_Object : Unk_410f90 {
-    explicit Unk_410f90_Object(u32 value) { Unk_410f90_set(this, value); }
-};
-
 static const Unk_410f90_Object Unk_Static_Object0(0xffffffff);
 static const Unk_410f90_Object Unk_Static_Object1(0x19);
 static SiSDK3::SiReflectionPropertyHandle Unk_Static_Handle;

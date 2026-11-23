@@ -221,6 +221,92 @@ Unk_TFXString& Unk_TFXString::operator+=(const char* text) {
     return *this;
 }
 
+// where the line after `start` begins (the end if there's none)
+static inline s32 Unk_NextLine(const Unk_TFXString* string, s32 start) {
+    s32 i = string->Unk_451dc0('\n', start);
+    return i == 0 ? string->field_0 : i + 1;
+}
+
+// 0x7100451900
+// NON_MATCHING: the loop over `quotes` keeps a `quoted |= match` (cset, orr)
+// in the original and its not-found exit doesn't clear the flag; every form
+// tried here (break, `&& !quoted`, a helper) gets it folded. The comment's
+// buffer is also 4 bytes higher in the frame.
+Unk_TFXString Token(Unk_TFXString* string, const char* delimiters, const char* comment, const char* quotes, s32 delimLen,
+                    s32 commentLength, s32 quoteLength) {
+#line 756
+    assert(delimiters);
+    if (delimLen < 0)
+        delimLen = strlen(delimiters);
+    if (comment != nullptr && commentLength < 0)
+        commentLength = strlen(comment);
+    s32 commentLen = comment != nullptr ? commentLength : 0;
+#line 767
+    assert(commentLen < 256);
+    char text[256];
+    text[commentLen] = '\0';
+    s32 length = string->field_0;
+    s32 pos;
+    for (pos = 1; pos <= length; pos++) {
+        if (commentLen != 0) {
+            memcpy(text, string->field_8 + pos - 1, commentLen);
+            text[commentLen] = '\0';
+        }
+        if (comment != nullptr && comment[0] != '\0' && strcmp(text, comment) == 0) {
+            pos = Unk_NextLine(string, pos + commentLen);
+            continue;
+        }
+        s32 i;
+        for (i = 0; i < delimLen; i++)
+            if (string->Unk_CharAt(pos) == delimiters[i])
+                break;
+        if (i >= delimLen)
+            break;
+    }
+    string->Unk_451e00(pos, length);
+    text[commentLen] = '\0';
+    if (quotes != nullptr && quoteLength < 0)
+        quoteLength = strlen(quotes);
+    s32 quoteLen = quotes != nullptr ? quoteLength : 0;
+    length = string->field_0;
+    char quote = '\0';
+    bool quoted = false;
+    for (s32 i = 0; i < quoteLen && !quoted; i++) {
+        if (string->Unk_CharAt(1) == quotes[i]) {
+            quote = string->Unk_CharAt(1);
+            quoted = true;
+        }
+    }
+    s32 end;
+    for (end = 2; end <= length; end++) {
+        if (quoted) {
+            if (string->field_8[end - 1] != quote)
+                continue;
+            quoted = false;
+        }
+        if (commentLen != 0) {
+            memcpy(text, string->field_8 + end - 1, commentLen);
+            text[commentLen] = '\0';
+        }
+        if (comment != nullptr && comment[0] != '\0' && strcmp(text, comment) == 0)
+            break;
+        char c = string->field_8[end - 1];
+        s32 i;
+        for (i = 0; i < delimLen; i++)
+            if (c == delimiters[i])
+                break;
+        if (i < delimLen)
+            break;
+    }
+    Unk_TFXString token = string->Unk_4522d0(1, end - 1);
+    string->Unk_451e00(end, string->field_0);
+    if (quote != '\0') {
+        char text[2] = {quote, '\0'};
+        token.Unk_451f00(text);
+    }
+    return token;
+}
+
 // 0x7100451dc0
 s32 Unk_TFXString::Unk_451dc0(char c, s32 start) const {
     for (s32 i = start; i <= field_0; i++)

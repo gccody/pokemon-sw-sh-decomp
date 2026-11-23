@@ -4,9 +4,11 @@
 #define UNK_SIGFX_PRIMITIVEDRAWHELPER_IMPL
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/SiGfx_PrimitiveDrawHelper.h>
 
+#include <math.h>
 #include <string.h>
 
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_Alloc.h>
+#include <yebis/sisdk/3.0/SDK/Core/Include/SiMath/Unk_Matrix.h>
 
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/SiGfx_Kernel_Impl.h>
 
@@ -18,6 +20,27 @@ void* Unk_4c9380(void* dst, const void* src, size_t size);
 s32 Unk_4ed0c0(u32 format);
 // 0x71004ecf40: the program of a kind of primitive's index (Unk_4ecbc0.cpp)
 u32 Unk_4ecf40(s32 kind, s32 index);
+// 0x71004ee020: an orthographic projection of a target's size, SiMath's
+// matrix of four NEON rows (its temporary is 16-aligned), which a uniform
+// block takes as sixteen floats
+struct Unk_PrimitiveMatrix {
+    // (copied as bytes)
+    void operator=(const Unk_Matrix44& m) { memcpy(field_0, &m, sizeof(field_0)); }
+
+    f32 field_0[16];
+};
+Unk_Matrix44 Unk_4ee020(f32 width, f32 height, f32 zNear, f32 zFar);
+// 0x71004ed720 (SiGfx_Utility.cpp): what a texel's coordinates are moved by
+// for a texture, as this file reads its result (placeholder type: two
+// floats, returned in memory)
+class Unk_4ed720_Context;
+struct Unk_PrimitiveTexelOffset {
+    Unk_PrimitiveTexelOffset(const Unk_PrimitiveTexelOffset& other);
+
+    f32 field_0;
+    f32 field_4;
+};
+Unk_PrimitiveTexelOffset Unk_4ed720(Unk_4ed720_Context* context);
 
 namespace SiSDK3 {
 
@@ -325,8 +348,8 @@ bool SiGfxPrimitiveDrawHelper::Unk_547760() {
     return true;
 }
 
-// NON_MATCHING: the same instructions with the vertex size and the count of
-// the loop's step in each other's registers (`madd x19, x9, x8, x19`).
+// (The step is an int product, widened by the signed overflow rule: with
+// the count widened first the two factors swap registers.)
 // 0x7100547810
 bool SiGfxPrimitiveDrawHelper::Unk_547810(s32 count, const u8* pVertices) {
     if (!field_184) {
@@ -341,7 +364,7 @@ bool SiGfxPrimitiveDrawHelper::Unk_547810(s32 count, const u8* pVertices) {
         count -= n;
         field_178 += n;
         Unk_547500(count == 0, pVertices);
-        pVertices += static_cast<s64>(n) * field_174;
+        pVertices += n * field_174;
     }
     return true;
 }
@@ -798,6 +821,521 @@ bool SiGfxPrimitiveDrawHelper::Unk_5484f0(u32 row, s32 column, const f32* pValue
         return false;
     }
     return true;
+}
+
+
+// The uniforms slot 58 draws a texture with (placeholder name and members).
+struct Unk_PrimitiveTextureUniforms {
+    Unk_PrimitiveMatrix field_0;   // the projection
+    Unk_PrimitiveMatrix field_40;  // the description's matrix
+    u32 field_80[4];               // its colours
+    f32 field_90;                  // the level
+    u32 field_94[3];
+    f32 field_a0;
+    u32 field_a4[3];
+    f32 field_b0;
+    u32 field_b4;
+    u32 field_b8;
+    u32 field_bc;
+};
+PKMN_SIZE_ASSERT(Unk_PrimitiveTextureUniforms, 0xc0);
+
+// What slot 58 gives the context's slot 18 (placeholder name and members).
+struct Unk_PrimitiveTextureState {
+    u32 field_0;
+    u32 field_4;
+    u32 field_8;
+    u32 field_c;
+    u32 field_10;
+    u32 field_14;
+    u32 field_18;
+    u32 field_1c;
+};
+
+
+// 0x7100548a70
+bool SiGfxPrimitiveDrawHelper::Unk_548a70(Unk_PrimitiveTexture* pTexture, const Unk_PrimitiveTextureDesc* desc,
+                                          const Unk_PrimitiveRect* dest, const Unk_PrimitiveRect* source) {
+    if (pTexture == nullptr) {
+        return false;
+    }
+    Unk_PrimitiveStates* states = field_490->vf85();
+    states->field_0 = field_820.field_0[2][desc->field_80];
+    states->field_8 = static_cast<Unk_PrimitiveFormat*>(field_820.field_150[2][desc->field_80]);
+    states->field_188 |= 0xffff;
+    Unk_PrimitiveTexelOffset offset = Unk_4ed720(reinterpret_cast<Unk_4ed720_Context*>(pTexture));
+    f32 left;
+    f32 top;
+    f32 right;
+    f32 bottom;
+    if (source != nullptr) {
+        if (source->field_4 - source->field_0 <= 0.0f || source->field_c - source->field_8 <= 0.0f) {
+            return false;
+        }
+        left = source->field_0 / static_cast<f32>(pTexture->vf19()->field_14);
+        top = source->field_8 / static_cast<f32>(pTexture->vf19()->field_18);
+        right = source->field_4 / static_cast<f32>(pTexture->vf19()->field_14);
+        bottom = source->field_c / static_cast<f32>(pTexture->vf19()->field_18);
+    } else {
+        left = 0.0f;
+        top = 0.0f;
+        right = 1.0f;
+        bottom = 1.0f;
+    }
+    left += offset.field_0;
+    right += offset.field_0;
+    top += offset.field_4;
+    bottom += offset.field_4;
+    f32 x0 = dest->field_0;
+    f32 x1 = dest->field_4;
+    f32 y0 = dest->field_8;
+    f32 y1 = dest->field_c;
+    bool upright = !pTexture->vf19()->field_38;
+    f32 v0 = upright ? top : bottom;
+    f32 v1 = upright ? bottom : top;
+    top = v0;
+    bottom = v1;
+    Unk_5472d0(5);
+    Unk_547930(0, 0, x0, y0, 0.0f, 1.0f);
+    Unk_547930(5, 0, left, bottom, 0.0f, 1.0f);
+    Unk_547760();
+    Unk_547930(0, 0, x1, y0, 0.0f, 1.0f);
+    Unk_547930(5, 0, right, bottom, 0.0f, 1.0f);
+    Unk_547760();
+    Unk_547930(0, 0, x0, y1, 0.0f, 1.0f);
+    Unk_547930(5, 0, left, top, 0.0f, 1.0f);
+    Unk_547760();
+    Unk_547930(0, 0, x1, y1, 0.0f, 1.0f);
+    Unk_547930(5, 0, right, top, 0.0f, 1.0f);
+    Unk_547760();
+    Unk_5474b0();
+    return true;
+}
+
+
+// 0x710054bb60
+bool SiGfxPrimitiveDrawHelper::Unk_54bb60(Unk_PrimitiveTexture* pTexture, const Unk_PrimitiveTextureDesc* desc,
+                                          const Unk_PrimitiveRect* dest, const Unk_PrimitiveRect* source) {
+    if (pTexture == nullptr) {
+        return false;
+    }
+    Unk_PrimitiveStates* states = field_490->vf85();
+    states->field_0 = field_820.field_0[3][desc->field_80];
+    states->field_8 = static_cast<Unk_PrimitiveFormat*>(field_820.field_150[3][desc->field_80]);
+    states->field_188 |= 0xffff;
+    Unk_PrimitiveTexelOffset offset = Unk_4ed720(reinterpret_cast<Unk_4ed720_Context*>(pTexture));
+    f32 slice = desc->field_5c;
+    f32 depth = static_cast<f32>(pTexture->vf19()->field_1c);
+    f32 left;
+    f32 top;
+    f32 right;
+    f32 bottom;
+    if (source != nullptr) {
+        if (source->field_4 - source->field_0 <= 0.0f || source->field_c - source->field_8 <= 0.0f) {
+            return false;
+        }
+        left = source->field_0 / static_cast<f32>(pTexture->vf19()->field_14);
+        top = source->field_8 / static_cast<f32>(pTexture->vf19()->field_18);
+        right = source->field_4 / static_cast<f32>(pTexture->vf19()->field_14);
+        bottom = source->field_c / static_cast<f32>(pTexture->vf19()->field_18);
+    } else {
+        left = 0.0f;
+        top = 0.0f;
+        right = 1.0f;
+        bottom = 1.0f;
+    }
+    f32 w = slice / depth;
+    left += offset.field_0;
+    right += offset.field_0;
+    top += offset.field_4;
+    bottom += offset.field_4;
+    f32 x0 = dest->field_0;
+    f32 x1 = dest->field_4;
+    f32 y0 = dest->field_8;
+    f32 y1 = dest->field_c;
+    Unk_5472d0(5);
+    Unk_547930(0, 0, x0, y0, 0.0f, 1.0f);
+    Unk_547930(5, 0, left, top, w, 1.0f);
+    Unk_547760();
+    Unk_547930(0, 0, x1, y0, 0.0f, 1.0f);
+    Unk_547930(5, 0, right, top, w, 1.0f);
+    Unk_547760();
+    Unk_547930(0, 0, x0, y1, 0.0f, 1.0f);
+    Unk_547930(5, 0, left, bottom, w, 1.0f);
+    Unk_547760();
+    Unk_547930(0, 0, x1, y1, 0.0f, 1.0f);
+    Unk_547930(5, 0, right, bottom, w, 1.0f);
+    Unk_547760();
+    Unk_5474b0();
+    return true;
+}
+
+
+// NON_MATCHING: the grid's loops are laid out differently: the original
+// tests the next cell against the last at the end of each column (`cmp w28,
+// w24 ; b.ge`) and keeps the row's first cell in a register of its own; the
+// clamps of the layers and the single layer's path are the original's.
+// 0x710054c070: all layers of the array in a grid, or one
+bool SiGfxPrimitiveDrawHelper::Unk_54c070(Unk_PrimitiveTexture* pTexture, const Unk_PrimitiveTextureDesc* desc,
+                                          const Unk_PrimitiveRect* dest, const Unk_PrimitiveRect* source) {
+    if (pTexture == nullptr) {
+        return false;
+    }
+    Unk_PrimitiveStates* states = field_490->vf85();
+    states->field_0 = field_820.field_0[5][desc->field_80];
+    states->field_8 = static_cast<Unk_PrimitiveFormat*>(field_820.field_150[5][desc->field_80]);
+    states->field_188 |= 0xffff;
+    if (desc->field_60) {
+        Unk_PrimitiveTexelOffset offset = Unk_4ed720(reinterpret_cast<Unk_4ed720_Context*>(pTexture));
+        s32 count = pTexture->vf19()->field_24;
+        s32 first = 0;
+        if (desc->field_68 >= 0 && desc->field_68 < count) {
+            first = desc->field_68;
+        }
+        s32 last = count - 1;
+        if (desc->field_6c >= first && desc->field_6c < count) {
+            last = desc->field_6c;
+        }
+        s32 n = last - first;
+        s32 cells = n < 1 ? 1 : static_cast<s32>(ceilf(sqrtf(static_cast<f32>(n + 1))));
+        f32 left;
+        f32 top;
+        f32 right;
+        f32 bottom;
+        if (source != nullptr) {
+            if (source->field_4 - source->field_0 <= 0.0f || source->field_c - source->field_8 <= 0.0f) {
+                return false;
+            }
+            left = source->field_0 / static_cast<f32>(pTexture->vf19()->field_14);
+            top = source->field_8 / static_cast<f32>(pTexture->vf19()->field_18);
+            right = source->field_4 / static_cast<f32>(pTexture->vf19()->field_14);
+            bottom = source->field_c / static_cast<f32>(pTexture->vf19()->field_18);
+        } else {
+            left = 0.0f;
+            top = 0.0f;
+            right = 1.0f;
+            bottom = 1.0f;
+        }
+        left += offset.field_0;
+        right += offset.field_0;
+        top += offset.field_4;
+        bottom += offset.field_4;
+        f32 cellWidth = (dest->field_4 - dest->field_0) / static_cast<f32>(cells);
+        f32 cellHeight = (dest->field_c - dest->field_8) / static_cast<f32>(cells);
+        f32 y0 = dest->field_8;
+        f32 y1 = y0;
+        for (s32 row = 0; row < cells; row++) {
+            f32 x0 = dest->field_0;
+            f32 x1 = x0;
+            y1 += cellHeight;
+            s32 cell = row * cells;
+            for (s32 column = 0; column < cells; column++, cell++) {
+                if (cell > n) {
+                    break;
+                }
+                f32 layer = static_cast<f32>(first + cell);
+                x1 += cellWidth;
+                Unk_5472d0(5);
+                Unk_547930(0, 0, x0, y0, 0.0f, 1.0f);
+                Unk_547930(5, 0, left, top, layer, 1.0f);
+                Unk_547760();
+                Unk_547930(0, 0, x1, y0, 0.0f, 1.0f);
+                Unk_547930(5, 0, right, top, layer, 1.0f);
+                Unk_547760();
+                Unk_547930(0, 0, x0, y1, 0.0f, 1.0f);
+                Unk_547930(5, 0, left, bottom, layer, 1.0f);
+                Unk_547760();
+                Unk_547930(0, 0, x1, y1, 0.0f, 1.0f);
+                Unk_547930(5, 0, right, bottom, layer, 1.0f);
+                Unk_547760();
+                Unk_5474b0();
+                x0 += cellWidth;
+            }
+            y0 += cellHeight;
+        }
+    } else {
+        Unk_PrimitiveTexelOffset offset = Unk_4ed720(reinterpret_cast<Unk_4ed720_Context*>(pTexture));
+        f32 left;
+        f32 top;
+        f32 right;
+        f32 bottom;
+        if (source != nullptr) {
+            if (source->field_4 - source->field_0 <= 0.0f || source->field_c - source->field_8 <= 0.0f) {
+                return false;
+            }
+            left = source->field_0 / static_cast<f32>(pTexture->vf19()->field_14);
+            top = source->field_8 / static_cast<f32>(pTexture->vf19()->field_18);
+            right = source->field_4 / static_cast<f32>(pTexture->vf19()->field_14);
+            bottom = source->field_c / static_cast<f32>(pTexture->vf19()->field_18);
+        } else {
+            left = 0.0f;
+            top = 0.0f;
+            right = 1.0f;
+            bottom = 1.0f;
+        }
+        left += offset.field_0;
+        right += offset.field_0;
+        top += offset.field_4;
+        bottom += offset.field_4;
+        f32 x0 = dest->field_0;
+        f32 x1 = dest->field_4;
+        f32 y0 = dest->field_8;
+        f32 y1 = dest->field_c;
+        bool upright = !pTexture->vf19()->field_38;
+        f32 v0 = upright ? top : bottom;
+        f32 v1 = upright ? bottom : top;
+        top = v0;
+        bottom = v1;
+        f32 layer = static_cast<f32>(desc->field_64);
+        Unk_5472d0(5);
+        Unk_547930(0, 0, x0, y0, 0.0f, 1.0f);
+        Unk_547930(5, 0, left, bottom, layer, 1.0f);
+        Unk_547760();
+        Unk_547930(0, 0, x1, y0, 0.0f, 1.0f);
+        Unk_547930(5, 0, right, bottom, layer, 1.0f);
+        Unk_547760();
+        Unk_547930(0, 0, x0, y1, 0.0f, 1.0f);
+        Unk_547930(5, 0, left, top, layer, 1.0f);
+        Unk_547760();
+        Unk_547930(0, 0, x1, y1, 0.0f, 1.0f);
+        Unk_547930(5, 0, right, top, layer, 1.0f);
+        Unk_547760();
+        Unk_5474b0();
+    }
+    return true;
+}
+
+// NON_MATCHING: for a cube's level that isn't a whole number the original
+// gives the copy of the texture into the view's register a block of its own
+// after the call's (a split edge); here it is put before the branch, as for
+// the two tests before it (5 lines).
+// 0x7100548640
+bool SiGfxPrimitiveDrawHelper::Unk_548640(Unk_PrimitiveTexture* pTexture, const Unk_PrimitiveTextureDesc* desc,
+                                          const Unk_PrimitiveRect* dest, const Unk_PrimitiveRect* source) {
+    if (pTexture == nullptr) {
+        return false;
+    }
+    if (desc->field_85) {
+        if (dest->field_0 > desc->field_8c || dest->field_4 < desc->field_88 || dest->field_8 > desc->field_94 ||
+            dest->field_c < desc->field_90) {
+            return true;
+        }
+    }
+    Unk_PrimitiveContext* pContext = field_490;
+    pContext->vf83(true);
+    Unk_PrimitiveStates* states = pContext->vf85();
+    states->field_10 = 1;
+    states->field_2d = desc->field_85;
+    states->field_14 = 3;
+    states->field_34 = false;
+    states->field_35 = false;
+    states->field_16c = 5;
+    states->field_60[0].field_0 = desc->field_84;
+    states->field_60[0].field_c = 1;
+    states->field_60[0].field_10 = 5;
+    states->field_60[0].field_4 = 5;
+    states->field_60[0].field_8 = 6;
+    states->field_60[0].field_14 = 6;
+    states->field_60[0].field_18 = 1;
+    if (desc->field_85) {
+        s32 scissor[4];
+        scissor[0] = desc->field_88;
+        scissor[1] = desc->field_8c;
+        scissor[2] = desc->field_90;
+        scissor[3] = desc->field_94;
+        pContext->vf15(1, scissor);
+    }
+    Unk_PrimitiveTextureState state;
+    state.field_10 = 0;
+    state.field_14 = 0x3f;
+    state.field_0 = 1;
+    state.field_4 = 3;
+    state.field_8 = 1;
+    state.field_c = 2;
+    state.field_18 = 1;
+    state.field_1c = 2;
+    pContext->vf18(1, &state);
+    Unk_PrimitiveTexture* pView = pTexture;
+    if (pTexture->vf19()->field_0 == 4 && !desc->field_54) {
+        f32 level = desc->field_40;
+        pView = floorf(level) == level ? pTexture->vf26(desc->field_58, static_cast<s32>(level)) : pTexture;
+    }
+    pContext->vf92(1, 2, 0, pView);
+    pContext->vf94(1, 2, 0, field_ae0);
+    Unk_PrimitiveTextureUniforms* uniforms = reinterpret_cast<Unk_PrimitiveTextureUniforms*>(pContext->vf72(1, 3, 0, 0xc0));
+    f32 width = pContext->vf33()->field_34;
+    f32 height = pContext->vf33()->field_38;
+    uniforms->field_0 = Unk_4ee020(width, height, 1.0f, 2.0f);
+    uniforms->field_40 = *reinterpret_cast<const Unk_PrimitiveMatrix*>(desc->field_0);
+    uniforms->field_80[0] = desc->field_44[0];
+    uniforms->field_80[1] = desc->field_44[1];
+    uniforms->field_80[2] = desc->field_44[2];
+    uniforms->field_80[3] = desc->field_44[3];
+    uniforms->field_90 = desc->field_40;
+    uniforms->field_94[0] = 0;
+    uniforms->field_94[1] = 0;
+    uniforms->field_94[2] = 0;
+    uniforms->field_a0 = static_cast<f32>(desc->field_64);
+    uniforms->field_a4[0] = 0;
+    uniforms->field_a4[1] = 0;
+    uniforms->field_a4[2] = 0;
+    uniforms->field_b0 = desc->field_70 ? 1.0f : 0.0f;
+    uniforms->field_b4 = desc->field_74;
+    uniforms->field_b8 = desc->field_78;
+    uniforms->field_bc = 0;
+    pContext->vf73();
+    bool result;
+    switch (pTexture->vf19()->field_0) {
+    case 2:
+        result = Unk_548a70(pTexture, desc, dest, source);
+        break;
+    case 3:
+        result = Unk_54bb60(pTexture, desc, dest, source);
+        break;
+    case 4:
+        result = Unk_548f70(pTexture, desc, dest, source);
+        break;
+    case 5:
+        result = Unk_54c070(pTexture, desc, dest, source);
+        break;
+    default:
+        return false;
+    }
+    pContext->vf83(false);
+    return result;
+}
+
+
+// 0x710054cab0
+bool SiGfxPrimitiveDrawHelper::Unk_54cab0(Unk_PrimitiveTexture* pPlane0, Unk_PrimitiveTexture* pPlane1,
+                                          Unk_PrimitiveTexture* pPlane2, Unk_PrimitiveTexture* pPlane3,
+                                          const Unk_PrimitiveTextureDesc* desc, const Unk_PrimitiveRect* dest,
+                                          const Unk_PrimitiveRect* source) {
+    if (desc->field_85) {
+        if (dest->field_0 > desc->field_8c || dest->field_4 < desc->field_88 || dest->field_8 > desc->field_94 ||
+            dest->field_c < desc->field_90) {
+            return true;
+        }
+    }
+    Unk_PrimitiveContext* pContext = field_490;
+    pContext->vf83(true);
+    Unk_PrimitiveStates* states = pContext->vf85();
+    states->field_10 = 1;
+    states->field_2d = desc->field_85;
+    states->field_34 = false;
+    states->field_35 = false;
+    states->field_16c = 5;
+    states->field_60[0].field_0 = desc->field_84;
+    states->field_60[0].field_c = 1;
+    states->field_60[0].field_10 = 5;
+    states->field_60[0].field_4 = 5;
+    states->field_60[0].field_8 = 6;
+    states->field_60[0].field_14 = 6;
+    states->field_60[0].field_18 = 1;
+    if (desc->field_85) {
+        s32 scissor[4];
+        scissor[0] = desc->field_88;
+        scissor[1] = desc->field_8c;
+        scissor[2] = desc->field_90;
+        scissor[3] = desc->field_94;
+        pContext->vf15(1, scissor);
+    }
+    Unk_PrimitiveTextureState state;
+    state.field_10 = 0;
+    state.field_14 = 0x3f;
+    state.field_0 = 1;
+    state.field_4 = 3;
+    state.field_8 = pPlane3 != nullptr ? 4 : 3;
+    state.field_c = 2;
+    state.field_18 = 1;
+    state.field_1c = 2;
+    pContext->vf18(1, &state);
+    pContext->vf92(1, 2, 0, pPlane0);
+    pContext->vf92(1, 2, 1, pPlane1);
+    pContext->vf92(1, 2, 2, pPlane2);
+    // (the original binds the third plane again in the fourth's slot)
+    if (pPlane3 != nullptr) {
+        pContext->vf92(1, 2, 3, pPlane2);
+    }
+    pContext->vf94(1, 2, 0, field_ae0);
+    Unk_PrimitiveTextureUniforms* uniforms = reinterpret_cast<Unk_PrimitiveTextureUniforms*>(pContext->vf72(1, 3, 0, 0xc0));
+    f32 width = static_cast<f32>(pContext->vf33()->field_20->vf17()->field_0);
+    f32 height = static_cast<f32>(pContext->vf33()->field_20->vf17()->field_4);
+    uniforms->field_0 = Unk_4ee020(width, height, 1.0f, 2.0f);
+    uniforms->field_40 = *reinterpret_cast<const Unk_PrimitiveMatrix*>(desc->field_0);
+    uniforms->field_80[0] = desc->field_44[0];
+    uniforms->field_80[1] = desc->field_44[1];
+    uniforms->field_80[2] = desc->field_44[2];
+    uniforms->field_80[3] = desc->field_44[3];
+    uniforms->field_90 = desc->field_40;
+    uniforms->field_94[0] = 0;
+    uniforms->field_94[1] = 0;
+    uniforms->field_94[2] = 0;
+    uniforms->field_a0 = static_cast<f32>(desc->field_64);
+    uniforms->field_a4[0] = 0;
+    uniforms->field_a4[1] = 0;
+    uniforms->field_a4[2] = 0;
+    uniforms->field_b0 = desc->field_70 ? 1.0f : 0.0f;
+    uniforms->field_b4 = desc->field_74;
+    uniforms->field_b8 = desc->field_78;
+    uniforms->field_bc = 0;
+    pContext->vf73();
+    if (pPlane3 != nullptr) {
+        states->field_0 = field_820.field_2a0[1];
+        states->field_8 = static_cast<Unk_PrimitiveFormat*>(field_820.field_2b0[1]);
+    } else {
+        states->field_0 = field_820.field_2a0[0];
+        states->field_8 = static_cast<Unk_PrimitiveFormat*>(field_820.field_2b0[0]);
+    }
+    states->field_188 |= 0xffff;
+    Unk_PrimitiveTexelOffset offset = Unk_4ed720(reinterpret_cast<Unk_4ed720_Context*>(pPlane0));
+    f32 left;
+    f32 top;
+    f32 right;
+    f32 bottom;
+    if (source != nullptr) {
+        if (source->field_4 - source->field_0 <= 0.0f || source->field_c - source->field_8 <= 0.0f) {
+            return false;
+        }
+        left = source->field_0 / static_cast<f32>(pPlane0->vf19()->field_14);
+        top = source->field_8 / static_cast<f32>(pPlane0->vf19()->field_18);
+        right = source->field_4 / static_cast<f32>(pPlane0->vf19()->field_14);
+        bottom = source->field_c / static_cast<f32>(pPlane0->vf19()->field_18);
+    } else {
+        left = 0.0f;
+        top = 0.0f;
+        right = 1.0f;
+        bottom = 1.0f;
+    }
+    left += offset.field_0;
+    right += offset.field_0;
+    top += offset.field_4;
+    bottom += offset.field_4;
+    f32 x0 = dest->field_0;
+    f32 x1 = dest->field_4;
+    f32 y0 = dest->field_8;
+    f32 y1 = dest->field_c;
+    bool upright = !pPlane0->vf19()->field_38;
+    f32 v0 = upright ? top : bottom;
+    f32 v1 = upright ? bottom : top;
+    top = v0;
+    bottom = v1;
+    Unk_5472d0(5);
+    Unk_547930(0, 0, x0, y0, 0.0f, 1.0f);
+    Unk_547930(5, 0, left, bottom, 0.0f, 1.0f);
+    Unk_547760();
+    Unk_547930(0, 0, x1, y0, 0.0f, 1.0f);
+    Unk_547930(5, 0, right, bottom, 0.0f, 1.0f);
+    Unk_547760();
+    Unk_547930(0, 0, x0, y1, 0.0f, 1.0f);
+    Unk_547930(5, 0, left, top, 0.0f, 1.0f);
+    Unk_547760();
+    Unk_547930(0, 0, x1, y1, 0.0f, 1.0f);
+    Unk_547930(5, 0, right, top, 0.0f, 1.0f);
+    Unk_547760();
+    Unk_5474b0();
+    pContext->vf83(false);
+    return false;
 }
 
 }  // namespace SiSDK3

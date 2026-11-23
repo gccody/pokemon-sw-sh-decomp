@@ -4,6 +4,7 @@
 // callback's __FILE__, C:/workspace/sisdk/3.0/SDK/Core/Libsrc/SiCore/Source/
 // SiCore_Utility.cpp; the report function and the languages aren't written.)
 #include <nn/os.h>
+#include <math.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -52,8 +53,36 @@ void Unk_4c9300() {
     }
 }
 
-// 0x71004c9110: the noise of a point (not written: 344 bytes of float code)
-float Unk_4c9110(float x, float y);
+// The noise's tables (Unk_4ca6a0.cpp): a permutation and the gradients' x
+// and y
+extern int Unk_276bc20[0x100];
+extern float Unk_276c020[0x100];
+extern float Unk_276c420[0x100];
+
+// The noise's helpers (placeholder names): a number of the permutation, the
+// dot product of a gradient and a point, the fade curve and the blend
+static inline int Unk_NoisePerm(int i) { return Unk_276bc20[i & 0xff]; }
+static inline float Unk_NoiseGrad(int h, float x, float y) { return x * Unk_276c020[h] + y * Unk_276c420[h]; }
+static inline float Unk_NoiseFade(float t) { return t * (t * (t * (t * (t * 6.0f - 15.0f) + 10.0f))); }
+static inline float Unk_NoiseLerp(float t, float a, float b) { return a + t * (b - a); }
+// 0x71004c9110: the gradient noise of a point (the permutation's first number
+// stands where a third coordinate's would)
+// NON_MATCHING: the same instructions, scheduled in another order (the
+// hashes of the second row are computed later in the original, between the
+// first row's products) and with other registers.
+float Unk_4c9110(float x, float y) {
+    int ix = static_cast<int>(floorf(x));
+    int iy = static_cast<int>(floorf(y));
+    x -= static_cast<float>(ix);
+    y -= static_cast<float>(iy);
+    float n00 = Unk_NoiseGrad(Unk_NoisePerm(Unk_NoisePerm(Unk_NoisePerm(0) + iy) + ix), x, y);
+    float n10 = Unk_NoiseGrad(Unk_NoisePerm(Unk_NoisePerm(Unk_NoisePerm(0) + iy) + (ix + 1)), x - 1.0f, y);
+    float n01 = Unk_NoiseGrad(Unk_NoisePerm(Unk_NoisePerm(Unk_NoisePerm(0) + iy + 1) + ix), x, y - 1.0f);
+    float n11 = Unk_NoiseGrad(Unk_NoisePerm(Unk_NoisePerm(Unk_NoisePerm(0) + iy + 1) + (ix + 1)), x - 1.0f, y - 1.0f);
+    float u = Unk_NoiseFade(x);
+    float v = Unk_NoiseFade(y);
+    return Unk_NoiseLerp(v, Unk_NoiseLerp(u, n00, n10), Unk_NoiseLerp(u, n01, n11));
+}
 
 // 0x71004c9270: the noise's octaves, each at twice the frequency and half the
 // weight of the one before

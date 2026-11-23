@@ -5,6 +5,7 @@
 
 #include <yebis/YEBIS_draft/src/GPU/Unk_Statics.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUClassUtil.h>
+#include <yebis/YEBIS_draft/src/GPU/GPUGlareDef.h>
 #include <yebis/YEBIS_draft/src/GPU/GPURenderGlare.h>
 #include <yebis/YEBIS_draft/src/GPU/GPURenderTextureArray.h>
 #include <yebis/YEBIS_draft/src/GPU/Unk_Luminance.h>
@@ -586,6 +587,8 @@ namespace PPFX {
 struct Unk_4a5d10_Self;
 }
 s32 Unk_4a6160(PPFX::Unk_4a5d10_Self* self, void* arg1, s32 arg2, f32 arg3);
+// 0x71024e5948 (GPUGlareDef.cpp): the glare definitions
+extern PPFX::Unk_4a0b00* Unk_24e5948;
 
 namespace PPFX {
 
@@ -890,6 +893,69 @@ s32 CRenderGlare::Unk_457f00(CRenderTexture* source, s32 arg2, CRenderTexture* a
     Unk_49e3a0(1, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
     Unk_440cf0_get(reinterpret_cast<u64>(field_20), 0);
     field_20->vf46(0);
+    return 0;
+}
+
+// 0x710045ee80: the glare of a frame. field_170 points to one of
+// GPUGlareDef.cpp's definitions (Unk_24e5948, Unk_45_170 is how this file
+// reads it), `index` -1 taking `color` instead.
+// NON_MATCHING: scheduling at the start (the original converts the level count
+// first and adds 2 after the stores; the clamp and the ratio get s1/s2 there)
+// and the operands of `field_404 * k` are exchanged. The rest is the original.
+s32 CRenderGlare::Unk_45ee80(CRenderTexture* source, f32 f0, f32 f1, f32 f2, f32 f3, s32 arg2, f32 f4, u32 index,
+                             const Unk_45_170* color, f32 f5, f32 f6, bool flag, s32 arg6, CRenderTexture* arg7) {
+    s32 levels = static_cast<s32>(logf(static_cast<f32>(field_b0.field_c) / 1280.0f) / 0.693147182f);
+    f32 intensity = f2 < 0.0f ? 1.0f : f2;
+    f32 aspect = f0 / f1;
+    field_140 = arg2;
+    bool skip = f5 <= 0.0f || flag;
+    field_178 = f5;
+    field_17c = f6;
+    field_168 = f0;
+    field_13c = f3;
+    field_144 = f4;
+    field_138 = intensity;
+    field_164 = aspect;
+    field_414 = levels + 2;
+    if (index != 0xffffffff) {
+        color = reinterpret_cast<const Unk_45_170*>(&Unk_24e5948[index]);
+    } else if (color == nullptr) {
+        return -1;
+    }
+    field_170 = color;
+    field_134 = Unk_45ed80();
+    f32 k = field_b0.field_4a ? 1.8f : 2.2f;
+    s32 limit = field_3d8;
+    s32 n = field_b0.field_18[6] < limit ? field_b0.field_18[6] : limit;
+    field_1e0 = field_404 * k * exp2f(-(static_cast<f32>(n) - 1.0f));
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    util->Unk_471410(0x10, 3, 4);
+    Unk_49e3a0(1, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+    Unk_457f00(source, arg6, arg7);
+    s32 result = Unk_458720();
+    if (result < 0) {
+        return result;
+    }
+    field_41c = false;
+    Unk_4593f0(false);
+    if (Unk_456f30()) {
+        Unk_4593f0(true);
+    }
+    result = Unk_45a820();
+    if (result < 0) {
+        return result;
+    }
+    if (!skip) {
+        result = Unk_45c1e0();
+        if (result < 0) {
+            return result;
+        }
+    }
+    Unk_45c880();
+    Unk_45d3b0();
+    field_358[static_cast<u32>(field_2ec)] = field_164;
+    Unk_49e3a0(1, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
     return 0;
 }
 

@@ -53,8 +53,39 @@ public:
     virtual void vf9();
     virtual Unk_547360_Program* vf10();
 };
+// What a bound target's slot 17 gives (placeholder names): its size.
+struct Unk_54cab0_Size {
+    s32 field_0;
+    s32 field_4;
+};
+class Unk_54cab0_Target {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual const Unk_54cab0_Size* vf17();
+};
 struct Unk_547360_Bound {
     Unk_547360_Shader* field_0;
+    u8 field_8[0x18];
+    Unk_54cab0_Target* field_20;  // the colour target
+    u8 field_28[0xc];
+    f32 field_34;  // the target's width
+    f32 field_38;  // and height
 };
 
 // What the helper keeps a reference of at 0xae0 (placeholder name).
@@ -69,9 +100,30 @@ public:
 
 // What the draw context's slot 85 gives the helper (placeholder name).
 struct Unk_PrimitiveStates {
-    u8 field_0[8];
+    // a colour target's blending (as the draw context's Unk_DrawStates has it)
+    struct Unk_Blend {
+        bool field_0;
+        u32 field_4;
+        u32 field_8;
+        u32 field_c;
+        u32 field_10;
+        u32 field_14;
+        u32 field_18;
+        u8 field_1c[4];
+    };
+
+    void* field_0;                       // the program
     class Unk_PrimitiveFormat* field_8;  // the vertex format
-    u8 field_10[0x15c];
+    u32 field_10;  // the faces culled
+    u32 field_14;  // the polygons' mode
+    u8 field_18[0x15];
+    bool field_2d;
+    u8 field_2e[6];
+    bool field_34;
+    bool field_35;
+    u8 field_36[0x2a];
+    Unk_Blend field_60[8];
+    u8 field_160[0xc];
     u32 field_16c;  // what is drawn
     u8 field_170[0x18];
     u32 field_188;  // what changed (4: what is drawn)
@@ -206,10 +258,10 @@ public:
     virtual void vf12();
     virtual void vf13();
     virtual void vf14();
-    virtual void vf15();
+    virtual void vf15(s32 count, const void* scissors);
     virtual void vf16();
     virtual void vf17();
-    virtual void vf18();
+    virtual void vf18(s32 count, const void* desc);
     virtual void vf19();
     virtual void vf20();
     virtual void vf21();
@@ -263,7 +315,7 @@ public:
     virtual void vf69();
     virtual void vf70();
     virtual void vf71();
-    virtual void vf72();
+    virtual u8* vf72(u32 a1, u32 stages, s32 slot, s32 size);  // memory for a uniform buffer
     virtual void vf73();
     virtual void* vf74(u32 a1, s32 count, s32 size);  // room for vertices
     virtual void vf75();
@@ -274,9 +326,18 @@ public:
     virtual void vf80();
     virtual void vf81();
     virtual void vf82();
-    virtual void vf83();
+    virtual void vf83(bool more);
     virtual bool vf84();
     virtual Unk_PrimitiveStates* vf85();
+    virtual void vf86();
+    virtual void vf87();
+    virtual void vf88();
+    virtual void vf89();
+    virtual void vf90();
+    virtual void vf91();
+    virtual void vf92(u32 a1, u32 stages, s32 slot, class Unk_PrimitiveTexture* pTexture);  // a texture
+    virtual void vf93();
+    virtual void vf94(u32 a1, u32 stages, s32 slot, Unk_546ae0_Object* pSampler);       // a sampler
 };
 
 // What slot 58 of the draw context draws a texture with (placeholder names):
@@ -287,9 +348,11 @@ struct Unk_PrimitiveTextureDesc {
     u32 field_44[4];
     bool field_54;
     u32 field_58;   // the layer
-    u8 field_5c[8];
-    s32 field_64;
-    u8 field_68[8];
+    f32 field_5c;   // the slice (3D)
+    bool field_60;  // whether all of an array's layers are drawn
+    s32 field_64;   // the layer (an array's)
+    s32 field_68;   // the first and last layers drawn
+    s32 field_6c;
     bool field_70;
     u32 field_74;
     u32 field_78;
@@ -304,6 +367,11 @@ struct Unk_PrimitiveTextureDesc {
 };
 PKMN_OFFSET_ASSERT(Unk_PrimitiveTextureDesc, field_80, 0x80);
 PKMN_OFFSET_ASSERT(Unk_PrimitiveTextureDesc, field_94, 0x94);
+PKMN_OFFSET_ASSERT(Unk_PrimitiveStates, field_2d, 0x2d);
+PKMN_OFFSET_ASSERT(Unk_PrimitiveStates, field_34, 0x34);
+PKMN_OFFSET_ASSERT(Unk_PrimitiveStates, field_60, 0x60);
+PKMN_OFFSET_ASSERT(Unk_PrimitiveStates, field_16c, 0x16c);
+PKMN_OFFSET_ASSERT(Unk_547360_Bound, field_34, 0x34);
 
 // A rectangle as slot 58 takes it (placeholder name): left, right, top,
 // bottom.
@@ -314,9 +382,51 @@ struct Unk_PrimitiveRect {
     f32 field_c;
 };
 
-// The texture slot 58 draws (placeholder name): slot 19 is its description,
-// slot 26 a view of a level and layer.
-class Unk_PrimitiveTexture;
+// The texture slot 58 draws (placeholder name): slot 19 is its description
+// (its kind first: 2: 2D, 3: 3D, 4: cube, 5: 2D array), slot 26 a view of a
+// level and layer.
+struct Unk_PrimitiveTextureInfo {
+    u32 field_0;
+    u8 field_4[0x10];
+    s32 field_14;  // the width
+    s32 field_18;  // and height
+    s32 field_1c;  // and depth
+    u8 field_20[4];
+    s32 field_24;  // how many layers
+    u8 field_28[0x10];
+    bool field_38;  // whether it is upside down
+};
+PKMN_OFFSET_ASSERT(Unk_PrimitiveTextureInfo, field_38, 0x38);
+class Unk_PrimitiveTexture {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual const Unk_PrimitiveTextureInfo* vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+    virtual void vf25();
+    virtual Unk_PrimitiveTexture* vf26(u32 layer, s32 level);
+};
 
 class SiGfxPrimitiveDrawHelper : public ISiInterface {
 public:
@@ -388,7 +498,21 @@ public:
     // 0x7100548640: draws a texture in a rectangle (of a part of it)
     bool Unk_548640(Unk_PrimitiveTexture* pTexture, const Unk_PrimitiveTextureDesc* desc, const Unk_PrimitiveRect* dest,
                     const Unk_PrimitiveRect* source);
-    void Unk_54cab0();
+    // 0x7100548a70, 0x710054bb60, 0x7100548f70, 0x710054c070: what it does
+    // for a 2D, a 3D, a cube and a 2D array texture
+    bool Unk_548a70(Unk_PrimitiveTexture* pTexture, const Unk_PrimitiveTextureDesc* desc, const Unk_PrimitiveRect* dest,
+                    const Unk_PrimitiveRect* source);
+    bool Unk_54bb60(Unk_PrimitiveTexture* pTexture, const Unk_PrimitiveTextureDesc* desc, const Unk_PrimitiveRect* dest,
+                    const Unk_PrimitiveRect* source);
+    bool Unk_548f70(Unk_PrimitiveTexture* pTexture, const Unk_PrimitiveTextureDesc* desc, const Unk_PrimitiveRect* dest,
+                    const Unk_PrimitiveRect* source);
+    bool Unk_54c070(Unk_PrimitiveTexture* pTexture, const Unk_PrimitiveTextureDesc* desc, const Unk_PrimitiveRect* dest,
+                    const Unk_PrimitiveRect* source);
+    // 0x710054cab0: draws a picture of three or four planes (the draw
+    // context's slot 59)
+    bool Unk_54cab0(Unk_PrimitiveTexture* pPlane0, Unk_PrimitiveTexture* pPlane1, Unk_PrimitiveTexture* pPlane2,
+                    Unk_PrimitiveTexture* pPlane3, const Unk_PrimitiveTextureDesc* desc, const Unk_PrimitiveRect* dest,
+                    const Unk_PrimitiveRect* source);
 
     Unk_4bf660 field_8;
     u8 field_18[8];

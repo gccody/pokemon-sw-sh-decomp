@@ -99,7 +99,7 @@ public:
     Unk_InputElement* field_20;
     u32* field_28;
     u32* field_30;
-    u8 pad_38[0x40];
+    u32 field_38[16];  // how many bytes a vertex of each stream is
     Unk_SiGfxInterface* field_78;
 };
 PKMN_SIZE_ASSERT(IGPUInputAttribute, 0x80);

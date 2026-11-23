@@ -2,7 +2,9 @@
 // PPFX::IGPUDevice (GPUInterfaceDevice.cpp is the file its log lines name):
 // YEBIS's device on SiSDK3's SiGfx. The functions that only return a
 // constant are lib/yebis/class's.
+#include <yebis/YEBIS_draft/src/GPU/Unk_Statics.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUInterfaceDevice.h>
+#include <yebis/YEBIS_draft/src/GPU/GPUInterfaceTexture.h>
 
 #include <string.h>
 
@@ -36,10 +38,10 @@ void* Unk_445af0_call(void* device, void* deviceSurface, u32 width, u32 height, 
 // 0x7100446b10 (leafgen's name and type)
 bool Unk_446b10_get(u32 format);
 
-namespace PPFX {
-
 // 0x71024e1500: the settings the device is made with
-extern Unk_DeviceSettings Unk_24e1500;
+PPFX::Unk_DeviceSettings Unk_24e1500;
+
+namespace PPFX {
 
 // 0x7100446c40, 0x7100446d60: the names of a usage and of an index format
 // (the last argument is a buffer to copy the name to)
@@ -55,21 +57,12 @@ IGPUBuffer* Unk_449600(IGPUDevice* device, u32 count, u32 stride, s32 format, u3
 // sample count
 const char* Unk_446b20(s32 format, char* buffer);
 u32 Unk_446e40(s32 msaa);
-// 0x7100447da0: a new texture
-IGPUInterface* Unk_447da0(IGPUDevice* device, u32 width, u32 height, u32 arg3, s32 format, s32 msaa, u32 arg6,
-                          u32 usage, u32 flags);
-
 // 0x71004481c0, 0x71004486b0: a texture and a volume texture of a device
 // texture there is
 IGPUInterface* Unk_4481c0(IGPUDevice* device, void* deviceTexture, u32 width, u32 height, u32 arg4, s32 format,
                           u32 usage);
 IGPUInterface* Unk_4486b0(IGPUDevice* device, void* deviceTexture, u32 width, u32 height, u32 depth, u32 arg5,
                           s32 format, u32 usage);
-
-// 0x7100445740: a new surface of a kind (1 a render target, 2 a depth
-// target, 4 one with unordered access)
-IGPUInterface* Unk_445740(IGPUDevice* device, u32 width, u32 height, s32 format, s32 kind, s32 msaa, u32 quality,
-                          u32 flags, void* arg8, u32 arg9);
 
 // 0x7100447010
 void Unk_447010(s32 arg0, s32 arg1);
@@ -682,7 +675,7 @@ s32 IGPUDevice::vf60(u32 width, u32 height, u32 arg3, u32 usage, s32 format, s32
     if (texture == nullptr || width == 0 || height == 0) {
         return -6;
     }
-    *texture = Unk_447da0(this, width, height, arg3, format, msaa, arg7, usage, flags);
+    *texture = IGPUTexture::CreateTexture(this, width, height, arg3, format, msaa, arg7, usage, flags);
     if (*texture != nullptr) {
         return 0;
     }
@@ -797,7 +790,7 @@ s32 IGPUDevice::vf64(u32 width, u32 height, s32 format, s32 msaa, u32 quality, I
     if (surface == nullptr || width == 0 || height == 0) {
         return -6;
     }
-    *surface = Unk_445740(this, width, height, format, unordered ? 4 : 1, msaa, quality, flags, arg8, arg9);
+    *surface = IGPUSurface::CreateSurface(this, width, height, format, unordered ? 4 : 1, msaa, quality, flags, arg8, arg9);
     return *surface != nullptr ? 0 : -1;
 }
 
@@ -810,7 +803,7 @@ s32 IGPUDevice::vf65(u32 width, u32 height, s32 format, s32 msaa, u32 quality, I
     if (surface == nullptr || width == 0 || height == 0) {
         return -6;
     }
-    *surface = Unk_445740(this, width, height, format, 2, msaa, quality, flags, arg8, arg9);
+    *surface = IGPUSurface::CreateSurface(this, width, height, format, 2, msaa, quality, flags, arg8, arg9);
     if (*surface != nullptr) {
         return 0;
     }
@@ -827,7 +820,7 @@ s32 IGPUDevice::vf66(u32 width, u32 height, s32 format, IGPUInterface** surface,
     if (surface == nullptr || width == 0 || height == 0) {
         return -6;
     }
-    *surface = Unk_445740(this, width, height, format, 0, 0, 0, flags, nullptr, 0);
+    *surface = IGPUSurface::CreateSurface(this, width, height, format, 0, 0, 0, flags, nullptr, 0);
     if (*surface != nullptr) {
         return 0;
     }

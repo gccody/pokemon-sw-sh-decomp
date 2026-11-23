@@ -22,7 +22,9 @@ public:
 
     s32 Unk_4b75a0(const char* name);  // 0x71004b75a0
     // 0x71004b7670
-    s32 Unk_4b7670(CRenderTexture* target, s32 format, s32 arg2);
+    s32 Unk_4b7670(CRenderTexture* target, s32 factor, s32 mode);
+    // 0x71004b8450: the luminance from what was read back
+    s32 Unk_4b8450(bool flag);
     // 0x71004b8240
     s32 Unk_4b8240(CRenderTexture* source, bool flag);
     // 0x71004b7f40 (not written yet): reads the measured luminance back
@@ -70,7 +72,10 @@ public:
     Unk_49b230_Object* field_50;
     Unk_49b230_Object* field_58;
     s32 field_60;
-    u8 _64[0x10];
+    f32 field_64;  // the colour read back (red, green, blue, alpha)
+    f32 field_68;
+    f32 field_6c;
+    f32 field_70;
     f32 field_74;
     CRenderTexture** field_78;  // textures of the pool
     s32 field_80;

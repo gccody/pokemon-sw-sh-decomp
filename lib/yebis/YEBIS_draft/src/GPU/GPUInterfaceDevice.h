@@ -13,9 +13,12 @@
 
 namespace PPFX {
 
+struct Unk_SiGfxTextureCreateDesc;
+
 // one element of a vertex layout: what it is (0 position, 2 texture
 // coordinate), its index and its format
 struct Unk_InputElement {
+    Unk_InputElement() {}
     Unk_InputElement(u32 usage, u32 index, u32 format)
         : field_0(usage), field_4(index), field_8(format), field_c(0), field_10(0), field_14(0) {}
 
@@ -103,7 +106,8 @@ struct Unk_SiGfxTextureDesc {
     u32 field_34;
 };
 struct Unk_SiGfxFormatInfo {
-    u8 pad_0[0x8];
+    u32 field_0;  // the kind (1, 3 and 5 are attached differently)
+    u8 pad_4[0x4];
     u32 field_8;  // flags
 };
 // a SiGfx texture as a lazy command and the textures' slot 22 read it: slot
@@ -131,10 +135,11 @@ struct Unk_SiGfxTexture {
     virtual const Unk_SiGfxTextureDesc* vf19();
     virtual void vf20();
     virtual void vf21();
-    virtual void vf22();
+    virtual bool vf22(const Unk_SiGfxTextureCreateDesc* desc);  // "ISiGfxTexture::Create()"
     virtual void vf23();
     virtual void vf24();
     virtual void* vf25(u32 index);
+    virtual void* vf26(u32 layer, u32 level);  // a level's surface in a layer
 };
 
 // GPUSiGfxLazyDrawCommand (its Execute() is named in CPostEffect's log): a
@@ -160,9 +165,15 @@ struct Unk_IndexBuffer : IGPUInterface {
 };
 PKMN_OFFSET_ASSERT(Unk_IndexBuffer, field_50, 0x50);
 
-// what vf6 keeps in Unk_24e1500
+// what vf6 keeps in Unk_24e1500 (the TU's initialiser leaves field_18 as it
+// is)
 struct Unk_DeviceSettings {
-    u64 field_0[4];
+    Unk_DeviceSettings() : field_0(0), field_8(0), field_10(0), field_20(-1), field_24(-1), field_28(0) {}
+
+    u64 field_0;
+    u64 field_8;
+    u32 field_10;  // the number of frame slots
+    u64 field_18;
     u32 field_20;  // the viewport's origin (m_eViewportOriginMode)
     u32 field_24;  // the clip volume's near plane (eClipVolumeNearPlaneMode)
     u64 field_28;

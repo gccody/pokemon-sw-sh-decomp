@@ -7,8 +7,16 @@
 #define UNK_SIGFX_NX_TEXTURE_IMPL
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_Texture_Impl.h>
 
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_CommandList_Impl.h>
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_CommandQueue_Impl.h>
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_ShaderProgram_Impl.h>
+
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_Alloc.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_StringFuncs.h>
+
+// 0x71004fb360 (leafgen's name and type: the device and an NVN command buffer)
+struct Unk_4fb360;
+void Unk_4fb360_update(const Unk_4fb360* self, u64 value);
 
 // nvn.h declares these three without their types
 inline int Unk_nvnTextureGetFlags(const void* texture) {
@@ -217,6 +225,66 @@ SiGfxNXVolume* SiGfxNXTexture::vf29(s32 level) {
         return nullptr;
     }
     return &field_288.m_pData[level];
+}
+
+// NON_MATCHING: the original keeps the address of the views' count
+// (this + 0x358) in a register and a stack slot from the start to the last
+// loop, one value more than here: its callee-saved registers and stack
+// slots are shifted by one (the frame is 0xa0, here 0x90); the code is
+// otherwise the original's.
+// 0x71005611d0
+bool SiGfxNXTexture::vf30(Unk_NXTextureDrawContext* pContext) {
+    void* commandBuffer = pContext->vf102();
+    SiGfxNXCommandList* pList = nullptr;
+    SiGfxNXCommandQueue* pQueue = nullptr;
+    bool own = false;
+    if (field_3e8.m_itemCount == 0) {
+        field_3e8.Unk_SetCount(field_348.m_itemCount);
+        field_398.Unk_SetCount(field_348.m_itemCount);
+        for (s64 i = 0; i < static_cast<s32>(field_348.m_itemCount); i++) {
+            field_398.m_pData[i] =
+                field_28->Unk_4fb230(reinterpret_cast<u64>(field_328), reinterpret_cast<u64>(field_348.m_pData[i]));
+            field_3e8.m_pData[i] = nvnDeviceGetImageHandle(Unk_NXDevice(field_28)->vf85(), field_398.m_pData[i]);
+        }
+        pList = reinterpret_cast<SiGfxNXCommandList*>(field_28->vf92());
+        commandBuffer = pList->vf15();
+        pQueue = reinterpret_cast<SiGfxNXCommandQueue*>(field_28->vf91());
+        pQueue->vf8();
+        nvnCommandBufferBeginRecording(commandBuffer);
+        Unk_4fb360_update(reinterpret_cast<const Unk_4fb360*>(field_28), reinterpret_cast<u64>(commandBuffer));
+        own = true;
+    }
+    SiGfxNXShaderProgram* pProgram = static_cast<SiGfxNXShaderProgram*>(vf5()->vf46(0x4b));
+    nvnCommandBufferBindProgram(commandBuffer, pProgram->vf38(), pProgram->vf39());
+    s32 layers = static_cast<s32>(field_348.m_itemCount) / field_22c;
+    for (s32 layer = 0; layer < layers; layer++) {
+        if (field_22c < 2) {
+            continue;
+        }
+        s32 width = field_1e8;
+        s32 height = field_1ec;
+        for (s32 level = 0; level < field_22c - 1; level++) {
+            width >>= 1;
+            height >>= 1;
+            nvnCommandBufferBindImage(commandBuffer, 5, 0, field_3e8.m_pData[layer * field_22c + level]);
+            nvnCommandBufferBindImage(commandBuffer, 5, 1, field_3e8.m_pData[layer * field_22c + level + 1]);
+            nvnCommandBufferDispatchCompute(commandBuffer, (width + 7) / 8, (height + 7) / 8, 1);
+            nvnCommandBufferBarrier(commandBuffer, 0x10);
+        }
+    }
+    if (!own) {
+        return true;
+    }
+    pList->Unk_53a790();
+    pQueue->vf10(1, &pList);
+    bool result = pQueue->vf13(pQueue->vf12());
+    pQueue->vf9();
+    for (s64 i = 0; i < static_cast<s32>(field_348.m_itemCount); i++) {
+        field_28->Unk_4fb2c0(field_398.m_pData[i]);
+    }
+    field_398.Unk_Clear();
+    field_3e8.Unk_Clear();
+    return result;
 }
 
 // 0x7100561630

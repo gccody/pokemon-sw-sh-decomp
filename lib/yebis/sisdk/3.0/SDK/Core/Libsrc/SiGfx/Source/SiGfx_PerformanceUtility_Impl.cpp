@@ -290,9 +290,10 @@ bool SiGfxPerformanceUtility::vf5(ISiInterface* target) {
     }
     for (s64 i = 0; i < field_108.field_14; i++) {
         SiGfxNXBuffer* buffer = device->vf59(nullptr, 0, nullptr);
-        SiGfxNXBuffer::Unk_MakeDesc desc(0, 0, 0, 1, 4, 0);
+        SiGfxNXBuffer::Unk_MakeDesc desc(0, 0, 0, 1, 1, 0);
         desc.field_4 = 0x80;
         desc.field_18 = 2;
+        desc.field_1c = 4;
         desc.field_20 = 0x10000;
         buffer->vf21(&desc);
         field_108.field_18[i].field_8.m_p = reinterpret_cast<ISiInterface*>(buffer);

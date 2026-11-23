@@ -55,6 +55,8 @@ public:
         field_8[length + 1] = '\0';
         return *this;
     }
+    // the `pos`th character (counted from 1; 0 outside the string)
+    char Unk_CharAt(s32 pos) const { return pos < 1 || pos > field_0 ? '\0' : field_8[pos - 1]; }
     // 0x7100451dc0: where `c` is, from the `start`th character on (counted from 1; 0 if nowhere)
     s32 Unk_451dc0(char c, s32 start) const;
     // 0x7100451e00: keeps `count` characters from the `start`th
@@ -91,6 +93,13 @@ PKMN_SIZE_ASSERT(Unk_TFXString, 0x10);
 
 // 0x71004525a0: a number's decimal digits
 Unk_TFXString Unk_4525a0(s32 value);
+// 0x7100451900 (`Token` and `delimiters` are its asserts'): the first token,
+// cut from `string`: the delimiters and the comments (`comment` to the end of
+// the line) before it are skipped; a token that starts with one of `quotes`
+// goes to the next one and loses them (a length is strlen's when it's
+// negative)
+Unk_TFXString Token(Unk_TFXString* string, const char* delimiters, const char* comment, const char* quotes,
+                    s32 delimLen, s32 commentLength, s32 quoteLength);
 // 0x71004529a0: `text` followed by `other`
 Unk_TFXString Unk_4529a0(const char* text, const Unk_TFXString& other);
 

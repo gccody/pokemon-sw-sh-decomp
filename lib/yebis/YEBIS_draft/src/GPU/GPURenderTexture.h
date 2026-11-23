@@ -113,8 +113,19 @@ struct Unk_49df00_Context {
 struct Unk_49b230_Object {
     virtual void vf0();  // one reference more
     virtual void vf1();  // one less
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual s32 vf9();  // 0x710048d7f0 calls it before it draws into the surface
+    virtual s32 vf10();  // and this after
 
-    u8 _8[0x4c - 0x8];
+    u8 _8[0x44 - 0x8];
+    s32 field_44;  // its format
+    u8 _48[0x4c - 0x48];
     u32 field_4c;  // its size (as a depth target's, compared)
     u32 field_50;
     s32 field_54;  // a surface's size
@@ -288,10 +299,10 @@ PKMN_SIZE_ASSERT(CRenderTexture, 0x128);
 // but ask the context for an object and release it)
 s32 Unk_49df00(CRenderTexture* target, u32 flags, s32 arg2, s32 arg3, s32 arg4, bool* done, f32 arg6, f32 arg7);
 s32 Unk_49e290(u32 flags, CRenderTexture* target, s32 arg2, bool* done, f32 arg4);
-// 0x710049da70 (not written yet): makes up to `count` targets and a depth
-// target the device's
+// 0x710049da70: makes up to `count` targets and a depth target the device's,
+// and clears them or begins their tiling (arg9: its callers pass 1.0f)
 s32 Unk_49da70(s32 count, CRenderTexture** targets, Unk_49b230_Object* depth, Unk_49b230_Object* arg3, s32 arg4,
-               void* arg5, s32 arg6, s32 arg7, s32 arg8);
+               void* arg5, s32 arg6, s32 arg7, s32 arg8, f32 arg9);
 // 0x710049c8e0: the tiles a target of that size is drawn in (none for one tile)
 Unk_49a890* Unk_49c8e0(u32 width, u32 height, s32 format, s32 msaa, s32 tiled);
 // 0x7100446e20 (Unk_447050.cpp): the size of a tile and how many there are

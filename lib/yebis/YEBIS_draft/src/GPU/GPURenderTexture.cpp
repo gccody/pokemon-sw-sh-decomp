@@ -33,7 +33,7 @@ bool Unk_447010(s32 width, s32 height);
 }  // namespace PPFX
 
 // 0x710049e3a0
-void Unk_49e3a0(u32 arg0, s32 arg1, s32 arg2, void* arg3, void* arg4, s32 arg5, void* arg6, void* arg7, f32 arg8);
+s32 Unk_49e3a0(u32 arg0, s32 arg1, s32 arg2, void* arg3, void* arg4, s32 arg5, void* arg6, void* arg7, f32 arg8);
 
 namespace PPFX {
 
@@ -516,6 +516,110 @@ Unk_49a890* Unk_49c8e0(u32 width, u32 height, s32 format, s32 msaa, s32 tiled) {
     return tiles;
 }
 
+}  // namespace PPFX
+
+// 0x710049ca70: clears a render texture's mip level (negative: every level)
+// in both sets with `color` (none: zero)
+s32 Unk_49ca70(void* selfArg, void* colorArg, u32 level) {
+    using namespace PPFX;
+    CRenderTexture* self = static_cast<CRenderTexture*>(selfArg);
+    if (self->field_20 == nullptr)
+        return -2;
+    if (static_cast<s32>(self->field_98) <= static_cast<s32>(level))
+        return -6;
+    if (Unk_24e53a0[0] != self)
+        Unk_49e3a0(1, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+    Unk_Float4 color;
+    if (colorArg != nullptr)
+        color = *static_cast<const Unk_Float4*>(colorArg);
+    else
+        memset(&color, 0, sizeof(color));
+    Unk_PixelContainer* target = nullptr;
+    IGPUInterface* depth = nullptr;
+    self->field_20->vf10(0, &target);
+    self->field_20->vf11(&depth);
+    self->field_20->vf33(0);
+    s32 current = self->field_a0;
+    for (u32 i = 0; i < self->field_98; i++) {
+        if (static_cast<s32>(level) >= 0 && i != level)
+            continue;
+        for (s32 set = 0; set < 2; set++) {
+            self->Unk_SetA0(set);
+            if (set != 0 && self->field_d0[1][i] == self->field_d0[0][i])
+                break;
+            s32 result = self->field_20->vf7(0, self->field_d0[set][i], 0);
+            if (result < 0)
+                return result;
+            CRenderTexture::Unk_49cf50(nullptr, nullptr);
+            result = self->field_20->vf51(0xff0, reinterpret_cast<const f32*>(&color), 1.0f, 0);
+            if (result < 0)
+                return result;
+            self->Unk_49cfa0(0, i, 0x10000, 0x10000, 0, true, nullptr, 0, nullptr, 0, nullptr, 1.0f, 1.0f);
+        }
+    }
+    self->Unk_SetA0(current);
+    self->field_20->vf7(0, target, 0);
+    self->field_20->vf8(depth);
+    UNK_RELEASE(target);
+    UNK_RELEASE(depth);
+    return 0;
+}
+
+namespace PPFX {
+
+// 0x710049da70
+// NON_MATCHING: same instructions, other callee-saved registers: the original
+// keeps the clear bits (arg4 & 0xff0) in a stack slot for the tiling's mode,
+// here they are tested again from arg4.
+s32 Unk_49da70(s32 count, CRenderTexture** targets, Unk_49b230_Object* depth, Unk_49b230_Object* arg3, s32 arg4,
+               void* arg5, s32 arg6, s32 arg7, s32 arg8, f32 arg9) {
+    s32 result = Unk_49e3a0(0x1f, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+    if (result < 0)
+        return result;
+    IGPUDevice* device = Unk_24e55b0;
+    CRenderTexture::Unk_49cf50(depth, arg3);
+    u32 clear = arg4 & 0xff0;
+    u32 flags;
+    if (clear == 0)
+        flags = arg7 | 6;
+    else
+        flags = arg7 | 0x16;
+    CRenderTexture* first = nullptr;
+    bool none = true;
+    for (u32 i = 0; i < 8; i++) {
+        CRenderTexture* target = i < static_cast<u32>(count) ? targets[i] : nullptr;
+        if (target != nullptr) {
+            target->Unk_49d250(i, flags, none, 0, arg8);
+            if (first == nullptr)
+                first = target;
+            none = false;
+            arg8 &= ~0x30000;
+        } else {
+            device->vf7(i, nullptr, 0);
+        }
+    }
+    if (first == nullptr)
+        return 0;
+    if (static_cast<s32>(first->field_2c.field_0) >= 0 && first->field_e0[first->field_a0][0] != nullptr) {
+        s32 mode = clear != 0 ? 5 : 0;
+        if ((arg4 & 3) != 0)
+            mode |= 2;
+        CRenderTexture::BeginTiling(mode | 8, static_cast<const CRenderTexture::Unk_Tile*>(arg5), arg6, arg9);
+        return 0;
+    }
+    if (arg4 != 0) {
+        u32 clearFlags = arg4 & ~3;
+        if (depth != nullptr && (arg4 & 3) != 0) {
+            if (depth->field_44 == 0x14 || depth->field_44 == 0x2d)
+                clearFlags |= 3;
+            else
+                clearFlags |= 1;
+        }
+        device->vf51(clearFlags, static_cast<const f32*>(arg5), arg9, arg6);
+    }
+    return 0;
+}
+
 // 0x710049df00
 s32 Unk_49df00(CRenderTexture* target, u32 flags, s32 arg2, s32 arg3, s32 arg4, bool* done, f32 arg6, f32 arg7) {
     if (done != nullptr)
@@ -601,5 +705,51 @@ s32 Unk_49e290(u32 flags, CRenderTexture* target, s32 arg2, bool* done, f32 arg4
 }
 
 }  // namespace PPFX
+
+// NON_MATCHING: the same paths; the original keeps the depth target's call
+// (bit 4) out of line after the unrolled loop and merges the returns of the
+// unrolled loop with csel, and its callee-saved registers differ.
+// 0x710049e3a0: ends the targets in `mask` (bit 4: the depth target): their
+// tiling, or each one's drawing, and forgets them unless bit 20 of the flags
+// says to keep them
+s32 Unk_49e3a0(u32 mask, s32 flags, s32 arg2, void* arg3, void* arg4, s32 arg5, void* arg6, void* arg7, f32 arg8) {
+    using namespace PPFX;
+    bool keep = (flags & 0x100000) != 0;
+    if (!keep && Unk_24e53e8) {
+        s32 result =
+            CRenderTexture::EndTiling(arg4, arg5, static_cast<s32*>(arg6), static_cast<bool*>(arg7), arg8);
+        return result < 0 ? result : 0;
+    }
+    if (mask & 0x10) {
+        s32 result = Unk_49e290(arg2, static_cast<CRenderTexture*>(arg3), arg5, static_cast<bool*>(arg7), arg8);
+        if (result < 0)
+            return result;
+    }
+    for (u32 i = 0; i < 8; i++) {
+        if ((mask & (1 << i)) == 0)
+            continue;
+        if (!keep && Unk_24e53e8) {
+            s32 result = CRenderTexture::EndTiling(arg4, arg5, static_cast<s32*>(arg6), nullptr, arg8);
+            if (result < 0)
+                return result;
+            continue;
+        }
+        bool* done = static_cast<bool*>(arg6);
+        if (done != nullptr)
+            *done = false;
+        CRenderTexture* target = Unk_24e53a0[i];
+        if (target == nullptr)
+            continue;
+        s32 result = target->Unk_49cfa0(i, Unk_238d228[i], flags, arg2, 1, false, arg4, arg5, arg4, arg5, done, arg8,
+                                        arg8);
+        if (result < 0)
+            return result;
+        if (keep)
+            continue;
+        Unk_24e53a0[i] = nullptr;
+        Unk_238d228[i] = 0;
+    }
+    return 0;
+}
 
 // 0x710049e890: _GLOBAL__sub_I_GPURenderTexture.cpp

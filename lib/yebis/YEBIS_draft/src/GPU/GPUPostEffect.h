@@ -16,7 +16,8 @@ namespace PPFX {
 
 // CRenderTexture (0x7100481000 and on), as this file reads it
 struct Unk_RenderTexture {
-    u8 pad_0[0x30];
+    u8 pad_0[0x2c];
+    s32 field_2c;
     u32 field_30;  // width
     u32 field_34;  // height
     s32 field_38;  // the format
@@ -54,7 +55,9 @@ struct Unk_4aa5a0_Self {
     s32 field_d4;  // the format of its description
     u8 pad_d8[0x1e0 - 0xd8];
     bool field_1e0;
-    u8 pad_1e1[0x3a8 - 0x1e1];
+    u8 pad_1e1[0x3];
+    f32 field_1e4;
+    u8 pad_1e8[0x3a8 - 0x1e8];
     bool field_3a8;
     u8 pad_3a9[0x3];
     f32 field_3ac;
@@ -249,9 +252,18 @@ struct Unk_CommandListMaker {
 struct Unk_43c490;
 struct Unk_43c4e0;
 
+// what IPfxBaseContext::Initialize hands CPostEffect::Initialize (placeholder)
+struct Unk_417b30_Desc {
+    u8 pad_0[0x70];
+    u64 field_70;
+};
+
 class CPostEffect {
 public:
+    CPostEffect();               // 0x71004190f0
     ~CPostEffect();              // 0x7100419550
+    // 0x710041afb0 (its log lines name it)
+    s32 Initialize(const Unk_417b30_Desc* desc, u32 arg2, u32 arg3, u32 arg4, void* arg5);
     s32 Unk_419690(void* arg);   // 0x7100419690: its uninitialisation
     s32 Unk_426a50();  // 0x7100426a50
     // 0x7100423160: the object of two device objects (key) made or found
@@ -300,6 +312,19 @@ public:
     s32 Unk_429f20(bool set, bool enable);
     // 0x710042b8a0: the ranges field_8f4 and field_904 follow field_6c4
     s32 Unk_42b8a0();
+    // 0x7100428220
+    void Unk_428220();
+    // field_895 set: what 0x7100428220 brings up to date is out of date
+    // (inline)
+    void Unk_Refresh() {
+        if (field_895) {
+            Unk_428220();
+        }
+    }
+    // 0x7100428cc0: the scale and offset (then their inverses) from depth
+    // space `from` to `to` (6: field_5c's), for depths scaled by `a` and moved
+    // by `b`
+    s32 Unk_428cc0(f32* out, s32 from, s32 to, f32 a, f32 b);
     f32 Unk_4280e0();  // 0x71004280e0
     bool Unk_427ad0();  // 0x7100427ad0
     MATRIXT44 Unk_429c50(bool arg);  // 0x7100429c50
@@ -590,11 +615,16 @@ public:
     f32 field_1010;
     u8 pad_1014[0x3b];
     bool field_104f;
-    u8 pad_1050[0x1];
+    bool field_1050;
     bool field_1051;
     u8 pad_1052[0x1];
     bool field_1053;
-    u8 pad_1054[0x40];
+    f32 field_1054;
+    f32 field_1058;
+    f32 field_105c;
+    f32 field_1060;
+    f32 field_1064;
+    u8 pad_1068[0x2c];
     MATRIXT44 field_1094;
     u8 pad_10d4[0x2];
     bool field_10d6;

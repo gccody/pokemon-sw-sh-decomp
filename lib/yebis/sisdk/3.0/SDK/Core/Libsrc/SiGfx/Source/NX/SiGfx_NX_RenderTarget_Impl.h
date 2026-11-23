@@ -22,10 +22,20 @@ UNK_NAMED_OBJECT(Unk_NXRenderTargetNamedObject, vf40, vf41, vf42);
 struct Unk_NXAttachmentSurfaceDesc {
     u32 field_0;
     u32 field_4;  // the format
+    s32 field_8;  // a texture's width
+    s32 field_c;  // and height
+    u32 field_10;
+    s32 field_14;  // a surface's width
+    s32 field_18;  // and height
 };
 struct Unk_NXAttachmentVolumeDesc {
-    u32 field_0;
+    u32 field_0;  // its kind
     u32 field_4;  // the format
+    u32 field_8;
+    u32 field_c;
+    u32 field_10;
+    s32 field_14;  // its width
+    s32 field_18;  // and height
 };
 
 // What a render target is attached to, as it calls it (placeholder name):
@@ -127,11 +137,15 @@ public:
     };
     // What slot 17 returns (placeholder name).
     struct Unk_Desc {
-        u64 field_0;
-        u64 field_8;
+        s32 field_0;  // the width
+        s32 field_4;  // and height
+        u32 field_8;
+        s32 field_c;   // the first colour attachment
         s32 field_10;  // how many colour attachments it has
         u32 field_14;
-        u64 field_18;
+        bool field_18;  // whether it has a depth attachment
+        bool field_19;  // whose format has a stencil
+        u8 field_1a[6];
         u64 field_20;
     };
     PKMN_SIZE_ASSERT(Unk_Desc, 0x28);
@@ -182,8 +196,9 @@ public:
     const SiString<char>* vf41() override;      // 0x7100555bd0
     u32 vf42() override;                        // 0x7100555bf0
 
-    // 0x71005560c0 (not written yet), 0x71005564a0 (the attachments' NVN
-    // textures and views), 0x7100556730: what slot 25 does
+    // 0x71005560c0 (the size and the attachments there are), 0x71005564a0
+    // (the attachments' NVN textures and views), 0x7100556730: what slot 25
+    // does
     bool Unk_5560c0();
     bool Unk_5564a0();
     bool Unk_556730();

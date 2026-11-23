@@ -4,6 +4,7 @@
 // of its own besides the common ones (its static initialiser, 0x71004b72d0,
 // is 716 bytes), so Unk_Statics.h isn't included until they're known.
 #include <math.h>
+#include <string.h>
 
 #include <yebis/YEBIS_draft/src/GPU/GPUClassUtil.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUDepthOfField.h>
@@ -18,10 +19,36 @@ const char* Unk_446df0(s32 result);
 // 0x710049c8d0 (lib/yebis/leaf)
 s32 Unk_49c8d0_call(void* self, void* value);
 
+// 0x71004738c0 (lib/yebis/leaf): GPUTextureUtil.cpp's constants buffer
+const u8* Unk_4738c0_get();
+
 // 0x7100440c00 (lib/yebis/leaf)
 u32 Unk_440c00_get(u64 device, u32 arg);
 
 namespace PPFX {
+
+// a xorshift128 generator seeded as GPUGlareDef.cpp's (placeholder; the
+// function-local statics of 0x71004b0650 and 0x71004b1100)
+struct Unk_Random {
+    explicit Unk_Random(u32 seed) {
+        for (s32 i = 0; i < 4; i++) {
+            seed = 1812433253 * (seed ^ (seed >> 30)) + i + 1;
+            field_0[i] = seed;
+        }
+    }
+    u32 Unk_Next() {
+        s32 t = field_0[0] ^ (field_0[0] << 11);
+        field_0[0] = field_0[1];
+        field_0[1] = field_0[2];
+        field_0[2] = field_0[3];
+        field_0[3] = field_0[3] ^ (field_0[3] >> 19) ^ (t ^ (t >> 8));
+        return field_0[3];
+    }
+    // from 0 to 1
+    f32 Unk_Get() { return static_cast<f32>(Unk_Next() & 0x7fffffff) * 4.65661287e-10f; }
+
+    u32 field_0[4];
+};
 
 // 0x7101eba3f4: "CDepthOfField"
 extern const char Unk_1eba3f4[];
@@ -63,19 +90,20 @@ s32 CDepthOfField::Unk_4a7760(const char* name) {
     field_224 = 0;
     field_228 = nullptr;
     field_158 = 0;
+    field_15c = 0;
     field_160 = 0;
     field_258 = 0;
-    field_260 = 0;
+    field_260 = nullptr;
     field_268 = 0;
     field_270 = 0;
-    field_278 = 0;
+    field_278 = 0.0f;
     field_280[0] = 0;
     field_280[1] = 0;
     field_280[2] = 0;
     field_280[3] = 0;
     field_280[4] = 0;
     for (s32 i = 0; i < 5; i++) {
-        field_2c8[i] = 0;
+        field_2c8[i] = nullptr;
     }
     field_2f0 = 0;
     for (s32 i = 0; i < 12; i++) {
@@ -375,6 +403,49 @@ f32 CDepthOfField::Unk_4afaa0(f32 arg0, f32 arg1) {
     f32 near = field_1a8;
     f32 scale = focal * field_1b4 / (focal - near);
     return arg0 * 2.4392f * scale / arg1 / field_1b8;
+}
+
+// 0x71004af690
+// NON_MATCHING: the same blocks, but LLVM threads and duplicates the tails
+// differently (the original keeps the first loads of field_3c8 and field_3d0
+// in registers and duplicates the final size computation per path).
+f32 CDepthOfField::Unk_4af690(f32 angle, f32 distance, f32 width) {
+    if (field_3bc <= 0.0f)
+        return 0.0f;
+    if (field_3c0 <= 0.0f)
+        return field_3bc;
+    if (angle <= 0.0f || distance <= 0.0f || width <= 0.0f)
+        return -1.0f;
+    f32 value0;
+    f32 size0;
+    f32 exponent;
+    if (field_3c8 <= 0.0f) {
+        value0 = field_3bc;
+        exponent = field_3b8;
+        size0 = Unk_PairSize(field_3c0, distance, width);
+    } else {
+        f32 value1;
+        f32 size1;
+        if (field_3d0 <= 0.0f) {
+            value0 = field_3bc;
+            size0 = Unk_ViewSize(field_3c0, distance, width);
+            value1 = field_3c8;
+            size1 = Unk_PairSize(field_3cc, distance, width);
+        } else if (field_198 < field_3c8) {
+            value0 = field_3bc;
+            value1 = field_3c8;
+            size0 = Unk_PairSize(field_3c0, distance, width);
+            size1 = Unk_PairSize(field_3cc, distance, width);
+        } else {
+            value0 = field_3c8;
+            value1 = field_3d0;
+            size0 = Unk_PairSize(field_3cc, distance, width);
+            size1 = Unk_PairSize(field_3d4, distance, width);
+        }
+        f32 ratio = size1 / size0;
+        exponent = 1.0f - logf(value1 / value0) / logf(ratio);
+    }
+    return value0 * powf(Unk_ViewSize(angle, distance, width) / size0, 1.0f - exponent);
 }
 
 static inline f32 Unk_Abs(f32 x) {
@@ -693,8 +764,10 @@ s32 CDepthOfField::Initialize(CRenderTexture* source, const Unk_Desc* desc) {
     field_3b0 = 0;
     field_3c4 = false;
     field_3b4 = false;
-    field_3d0 = 0;
-    field_3c8 = 0;
+    field_3d0 = 0.0f;
+    field_3d4 = 0.0f;
+    field_3c8 = 0.0f;
+    field_3cc = 0.0f;
     if (field_c0.field_6d) {
         field_3f0 = false;
     }
@@ -768,8 +841,667 @@ f32 CDepthOfField::Unk_4b4ab0(bool near) {
     return (a + (b - a) * (pos - static_cast<f32>(index))) * 0.87890625f;
 }
 
+// 0x7101eba354: the blur sizes of each kind, by field_14
+extern const s32 Unk_1eba354[8][5] __attribute__((visibility("hidden")));
+
+// 0x71004a7050
+void CDepthOfField::Unk_Level::Unk_4a7050() {
+    s32 size = Unk_1eba354[field_10][field_14];
+    field_18 = size;
+    f32 value = static_cast<f32>(size);
+    switch (field_10) {
+    case 0:
+        field_1c = static_cast<s32>(value);
+        field_20 = value * 1.05f;
+        break;
+    case 1:
+        field_1c = static_cast<s32>(value * 2.0f - 1.0f);
+        field_20 = static_cast<f32>(field_1c) * 0.95f;
+        break;
+    case 2:
+        field_20 = value * 1.4142135f;
+        field_1c = static_cast<s32>(field_20);
+        break;
+    case 3:
+        field_20 = exp2f(value) * 2.0f - 1.0f;
+        field_1c = static_cast<s32>(field_20);
+        break;
+    case 4:
+        field_20 = value;
+        field_1c = static_cast<s32>(field_20);
+        break;
+    case 5: {
+        static const f32 radii[4] = {3.15f, 6.3f, 12.6f, 25.2f};
+        s32 index = static_cast<s32>(value);
+        f32 radius = index < 0 ? 0.0f : radii[index];
+        field_1c = static_cast<s32>(radius + 0.49999f);
+        field_20 = radius;
+        break;
+    }
+    case 6:
+    case 7:
+        field_20 = value * 1.4142135f;
+        break;
+    }
+    field_24 = field_20;
+    if (field_28 == 1 && field_10 != 5) {
+        field_24 += field_2c;
+    }
+}
+
+// 0x71004a71c0
+s32 CDepthOfField::Unk_Level::Unk_4a71c0(u32 flags, bool arg2, s32 arg3) {
+    Unk_4a7050();
+    field_30 = field_24 / static_cast<f32>(field_4);
+    field_38 = nullptr;
+    field_68 = nullptr;
+    field_70 = 0;
+    field_60 = 0;
+    field_48[0] = nullptr;
+    field_48[1] = nullptr;
+    field_48[2] = nullptr;
+    field_78 = nullptr;
+    field_80 = nullptr;
+    field_88 = nullptr;
+    field_90 = nullptr;
+    field_98 = nullptr;
+    field_a0 = nullptr;
+    field_a8 = nullptr;
+    field_b0 = nullptr;
+    field_b8 = nullptr;
+    switch (field_10) {
+    case 0:
+        if (field_18 == 17) {
+            field_60 = arg2 ? 1 : 2;
+        }
+        break;
+    case 1:
+        field_60 = field_18 > 1;
+        break;
+    case 2:
+        field_60 = 1;
+        break;
+    case 3:
+        // (the subtraction is unsigned: compared as it is, not folded into the size)
+        field_60 = static_cast<s32>(static_cast<u32>(field_18) - 1) < 2 ? static_cast<s32>(static_cast<u32>(field_18) - 1) : 2;
+        break;
+    case 4:
+        field_60 = field_18 < 4 ? 0 : 4;
+        break;
+    case 5:
+        field_60 = arg3 < 2 ? 2 : 1;
+        break;
+    case 6:
+        field_60 = 3;
+        break;
+    case 7:
+        field_60 = 4;
+        break;
+    }
+    if (field_0 != field_8) {
+        bool more = false;
+        switch (field_10) {
+        case 0:
+            if (field_18 > 16)
+                more = true;
+            break;
+        case 1:
+        case 2:
+        case 3:
+        case 5:
+            more = true;
+            break;
+        case 4:
+            if (field_18 >= 9)
+                more = true;
+            break;
+        }
+        if (more) {
+            field_60++;
+        } else if (field_60 == 0) {
+            field_60 = 1;
+        }
+    }
+    if ((flags & 6) == 2) {
+        field_60++;
+    }
+    if (arg3 < 0) {
+        field_70 = 0;
+    } else if (field_28 <= 1) {
+        field_70 = field_28;
+    }
+    return 0;
+}
+
+// a scale and bias composed with a scale (inline)
+static inline void Unk_ScaleBy(Unk_Float2* value, f32 scale) {
+    value->field_0[0].field_0 = scale * value->field_0[0].field_0;
+    value->field_0[1].field_0 = scale * value->field_0[1].field_0 + 0.0f;
+}
+
+// 0x71004a7dc0
+// NON_MATCHING: scheduling: the original multiplies the first level's range by
+// 0.25 before the four additions and reads the level's height and size before
+// it stores field_e8; the last addition's operands are swapped (y + x * bias).
+s32 CDepthOfField::Unk_4a7dc0() {
+    for (s32 i = 0; i < field_c0.field_10; i++) {
+        Unk_Level* level = &field_4a8[i];
+        f32 far = level->field_30;
+        f32 near = i == 0 ? far * 0.0001f : field_4a8[i - 1].field_30;
+        f32 far1 = far;
+        f32 near1 = near;
+        f32 weight = 0.25f;
+        if (field_154 & 4) {
+            if (i == 0) {
+                near1 = near * 0.0f;
+                far1 = far * 0.51f;
+                weight = 0.0f;
+            } else {
+                near1 = near * 0.61f;
+                far1 = far * 0.51f;
+                weight = 0.25f;
+            }
+        }
+        f32 near2 = (field_154 & 2) == 0 ? near : near * 1.15f;
+        f32 far2 = (field_154 & 2) == 0 ? far : far * 0.98f;
+        f32 first = field_4a8[0].field_30;
+        far1 += weight * first;
+        near1 += weight * first;
+        far2 += first * 0.25f;
+        near2 += first * 0.25f;
+        level->field_c0 = 1.0f / (far1 - near1);
+        level->field_c4 = -near1 / (far1 - near1);
+        level->field_c8 = 1.0f / (far2 - near2);
+        level->field_cc = -near2 / (far2 - near2);
+        level->field_d0 = level->field_c0 * field_1e4;
+        level->field_d4 = level->field_c4;
+        level->field_d8 = level->field_c8 * field_1e4;
+        level->field_dc = level->field_cc;
+        f32 scale = field_1e4;
+        f32 height = static_cast<f32>(level->field_4);
+        f32 size = level->field_20;
+        level->field_e8 = Unk_Float2(1.0f, 0.0f);
+        Unk_ScaleBy(&level->field_e8, scale);
+        Unk_ScaleBy(&level->field_e8, height);
+        Unk_ScaleBy(&level->field_e8, 1.0f / size);
+        f32 scale2 = 1.0f;
+        f32 bias = 0.0f;
+        if (field_16c == 1) {
+            scale2 = field_1f0;
+            bias = field_1f4;
+        }
+        level->field_f0 = level->field_e8.field_0[0].field_0 * scale2;
+        level->field_f4 = level->field_e8.field_0[1].field_0 + level->field_e8.field_0[0].field_0 * bias;
+    }
+    return 0;
+}
+
+// 0x71004b48d0
+// NON_MATCHING: scheduling: the original materialises the zero before it halves the
+// radius and multiplies x by it first (the aspect and the size swap s2/s3).
+s32 CDepthOfField::Unk_4b48d0(s32 index) {
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    f32 width = static_cast<f32>(static_cast<u32>(field_c0.field_0[1]));
+    f32 height = static_cast<f32>(static_cast<u32>(field_c0.field_0[2]));
+    f32 aspect = width / height;
+    const Unk_Pass* first = &field_420[index];
+    const Unk_Pass* second = &field_428[index];
+    f32 size = first->field_7c;
+    f32 y = (width < height ? size * aspect : size) * 0.5f;
+    f32 x = y / aspect;
+    util->Unk_481820(field_438[index], field_448[index], Unk_Float2(x * 0.0f, y * 0.0f),
+                     Unk_Float4(first->field_58.field_0[0], first->field_58.field_0[1], first->field_58.field_0[2],
+                                first->field_58.field_0[3]));
+    return util->Unk_481820(field_438[index], field_450[index], Unk_Float2(x * 0.0f, y * 0.0f),
+                            Unk_Float4(second->field_58.field_0[0], second->field_58.field_0[1],
+                                       second->field_58.field_0[2], second->field_58.field_0[3]));
+}
+
+}  // namespace PPFX
+
+namespace PPFX {
+struct Unk_4aa5a0_Self;
+}
+
+// a render texture's viewport from the fractions of its size (at least one
+// pixel; inline, as GPURenderTextureArray.cpp's)
+static inline s32 Unk_SetViewport(PPFX::CRenderTexture* texture, f32 width, f32 height, f32 x, f32 y) {
+    s32 w = static_cast<s32>(width * static_cast<f32>(static_cast<u32>(texture->field_2c.field_4)));
+    s32 h = static_cast<s32>(height * static_cast<f32>(static_cast<u32>(texture->field_2c.field_8)));
+    s32 ix = static_cast<s32>(x * static_cast<f32>(static_cast<u32>(texture->field_2c.field_4)));
+    s32 iy = static_cast<s32>(y * static_cast<f32>(static_cast<u32>(texture->field_2c.field_8)));
+    if (width > 0.0f) {
+        w = w > 1 ? w : 1;
+    }
+    if (height > 0.0f) {
+        h = h > 1 ? h : 1;
+    }
+    return Unk_49ad30(reinterpret_cast<PPFX::Unk_RenderTexture*>(texture), w, h, ix, iy);
+}
+
+// 0x71004aa5a0: every texture of the chain's viewport
+s32 Unk_4aa5a0(PPFX::Unk_4aa5a0_Self* selfArg, f32 width, f32 height, f32 x, f32 y) {
+    PPFX::CDepthOfField* self = reinterpret_cast<PPFX::CDepthOfField*>(selfArg);
+    s32 result = 0;
+    for (s32 i = 0; i < self->field_498; i++) {
+        s32 status = Unk_SetViewport(self->field_490[i], width, height, x, y);
+        if (status < 0) {
+            result = status;
+        }
+    }
+    return result;
+}
+
+namespace PPFX {
+
+// a level's range in the presets (placeholder)
+struct Unk_Range {
+    Unk_Range(s32 begin, s32 index) : field_0(begin), field_4(index) {}
+    s32 field_0;
+    s32 field_4;
+};
+
+// 0x71004a79e0
+// NON_MATCHING: the presets' stores are scheduled in another order and the
+// loop's blocks are laid out differently (registers follow).
+s32 CDepthOfField::Unk_4a79e0() {
+    field_1f8[0] = -1;
+    field_1f8[1] = -1;
+    field_1f8[2] = -1;
+    field_1f8[3] = -1;
+    Unk_Level levels[7];
+    memset(levels, 0, sizeof(levels));
+    u32 width = field_c0.field_0[1];
+    u32 height = field_c0.field_0[2];
+    f32 scale = static_cast<f32>(field_158);
+    field_168 = scale / static_cast<f32>(width);
+    const Unk_Range presets[7][7] = {
+        {Unk_Range(0, 0), Unk_Range(1, 1), Unk_Range(2, 1), Unk_Range(2, 2), Unk_Range(-1, -1), Unk_Range(-1, -1), Unk_Range(-1, -1)},
+        {Unk_Range(0, 0), Unk_Range(1, 1), Unk_Range(1, 2), Unk_Range(2, 2), Unk_Range(-1, -1), Unk_Range(-1, -1), Unk_Range(-1, -1)},
+        {Unk_Range(0, 0), Unk_Range(0, 1), Unk_Range(1, 1), Unk_Range(1, 2), Unk_Range(-1, -1), Unk_Range(-1, -1), Unk_Range(-1, -1)},
+        {Unk_Range(0, field_168 < 1.2f), Unk_Range(0, 2), Unk_Range(1, 2), Unk_Range(2, 2), Unk_Range(-1, -1), Unk_Range(-1, -1), Unk_Range(-1, -1)},
+        {Unk_Range(0, 0), Unk_Range(0, 1), Unk_Range(0, 2), Unk_Range(1, 2), Unk_Range(-1, -1), Unk_Range(-1, -1), Unk_Range(-1, -1)},
+        {Unk_Range(0, 0), Unk_Range(0, 1), Unk_Range(0, 2), Unk_Range(1, 2), Unk_Range(1, 3), Unk_Range(-1, -1), Unk_Range(-1, -1)},
+        {Unk_Range(0, 0), Unk_Range(0, 1), Unk_Range(0, 2), Unk_Range(0, 3), Unk_Range(-1, -1), Unk_Range(-1, -1), Unk_Range(-1, -1)},
+    };
+    s32 preset = field_c0.field_1c < 6 ? field_c0.field_1c : 6;
+    const s32* ranges = preset < 0 ? field_c0.field_20 : &presets[preset][0].field_0;
+    static const f32 weights[4] = {0.0f, 0.5f, 0.75f, 1.0f};
+    s32 count = field_c0.field_10;
+    s32 kind = field_c0.field_18;
+    s32 step = 0;
+    s32 index = 0;
+    for (s32 i = 0; i < count; i++) {
+        bool unused = false;
+        bool same = false;
+        if (i < 7) {
+            if (ranges[i * 2] < 0) {
+                unused = true;
+            } else {
+                index = ranges[i * 2 + 1];
+            }
+            if (i != 0 && !unused && ranges[i * 2 - 2] == ranges[i * 2]) {
+                same = true;
+            }
+        }
+        if (i == 0) {
+            if (!field_c0.field_6d &&
+                !(width > static_cast<u32>(field_c0.field_5c) && field_c0.field_60 * scale < static_cast<f32>(width))) {
+                step = 1;
+            }
+        } else if (!same) {
+            width = static_cast<u32>(static_cast<f32>(width) * 0.5f + 0.99f);
+            height = static_cast<u32>(static_cast<f32>(height) * 0.5f + 0.99f);
+            width = width > 3 ? width : 3;
+            height = height > 3 ? height : 3;
+            bool grow;
+            s32 pass;
+            switch (field_c0.field_6d && i >= 2 ? i : 0) {
+            case 2:
+            case 3:
+                pass = 0;
+                break;
+            case 4:
+            case 5:
+                pass = 1;
+                break;
+            case 6:
+                pass = 2;
+                break;
+            default:
+                pass = -1;
+                break;
+            }
+            if (pass >= 0) {
+                grow = width < field_420[pass].field_0;
+            } else {
+                grow = !(width > static_cast<u32>(field_c0.field_5c) &&
+                         field_c0.field_60 * scale < static_cast<f32>(width));
+            }
+            if (grow) {
+                step = step < 2 ? step + 1 : 3;
+            }
+        }
+        Unk_Level* level = &levels[i];
+        level->field_0 = width;
+        level->field_4 = height;
+        if (step == 0) {
+            level->field_8 = width;
+            level->field_c = height;
+            level->field_28 = 0;
+        } else {
+            level->field_8 = width * 2 < field_158 ? width * 2 : field_158;
+            level->field_c = height * 2 < field_15c ? height * 2 : field_15c;
+            level->field_28 = 1;
+        }
+        level->field_10 = kind;
+        level->field_14 = index;
+        level->field_2c = weights[step];
+    }
+#line 1302
+    field_4a8 = UNK_NEW_ARRAY(Unk_Level, count);
+    for (s32 i = 0; i < field_c0.field_10; i++) {
+        memcpy(&field_4a8[i], &levels[i], sizeof(Unk_Level));
+        field_4a8[i].Unk_4a71c0(field_c0.field_0[3], field_c0.field_6c, field_c0.field_70);
+    }
+    Unk_4a7dc0();
+    return 0;
+}
+
+// 0x71004b4540: the two sets' textures copied into their alternates, faded by
+// the level
+// NON_MATCHING: one swap: the original reads field_1dc before it stores the zero
+// vector (with the read first here, `this` and the utilities exchange x19/x20).
+s32 CDepthOfField::Unk_4b4540(s32 index) {
+    // (written as a negated test: the return is laid out last)
+    if (!(field_1dc != 0.0f))
+        return 1;
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    CRenderTexture* sources[2] = {field_450[index], field_448[index]};
+    CRenderTexture* targets[4] = {Unk_4b35a0(true, index), Unk_4b35a0(false, index), nullptr, nullptr};
+    f32 scale = (static_cast<f32>(index) + 1.0f) * 0.8f * 0.25f + 0.25f;
+    s32 result = 0;
+    for (s32 i = 0; i < 2; i++) {
+        CRenderTexture* source = sources[i];
+        CRenderTexture* target = targets[i];
+        if (source == target)
+            continue;
+        s32 filter = Unk_GetTexture(source)->vf16();
+        Unk_GetTexture(source)->vf15(8);
+        Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+        Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
+        f32 alpha = scale * field_1dc;
+        alpha = alpha < 0.0f ? 0.0f : (alpha > 1.0f ? 1.0f : alpha);
+        s32 status = util->Unk_47dfa0(0.0f, 0.0f, alpha, 1.0f, source, target, 0, &color, 0, false, false, 1, &zero,
+                                      nullptr, -1);
+        if (status < 0)
+            result = status;
+        Unk_GetTexture(source)->vf15(filter);
+    }
+    return result;
+}
+
+// the constants 0x71004b0db0 hands the composite (placeholder)
+struct Unk_4b0db0_Constants {
+    f32 field_0;
+    f32 field_4;
+    f32 field_8;
+    f32 field_c;
+    f32 field_10;
+    f32 field_14;
+    Unk_Float field_18;
+    Unk_Float field_1c;
+    f32 field_20;
+    f32 field_24;
+    f32 field_28;
+    f32 field_2c;
+};
+
+// the composite's offset (inline)
+static inline f32 Unk_4b0db0_Distance(const CDepthOfField* self) {
+    return self->field_3f0 ? self->field_3f4 * 2.0f : 0.0f;
+}
+
 // a flag in .rodata the second kind of passes needs (placeholder name)
 extern const bool Unk_1b35154;
+
+// the constants 0x71004b0650 sets (placeholder)
+struct Unk_4b0650_Constants {
+    f32 field_0;
+    f32 field_4;
+    f32 field_8;
+    Unk_Float field_c;
+    f32 field_10;
+    f32 field_14;
+    f32 field_18;
+    f32 field_1c;
+    Unk_Float field_20[4];
+};
+
+static inline f32 Unk_MaxF(f32 a, f32 b) {
+    return a > b ? a : b;
+}
+
+// the larger of two elements, by reference (inline)
+static inline const Unk_Float& Unk_MaxRef(const Unk_Float& a, const Unk_Float& b) {
+    return a.field_0 > b.field_0 ? a : b;
+}
+
+// the technique of a blur with `count` taps (0: none) (inline)
+static inline s32 Unk_BlurTechnique(CTextureUtil* util, s32 mode, bool flag, bool second, bool far, s32 count) {
+    s32 technique = 0;
+    switch (mode) {
+    case 0:
+        technique = flag ? util->field_30.field_1af6c.field_140[second][far][count - 1]
+                         : util->field_30.field_1af6c.field_a0s[second][far][count - 1];
+        break;
+    case 1:
+        technique = flag ? util->field_30.field_1af6c.field_280[second][far][count - 1]
+                         : util->field_30.field_1af6c.field_1e0[second][far][count - 1];
+        break;
+    case 2:
+        technique = util->field_30.field_1af6c.field_320[second][far][count - 1];
+        break;
+    }
+    return technique;
+}
+
+// 0x71004b0650
+// NON_MATCHING: only the generator's guard: the TU's merged statics aren't all
+// here yet, so the guard isn't at the generator plus 0xe4 as in the original.
+s32 CDepthOfField::Unk_4b0650(s32 count, s32 mode, CRenderTexture* source, CRenderTexture* target,
+                              CRenderTexture* second, const Unk_Float4* color, bool flag, f32 a, f32 b) {
+    s32 filter = Unk_GetTexture(source)->vf16();
+    Unk_GetTexture(source)->vf15(8);
+    s32 secondFilter;
+    if (second != nullptr) {
+        secondFilter = Unk_GetTexture(second)->vf16();
+        Unk_GetTexture(second)->vf17(1);
+    } else {
+        secondFilter = -1;
+    }
+    bool far = Unk_1b35154 && field_3f0 && field_3f4 * 2.0f != 0.0f;
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    target->Unk_49d250(0, 0, 1, 0, 0);
+    CRenderTexture::Unk_49cf50(nullptr, nullptr);
+    bool near = field_251;
+    s32 taps = count;
+    s32 technique = Unk_BlurTechnique(util, mode, flag, near, far, taps);
+    if (technique == 0) {
+        taps = count - 1;
+        technique = Unk_BlurTechnique(util, mode, flag, near, far, taps);
+    }
+    Unk_463fd0_Effect* effect = util->field_30.field_0;
+    effect->vf29(technique);
+    Unk_4b0db0(near, far);
+    Unk_4b1100(near, far, taps, 0.0f);
+    Unk_4b0650_Constants* constants = reinterpret_cast<Unk_4b0650_Constants*>(const_cast<u8*>(Unk_4738c0_get()));
+    constants->field_0 = b;
+    constants->field_4 = 0.0f;
+    constants->field_8 = 0.0f;
+    constants->field_c = Unk_Float(a);
+    if (far) {
+        f32 x = Unk_4b0db0_Distance(this) * -0.002f;
+        f32 ax = Unk_Abs(x);
+        f32 y = Unk_4b0db0_Distance(this) * 0.002f;
+        f32 offset = Unk_MaxF(ax, Unk_Abs(y));
+        constants->field_0 = offset + b;
+        constants->field_c = Unk_MaxRef(Unk_Float(a - offset), Unk_Float(0.0f));
+    }
+    f32 lo;
+    f32 hi;
+    if (mode == 2) {
+        lo = 0.1f;
+        hi = 0.2f;
+    } else {
+        f32 size = field_178;
+        lo = flag ? size + 0.25f : size * 2.0f + 0.5f;
+        hi = flag ? size * 2.0f + 0.5f : size * 4.0f + 1.0f;
+    }
+    f32 scale = -1.0f / (hi - lo);
+    constants->field_10 = scale;
+    constants->field_14 = 1.0f - lo * scale;
+    constants->field_18 = 0.0f;
+    constants->field_1c = 0.0f;
+    constants->field_20[0] = color->field_0[0];
+    constants->field_20[1] = color->field_0[1];
+    constants->field_20[2] = color->field_0[2];
+    constants->field_20[3] = color->field_0[3];
+    effect->vf22(util->field_30.field_d0, reinterpret_cast<const Unk_Float4*>(constants), 3);
+    effect->vf26(util->field_30.field_10[0], Unk_GetTexture(source));
+    if (second != nullptr)
+        effect->vf26(util->field_30.field_10[1], Unk_GetTexture(second));
+    else
+        effect->vf26(util->field_30.field_10[1], Unk_GetTexture(source));
+    Unk_GPUTexture* noise = field_260;
+    effect->vf26(util->field_30.field_10[2], noise);
+    s32 kind = field_2ac;
+    effect->vf26(util->field_30.field_10[3], reinterpret_cast<Unk_GPUTexture* const*>(field_2c8[1])[kind]);
+    f32 u1;
+    f32 v1;
+    Unk_GetCoords(source, &u1, &v1);
+    f32 width = static_cast<f32>(static_cast<u32>(target->field_54));
+    f32 height = static_cast<f32>(static_cast<u32>(target->field_58));
+    static Unk_Random random(1);
+    f32 r0 = random.Unk_Get();
+    f32 r1 = random.Unk_Get();
+    s32 result = util->Unk_472250(0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, r0, r1, r0 + 1.0f, r1 + 1.0f, 0.0f,
+                                  0.0f, 0.0f, 0.0f, 0);
+    Unk_GetTexture(source)->vf15(filter);
+    if (second != nullptr)
+        Unk_GetTexture(second)->vf15(secondFilter);
+    return result;
+}
+
+// 0x71004b0db0
+// NON_MATCHING: registers: the near size's last product lands in s3 in the
+// original, and the mode 5 strength multiplies the absolute value by the ratio
+// (operands swapped here).
+void CDepthOfField::Unk_4b0db0(bool near, bool far) {
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    Unk_463fd0_Effect* effect = util->field_30.field_0;
+    Unk_4b0db0_Constants* constants = reinterpret_cast<Unk_4b0db0_Constants*>(const_cast<u8*>(Unk_4738c0_get()));
+    const f32* clip = &field_1e8;
+    effect->vf20(util->field_30.field_b0, clip);
+    f32 half = field_1e4 * 0.5f;
+    constants->field_0 = half;
+    f32 blur;
+    f32 amount;
+    if (near) {
+        s32 mode = field_2ac;
+        f32 size = field_2c8[3][mode];
+        f32 scale = Unk_4b4ab0(true);
+        constants->field_4 = 1.0f / (size * (scale / 0.7853982f) * 0.87890625f) * 0.5f;
+        f32 depth = field_2b0;
+        f32 a = powf(field_1b4 * 0.5f, field_2b8);
+        f32 b = powf(field_19c * 4.0f, field_2b4);
+        f32 focal = field_1b0;
+        f32 nearPlane = field_1a8;
+        f32 c = powf(nearPlane / (focal - nearPlane) + 1.0f, field_2bc);
+        if (field_2ac == 5) {
+            f32 ratio = 0.0f;
+            if (field_3e4 > 0.0f)
+                ratio = field_3e4 / field_1c0;
+            if (ratio <= 0.0f)
+                ratio = 1.0f;
+            f32 strength = field_2b0 > 0.0f ? field_2b0 : -field_2b0;
+            strength = strength * ratio;
+            blur = 0.0f;
+            amount = strength < 0.0f ? 0.0f : (strength > 1.0f ? 1.0f : strength);
+        } else {
+            blur = 8.0f / depth * a * b / c;
+            amount = field_2c8[4][field_2ac];
+        }
+    } else {
+        constants->field_4 = 1.0f / field_278 / 1.5707964f;
+        blur = 0.0f;
+        amount = 0.5f;
+    }
+    constants->field_8 = blur;
+    constants->field_c = amount;
+    Unk_Float y(0.0f);
+    Unk_Float x(0.0f);
+    if (far) {
+        x = Unk_Float(Unk_4b0db0_Distance(this) * -0.002f);
+        y = Unk_Float(Unk_4b0db0_Distance(this) * 0.002f);
+    }
+    constants->field_10 = half;
+    constants->field_14 = half;
+    constants->field_18 = x;
+    constants->field_1c = y;
+    if (field_c0.field_6d) {
+        f32 radius = field_420[0].field_78 * 0.5f;
+        f32 start = radius * 1.5f;
+        f32 scale = 1.0f / (radius - start);
+        constants->field_28 = scale;
+        constants->field_2c = 0.0f - start * scale;
+    }
+    effect->vf22(util->field_30.field_d4, reinterpret_cast<const Unk_Float4*>(constants), 4);
+}
+
+// 0x71004b3280: a level of the seventh kind: two hexagonal blurs and their
+// sum, faded into the alternate texture
+// NON_MATCHING: scheduling and registers (the original keeps the levels'
+// pointer in a stack slot and computes the level's address again for the
+// last call; the constants 1 and 9 are materialised earlier). The callees
+// 0x7100490780 and 0x7100496b40 have placeholder signatures.
+s32 CDepthOfField::Unk_4b3280(s32 level) {
+    Unk_Level* item = &field_4a8[level];
+    CTextureUtil* util = Unk_GetTextureUtil();
+    Unk_ReleaseTextureUtil();
+    const f32 weights[9] = {0.71f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.71f};
+    {
+        Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+        util->Unk_490780(1.0f, item->field_38, item->field_68[3], item->field_68[0], 9, weights, 1, field_220, &color,
+                         false, 0, 0);
+    }
+    {
+        Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+        Unk_Float4 range(1.0f, 0.0f, -3.40282347e+38f, 3.40282347e+38f);
+        util->Unk_490e70(0.52359879f, 9.0f, 1.0f, item->field_38, item->field_68[3], item->field_68[1], 9,
+                         const_cast<f32*>(weights), 1, field_220, &color, nullptr, &range, false, 0, 0);
+    }
+    {
+        Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+        Unk_Float4 range(1.0f, 0.0f, -3.40282347e+38f, 3.40282347e+38f);
+        util->Unk_490e70(1.04719758f, 9.0f, 1.0f, item->field_38, item->field_68[3], item->field_68[2], 9,
+                         const_cast<f32*>(weights), 1, field_220, &color, nullptr, &range, false, 0, 0);
+    }
+    CRenderTexture* sources[3] = {item->field_68[0], item->field_68[1], item->field_68[2]};
+    s32 result = util->Unk_48d220(1.0f / 3.0f, 1.0f, item->field_a0, 3, sources, nullptr, field_224, 0);
+    if (field_1dc != 0.0f && item->field_28 == 1) {
+        Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+        Unk_Float value(item->field_2c);
+        Unk_Float4 weight(value, value, value, value);
+        util->Unk_496b40(1.0f, 0.002f, item->field_a0, item->field_78[0], item->field_a0, &weight, 0, &color, 0,
+                         false, false, 0, 0);
+    }
+    return result;
+}
 
 // 0x71004a7390: checks a description (the ranges in field_20 are pairs, the
 // first one used, the others used or not, each used one beyond the last)

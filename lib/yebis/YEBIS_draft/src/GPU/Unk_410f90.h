@@ -20,3 +20,22 @@ struct Unk_410f90 {
 };
 // 0x7100410f90
 void Unk_410f90_set(Unk_410f90* self, u32 value);
+
+namespace PPFX {
+// a colour space made by Unk_410f90_set (the static objects' type, and the
+// temporary the luminance functions compare with)
+struct Unk_410f90_Object : Unk_410f90 {
+    explicit Unk_410f90_Object(u32 value) { Unk_410f90_set(this, value); }
+};
+}  // namespace PPFX
+
+// whether two colour spaces are the same (inline). `&&`, not `&`: with one
+// block of tests the not-same block is the entry's immediate successor, and
+// MachineCSE then reuses the entry's `mov x0, sp` for Unk_411b00's arguments
+// (a register kept across the calls) where the original materialises it again.
+inline bool Unk_SameColorSpace(const Unk_410f90& a, const Unk_410f90& b) {
+    return a.field_0.field_0 == b.field_0.field_0 && a.field_0.field_4 == b.field_0.field_4 &&
+           a.field_8.field_0 == b.field_8.field_0 && a.field_8.field_4 == b.field_8.field_4 &&
+           a.field_10.field_0 == b.field_10.field_0 && a.field_10.field_4 == b.field_10.field_4 &&
+           a.field_18.field_0 == b.field_18.field_0 && a.field_18.field_4 == b.field_18.field_4;
+}

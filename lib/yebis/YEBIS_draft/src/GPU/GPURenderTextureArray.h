@@ -32,7 +32,16 @@ public:
     // 0x71004a6a50: the same from a render texture's viewport
     static s32 Unk_4a6a50(Unk_49b230_Object* surface, CRenderTexture* source, s32 index, const Unk_Float4* rect,
                           bool arg4, s32 arg5, f32 scale);
-    s32 Unk_4a6070(s32 index, bool depth, s32 arg2, void* arg3, s32 arg4, s32 slot, s32 arg6, s32 arg7);
+    s32 Unk_4a6070(s32 index, bool depth, s32 arg2, void* arg3, s32 arg4, s32 slot, s32 arg6, s32 arg7, f32 arg8);
+    // 0x71004a65a0: `count` textures from `source` on, weighted by `scale`,
+    // drawn into `target`
+    s32 Unk_4a65a0(s32 target, s32 source, u32 count, s32 index, bool flag, f32 scale);
+    // a texture (-1: the current one; none past the last) (inline)
+    CRenderTexture* Unk_Texture(s32 index) {
+        if (index == -1)
+            index = field_90;
+        return index < field_30 ? field_38[index] : nullptr;
+    }
 
     u32 _2c;       // nothing here uses it (the base's last member ends at 0x29)
     s32 field_30;  // the number of textures
