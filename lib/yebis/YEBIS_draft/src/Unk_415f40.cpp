@@ -6,7 +6,7 @@
 #include <math.h>
 
 #include <yebis/YEBIS_draft/src/Unk_415f40.h>
-#include <yebis/YEBIS_draft/src/GPU/Unk_410f90.h>
+#include <yebis/YEBIS_draft/src/GPU/Unk_Statics.h>
 
 namespace PPFX {
 
@@ -398,14 +398,304 @@ s32 Unk_410400(s32 type) {
     return Unk_410300_Is(type) ? 0 : -1;
 }
 
-// 0x71004155f0 (not written yet): the inverse of a matrix
 void Unk_4155f0(MATRIXT44* out, const MATRIXT44* m);
+
+MATRIXT44* Unk_4114f0(MATRIXT44* out, u32 value);
+
+// The CIE photopic luminous efficiency (each value with its wavelength, every
+// 5 nm) and the CIE 1931 2-degree colour matching functions (x, y, z and the
+// wavelength, a zero at each end)
+static const Unk_Float2 Unk_Table1[83] = {
+    Unk_Float2(0.0f, 375.0f), Unk_Float2(0.0002f, 380.0f), Unk_Float2(0.000396f, 385.0f),
+    Unk_Float2(0.0008f, 390.0f), Unk_Float2(0.00155f, 395.0f), Unk_Float2(0.0028f, 400.0f),
+    Unk_Float2(0.00466f, 405.0f), Unk_Float2(0.0074f, 410.0f), Unk_Float2(0.0118f, 415.0f),
+    Unk_Float2(0.0175f, 420.0f), Unk_Float2(0.0227f, 425.0f), Unk_Float2(0.0273f, 430.0f),
+    Unk_Float2(0.0326f, 435.0f), Unk_Float2(0.0379f, 440.0f), Unk_Float2(0.0424f, 445.0f),
+    Unk_Float2(0.0468f, 450.0f), Unk_Float2(0.0521f, 455.0f), Unk_Float2(0.06f, 460.0f),
+    Unk_Float2(0.0739f, 465.0f), Unk_Float2(0.091f, 470.0f), Unk_Float2(0.113f, 475.0f),
+    Unk_Float2(0.139f, 480.0f), Unk_Float2(0.169f, 485.0f), Unk_Float2(0.208f, 490.0f),
+    Unk_Float2(0.259f, 495.0f), Unk_Float2(0.323f, 500.0f), Unk_Float2(0.4073f, 505.0f),
+    Unk_Float2(0.503f, 510.0f), Unk_Float2(0.6082f, 515.0f), Unk_Float2(0.71f, 520.0f),
+    Unk_Float2(0.7932f, 525.0f), Unk_Float2(0.862f, 530.0f), Unk_Float2(0.91485f, 535.0f),
+    Unk_Float2(0.954f, 540.0f), Unk_Float2(0.9803f, 545.0f), Unk_Float2(0.99495f, 550.0f),
+    Unk_Float2(1.0f, 555.0f), Unk_Float2(0.995f, 560.0f), Unk_Float2(0.9786f, 565.0f),
+    Unk_Float2(0.952f, 570.0f), Unk_Float2(0.9154f, 575.0f), Unk_Float2(0.87f, 580.0f),
+    Unk_Float2(0.8163f, 585.0f), Unk_Float2(0.757f, 590.0f), Unk_Float2(0.6949f, 595.0f),
+    Unk_Float2(0.631f, 600.0f), Unk_Float2(0.5668f, 605.0f), Unk_Float2(0.503f, 610.0f),
+    Unk_Float2(0.4412f, 615.0f), Unk_Float2(0.381f, 620.0f), Unk_Float2(0.32f, 625.0f),
+    Unk_Float2(0.265f, 630.0f), Unk_Float2(0.217f, 635.0f), Unk_Float2(0.175f, 640.0f),
+    Unk_Float2(0.1382f, 645.0f), Unk_Float2(0.107f, 650.0f), Unk_Float2(0.0816f, 655.0f),
+    Unk_Float2(0.061f, 660.0f), Unk_Float2(0.0446f, 665.0f), Unk_Float2(0.032f, 670.0f),
+    Unk_Float2(0.0232f, 675.0f), Unk_Float2(0.017f, 680.0f), Unk_Float2(0.0119f, 685.0f),
+    Unk_Float2(0.00821f, 690.0f), Unk_Float2(0.00572f, 695.0f), Unk_Float2(0.0041f, 700.0f),
+    Unk_Float2(0.00293f, 705.0f), Unk_Float2(0.00209f, 710.0f), Unk_Float2(0.00148f, 715.0f),
+    Unk_Float2(0.00105f, 720.0f), Unk_Float2(0.00074f, 725.0f), Unk_Float2(0.00052f, 730.0f),
+    Unk_Float2(0.000361f, 735.0f), Unk_Float2(0.000249f, 740.0f), Unk_Float2(0.000172f, 745.0f),
+    Unk_Float2(0.00012f, 750.0f), Unk_Float2(8.48e-5f, 755.0f), Unk_Float2(6e-5f, 760.0f),
+    Unk_Float2(4.24e-5f, 765.0f), Unk_Float2(3e-5f, 770.0f), Unk_Float2(2.12e-5f, 775.0f),
+    Unk_Float2(1.5e-5f, 780.0f), Unk_Float2(0.0f, 785.0f),
+};
+static const Unk_Float4 Unk_Table2[97] = {
+    Unk_Float4(0.0f, 0.0f, 0.0f, 355.0f), Unk_Float4(0.0001299f, 3.917e-6f, 0.0006061f, 360.0f),
+    Unk_Float4(0.0002321f, 6.965e-6f, 0.001086f, 365.0f), Unk_Float4(0.0004149f, 1.239e-5f, 0.001946f, 370.0f),
+    Unk_Float4(0.0007416f, 2.202e-5f, 0.003486f, 375.0f), Unk_Float4(0.001368f, 3.9e-5f, 0.006450001f, 380.0f),
+    Unk_Float4(0.002236f, 6.4e-5f, 0.01054999f, 385.0f), Unk_Float4(0.004243f, 0.00012f, 0.02005001f, 390.0f),
+    Unk_Float4(0.00765f, 0.000217f, 0.03621f, 395.0f), Unk_Float4(0.01431f, 0.000396f, 0.06785001f, 400.0f),
+    Unk_Float4(0.02319f, 0.00064f, 0.1102f, 405.0f), Unk_Float4(0.04351f, 0.00121f, 0.2074f, 410.0f),
+    Unk_Float4(0.07763f, 0.00218f, 0.3713f, 415.0f), Unk_Float4(0.13438f, 0.004f, 0.6456f, 420.0f),
+    Unk_Float4(0.21477f, 0.0073f, 1.0390501f, 425.0f), Unk_Float4(0.2839f, 0.0116f, 1.3856f, 430.0f),
+    Unk_Float4(0.3285f, 0.01684f, 1.62296f, 435.0f), Unk_Float4(0.34828f, 0.023f, 1.74706f, 440.0f),
+    Unk_Float4(0.34806f, 0.0298f, 1.7826f, 445.0f), Unk_Float4(0.3362f, 0.038f, 1.77211f, 450.0f),
+    Unk_Float4(0.3187f, 0.048f, 1.7441f, 455.0f), Unk_Float4(0.2908f, 0.06f, 1.6692f, 460.0f),
+    Unk_Float4(0.2511f, 0.0739f, 1.5281f, 465.0f), Unk_Float4(0.19536f, 0.09098f, 1.28764f, 470.0f),
+    Unk_Float4(0.1421f, 0.1126f, 1.0419f, 475.0f), Unk_Float4(0.09564f, 0.13902f, 0.8129501f, 480.0f),
+    Unk_Float4(0.05795001f, 0.1693f, 0.6162f, 485.0f), Unk_Float4(0.03201f, 0.20802f, 0.46518f, 490.0f),
+    Unk_Float4(0.0147f, 0.2586f, 0.3533f, 495.0f), Unk_Float4(0.0049f, 0.323f, 0.272f, 500.0f),
+    Unk_Float4(0.0024f, 0.4073f, 0.2123f, 505.0f), Unk_Float4(0.0093f, 0.503f, 0.1582f, 510.0f),
+    Unk_Float4(0.0291f, 0.6082f, 0.1117f, 515.0f), Unk_Float4(0.06327f, 0.71f, 0.07824999f, 520.0f),
+    Unk_Float4(0.1096f, 0.7932f, 0.05725001f, 525.0f), Unk_Float4(0.1655f, 0.862f, 0.04216f, 530.0f),
+    Unk_Float4(0.2257499f, 0.9148501f, 0.02984f, 535.0f), Unk_Float4(0.2904f, 0.954f, 0.0203f, 540.0f),
+    Unk_Float4(0.3597f, 0.9803f, 0.0134f, 545.0f), Unk_Float4(0.4334499f, 0.9949501f, 0.008749999f, 550.0f),
+    Unk_Float4(0.5120501f, 1.0f, 0.005749999f, 555.0f), Unk_Float4(0.5945f, 0.995f, 0.0039f, 560.0f),
+    Unk_Float4(0.6784f, 0.9786f, 0.002749999f, 565.0f), Unk_Float4(0.7621f, 0.952f, 0.0021f, 570.0f),
+    Unk_Float4(0.8425f, 0.9154f, 0.0018f, 575.0f), Unk_Float4(0.9163f, 0.87f, 0.001650001f, 580.0f),
+    Unk_Float4(0.9786f, 0.8163f, 0.0014f, 585.0f), Unk_Float4(1.0263f, 0.757f, 0.0011f, 590.0f),
+    Unk_Float4(1.0567f, 0.6949f, 0.001f, 595.0f), Unk_Float4(1.0622f, 0.631f, 0.0008f, 600.0f),
+    Unk_Float4(1.0456f, 0.5668f, 0.0006f, 605.0f), Unk_Float4(1.0026f, 0.503f, 0.00034f, 610.0f),
+    Unk_Float4(0.9384f, 0.4412f, 0.00024f, 615.0f), Unk_Float4(0.8544499f, 0.381f, 0.00019f, 620.0f),
+    Unk_Float4(0.7514f, 0.321f, 0.0001f, 625.0f), Unk_Float4(0.6424f, 0.265f, 5e-6f, 630.0f),
+    Unk_Float4(0.5419f, 0.217f, 3e-5f, 635.0f), Unk_Float4(0.4479f, 0.175f, 2e-5f, 640.0f),
+    Unk_Float4(0.3608f, 0.1382f, 1e-5f, 645.0f), Unk_Float4(0.2835f, 0.107f, 0.0f, 650.0f),
+    Unk_Float4(0.2187f, 0.0816f, 0.0f, 655.0f), Unk_Float4(0.1649f, 0.061f, 0.0f, 660.0f),
+    Unk_Float4(0.1212f, 0.04458f, 0.0f, 665.0f), Unk_Float4(0.0874f, 0.032f, 0.0f, 670.0f),
+    Unk_Float4(0.0636f, 0.0232f, 0.0f, 675.0f), Unk_Float4(0.04677f, 0.017f, 0.0f, 680.0f),
+    Unk_Float4(0.0329f, 0.01192f, 0.0f, 685.0f), Unk_Float4(0.0227f, 0.00821f, 0.0f, 690.0f),
+    Unk_Float4(0.01584f, 0.005723f, 0.0f, 695.0f), Unk_Float4(0.01135916f, 0.004102f, 0.0f, 700.0f),
+    Unk_Float4(0.008110916f, 0.002929f, 0.0f, 705.0f), Unk_Float4(0.005790346f, 0.002091f, 0.0f, 710.0f),
+    Unk_Float4(0.004106457f, 0.001484f, 0.0f, 715.0f), Unk_Float4(0.002899327f, 0.001047f, 0.0f, 720.0f),
+    Unk_Float4(0.00204919f, 0.00074f, 0.0f, 725.0f), Unk_Float4(0.001439971f, 0.00052f, 0.0f, 730.0f),
+    Unk_Float4(0.000999949f, 0.0003611f, 0.0f, 735.0f), Unk_Float4(0.000690079f, 0.0002492f, 0.0f, 740.0f),
+    Unk_Float4(0.000476021f, 0.0001719f, 0.0f, 745.0f), Unk_Float4(0.000332301f, 0.00012f, 0.0f, 750.0f),
+    Unk_Float4(0.000234826f, 8.48e-5f, 0.0f, 755.0f), Unk_Float4(0.000166151f, 6e-5f, 0.0f, 760.0f),
+    Unk_Float4(0.000117413f, 4.24e-5f, 0.0f, 765.0f), Unk_Float4(8.30753e-5f, 3e-5f, 0.0f, 770.0f),
+    Unk_Float4(5.87065e-5f, 2.12e-5f, 0.0f, 775.0f), Unk_Float4(4.15099e-5f, 1.499e-5f, 0.0f, 780.0f),
+    Unk_Float4(2.93533e-5f, 1.06e-5f, 0.0f, 785.0f), Unk_Float4(2.06738e-5f, 7.4657e-6f, 0.0f, 790.0f),
+    Unk_Float4(1.45598e-5f, 5.2578e-6f, 0.0f, 795.0f), Unk_Float4(1.0254e-5f, 3.7029e-6f, 0.0f, 800.0f),
+    Unk_Float4(7.22146e-6f, 2.6078e-6f, 0.0f, 805.0f), Unk_Float4(5.08587e-6f, 1.8366e-6f, 0.0f, 810.0f),
+    Unk_Float4(3.58165e-6f, 1.2934e-6f, 0.0f, 815.0f), Unk_Float4(2.52253e-6f, 9.1093e-7f, 0.0f, 820.0f),
+    Unk_Float4(1.77651e-6f, 6.4153e-7f, 0.0f, 825.0f), Unk_Float4(1.25114e-6f, 4.5181e-7f, 0.0f, 830.0f),
+    Unk_Float4(0.0f, 0.0f, 0.0f, 835.0f),
+};
+
+// 0x7100410450: the largest red, green and blue (and the largest of the three)
+// that the spectral colours have in colour space `space`, worked out for all
+// of them the first time (the table of maxima is in the TU's merged statics,
+// so not a function-local static: that would need a guard). The last loop is
+// unrolled only with a pointer induction variable (an indexed one costs the
+// unroller more than its threshold of 300).
+// NON_MATCHING: the inner loop's pointer to the space's maxima: the original
+// keeps a 64-bit index and a pointer to the maxima's fourth element (the
+// elements at -12, -8, -4, the increment a separate add); here a 32-bit index
+// and a pointer to the first element (post-incremented by the last store).
+static Unk_Float4 s_max[24];
+Unk_Float4 Unk_410450(s32 space) {
+    static bool s_initialized;
+    if (!s_initialized) {
+        s_initialized = true;
+        for (s32 i = 0; i < 24; i++) {
+            s_max[i] = Unk_Float4(-3.4028235e38f, -3.4028235e38f, -3.4028235e38f, -3.4028235e38f);
+        }
+        for (s32 i = 0; i < 97; i++) {
+            f32 x = Unk_Table2[i].field_0[0].field_0;
+            f32 y = Unk_Table2[i].field_0[1].field_0;
+            f32 z = Unk_Table2[i].field_0[2].field_0;
+            Unk_Float4* max = s_max;
+            for (u32 j = 0; j < 24; j++, max++) {
+                MATRIXT44 m;
+                Unk_4114f0(&m, j);
+                f32 r = x * m.field_0[0][0] + y * m.field_0[1][0] + z * m.field_0[2][0] + m.field_0[3][0];
+                f32 g = x * m.field_0[0][1] + y * m.field_0[1][1] + z * m.field_0[2][1] + m.field_0[3][1];
+                f32 b = x * m.field_0[0][2] + y * m.field_0[1][2] + z * m.field_0[2][2] + m.field_0[3][2];
+                max->field_0[0].field_0 = r > max->field_0[0].field_0 ? r : max->field_0[0].field_0;
+                max->field_0[1].field_0 = g > max->field_0[1].field_0 ? g : max->field_0[1].field_0;
+                max->field_0[2].field_0 = b > max->field_0[2].field_0 ? b : max->field_0[2].field_0;
+            }
+        }
+        Unk_Float4* max = s_max;
+        for (s32 i = 0; i < 24; i++, max++) {
+            f32 m = max->field_0[0].field_0 > max->field_0[1].field_0 ? max->field_0[0].field_0 : max->field_0[1].field_0;
+            max->field_0[3].field_0 = m > max->field_0[2].field_0 ? m : max->field_0[2].field_0;
+        }
+    }
+    return s_max[space];
+}
 
 }  // namespace PPFX
 
-// 0x7100410960 (not written yet): the primaries and white point of a colour
-// space by its number
-void Unk_410960(Unk_410f90* self, u32 value);
+// 0x7100410960: the primaries and white point of a colour space by its number
+// (the two pairs of spaces that differ only in the white point are one case
+// each, with a switch for the white point: SimplifyCFG sinks the rest of the
+// two copies into one block, and the jump table goes to the white points)
+// NON_MATCHING: two instructions: the entry computes the DCI white point's
+// two element addresses (for the sunk block's phis) in the other order. The
+// operator= that loads x first gives that order but then loads the merged
+// blocks' elements in the other order.
+void Unk_410960(Unk_410f90* self, u32 value) {
+    *self = Unk_410f90();
+    switch (value) {
+    case 0:
+        self->field_18 = PPFX::Unk_White_D65;
+        self->field_0 = PPFX::Unk_Float2(0.64f, 0.33f);
+        self->field_8 = PPFX::Unk_Float2(0.3f, 0.6f);
+        self->field_10 = PPFX::Unk_Float2(0.15f, 0.06f);
+        return;
+    case 1:
+        self->field_18 = PPFX::Unk_White_D65;
+        self->field_0 = PPFX::Unk_Float2(0.708f, 0.292f);
+        self->field_8 = PPFX::Unk_Float2(0.17f, 0.797f);
+        self->field_10 = PPFX::Unk_Float2(0.131f, 0.046f);
+        return;
+    case 2:
+        self->field_18 = PPFX::Unk_White_D65;
+        self->field_0 = PPFX::Unk_Float2(0.64f, 0.33f);
+        self->field_8 = PPFX::Unk_Float2(0.29f, 0.6f);
+        self->field_10 = PPFX::Unk_Float2(0.15f, 0.06f);
+        return;
+    case 3:
+    case 4:
+        switch (value) {
+        case 3:
+            self->field_18 = PPFX::Unk_White_D65;
+            break;
+        case 4:
+            self->field_18 = PPFX::Unk_White_D93;
+            break;
+        }
+        self->field_0 = PPFX::Unk_Float2(0.63f, 0.34f);
+        self->field_8 = PPFX::Unk_Float2(0.31f, 0.595f);
+        self->field_10 = PPFX::Unk_Float2(0.155f, 0.07f);
+        return;
+    case 5:
+        self->field_18 = PPFX::Unk_White_C;
+        self->field_0 = PPFX::Unk_Float2(0.67f, 0.33f);
+        self->field_8 = PPFX::Unk_Float2(0.21f, 0.71f);
+        self->field_10 = PPFX::Unk_Float2(0.14f, 0.08f);
+        return;
+    case 6:
+        self->field_18 = PPFX::Unk_White_D65;
+        self->field_0 = PPFX::Unk_Float2(0.64f, 0.33f);
+        self->field_8 = PPFX::Unk_Float2(0.21f, 0.71f);
+        self->field_10 = PPFX::Unk_Float2(0.15f, 0.06f);
+        return;
+    case 7:
+        self->field_18 = PPFX::Unk_White_D50;
+        self->field_0 = PPFX::Unk_Float2(0.7347f, 0.2653f);
+        self->field_8 = PPFX::Unk_Float2(0.1152f, 0.8264f);
+        self->field_10 = PPFX::Unk_Float2(0.1566f, 0.0177f);
+        return;
+    case 8:
+        self->field_18 = PPFX::Unk_White_D50;
+        self->field_0 = PPFX::Unk_Float2(0.7347f, 0.2653f);
+        self->field_8 = PPFX::Unk_Float2(0.1596f, 0.8404f);
+        self->field_10 = PPFX::Unk_Float2(0.0366f, 0.0001f);
+        return;
+    case 9:
+        self->field_18 = PPFX::Unk_White_D60;
+        self->field_0 = PPFX::Unk_Float2(0.7347f, 0.2653f);
+        self->field_8 = PPFX::Unk_Float2(0.0f, 1.0f);
+        self->field_10 = PPFX::Unk_Float2(0.0001f, -0.077f);
+        return;
+    case 10:
+        self->field_18 = PPFX::Unk_White_D60;
+        self->field_0 = PPFX::Unk_Float2(0.713f, 0.293f);
+        self->field_8 = PPFX::Unk_Float2(0.165f, 0.83f);
+        self->field_10 = PPFX::Unk_Float2(0.128f, 0.044f);
+        return;
+    case 11:
+    case 12:
+        switch (value) {
+        case 11:
+            self->field_18 = PPFX::Unk_White_DCI;
+            break;
+        case 12:
+            self->field_18 = PPFX::Unk_White_D65;
+            break;
+        }
+        self->field_0 = PPFX::Unk_Float2(0.68f, 0.32f);
+        self->field_8 = PPFX::Unk_Float2(0.265f, 0.69f);
+        self->field_10 = PPFX::Unk_Float2(0.15f, 0.06f);
+        return;
+    case 13:
+        self->field_18 = PPFX::Unk_White_DCI;
+        self->field_0 = PPFX::Unk_Float2(0.74f, 0.27f);
+        self->field_8 = PPFX::Unk_Float2(0.22f, 0.78f);
+        self->field_10 = PPFX::Unk_Float2(0.09f, -0.09f);
+        return;
+    case 14:
+        self->field_18 = PPFX::Unk_White_D65;
+        self->field_0 = PPFX::Unk_Float2(0.74f, 0.27f);
+        self->field_8 = PPFX::Unk_Float2(0.17f, 1.14f);
+        self->field_10 = PPFX::Unk_Float2(0.08f, -0.1f);
+        return;
+    case 15:
+        self->field_18 = PPFX::Unk_White_D65;
+        self->field_0 = PPFX::Unk_Float2(0.73f, 0.28f);
+        self->field_8 = PPFX::Unk_Float2(0.14f, 0.855f);
+        self->field_10 = PPFX::Unk_Float2(0.1f, -0.05f);
+        return;
+    case 16:
+        self->field_18 = PPFX::Unk_White_D65;
+        self->field_0 = PPFX::Unk_Float2(0.766f, 0.275f);
+        self->field_8 = PPFX::Unk_Float2(0.225f, 0.8f);
+        self->field_10 = PPFX::Unk_Float2(0.089f, -0.087f);
+        return;
+    case 17:
+        self->field_18 = PPFX::Unk_White_E;
+        self->field_0 = PPFX::Unk_Float2(0.7347f, 0.2653f);
+        self->field_8 = PPFX::Unk_Float2(0.2738f, 0.7174f);
+        self->field_10 = PPFX::Unk_Float2(0.1666f, 0.0089f);
+        return;
+    case 18:
+        self->field_18 = PPFX::Unk_White_E;
+        self->field_0 = PPFX::Unk_Float2(1.0f, 0.0f);
+        self->field_8 = PPFX::Unk_Float2(0.0f, 1.0f);
+        self->field_10 = PPFX::Unk_Float2(0.0f, 0.0f);
+        return;
+    case 19:
+        self->field_18 = PPFX::Unk_White_E;
+        self->field_0 = PPFX::Unk_Float2(0.83738434f, 0.16261561f);
+        self->field_8 = PPFX::Unk_Float2(2.302202f, -1.3022021f);
+        self->field_10 = PPFX::Unk_Float2(0.16799065f, -6.7032556e-06f);
+        return;
+    case 20:
+        self->field_18 = PPFX::Unk_White_D65;
+        self->field_0 = PPFX::Unk_Float2(0.8373814f, 0.16261858f);
+        self->field_8 = PPFX::Unk_Float2(2.301887f, -1.301887f);
+        self->field_10 = PPFX::Unk_Float2(0.16799228f, -5.446892e-06f);
+        return;
+    case 21:
+        self->field_18 = PPFX::Unk_White_E;
+        self->field_0 = PPFX::Unk_Float2(0.69961315f, 0.30643222f);
+        self->field_8 = PPFX::Unk_Float2(-0.35749286f, 1.2601477f);
+        self->field_10 = PPFX::Unk_Float2(0.13582164f, 0.041852362f);
+        return;
+    case 22:
+        self->field_18 = PPFX::Unk_White_E;
+        self->field_0 = PPFX::Unk_Float2(0.6934638f, 0.3163464f);
+        self->field_8 = PPFX::Unk_Float2(-0.5597244f, 1.4717051f);
+        self->field_10 = PPFX::Unk_Float2(0.15031128f, 0.06715658f);
+        return;
+    case 23:
+        self->field_18 = PPFX::Unk_White_E;
+        self->field_0 = PPFX::Unk_Float2(0.711369f, 0.29487914f);
+        self->field_8 = PPFX::Unk_Float2(-1.4757617f, 2.5059154f);
+        self->field_10 = PPFX::Unk_Float2(0.14387473f, 0.056762394f);
+        return;
+    default:
+        self->field_18 = Unk_410f90_Point(0.0f, 0.0f);
+        return;
+    }
+}
 
 // 0x7100410f90: a colour space by its number (0x19 and -1: none, all zero)
 void Unk_410f90_set(Unk_410f90* self, u32 value) {
@@ -424,20 +714,20 @@ MATRIXT44* Unk_4114f0(MATRIXT44* out, u32 value);
 // 0x7100410fb0: the adaptation of XYZ colours from one white point to another
 // (a von Kries transform in the cone space of colour space `method`)
 MATRIXT44* Unk_410fb0(MATRIXT44* out, const Unk_410f90_Point* from, const Unk_410f90_Point* to, u32 method) {
-    if (from->field_0 == to->field_0 && from->field_4 == to->field_4) {
+    if (from->field_0.field_0 == to->field_0.field_0 && from->field_4.field_0 == to->field_4.field_0) {
         out->field_0[0][1] = out->field_0[0][2] = out->field_0[0][3] = out->field_0[1][0] = out->field_0[1][2] =
             out->field_0[1][3] = out->field_0[2][0] = out->field_0[2][1] = out->field_0[2][3] = out->field_0[3][0] =
                 out->field_0[3][1] = out->field_0[3][2] = 0.0f;
         out->field_0[0][0] = out->field_0[1][1] = out->field_0[2][2] = out->field_0[3][3] = 1.0f;
         return out;
     }
-    f32 fromScale = 1.0f / from->field_4;
-    f32 fromZ = 1.0f - from->field_0 - from->field_4;
-    f32 fromX = from->field_0 * fromScale;
+    f32 fromScale = 1.0f / from->field_4.field_0;
+    f32 fromZ = 1.0f - from->field_0.field_0 - from->field_4.field_0;
+    f32 fromX = from->field_0.field_0 * fromScale;
     fromZ = fromScale * fromZ;
-    f32 toZ = 1.0f - to->field_0 - to->field_4;
-    f32 toScale = 1.0f / to->field_4;
-    f32 toX = to->field_0 * toScale;
+    f32 toZ = 1.0f - to->field_0.field_0 - to->field_4.field_0;
+    f32 toScale = 1.0f / to->field_4.field_0;
+    f32 toX = to->field_0.field_0 * toScale;
     toZ = toScale * toZ;
     MATRIXT44 toCone;
     Unk_4114f0(&toCone, method);
@@ -526,6 +816,88 @@ MATRIXT44* Unk_4114f0(MATRIXT44* out, u32 value) {
     return out;
 }
 
+// k log(e^(a / k) + e^(b / k)): a smooth maximum of a and b (inline)
+static inline f32 Unk_SmoothMax(f32 a, f32 b, f32 k) {
+    return k * logf(expf(a / k) + expf(b / k));
+}
+
+// 0x71004116f0: the colour of light of one wavelength (nm) in colour space
+// `space` and its luminous efficiency, optionally scaled by the space's
+// largest spectral value, brought into range and gamma-encoded
+// NON_MATCHING: 12 bytes shorter; the shape is the original's. The original
+// loads all of a table entry's elements before the lerps, keeps the third
+// component's range check a branch (the first two are selects, as here),
+// materialises the 5.0 of the second lookup in the blocks before it, and
+// tests the smooth maximum against the value before the peak.
+Unk_Float4 Unk_4116f0(f32 wavelength, f32 gamma, f32 knee, u32 space, bool scale, bool limit) {
+    f32 first = Unk_Table2[1].field_0[3].field_0;
+    f32 w = first > wavelength ? first : (Unk_Table2[95].field_0[3].field_0 < wavelength ? Unk_Table2[95].field_0[3].field_0 : wavelength);
+    f32 t = (w - first) / 5.0f + 1.0f;
+    s32 i = static_cast<s32>(floorf(t));
+    f32 frac = t - static_cast<f32>(i);
+    s32 j = i + 1 < 96 ? i + 1 : 96;
+    f32 x = Unk_Lerp(Unk_Table2[i].field_0[0].field_0, Unk_Table2[j].field_0[0].field_0, frac);
+    f32 y = Unk_Lerp(Unk_Table2[i].field_0[1].field_0, Unk_Table2[j].field_0[1].field_0, frac);
+    f32 z = Unk_Lerp(Unk_Table2[i].field_0[2].field_0, Unk_Table2[j].field_0[2].field_0, frac);
+    MATRIXT44 m;
+    Unk_4114f0(&m, space);
+    f32 r = x * m.field_0[0][0] + y * m.field_0[1][0] + z * m.field_0[2][0] + m.field_0[3][0];
+    f32 g = x * m.field_0[0][1] + y * m.field_0[1][1] + z * m.field_0[2][1] + m.field_0[3][1];
+    f32 b = x * m.field_0[0][2] + y * m.field_0[1][2] + z * m.field_0[2][2] + m.field_0[3][2];
+    bool encode = gamma != 1.0f;
+    limit = limit || encode;
+    scale = scale || encode;
+    f32 peak = 0.0f;
+    if (limit) {
+        peak = Unk_410450(space).field_0[3].field_0;
+    }
+    f32 inverse = 1.0f / peak;
+    if (scale) {
+        r = inverse * r;
+        g = inverse * g;
+        b = inverse * b;
+    }
+    if (knee > 0.0f) {
+        knee = (fmaxf(r, 0.0f) * 0.2126f + fmaxf(g, 0.0f) * 0.7152f + fmaxf(b, 0.0f) * 0.0722f) * knee;
+    }
+    if (limit) {
+        if (knee > 0.0f) {
+            f32 sr = Unk_SmoothMax(r, 0.0f, knee);
+            f32 sg = Unk_SmoothMax(g, 0.0f, knee);
+            f32 sb = Unk_SmoothMax(b, 0.0f, knee);
+            r = sr >= r && sr <= peak ? sr : fmaxf(r, 0.0f);
+            g = sg >= g && sg <= peak ? sg : fmaxf(g, 0.0f);
+            b = sb >= b && sb <= peak ? sb : fmaxf(b, 0.0f);
+        } else {
+            r = fmaxf(r, 0.0f);
+            g = fmaxf(g, 0.0f);
+            b = fmaxf(b, 0.0f);
+        }
+    }
+    f32 first1 = Unk_Table1[0].field_0[1].field_0;
+    f32 w1 = first1 > wavelength ? first1 : (Unk_Table1[82].field_0[1].field_0 < wavelength ? Unk_Table1[82].field_0[1].field_0 : wavelength);
+    f32 t1 = (w1 - first1) / 5.0f;
+    s32 i1 = static_cast<s32>(floorf(t1));
+    f32 frac1 = t1 - static_cast<f32>(i1);
+    s32 j1 = i1 + 1 < 82 ? i1 + 1 : 82;
+    f32 v = Unk_Lerp(Unk_Table1[i1].field_0[0].field_0, Unk_Table1[j1].field_0[0].field_0, frac1);
+    if (encode) {
+        if (r > 0.0f) {
+            r = powf(r, 1.0f / 2.2f);
+        }
+        if (g > 0.0f) {
+            g = powf(g, 1.0f / 2.2f);
+        }
+        if (b > 0.0f) {
+            b = powf(b, 1.0f / 2.2f);
+        }
+        if (v > 0.0f) {
+            v = powf(v, 1.0f / 2.2f);
+        }
+    }
+    return Unk_Float4(r, g, b, v);
+}
+
 // 0x7100411b00: the RGB to XYZ matrix of three primaries and a white point
 // (their CIE x and y)
 // (the primaries' last row is set with [3][3] before [3][2]: with the four
@@ -533,14 +905,14 @@ MATRIXT44* Unk_4114f0(MATRIXT44* out, u32 value) {
 // them a memset, whose two 8-byte stores come in descending order)
 MATRIXT44* Unk_411b00(MATRIXT44* out, const Unk_410f90_Point* red, const Unk_410f90_Point* green,
                       const Unk_410f90_Point* blue, const Unk_410f90_Point* white) {
-    f32 rx = red->field_0;
-    f32 ry = red->field_4;
-    f32 gx = green->field_0;
-    f32 gy = green->field_4;
-    f32 bx = blue->field_0;
-    f32 by = blue->field_4;
-    f32 wx = white->field_0;
-    f32 wy = white->field_4;
+    f32 rx = red->field_0.field_0;
+    f32 ry = red->field_4.field_0;
+    f32 gx = green->field_0.field_0;
+    f32 gy = green->field_4.field_0;
+    f32 bx = blue->field_0.field_0;
+    f32 by = blue->field_4.field_0;
+    f32 wx = white->field_0.field_0;
+    f32 wy = white->field_4.field_0;
     f32 rz = 1.0f - rx - ry;
     f32 gz = 1.0f - gx - gy;
     f32 bz = 1.0f - bx - by;
@@ -1019,6 +1391,64 @@ void Unk_414af0(u32 count, f32* offsets, f32* weights, bool normalize, f32 sigma
     offsets[1] = step;
     weights[2] = scale * w1;
     offsets[2] = -step;
+}
+
+// 0x71004155f0: the inverse of a matrix (Gauss-Jordan elimination with
+// partial pivoting, the rows swapped through a permutation; `out` is left as
+// it is when the matrix is singular)
+// NON_MATCHING: 100 bytes longer. The original keeps the eight rows'
+// addresses of the two matrices in registers across the loop over the
+// columns (x8 to x15) and loads each pivot-row element again where it is
+// used; here they are recomputed at each use and the scaled pivot row is
+// reused from the scaling. The stack layout and the control flow match.
+void Unk_4155f0(MATRIXT44* out, const MATRIXT44* m) {
+    MATRIXT44 a;
+    MATRIXT44 b;
+    s32 perm[4];
+    for (s32 i = 0; i < 4; i++) {
+        perm[i] = i;
+    }
+    Unk_Identity(&b);
+    a = *m;
+    for (s32 k = 0; k < 4; k++) {
+        s32 p = k;
+        for (s32 i = k + 1; i < 4; i++) {
+            if (fabsf(a.field_0[k][perm[p]]) < fabsf(a.field_0[k][perm[i]])) {
+                p = i;
+            }
+        }
+        if (a.field_0[k][perm[p]] == 0.0f) {
+            return;
+        }
+        s32 t = perm[k];
+        perm[k] = perm[p];
+        perm[p] = t;
+        s32 pk = perm[k];
+        f32 inverse = 1.0f / a.field_0[k][pk];
+        for (s32 j = 0; j < 4; j++) {
+            if (j >= k) {
+                a.field_0[j][pk] *= inverse;
+            }
+            b.field_0[j][pk] *= inverse;
+        }
+        for (s32 i = 0; i < 4; i++) {
+            if (i != k) {
+                s32 pi = perm[i];
+                f32 f = a.field_0[k][pi] / a.field_0[k][pk];
+                for (s32 j = 0; j < 4; j++) {
+                    if (j >= k) {
+                        a.field_0[j][pi] -= f * a.field_0[j][pk];
+                    }
+                    b.field_0[j][pi] -= f * b.field_0[j][pk];
+                }
+            }
+        }
+    }
+    for (s32 i = 0; i < 4; i++) {
+        for (s32 j = 0; j < 4; j++) {
+            out->field_0[j][i] = b.field_0[j][perm[i]];
+        }
+    }
 }
 
 // 0x7100415370: the points of `rings` rings around the centre of a disc of

@@ -18,6 +18,83 @@ static inline void Unk_DeleteBytes(u8* bytes) {
         Unk_4b9a60(Unk_238d5f8, reinterpret_cast<u64*>(bytes) - 1);
 }
 
+// 0x71004baf20
+// NON_MATCHING: the same loop; the original spills the out-parameters at the
+// entry (here they get callee-saved registers first), and its selects of the
+// nibble's position test the direction the other way round.
+void Unk_4ba5a0_Self::Unk_4baf20(u8** out0, size_t* outSize0, u8** out1, size_t* outSize1, const u8* data,
+                                 size_t size) {
+#line 195
+    size_t* counts = UNK_NEW_ARRAY(size_t, 2);
+    counts[0] = 0;
+    counts[1] = 0;
+#line 198
+    u8** buffers = UNK_NEW_ARRAY(u8*, 2);
+    buffers[0] = nullptr;
+    buffers[1] = nullptr;
+#line 200
+    size_t* sizes = UNK_NEW_ARRAY(size_t, 2);
+    sizes[0] = 0;
+    sizes[1] = 0;
+    size_t end = size * 8;
+    size_t pos = 0;
+    bool backward = false;
+    while (pos < end) {
+        size_t index;
+        size_t shift;
+        if (backward) {
+            index = end - 1;
+            shift = end;
+            end -= 4;
+        } else {
+            index = pos;
+            shift = pos + 4;
+            pos += 4;
+        }
+        shift &= 7;
+        index >>= 3;
+        u8 direction = data[index] & (8 << shift);
+        backward = (direction >> (shift + 3)) != 0;
+        u8 stream = data[index] & (4 << shift);
+        s32 which = (stream >> (shift + 2)) != 0;
+        size_t n = counts[which]++;
+        if (n >= sizes[which] * 8) {
+            u8* old = nullptr;
+            if (sizes[which] != 0) {
+#line 245
+                old = UNK_NEW_ARRAY(u8, sizes[which]);
+                memcpy(old, buffers[which], sizes[which]);
+                Unk_DeleteBytes(buffers[which]);
+            }
+#line 249
+            buffers[which] = UNK_NEW_ARRAY(u8, sizes[which] + 1);
+            if (sizes[which] != 0) {
+                memcpy(buffers[which], old, sizes[which]);
+                Unk_DeleteBytes(old);
+            }
+            buffers[which][sizes[which]] = 0;
+            sizes[which]++;
+        }
+        u32 bit = ((data[index] & (2 << shift)) >> (shift + 1)) != 0;
+        buffers[which][n >> 3] |= bit << (7 - (n & 7));
+    }
+#line 274
+    *out0 = UNK_NEW_ARRAY(u8, sizes[0] + 1);
+    memset(*out0, 0, sizes[0] + 1);
+    memcpy(*out0, buffers[0], sizes[0]);
+    *outSize0 = sizes[0];
+#line 279
+    *out1 = UNK_NEW_ARRAY(u8, sizes[1] + 1);
+    memset(*out1, 0, sizes[1] + 1);
+    memcpy(*out1, buffers[1], sizes[1]);
+    *outSize1 = sizes[1];
+    UNK_DELETE_ARRAY(counts);
+    Unk_DeleteBytes(buffers[0]);
+    Unk_DeleteBytes(buffers[1]);
+    UNK_DELETE_ARRAY(buffers);
+    UNK_DELETE_ARRAY(sizes);
+}
+
 // 0x71004bb390
 void Unk_4ba5a0_Self::Unk_4bb390(u8** out, size_t* outSize, const void* data, size_t size, const u8* key,
                                  size_t keySize) {

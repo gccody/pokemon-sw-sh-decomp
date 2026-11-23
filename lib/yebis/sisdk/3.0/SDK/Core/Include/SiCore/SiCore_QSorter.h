@@ -21,11 +21,17 @@ public:
         T* m_pItems;
     };
 
-    // (inline in its callers)
-    explicit SiQSorter(ISiAllocator* pAllocator) : m_pAllocator(pAllocator), m_capacity(0), m_depth(0), m_pStack(nullptr) {
+    // (inline in its callers) makes the stack's room for capacity parts.
+    // The count is taken by reference: the caller's is read after the
+    // default allocator's call, and the stack's store in the reserve comes
+    // after the constructor's own (so its address is computed once, which
+    // gives the room's test `cmp #1 ; b.lt`).
+    SiQSorter(ISiAllocator* pAllocator, const size_t& capacity)
+        : m_pAllocator(pAllocator), m_capacity(0), m_depth(0), m_pStack(nullptr) {
         if (m_pAllocator == nullptr) {
             m_pAllocator = Unk_4bc640();
         }
+        Unk_Reserve(capacity);
     }
     // makes the stack's room (inline in its callers)
     void Unk_Reserve(s64 capacity) {

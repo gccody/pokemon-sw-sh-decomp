@@ -17,6 +17,9 @@ namespace SiSDK3 {
 // 0x71004bd0e0, 0x71004bec50, 0x71004bcfa0, 0x71004be3f0
 // NON_MATCHING (0x71004bcfa0, Unk_4bcfa0): two instructions swapped where the
 // first list takes the allocator (a register copy before the stores).
+// Tried: every order of SiDirectLinkedList::Unk_SetAllocator's four stores,
+// its allocator as if/else, a swapped ternary, a local, or assigned then
+// tested; m_pAllocator or field_120 set first.
 template bool SiPool<SiFixedHeapAllocator2::MemoryBlockHeader, 16>::vf2(size_t count);
 template bool SiPool<SiFixedHeapAllocator2::MemoryBlockHeader, 16>::vf5(size_t count);
 template void SiPool<SiFixedHeapAllocator2::MemoryBlockHeader, 16>::Unk_4bcfa0(ISiAllocator* pAllocator);
@@ -154,9 +157,8 @@ void SiFixedHeapAllocator2::vf23() {
     field_110.Unk_4bd7e0();
 }
 
-// 0x71004bd610 (inline: its unused argument reaches it from both callers)
-// NON_MATCHING: the original tests the allocation's number before `n < field_88`;
-// here LLVM's Reassociate puts the cheaper test first (5 instructions).
+// 0x71004bd610 (inline: its unused argument reaches it from both callers).
+// The load-free `n < field_88` is written last: SimplifyCFG puts it second.
 inline void SiFixedHeapAllocator2::Unk_4bd610(s64 number, bool) {
     char text[0x400];
     if (field_88 < 1) {
@@ -169,7 +171,7 @@ inline void SiFixedHeapAllocator2::Unk_4bd610(s64 number, bool) {
     s64 n = 0;
     for (MemoryBlockPtr* node = field_c0.m_pHead; node != nullptr; node = node->m_pNext) {
         MemoryBlockHeader* block = node->m_pHeader;
-        if (block->field_80 > number && n < field_88 && block->field_58 != nullptr) {
+        if (block->field_80 > number && block->field_58 != nullptr && n < field_88) {
             blocks[n++] = block;
         }
     }

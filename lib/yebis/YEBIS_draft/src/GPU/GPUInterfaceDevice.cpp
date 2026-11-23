@@ -89,6 +89,54 @@ s32 GPUSiGfxLazyDrawCommand::Execute(Unk_SiGfxDrawContext* context) {
     return context->vf71(source, target) ? 0 : -1;
 }
 
+// 0x710043dd00
+IGPUDevice::IGPUDevice() : field_28(0), field_58(false), field_59(false) {
+    field_14d10.field_0 = 0.0f;
+    field_14d10.field_4 = 0.0f;
+    field_14d10.field_8 = 0.0f;
+    field_14d10.field_c = 0.0f;
+    field_14d10.field_10 = 0.0f;
+    field_14d10.field_14 = 1.0f;
+    field_14d28 = 0;
+    field_14d2c = 0;
+    field_14d30 = 0;
+    field_14d34 = 0;
+    field_14db8 = 1.0f;
+    field_14dbc = 0;
+    field_14dc0 = 0xffff;
+    for (s32 i = 0; i < 8; i++) {
+        for (s32 j = 0; j < 4; j++) {
+            field_14d38[i][j] = 0.0f;
+        }
+    }
+    field_14fd4.field_0 = 0;
+    field_14fd4.field_4 = 0;
+    field_14fd4.field_8 = 0;
+    field_14fd4.field_c = 0;
+    field_14fd4.field_10 = 0.0f;
+    field_14fd4.field_14 = 1.0f;
+    field_30 = nullptr;
+    field_38 = nullptr;
+    field_40.clear();
+    field_14d0c = 0;
+    // (cleared again by the memset below: the store dies, but its address,
+    // computed here, is what the memset is handed)
+    field_14dc4 = -1;
+    memset(field_88, 0, reinterpret_cast<u8*>(field_14d0a) - reinterpret_cast<u8*>(field_88));
+    memset(&field_14dc4, 0, reinterpret_cast<u8*>(&field_14ef0) - reinterpret_cast<u8*>(&field_14dc4));
+    field_10.clear();
+    field_14fc8 = nullptr;
+    field_14fd0 = 0;
+    field_15000 = 0;
+    for (s32 i = 0; i < 8; i++) {
+        field_14f00[i] = nullptr;
+    }
+    field_14f40 = nullptr;
+    for (s32 i = 0; i < 8; i++) {
+        field_14f48[i] = nullptr;
+    }
+}
+
 // 0x710043e640
 bool IGPUDevice::Unk_PipelineKey::operator==(const Unk_PipelineKey& other) const {
     if (field_10 != other.field_10 || field_18 != other.field_18 || field_118 != other.field_118 ||
@@ -168,6 +216,92 @@ s32 Unk_43f080(IGPUDevice* self) {
     return 0;
 }
 
+}  // namespace PPFX
+
+// 0x7100446df0: a result's name
+const char* Unk_446df0(s32 result);
+
+namespace PPFX {
+
+// what Unk_43f200 prints about one of the two surfaces (inline)
+static inline void Unk_LogSurface(const char* name, IGPUSurface* surface, IGPUInterface* const& current) {
+    const char* format = Unk_446b20(surface->field_44.field_0, nullptr);
+    u32 samples = Unk_446e40(surface->field_44.field_10);
+    const char* usage = Unk_446c40(static_cast<IGPUSurface*>(current)->field_24, true, nullptr);
+    format = format != nullptr ? format : "";
+    UNK_PPFX_INFO("%s %s:\t%4d x %4d,\t%s (0x%04x),\tMSAA(%2dx, %2d),\tUsage 0x%08x,\tFlags 0x%08x\n", name, usage,
+                  surface->field_44.field_8, surface->field_44.field_c, format, surface->field_44.field_0, samples,
+                  surface->field_44.field_14, static_cast<IGPUSurface*>(current)->field_24,
+                  static_cast<IGPUSurface*>(current)->field_28);
+}
+
+// 0x710043f200: IGPUDevice::InitializeDeviceBuffers (its log lines): the
+// surfaces of the back buffer (the settings' size, else the viewport's), the
+// viewport and the targets set to them
+s32 Unk_43f200(IGPUDevice* self) {
+    self->field_14ff0 = nullptr;
+    self->field_14ff8 = nullptr;
+    Unk_Viewport viewport;
+    self->vf17(&viewport);
+    if (Unk_24e1500.field_0 == 0) {
+        Unk_24e1500.field_0 = viewport.field_8;
+    }
+    if (Unk_24e1500.field_4 == 0) {
+        Unk_24e1500.field_4 = viewport.field_c;
+    }
+    Unk_SiGfxRenderTarget* target = reinterpret_cast<Unk_SiGfxRenderTarget*>(Unk_24e1500.field_28);
+    if (target == nullptr) {
+        target = self->field_30->vf33()->field_18;
+        if (target == nullptr) {
+#line 1691
+            PPFX_ERROR("IGPUDevice::InitializeDeviceBuffers(): GetSiGfxDeviceBackBuffer() failed (0x%x: %s).\nEffective backbuffer must be set as the render target.\n",
+                       0, Unk_446df0(0));
+            return -1;
+        }
+    }
+    target->vf2();
+    self->field_14ff0 = IGPUSurface::CreateSurface_SiGfxDefaultRenderTarget(self, 2, target);
+    if (self->field_14ff0 == nullptr) {
+#line 1708
+        PPFX_ERROR("IGPUDevice::InitializeDeviceBuffers(): m_pGPUSurface_BackBuffer = IGPUSurface::CreateSurface_SiGfxDefaultRenderTarget() failed.\n");
+    }
+    self->field_14ff8 = IGPUSurface::CreateSurface_SiGfxDefaultRenderTarget(self, 3, target);
+    target->vf3();
+    IGPUSurface* back = static_cast<IGPUSurface*>(self->field_14ff0);
+    Unk_Viewport backViewport;
+    backViewport.field_0 = 0;
+    backViewport.field_4 = 0;
+    backViewport.field_8 = back->field_44.field_8;
+    backViewport.field_c = back->field_44.field_c;
+    backViewport.field_10 = 0.0f;
+    backViewport.field_14 = 1.0f;
+    self->field_14fd4 = backViewport;
+    self->vf54(false, 0);
+    self->vf55(0.0f, 0.0f);
+    if (Unk_24e000c != 0) {
+        Unk_LogSurface("DevBS", back, self->field_14ff0);
+    }
+    IGPUSurface* depth = static_cast<IGPUSurface*>(self->field_14ff8);
+    if (depth != nullptr && Unk_24e000c != 0) {
+        Unk_LogSurface("DevDS", depth, self->field_14ff8);
+    }
+    s32 result = 0;
+    s32 r = self->vf7(0, self->field_14ff0, 0);
+    if (r < 0) {
+#line 1800
+        PPFX_ERROR("IGPUDevice::InitializeDeviceBuffers(): SetRenderTarget() failed (0x%x: %s).\n", r, Unk_446df0(r));
+        result = r;
+    }
+    r = self->vf8(self->field_14ff8);
+    if (r < 0) {
+#line 1806
+        PPFX_ERROR("IGPUDevice::InitializeDeviceBuffers(): SetDepthStencilSurface() failed (0x%x: %s).\n", r,
+                   Unk_446df0(r));
+        result = r;
+    }
+    return result < 0 ? result : 0;
+}
+
 // 0x710043f940: IGPUDevice::InitializeDevice_CreateDeviceStates_SamplerStateMode
 // (its log line): the sampler of a mode, bits 0 and 1 the filter and bits 2 and
 // 3 the addressing
@@ -226,8 +360,126 @@ s32 Unk_43f940(IGPUDevice* self, s32 mode) {
     return 0;
 }
 
-// 0x710043f670
-s32 Unk_43f670(IGPUDevice* self, u32 state);
+// 0x710043f670: the pipeline description of a blend state: bits 0 to 2 the
+// blending (6 and 7 aren't one), bits 3 and 4 the channels written (3 isn't
+// one), bit 5 alpha to coverage (placeholder reading of field_2d)
+// NON_MATCHING: everything up to the fourth of the seven default colour
+// targets; the stores of the fourth and the seventh are merged differently
+// (the original pairs field_4 with field_8 in the fourth). Every order of the
+// loop's assignments tried gives the same or worse.
+s32 Unk_43f670(IGPUDevice* self, s32 state) {
+    if (state < 0 || state > 63) {
+        return -6;
+    }
+    switch (state & 7) {
+    case 6:
+    case 7:
+        return 1;
+    }
+    if (((state >> 3) & 3) == 3) {
+        return 1;
+    }
+    Unk_PipelineDesc& desc = self->field_88[state];
+    const Unk_PipelineDesc::Unk_Depth depth = {8, false, false};
+    desc.field_30 = depth;
+    const Unk_PipelineDesc::Unk_Stencil stencil = {false, 0, 0, 0, 1, 1, 1, 8, 1, 1, 1, 8};
+    desc.field_38 = stencil;
+    const Unk_PipelineDesc::Unk_Raster raster = {1, 3, 0, 0, 0, 0, true, true};
+    desc.field_10 = raster;
+    if (state & 0x20) {
+        desc.field_10.field_1d = true;
+    }
+    desc.field_514 = 0;
+    desc.field_518 = 0;
+    desc.field_51c = -1;
+    const Unk_PipelineDesc::Unk_5c field_5c = {false, false};
+    desc.field_5c = field_5c;
+    Unk_PipelineDesc::Unk_Blend& blend = desc.field_60[0];
+    blend.field_c = 1;
+    blend.field_18 = 1;
+    blend.field_1c[0] = 1;
+    blend.field_1c[1] = 1;
+    blend.field_1c[2] = 1;
+    blend.field_1c[3] = 1;
+    switch (state & 7) {
+    case 0:
+        blend.field_0 = false;
+        blend.field_4 = 2;
+        blend.field_8 = 2;
+        blend.field_10 = 2;
+        blend.field_14 = 2;
+        break;
+    case 1:
+        blend.field_0 = true;
+        blend.field_4 = 5;
+        blend.field_8 = 6;
+        blend.field_10 = 5;
+        blend.field_14 = 6;
+        break;
+    case 2:
+        blend.field_0 = true;
+        blend.field_4 = 2;
+        blend.field_8 = 2;
+        blend.field_10 = 2;
+        blend.field_14 = 2;
+        break;
+    case 3:
+        blend.field_0 = true;
+        blend.field_4 = 2;
+        blend.field_8 = 6;
+        blend.field_10 = 2;
+        blend.field_14 = 6;
+        break;
+    case 4:
+        blend.field_0 = true;
+        blend.field_4 = 9;
+        blend.field_8 = 1;
+        blend.field_10 = 7;
+        blend.field_14 = 1;
+        break;
+    case 5:
+        blend.field_0 = true;
+        blend.field_4 = 2;
+        blend.field_8 = 14;
+        blend.field_10 = 2;
+        blend.field_14 = 14;
+        break;
+    }
+    switch ((state >> 3) & 3) {
+    case 0:
+        blend.field_1c[0] = 1;
+        blend.field_1c[1] = 1;
+        blend.field_1c[2] = 1;
+        blend.field_1c[3] = 1;
+        break;
+    case 1:
+        blend.field_1c[0] = 1;
+        blend.field_1c[1] = 1;
+        blend.field_1c[2] = 1;
+        blend.field_1c[3] = 0;
+        break;
+    case 2:
+        blend.field_1c[0] = 0;
+        blend.field_1c[1] = 0;
+        blend.field_1c[2] = 0;
+        blend.field_1c[3] = 1;
+        break;
+    }
+    for (s32 i = 1; i < 8; i++) {
+        desc.field_60[i].field_0 = false;
+        desc.field_60[i].field_c = 1;
+        desc.field_60[i].field_4 = 2;
+        desc.field_60[i].field_8 = 1;
+        desc.field_60[i].field_18 = 1;
+        desc.field_60[i].field_10 = 2;
+        desc.field_60[i].field_14 = 1;
+        desc.field_60[i].field_1c[0] = 1;
+        desc.field_60[i].field_1c[1] = 1;
+        desc.field_60[i].field_1c[2] = 1;
+        desc.field_60[i].field_1c[3] = 1;
+    }
+    return 0;
+}
 
 // 0x710043fac0: the device's blend states and samplers
 s32 Unk_43fac0(IGPUDevice* self) {
@@ -245,6 +497,92 @@ s32 Unk_43fac0(IGPUDevice* self) {
         }
     }
     return 0;
+}
+
+}  // namespace PPFX
+
+// 0x7100446df0: a result's name
+const char* Unk_446df0(s32 result);
+
+namespace PPFX {
+
+// 0x710043fdd0: IGPUDevice::InitializeDevice (its log lines): takes the draw
+// context (the settings' one if they have another) and its device, keeps the
+// settings, makes the device's states and buffers and sets the default states
+// (the flags from the number of frame slots: one comparison kept in a local,
+// stored last, gives the original's store order)
+// NON_MATCHING: the end: the original materialises the 0 it returns before
+// the last log line's tests, which branch to the return block; here they
+// branch to a block of their own that sets it (one instruction shorter).
+s32 Unk_43fdd0(IGPUDevice* self, const Unk_DeviceSettings* settings, void* arg) {
+#line 4284
+    PPFX_LOG("==== IGPUDevice::InitializeDevice() ====\n");
+    self->field_14ff8 = nullptr;
+    self->field_14ff0 = nullptr;
+    if (arg == nullptr) {
+        return -6;
+    }
+    Unk_SiGfxDrawContext* context = static_cast<Unk_SiGfxDrawContext*>(arg);
+    Unk_SiGfxDevice* device = context->vf5();
+    if (settings != nullptr) {
+        Unk_SiGfxDrawContext* other = reinterpret_cast<Unk_SiGfxDrawContext*>(settings->field_18);
+        if (other != nullptr && other != context) {
+            context = other;
+        }
+    }
+    if (context != self->field_30) {
+        if (self->field_30 != nullptr) {
+            self->field_30->vf3();
+            self->field_30 = nullptr;
+        }
+        self->field_30 = context;
+        context->vf2();
+    }
+    self->field_38 = device;
+    Unk_24e1500.field_0 = 0;
+    Unk_24e1500.field_4 = 0;
+    Unk_24e1500.field_8 = 0;
+    Unk_24e1500.field_10 = 0;
+    Unk_24e1500.field_20 = -1;
+    Unk_24e1500.field_24 = -1;
+    Unk_24e1500.field_28 = 0;
+    if (settings != nullptr) {
+        Unk_24e1500 = *settings;
+    }
+    self->field_28 = Unk_24e1500.field_10;
+    Unk_43fac0(self);
+    s32 result = Unk_43f200(self);
+    if (result < 0) {
+#line 4330
+        PPFX_ERROR("IGPUDevice::InitializeDevice(): InitializeDeviceBuffers() failed (0x%x: %s).\n", result,
+                   Unk_446df0(result));
+        return result;
+    }
+#line 4335
+    PPFX_LOG("IGPUDevice::InitializeDevice(): InitializeDeviceBuffers() succeeded.\n", result);
+    Unk_24e14f8 = self;
+    self->field_14efa = false;
+    bool single = self->field_28 < 2;
+    self->field_14efb = self->field_28 > 1;
+    self->field_14ef0 = false;
+    self->field_14ef1 = false;
+    self->field_14ef2 = false;
+    self->field_14ef3 = true;
+    self->field_14ef4 = true;
+    self->field_14ef5 = false;
+    self->field_14ef6 = true;
+    self->field_14ef7 = false;
+    self->field_14ef9 = single;
+    self->field_14ef8 = single;
+    self->vf39();
+    self->vf40(-1);
+    self->vf42(0);
+    Unk_BlendColor color = {};
+    self->vf50(&color);
+    result = 0;
+#line 4350
+    PPFX_LOG("==== IGPUDevice::InitializeDevice() succeeded. ====\n");
+    return result;
 }
 
 // 0x71004400a0

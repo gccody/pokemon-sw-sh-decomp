@@ -71,6 +71,9 @@ struct Unk_4ba5a0_Self {
     // 0x71004bb390: a copy of `size` bytes (and a zero after them), each
     // combined with the key's bytes in turn (inverted without a key)
     void Unk_4bb390(u8** out, size_t* outSize, const void* data, size_t size, const u8* key, size_t keySize);
+    // 0x71004baf20: splits `size` bytes of nibbles into two bit streams (each
+    // nibble: the direction of the next one, the stream, the bit)
+    void Unk_4baf20(u8** out0, size_t* outSize0, u8** out1, size_t* outSize1, const u8* data, size_t size);
 };
 
 class VerifyFeatureLicense {

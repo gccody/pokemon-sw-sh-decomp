@@ -321,16 +321,23 @@ public:
     s32 field_69a8[16][22];
     s32 field_6f28[16][22];
     s32 field_74a8[4][22];
-    u8 pad_7608[0x108];
-    s32 field_7710[1][22];
-    s32 field_7768[1][22];
-    s32 field_77c0[1][22];
-    s32 field_7818[1][22];
-    s32 field_7870[1][22];
-    s32 field_78c8[1][22];
-    s32 field_7920[1][22];
-    s32 field_7978[1][22];
-    s32 field_79d0[1][22];
+    union {
+        struct {
+            u8 pad_7608[0x108];
+            s32 field_7710[1][22];
+            s32 field_7768[1][22];
+            s32 field_77c0[1][22];
+            s32 field_7818[1][22];
+            s32 field_7870[1][22];
+            s32 field_78c8[1][22];
+            s32 field_7920[1][22];
+            s32 field_7978[1][22];
+            s32 field_79d0[1][22];
+        };
+        // tech_BrightPassT1_<vignette>_<mode>_Sn: [mode][vignette][index]
+        // (mode 0 isn't one)
+        s32 field_7608_table[4][3][22];
+    };
     s32 field_7a28;
     s32 field_7a2c;
     s32 field_7a30;
@@ -447,10 +454,16 @@ public:
     s32 field_1b3d4[8];
     s32 field_1b3f4[8];
     s32 field_1b414[4];
-    s32 field_1b424;
-    s32 field_1b428;
-    s32 field_1b42c;
-    s32 field_1b430;
+    union {
+        struct {
+            s32 field_1b424;
+            s32 field_1b428;
+            s32 field_1b42c;
+            s32 field_1b430;
+        };
+        // tech_Feedback(_Blend)(_Matrix): [blend][matrix]
+        s32 field_1b424_table[2][2];
+    };
     s32 field_1b434[8][22];
     s32 field_1b6f4[8][22];
     s32 field_1b9b4[8][22];
@@ -465,26 +478,22 @@ public:
     s32 field_1c7e4[8][22];
     s32 field_1caa4[8][22];
     s32 field_1cd64[8][22];
-    s32 field_1d024[8][22];
-    s32 field_1d2e4[8][22];
+    s32 field_1d024[2][8][22];  // [1]: the Innerscreen techniques
     s32 field_1d5a4[8][22];
     s32 field_1d864[8][22];
     s32 field_1db24[8][22];
     s32 field_1dde4[8][22];
-    s32 field_1e0a4[8][22];
-    s32 field_1e364[8][22];
+    s32 field_1e0a4[2][8][22];  // [1]: the Innerscreen techniques
     s32 field_1e624[8][22];
     s32 field_1e8e4[8][22];
     s32 field_1eba4[8][22];
     s32 field_1ee64[8][22];
-    s32 field_1f124[8][22];
-    s32 field_1f3e4[8][22];
+    s32 field_1f124[2][8][22];  // [1]: the Innerscreen techniques
     s32 field_1f6a4[8][22];
     s32 field_1f964[8][22];
     s32 field_1fc24[8][22];
     s32 field_1fee4[8][22];
-    s32 field_201a4[8][22];
-    s32 field_20464[8][22];
+    s32 field_201a4[2][8][22];  // [1]: the Innerscreen techniques
     s32 field_20724;
     s32 field_20728;
     s32 field_2072c;
@@ -728,9 +737,18 @@ PKMN_OFFSET_ASSERT(TEXSHADERSET, field_29a20, 0x29a20);
 // PPFX::CTextureUtil (its log lines name it and its DrawRectGPU functions;
 // RTTI its base, CGPUResourceManage): the texture utilities' shaders, vertex
 // buffers and shared textures.
+// one of the lights 0x7100488380 keeps (in view space), ordered by
+// Unk_488840_compare: the position, a radius, ..., a brightness
 struct Unk_29af8 {
-    u8 field_0[0x38];
+    Unk_Float field_0[3];
+    f32 field_c;  // the radius
+    f32 field_10[4];
+    f32 field_20;  // a scale of the texture coordinates
+    f32 field_24;
+    f32 field_28[3];  // an offset of them
+    f32 field_34;
 };
+PKMN_SIZE_ASSERT(Unk_29af8, 0x38);
 
 // a sample point: two coordinates, and two zeros
 struct Unk_SamplePoint {
@@ -925,11 +943,24 @@ public:
                    s32 arg8, s32 arg9, void* arg10, void* arg11, void* arg12, bool clear, s32 arg14, s32 arg15);
     s32 Unk_4915e0(f32 arg0, f32 arg1, f32 arg2, void* arg3, void* arg4, void* arg5, s32 arg6, s32 arg9,
                    void* arg10, void* arg11, void* arg12, bool clear, s32 arg14, s32 arg15);
-    // 0x7100478890 (not written yet; placeholder parameter names)
-    s32 Unk_478890(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg8, f32 ratio,
-                   f32 arg10, f32 arg11, f32 arg12, f32 arg13, f32 arg14, f32 arg15, f32 arg16, f32 arg17, f32 arg18,
-                   f32 arg19, f32 arg20, f32 arg21, u32 arg22, bool arg23, bool arg24, bool arg25,
-                   Unk_GPUTexture* texture, s32 arg27, s32 arg28);
+    // 0x7100491640 and 0x71004922a0 (not written yet; placeholder signatures,
+    // from CDepthOfField::Unk_4b19a0)
+    s32 Unk_491640(f32 arg0, f32 arg1, void* arg2, void* arg3, void* arg4, s32 arg5, s32 arg6, void* arg7,
+                   void* arg8, void* arg9, bool clear, s32 arg11, s32 arg12);
+    s32 Unk_4922a0(f32 arg0, f32 arg1, f32 arg2, void* arg3, void* arg4, void* arg5, s32 arg6, s32 arg7,
+                   void* arg8, void* arg9, void* arg10, bool clear, s32 arg12, s32 arg13);
+    s32 DrawRectGPU_TonemapHDR(f32 x, f32 y, f32 width, f32 height, f32 gamma, f32 arg5, f32 exposure, f32 white,
+                               const Unk_Float4* rect, Unk_GPUTexture* texture0, Unk_GPUTexture* texture1, s32 mode,
+                               const f32* params, const MATRIXT44* preMatrix, const MATRIXT44* matrix, f32 scale,
+                               Unk_Float dither, f32 vignette, f32 vignetteA, f32 vignetteB, f32 vignetteC,
+                               const Unk_Float4* arg21, s32 arg22, f32 arg23, f32 arg24, const Unk_Float4* arg25,
+                               f32 arg26, bool filter0, bool filter1, f32 arg29, f32 arg30, f32 arg31, f32 arg32,
+                               f32 noiseScale, f32 noiseAspect, bool animate, u32 flags);  // 0x710047c8d0
+    // 0x7100478890: the lens distortion and image sensor noise
+    s32 Unk_478890(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 angle, f32 ratio,
+                   f32 value, f32 arg11, f32 arg12, f32 arg13, f32 arg14, f32 limit, f32 arg16, f32 arg17, f32 arg18,
+                   f32 noise, f32 noiseScale, f32 noiseAspect, u32 mode, bool falloff, bool additive, bool animate,
+                   Unk_GPUTexture* texture, s32 arg27, s32 flags);
     // 0x7100481bc0: 0x7100478890 from one render texture into another (`ratio`
     // 0 or less: the source's width over its height)
     s32 Unk_481bc0(f32 arg0, f32 ratio, f32 arg2, f32 arg3, f32 arg4, f32 arg5, f32 arg6, f32 arg7, f32 arg8,
@@ -947,6 +978,33 @@ public:
                    s32 arg13, s32 arg14);
     // 0x710048b810: DrawRectGPU_DepthOfFieldLayerMask from one render texture
     // into another (scaled by `scaleX`/`scaleY` when they're positive)
+    // 0x7100487670: a quad per light (Unk_29af8s, in view space)
+    s32 Unk_487670(f32 arg0, f32 height, f32 left, f32 top, f32 right, f32 bottom, f32 depth0, f32 depth1,
+                   s32 count, const Unk_29af8* lights, Unk_GPUTexture* texture, Unk_GPUTexture* texture1,
+                   Unk_GPUTexture* texture2, const MATRIXT44* view, const MATRIXT44* projection,
+                   const Unk_Float2* arg15, const Unk_Float4* color, f32 size, f32 depthScale,
+                   const Unk_Float4* weights, const Unk_Float2* scale, const Unk_Vector3* offset, f32 arg22,
+                   f32 arg23, s32 samples, bool flag, u32 flags);
+    // 0x710048cc30: Unk_48ca20, blurred, composed into `target` or
+    // `targetTexture`
+    s32 Unk_48cc30(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, f32 arg6, f32 arg7,
+                   CRenderTexture* source, CRenderTexture* temp, CRenderTexture* copy, CRenderTexture* blur0,
+                   CRenderTexture* blur1, CRenderTexture* composite, CRenderTexture* target,
+                   Unk_GPUTexture* targetTexture, void* arg14, s32 count, f32 arg8, f32 arg9, s32 arg16, bool arg17,
+                   const f32* arg18, f32 arg10, f32 arg11, s32 arg20, CRenderTexture* source2, s32 blurCount,
+                   f32 sigma, f32 blur2, f32 blur3, const Unk_Vector3* arg19, s32 mode, CRenderTexture* source3,
+                   const Unk_Vector3* arg22, const Unk_Vector3* arg23, s32 linear, bool resetBlend);
+    // 0x7100488860: the lights drawn as quads (Unk_487670) over `source`
+    // copied into `target`
+    s32 Unk_488860(f32 maxDistance, f32 arg1, f32 size, f32 depthScale, f32 arg4, f32 arg5, bool update, s32 count,
+                   void* data, CRenderTexture* source, CRenderTexture* target, Unk_GPUTexture* texture1,
+                   Unk_GPUTexture* texture2, const MATRIXT44* view, const MATRIXT44* projection,
+                   const Unk_Float2* arg15, bool rightHanded, const Unk_Float4* color, const Unk_Float4* colors,
+                   const Unk_Float2* scale, const Unk_Vector3* offset, s32 samples, bool blend);
+    // 0x7100488380: the lights of `data` (Unk_29af8s) in front of the camera
+    // and inside its frustum
+    s32 Unk_488380(f32 maxDistance, f32 arg1, f32 scale, s32 count, void* data, const MATRIXT44* view,
+                   const MATRIXT44* projection, bool rightHanded, const Unk_Float4* color);
     s32 Unk_48b810(f32 scaleX, f32 scaleY, CRenderTexture* source, CRenderTexture* target, const Unk_Float2* arg2,
                    const Unk_Float2* arg3, s32 arg4, s32 index, bool background, bool clear, bool arg8, s32 arg9);
     // 0x710048f230: 0x710048f470, 0x710048f620 and 0x710048f900 in turn (through
@@ -979,7 +1037,7 @@ public:
                    void* arg17, void* arg18, void* arg19, s32 arg20, f32 arg21, void* arg22, u32 flags);
     // 0x71004827b0 (not written yet): a position through two matrices, as a texture offset
     Unk_Float2 Unk_4827b0(const MATRIXT44* arg1, const MATRIXT44* arg2, void* arg3, f32 x, f32 y);
-    // 0x71004823b0 (not written yet)
+    // 0x71004823b0: a blur along an offset in passes
     s32 Unk_4823b0(f32 arg0, CRenderTexture* target, void* arg2, void* arg3, const Unk_Float2* offset, s32 arg5,
                    s32 arg6, void* arg7, bool arg8);
     // 0x7100482f10: 0x71004823b0 with the offset 0x71004827b0 gives
@@ -1193,13 +1251,21 @@ public:
     s32 Unk_482d70(f32 x, f32 y, CRenderTexture* target, const MATRIXT44* arg1, const MATRIXT44* arg2,
                    void* arg3, s32 maxLevels, f32 ratio, const Unk_Float2* scale, s32 index, s32* outCount, s32* outLevels,
                    s32* outFirst, Unk_Float2* outOffset, Unk_Float2* outDirection);
+    s32 Unk_479c30(f32 x, f32 y, f32 width, f32 height, f32 left, f32 top, f32 right, f32 bottom, s32 count,
+                   Unk_GPUTexture** textures, const f32* scale, const Unk_Float4* weights, Unk_GPUTexture* texture,
+                   s32 index, u32 flags);  // 0x7100479c30
+    s32 Unk_47a380(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 u2, f32 v2, f32 u3,
+                   f32 v3, f32 arg12, f32 clamp, f32 arg14, f32 arg15, s32 count, const Unk_Float4* scale,
+                   const Unk_Float2* arg2, const Unk_Float2* arg3, const Unk_Float2* arg4, bool innerscreen,
+                   const Unk_Float4* weights, Unk_GPUTexture* texture0, Unk_GPUTexture* texture1, s32 index,
+                   u32 flags);  // 0x710047a380
     // 0x71004797a0 (not written yet; placeholder signature, from its caller)
     s32 Unk_4797a0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg8, f32 arg9,
                    f32 arg10, bool arg11, Unk_GPUTexture* texture0, Unk_GPUTexture* texture1, const f32* arg14,
                    void* arg15, s32 arg16, s32 arg17);
     // 0x71004821a0: 0x71004797a0 from `source` and `other` into `target`
     s32 Unk_4821a0(CRenderTexture* source, CRenderTexture* other, CRenderTexture* target, bool arg4, bool clear, const f32* arg6, void* arg7, f32 arg0, f32 arg1, f32 ratio, s32 arg8, s32 arg9);
-    // 0x710048c1b0 (not written yet; placeholder signature, from its caller)
+    // 0x710048c1b0: jittered disc samples around each texel
     s32 Unk_48c1b0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg8, f32 arg9,
                    f32 arg10, f32 arg11, f32 arg12, f32 arg13, f32 arg14, f32 arg15, f32 arg16, f32 arg17,
                    void* arg18, Unk_GPUTexture* texture, s32 count, s32 arg21, bool arg22, const f32* arg23,
@@ -1254,6 +1320,10 @@ public:
                    f32 t1, f32 arg12, f32 arg13, Unk_Float low, Unk_Float high, f32 arg16, f32 arg17, const Unk_410f90* space,
                    const MATRIXT44* matrix, Unk_GPUTexture* texture0, Unk_GPUTexture* texture1, bool filter0,
                    bool filter1, u32 flags);
+    // 0x710048de50: 0x710048dad0 over `target`'s viewport (placeholder signature)
+    s32 Unk_48de50(f32 width, f32 height, f32 x, f32 y, f32 arg4, f32 amount, f32 low, f32 high, CRenderTexture* source,
+                   CRenderTexture* other, CRenderTexture* target, const Unk_Float4* scale, const Unk_410f90* space,
+                   const MATRIXT44* matrix, bool clear, f32 arg16, f32 arg17, u32 flags);
     // UNK_FIELDS_BEGIN
     TEXSHADERSET field_30;
     CRenderTexturePool* field_29a58;
@@ -1274,8 +1344,8 @@ public:
     IGPUInterface* field_29ad8[2];
     s32 field_29ae8;
     s32 field_29aec;
-    s32 field_29af0;
-    u8 pad_29af4[0x4];
+    s32 field_29af0;  // the lights' capacity
+    s32 field_29af4;  // and count
     Unk_29af8* field_29af8;
     CRenderTexture* field_29b00;
     CRenderTexture* field_29b08[10];

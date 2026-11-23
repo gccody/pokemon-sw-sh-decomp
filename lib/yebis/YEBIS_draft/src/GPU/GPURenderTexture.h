@@ -30,6 +30,12 @@ struct Unk_49ab20_Desc {
     Unk_49ab20_Desc(u32 flags, s32 width, s32 height, s32 format)
         : field_0(flags), field_4(width), field_8(height), field_c(format), field_10(1), field_14(0), field_18(0),
           field_1c(0), field_20(false) {}
+    // memberwise (CRenderTextureArray::Initialize's copy is a load and a store
+    // per member, the bool's a byte, not a block copy)
+    Unk_49ab20_Desc(const Unk_49ab20_Desc& other)
+        : field_0(other.field_0), field_4(other.field_4), field_8(other.field_8), field_c(other.field_c),
+          field_10(other.field_10), field_14(other.field_14), field_18(other.field_18), field_1c(other.field_1c),
+          field_20(other.field_20) {}
 
     u32 field_0;  // flags
     s32 field_4;  // width
@@ -110,6 +116,16 @@ struct Unk_49df00_Context {
 // The interfaces the texture's device hands out (PPFX::IGPUSurface,
 // IGPUTexture: their classes are before this TU), as far as CRenderTexture
 // calls them.
+// what a texture's level tells of its size (0x18 bytes: vf6's frame)
+struct Unk_49b230_Desc {
+    u32 field_0;
+    u32 field_4;
+    u32 field_8;
+    u32 field_c;
+    u32 field_10;
+    u32 field_14;
+};
+
 struct Unk_49b230_Object {
     virtual void vf0();  // one reference more
     virtual void vf1();  // one less
@@ -119,11 +135,26 @@ struct Unk_49b230_Object {
     virtual void vf5();
     virtual void vf6();
     virtual void vf7();
-    virtual void vf8();
+    virtual s32 vf8(struct Unk_49b230_Desc* desc);  // a level's size
     virtual s32 vf9();  // 0x710048d7f0 calls it before it draws into the surface
     virtual s32 vf10();  // and this after
+    virtual void vf11();
+    virtual u32 vf12();  // a texture's number of mip levels
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual s32 vf23(u32 level, Unk_49b230_Object** surface);  // a texture's mip level's surface
 
-    u8 _8[0x44 - 0x8];
+    u8 _8[0x24 - 0x8];
+    bool field_24;  // whether the texture is a render target too
+    u8 _25[0x44 - 0x25];
     s32 field_44;  // its format
     u8 _48[0x4c - 0x48];
     u32 field_4c;  // its size (as a depth target's, compared)
@@ -201,7 +232,7 @@ public:
         return field_e0[set][slot];
     }
     // 0x710049d250: makes it the device's target
-    s32 Unk_49d250(s32 arg1, u32 arg2, s32 arg3, u32 arg4, s32 arg5);
+    s32 Unk_49d250(s32 slot, u32 flags, s32 first, u32 level, s32 arg5);
     // 0x710049cf50
     static s32 Unk_49cf50(Unk_49b230_Object* depth, void* owner);
     // 0x710049d7d0, 0x710049e080 (their log lines name them; EndTiling's

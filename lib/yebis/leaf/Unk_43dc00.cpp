@@ -72,8 +72,8 @@ u32 Unk_440c60_get(u64 /*unused*/, u32 /*unused*/, u32 /*unused*/) {
     return 1;
 }
 
-// 0x7100440c80
-u32 Unk_440c80_get(u64 /*unused*/) {
+// 0x7100440c80 (CTextureUtil::Unk_4797a0 passes it a colour)
+u32 Unk_440c80_get(u64 /*unused*/, f32 /*unused*/, f32 /*unused*/, f32 /*unused*/, f32 /*unused*/) {
     return 1;
 }
 

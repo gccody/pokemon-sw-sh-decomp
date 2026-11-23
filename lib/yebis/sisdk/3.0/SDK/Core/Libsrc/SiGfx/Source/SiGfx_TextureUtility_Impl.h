@@ -127,8 +127,9 @@ public:
     virtual u32 vf16();
     // writes a texture's archive for a platform (0x71004ebb20)
     virtual bool vf17(void* texture, const char* path, u32 platform, u32 a4);
-    // the chunk of a texture for a platform
-    virtual ISiIOBinaryArchive::ChunkHandler* vf18(void* texture, u32 platform);
+    // 0x71004ebc60: the chunk of an image's texture (the platform isn't
+    // read)
+    virtual ISiIOBinaryArchive::ChunkHandler* vf18(SiGfxImage* image, u32 platform);
 
     Unk_4bf660 field_8;
 };

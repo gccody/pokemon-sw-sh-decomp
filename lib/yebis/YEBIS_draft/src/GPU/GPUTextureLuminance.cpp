@@ -6,6 +6,8 @@
 #include <math.h>
 #include <string.h>
 
+#include <algorithm>
+
 #include <yebis/YEBIS_draft/src/GPU/GPUClassUtil.h>
 #include <yebis/YEBIS_draft/src/GPU/GPURenderTexturePool.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUTextureLuminance.h>
@@ -50,7 +52,7 @@ struct Unk_4b7a30_Texture {
     virtual void vf8();
     virtual void vf9();
     virtual s32 vf10();
-    virtual void vf11();
+    virtual s32 vf11(bool flag);
     virtual void vf12(s32* value, bool flag);
     virtual void vf13();
     virtual void vf14();
@@ -513,6 +515,116 @@ f32 CTextureLuminanceManage::Unk_4b8ae0(f32 a, f32 b, f32 c) {
         value = Unk_462c30(mode, a, b, 1.0f);
     }
     return value / c;
+}
+
+// whether what was measured can be read back
+inline s32 CTextureLuminance::Unk_Poll() {
+    if (field_74 >= 0.0f)
+        return 0;
+    s32 mode = field_60;
+    if (mode == 3 || mode == 4) {
+        for (s32 i = field_3c - 1; i < field_3c; i++) {
+            s32 result = reinterpret_cast<Unk_4b7a30_Texture*>((&field_40)[i])->vf11(false);
+            if (result != 0)
+                return result;
+        }
+    } else if (mode == 5) {
+        if (field_94 < Unk_FrameSlots() * field_98) {
+            field_94++;
+            return 1;
+        }
+    }
+    if (reinterpret_cast<Unk_4b7f40_Device*>(field_20)->field_28 % Unk_FrameSlots() != field_9c)
+        return 1;
+    return 0;
+}
+
+static inline f32 Unk_Lerp(f32 a, f32 b, f32 t) {
+    return a + t * (b - a);
+}
+
+static inline CTextureLuminanceManage::Unk_Value Unk_LerpValue(const CTextureLuminanceManage::Unk_Value& a,
+                                                               const CTextureLuminanceManage::Unk_Value& b, f32 t) {
+    CTextureLuminanceManage::Unk_Value r;
+    for (s32 i = 0; i < 4; i++)
+        r.field_0[i] = b.field_0[i] - a.field_0[i];
+    for (s32 i = 0; i < 4; i++)
+        r.field_0[i] = t * r.field_0[i];
+    for (s32 i = 0; i < 4; i++)
+        r.field_0[i] = a.field_0[i] + r.field_0[i];
+    return r;
+}
+
+// 0x71004b8b50
+// NON_MATCHING: scheduling and registers: the mode test is `cmp #1; b.hi` here
+// (`cmp #2; b.hs`), the ratio's address isn't kept from each branch, the
+// second kind test's load comes later and the history indices' sums are
+// computed in another order.
+s32 CTextureLuminanceManage::Unk_4b8b50() {
+    field_58++;
+    s32 result = 0;
+    if (field_54) {
+        result = field_40->Unk_Poll();
+        if (result == 0) {
+            s32 index = field_50 % 17;
+            field_74[index] = field_58;
+            field_1c8[index] = field_40->Unk_GetLuminance();
+            memmove(&field_b8[index], field_40->Unk_GetColor(), sizeof(Unk_Value));
+            f32* ratio = &field_20c[index];
+            if (field_2c.field_0 == 1) {
+                f32 depth =
+                    field_b8[index].field_0[1] * 255.0f / 256.0f + field_b8[index].field_0[2] * 255.0f / 65536.0f;
+                f32 far = field_4b4[index];
+                f32 near = field_470[index];
+                *ratio = -(far * near) / ((far - near) * depth - far);
+            } else {
+                *ratio = Unk_4b8ae0(field_1c8[index], field_42c[index], field_3e8[index]);
+            }
+            s32 previous = (field_50 + 1) % 17;
+            f32 t = field_4fc;
+            field_360[index] = Unk_Lerp(field_360[previous], field_1c8[index], t);
+            f32 a = field_3a4[previous] + 1.17549435e-38f;
+            f32 value;
+            if (field_2c.field_0 == 1) {
+                f32 b = *ratio + 1.17549435e-38f;
+                value = 1.0f / Unk_Lerp(1.0f / a, 1.0f / b, t);
+            } else {
+                f32 la = logf(a);
+                value = expf(Unk_Lerp(la, logf(*ratio + 1.17549435e-38f), t));
+            }
+            field_3a4[index] = value - 1.17549435e-38f;
+            field_250[index] = Unk_LerpValue(field_250[previous], field_b8[index], t);
+            field_54 = false;
+            field_58 = 0;
+            field_50 = field_50 - 1 < 0 ? 16 : field_50 - 1;
+        }
+    }
+    s32 offset2 = field_4f8 + 2;
+    if (offset2 < 0)
+        offset2 = 16;
+    s32 offset1 = field_4f8 + 1;
+    if (offset1 < 0)
+        offset1 = 16;
+    s32 i2 = (offset2 + field_50) % 17;
+    s32 i1 = (offset1 + field_50) % 17;
+    f32 t = static_cast<f32>(field_58) / static_cast<f32>(field_74[i1]);
+    t = t < 0.0f ? 0.0f : std::min(t, 1.0f);
+    if (field_2c.field_0 == 1) {
+        f32 la = logf(field_360[i2] + 1.17549435e-38f);
+        field_60 = expf(Unk_Lerp(la, logf(field_360[i1] + 1.17549435e-38f), t)) - 1.17549435e-38f;
+        f32 lb = logf(field_3a4[i2] + 1.17549435e-38f);
+        field_5c = expf(Unk_Lerp(lb, logf(field_3a4[i1] + 1.17549435e-38f), t)) - 1.17549435e-38f;
+    } else {
+        field_60 = Unk_Lerp(field_360[i2], field_360[i1], t);
+        field_5c = Unk_Lerp(field_3a4[i2], field_3a4[i1], t);
+    }
+    field_64 = Unk_LerpValue(field_250[i2], field_250[i1], t);
+    if (field_2c.field_0 != 1) {
+        f32 value = Unk_4b8ae0(field_60, Unk_Lerp(field_42c[i2], field_42c[i1], t), Unk_Lerp(field_3e8[i2], field_3e8[i1], t));
+        if (field_500 >= 0)
+            field_5c = value;
+    }
+    return result < 0 ? result : 0;
 }
 
 // 0x71004b9140

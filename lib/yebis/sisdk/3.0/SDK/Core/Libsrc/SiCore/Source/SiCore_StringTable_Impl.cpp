@@ -210,16 +210,13 @@ ISiStringTable::IEntry* SiStringTable::vf10(int id) {
     return pEntry;
 }
 
-// 0x71004c73f0
-// NON_MATCHING: the same instructions but for where the result's 0 is set.
-// The original moves `this` out of x0 first and clears w0 once, before the two
-// tests that return false at once (only the failed allocation in the loop has
-// a block of its own for it); here the three share one block that clears w0.
+// 0x71004c73f0 (the count's test is written before the items' null test,
+// which still comes first: that clears the result once, before both)
 bool SiStringTable::vf11(const Unk_4ca820_arg0& language, const Unk_Item* items) {
-    if (items == nullptr) {
+    if (field_140 < 1) {
         return false;
     }
-    if (field_140 < 1) {
+    if (items == nullptr) {
         return false;
     }
     u32 count = 0;

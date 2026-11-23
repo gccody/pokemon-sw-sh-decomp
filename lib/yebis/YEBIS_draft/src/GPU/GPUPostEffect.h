@@ -314,6 +314,8 @@ public:
     s32 Unk_42b8a0();
     // 0x7100428220
     void Unk_428220();
+    // 0x710042a590: what changed since the last frame's view (placeholder)
+    s32 Unk_42a590(bool* far, bool* moved, bool* projection, bool* rotation, bool* any);
     // field_895 set: what 0x7100428220 brings up to date is out of date
     // (inline)
     void Unk_Refresh() {
@@ -328,6 +330,13 @@ public:
     f32 Unk_4280e0();  // 0x71004280e0
     bool Unk_427ad0();  // 0x7100427ad0
     MATRIXT44 Unk_429c50(bool arg);  // 0x7100429c50
+    s32 Unk_4299a0();  // 0x71004299a0
+    bool Unk_4297b0();  // 0x71004297b0
+    s32 Unk_433270();   // 0x7100433270
+    f32 Unk_42f320(f32 value, const MATRIXT44* m, s32 mode);  // 0x710042f320
+    // 0x7100432ca0 (not written yet; placeholder signature)
+    s32 Unk_432ca0(f32 arg0, Unk_RenderTexture* arg1, Unk_RenderTexture* arg2, Unk_RenderTexture* arg3,
+                   Unk_RenderTexture* arg4, const Unk_Float4* color, s32 arg6, s32 arg7, bool arg8);
     bool Unk_434570();  // 0x7100434570
     s32 Unk_426210();  // 0x7100426210
     // 0x7100426070: a view's (0x7fffffff: every view's) exposure history set
@@ -441,7 +450,9 @@ public:
     Unk_429e60_Item* field_2a8;  // one per view
     u8 pad_2b0[0x150];
     s32 field_400;
-    u8 pad_404[0x114];
+    u8 pad_404[0x1c];
+    f32 field_420;
+    u8 pad_424[0xf4];
     s32 field_518;  // the feedback format
     u8 pad_51c[0x28];
     u32 field_544;
@@ -449,7 +460,9 @@ public:
     u8 pad_549[0x7];
     Unk_RenderTexture** field_550;
     s32 field_558;
-    u8 pad_55c[0x38];
+    u8 pad_55c[0xc];
+    s32 field_568;
+    u8 pad_56c[0x28];
     bool field_594;
     u8 pad_595[0x5];
     bool field_59a;
@@ -472,7 +485,11 @@ public:
     s32 field_604;
     s32 field_608;
     s32 field_60c;
-    u8 pad_610[0x5c];
+    u8 pad_610[0x20];
+    s32 field_630;
+    s32 field_634;
+    s32 field_638;
+    u8 pad_63c[0x30];
     s32 field_66c;
     s32 field_670;
     u8 pad_674[0x6];
@@ -497,7 +514,10 @@ public:
     f32 field_6e8;
     f32 field_6ec;
     f32 field_6f0;
-    u8 pad_6f4[0x100];
+    MATRIXT44 field_6f4;  // compared with field_774 by Unk_42a590
+    MATRIXT44 field_734;
+    MATRIXT44 field_774;
+    MATRIXT44 field_7b4;
     f32 field_7f4;
     f32 field_7f8;  // the scene's luminance scale
     f32 field_7fc;
@@ -524,7 +544,9 @@ public:
     f32 field_8a4;
     Unk_Float2 field_8a8;
     f32 field_8b0;
-    u8 pad_8b4[0x4];
+    u8 pad_8b4[0x2];
+    bool field_8b6;
+    u8 pad_8b7[0x1];
     Unk_Float2 field_8b8;
     Unk_Float field_8c0;  // the tone map's exposure
     Unk_Float field_8c4;  // its gamma
@@ -561,12 +583,16 @@ public:
     bool field_96c;
     u8 pad_96d[0x3];
     u32 field_970;
-    u8 pad_974[0x40];
+    u8 pad_974[0x4];
+    s32 field_978;
+    u32 field_97c;
+    u8 pad_980[0x34];
     MATRIXT44 field_9b4[6];  // the colour matrices
     bool field_b34[6];  // which of them changed
     u8 pad_b3a[0x2];
     MATRIXT44 field_b3c;
-    u8 pad_b7c[0x8];
+    s32 field_b7c;  // colour space numbers for field_b84 and field_ba4 (-1: none)
+    s32 field_b80;
     f32 field_b84[8];
     f32 field_ba4[8];
     u8 pad_bc4[0x9];
@@ -574,7 +600,9 @@ public:
     bool field_bce;
     u8 pad_bcf[0x15];
     bool field_be4;
-    u8 pad_be5[0x95];
+    u8 pad_be5[0x93];
+    bool field_c78;
+    u8 pad_c79[0x1];
     bool field_c7a;
     u8 pad_c7b[0x1];
     Unk_Rect field_c7c;
@@ -589,9 +617,24 @@ public:
     s32 field_cf8;
     u32 field_cfc;
     Unk_Float field_d00;
-    u8 pad_d04[0x34];
+    u8 pad_d04[0x4];
+    f32 field_d08;
+    u8 pad_d0c[0x2c];
     Unk_RenderTexture* field_d38;
-    u8 pad_d40[0xb0];
+    u8 pad_d40[0x40];
+    bool field_d80;
+    u8 pad_d81[0x3];
+    s32 field_d84;
+    void* field_d88;
+    bool field_d90;
+    u8 pad_d91[0x3];
+    f32 field_d94;
+    u8 pad_d98[0x4];
+    Unk_Float4 field_d9c;
+    u8 pad_dac[0x34];
+    f32 field_de0;
+    f32 field_de4;
+    u8 pad_de8[0x8];
     Unk_RenderTexture* field_df0;
     u8 pad_df8[0xf4];
     f32 field_eec;
@@ -624,7 +667,14 @@ public:
     f32 field_105c;
     f32 field_1060;
     f32 field_1064;
-    u8 pad_1068[0x2c];
+    u8 pad_1068[0x6];
+    bool field_106e;
+    u8 pad_106f[0x1];
+    f32 field_1070;
+    u8 pad_1074[0x1c];
+    bool field_1090;
+    bool field_1091;
+    u8 pad_1092[0x2];
     MATRIXT44 field_1094;
     u8 pad_10d4[0x2];
     bool field_10d6;
@@ -659,6 +709,9 @@ public:
     static void Unk_43b500(s32 index);                                                         // 0x710043b500
 };
 PKMN_OFFSET_ASSERT(CPostEffect, field_d8, 0xd8);
+PKMN_OFFSET_ASSERT(CPostEffect, field_6f4, 0x6f4);
+PKMN_OFFSET_ASSERT(CPostEffect, field_7b4, 0x7b4);
+PKMN_OFFSET_ASSERT(CPostEffect, field_d08, 0xd08);
 PKMN_OFFSET_ASSERT(CPostEffect, field_120, 0x120);
 PKMN_OFFSET_ASSERT(CPostEffect, field_190, 0x190);
 PKMN_OFFSET_ASSERT(CPostEffect, field_5e0, 0x5e0);

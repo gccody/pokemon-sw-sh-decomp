@@ -53,7 +53,7 @@ public:
     }
     // 0x71004c45c0 (char): a copy of another with an allocator (null: the
     // kernel's), out of line (declared for its callers; not written yet)
-    SiString(const SiString& other, ISiAllocator* pAllocator);
+    SiString(const SiString& other, ISiAllocator* pAllocator = nullptr);
     ~SiString() { Unk_Release(); }
 
     // 0x71004c8020 (char): out of line

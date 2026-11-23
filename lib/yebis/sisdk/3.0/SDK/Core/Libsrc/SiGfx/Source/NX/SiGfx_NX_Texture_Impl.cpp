@@ -7,6 +7,7 @@
 #define UNK_SIGFX_NX_TEXTURE_IMPL
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_Texture_Impl.h>
 
+#include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/BinaryArchive/Texture/SiGfx_BinaryChunk_Texture.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_CommandList_Impl.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_CommandQueue_Impl.h>
 #include <yebis/sisdk/3.0/SDK/Core/Libsrc/SiGfx/Source/NX/SiGfx_NX_ShaderProgram_Impl.h>
@@ -14,9 +15,16 @@
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_Alloc.h>
 #include <yebis/sisdk/3.0/SDK/Core/Include/SiCore/Unk_StringFuncs.h>
 
+// 0x71004ed080: SiGfx's kind of texture for a kind of image
+// (SiGfx_Utility.cpp)
+u32 Unk_4ed080(u32 value);
+
 // 0x71004fb360 (leafgen's name and type: the device and an NVN command buffer)
 struct Unk_4fb360;
 void Unk_4fb360_update(const Unk_4fb360* self, u64 value);
+
+// (the reserve is SiGfx_TextureUtility_Impl.cpp's)
+extern template bool SiSDK3::SiArray<SiSDK3::SIGFX_TEXTURE_INITDATA, 16>::Unk_4bf190(size_t count, bool keep);
 
 // nvn.h declares these three without their types
 inline int Unk_nvnTextureGetFlags(const void* texture) {
@@ -64,14 +72,10 @@ u32 SiGfxNXTexture::vf47() {
     return field_a8;
 }
 
-// NON_MATCHING: the original copies the first eight bytes apart from the
-// other 128 of the trivially copied members, which it copies inline (one of
-// their loads, 0x48's, is the zero just stored: `stp xzr, x8`); here the 0x88
-// bytes are one memcpy, a call, as slot 22's copy of a description is in the
-// original too. A base class for the first eight bytes gives the inline copy,
-// but its copy comes first then (and slot 22's would be split as well). The
-// temporary's zero stores at 0x40 and 0x50 are exchanged (the texture's
-// constructor's near miss).
+// NON_MATCHING: the copy is inline now (the pairs at 0x68 and 0x70 split the
+// trivially copied members), but the original copies the pairs from the
+// temporary where this stores their zeros directly, and the stores of the
+// blocks before them come in another order (4 bytes, 27 instructions off).
 // 0x710055ffd0
 void SiGfxNXTexture::Unk_Desc::Unk_55ffd0() {
     *this = Unk_Desc();
@@ -366,6 +370,131 @@ bool SiGfxNXTexture::Unk_5601b0() {
         return false;
     }
     return true;
+}
+
+// The description is copied by its implicit copy constructor (SiString's
+// takes a default allocator): the trivially copyable runs become two inline
+// memcpys and the two pairs at 0x68 and 0x70, whose copy constructor isn't
+// trivial, are copied word by word between them.
+// NON_MATCHING: the test of a volume made into a 2D array (the image's kind
+// 3, the texture's 5) is one block with a `ccmp` in the original, image kind
+// first; here Reassociate puts the texture's test first in the `and` and the
+// branch is split in two (one instruction more), and the result's register
+// is w22 instead of w19. Everything after it matches.
+// 0x71005604c0
+bool SiGfxNXTexture::vf23(const Unk_Desc* desc, SiGfxImage* image) {
+    if (image->field_58.field_0 == 0) {
+        return false;
+    }
+    if (Unk_4ed080(image->field_58.field_0) != field_1d4) {
+        if (field_1d4 != 5 || image->field_58.field_0 != 3) {
+            return false;
+        }
+        if (!image->vf25()) {
+            return false;
+        }
+    }
+    if (image->field_58.field_8 < 1 || image->field_58.field_c < 1) {
+        return false;
+    }
+    if (image->field_58.field_0 == 3 && image->field_58.field_10 < 1) {
+        return false;
+    }
+    if (image->field_58.field_18 < 1 || image->field_58.field_14 < 1 || image->field_58.field_4 == 0) {
+        return false;
+    }
+    SiGfxImage copy(field_18.m_pAllocator);
+    SiGfxImage* src = image;
+    if (!image->field_80) {
+        image->vf23(&copy);
+        copy.Unk_4f3680();
+        src = &copy;
+    }
+    Unk_Desc made(*desc);
+    made.field_0 = src->field_58.field_4;
+    made.field_10 = src->field_58.field_8;
+    made.field_14 = src->field_58.field_c;
+    made.field_1c = src->field_58.field_14;
+    if (src->field_58.field_0 == 3 && field_1d4 == 5) {
+        made.field_18 = 1;
+        made.field_20 = src->field_58.field_10;
+    } else {
+        made.field_18 = src->field_58.field_10;
+        made.field_20 = src->field_58.field_18;
+    }
+    SiArray<SIGFX_TEXTURE_INITDATA, 16> data(field_18.m_pAllocator);
+    s32 levels = made.field_1c;
+    s32 layers = made.field_20;
+    s32 count = layers * levels;
+    if (field_1d4 == 4) {
+        count = levels * 6;
+    }
+    if (field_1d4 == 6) {
+        count = levels * 6 * layers;
+    }
+    data.Unk_SetCount(count);
+    s32 n = 0;
+    switch (field_1d4) {
+    case 2:
+    case 5:
+        for (s32 layer = 0; layer < static_cast<s32>(made.field_20); layer++) {
+            if (src->field_58.field_0 == 3) {
+                for (s32 level = 0; level < static_cast<s32>(made.field_1c); level++) {
+                    SiGfxImage::ImageData3D* pixels = src->vf19(level);
+                    SIGFX_TEXTURE_INITDATA* p = &data.m_pData[n];
+                    s32 offset = layer * pixels->field_24;
+                    p->field_0 = &pixels->field_0[offset];
+                    p->field_10 = pixels->field_20;
+                    p->field_8 = pixels->field_8;
+                    p->field_14 = pixels->field_24;
+                    n++;
+                }
+            } else {
+                for (s32 level = 0; level < static_cast<s32>(made.field_1c); level++) {
+                    SiGfxImage::ImageData2D* pixels = src->vf17(layer, level);
+                    SIGFX_TEXTURE_INITDATA* p = &data.m_pData[n];
+                    p->field_0 = pixels->field_0;
+                    p->field_10 = pixels->field_1c;
+                    p->field_8 = pixels->field_8;
+                    p->field_14 = pixels->field_1c * pixels->field_18;
+                    n++;
+                }
+            }
+        }
+        break;
+    case 4:
+    case 6:
+        for (s32 layer = 0; layer < static_cast<s32>(made.field_20); layer++) {
+            for (s32 face = 0; face < 6; face++) {
+                for (s32 level = 0; level < static_cast<s32>(made.field_1c); level++) {
+                    SiGfxImage::ImageData2D* pixels = src->vf18(layer, face, level);
+                    SIGFX_TEXTURE_INITDATA* p = &data.m_pData[n];
+                    p->field_0 = pixels->field_0;
+                    p->field_10 = pixels->field_1c;
+                    p->field_8 = pixels->field_8;
+                    p->field_14 = pixels->field_1c * pixels->field_18;
+                    n++;
+                }
+            }
+        }
+        break;
+    case 3:
+        for (s32 level = 0; level < static_cast<s32>(made.field_1c); level++) {
+            SiGfxImage::ImageData3D* pixels = src->vf19(level);
+            SIGFX_TEXTURE_INITDATA* p = &data.m_pData[n];
+            p->field_0 = pixels->field_0;
+            p->field_10 = pixels->field_20;
+            p->field_8 = pixels->field_8;
+            p->field_14 = pixels->field_24;
+            n++;
+        }
+        break;
+    }
+    u32 flags = made.field_30 == 3 ? 8 : 0;
+    made.field_60 = data.m_pData;
+    made.field_54 = n;
+    made.field_40 = flags;
+    return vf22(&made);
 }
 
 // 0x7100561730: a cube's six faces

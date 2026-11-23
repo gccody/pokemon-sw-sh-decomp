@@ -196,6 +196,100 @@ bool SiGfxImageUtility::vf18(SiGfxImage* image, f32 scaleX, f32 scaleY, s32 octa
     return false;
 }
 
+// The value noise's helpers (placeholder names): a number from -1 to 1 for a
+// lattice point, and the smooth step's weight
+static inline f32 Unk_NoiseValue(s32 x, s32 y) {
+    s32 n = x + y * 57;
+    n = (n << 13) ^ n;
+    return static_cast<f32>(1.0 - ((n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff) / 1073741824.0);
+}
+static inline f32 Unk_NoiseWeight(f64 t) {
+    return static_cast<f32>(t * t * 3.0 - 2.0 * pow(t, 3.0));
+}
+static inline f32 Unk_NoiseInterpolate(f32 a, f32 b, f32 t) {
+    f32 wa = Unk_NoiseWeight(1.0f - t);
+    f32 wb = Unk_NoiseWeight(t);
+    return wa * a + wb * b;
+}
+
+// The 3D lattice point's number (placeholder name)
+static inline f32 Unk_NoiseValue3D(s32 x, s32 y, s32 z) {
+    s32 n = x + y * 57 + z * 13;
+    n = (n << 13) ^ n;
+    return static_cast<f32>(1.0 - ((n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff) / 1073741824.0);
+}
+// The sum of the octaves at a point (placeholder name). An inline function of
+// its own that takes the point by reference: that changes Reassociate's ranks
+// in the caller, which order the lattice hashes' adds and put each corner's
+// value after its weight in the products, as the original has them (by value
+// or written in the caller, the corner's value comes first).
+static inline f32 Unk_Noise3D(const f32& x, const f32& y, const f32& z, f32 frequency, f32 persistence, s32 octaves) {
+    f32 scale = frequency;
+    f32 amplitude = 1.0f;
+    f32 sum = 0.0f;
+    for (s32 i = 0; i < octaves; i++) {
+        f32 v = scale * x;
+        f32 u = scale * y;
+        f32 w = scale * z;
+        s32 iv = static_cast<s32>(v);
+        s32 iu = static_cast<s32>(u);
+        s32 iw = static_cast<s32>(w);
+        f32 fv = v - static_cast<f32>(iv);
+        f32 fu = u - static_cast<f32>(iu);
+        f32 fw = w - static_cast<f32>(iw);
+        f32 n000 = Unk_NoiseValue3D(iv, iu, iw);
+        f32 n100 = Unk_NoiseValue3D(iv + 1, iu, iw);
+        f32 n010 = Unk_NoiseValue3D(iv, iu + 1, iw);
+        f32 n110 = Unk_NoiseValue3D(iv + 1, iu + 1, iw);
+        f32 n001 = Unk_NoiseValue3D(iv, iu, iw + 1);
+        f32 n101 = Unk_NoiseValue3D(iv + 1, iu, iw + 1);
+        f32 n011 = Unk_NoiseValue3D(iv, iu + 1, iw + 1);
+        f32 n111 = Unk_NoiseValue3D(iv + 1, iu + 1, iw + 1);
+        f32 a = Unk_NoiseInterpolate(n000, n100, fv);
+        f32 b = Unk_NoiseInterpolate(n010, n110, fv);
+        f32 c = Unk_NoiseInterpolate(a, b, fu);
+        f32 d = Unk_NoiseInterpolate(n001, n101, fv);
+        f32 e = Unk_NoiseInterpolate(n011, n111, fv);
+        f32 f = Unk_NoiseInterpolate(d, e, fu);
+        sum += amplitude * Unk_NoiseInterpolate(c, f, fw);
+        amplitude *= persistence;
+        scale += scale;
+    }
+    return sum;
+}
+
+// 0x71004d1a70: fills the first mip level of a 3D image with value noise. The
+// pixel's address is computed between the two clamps.
+bool SiGfxImageUtility::Unk_4d1a70(SiGfxImage* image, f32 frequency, f32 persistence, s32 octaves) {
+    if (image->field_58.field_14 < 1) {
+        return false;
+    }
+    SiGfxImage::ImageData3D* data = image->vf19(0);
+    u8* pixels = data->field_0;
+    if (pixels == nullptr) {
+        return false;
+    }
+    s32 bpp = Unk_4ed0c0(data->field_10);
+    s32 offsetX = static_cast<s32>(static_cast<f32>(rand()) * (1.0f / 2147483648.0f) * 5000.0f);
+    s32 offsetY = static_cast<s32>(static_cast<f32>(rand()) * (1.0f / 2147483648.0f) * 5000.0f);
+    s32 offsetZ = static_cast<s32>(static_cast<f32>(rand()) * (1.0f / 2147483648.0f) * 5000.0f);
+    for (s32 z = 0; z < data->field_1c; z++) {
+        for (s32 y = 0; y < data->field_18; y++) {
+            for (s32 x = 0; x < data->field_14; x++) {
+                f32 sum = Unk_Noise3D(static_cast<f32>(x + offsetX), static_cast<f32>(y + offsetY),
+                                      static_cast<f32>(z + offsetZ), frequency, persistence, octaves);
+                f32 value = sum * 0.5f + 0.5f;
+                value = value < 0.0f ? 0.0f : value;
+                u8* pixel = pixels + x * bpp + y * bpp * data->field_14 + z * bpp * data->field_14 * data->field_18;
+                value = value > 1.0f ? 1.0f : value;
+                f32 color[4] = {value, value, value, value};
+                Unk_4ed4f0(data->field_10, pixel, color);
+            }
+        }
+    }
+    return true;
+}
+
 // 0x71004d2110: each face of the cube
 bool SiGfxImageUtility::Unk_4d2110(SiGfxImage* image, f32 scaleX, f32 scaleY, s32 octaves) {
     if (image->field_58.field_14 < 1) {
@@ -209,58 +303,46 @@ bool SiGfxImageUtility::Unk_4d2110(SiGfxImage* image, f32 scaleX, f32 scaleY, s3
     return true;
 }
 
-// The value noise's helpers (placeholder names): a number from -1 to 1 for a
-// lattice point, and the smooth step's weight
-static inline f32 Unk_NoiseValue(s32 x, s32 y) {
-    s32 n = x + y * 57;
-    n = (n << 13) ^ n;
-    return static_cast<f32>(1.0 - ((n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff) / 1073741824.0);
-}
-static inline f32 Unk_NoiseWeight(f32 t) {
-    return static_cast<f32>(t * t * 3.0 - 2.0 * pow(t, 3.0));
-}
-
-// NON_MATCHING: the same computation; the spill slots, the float registers
-// and the order the four lattice values are hashed and weighted in differ
-// (the original keeps 3.0 in d15 and the values at sp+0x40).
+// The weights take the coordinate as a double (the products are in double
+// precision) and each pair is weighted through Unk_NoiseInterpolate.
 bool Unk_4d2280(SiGfxImage::ImageData2D* data, f32 frequency, f32 persistence, s32 octaves) {
-    u8* pixels = data->field_0;
-    if (pixels == nullptr) {
-        return false;
-    }
-    s32 bpp = Unk_4ed0c0(data->field_10);
-    s32 offsetX = static_cast<s32>(static_cast<f32>(rand()) * (1.0f / 2147483648.0f) * 5000.0f);
-    s32 offsetY = static_cast<s32>(static_cast<f32>(rand()) * (1.0f / 2147483648.0f) * 5000.0f);
-    for (s32 y = 0; y < data->field_18; y++) {
-        for (s32 x = 0; x < data->field_14; x++) {
-            f32 sum = 0.0f;
-            f32 amplitude = 1.0f;
-            f32 scale = frequency;
-            for (s32 i = 0; i < octaves; i++) {
-                f32 u = scale * static_cast<f32>(y + offsetY);
-                f32 v = scale * static_cast<f32>(x + offsetX);
-                s32 iu = static_cast<s32>(u);
-                s32 iv = static_cast<s32>(v);
-                f32 fu = u - static_cast<f32>(iu);
-                f32 fv = v - static_cast<f32>(iv);
-                f32 n11 = Unk_NoiseValue(iv + 1, iu + 1);
-                f32 n01 = Unk_NoiseValue(iv + 1, iu);
-                f32 n00 = Unk_NoiseValue(iv, iu);
-                f32 n10 = Unk_NoiseValue(iv, iu + 1);
-                f32 a = n00 * Unk_NoiseWeight(1.0f - fv) + n01 * Unk_NoiseWeight(fv);
-                f32 b = n10 * Unk_NoiseWeight(1.0f - fv) + n11 * Unk_NoiseWeight(fv);
-                sum += amplitude * (a * Unk_NoiseWeight(1.0f - fu) + b * Unk_NoiseWeight(fu));
-                amplitude *= persistence;
-                scale += scale;
-            }
-            f32 value = sum * 0.5f + 0.5f;
-            value = value < 0.0f ? 0.0f : value;
-            value = value > 1.0f ? 1.0f : value;
-            f32 color[4] = {value, value, value, value};
-            Unk_4ed4f0(data->field_10, pixels + x * bpp + y * bpp * data->field_14, color);
-        }
-    }
-    return true;
+u8* pixels = data->field_0;
+if (pixels == nullptr) {
+return false;
+}
+s32 bpp = Unk_4ed0c0(data->field_10);
+s32 offsetX = static_cast<s32>(static_cast<f32>(rand()) * (1.0f / 2147483648.0f) * 5000.0f);
+s32 offsetY = static_cast<s32>(static_cast<f32>(rand()) * (1.0f / 2147483648.0f) * 5000.0f);
+for (s32 y = 0; y < data->field_18; y++) {
+for (s32 x = 0; x < data->field_14; x++) {
+f32 scale = frequency;
+f32 amplitude = 1.0f;
+f32 sum = 0.0f;
+for (s32 i = 0; i < octaves; i++) {
+f32 v = scale * static_cast<f32>(x + offsetX);
+f32 u = scale * static_cast<f32>(y + offsetY);
+s32 iv = static_cast<s32>(v);
+s32 iu = static_cast<s32>(u);
+f32 fv = v - static_cast<f32>(iv);
+f32 fu = u - static_cast<f32>(iu);
+f32 n00 = Unk_NoiseValue(iv, iu);
+f32 n01 = Unk_NoiseValue(iv + 1, iu);
+f32 n10 = Unk_NoiseValue(iv, iu + 1);
+f32 n11 = Unk_NoiseValue(iv + 1, iu + 1);
+f32 a = Unk_NoiseInterpolate(n00, n01, fv);
+f32 b = Unk_NoiseInterpolate(n10, n11, fv);
+sum += amplitude * Unk_NoiseInterpolate(a, b, fu);
+amplitude *= persistence;
+scale += scale;
+}
+f32 value = sum * 0.5f + 0.5f;
+value = value < 0.0f ? 0.0f : value;
+value = value > 1.0f ? 1.0f : value;
+f32 color[4] = {value, value, value, value};
+Unk_4ed4f0(data->field_10, pixels + x * bpp + y * bpp * data->field_14, color);
+}
+}
+return true;
 }
 
 }  // namespace SiSDK3

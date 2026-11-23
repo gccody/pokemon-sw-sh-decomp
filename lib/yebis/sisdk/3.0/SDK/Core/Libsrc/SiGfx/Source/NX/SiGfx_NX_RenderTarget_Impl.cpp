@@ -18,10 +18,6 @@ bool Unk_4ed190(u32 format);
 
 namespace SiSDK3 {
 
-// NON_MATCHING: three instructions, the pairing of the first colour
-// attachment's zero stores: the original has `str xzr, [x19, #0xc8]` in place
-// and `stp xzr, xzr, [x19, #0xb8]` at the end, this has `str xzr, [x19,
-// #0xb8]` and `stp xzr, xzr, [x19, #0xc0]` (as both have for the other seven).
 // 0x71005556d0
 SiGfxNXRenderTarget::SiGfxNXRenderTarget(ISiAllocator* pAllocator, SiGfxNXDevice* pDevice)
     : field_10(pAllocator), field_20(pDevice), field_28(0), field_30(pAllocator), field_60(0) {
@@ -41,8 +37,8 @@ SiGfxNXRenderTarget::SiGfxNXRenderTarget(ISiAllocator* pAllocator, SiGfxNXDevice
         field_a0[i].field_18 = nullptr;
         field_a0[i].field_20 = nullptr;
         field_a0[i].field_28 = 0;
-        field_a0[i].field_2c = 0;
         field_a0[i].field_34 = 4;
+        field_a0[i].field_2c = 0;
         field_2c0[i] = 0;
         field_308[i] = 0;
     }

@@ -67,6 +67,28 @@ struct Unk_Float4 {
 };
 PKMN_SIZE_ASSERT(Unk_Float4, 0x10);
 
+// three elements
+struct Unk_Float3 {
+    Unk_Float3() {}
+    Unk_Float3(const Unk_Float& x, const Unk_Float& y, const Unk_Float& z) {
+        field_0[0] = x;
+        field_0[1] = y;
+        field_0[2] = z;
+    }
+
+    enum { ELMS = 3 };
+    // an element (its assert names it and gives its line)
+    Unk_Float& v(s32 i) {
+#line 16810
+        PPFX_TYPES_ASSERT(i >= 0 && i < ELMS);
+        return field_0[i];
+    }
+#line 87
+
+    Unk_Float field_0[3];
+};
+PKMN_SIZE_ASSERT(Unk_Float3, 0xc);
+
 // three plain floats
 struct Unk_Vector3 {
     f32 field_0[3];

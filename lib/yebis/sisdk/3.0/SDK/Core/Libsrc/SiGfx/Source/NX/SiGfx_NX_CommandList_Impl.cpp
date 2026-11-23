@@ -90,12 +90,9 @@ void SiGfxNXCommandList::Unk_539c40() {
     field_100 = 0;
 }
 
-// NON_MATCHING: the same instructions, but the stores that fill the memory
-// heap's description come in another order (the original stores field_18 and
-// field_20 before the two -1, and field_10 and the size before field_28 on).
-// The description's scope ends before the control memory is allocated: with
-// it open to the end of the function, the branch for a failed vf8 isn't the
-// original's.
+// (The heap's description is made by its constructor with the size, and its
+// scope ends before the control memory is allocated: with it open to the end
+// of the function, the branch for a failed vf8 isn't the original's.)
 // 0x710053a000
 bool SiGfxNXCommandList::Unk_53a000(u32 kind) {
     Unk_539c40();
@@ -116,13 +113,7 @@ bool SiGfxNXCommandList::Unk_53a000(u32 kind) {
     const u32 size = 0x80000;
     size_t heapSize = Unk_NXAlign(size, field_11c);
     {
-    Unk_NXMemoryHeapDesc heapDesc;
-    heapDesc.field_18 = 0;
-    heapDesc.field_10 = 0;
-    heapDesc.field_14 = 0;
-    heapDesc.field_20 = 0;
-    heapDesc.field_1c = 0;
-    heapDesc.field_0 = static_cast<s32>(heapSize);
+    Unk_NXMemoryHeapDesc heapDesc(heapSize);
     heapDesc.field_30 = 0x22;
     if (!field_98.m_pData[0]->vf8(&heapDesc)) {
         return false;

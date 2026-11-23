@@ -89,13 +89,14 @@ SiGfxNXPipelineState::SiGfxNXPipelineState(ISiAllocator* pAllocator, SiGfxNXDevi
     }
 }
 
-// NON_MATCHING: the loop over the vertex attributes is unswitched on the
-// semantic flag as in the original, but the copy without it keeps a test of
-// the attribute's index against -1 and compares the count in 32 bits (the
-// original: none, and a 64-bit unsigned compare with the count zero-extended),
-// and the flag is spilled instead of kept in w22. Everything before (the
-// defaults, the polygon, multisample, depth-stencil, colour, blend and channel
-// mask states) is the original's but for two `mov`s' order.
+// (The loop over the vertex attributes counts in 32 bits: IndVarSimplify
+// widens it, which leaves the copy without the semantic flag no test against
+// -1 and a 64-bit compare of the count.)
+// NON_MATCHING: two instructions: before the blend loop the original zeroes
+// the 32-bit index (`mov w23, wzr`) before the 64-bit offset, this the other
+// way round. Tried: the blend loop's index as s32/u32/u64, the blend state
+// through a pointer, the colour state's pointer after the channel mask's
+// defaults, every single-line move of the function.
 // 0x71005536e0
 bool SiGfxNXPipelineState::vf9() {
     if (field_24 < 1) {
@@ -146,7 +147,7 @@ bool SiGfxNXPipelineState::vf9() {
     s64 strides[16] = {};
     bool bySemantic = field_28.field_52c;
     s32 attributes = 0;
-    for (s64 i = 0; i < field_28.field_4e8; i++) {
+    for (s32 i = 0; i < field_28.field_4e8; i++) {
         const Unk_VertexElement& element = field_28.field_168[i];
         u32 format = Unk_562ee0(element.field_8);
         s32 location;

@@ -28,7 +28,10 @@ public:
     virtual ~SiGfxGeometryUtility();
     UNK_REFCOUNT_DECLARE;
     virtual u32 vf4();
-    virtual void vf5();
+    // 0x71004d3190: a box of a width, a height and a depth around the origin,
+    // four vertices per face, with tangents (placeholder parameter names)
+    virtual bool vf5(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVertexBuffer, SiGfxNXBuffer* pIndexBuffer,
+                     f32 width, f32 height, f32 depth, Unk_GeometryBounds* pBounds);
     // 0x71004d41f0: an ellipsoid of three radii, slices around and stacks
     // from pole to pole, with tangents (placeholder parameter names)
     virtual bool vf6(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVertexBuffer, SiGfxNXBuffer* pIndexBuffer,

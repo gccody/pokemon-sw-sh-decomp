@@ -769,15 +769,11 @@ void SiGfxNXDrawContext::vf19(s32 first, s32 count, ISiGfxResource** ppBuffers, 
     field_30.field_0 |= 0x1000;
 }
 
-// NON_MATCHING: the original tests the index type for 0, 1 and 2 in that
-// order and gives the other types a block of their own; this tests 0, 2 and
-// 1 and shares the other types' block with the null buffer's (268 bytes for
-// 292).
 // 0x710053d490
 void SiGfxNXDrawContext::vf20(Unk_NXDrawIndirect* pBuffer, s32 offset) {
-    u64 address = 0;
-    s32 type = 0;
     s32 size = 0;
+    s32 type = 0;
+    u64 address = 0;
     if (pBuffer != nullptr) {
         address = pBuffer->vf27();
         type = pBuffer->vf28();
@@ -785,11 +781,11 @@ void SiGfxNXDrawContext::vf20(Unk_NXDrawIndirect* pBuffer, s32 offset) {
         case 0:
             size = 1;
             break;
-        case 1:
-            size = 2;
-            break;
         case 2:
             size = 4;
+            break;
+        case 1:
+            size = 2;
             break;
         default:
             size = 0;
@@ -1695,9 +1691,6 @@ void SiGfxNXDrawContext::Unk_53f7d0() {
     field_3a70.field_188 = 0;
 }
 
-// NON_MATCHING: the first loop's call has `mov x0, x22` scheduled after the
-// sampler's clamp (`bic w2`) where the original moves it before; the rest is
-// the original's.
 // 0x710053fe70
 void SiGfxNXDrawContext::Unk_53fe70(const void* device, Unk_SlotRange* textures, Unk_SlotRange* samplers, u64* handles,
                                     Unk_SlotRange* changed) {
@@ -1711,9 +1704,10 @@ void SiGfxNXDrawContext::Unk_53fe70(const void* device, Unk_SlotRange* textures,
     if (texturesLowest <= texturesHighest) {
         for (s32 i = texturesLowest; i <= textures->field_8; i++) {
             if ((textures->field_10 & static_cast<u64>(1) << i) != 0) {
+                s32 texture = field_30.field_508.field_d50[i];
                 s32 slot = field_30.field_508.field_f50[i];
                 s32 sampler = field_30.field_508.field_e50[slot < 0 ? 0 : slot];
-                handles[i] = nvnDeviceGetTextureHandle(device, field_30.field_508.field_d50[i], sampler < 0 ? 0 : sampler);
+                handles[i] = nvnDeviceGetTextureHandle(device, texture, sampler < 0 ? 0 : sampler);
                 changed->Unk_Mark(i);
             }
         }
@@ -1883,18 +1877,20 @@ void SiGfxNXDrawContext::vf54() {
 }
 
 // 0x71005407e0
-void SiGfxNXDrawContext::vf55() {
-    field_3780.Unk_544610();
+bool SiGfxNXDrawContext::vf55(const char* text, const SiGfxFontDrawHelper::Unk_Vec4* pRect, u32 flags,
+                              const Unk_TextColor* pColor, f32 scale) {
+    return field_3780.Unk_544610(text, pRect, flags, pColor, scale);
 }
 
 // 0x71005407f0
-void SiGfxNXDrawContext::vf56() {
-    field_3780.Unk_544b00();
+bool SiGfxNXDrawContext::vf56(const char* text, const SiGfxFontDrawHelper::Unk_Vec4* pRect, u32 flags,
+                              const Unk_TextColor* pColor, const Unk_TextColor* pOutlineColor, f32 scale, u32 outline) {
+    return field_3780.Unk_544b00(text, pRect, flags, pColor, pOutlineColor, scale, outline);
 }
 
 // 0x7100540800
-void SiGfxNXDrawContext::vf57() {
-    field_3780.Unk_545910();
+bool SiGfxNXDrawContext::vf57() {
+    return field_3780.Unk_545910();
 }
 
 // 0x7100540810
