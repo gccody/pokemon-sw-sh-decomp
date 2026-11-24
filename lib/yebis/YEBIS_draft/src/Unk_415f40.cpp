@@ -558,9 +558,10 @@ static const Unk_Float4 Unk_Table2[97] = {
 // unrolled only with a pointer induction variable (an indexed one costs the
 // unroller more than its threshold of 300).
 // NON_MATCHING: the inner loop's pointer to the space's maxima: the original
-// keeps a 64-bit index and a pointer to the maxima's fourth element (the
-// elements at -12, -8, -4, the increment a separate add); here a 32-bit index
-// and a pointer to the first element (post-incremented by the last store).
+// keeps it at the maxima's fourth element (the elements at -12, -8, -4); here
+// at the first. The 64-bit index and the three maxima computed before they
+// are stored (all loads first) are the original's; tried for the pointer: an
+// index, a reference, a float pointer, the increment in the body, `while`.
 static Unk_Float4 s_max[24];
 Unk_Float4 Unk_410450(s32 space) {
     static bool s_initialized;
@@ -574,15 +575,18 @@ Unk_Float4 Unk_410450(s32 space) {
             f32 y = Unk_Table2[i].field_0[1].field_0;
             f32 z = Unk_Table2[i].field_0[2].field_0;
             Unk_Float4* max = s_max;
-            for (u32 j = 0; j < 24; j++, max++) {
+            for (s64 j = 0; j < 24; j++, max++) {
                 MATRIXT44 m;
                 Unk_4114f0(&m, j);
                 f32 r = x * m.field_0[0][0] + y * m.field_0[1][0] + z * m.field_0[2][0] + m.field_0[3][0];
                 f32 g = x * m.field_0[0][1] + y * m.field_0[1][1] + z * m.field_0[2][1] + m.field_0[3][1];
                 f32 b = x * m.field_0[0][2] + y * m.field_0[1][2] + z * m.field_0[2][2] + m.field_0[3][2];
-                max->field_0[0].field_0 = r > max->field_0[0].field_0 ? r : max->field_0[0].field_0;
-                max->field_0[1].field_0 = g > max->field_0[1].field_0 ? g : max->field_0[1].field_0;
-                max->field_0[2].field_0 = b > max->field_0[2].field_0 ? b : max->field_0[2].field_0;
+                f32 maxR = r > max->field_0[0].field_0 ? r : max->field_0[0].field_0;
+                f32 maxG = g > max->field_0[1].field_0 ? g : max->field_0[1].field_0;
+                f32 maxB = b > max->field_0[2].field_0 ? b : max->field_0[2].field_0;
+                max->field_0[0].field_0 = maxR;
+                max->field_0[1].field_0 = maxG;
+                max->field_0[2].field_0 = maxB;
             }
         }
         Unk_Float4* max = s_max;

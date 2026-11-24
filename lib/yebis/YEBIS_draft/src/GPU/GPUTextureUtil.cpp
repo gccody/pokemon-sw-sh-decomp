@@ -792,8 +792,9 @@ static inline f32 Unk_Clamp(f32 x, bool saturate) {
     return fmaxf(x, 1.17549435e-38f);
 }
 
-// an argument Unk_47c530 takes and doesn't use (inline)
+// an argument Unk_47c530 (and Unk_478e90) takes and doesn't use (inline)
 inline void Unk_Ignore(bool) {}
+inline void Unk_Ignore(s32) {}
 
 // 0x710047c530: `*x` encoded with transfer function `encoding` (6 to 14, the
 // gamma curves), clamped to 0 to 1 with `saturate`
@@ -5238,6 +5239,9 @@ inline bool Unk_IsTonemap2To9(s32 mode) {
 }
 
 // 0x7100478e90
+// arg22 is used only by something that's gone after inlining (Unk_Ignore):
+// dead-argument elimination, which runs before the inliner, still sees the
+// use, so Unk_482010 passes it as the original does (arg8 has none: undef).
 // NON_MATCHING: a first draft with the original's calls, tables and matrices.
 // The original keeps arg10 in its incoming stack slot (an alloca that isn't
 // promoted: written there by the clamp and by the arg11 case, reread for the
@@ -5285,6 +5289,7 @@ s32 CTextureUtil::Unk_478e90(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
         technique = field_30.field_1b3f4[count - 1];
     }
     field_30.field_0->vf29(technique);
+    Unk_Ignore(arg22);
     Unk_Float4 weights3[3] = {
         Unk_Float4(1.0f, 0.0f, 0.0f, 1.0f / 3.0f),
         Unk_Float4(0.0f, 1.0f, 0.0f, 1.0f / 3.0f),
@@ -6154,8 +6159,11 @@ static inline s32 GetHandle_tech_OptoElectronicTransfer(const TEXSHADERSET& set,
 // system gamma's tests of arg22 against itself (as written here, a guess at
 // what an inline function with two equal arguments leaves) and its second
 // logf, which the original computes again, the technique search's loop (three
-// unswitched copies there, with the index recomputed in each iteration), and
-// the registers that follow
+// unswitched copies there, with the index recomputed in each iteration; it
+// selects between the four tables' final addresses, each computed in full, by
+// `samples` and the metadata flag, where this indexes one array: four arrays
+// through pointers or an overlay struct of four members select the bases
+// first, which is no closer), and the registers that follow
 s32 CTextureUtil::DrawRectGPU_OptoElectronicTransfer(
     f32 x, f32 y, f32 width, f32 height, f32 arg4, f32 arg5, f32 arg6, f32 arg7, s32 count, void* arg9,
     Unk_GPUTexture* texture, void* surface, s32 eotf, s32 backendMode, s32 arg14, f32 arg15, f32 arg16, f32 arg17,
@@ -6934,12 +6942,13 @@ s32 CTextureUtil::Unk_4809a0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
 
 // 0x710048d020: `source` blurred into `target` with Unk_413160's samples of
 // its first level (`mask`'s texture as the mask)
-// NON_MATCHING: scheduling only: the device's load for Unk_442c50_get and
-// the zero clamp's `csinc` are in each other's order, and so are the
-// fallback's `mov #9` and `csel` (the clamp after Unk_GetCoords put the
-// coordinates' load in its place). Tried: the reads, the clamp and the
-// fallback's two assignments in other orders, as selects, in lambdas, with
-// std::min/std::max, and other types for `second` and `mode`.
+// NON_MATCHING: scheduling only, 4 instructions: the device's load for
+// Unk_442c50_get comes two instructions early, and the fallback's `mov #9`
+// and `csel` are in each other's order (`second`'s first clamp before
+// Unk_GetCoords fixed the clamp's `csinc`). Tried: the reads, the clamp and
+// the fallback's two assignments in other orders (40 random orders of the
+// declarations), as selects, in lambdas, with std::min/std::max, and other
+// types for `second` and `mode`.
 s32 CTextureUtil::Unk_48d020(CRenderTexture* source, CRenderTexture* target, CRenderTexture* mask, u32 arg3,
                              const Unk_Float2* arg4, s32 usnorm, s32 bits, bool background, s32 dense, bool clear) {
     if (clear) {
@@ -6948,8 +6957,8 @@ s32 CTextureUtil::Unk_48d020(CRenderTexture* source, CRenderTexture* target, CRe
     CRenderTexture::Unk_Level* level = source->field_80;
     f32 u1;
     f32 v1;
-    Unk_GetCoords(source, &u1, &v1);
     s32 second = dense < 1 ? dense : 1;
+    Unk_GetCoords(source, &u1, &v1);
     second = second < 0 ? 0 : second;
     f32 width = static_cast<f32>(static_cast<u32>(target->field_54));
     f32 height = static_cast<f32>(static_cast<u32>(target->field_58));
@@ -6978,11 +6987,13 @@ s32 CTextureUtil::Unk_48d020(CRenderTexture* source, CRenderTexture* target, CRe
 // 0x710048fb40: Unk_490020 from `source`, `history`, `arg11` (and `depth`)
 // into `target`; without `history`, `source` and `arg11` blended by
 // Unk_48d220, and `source` copied when arg5 and arg6 are both 1 or more
-// NON_MATCHING: the register allocation of the history path. The address of
-// `source->field_88` is shared with Unk_GetCoords' loads here (a pre-indexed
-// load, then spilled), so `source` dies in its texture walk; the original
-// keeps `source` in x20 and computes the address again at the call. The
-// other statements are the original's.
+// NON_MATCHING: the register allocation of the history path (1296 bytes for
+// 1240). Written as the call's arguments, the addresses of `source->field_88`
+// and `history->field_88` are shared with Unk_GetCoords' loads (a
+// pre-indexed load, then spilled), so `source` dies in its texture walk; as
+// pointers taken at the start (as 0x710048edb0) it is closer, but the
+// original still computes both addresses again at the call and loads the
+// sizes and offsets in another order.
 s32 CTextureUtil::Unk_48fb40(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, f32 arg6, f32 arg7,
                              CRenderTexture* target, CRenderTexture* source, CRenderTexture* history,
                              CRenderTexture* arg11, CRenderTexture* depth, bool dynamic, s32 arg14,
@@ -6992,6 +7003,8 @@ s32 CTextureUtil::Unk_48fb40(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f
     if (field_20 == nullptr) {
         return -1;
     }
+    const Unk_Float2* sourceScale = reinterpret_cast<const Unk_Float2*>(&source->field_88);
+    const Unk_Float2* historyScale = reinterpret_cast<const Unk_Float2*>(&history->field_88);
     if (clear) {
         Unk_471410();
     }
@@ -7033,9 +7046,9 @@ s32 CTextureUtil::Unk_48fb40(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f
     result = Unk_490020(0.0f, 0.0f, width, height, 0.0f, 0.0f, u0, v0, 0.0f, 0.0f, u1, v1, 0.0f, 0.0f, u2, v2,
                         Unk_GetTexture(source), Unk_GetTexture(history), Unk_GetTexture(arg11),
                         depth != nullptr ? Unk_GetTexture(depth) : nullptr,
-                        reinterpret_cast<const Unk_Float2*>(&source->field_88),
+                        sourceScale,
                         reinterpret_cast<const Unk_Float2*>(depth != nullptr ? &depth->field_88 : &source->field_88),
-                        reinterpret_cast<const Unk_Float2*>(&history->field_88), arg0, arg1, dynamic, arg2, arg3,
+                        historyScale, arg0, arg1, dynamic, arg2, arg3,
                         arg14, arg15, channel, arg17, arg18, arg4, arg5, arg6, arg7, arg19, arg20, arg21, arg22,
                         color, arg24, 0);
     return result < 0 ? result : 0;
@@ -7492,10 +7505,13 @@ s32 CTextureUtil::Unk_48f230(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f
 }
 
 // 0x7100482010
-// NON_MATCHING: can't match before 0x7100478e90 is defined in the TU: the
-// original passes nothing for the argument the callee ignores (arg0, its
-// arg8: dead-argument elimination). With a stand-in callee the rest is the
-// original's but for the float registers (as 0x7100481bc0).
+// The original passes nothing for arg0 (Unk_478e90's arg8, which it never
+// reads: dead-argument elimination gives the call undef) but does pass arg13
+// as its arg22, which Unk_478e90 reads only in something that's gone after
+// inlining (Unk_Ignore there).
+// NON_MATCHING: 396 bytes for 400: the float parameters' spills are paired
+// differently (arg2 with arg4 there, ratio stored alone), and the call's
+// argument copies and stack stores come in another order.
 s32 CTextureUtil::Unk_482010(f32 arg0, f32 ratio, f32 arg2, f32 arg3, f32 arg4, CRenderTexture* source,
                              CRenderTexture* target, s32 arg5, void* arg6, void* arg7, void* arg8, void* arg9,
                              void* arg10, bool arg11, void* arg12, s32 arg13, s32 arg14) {
@@ -8664,12 +8680,17 @@ s32 CTextureUtil::Unk_48e9a0(f32 arg0, f32 arg1, f32 arg2, f32 arg3, CRenderText
 }
 
 // 0x710048edb0
-// NON_MATCHING: the address of the source's field_88 (an argument) is computed once at
-// the start and its loads go through it; the original computes it for the call.
+// The pointer to the source's field_88 is taken before anything else: as an
+// argument expression its address is shared with Unk_GetCoords' loads (one
+// pre-indexed load through it, 12 bytes longer).
+// NON_MATCHING: register allocation only: arg0 and arg1 have each other's
+// registers (s8/s9), and the pointer is kept in x22 over the texture walk
+// where the original computes it again at the call (keeping `source`).
 s32 CTextureUtil::Unk_48edb0(f32 arg0, f32 arg1, CRenderTexture* target, CRenderTexture* source, const void* arg4,
                              bool clear) {
     if (field_20 == nullptr)
         return -1;
+    const f32* scale = &source->field_88;
     if (clear) {
         Unk_471410();
     }
@@ -8685,7 +8706,7 @@ s32 CTextureUtil::Unk_48edb0(f32 arg0, f32 arg1, CRenderTexture* target, CRender
     f32 width = static_cast<f32>(targetWidth);
     CRenderTexture::Unk_49cf50(nullptr, nullptr);
     result = Unk_48ef10(0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, arg0, arg1, Unk_GetTexture(source),
-                        &source->field_88, arg4, 0);
+                        scale, arg4, 0);
     return result < 0 ? result : 0;
 }
 
@@ -9983,11 +10004,18 @@ namespace PPFX {
 // 0x7100488380: the lights of `lights` in front of the camera, nearer than
 // `maxDistance` (at least the near plane) and inside the frustum, in view
 // space and brightest first in field_29af8; nothing without `color`
-// NON_MATCHING: three spots. The original copies the light's x and y for the
-// mirrored position as two 32-bit words and loads its z as a float (here one
-// 64-bit copy, and z is read back from the copy: four bytes longer), gives
-// the count and the capacity each other's registers in the loops' exit test,
-// and schedules the colour test's first compare after the argument copies.
+// The mirrored position is an Unk_Float3 built from the light's elements (x
+// and y copied as objects, z negated: two 32-bit words and a float, as the
+// original).
+// NON_MATCHING: 1200 bytes for 1204: after the loop the original reloads the
+// count on the normal exits only (GVN's load PRE: the breaks already have it,
+// then `sxtw` before qsort); here the two unswitched loops' normal exits and
+// breaks reach one block, two predecessors lack the value and PRE gives up
+// (one `ldrsw`). Also the count and the capacity have each other's registers
+// in the exit test, and the colour test's first compare is scheduled before
+// the argument copies. Tried: the locals of the body (v, p, light, out, the
+// projections' temporaries) inside and outside the loop, `s64` index, the
+// exit test's and the final test's spellings.
 s32 CTextureUtil::Unk_488380(f32 maxDistance, f32 arg1, f32 scale, s32 count, void* data, const MATRIXT44* view,
                              const MATRIXT44* projection, bool rightHanded, const Unk_Float4* color) {
     const Unk_29af8* lights = static_cast<const Unk_29af8*>(data);
@@ -10018,14 +10046,13 @@ s32 CTextureUtil::Unk_488380(f32 maxDistance, f32 arg1, f32 scale, s32 count, vo
     field_29af4 = 0;
     for (s32 i = 0; i < count; i++) {
         const Unk_29af8* light = &lights[i];
-        Unk_Vector3 v;
+        Unk_Float3 v;
         Unk_Float4 p;
         if (rightHanded) {
             Unk_410070(reinterpret_cast<Unk_Vector3*>(&p), reinterpret_cast<const Unk_Vector3*>(light->field_0), &m);
         } else {
-            v = *reinterpret_cast<const Unk_Vector3*>(light->field_0);
-            v.field_0[2] = -v.field_0[2];
-            Unk_410070(reinterpret_cast<Unk_Vector3*>(&p), &v, &m);
+            v = Unk_Float3(light->field_0[0], light->field_0[1], -light->field_0[2].field_0);
+            Unk_410070(reinterpret_cast<Unk_Vector3*>(&p), reinterpret_cast<const Unk_Vector3*>(&v), &m);
         }
         f32 z = p.field_0[2].field_0;
         f32 limit = nearPlane < maxDistance ? maxDistance : nearPlane;
@@ -10197,7 +10224,14 @@ inline s32 Unk_476bc0_Sources(CTextureUtil* self, f32 width, f32 height, f32 u1,
 // function, which keeps one call), `count` and the first source have each
 // other's registers; the scaled colours are stored in pairs here, one by one
 // (elements 3, 1, 2, 0) in the original, whose loop guard is `cmp #0; b.le`
-// (`cmp #1; b.lt` here). Tried: element-wise stores in every order.
+// (`cmp #1; b.lt` here). The loop's IR is the same either way: with the guard
+// `i != count` (or a `u32` index: `cbz`) the stores come out as the
+// original's, so the guard's form decides them (AArch64's store pair
+// suppression looks at the trace through it); the original's `cmp #0; b.le`
+// looks like a branch reversed by block placement rather than one inverted
+// at selection. Tried: element-wise stores in every order, the loop as two
+// loops, in an inline function (static and not), with an explicit guard, the
+// null test reversed, `colors = scaled` first, a ternary.
 s32 CTextureUtil::Unk_48d220(f32 scale, f32 power, void* target, s32 count, CRenderTexture** sources,
                              const Unk_Float4* colors, s32 index, bool clear) {
     if (field_20 == nullptr) {
@@ -12835,8 +12869,9 @@ s32 CTextureUtil::Unk_482fd0(f32 scale, f32 limit, f32 ratio, CRenderTexture* ta
 // copy of `this` and the first normalisation's fcmp ahead of the other
 // argument copies, and the techniques' loop tests the count with a ccmp (the
 // original keeps cbnz and cmp/b.lt). Tried: the loop as do/while, while and
-// for, the tests split and in either order, the table reads and the test in
-// inline functions.
+// for, the tests split and in either order, nested ifs (`if (technique ==
+// 0) { if (used < 2) break; ... }`), the table reads and the test in inline
+// functions: all give the same IR.
 s32 CTextureUtil::Unk_483e50(f32 scale, f32 length, f32 ratio, CRenderTexture* target, const MATRIXT44* view,
                              const MATRIXT44* previous, const MATRIXT44* projection,
                              const MATRIXT44* previousProjection, bool flag, s32 maxLevels, void* unused,
@@ -13155,7 +13190,13 @@ s32 CTextureUtil::Unk_484f50(f32 scale, CRenderTexture* source, CRenderTexture* 
 // one weighted by `color`, and a half-size result is composed into `target`
 // with Unk_47a850
 // NON_MATCHING: a first draft with the original's calls, arguments and
-// branches; the registers, spill slots and the order of some blocks differ.
+// branches (5072 bytes for 5220); the registers, spill slots and the order of
+// some blocks differ. The work size test is unsigned (`b.ls`) and the half
+// texture is CRenderTextureArray::Unk_Texture(1). The original keeps the
+// velocity scale's elements as integers (csel of the offset's words and k's
+// bits, the y negated with `eor`), here they're phis of floats; how
+// velocityScale is built and negated (selects, if/else, element copies)
+// doesn't change it.
 s32 CTextureUtil::Unk_485610(f32 scale, f32 length, f32 arg2, f32 arg3, f32 ratio, CRenderTexture* source,
                              CRenderTexture* target, CRenderTexture* temp, CRenderTextureArray* work,
                              CRenderTexture* velocity, CRenderTexture* reduced, CRenderTextureArray* velocityWork,
@@ -13168,8 +13209,9 @@ s32 CTextureUtil::Unk_485610(f32 scale, f32 length, f32 arg2, f32 arg3, f32 rati
     CRenderTexture* half;
     CRenderTexture* from;
     bool downsampled;
-    if (work != nullptr && source->field_54 > work->field_38[work->field_90]->field_54) {
-        half = work->field_30 < 2 ? nullptr : work->field_38[1];
+    if (work != nullptr &&
+        static_cast<u32>(source->field_54) > static_cast<u32>(work->field_38[work->field_90]->field_54)) {
+        half = work->Unk_Texture(1);
         Unk_Float4 one(1.0f, 1.0f, 1.0f, 1.0f);
         Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
         Unk_47d960(0.0f, 0.0f, 0.0f, 1.0f, source, half, nullptr, 0, &one, 0, false, false, 1, &zero, nullptr, -1);

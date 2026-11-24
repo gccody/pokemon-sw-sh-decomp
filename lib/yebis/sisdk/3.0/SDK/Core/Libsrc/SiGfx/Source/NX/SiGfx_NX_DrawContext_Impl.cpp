@@ -205,10 +205,11 @@ void SiGfxNXDrawContext::Unk_53ba70() {
     }
 }
 
-// NON_MATCHING: the two stores of the command buffer are sunk into one with
-// the member's address kept in a register (x22, and field_18's in x23), where
-// the original stores in each branch and reloads both members (564 bytes for
-// 536).
+// The command buffer and the device are reached through references taken
+// before the test of the command list: with each branch's own member access,
+// GVN's PRE joins the branches' addresses into phis (kept in callee-saved
+// registers) where the original reloads both members after the join. The
+// draw count is cleared before the frame's index is computed.
 // 0x710053bb80
 bool SiGfxNXDrawContext::vf8(SiGfxNXCommandList* pCommandList) {
     if (field_28 != nullptr) {
@@ -224,23 +225,26 @@ bool SiGfxNXDrawContext::vf8(SiGfxNXCommandList* pCommandList) {
     if (pCommandList->field_14c == 0) {
         pCommandList->field_14c = 1;
     }
+    void*& buffer = field_3a60;
+    Unk_NXDrawDevice*& device = field_18;
     if (pCommandList->vf14()) {
-        field_3a60 = field_28->vf15();
+        buffer = field_28->vf15();
     } else {
         field_28->vf17();
-        field_3a60 = field_28->vf15();
-        nvnCommandBufferBeginRecording(field_3a60);
-        SiGfxNXDevice* pDevice = reinterpret_cast<SiGfxNXDevice*>(field_18);
+        buffer = field_28->vf15();
+        nvnCommandBufferBeginRecording(buffer);
+        SiGfxNXDevice* pDevice = reinterpret_cast<SiGfxNXDevice*>(device);
         s32 size = pDevice->field_7a8;
         if (size > 0) {
-            Unk_CommandBufferSetShaderScratchMemory(field_3a60, pDevice->field_7a0->vf16(), reinterpret_cast<SiGfxNXDevice*>(field_18)->field_7b0, size);
+            Unk_CommandBufferSetShaderScratchMemory(buffer, pDevice->field_7a0->vf16(),
+                                                    reinterpret_cast<SiGfxNXDevice*>(device)->field_7b0, size);
         }
     }
     Unk_55ba30(&field_30);
-    Unk_4fb320_update(reinterpret_cast<const Unk_4fb320*>(field_18), reinterpret_cast<u64>(field_3a60));
+    Unk_4fb320_update(reinterpret_cast<const Unk_4fb320*>(device), reinterpret_cast<u64>(buffer));
     field_28->field_124 = SiGfxNXCommandList::Unk_Counts();
-    s32 frame = field_3e0c + 1 >= field_3e08 ? 0 : field_3e0c + 1;
     field_3a68 = 0;
+    s32 frame = field_3e0c + 1 >= field_3e08 ? 0 : field_3e0c + 1;
     field_3e0c = frame;
     for (s32 i = 0; i < 3; i++) {
         FrameDirectBufferArray& buffers = field_3e10[i][field_3e0c];
@@ -1951,29 +1955,22 @@ bool SiGfxNXDrawContext::vf64(Unk_NXDrawQuery* query) {
     return true;
 }
 
-// The size of a surface's memory, as slot 69 gives it (inline: placeholder
-// name).
-static inline void Unk_MapSurface(Unk_NXDrawFlush* pMap, const Unk_NXDrawSurface* pSurface) {
-    pMap->field_28 = pSurface->field_110;
-    if (pSurface->field_a4) {
-        pMap->field_2c = pSurface->field_ac * pSurface->field_110;
-    } else {
-        pMap->field_2c = pSurface->field_90 * pSurface->field_110;
-    }
-}
 
+// A surface's rows are mapped in place in both cases: each branch multiplies
+// the row's bytes (read first, so the load is hoisted above the test) by its
+// count of rows; a helper would be simplified on its own first and its loads
+// sunk into a select of addresses. The kinds are a switch: the original's
+// blocks are in the cases' order (10, 1, 3) and its comparisons in their
+// values' (if-else chains are compared in the reverse of the source's order).
 // NON_MATCHING: for a texture whose size isn't given, the original keeps the
-// size in one register through the join and sign-extends it after
-// (`mov w24, w0`, then `sxtw x2, w24`); here the extension is copied into
-// both paths and the call's path is moved out of line (752 bytes for 736).
-// In the IR the invalidation's call is duplicated into both paths (the size
-// from nvnTextureGetStorageSize is a truncated size_t, its sign extension a
-// shift pair that differs from the loaded size's); with an s64 size the
-// layout is the original's (86 lines off) but the size is extended before
-// the join.
-// The kinds are a switch: the original's blocks are in the cases' order (10,
-// 1, 3) and its comparisons in their values' (if-else chains are compared in
-// the reverse of the source's order).
+// size in 32 bits through the join and sign-extends it after (`ldr w24`, `mov
+// w24, w0`, then `sxtw x2, w24`); an s64 size (as here) extends it at the load
+// and keeps the call's 64 bits, and an s32 one duplicates the invalidation's
+// call into both paths (the size from nvnTextureGetStorageSize is a truncated
+// size_t, its sign extension a shift pair that differs from the loaded
+// size's: 752 bytes). The texture's two rows' multiplications aren't merged
+// into one as the original's are (740 bytes for 736). Tried: the mapping as
+// helpers (either case), rows in a local, the empty surface's branch first.
 // 0x7100540990
 bool SiGfxNXDrawContext::vf69(ISiGfxResource* pResource, Unk_NXDrawFlush* pMap) {
     if (pResource == nullptr) {
@@ -2008,7 +2005,7 @@ bool SiGfxNXDrawContext::vf69(ISiGfxResource* pResource, Unk_NXDrawFlush* pMap) 
                     return false;
                 }
                 s64 offset = nvnTextureGetMemoryOffset(pTexture->field_328);
-                s32 size = pMap->field_8;
+                s64 size = pMap->field_8;
                 if (size < 0) {
                     size = nvnTextureGetStorageSize(pTexture->field_328);
                 }
@@ -2020,7 +2017,13 @@ bool SiGfxNXDrawContext::vf69(ISiGfxResource* pResource, Unk_NXDrawFlush* pMap) 
             if (pTexture->vf19()->field_0 == 2 || pTexture->vf19()->field_0 == 5 || pTexture->vf19()->field_0 == 4 ||
                 pTexture->vf19()->field_0 == 6) {
                 if (pTexture->field_248 != 0) {
-                    Unk_MapSurface(pMap, pTexture->field_260);
+                    const Unk_NXDrawSurface* pSurface = pTexture->field_260;
+                    pMap->field_28 = pSurface->field_110;
+                    if (pSurface->field_a4) {
+                        pMap->field_2c = pSurface->field_110 * pSurface->field_ac;
+                    } else {
+                        pMap->field_2c = pSurface->field_110 * pSurface->field_90;
+                    }
                 } else {
                     // (the original calls it again here, its result unused)
                     pTexture->vf19();
@@ -2050,7 +2053,12 @@ bool SiGfxNXDrawContext::vf69(ISiGfxResource* pResource, Unk_NXDrawFlush* pMap) 
                 nvnMemoryPoolInvalidateMappedRange(pool, offset, size);
             }
             pMap->field_20 = usage->field_450;
-            Unk_MapSurface(pMap, pSurface);
+            pMap->field_28 = pSurface->field_110;
+            if (pSurface->field_a4) {
+                pMap->field_2c = pSurface->field_110 * pSurface->field_ac;
+            } else {
+                pMap->field_2c = pSurface->field_110 * pSurface->field_90;
+            }
             return true;
     }
     }

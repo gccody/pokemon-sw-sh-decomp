@@ -228,6 +228,8 @@ const void* Unk_583410(SiSDK3::ISiAllocator* pAllocator, Unk_BlockHeader* header
 // NON_MATCHING: registers only: the codec and the result are exchanged
 // (x24/x25). Tried: the declarations' order, early returns, nested tests, the
 // buffer assigned first, u8*, the kind in a local, one result variable, an else.
+// (Round 3: the decompression in a static or non-static inline helper, with
+// an early or a nested test, the codec passed directly: no change.)
 const void* Unk_583580(SiSDK3::ISiAllocator* pAllocator, const Unk_BlockHeader* header, const void* data,
                        void** buffer, s64* size) {
     *buffer = nullptr;

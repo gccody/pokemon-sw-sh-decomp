@@ -163,6 +163,11 @@ bool SiGfxFreeTypeFace::Unk_5005c0(const Unk_FontDesc* desc) {
 // Also tried (216 orders): the scales stored first, between or after the
 // products, each product from the member, the size's field or a local.
 // 0x71005006c0
+// NON_MATCHING: the order of the size's products and their stores (the
+// original converts the first two products before it stores field_1d8 and
+// stores field_1d0 before field_1c8). Round 3: every order of the six
+// statements (79) and of eight with the two sizes in locals (2520): at best
+// 9 instructions differ.
 bool SiGfxFreeTypeFace::Unk_5006c0(s32 width, s32 height) {
     if (field_18 == nullptr) {
         return false;

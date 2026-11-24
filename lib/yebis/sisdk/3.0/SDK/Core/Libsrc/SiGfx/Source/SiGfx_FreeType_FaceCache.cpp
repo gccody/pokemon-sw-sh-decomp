@@ -388,6 +388,8 @@ bool SiGfxQuadTree<T>::Unk_5333b0(QuadNode* node, s32 x, s32 y) {
 // one-bit case's loop right after the tests (the switch's last case falls
 // through to it); here both are the other way round, whatever the order of
 // the cases or the form of the tests.
+// (Round 3: `if (mode == 2) ... else if (mode == 1)`, a switch with case 2
+// first, if/else both ways, a mode local, an early return: the same code.)
 bool SiGfxFreeTypeFaceCache::vf8(SiGfxFreeTypeGlyph* glyph, const Unk_FTBitmap* bitmap, SiGfxImage* image) {
     if (bitmap->field_1a != 1 && bitmap->field_1a != 2) {
         return false;

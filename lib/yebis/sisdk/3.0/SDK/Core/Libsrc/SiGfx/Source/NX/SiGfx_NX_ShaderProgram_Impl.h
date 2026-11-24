@@ -101,7 +101,7 @@ public:
     virtual Unk_NXProgramPart* vf36();
     virtual bool vf37();  // 0x710055aa70
     virtual void* vf38();
-    virtual u64 vf39();
+    virtual u32 vf39();  // 0x710055ab20 (lib/yebis/class): a 32-bit value
     bool vf40(const char* name) override;       // 0x710055a100
     const SiString<char>* vf41() override;      // 0x710055a1e0
     u32 vf42() override;                        // 0x710055a200

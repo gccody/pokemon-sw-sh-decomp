@@ -443,6 +443,7 @@ void Unk_4a2be0(Unk_4a3cc0_Self* self, u32 seed, Unk_4a2be0_Target* target, Unk_
 
 // 0x71004a1690: makes Unk_24e5950's items: five sets of lines, each in four
 // sizes (`seeds`: what the sets' seeds add, or nullptr)
+// The colour loops' indices are `s64` and `u32` (closer than `s32`).
 // NON_MATCHING: written from the original's stores (what it sets is the
 // original's); the stores' order and register allocation differ.
 s32 Unk_4a1690(const s32* seeds) {
@@ -882,9 +883,9 @@ s32 Unk_4a1690(const s32* seeds) {
     }
     static const s32 totals[4] = {8, 16, 32, 64};
     static const s32 arg7s[4] = {1, 3, 3, 5};
-    for (s32 i = 0; i < 5; i++) {
+    for (s64 i = 0; i < 5; i++) {
         Unk_4a1690_Style& style = styles[i];
-        for (s32 j = 0; j < 4; j++) {
+        for (u32 j = 0; j < 4; j++) {
             Unk_4a3cc0_Self self(style.field_3a8, style.field_3c0);
             Unk_4a2be0(&self, style.field_3c4, &Unk_24e5950[style.field_0 + j], style.field_4, style.field_3a4,
                        &style.field_3b0, totals[j], arg7s[j], style.field_3c8);
@@ -1066,8 +1067,8 @@ inline void Unk_4a2e20(Unk_4a3cc0_Self* self, Unk_4a2e20_Item* item) {
     if (item->field_1c.field_0[0].field_0 == FLT_MAX)
         item->field_1c = Unk_Filter(item->field_2c, 1.0f - fade);
     if (item->field_c.field_0[0].field_0 == FLT_MAX) {
-        Unk_Float4 color = Unk_Scale(Unk_4a3cc0(self), 2.0f);
         f32 k = 1.0f / width;
+        Unk_Float4 color = Unk_Scale(Unk_4a3cc0(self), 2.0f);
         item->field_c = Unk_Float4(k * color.field_0[0].field_0, k * color.field_0[1].field_0,
                                    k * color.field_0[2].field_0, k * color.field_0[3].field_0);
         if (faded) {

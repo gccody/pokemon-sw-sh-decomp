@@ -67,20 +67,18 @@ static inline float Unk_NoiseFade(float t) { return t * (t * (t * (t * (t * 6.0f
 static inline float Unk_NoiseLerp(float t, float a, float b) { return a + t * (b - a); }
 // 0x71004c9110: the gradient noise of a point (the permutation's first number
 // stands where a third coordinate's would)
-// The integers' conversions are read into locals before the fractions are
-// taken, y's first, and x + 1 and the fractions minus one are locals: that
-// gives the original's float registers and most of its schedule.
-// NON_MATCHING: two integer registers: y's integer and x + 1 are each in the
-// other's (w9, w10), and the second row's hash is computed earlier here.
+// x's integer and x + 1 come first, then y's integer, then each fraction and
+// the fraction minus one (as locals): the order of these statements decides
+// the original's registers and schedule (9 of their 504 orders match).
 float Unk_4c9110(float x, float y) {
     int ix = static_cast<int>(floorf(x));
+    int ix1 = ix + 1;
     int iy = static_cast<int>(floorf(y));
     float fx = static_cast<float>(ix);
+    x -= fx;
+    float x1 = x - 1.0f;
     float fy = static_cast<float>(iy);
     y -= fy;
-    x -= fx;
-    int ix1 = ix + 1;
-    float x1 = x - 1.0f;
     float y1 = y - 1.0f;
     float n00 = Unk_NoiseGrad(Unk_NoisePerm(Unk_NoisePerm(Unk_NoisePerm(0) + iy) + ix), x, y);
     float n10 = Unk_NoiseGrad(Unk_NoisePerm(Unk_NoisePerm(Unk_NoisePerm(0) + iy) + ix1), x1, y);

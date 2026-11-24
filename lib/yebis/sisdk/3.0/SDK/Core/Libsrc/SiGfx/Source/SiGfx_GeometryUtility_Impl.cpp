@@ -996,7 +996,7 @@ bool SiGfxGeometryUtility::vf9(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
     if (vertices == nullptr) {
         return false;
     }
-    s32 indexCount = sides * rings * 3 * 2;
+    u32 indexCount = sides * rings * 3 * 2;
     {
         f32 position[4];
         f32 normal[4];

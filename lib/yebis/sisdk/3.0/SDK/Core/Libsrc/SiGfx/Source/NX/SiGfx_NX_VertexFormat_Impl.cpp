@@ -139,6 +139,10 @@ inline void SiGfxNXVertexFormat::Unk_UpdateTables() {
 // in the IR here, so it moves whatever the source order; the original's was
 // something else (a phi?). Tried: the test as `< 16`, as a 64-bit compare, the
 // index in an s32 or s64 local, the row through a pointer.
+// (Round 3: with `(format != 0) & (element.field_4 <= 15)` the extension
+// stays at the address (a `sxtw` of its own), but the stream's load is then
+// scheduled after it: 6 instructions instead of 1, in every order of the
+// stores and with the stream or the row in locals.)
 // 0x7100564ac0
 bool SiGfxNXVertexFormat::vf17(s32 count, const Unk_Element* elements) {
     vf21();

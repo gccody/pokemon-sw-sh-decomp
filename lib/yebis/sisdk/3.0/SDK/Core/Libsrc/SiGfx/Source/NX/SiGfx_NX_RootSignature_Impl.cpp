@@ -138,6 +138,8 @@ SiGfxNXRootSignature::SiGfxNXRootSignature(ISiAllocator* pAllocator, SiGfxNXDevi
 // loop written over a pointer, `for (T* q = p; q != p + count; q++)`, or
 // counting down gives the original's order here, but in SiCore_Memory.h it
 // breaks 20 to 30 matched array deletes elsewhere.)
+// (Round 3: the entry's destructor through a member helper, with an early
+// return, a local pointer, or destroying and freeing by hand: no change.)
 // 0x7100556db0 (D2), 0x7100556fb0 (D0)
 SiGfxNXRootSignature::~SiGfxNXRootSignature() {
     field_28.Unk_FreeAll();
