@@ -134,7 +134,10 @@ SiGfxNXRootSignature::SiGfxNXRootSignature(ISiAllocator* pAllocator, SiGfxNXDevi
 // original counts down before it advances the pointer (`subs ; add`), and
 // this advances first. The samplers' array has the original's order with the
 // same array delete. (Tried: the entry's destructor with a local pointer, an
-// early return, a helper.)
+// early return, a helper; the delete's counter as s64 or int. The delete's
+// loop written over a pointer, `for (T* q = p; q != p + count; q++)`, or
+// counting down gives the original's order here, but in SiCore_Memory.h it
+// breaks 20 to 30 matched array deletes elsewhere.)
 // 0x7100556db0 (D2), 0x7100556fb0 (D0)
 SiGfxNXRootSignature::~SiGfxNXRootSignature() {
     field_28.Unk_FreeAll();

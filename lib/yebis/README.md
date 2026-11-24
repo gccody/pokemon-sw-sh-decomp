@@ -1329,3 +1329,55 @@ what the optimized IR showed about the ones that stay:
   here they can't.
 - The locale tables (0x71004ca820 and four copies) and most of the large PPFX
   functions differ only in the register allocator's tie-breaks.
+
+### Second pass over the tail
+
+What decided matches:
+
+- Red-black balancing written as recursion swaps compare operands: before
+  tail-call elimination the node is an argument and ranks below a load at
+  every InstCombine. SiSDK's inserts (SiMap's three copies, the face's
+  SiDirectMap) are the textbook loop `while (node != root &&
+  node->parent->red)`, whose root test also gives the original's null tests.
+- A `static` helper whose pointer parameter is only loaded gets promoted by
+  ArgPromotion (the loaded value becomes an argument and swaps compares);
+  a non-static `inline` helper or a member isn't.
+- An `int` loop index that IndVarSimplify widens and an `s64` index give the
+  same instructions but different registers: that fixed the five locale
+  tables (`Unk_CompareNoCase`'s index is `s64`).
+- `(a < b) & (c < d)` instead of `&&` keeps the second compare on the original
+  value (with `&&`, GVN substitutes what the first test proved).
+- A branch in the original can be a select over an `fdiv` that CodeGenPrepare
+  turns into a branch after Reassociate: compute the division before the test.
+- A local declared inside each branch changes the return structure (its own
+  `mov w0, #-1` block, one shared return, no shrink-wrapping).
+- Pointer locals declared inside a loop body make `break`/`continue` leave
+  through a cleanup switch (selects of 3 or 0, then a compare with 3): which
+  locals live in the body decides which destinations survive.
+- `a && b` merged by SimplifyCFG into one `and` is reordered by Reassociate;
+  an outer `if (!a)` with the inner test inside keeps the source order.
+- A colour built in place in its destination (`Lerp(&colors[i], ...)` then
+  `*=` per element) and a constant colour built inside an inline wrapper of
+  the call decide the schedule of the call's argument stores.
+- The unroll count follows the trip count's known bits (a select of 2, 3 or 4
+  unrolls 7 times; a count set by `if` in the guard block, 4).
+- A local struct kept in memory by the original is a loop over its fields
+  through a pointer (SROA runs before unrolling).
+- Phis are ordered as their locals are declared, and Reassociate orders an add
+  of two phis by them (`u32 number = count; u32 first = start;`).
+- `if (a == 0 || b) f(1); else f(0);` gives `cbnz` where `if (a != 0 && !b)`
+  gives `tbnz` on a `bool`.
+
+What is left, by cause:
+
+- The Gaussian family (0x7100413170 and eleven more): the original's
+  `2 sigma * sigma` needs the second factor to be a different value than the
+  first at Reassociate. A second clamp of the raw parameter as a select
+  (`2.0f * sigma * (raw > 1e-8f ? raw : 1e-8f)`) reproduces it in all twelve,
+  but it is a forced duplicate, so they stay `m`.
+- s0/s3 swaps in chains of `fmul` (0x71004b0db0, 0x71004af020) come from the
+  AArch64 "A57 FP Anti-dependency breaker" after register allocation, not
+  from the allocator.
+- 0x71005581e0's array delete loop matches with a pointer loop in
+  `SiCore_Memory.h`, which breaks 20 to 30 matched array deletes elsewhere.
+- 0x7100423160 and 0x710043b590 differ only inside libc++'s map emplace loop.

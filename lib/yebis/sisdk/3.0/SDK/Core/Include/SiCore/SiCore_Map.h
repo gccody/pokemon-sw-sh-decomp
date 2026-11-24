@@ -278,57 +278,49 @@ SiMap<K, V, Compare, ALIGN>::~SiMap() {
 // The insert and the erase are compiled only where a translation unit asks
 // for them (each instance is its own TU's in the original).
 #ifdef UNK_SIMAP_MEMBERS_DEFINE
-// The insert's balancing (placeholder name), recursive on the grandparent
-// in the recoloured case. Inlined into the insert, as a static function with
-// one caller is; the recursion, a loop only after tail-call elimination,
-// decides which null tests survive: the node's is gone from the path
-// without rotations (the argument is known non-null there) and stays after
-// a rotation, and the grandparent's colour goes through a function so that
-// the stores through a null grandparent stay.
+// The insert's balancing (placeholder name): the textbook loop, which goes
+// up while the node isn't the root and its parent is red. Inlined into the
+// insert, as a static function with one caller is. Written as a recursion on
+// the grandparent, the node is the function's argument when InstCombine runs
+// and the compares with the parent's children swap their operands; the root's
+// test in the loop's condition lets the value propagation know the node isn't
+// null on the path without rotations (the node's test stays after a rotation),
+// and the grandparent's colour goes through a function so that the stores
+// through a null grandparent stay.
 template <class M, class N>
 static void Unk_SiMapInsertFix(M* pMap, N* pNode) {
-    if (!pNode->m_pParent->field_30) {
-        return;
-    }
-    N* pUncle = M::Unk_Uncle(pNode);
-    if (pUncle != nullptr && pUncle->field_30) {
+    while (pNode != pMap->m_pRoot && pNode->m_pParent->field_30) {
+        N* pUncle = M::Unk_Uncle(pNode);
+        if (pUncle != nullptr && pUncle->field_30) {
+            pNode->m_pParent->field_30 = 0;
+            pUncle->field_30 = 0;
+            pUncle->m_pParent->field_30 = 1;
+            pNode = pUncle->m_pParent;
+            if (pNode == pMap->m_pRoot) {
+                pNode->field_30 = 0;
+            }
+            continue;
+        }
+        N* pGrandparent = pNode->m_pParent->m_pParent;
+        if (pNode == pNode->m_pParent->m_pRight && pNode->m_pParent == pGrandparent->m_pLeft) {
+            pMap->Unk_RotateLeft(pNode->m_pParent);
+            pNode = pNode->m_pLeft;
+        } else if (pNode == pNode->m_pParent->m_pLeft && pNode->m_pParent == pGrandparent->m_pRight) {
+            pMap->Unk_RotateRight(pNode->m_pParent);
+            pNode = pNode->m_pRight;
+        }
         pNode->m_pParent->field_30 = 0;
-        pUncle->field_30 = 0;
-        pUncle->m_pParent->field_30 = 1;
-        pNode = pUncle->m_pParent;
-        if (pNode == pMap->m_pRoot) {
-            pNode->field_30 = 0;
-        }
-        if (pNode != pMap->m_pRoot) {
-            Unk_SiMapInsertFix(pMap, pNode);
+        pGrandparent = M::Unk_Grandparent(pNode);
+        M::Unk_SetColour(pGrandparent, 1);
+        if (pNode == pNode->m_pParent->m_pLeft && pNode->m_pParent == pGrandparent->m_pLeft) {
+            pMap->Unk_RotateRight(pGrandparent);
+        } else {
+            pMap->Unk_RotateLeft(pGrandparent);
         }
         return;
-    }
-    N* pGrandparent = pNode->m_pParent->m_pParent;
-    if (pNode == pNode->m_pParent->m_pRight && pNode->m_pParent == pGrandparent->m_pLeft) {
-        pMap->Unk_RotateLeft(pNode->m_pParent);
-        pNode = pNode->m_pLeft;
-    } else if (pNode == pNode->m_pParent->m_pLeft && pNode->m_pParent == pGrandparent->m_pRight) {
-        pMap->Unk_RotateRight(pNode->m_pParent);
-        pNode = pNode->m_pRight;
-    }
-    pNode->m_pParent->field_30 = 0;
-    pGrandparent = M::Unk_Grandparent(pNode);
-    M::Unk_SetColour(pGrandparent, 1);
-    if (pNode == pNode->m_pParent->m_pLeft && pNode->m_pParent == pGrandparent->m_pLeft) {
-        pMap->Unk_RotateRight(pGrandparent);
-    } else {
-        pMap->Unk_RotateLeft(pGrandparent);
     }
 }
 // 0x71004c09a0 (SiKernel's map)
-// NON_MATCHING: two operand orders: the original compares the node with its
-// parent's children `cmp x19, x11` in the rotations' case, where InstCombine
-// puts the load first here (the node is the balancing's argument when it
-// runs, a loop variable only after tail-call elimination). The balancing
-// written as a loop in the source (for, while or do-while, the rotations in
-// or after it) gives the original's operand order, but its null paths and
-// block layout differ by 150 instructions or more.
 template <class K, class V, class Compare, int ALIGN>
 bool SiMap<K, V, Compare, ALIGN>::Unk_4c09a0(const K& key, V value) {
     // (the key is read before the allocation)

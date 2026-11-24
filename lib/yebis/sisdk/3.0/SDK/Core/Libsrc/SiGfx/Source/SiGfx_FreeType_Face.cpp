@@ -295,24 +295,33 @@ static inline N* Unk_Grandparent(N* node) {
     return nullptr;
 }
 
-// A node's sibling, if it has one (placeholder name).
+// A node's parent's sibling, if it has one (placeholder name). Not static:
+// a static function's pointer parameter whose only use is a load is promoted
+// to the loaded value (ArgPromotion), which then ranks as an argument, and
+// InstCombine puts the grandparent's child first in the comparison; the
+// original has the parent first, as SiMap's own (a class member) has it.
 template <class N>
-static inline N* Unk_Sibling(N* node) {
-    if (node == nullptr || node->m_pParent == nullptr) {
+inline N* Unk_Uncle(N* node) {
+    N* parent = node->m_pParent;
+    if (parent == nullptr || parent->m_pParent == nullptr) {
         return nullptr;
     }
-    N* parent = node->m_pParent;
-    return node == parent->m_pChild[0] ? parent->m_pChild[1] : parent->m_pChild[0];
+    N* grandparent = parent->m_pParent;
+    if (parent == grandparent->m_pChild[0]) {
+        return grandparent->m_pChild[1];
+    }
+    return grandparent->m_pChild[0];
 }
 
-// NON_MATCHING: 32 bytes shorter. The insertion and the recolouring are the
-// original's but for the order of one comparison's operands (`cmp x12, x9`
-// for the parent's sibling); in the rotations' case the original merges the
-// two rotations' ends (the new node through the address of the child it
-// was, then its parent's colour, then the test of the node for the
-// grandparent) and lays the second rotation out of line, where here each
-// rotation keeps its own end. Tried: the uncle through the grandparent, the
-// comparison's operands swapped, the parent's colour set in each branch.
+// Sets a node's colour (placeholder name): through a function, so that the
+// store through a null grandparent stays (as in SiMap's insert).
+template <class N>
+static inline void Unk_SetRed(N* node, bool red) {
+    node->m_bRed = red;
+}
+
+// The insertion's balancing is the textbook loop, as SiMap's insert has it
+// (SiCore_Map.h): up while the node isn't the root and its parent is red.
 // 0x7100500a30 (the face's glyphs, which are their own nodes): links the
 // value in as a node, then rebalances the red-black tree
 template <class K, class V, class Compare>
@@ -355,40 +364,36 @@ bool SiDirectMap<K, V, Compare>::Unk_Insert(const K& key, V value) {
         node->m_bRed = false;
         return true;
     }
-    do {
-        Node* parent = node->m_pParent;
-        if (!parent->m_bRed) {
-            break;
-        }
-        Node* uncle = Unk_Sibling(parent);
+    while (node != *root && node->m_pParent->m_bRed) {
+        Node* uncle = Unk_Uncle(node);
         if (uncle != nullptr && uncle->m_bRed) {
-            parent->m_bRed = false;
+            node->m_pParent->m_bRed = false;
             uncle->m_bRed = false;
             uncle->m_pParent->m_bRed = true;
             node = uncle->m_pParent;
             if (node == *root) {
                 node->m_bRed = false;
             }
-        } else {
-            Node* grandparent = parent->m_pParent;
-            if (node == parent->m_pChild[1] && parent == grandparent->m_pChild[0]) {
-                Unk_RotateLeft(root, parent);
-                node = node->m_pChild[0];
-            } else if (node == parent->m_pChild[0] && parent == grandparent->m_pChild[1]) {
-                Unk_RotateRight(root, parent);
-                node = node->m_pChild[1];
-            }
-            node->m_pParent->m_bRed = false;
-            grandparent = Unk_Grandparent(node);
-            grandparent->m_bRed = true;
-            if (node == node->m_pParent->m_pChild[0] && node->m_pParent == grandparent->m_pChild[0]) {
-                Unk_RotateRight(root, grandparent);
-            } else {
-                Unk_RotateLeft(root, grandparent);
-            }
-            break;
+            continue;
         }
-    } while (node != *root);
+        Node* grandparent = node->m_pParent->m_pParent;
+        if (node == node->m_pParent->m_pChild[1] && node->m_pParent == grandparent->m_pChild[0]) {
+            Unk_RotateLeft(root, node->m_pParent);
+            node = node->m_pChild[0];
+        } else if (node == node->m_pParent->m_pChild[0] && node->m_pParent == grandparent->m_pChild[1]) {
+            Unk_RotateRight(root, node->m_pParent);
+            node = node->m_pChild[1];
+        }
+        node->m_pParent->m_bRed = false;
+        grandparent = Unk_Grandparent(node);
+        Unk_SetRed(grandparent, true);
+        if (node == node->m_pParent->m_pChild[0] && node->m_pParent == grandparent->m_pChild[0]) {
+            Unk_RotateRight(root, grandparent);
+        } else {
+            Unk_RotateLeft(root, grandparent);
+        }
+        return true;
+    }
     return true;
 }
 

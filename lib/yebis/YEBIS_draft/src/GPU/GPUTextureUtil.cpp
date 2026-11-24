@@ -6,6 +6,7 @@
 // which leave the namespace out as they do for PPFX::IGPUEffect; everything
 // else is a placeholder. CreateEffect's body is the list of the effect's
 // parameters and techniques: field_<offset> is where each handle goes.
+#include <algorithm>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,6 +19,7 @@
 #include <yebis/YEBIS_draft/src/GPU/GPUInterfaceTexture.h>
 #include <yebis/YEBIS_draft/src/GPU/GPURenderTextureArray.h>
 #include <yebis/YEBIS_draft/src/GPU/Unk_410f90.h>
+#include <yebis/YEBIS_draft/src/GPU/Unk_Luminance.h>
 #include <yebis/YEBIS_draft/src/GPU/Unk_Statics.h>
 #include <yebis/YEBIS_draft/src/Unk_415f40.h>
 #include <yebis/YEBIS_draft/src/GPU/TinyEffect/TFXString.h>
@@ -31,8 +33,9 @@ u32 Unk_440c80_get(u64 device, f32 r, f32 g, f32 b, f32 a);
 extern "C" int mz_uncompress(unsigned char* pDest, unsigned long* pDest_len, const unsigned char* pSource,
                              unsigned long source_len);
 
-// log switches: all messages, PPFX_ERROR's and PPFX_LOG's
+// log switches: all messages, PPFX_WARNING's, PPFX_ERROR's and PPFX_LOG's
 extern s32 Unk_238c1e0;
+extern s32 Unk_238c1e4;
 extern s32 Unk_238c1e8;
 extern s32 Unk_24e0008;
 // the effect file, compressed: its size, then miniz's stream
@@ -53,6 +56,7 @@ const char* Unk_446df0(s32 result);
             Unk_417a30(__VA_ARGS__);                                                                  \
         }                                                                                             \
     } while (0)
+#define PPFX_WARNING(...)                                                                                         do {                                                                                                              if (Unk_238c1e0 != 0 && Unk_238c1e4 != 0) {                                                                       Unk_417a30("C:/workspace/YEBIS_draft/src/GPU/GPUTextureUtil.cpp(%d) : PPFX WARNING: ", __LINE__);             Unk_417a30(__VA_ARGS__);                                                                                  }                                                                                                         } while (0)
 #define PPFX_ERROR(...)                                                                                     \
     do {                                                                                                    \
         if (Unk_238c1e0 != 0 && Unk_238c1e8 != 0) {                                                         \
@@ -763,7 +767,9 @@ static inline f32 Unk_Encode(s32 encoding, f32 x) {
 // 0x710047c2f0: Unk_47c090 with the white point encoded as `encoding` and
 // raised to `gamma` (when `threshold` is over 1), in units of `scale`
 // NON_MATCHING: the store of `gamma` and `arg0` to the stack and the copy of
-// `mode` are in each other's order (the parameters' positions were searched)
+// `mode` are in each other's order (the parameters' positions were searched;
+// the white point, the tail call or the whole body in an inline function, the
+// encoding test's operands swapped and the divisions reordered don't move it)
 f32 CTextureUtil::Unk_47c2f0(f32 value, f32 base, f32 scale, s32 encoding, f32 exponent, f32 gamma, f32 threshold,
                              f32 count, f32 arg0, s32 mode, const f32* params, f32 arg1, f32 exposure) {
     f32 limit = 1000.0f / scale;
@@ -5880,6 +5886,750 @@ CTextureUtil::~CTextureUtil() {
     UNK_DELETE(field_29a58);
 }
 
+// 0x7100410300, 0x7100410380 and 0x7100410400 (Unk_415f40.cpp): a transfer
+// function's peak, its default luminance and its colour space
+f32 Unk_410300(s32 type);
+f32 Unk_410380(s32 type);
+s32 Unk_410400(s32 type);
+// 0x7100411190 (Unk_415f40.cpp): the conversion between two colour spaces
+void Unk_411190(MATRIXT44* out, const Unk_410f90* from, const Unk_410f90* to, bool adapt);
+
+// a colour space assigned with a test for itself (inline)
+struct Unk_OetColorSpace : Unk_410f90 {
+    Unk_OetColorSpace& operator=(const Unk_410f90& other) {
+        if (this != &other) {
+            field_0 = other.field_0;
+            field_8 = other.field_8;
+            field_10 = other.field_10;
+            field_18 = other.field_18;
+        }
+        return *this;
+    }
+};
+
+// whether a surface format is one the hardware converts to sRGB (inline)
+static inline bool Unk_IsSrgbFormat(s32 format) {
+    switch (format) {
+    case 72:
+    case 75:
+    case 78:
+    case 91:
+    case 93:
+    case 99:
+    case 29:
+        return true;
+    default:
+        return false;
+    }
+}
+
+// the formats Unk_480410 gets its flag for (inline)
+static inline bool Unk_IsOetFlagFormat(s32 format) {
+    switch (format) {
+    case 0x13:
+    case 0x14:
+    case 0x15:
+    case 0x16:
+    case 0x23:
+    case 0x24:
+    case 0x25:
+    case 0x26:
+    case 0x37:
+    case 0x38:
+    case 0x39:
+    case 0x3a:
+    case 0x3b:
+        return true;
+    default:
+        return false;
+    }
+}
+
+// the formats with 16 bits a channel (inline)
+static inline bool Unk_IsOet16BitFormat(s32 format) {
+    switch (format) {
+    case 11:
+    case 12:
+    case 13:
+    case 14:
+    case 35:
+    case 36:
+    case 37:
+    case 38:
+    case 55:
+    case 56:
+    case 57:
+    case 58:
+    case 59:
+        return true;
+    default:
+        return false;
+    }
+}
+
+// the formats with 8 bits a channel (inline)
+static inline bool Unk_IsOet8BitFormat(s32 format) {
+    switch (format) {
+    case 28:
+    case 29:
+    case 30:
+    case 31:
+    case 32:
+    case 49:
+    case 50:
+    case 51:
+    case 52:
+    case 61:
+    case 62:
+    case 63:
+    case 64:
+    case 65:
+    case 87:
+    case 88:
+    case 91:
+    case 93:
+        return true;
+    default:
+        return false;
+    }
+}
+
+// the dither step of a surface format: one step of its channels (inline)
+static inline f32 Unk_OetDitherStep(s32 format) {
+    if (Unk_IsOet16BitFormat(format)) {
+        return 1.52590219e-05f;
+    }
+    if (format != 0 && (format == 24 || format == 25)) {
+        return 0.000977517106f;
+    }
+    if (Unk_IsOet8BitFormat(format)) {
+        return 0.00392156886f;
+    }
+    if (format != 0 && (format == 85 || format == 86)) {
+        return 0.0322580636f;
+    }
+    return 0.0f;
+}
+
+// a gamma transfer function's parameters: the end of its linear part, its
+// slope, the exponent and the offset (inline)
+static inline Unk_Float4 Unk_OetEncodeParams(s32 eotf) {
+    if (Unk_IsGammaEncoding(eotf)) {
+        switch (eotf) {
+        case 6:
+            return Unk_Float4(0.00301859993f, 12.9200001f, 0.416666657f, 0.0549999997f);
+        case 7:
+        case 8:
+            return Unk_Float4(0.0180539694f, 4.5f, 0.449999988f, 0.0992968231f);
+        case 9:
+            return Unk_Float4(1.17549435e-38f, 1.0f, 0.454706937f, 0.0f);
+        case 10:
+            return Unk_Float4(1.17549435e-38f, 1.0f, 0.384615391f, 0.0f);
+        case 11:
+            return Unk_Float4(0.001953125f, 16.0f, 0.555555582f, 0.0f);
+        case 12:
+            return Unk_Float4(1.17549435e-38f, 1.0f, 0.555555582f, 0.0f);
+        case 13:
+            return Unk_Float4(1.17549435e-38f, 1.0f, 0.454545438f, 0.0f);
+        case 14:
+            return Unk_Float4(1.17549435e-38f, 1.0f, 0.416666657f, 0.0f);
+        default:
+            return Unk_Float4(1.17549435e-38f, 1.0f, 1.0f, 0.0f);
+        }
+    }
+    return Unk_Float4(1.0f, 1.0f, 1.0f, 0.0f);
+}
+
+// and of its inverse (inline)
+static inline Unk_Float4 Unk_OetDecodeParams(s32 eotf) {
+    if (Unk_IsGammaEncoding(eotf)) {
+        switch (eotf) {
+        case 6:
+            return Unk_Float4(0.0390000008f, 0.0773993805f, 2.4000001f, 0.0549999997f);
+        case 7:
+        case 8:
+            return Unk_Float4(0.0812428594f, 0.222222224f, 2.22222233f, 0.0992968231f);
+        case 9:
+            return Unk_Float4(1.17549435e-38f, 1.0f, 2.19921875f, 0.0f);
+        case 10:
+            return Unk_Float4(1.17549435e-38f, 1.0f, 2.5999999f, 0.0f);
+        case 11:
+            return Unk_Float4(0.03125f, 0.0625f, 1.79999995f, 0.0f);
+        case 12:
+            return Unk_Float4(1.17549435e-38f, 1.0f, 1.79999995f, 0.0f);
+        case 13:
+            return Unk_Float4(1.17549435e-38f, 1.0f, 2.20000005f, 0.0f);
+        case 14:
+            return Unk_Float4(1.17549435e-38f, 1.0f, 2.4000001f, 0.0f);
+        default:
+            return Unk_Float4(1.17549435e-38f, 1.0f, 1.0f, 0.0f);
+        }
+    }
+    return Unk_Float4(1.0f, 1.0f, 1.0f, 0.0f);
+}
+
+// a value decoded with transfer function `encoding` (the inverse of
+// Unk_Encode; inline)
+static inline f32 Unk_Decode(s32 encoding, f32 x) {
+    switch (encoding) {
+    case 6: {
+        f32 linear = x * 0.0773993805f;
+        f32 curve = powf((fmaxf(x, 1.17549435e-38f) + 0.0549999997f) / 1.05499995f, 2.4000001f);
+        return fmaxf(x < 0.0404499993f ? linear : curve, 0.0f);
+    }
+    case 7:
+    case 8: {
+        f32 linear = x * 0.222222224f;
+        f32 curve = powf((fmaxf(x, 1.17549435e-38f) + 0.0992968231f) / 1.09929681f, 2.22222233f);
+        return fmaxf(x < 0.0812428594f ? linear : curve, 0.0f);
+    }
+    case 9:
+        return powf(fmaxf(x, 1.17549435e-38f), 2.19921875f);
+    case 10:
+        return powf(fmaxf(x, 1.17549435e-38f), 2.5999999f);
+    case 11: {
+        f32 linear = x * 0.03125f;
+        f32 curve = powf(fmaxf(x, 1.17549435e-38f) + 0.0f, 1.79999995f);
+        return fmaxf(x < 512.0f ? linear : curve, 0.0f);
+    }
+    case 12:
+        return powf(fmaxf(x, 1.17549435e-38f), 1.79999995f);
+    case 13:
+        return powf(fmaxf(x, 1.17549435e-38f), 2.20000005f);
+    case 14:
+        return powf(fmaxf(x, 1.17549435e-38f), 2.4000001f);
+    default:
+        return x;
+    }
+}
+
+// HLG's system gamma for a peak luminance in thousands of nits (inline)
+static inline f32 Unk_HlgSystemGamma(f32 peak) {
+    f32 gamma = logf(peak) / 2.30258512f * 0.419999987f + 1.20000005f;
+    return gamma < 1.0f ? 1.0f : fminf(gamma, 1.5f);
+}
+
+// whether a transfer function is one of PFXTBCSM_SCRGB's (inline)
+static inline bool Unk_IsOetScRgbEotf(s32 eotf) {
+    return eotf == 16 || (eotf >= 6 && eotf <= 14);
+}
+
+// the index of a transfer function in tech_OptoElectronicTransfer's tables:
+// the gamma curves share PFXEOTF_GAMMA's (or GAMMASCRGB's), the S-Log ones
+// the first's, and the scRGB backend has its own PQ and gamma (inline)
+static inline s32 Unk_OetIndex(s32 eotf, bool gamma, bool scrgb) {
+    s32 index = eotf;
+    if (gamma) {
+        index = eotf == 16 || eotf == 17 ? 16 : 13;
+    }
+    if (index != 16 && index != 17 && scrgb) {
+        if (index == 13) {
+            index = 16;
+        } else if (index == 0) {
+            index = 17;
+        }
+    }
+    return index >= 2 && index <= 4 ? 2 : index;
+}
+
+// tech_OptoElectronicTransfer(AdjustGamma)(Gamut(PostColor))T2_S1/S4_*: by
+// the sample count (S1 for the first), the Dolby Vision metadata, the gamut
+// stage, the gamma adjustment, the transfer function and the tone map
+typedef s32 Unk_OetTable[2][2][3][2][18][16];
+static inline s32 GetHandle_tech_OptoElectronicTransfer(const TEXSHADERSET& set, s32 samples, bool meta, s32 gamut,
+                                                        bool adjust, s32 index, s32 mode) {
+    const Unk_OetTable& table = *reinterpret_cast<const Unk_OetTable*>(set.field_22910);
+    return table[samples == 0 ? 0 : 1][meta][gamut][adjust][index][mode];
+}
+
+// 0x710047e060 (its log lines name it): `texture`'s rectangle encoded with
+// transfer function `eotf` into `surface`: the tone map `arg14` (its curve
+// `color`), the colour matrices, the gamut conversion of `space`, the dither,
+// the system gamma and the graph (`arg40`); `arg33` 2 to 4 draws the halves
+// twice, the second without the matrix
+// NON_MATCHING: a first draft, 8716 bytes for 9132: the calls, constants,
+// arguments, log lines and the order of the blocks are the original's. Left:
+// the frame (0x3e0 here, 0x3b0 there: the original keeps arg22 in its stack
+// slot, std::min/std::max through it, and shares the matrices' slots), the
+// system gamma's tests of arg22 against itself (as written here, a guess at
+// what an inline function with two equal arguments leaves) and its second
+// logf, which the original computes again, the technique search's loop (three
+// unswitched copies there, with the index recomputed in each iteration), and
+// the registers that follow
+s32 CTextureUtil::DrawRectGPU_OptoElectronicTransfer(
+    f32 x, f32 y, f32 width, f32 height, f32 arg4, f32 arg5, f32 arg6, f32 arg7, s32 count, void* arg9,
+    Unk_GPUTexture* texture, void* surface, s32 eotf, s32 backendMode, s32 arg14, f32 arg15, f32 arg16, f32 arg17,
+    const MATRIXT44* matrix, const MATRIXT44* matrix2, const Unk_410f90* space, f32 arg21, f32 arg22, f32 arg23,
+    f32 arg24, f32 arg25, f32 arg26, f32 arg27, bool arg28, s32 arg29, f32 arg30, f32 arg31, const Unk_Float4* color,
+    s32 arg33, f32 arg34, f32 arg35, f32 arg36, void* arg37, bool arg38, bool arg39, bool arg40, f32 arg41, s32 arg42,
+    bool arg43) {
+    Unk_OetColorSpace colorSpace;
+    colorSpace = *space;
+    f32 limit = !(arg41 <= 0.0f) ? arg41 : arg22;
+    s32 mode = arg14 == 1 ? 0 : arg14;
+    bool scrgb = false;
+    if (backendMode == 1) {
+        scrgb = true;
+        if (!(eotf == 0 || Unk_IsOetScRgbEotf(eotf))) {
+            scrgb = false;
+#line 20058
+            PPFX_WARNING("CTextureUtil::DrawRectGPU_OptoElectronicTransfer(): Backend color space PFXTBCSM_SCRGB can be used only with PFXEOTF_PQ or PFXEOTF_GAMMA* types.\n");
+        }
+    }
+    const Unk_GPUTexture* target = static_cast<const Unk_GPUTexture*>(surface);
+    bool srgb = false;
+    bool srgbScrgb = false;
+    if (target != nullptr && Unk_IsSrgbFormat(target->field_44)) {
+        if (Unk_IsGammaEncoding(eotf)) {
+            if (scrgb) {
+#line 20088
+                PPFX_WARNING("CTextureUtil::DrawRectGPU_OptoElectronicTransfer(): Output format sRGB can not be supported with backend color space PFXTBCSM_SCRGB.\nThe gamma correction will not strictly be correct.\n");
+                srgbScrgb = true;
+            } else {
+                srgb = true;
+            }
+        } else {
+#line 20106
+            PPFX_WARNING("CTextureUtil::DrawRectGPU_OptoElectronicTransfer(): Output format sRGB can be used only with PFXEOTF_GAMMA*.\n");
+        }
+    }
+    bool relative = eotf == 1 || Unk_IsGammaEncoding(eotf) || eotf == 5;
+    if (Unk_IsIdentity(&matrix->field_0[0][0])) {
+        arg26 = 0.0f;
+    }
+    f32 tile;
+    f32 tileV;
+    if (eotf == 15) {
+        tile = ceilf(3072.0f / width);
+        tileV = tile / height;
+    } else {
+        tile = -3.40282347e+38f;
+        tileV = -3.40282347e+38f;
+    }
+    bool full = static_cast<f32>(target->field_4c) == width && static_cast<f32>(target->field_50) == height;
+    bool origin = x == 0.0f && y == 0.0f && full;
+    if (eotf == 15 && origin && arg39 && !arg43) {
+        DrawRectGPU_OptoElectronicTransfer(x, y, width, height, arg4, arg5, arg6, arg7, count, arg9, texture, surface,
+                                           eotf, backendMode, mode, arg15, arg16, arg17, matrix, matrix2, &colorSpace,
+                                           arg21, arg22, arg23, arg24, arg25, arg26, arg27, arg28, arg29, arg30, arg31,
+                                           color, 0, arg34, arg35, arg36, arg37, arg38, arg39, arg40, limit, arg42,
+                                           true);
+    }
+    u32 flags = arg42 | 0x10000;
+    u32 drawFlags = origin ? arg42 : flags;
+    bool hlg = eotf == 1;
+    if (!(arg22 > 0.0f)) {
+        if (hlg && !relative) {
+            arg22 = 20.0f;
+        } else if (eotf == 5) {
+            arg22 = mode != 0 || arg14 == 1 ? 100.0f : 64512.0f;
+        } else {
+            arg22 = Unk_410380(eotf);
+        }
+    }
+    f32 peak = 100.0f;
+    if (hlg && !relative) {
+        peak = 12.0f;
+    } else if (hlg || !Unk_IsGammaEncoding(eotf)) {
+        peak = eotf == 5 ? 64512.0f : Unk_410300(eotf);
+    }
+    if (hlg && !relative) {
+        peak = powf(peak, arg23);
+    }
+    arg22 = std::min(peak, arg22);
+    arg22 = std::max(arg21, arg22);
+    bool gammaEotf = Unk_IsGammaEncoding(eotf);
+    f32 gamma = arg23;
+    if (!(arg23 > 0.0f)) {
+        f32 scale = 1.0f;
+        if (arg23 < 0.0f) {
+            scale = arg23 > 0.0f ? arg23 : -arg23;
+        }
+        bool system = hlg || (gammaEotf && arg22 != arg22);
+        f32 display = system ? 1.20000005f : 1.0f;
+        f32 reference = 1.0f;
+        if (relative && system) {
+            f32 nits = arg22 * 100.0f / 1000.0f;
+            display = Unk_HlgSystemGamma(nits);
+            if (arg22 != arg22) {
+                reference = Unk_HlgSystemGamma(nits);
+            }
+        }
+        gamma = scale * display;
+        if (arg22 != arg22) {
+            gamma = 1.0f / reference * gamma;
+        }
+    }
+    if (gamma != 1.0f && !gammaEotf && eotf != 1 && eotf != 16) {
+#line 20374
+        PPFX_WARNING("CTextureUtil::DrawRectGPU_OptoElectronicTransfer(): fCorrectForSystemGamma can be modified only with PFXEOTF_GAMMA* and PFXEOTF_HLG.\n");
+        gamma = 1.0f;
+    }
+    Unk_PixelContainer* current = nullptr;
+    field_20->vf10(0, &current);
+    if (current != nullptr) {
+        current->vf1();
+    }
+    if (current == nullptr || current != surface) {
+        field_20->vf7(0, surface, 0);
+        CRenderTexture::Unk_49cf50(nullptr, nullptr);
+    }
+    const f32* params = &color->field_0[0].field_0;
+    f32 curveCount = (powf(64.0f, arg34) - 1.0f) * 0.253968269f;
+    s32 encoding = arg28 ? arg29 : -1;
+    f32 white = Unk_47c2f0(arg22, arg36, arg21, encoding, arg24, arg30, arg31, curveCount, arg16, mode, params,
+                           arg17, 1.0f);
+    f32 white2 = Unk_47c2f0(arg21, arg36, arg21, encoding, arg24, arg30, arg31, curveCount, arg16, mode, params,
+                            arg17, 1.0f);
+    Unk_47bf10(arg36, white, arg21, mode, params, arg16, arg17, 1.0f);
+    Unk_47bf10(arg36, arg22, arg21, mode, params, arg16, arg17, 1.0f);
+    f32 top = arg22;
+    f32 scaleRef = arg21;
+    if (gammaEotf) {
+        top = 0.999511719f;
+        scaleRef = std::min(arg21 / arg22, top);
+        white = white / arg22;
+        white2 = white2 / arg22;
+    }
+    f32 knee0 = Unk_47bf10(arg36, white, scaleRef, mode, params, arg16, arg17, 1.0f);
+    bool quarter = arg33 == 4;
+    bool half = arg43 ? arg33 == 3 || arg33 == 4 : arg33 == 3;
+    f32 topLevel = top;
+    f32 scaleLevel = scaleRef;
+    if (!relative) {
+        f32 inverse = 1.0f / gamma;
+        topLevel = powf(top, inverse);
+        scaleLevel = powf(scaleRef, inverse);
+    }
+    bool flag = Unk_IsOetFlagFormat(target->field_44);
+    f32 levels[2] = {scaleLevel, topLevel};
+    if (relative) {
+        if (hlg) {
+            levels[1] = topLevel / top;
+            levels[0] = scaleLevel / top;
+        }
+        f32 exponent = (1.0f - gamma) / gamma;
+        levels[1] = powf(levels[1], exponent) * levels[1];
+        levels[0] = powf(levels[0], exponent) * levels[0];
+        if (hlg) {
+            levels[0] = levels[0] * 12.0f;
+            levels[1] = levels[1] * 12.0f;
+        }
+    }
+    f32 encodedTop = Unk_480410(&levels[1], eotf, flag);
+    f32 encodedScale = Unk_480410(&levels[0], eotf, flag);
+    f32 knee = Unk_Knee(mode, params);
+    f32 offset = arg33 == 1 ? 0.0f : arg26;
+    s32 samples = count - 1;
+    if (static_cast<u32>(samples) > 3) {
+        return -4;
+    }
+    s32 technique;
+    if (arg40) {
+        s32 index = Unk_OetIndex(eotf, gammaEotf, scrgb);
+        technique = reinterpret_cast<const s32(*)[16]>(field_30.field_29510)[index][mode];
+    } else {
+        bool postColor = arg33 == 1 || (arg33 >= 2 && arg33 <= 4);
+        s32 gamut = postColor ? 2 : (offset > 0.0f ? 1 : 0);
+        do {
+            technique = GetHandle_tech_OptoElectronicTransfer(field_30, samples, arg43, gamut,
+                                                              arg28 && (eotf < 6 || eotf == 17),
+                                                              Unk_OetIndex(eotf, gammaEotf, scrgb), mode);
+        } while (samples++ < 3 && technique == 0);
+    }
+    if (technique == 0) {
+#line 20816
+        PPFX_ERROR("CTextureUtil::DrawRectGPU_OptoElectronicTransfer(): GetHandle_tech_OptoElectronicTransfer(%d, %d) failed.\n",
+                   count, eotf);
+        return -4;
+    }
+    field_30.field_0->vf29(technique);
+    Unk_4738e0(count, static_cast<const Unk_Float4*>(arg9), samples, 8);
+    Unk_Float4* v = Unk_24e4c18;
+    v[0].field_0[1].field_0 = knee;
+    v[0].field_0[0].field_0 = scaleRef;
+    v[0].field_0[2].field_0 = arg24;
+    f32 level = white / scaleRef;
+    if (arg31 > 1.0f && arg28) {
+        level = powf(level, 1.0f / arg30);
+        level = Unk_Decode(arg29, level);
+    }
+    v[0].field_0[3].field_0 = powf(level, 1.0f / arg24);
+    v[1].field_0[0].field_0 = encodedTop;
+    if (relative) {
+        v[1].field_0[1].field_0 = 1.0f / top;
+    }
+    v[1].field_0[2].field_0 = (relative ? 1.0f - gamma : 1.0f) / gamma;
+    v[1].field_0[3].field_0 = arg31;
+    f32 contrast = arg27 < 0.0f ? 0.0f : fminf(arg27, 0.999000013f);
+    v[2].field_0[0].field_0 = knee0;
+    v[2].field_0[1].field_0 = 4.99999987e-05f;
+    v[2].field_0[2].field_0 = scaleRef * 0.180000007f;
+    v[2].field_0[3].field_0 = 0.0f;
+    v[3].field_0[0].field_0 = knee0;
+    v[3].field_0[1].field_0 = 4.99999987e-05f;
+    v[3].field_0[2].field_0 = scaleRef * arg35;
+    v[3].field_0[3].field_0 = arg37 != nullptr ? 0.0f : 1.0f;
+    v[4].field_0[0].field_0 = offset;
+    v[4].field_0[1].field_0 = 1.0f / (1.0f - powf(contrast, 0.25f));
+    v[4].field_0[2].field_0 = 0.0f;
+    v[4].field_0[3].field_0 = 0.0f;
+    v[5].field_0[0].field_0 = arg28 ? arg30 : 1.0f;
+    if (Unk_SameColorSpace(colorSpace, Unk_Static_Object0)) {
+        colorSpace = Unk_410f90_Object(Unk_410400(eotf));
+    }
+    MATRIXT44 xyz;
+    Unk_411b00(&xyz, &colorSpace.field_0, &colorSpace.field_8, &colorSpace.field_10, &colorSpace.field_18);
+    v[5].field_0[1].field_0 = xyz.field_0[0][1];
+    v[5].field_0[2].field_0 = xyz.field_0[1][1];
+    v[5].field_0[3].field_0 = xyz.field_0[2][1];
+    if (arg40) {
+        v[6].field_0[0].field_0 = arg22;
+        v[6].field_0[1].field_0 = 4.0f;
+        v[6].field_0[2].field_0 = arg33 == 1 ? scaleRef : topLevel;
+        v[6].field_0[3].field_0 = limit;
+        v[7].field_0[0].field_0 = 1.0f;
+        v[7].field_0[1].field_0 = 2.0f;
+        v[7].field_0[2].field_0 = 0.35f;
+        v[7].field_0[3].field_0 = 0.32f;
+        v[8].field_0[0].field_0 = 0.16f;
+        v[8].field_0[1].field_0 = 0.08f;
+        v[8].field_0[2].field_0 = 0.04f;
+        v[8].field_0[3].field_0 = 0.02f;
+        // (the original stores the same grid again before the HDR one)
+        if (eotf < 6 || eotf == 17) {
+            v[7].field_0[1].field_0 = 2.0f;
+            v[7].field_0[2].field_0 = 0.35f;
+            v[7].field_0[3].field_0 = 0.32f;
+            v[8].field_0[0].field_0 = 0.16f;
+            v[8].field_0[1].field_0 = 0.08f;
+            v[8].field_0[2].field_0 = 0.04f;
+            v[8].field_0[3].field_0 = 0.02f;
+        }
+        if (eotf < 6 || eotf == 17) {
+            v[7].field_0[1].field_0 = 4.0f;
+            v[7].field_0[2].field_0 = 0.7f;
+            v[7].field_0[3].field_0 = 0.64f;
+            v[8].field_0[0].field_0 = 0.32f;
+            v[8].field_0[1].field_0 = 0.16f;
+            v[8].field_0[2].field_0 = 0.08f;
+            v[8].field_0[3].field_0 = 0.04f;
+        }
+    }
+    if (arg33 == 1) {
+        v[0].field_0[1].field_0 = knee;
+        v[0].field_0[0].field_0 = scaleRef;
+        v[0].field_0[2].field_0 = arg24;
+        v[0].field_0[3].field_0 = white2 / scaleRef;
+        v[1].field_0[0].field_0 = encodedScale;
+    }
+    field_30.field_0->vf22(field_30.field_d0, Unk_24e4c18, 9);
+    Unk_Float4 curveParams(color->field_0[0].field_0, 0.0f, 0.0f, 0.0f);
+    Unk_Float4 curve = Unk_47ba90(mode, &curveParams.field_0[0].field_0, arg16, arg17);
+    field_30.field_0->vf20(field_30.field_104, &curve.field_0[0].field_0);
+    Unk_Float4 encode(1.0f, 1.0f, 1.0f, 0.0f);
+    if (arg28) {
+        encode = Unk_OetEncodeParams(arg29);
+    }
+    field_30.field_0->vf20(field_30.field_f8, &encode.field_0[0].field_0);
+    if (gammaEotf) {
+        if (scrgb) {
+            Unk_Float4 decode = Unk_OetDecodeParams(srgb ? 6 : eotf);
+            if (srgbScrgb) {
+                decode.field_0[2].field_0 = decode.field_0[2].field_0 * 2.20000005f;
+                decode.field_0[1].field_0 =
+                    powf((decode.field_0[0].field_0 + decode.field_0[3].field_0) / (decode.field_0[0].field_0 + 1.0f),
+                         decode.field_0[2].field_0) /
+                    decode.field_0[0].field_0;
+            }
+            field_30.field_0->vf20(field_30.field_e8, &decode.field_0[0].field_0);
+        }
+        Unk_Float4 output = Unk_OetEncodeParams(eotf);
+        field_30.field_0->vf20(field_30.field_fc, &output.field_0[0].field_0);
+    } else if (eotf >= 2 && eotf <= 4) {
+        Unk_Float4 log;
+        Unk_Float4 log2;
+        switch (eotf) {
+        case 2:
+            log = Unk_Float4(-5.77054489e-05f, 4.75724983f, 0.0882512927f, 1.11111116f);
+            log2 = Unk_Float4(0.0375839993f, 0.37052232f, 0.616244495f, 0.0f);
+            break;
+        case 3:
+            log = Unk_Float4(-8.1532271e-05f, 3.36700344f, 0.0911057591f, 0.786402822f);
+            log2 = Unk_Float4(0.0375839993f, 0.37052232f, 0.616244495f, 0.0f);
+            break;
+        default:
+            log = Unk_Float4(0.0112500004f, 6.62194347f, 0.092864126f, 5.26315784f);
+            log2 = Unk_Float4(0.0526315793f, 0.255620718f, 0.410557181f, 0.0f);
+            break;
+        }
+        field_30.field_0->vf20(field_30.field_fc, &log.field_0[0].field_0);
+        field_30.field_0->vf20(field_30.field_e4, &log2.field_0[0].field_0);
+    }
+    MATRIXT44 identity;
+    Unk_SetIdentity(&identity);
+    MATRIXT44 matrixA = *matrix;
+    MATRIXT44 matrixB = identity;
+    if (arg33 == 1) {
+        MATRIXT44 swapped = matrixA;
+        matrixA = matrixB;
+        matrixB = swapped;
+    }
+    field_30.field_0->vf24(field_30.field_10c, &matrixA);
+    field_30.field_0->vf24(field_30.field_108, &matrixB);
+    field_30.field_0->vf24(field_30.field_110, matrix2);
+    if (scrgb) {
+        MATRIXT44 output;
+        Unk_SetIdentity(&output);
+        if (!srgb) {
+            if (eotf == 0) {
+                MATRIXT44 scale;
+                Unk_SetScale(&scale, 100.0f / arg15);
+                MATRIXT44_MatrixMultiply(&output, &output, &scale);
+            }
+            Unk_410f90 scrgbSpace;
+            Unk_410f90_set(&scrgbSpace, 0);
+            MATRIXT44 conversion;
+            Unk_411190(&conversion, &colorSpace, &scrgbSpace, false);
+            MATRIXT44_MatrixMultiply(&output, &output, &conversion);
+        }
+        field_30.field_0->vf25(field_30.field_114, &output, 1);
+    }
+    if (eotf == 15 && arg39) {
+        Unk_Float4 size(width, height, 0.0f, 0.0f);
+        if (half) {
+            size.field_0[0].field_0 = width * 0.5f;
+        }
+        field_30.field_0->vf20(field_30.field_a4, &size.field_0[0].field_0);
+    }
+    s32 filter = -1;
+    if (texture != nullptr) {
+        field_30.field_0->vf26(field_30.field_10[0], texture);
+        f32 range = arg6 - arg4;
+        bool exact = range * static_cast<f32>(texture->field_4c) == width &&
+                     range * static_cast<f32>(texture->field_50) == height && !half;
+        bool point = exact || arg38;
+        filter = texture->vf16();
+        texture->vf17(point);
+    }
+    f32 dither = arg25;
+    if (dither == -3.40282347e+38f) {
+        if (eotf == 16 || eotf == 17) {
+            if (eotf == 16) {
+                dither = 0.00392156886f;
+            }
+            if (eotf == 17) {
+                dither = 0.000977517106f;
+            }
+        } else {
+            if (target != nullptr) {
+                dither = 0.000244200259f;
+            }
+            if (eotf != 15 && target != nullptr) {
+                dither = Unk_OetDitherStep(target->field_44);
+            }
+        }
+    }
+    Unk_GPUTexture* ditherTexture = reinterpret_cast<Unk_GPUTexture*>(field_29a70[0]);
+    Unk_Float4 ditherValues(dither, dither / encodedTop, -dither, 0.0f);
+    if (dither < 0.0f) {
+        ditherValues.field_0[1].field_0 = 0.0f;
+        ditherValues.field_0[2].field_0 = dither * -0.5f;
+    }
+    field_30.field_0->vf20(field_30.field_100, &ditherValues.field_0[0].field_0);
+    field_30.field_0->vf26(field_30.field_10[1], ditherTexture);
+    ditherTexture->vf15(13);
+    f32 ditherWidth = static_cast<f32>(ditherTexture->field_4c);
+    f32 ditherHeight = static_cast<f32>(ditherTexture->field_50);
+    if (arg43) {
+        Unk_GPUTexture* metadata =
+            arg37 != nullptr ? static_cast<Unk_GPUTexture*>(arg37) : reinterpret_cast<Unk_GPUTexture*>(field_29a70[2]);
+        metadata->vf15(5);
+        field_30.field_0->vf26(field_30.field_10[2], metadata);
+    }
+    f32 v0 = 0.0f;
+    f32 v1 = height / ditherHeight;
+    u32 used = drawFlags;
+    if (eotf == 15) {
+        used = flags;
+        if (arg43) {
+            arg7 = (arg7 - arg5) * tileV + arg5;
+            height = tile;
+            v1 = tileV * v1 + v0;
+        } else if (arg39) {
+            y = tile;
+            height = height - tile;
+            arg5 = (arg7 - arg5) * tileV + arg5;
+            v0 = tileV * v1 + v0;
+        }
+    }
+    f32 u1 = width / ditherWidth;
+    s32 result;
+    if (arg33 >= 2 && arg33 <= 4) {
+        bool quarterView = quarter && !arg43;
+        bool split = quarterView || half;
+        if (split) {
+            if (quarterView) {
+                f32 center = (arg4 + arg6) * 0.5f;
+                f32 extent = (arg6 - arg4) * 0.5f * 0.5f;
+                Unk_471f60(x, y, width * 0.5f, height, center - extent, arg5, center + extent, arg7, 0.0f, v0, u1, v1,
+                           flags);
+            } else {
+                Unk_471f60(x, y, width * 0.5f, height, arg4, arg5, arg6, arg7, 0.0f, v0, u1 * 0.5f, v1, flags);
+            }
+        } else {
+            Unk_471f60(x, y, width * 0.5f, height, arg4, arg5, arg6 * 0.5f, arg7, 0.0f, v0, u1, v1, flags);
+        }
+        v[0].field_0[1].field_0 = knee;
+        v[0].field_0[2].field_0 = arg24;
+        v[0].field_0[3].field_0 = white2 / scaleRef;
+        v[1].field_0[0].field_0 = encodedScale;
+        v[0].field_0[0].field_0 = scaleRef;
+        v[4].field_0[0].field_0 = 0.0f;
+        v[4].field_0[1].field_0 = 1.0f / (1.0f - powf(contrast, 0.25f));
+        v[4].field_0[2].field_0 = 0.0f;
+        v[4].field_0[3].field_0 = 0.0f;
+        v[6].field_0[0].field_0 = arg22;
+        v[6].field_0[1].field_0 = 4.0f;
+        v[6].field_0[2].field_0 = scaleRef;
+        v[6].field_0[3].field_0 = 1.0f;
+        field_30.field_0->vf22(field_30.field_d0, Unk_24e4c18, 7);
+        matrixA = identity;
+        matrixB = *matrix;
+        field_30.field_0->vf24(field_30.field_10c, &matrixA);
+        field_30.field_0->vf24(field_30.field_108, &matrixB);
+        if (split) {
+            if (quarterView) {
+                f32 center = (arg4 + arg6) * 0.5f;
+                f32 extent = (arg6 - arg4) * 0.5f * 0.5f;
+                result = Unk_471f60(width * 0.5f + x, y, width * 0.5f, height, center - extent, arg5, center + extent,
+                                    arg7, 0.0f, v0, u1, v1, flags);
+            } else {
+                result = Unk_471f60(width * 0.5f + x, y, width * 0.5f, height, arg4, arg5, arg6, arg7, 0.0f, v0,
+                                    u1 * 0.5f, v1, flags);
+            }
+        } else {
+            result = Unk_471f60(width * 0.5f + x, y, width * 0.5f, height, arg6 * 0.5f, arg5, arg6, arg7, 0.0f, v0,
+                                u1, v1, flags);
+        }
+    } else {
+        result = Unk_471f60(x, y, width, height, arg4, arg5, arg6, arg7, 0.0f, v0, u1, v1, used);
+    }
+    if (texture != nullptr) {
+        texture->vf15(filter);
+    }
+    f32* levelsOut = reinterpret_cast<f32*>(field_29b58);
+    levelsOut[0] = white;
+    levelsOut[1] = knee0;
+    levelsOut[2] = topLevel;
+    levelsOut[3] = encodedTop;
+    if (gammaEotf) {
+        levelsOut[1] = arg22 * knee0;
+        levelsOut[2] = arg22 * topLevel;
+    }
+    return result;
+}
+
 // 0x7100480740: a full-target rectangle of the technique pair field_29990 /
 // field_29994 with the curve of `a`, `b` and `c` in the scratch vectors (`d`
 // is not read)
@@ -6185,19 +6935,22 @@ s32 CTextureUtil::Unk_4809a0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
 // 0x710048d020: `source` blurred into `target` with Unk_413160's samples of
 // its first level (`mask`'s texture as the mask)
 // NON_MATCHING: scheduling only: the device's load for Unk_442c50_get and
-// the zero clamp's `csel` come one instruction apart. Tried: the reads, the
-// clamp and the fallback's two assignments in other orders and as selects.
+// the zero clamp's `csinc` are in each other's order, and so are the
+// fallback's `mov #9` and `csel` (the clamp after Unk_GetCoords put the
+// coordinates' load in its place). Tried: the reads, the clamp and the
+// fallback's two assignments in other orders, as selects, in lambdas, with
+// std::min/std::max, and other types for `second` and `mode`.
 s32 CTextureUtil::Unk_48d020(CRenderTexture* source, CRenderTexture* target, CRenderTexture* mask, u32 arg3,
                              const Unk_Float2* arg4, s32 usnorm, s32 bits, bool background, s32 dense, bool clear) {
     if (clear) {
         Unk_471410();
     }
     CRenderTexture::Unk_Level* level = source->field_80;
-    s32 second = dense < 1 ? dense : 1;
-    second = second < 0 ? 0 : second;
     f32 u1;
     f32 v1;
     Unk_GetCoords(source, &u1, &v1);
+    s32 second = dense < 1 ? dense : 1;
+    second = second < 0 ? 0 : second;
     f32 width = static_cast<f32>(static_cast<u32>(target->field_54));
     f32 height = static_cast<f32>(static_cast<u32>(target->field_58));
     u32 levelHeight = level->field_c;
@@ -12082,7 +12835,8 @@ s32 CTextureUtil::Unk_482fd0(f32 scale, f32 limit, f32 ratio, CRenderTexture* ta
 // copy of `this` and the first normalisation's fcmp ahead of the other
 // argument copies, and the techniques' loop tests the count with a ccmp (the
 // original keeps cbnz and cmp/b.lt). Tried: the loop as do/while, while and
-// for, the tests split and in either order.
+// for, the tests split and in either order, the table reads and the test in
+// inline functions.
 s32 CTextureUtil::Unk_483e50(f32 scale, f32 length, f32 ratio, CRenderTexture* target, const MATRIXT44* view,
                              const MATRIXT44* previous, const MATRIXT44* projection,
                              const MATRIXT44* previousProjection, bool flag, s32 maxLevels, void* unused,

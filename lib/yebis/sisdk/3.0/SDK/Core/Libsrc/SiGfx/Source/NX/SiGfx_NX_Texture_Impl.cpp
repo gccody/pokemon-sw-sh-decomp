@@ -576,6 +576,10 @@ bool SiGfxNXTexture::vf32(Unk_NXTextureOwner* pOwner) {
 // NON_MATCHING: the original peels the volumes' loop's first iteration (its
 // element is the buffer the reserve just made) and lays the cube and array
 // cases out after the volumes' (44 bytes more); the surfaces' case matches.
+// The peeled iteration's count test is 32-bit (`ldr w8; cmp w8, #2`) and the
+// rest 64-bit, the signature of a peel with an InstCombine after it. Tried:
+// s32/u32 counters and counts, while/do-while, the element by index or
+// reference, a guard of the count (-unroll-peel-count=1 crashes clang 7).
 bool SiGfxNXTexture::Unk_5601b0() {
     field_238.Unk_FreeAll();
     field_288.Unk_FreeAll();
@@ -823,7 +827,9 @@ bool SiGfxNXTexture::vf39(u32 kind) {
 // w22 and the access flags in w23, here the other way round. Tried: the
 // three locals' declarations in each order, their types, the access flags
 // as `~flags & 8`, declared first, from a local of the flags, the 3D flag as
-// `kind == 3`.
+// `kind == 3`; (round 2) the switch in a static inline helper (flags by
+// reference or pointer: the switch is lowered otherwise), the access
+// flags or the size and view stores in helpers.
 // 0x7100561ef0
 bool SiGfxNXTexture::vf44(void* texture, void* view) {
     if (texture == nullptr || view == nullptr) {

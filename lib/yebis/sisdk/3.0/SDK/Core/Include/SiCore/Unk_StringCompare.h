@@ -6,8 +6,10 @@
 //
 // What the callers' code shows of it, and what each part of the source below
 // is there for (every one of them changes the code):
-// - The index is an `int`, and both characters are read into locals before
-//   either is tested. The two tests are then one block, `c1 == 0 || c2 == 0`,
+// - The index is an `s64` (an `int` widened by IndVarSimplify gives the same
+//   instructions, but the locale tables' loop that compares with "en" then
+//   has its index and the constant's address in each other's registers), and
+//   both characters are read into locals before either is tested. The two tests are then one block, `c1 == 0 || c2 == 0`,
 //   which is merged into one exit before the loop is rotated: both are at the
 //   loop's end (`cbz w8 ; cbnz w9`), and what follows the loop can't tell
 //   which of them ended it.
@@ -41,7 +43,7 @@ namespace SiSDK3 {
 
 // Compares two strings of characters without case: 0 if they are the same.
 inline int Unk_CompareNoCase(const char* a, const char* b) {
-    int i = 0;
+    s64 i = 0;
     char c1;
     char c2;
     u8 lower1;

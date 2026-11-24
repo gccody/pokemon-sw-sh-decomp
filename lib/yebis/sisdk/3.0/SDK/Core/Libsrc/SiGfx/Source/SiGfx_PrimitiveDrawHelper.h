@@ -123,9 +123,16 @@ struct Unk_PrimitiveStates {
     bool field_35;
     u8 field_36[0x2a];
     Unk_Blend field_60[8];
+    // what is drawn and a word after it (placeholder names): Unk_547500
+    // assigns the two as one (an 8-byte store at 0x16c)
+    struct Unk_DrawKind {
+        u32 field_0;
+        u32 field_4;
+    };
+
     u8 field_160[0xc];
-    u32 field_16c;  // what is drawn
-    u8 field_170[0x18];
+    Unk_DrawKind field_16c;
+    u8 field_174[0x14];
     u32 field_188;  // what changed (4: what is drawn)
 };
 
