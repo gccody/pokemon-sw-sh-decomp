@@ -32,22 +32,25 @@ IGPUResource::IGPUResource(IGPUDevice* pDevice)
     }
 }
 
+// the search and removal of a resource in its device's list (inline): its own
+// run of the function passes before it is inlined is what sends the empty
+// list straight to the end in the base destructor (written in the destructor,
+// only the deleting one, which inlines it again, has that)
+static inline void Unk_Remove(IGPUResource::Unk_List& list, IGPUResource* self) {
+    IGPUResource::Unk_List::iterator it = std::find(list.begin(), list.end(), self);
+    if (it != list.end()) {
+        list.erase(it);
+    }
+}
+
 // 0x7100446440, 0x7100446530 (deleting)
-// NON_MATCHING: 0x7100446440 only, in one branch: for an empty list the
-// original goes straight to the end, this to the test after the search (the
-// deleting destructor, which has this one inline, matches).
 IGPUResource::~IGPUResource() {
     if (field_38 != nullptr) {
         field_38->vf3();
         field_38 = nullptr;
     }
     UNK_DELETE_ARRAY(field_30);
-    Unk_List& list = field_18->field_10;
-    IGPUResource* self = this;
-    Unk_List::iterator it = std::find(list.begin(), list.end(), self);
-    if (it != list.end()) {
-        list.erase(it);
-    }
+    Unk_Remove(field_18->field_10, this);
 }
 
 }  // namespace PPFX

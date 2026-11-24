@@ -194,9 +194,17 @@ bool SiGfxFreeTypeFaceCache::Unk_531420(SiGfxFreeTypeGlyph* glyph) {
 }
 
 // 0x7100532ca0
-// NON_MATCHING: the y at which a leaf is split in two is computed again in
-// the original (`add w8, w13, w8 ; sub w2, w8, w11`); here it reuses the
-// rectangle's height (4 bytes less, and other registers for the sizes).
+// NON_MATCHING: 13 instructions, registers and the order of two loads. The
+// y at which a leaf is split in two is computed again in the original (`add
+// w8, w13, w8 ; sub w2, w8, w11`, (a + b) - c): with the sizes declared in
+// their natural order Reassociate makes it (a - c) + b, which GVN takes from
+// the rectangle's height (4 bytes less). With the node's height read before
+// the rectangle's (as here) the ranks keep (a + b) - c and the size is the
+// original's, but the node's pair is then loaded first and the third split's
+// sum has its operands the other way round (`add w3, w11, w8` for `add w3,
+// w8, w9`). The original's sum probably isn't reassociated at all (a + b with
+// another use, so Reassociate doesn't break up the subtraction); 48 orders
+// of the declarations and the sums were tried.
 template <class T>
 typename SiGfxQuadTree<T>::QuadNode* SiGfxQuadTree<T>::Unk_532ca0(QuadNode* node, const Unk_FaceCacheRect* rect) {
     if (node->field_54) {
@@ -222,9 +230,9 @@ typename SiGfxQuadTree<T>::QuadNode* SiGfxQuadTree<T>::Unk_532ca0(QuadNode* node
         return nullptr;
     }
     s32 width = rect->field_0.field_4 - rect->field_0.field_0;
+    s32 nodeHeight = node->field_48.field_4 - node->field_48.field_0;
     s32 nodeWidth = node->field_40.field_4 - node->field_40.field_0;
     s32 height = rect->field_8.field_4 - rect->field_8.field_0;
-    s32 nodeHeight = node->field_48.field_4 - node->field_48.field_0;
     if (width == nodeWidth) {
         if (height == nodeHeight) {
             return node;

@@ -253,10 +253,13 @@ bool SiGfxNXRootSignature::vf10(s32 count) {
     return true;
 }
 
-// NON_MATCHING: the original sets up its frame before the
-// tests and has every early return go through its one epilogue (`mov w0,
-// wzr` first); here the tests come before the frame, each with a return of
-// its own, and slot 12's test of the kind is made before the flag is read.
+// NON_MATCHING: slot 12's test of the kind is made before the flag is read
+// (the frame and the one epilogue are the original's now). The two early
+// returns are joined into one `or` of the conditions, which Reassociate
+// orders by rank (the kind's test is computed from an argument, the flag's
+// from a load); the original keeps the flag's test first and sets `w0` to
+// zero again in the kind's block, so its kind test has a return value of its
+// own there.
 // Tried: the flag in an int-sized local, a result variable, the tests as one
 // condition and one by one; (round 12) slot 13's form (a result variable,
 // `field_25 && index >= 0`, which matches there) with the kind's test in the

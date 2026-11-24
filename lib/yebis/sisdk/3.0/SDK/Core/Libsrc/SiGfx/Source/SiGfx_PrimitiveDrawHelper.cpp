@@ -257,7 +257,9 @@ bool SiGfxPrimitiveDrawHelper::Unk_5474b0() {
 // NON_MATCHING: the original places the test of the primitives' count
 // right after case 1, which falls into the part after the switch (`b.lt` to
 // the return); here that part comes after case 5 and every case jumps to it
-// (592 bytes for 600).
+// (592 bytes for 600). (The vertices' copy is a plain `memcpy` in the
+// original. Tried: every order of the cases and of the default, the default
+// as zero primitives, the locals initialised, `!last` tested first.)
 // 0x7100547500
 bool SiGfxPrimitiveDrawHelper::Unk_547500(bool last, const u8* pData) {
     if (!field_184) {
@@ -267,7 +269,7 @@ bool SiGfxPrimitiveDrawHelper::Unk_547500(bool last, const u8* pData) {
         pData = field_160;
     }
     void* pVertices = field_490->vf74(0, field_178, field_174);
-    Unk_4c9380(pVertices, pData, static_cast<s64>(field_178) * field_174);
+    memcpy(pVertices, pData, static_cast<s64>(field_178) * field_174);
     field_490->vf75();
     s32 primitives;
     s32 kept;
@@ -379,16 +381,11 @@ bool SiGfxPrimitiveDrawHelper::Unk_5478f0(const void* pVertex) {
     return true;
 }
 
-// NON_MATCHING (and slots 0x7100547b60, 0x7100547df0 to 0x71005484f0, the
-// setters whose formats 28 and 87 both end in the store of byte 3): the
-// original shares those two cases' last store (case 87 branches into case
-// 28's, its products all computed before their conversions); here each case
-// keeps its own. Slots 0x7100547a40 and 0x7100547ca0 match with the same
-// switch. (The two tails are the same instructions here, so BranchFolder
-// isn't what is missing: in the IR the return block has the zero test and
-// the switch as conditional predecessors, which stops SimplifyCFG's sinking.
-// Tried: case 87's products first, the float cases returning, case 2
-// breaking.)
+// The setters' switches: the order of the cases decides which tails the
+// branch folder merges (case 41 before 28 here: 87 branches into 28's last
+// store). Where the cases store through single stores the element's address
+// is computed in each case (`add x8, x0, x9` with the field's offset in the
+// stores), which also keeps the result out of w0 until the return.
 // 0x7100547930
 bool SiGfxPrimitiveDrawHelper::Unk_547930(u32 row, s32 column, f32 x, f32 y, f32 z, f32 w) {
     u8 format = field_c0[row][column];
@@ -413,14 +410,14 @@ bool SiGfxPrimitiveDrawHelper::Unk_547930(u32 row, s32 column, f32 x, f32 y, f32
         f[0] = x;
         f[1] = y;
         break;
+    case 41:
+        f[0] = x;
+        break;
     case 28:
         p[0] = static_cast<u8>(x * 255.0f);
         p[1] = static_cast<u8>(y * 255.0f);
         p[2] = static_cast<u8>(z * 255.0f);
         p[3] = static_cast<u8>(w * 255.0f);
-        break;
-    case 41:
-        f[0] = x;
         break;
     case 87:
         p[2] = static_cast<u8>(x * 255.0f);
@@ -479,7 +476,6 @@ bool SiGfxPrimitiveDrawHelper::Unk_547a40(u32 row, s32 column, const f32* pValue
     return true;
 }
 
-// NON_MATCHING: see 0x7100547930
 // 0x7100547b60
 bool SiGfxPrimitiveDrawHelper::Unk_547b60(u32 row, s32 column, const f32* pValues) {
     u8 format = field_c0[row][column];
@@ -504,14 +500,14 @@ bool SiGfxPrimitiveDrawHelper::Unk_547b60(u32 row, s32 column, const f32* pValue
         f[0] = pValues[0];
         f[1] = pValues[1];
         break;
+    case 41:
+        f[0] = pValues[0];
+        break;
     case 28:
         p[0] = static_cast<u8>(pValues[0] * 255.0f);
         p[1] = static_cast<u8>(pValues[1] * 255.0f);
         p[2] = static_cast<u8>(pValues[2] * 255.0f);
         p[3] = 0;
-        break;
-    case 41:
-        f[0] = pValues[0];
         break;
     case 87:
         p[2] = static_cast<u8>(pValues[0] * 255.0f);
@@ -570,258 +566,306 @@ bool SiGfxPrimitiveDrawHelper::Unk_547ca0(u32 row, s32 column, const f32* pValue
     return true;
 }
 
-// NON_MATCHING: see 0x7100547930
 // 0x7100547df0
 bool SiGfxPrimitiveDrawHelper::Unk_547df0(u32 row, s32 column, u8 r, u8 g, u8 b, u8 a) {
     u8 format = field_c0[row][column];
     if (format == 0) {
         return false;
     }
-    u8* p = &field_190.field_0[field_20[row][column]];
-    f32* f = reinterpret_cast<f32*>(p);
+    u8 offset = field_20[row][column];
     switch (format) {
-    case 2:
+    case 2: {
+        f32* f = reinterpret_cast<f32*>(&field_190.field_0[offset]);
         f[0] = static_cast<f32>(r) / 255.0f;
         f[1] = static_cast<f32>(g) / 255.0f;
         f[2] = static_cast<f32>(b) / 255.0f;
         f[3] = static_cast<f32>(a) / 255.0f;
         break;
-    case 6:
+    }
+    case 6: {
+        f32* f = reinterpret_cast<f32*>(&field_190.field_0[offset]);
         f[0] = static_cast<f32>(r) / 255.0f;
         f[1] = static_cast<f32>(g) / 255.0f;
         f[2] = static_cast<f32>(b) / 255.0f;
         break;
-    case 16:
-        f[0] = static_cast<f32>(r) / 255.0f;
-        f[1] = static_cast<f32>(g) / 255.0f;
-        break;
-    case 28:
+    }
+    case 28: {
+        u8* p = &field_190.field_0[offset];
         p[0] = r;
         p[1] = g;
         p[2] = b;
         p[3] = a;
         break;
-    case 87:
+    }
+    case 16: {
+        f32* f = reinterpret_cast<f32*>(&field_190.field_0[offset]);
+        f[0] = static_cast<f32>(r) / 255.0f;
+        f[1] = static_cast<f32>(g) / 255.0f;
+        break;
+    }
+    case 87: {
+        u8* p = &field_190.field_0[offset];
         p[2] = r;
         p[1] = g;
         p[0] = b;
         p[3] = a;
         break;
+    }
     default:
         return false;
     }
     return true;
 }
 
-// NON_MATCHING: see 0x7100547930
 // 0x7100547f50
 bool SiGfxPrimitiveDrawHelper::Unk_547f50(u32 row, s32 column, const u8* pValues) {
     u8 format = field_c0[row][column];
     if (format == 0) {
         return false;
     }
-    u8* p = &field_190.field_0[field_20[row][column]];
-    f32* f = reinterpret_cast<f32*>(p);
+    u8 offset = field_20[row][column];
     switch (format) {
-    case 2:
+    case 2: {
+        f32* f = reinterpret_cast<f32*>(&field_190.field_0[offset]);
         f[0] = static_cast<f32>(pValues[0]) / 255.0f;
         f[1] = static_cast<f32>(pValues[1]) / 255.0f;
         f[2] = static_cast<f32>(pValues[2]) / 255.0f;
         f[3] = static_cast<f32>(pValues[3]) / 255.0f;
         break;
-    case 6:
+    }
+    case 6: {
+        f32* f = reinterpret_cast<f32*>(&field_190.field_0[offset]);
         f[0] = static_cast<f32>(pValues[0]) / 255.0f;
         f[1] = static_cast<f32>(pValues[1]) / 255.0f;
         f[2] = static_cast<f32>(pValues[2]) / 255.0f;
         break;
-    case 16:
+    }
+    case 16: {
+        f32* f = reinterpret_cast<f32*>(&field_190.field_0[offset]);
         f[0] = static_cast<f32>(pValues[0]) / 255.0f;
         f[1] = static_cast<f32>(pValues[1]) / 255.0f;
         break;
-    case 28:
+    }
+    case 28: {
+        u8* p = &field_190.field_0[offset];
         p[0] = pValues[0];
         p[1] = pValues[1];
         p[2] = pValues[2];
         p[3] = pValues[3];
         break;
-    case 87:
+    }
+    case 87: {
+        u8* p = &field_190.field_0[offset];
         p[2] = pValues[0];
         p[1] = pValues[1];
         p[0] = pValues[2];
         p[3] = pValues[3];
         break;
+    }
     default:
         return false;
     }
     return true;
 }
 
-// NON_MATCHING: see 0x7100547930
 // 0x71005480c0
 bool SiGfxPrimitiveDrawHelper::Unk_5480c0(u32 row, s32 column, const u8* pValues) {
     u8 format = field_c0[row][column];
     if (format == 0) {
         return false;
     }
-    u8* p = &field_190.field_0[field_20[row][column]];
-    f32* f = reinterpret_cast<f32*>(p);
+    u8 offset = field_20[row][column];
     switch (format) {
-    case 2:
+    case 2: {
+        f32* f = reinterpret_cast<f32*>(&field_190.field_0[offset]);
         f[0] = static_cast<f32>(pValues[0]) / 255.0f;
         f[1] = static_cast<f32>(pValues[1]) / 255.0f;
         f[2] = static_cast<f32>(pValues[2]) / 255.0f;
         f[3] = static_cast<f32>(pValues[3]) / 255.0f;
         break;
-    case 6:
+    }
+    case 6: {
+        f32* f = reinterpret_cast<f32*>(&field_190.field_0[offset]);
         f[0] = static_cast<f32>(pValues[0]) / 255.0f;
         f[1] = static_cast<f32>(pValues[1]) / 255.0f;
         f[2] = static_cast<f32>(pValues[2]) / 255.0f;
         break;
-    case 16:
+    }
+    case 16: {
+        f32* f = reinterpret_cast<f32*>(&field_190.field_0[offset]);
         f[0] = static_cast<f32>(pValues[0]) / 255.0f;
         f[1] = static_cast<f32>(pValues[1]) / 255.0f;
         break;
-    case 28:
+    }
+    case 28: {
+        u8* p = &field_190.field_0[offset];
         p[0] = pValues[0];
         p[1] = pValues[1];
         p[2] = pValues[2];
         p[3] = pValues[3];
         break;
-    case 87:
+    }
+    case 87: {
+        u8* p = &field_190.field_0[offset];
         p[2] = pValues[0];
         p[1] = pValues[1];
         p[0] = pValues[2];
         p[3] = pValues[3];
         break;
+    }
     default:
         return false;
     }
     return true;
 }
 
-// NON_MATCHING: see 0x7100547930
 // 0x7100548230
 bool SiGfxPrimitiveDrawHelper::Unk_548230(u32 row, s32 column, const f32* pValues) {
     u8 format = field_c0[row][column];
     if (format == 0) {
         return false;
     }
-    u8* p = &field_190.field_0[field_20[row][column]];
-    f32* f = reinterpret_cast<f32*>(p);
+    u8 offset = field_20[row][column];
     switch (format) {
-    case 2:
+    case 2: {
+        f32* f = reinterpret_cast<f32*>(&field_190.field_0[offset]);
         f[0] = pValues[0];
         f[1] = pValues[1];
         f[2] = pValues[2];
         f[3] = pValues[3];
         break;
-    case 6:
+    }
+    case 6: {
+        f32* f = reinterpret_cast<f32*>(&field_190.field_0[offset]);
         f[0] = pValues[0];
         f[1] = pValues[1];
         f[2] = pValues[2];
         break;
-    case 16:
+    }
+    case 16: {
+        f32* f = reinterpret_cast<f32*>(&field_190.field_0[offset]);
         f[0] = pValues[0];
         f[1] = pValues[1];
         break;
-    case 28:
+    }
+    case 28: {
+        u8* p = &field_190.field_0[offset];
         p[0] = static_cast<u8>(pValues[0] * 255.0f);
         p[1] = static_cast<u8>(pValues[1] * 255.0f);
         p[2] = static_cast<u8>(pValues[2] * 255.0f);
         p[3] = static_cast<u8>(pValues[3] * 255.0f);
         break;
-    case 87:
+    }
+    case 87: {
+        u8* p = &field_190.field_0[offset];
         p[2] = static_cast<u8>(pValues[0] * 255.0f);
         p[1] = static_cast<u8>(pValues[1] * 255.0f);
         p[0] = static_cast<u8>(pValues[2] * 255.0f);
         p[3] = static_cast<u8>(pValues[3] * 255.0f);
         break;
+    }
     default:
         return false;
     }
     return true;
 }
 
-// NON_MATCHING: see 0x7100547930
 // 0x7100548380
 bool SiGfxPrimitiveDrawHelper::Unk_548380(u32 row, s32 column, const u8* pValues) {
     u8 format = field_c0[row][column];
     if (format == 0) {
         return false;
     }
-    u8* p = &field_190.field_0[field_20[row][column]];
-    f32* f = reinterpret_cast<f32*>(p);
+    u8 offset = field_20[row][column];
     switch (format) {
-    case 2:
+    case 2: {
+        f32* f = reinterpret_cast<f32*>(&field_190.field_0[offset]);
         f[0] = static_cast<f32>(pValues[2]) / 255.0f;
         f[1] = static_cast<f32>(pValues[1]) / 255.0f;
         f[2] = static_cast<f32>(pValues[0]) / 255.0f;
         f[3] = static_cast<f32>(pValues[3]) / 255.0f;
         break;
-    case 6:
+    }
+    case 6: {
+        f32* f = reinterpret_cast<f32*>(&field_190.field_0[offset]);
         f[0] = static_cast<f32>(pValues[2]) / 255.0f;
         f[1] = static_cast<f32>(pValues[1]) / 255.0f;
         f[2] = static_cast<f32>(pValues[0]) / 255.0f;
         break;
-    case 16:
+    }
+    case 16: {
+        f32* f = reinterpret_cast<f32*>(&field_190.field_0[offset]);
         f[0] = static_cast<f32>(pValues[2]) / 255.0f;
         f[1] = static_cast<f32>(pValues[1]) / 255.0f;
         break;
-    case 28:
+    }
+    case 28: {
+        u8* p = &field_190.field_0[offset];
         p[0] = pValues[2];
         p[1] = pValues[1];
         p[2] = pValues[0];
         p[3] = pValues[3];
         break;
-    case 87:
+    }
+    case 87: {
+        u8* p = &field_190.field_0[offset];
         p[2] = pValues[2];
         p[1] = pValues[1];
         p[0] = pValues[0];
         p[3] = pValues[3];
         break;
+    }
     default:
         return false;
     }
     return true;
 }
 
-// NON_MATCHING: see 0x7100547930
 // 0x71005484f0
 bool SiGfxPrimitiveDrawHelper::Unk_5484f0(u32 row, s32 column, const f32* pValues) {
     u8 format = field_c0[row][column];
     if (format == 0) {
         return false;
     }
-    u8* p = &field_190.field_0[field_20[row][column]];
-    f32* f = reinterpret_cast<f32*>(p);
+    u8 offset = field_20[row][column];
     switch (format) {
-    case 2:
+    case 2: {
+        f32* f = reinterpret_cast<f32*>(&field_190.field_0[offset]);
         f[0] = pValues[2];
         f[1] = pValues[1];
         f[2] = pValues[0];
         f[3] = pValues[3];
         break;
-    case 6:
+    }
+    case 6: {
+        f32* f = reinterpret_cast<f32*>(&field_190.field_0[offset]);
         f[0] = pValues[2];
         f[1] = pValues[1];
         f[2] = pValues[0];
         break;
-    case 16:
+    }
+    case 16: {
+        f32* f = reinterpret_cast<f32*>(&field_190.field_0[offset]);
         f[0] = pValues[2];
         f[1] = pValues[1];
         break;
-    case 28:
+    }
+    case 28: {
+        u8* p = &field_190.field_0[offset];
         p[0] = static_cast<u8>(pValues[2] * 255.0f);
         p[1] = static_cast<u8>(pValues[1] * 255.0f);
         p[2] = static_cast<u8>(pValues[0] * 255.0f);
         p[3] = static_cast<u8>(pValues[3] * 255.0f);
         break;
-    case 87:
+    }
+    case 87: {
+        u8* p = &field_190.field_0[offset];
         p[2] = static_cast<u8>(pValues[2] * 255.0f);
         p[1] = static_cast<u8>(pValues[1] * 255.0f);
         p[0] = static_cast<u8>(pValues[0] * 255.0f);
         p[3] = static_cast<u8>(pValues[3] * 255.0f);
         break;
+    }
     default:
         return false;
     }

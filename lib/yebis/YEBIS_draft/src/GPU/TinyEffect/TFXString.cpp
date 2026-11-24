@@ -333,9 +333,8 @@ Unk_TFXString& Unk_TFXString::Unk_451e00(s32 start, s32 count) {
 }
 
 // 0x7100451f00
-// NON_MATCHING: the last character's address is computed before the first
-// character is loaded here (into another register); the original loads the
-// first character, then reuses its register for the address.
+// The last character is read as `*(field_8 + length - 1)`: with `field_8[length
+// - 1]` its address is computed before the first character is loaded.
 Unk_TFXString& Unk_TFXString::Unk_451f00(const char* quotes) {
     s32 length = field_0;
     if (length >= 1) {
@@ -350,7 +349,7 @@ Unk_TFXString& Unk_TFXString::Unk_451f00(const char* quotes) {
     }
     Unk_452b30();
     length = field_0;
-    if (length >= 1 && field_8[0] == field_8[length - 1] && length != 1) {
+    if (length >= 1 && field_8[0] == *(field_8 + length - 1) && length != 1) {
         char c = field_8[0];
         s32 count = strlen(quotes);
         for (s32 i = 0; i < count; i++) {
@@ -554,9 +553,9 @@ Unk_TFXString& Unk_TFXString::Unk_452c00(const Unk_TFXString& chars) {
 }
 
 // 0x7100452d20
-// NON_MATCHING: the original tests the string's length before `count`; here
-// the two tests come out the other way round (with the registers after
-// them), however the condition is written.
+// `count` isn't tested: the test of the inner loop's guard that the original
+// has after the length's is LLVM's (loop unswitching finds that nothing is
+// cut when the inner loop doesn't run). Written out, it comes first.
 Unk_TFXString& Unk_TFXString::CutLeft(const char* szDefSpace, s32 count) {
 #line 2216
     assert(szDefSpace);
@@ -564,7 +563,7 @@ Unk_TFXString& Unk_TFXString::CutLeft(const char* szDefSpace, s32 count) {
         count = strlen(szDefSpace);
     }
     s32 length = field_0;
-    if (length >= 1 && count >= 1) {
+    if (length >= 1) {
         s32 i;
         for (i = 1; i <= length; i++) {
             char c = field_8[i - 1];

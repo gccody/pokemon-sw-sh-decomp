@@ -38,6 +38,11 @@ SiIONXMemoryMappedFile::~SiIONXMemoryMappedFile() {
 // `return true` the test stays at all (without it clang folds the two results
 // into one; 38 instructions off). Tried: the tests split, nested, joined
 // either way, `!(a == b)`, a goto, the read as int/u8/size_t.
+// (Round 14: the `and` is already there after the first InstCombine: the
+// scope's returns become selects of the cleanup's destination in the first
+// SimplifyCFG, whatever form the tests have; Reassociate then puts the mode's
+// test first. Also tried: the mode's test as a bool local shared with the 'r'
+// test, `return false` for the failed read, a u8 result.)
 bool SiIONXMemoryMappedFile::vf5(const char* path, u32 mode) {
     vf6();
     {

@@ -163,7 +163,13 @@ ISiGfxShaderEffectVariationList::ShaderVariationItem::ShaderVariationItem(
 // NON_MATCHING: the count's sign extension: the original extends it in each
 // of the two loops LLVM makes of the search (for a null name and for the
 // others), this once before the name's test (tried: the count as s32, s64,
-// size_t, read in the loop's test, the index as s64). The comparison's result
+// size_t, read in the loop's test, the index as s64). What hoists it: IndVars
+// puts a sign extension at the start of each unswitched loop's preheader and
+// SimplifyCFG hoists the identical first instructions of both into the
+// block that tests the name; in the original the named loop's preheader
+// starts with the name's first character instead (hoisted by LICM before
+// IndVars ran, which here happens only in the late LICM, after the hoist).
+// The comparison's result
 // is a `bool` of its own (`equal`), which keeps the original's `cset` of
 // `(c1 | c2) != 0` and of the empty name's length test.
 s32 SiGfxShaderEffectVariationList::vf14(const char* name) {

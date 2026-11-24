@@ -949,7 +949,10 @@ void SiGfxNXDrawContext::Unk_53d8a0(s32 index, ISiGfxResource* pResource, s32 of
 
 // NON_MATCHING: the slot and its sign-extended copy (w22, x23) are used the
 // other way round in some of the ranges' compares, and one merged block (the
-// stages 3 and 4 of the images) schedules its loads differently.
+// stages 3 and 4 of the images) schedules its loads differently. (The
+// buffers' ranges are marked with `Unk_MarkOr`, which took it from 72 lines
+// to 48; a search over the six mark helpers at every call finds nothing
+// better.)
 // 0x710053da20
 void SiGfxNXDrawContext::Unk_53da20(s32 index, ISiGfxResource* pResource) {
     SiGfxNXRootSignature* pSignature;
@@ -1013,32 +1016,32 @@ void SiGfxNXDrawContext::Unk_53da20(s32 index, ISiGfxResource* pResource) {
             s64 bytes = pBuffer->field_bc;
             u64 address = base + pBuffer->field_154 * bytes;
             if (stages & 1) {
-                field_30.field_2898[0].Unk_MarkBit(slot);
+                field_30.field_2898[0].Unk_MarkOr(slot);
                 field_30.field_508.field_960[0][slot] = address;
                 field_30.field_508.field_c00[0][slot] = bytes;
             }
             if (stages & 2) {
-                field_30.field_2898[1].Unk_MarkBit(slot);
+                field_30.field_2898[1].Unk_MarkOr(slot);
                 field_30.field_508.field_960[1][slot] = address;
                 field_30.field_508.field_c00[1][slot] = bytes;
             }
             if (stages & 4) {
-                field_30.field_2898[2].Unk_MarkBit(slot);
+                field_30.field_2898[2].Unk_MarkOr(slot);
                 field_30.field_508.field_960[2][slot] = address;
                 field_30.field_508.field_c00[2][slot] = bytes;
             }
             if (stages & 16) {
-                field_30.field_2898[3].Unk_MarkBit(slot);
+                field_30.field_2898[3].Unk_MarkOr(slot);
                 field_30.field_508.field_960[3][slot] = address;
                 field_30.field_508.field_c00[3][slot] = bytes;
             }
             if (stages & 8) {
-                field_30.field_2898[4].Unk_MarkBit(slot);
+                field_30.field_2898[4].Unk_MarkOr(slot);
                 field_30.field_508.field_960[4][slot] = address;
                 field_30.field_508.field_c00[4][slot] = bytes;
             }
             if (stages & 32) {
-                field_30.field_2898[5].Unk_MarkBit(slot);
+                field_30.field_2898[5].Unk_MarkOr(slot);
                 field_30.field_508.field_960[5][slot] = address;
                 field_30.field_508.field_c00[5][slot] = bytes;
             }
@@ -1371,9 +1374,7 @@ void SiGfxNXDrawContext::Unk_53ed20(SiGfxNXDescriptorSet* pSet) {
     }
 }
 
-// NON_MATCHING: the block for a buffer's texture (stage 5 only) has its
-// registers in another order (16 instructions differ).
-// 0x710053ee60
+// 0x710053ee60 (the buffer's texture marks its slot with `Unk_MarkOr`)
 void SiGfxNXDrawContext::Unk_53ee60(ISiGfxResource* pResource, u32 stages, s32 slot) {
     if (pResource == nullptr) {
         return;
@@ -1446,8 +1447,7 @@ void SiGfxNXDrawContext::Unk_53ee60(ISiGfxResource* pResource, u32 stages, s32 s
     } else if (pResource->vf8()->field_8 & 0x10000) {
         u64 handle = pTexture->vf29();
         if (stages & 32) {
-            Unk_SlotRange& range = field_30.field_2928[5];
-            range.Unk_MarkRead(slot);
+            field_30.field_2928[5].Unk_MarkOr(slot);
             field_30.field_508.field_1050[5][slot] = handle;
         }
     }
@@ -1958,6 +1958,11 @@ static inline void Unk_MapSurface(Unk_NXDrawFlush* pMap, const Unk_NXDrawSurface
 // size in one register through the join and sign-extends it after
 // (`mov w24, w0`, then `sxtw x2, w24`); here the extension is copied into
 // both paths and the call's path is moved out of line (752 bytes for 736).
+// In the IR the invalidation's call is duplicated into both paths (the size
+// from nvnTextureGetStorageSize is a truncated size_t, its sign extension a
+// shift pair that differs from the loaded size's); with an s64 size the
+// layout is the original's (86 lines off) but the size is extended before
+// the join.
 // The kinds are a switch: the original's blocks are in the cases' order (10,
 // 1, 3) and its comparisons in their values' (if-else chains are compared in
 // the reverse of the source's order).

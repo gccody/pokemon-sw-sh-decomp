@@ -44,18 +44,12 @@ void Unk_4a0540::Unk_4a0680() {
     Unk_Clear();
 }
 
-// 0x71004a0bb0
+// 0x71004a0bb0: a call of 0x71004a0540, which is inlined here (the same code).
+// With the copy written out in this body instead, its inline cost (235) is
+// under the threshold (250) and Unk_4a0cf0 inlines it, where the original
+// calls it; through the call it costs 260.
 Unk_4a0540& Unk_4a0540::operator=(const Unk_4a0540& other) {
-    if (&other == this)
-        return *this;
-    Unk_4a0680();
-    memmove(static_cast<Unk_4a0540_Base*>(this), &other, sizeof(Unk_4a0540_Base));
-    if (other.field_20 != nullptr) {
-#line 245
-        field_20 = UNK_NEW_ARRAY(Unk_4a0540_Line, field_8);
-        for (s32 i = 0; i < field_8; i++)
-            field_20[i] = other.field_20[i];
-    }
+    Unk_4a0540_Copy(other);
     return *this;
 }
 
@@ -80,8 +74,6 @@ Unk_4a0b00::Unk_4a0b00() {
 Unk_4a0b00::~Unk_4a0b00() {}
 
 // 0x71004a0cf0
-// NON_MATCHING: clang inlines the star's assignment (0x71004a0bb0), which the
-// original calls; the stores before it are the original's.
 s32 Unk_4a0b00::Unk_4a0cf0(const char* name, u32 star, Unk_Float4 arg2, Unk_Float4 arg3, Unk_Float4 arg4,
                            f32 arg5, Unk_Float4 arg6, f32 arg7, f32 arg8, f32 arg9, Unk_Float4 arg10, f32 arg11) {
     field_80.Unk_4a0680();
@@ -94,7 +86,6 @@ s32 Unk_4a0b00::Unk_4a0cf0(const char* name, u32 star, Unk_Float4 arg2, Unk_Floa
     field_8[5] = arg3.field_0[1].field_0;
     field_8[6] = arg3.field_0[2].field_0;
     field_8[7] = arg3.field_0[3].field_0;
-    field_28 = fabsf(arg8) * 0.8f;
     field_2c = 4;
     field_30[0] = arg4.field_0[0].field_0;
     field_30[1] = arg4.field_0[1].field_0;
@@ -110,6 +101,7 @@ s32 Unk_4a0b00::Unk_4a0cf0(const char* name, u32 star, Unk_Float4 arg2, Unk_Floa
     field_5c = arg7;
     field_60 = arg8;
     field_64 = fabsf(arg8) >= 1.0f;
+    field_28 = fabsf(arg8) * 0.8f;
     if (fabsf(arg8) >= 1.0f)
         arg8 *= 0.36f;
     else if (arg8 < 0.0f && arg8 > -1.0f)
