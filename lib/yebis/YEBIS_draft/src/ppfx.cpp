@@ -14,6 +14,7 @@
 #include <yebis/YEBIS_draft/src/Unk_4b9860.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUInterfaceDevice.h>
 #include <yebis/YEBIS_draft/src/ppfxRenderToTexture.h>
+#include <yebis/YEBIS_draft/src/UT/ppfxLicense.h>
 
 #define PPFX_FILE "C:/workspace/YEBIS_draft/src/ppfx.cpp"
 #include <yebis/YEBIS_draft/src/GPU/Unk_Log.h>
@@ -714,6 +715,80 @@ void Unk_43a530(u64, u32, f32);
 // 0x7100418830
 void Unk_418830_call(void* /*unused*/, u32 value, f32 a) {
     Unk_43a530(reinterpret_cast<u64>(s_pSinglePostEffect), value, a);
+}
+
+namespace PPFX {
+// 0x7101b32879, 0x7101b05d89 (Sword): the license key material the check
+// decodes, 32 bytes each, from the executable. Deliberately not in the
+// repository (lib/yebis/README.md, "License key material"): a build that
+// needs the bytes (byte parity) generates their definitions from the user's
+// own executable. Never define them here.
+extern const u8 Unk_1b32879[] __attribute__((visibility("hidden")));
+extern const u8 Unk_1b05d89[] __attribute__((visibility("hidden")));
+}  // namespace PPFX
+
+// lib/yebis/leaf (Unk_4bb5d0.cpp, Unk_455350.cpp): PPFX::VerifyFeatureLicense's
+// field_28 (why it failed) and field_38's text (the feature), and what the
+// feature test sets
+struct Unk_4bb5d0;
+u32 Unk_4bb5d0_get(const Unk_4bb5d0* self);
+struct Unk_4bb5e0;
+u64 Unk_4bb5e0_get(const Unk_4bb5e0* self);
+void Unk_4190e0_set(u32 value);
+
+// What 0x7100418840 inlines (the order of its stack slots shows it: the
+// callee's come first): checks a license text that isn't empty with the key
+// the executable keeps encoded; 0 or -3.
+static s32 Unk_VerifyLicense(const PPFX::Unk_TFXString& license) {
+    u8* key = nullptr;
+    size_t keySize = 0;
+    PPFX::Unk_4ba5a0_Self codec;
+    codec.Unk_4bb390(&key, &keySize, PPFX::Unk_1b32879, 0x20, PPFX::Unk_1b05d89, 0x20);
+    if (key == nullptr) {
+#line 643
+        PPFX_ERROR("License is not valid.\n");
+        return -3;
+    }
+    PPFX::Unk_TFXString keyText(reinterpret_cast<const char*>(key), keySize, -1);
+    PPFX::VerifyFeatureLicense verify;
+    verify.field_8 = PPFX::Unk_TFXString(license.field_8);
+    verify.field_18 = PPFX::Unk_TFXString(keyText.field_8);
+    s32 result = verify.Unk_4bb5f0();
+    if (key != nullptr)
+        Unk_4b9a60(Unk_238d5f8, reinterpret_cast<u64*>(key) - 1);
+    if (result != 0) {
+        u32 reason = Unk_4bb5d0_get(reinterpret_cast<const Unk_4bb5d0*>(&verify));
+        if (reason == 1) {
+#line 660
+            PPFX_ERROR("License is not valid.\n");
+        } else if (reason == 2) {
+#line 664
+            PPFX_ERROR("License is expired.\n");
+        } else {
+#line 668
+            PPFX_ERROR("Unexpected License Error.\n");
+        }
+    }
+    PPFX::Unk_TFXString feature(
+        reinterpret_cast<const char*>(Unk_4bb5e0_get(reinterpret_cast<const Unk_4bb5e0*>(&verify))));
+    Unk_4190e0_set(feature.Unk_4520d0("YEBIS_PROMOTION2016MAY_", 0, -1) > 0);
+    return result;
+}
+
+// 0x7100418840: checks the license text (the result is kept in Unk_238c230,
+// which the context's initialisation starts from)
+void Unk_418840(const char* text) {
+    Unk_238c230 = -1;
+    PPFX::Unk_TFXString license(text);
+    s32 result;
+    if (license.field_0 == 0) {
+#line 632
+        PPFX_ERROR("License text is not set.\n");
+        result = -3;
+    } else {
+        result = Unk_VerifyLicense(license);
+    }
+    Unk_238c230 = result;
 }
 
 void Unk_43b920(u64, u32);
