@@ -325,7 +325,10 @@ static void Unk_SiMapInsertFix(M* pMap, N* pNode) {
 // NON_MATCHING: two operand orders: the original compares the node with its
 // parent's children `cmp x19, x11` in the rotations' case, where InstCombine
 // puts the load first here (the node is the balancing's argument when it
-// runs, a loop variable only after tail-call elimination).
+// runs, a loop variable only after tail-call elimination). The balancing
+// written as a loop in the source (for, while or do-while, the rotations in
+// or after it) gives the original's operand order, but its null paths and
+// block layout differ by 150 instructions or more.
 template <class K, class V, class Compare, int ALIGN>
 bool SiMap<K, V, Compare, ALIGN>::Unk_4c09a0(const K& key, V value) {
     // (the key is read before the allocation)
@@ -370,7 +373,10 @@ bool SiMap<K, V, Compare, ALIGN>::Unk_4c09a0(const K& key, V value) {
 // NON_MATCHING: 1692 bytes for 1672. The original reloads the node's
 // children after the result's advance (its store to the result is taken as
 // a possible alias; here the result is a noalias sret and the loads are
-// shared), which changes the first blocks' layout and registers; in the
+// shared), which changes the first blocks' layout and registers (a capture
+// of the result, e.g. an assignment that tests `this != &other`, gives those
+// reloads and the advance loop's store of each parent; nothing in the
+// original's code shows such a capture); in the
 // balancing the second rotations' ends and some reloads of the parent
 // differ.
 template <class K, class V, class Compare, int ALIGN>

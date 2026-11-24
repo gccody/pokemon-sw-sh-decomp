@@ -316,10 +316,8 @@ void Unk_4100f0(Unk_Float2* out, const Unk_Float2* v, const MATRIXT44* m) {
 }
 
 // 0x7100410130: a saturation per row, about one of two sets of luminance
-// weights
-// NON_MATCHING: the stores of the 3x3 part come in another order (the
-// original: rows 0 and 1's first two elements, then the third column, then
-// row 2's first two).
+// weights (the zeros first, then the 3x3 part column by column: the order of
+// the original's stores)
 void Unk_410130(MATRIXT44* out, bool arg1, f32 r, f32 g, f32 b) {
     f32 lr = arg1 ? 0.29891f : 0.2126f;
     f32 lg = arg1 ? 0.58661f : 0.7152f;
@@ -330,17 +328,17 @@ void Unk_410130(MATRIXT44* out, bool arg1, f32 r, f32 g, f32 b) {
     f32 on1 = lg + (1.0f - lg) * g;
     f32 off2 = lb + (0.0f - lb) * b;
     f32 on2 = lb + (1.0f - lb) * b;
-    out->field_0[0][0] = on0;
-    out->field_0[0][1] = off0;
-    out->field_0[0][2] = off0;
-    out->field_0[1][0] = off1;
-    out->field_0[1][1] = on1;
-    out->field_0[1][2] = off1;
-    out->field_0[2][0] = off2;
-    out->field_0[2][1] = off2;
-    out->field_0[2][2] = on2;
     out->field_0[0][3] = out->field_0[1][3] = out->field_0[2][3] = 0.0f;
     out->field_0[3][0] = out->field_0[3][1] = out->field_0[3][2] = 0.0f;
+    out->field_0[0][0] = on0;
+    out->field_0[1][0] = off1;
+    out->field_0[2][0] = off2;
+    out->field_0[0][1] = off0;
+    out->field_0[1][1] = on1;
+    out->field_0[2][1] = off2;
+    out->field_0[0][2] = off0;
+    out->field_0[1][2] = off1;
+    out->field_0[2][2] = on2;
     out->field_0[3][3] = 1.0f;
 }
 
@@ -1036,10 +1034,12 @@ MATRIXT44* Unk_411b00(MATRIXT44* out, const Unk_410f90_Point* red, const Unk_410
 // level a `size` needs (at most `maxLevels` when that is not negative), the
 // first level's count (odd for mode 1, even for mode 2) and the scale that
 // goes with them
-// NON_MATCHING: the original computes the even case's `(mode == 2) & count`
-// before the odd case's `~count & 1` and selects with `csel ne` (here the
-// other way round, `csel eq`), and the last product lands in s3 here.
-// Tried: if/else, switch and select forms of the adjustment
+// The adjustment as an if/else into a local gives the original's `csel ne`
+// and the sample count's product as a local its register.
+// NON_MATCHING: two instructions: the even case's `(mode == 2) & count`
+// (cset; and) is a `csel` of `count & 1` and zero here; written as the `&`,
+// the outer select turns into `csel eq` with the operands swapped. Tried:
+// ternaries, switch, if/else chains, the even case in eleven spellings.
 void Unk_411c70(f32 size, f32 ratio, s32 base, s32 mode, s32 maxLevels, s32* outLevels, s32* outCount, f32* outScale) {
     f32 b = static_cast<f32>(base);
     if (ratio > 1.0f && b * ratio >= size) {
@@ -1055,7 +1055,13 @@ void Unk_411c70(f32 size, f32 ratio, s32 base, s32 mode, s32 maxLevels, s32* out
         if (count == 0) {
             count = base;
         }
-        count = (mode == 1 ? (~count & 1) : (mode == 2) & count) + count;
+        s32 adjust;
+        if (mode == 1) {
+            adjust = ~count & 1;
+        } else {
+            adjust = mode == 2 ? count & 1 : 0;
+        }
+        count += adjust;
         bool over = count > base;
         bool clamp = maxLevels >= 0 && levels > maxLevels;
         if (clamp | over) {
@@ -1064,7 +1070,8 @@ void Unk_411c70(f32 size, f32 ratio, s32 base, s32 mode, s32 maxLevels, s32* out
         if (clamp) {
             levels = maxLevels;
         }
-        scale = size / (powf(b, static_cast<f32>(levels - 1)) * static_cast<f32>(count) - 1.0f);
+        f32 n = powf(b, static_cast<f32>(levels - 1)) * static_cast<f32>(count);
+        scale = size / (n - 1.0f);
     } else {
         levels = 0;
         count = 0;

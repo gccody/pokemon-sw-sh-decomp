@@ -1472,26 +1472,25 @@ s32 CRenderGlare::GenerateGlare_Afterimage() {
     return result;
 }
 
-// 0x710045c880: each view's glare, then all of them into m_pLightShaftResult
-// NON_MATCHING: the loop unswitched on `count == 1` is laid out first here
-// (the original branches to it), and the test after the loop is `b.le`, not
-// `b.eq`
+// 0x710045c880: each view's glare, then all of them into m_pLightShaftResult.
+// The body is inside `if (count > 0)` and both tests are `count > 1`: with an
+// early return for `count < 1`, the copy of the loop unswitched for a single
+// view is laid out first and the test after the loop becomes `b.le`.
 s32 CRenderGlare::Unk_45c880() {
     s32 count = field_1f4;
-    if (count < 1) {
-        return 0;
-    }
-    for (s32 i = 0; i < count; i++) {
-        Unk_45ca70(count != 1 ? Unk_ArrayTexture(m_pLightShaftGeneration, i) : nullptr, i);
-    }
-    if (count > 1) {
-        CRenderTexture* textures[16] = {};
+    if (count > 0) {
         for (s32 i = 0; i < count; i++) {
-            textures[i] = Unk_ArrayTexture(m_pLightShaftGeneration, i);
+            Unk_45ca70(count > 1 ? Unk_ArrayTexture(m_pLightShaftGeneration, i) : nullptr, i);
         }
-        CTextureUtil* util = Unk_GetTextureUtil();
-        Unk_ReleaseTextureUtil();
-        util->Unk_48d220(1.0f, 1.0f, m_pLightShaftResult, count, textures, nullptr, 0, 0);
+        if (count > 1) {
+            CRenderTexture* textures[16] = {};
+            for (s32 i = 0; i < count; i++) {
+                textures[i] = Unk_ArrayTexture(m_pLightShaftGeneration, i);
+            }
+            CTextureUtil* util = Unk_GetTextureUtil();
+            Unk_ReleaseTextureUtil();
+            util->Unk_48d220(1.0f, 1.0f, m_pLightShaftResult, count, textures, nullptr, 0, 0);
+        }
     }
     return 0;
 }

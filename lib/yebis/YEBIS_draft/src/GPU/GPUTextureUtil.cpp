@@ -16,6 +16,7 @@
 #include <yebis/YEBIS_draft/src/GPU/GPUTextureUtil.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUGlareDef.h>
 #include <yebis/YEBIS_draft/src/GPU/GPUInterfaceTexture.h>
+#include <yebis/YEBIS_draft/src/GPU/GPURenderTextureArray.h>
 #include <yebis/YEBIS_draft/src/GPU/Unk_410f90.h>
 #include <yebis/YEBIS_draft/src/GPU/Unk_Statics.h>
 #include <yebis/YEBIS_draft/src/Unk_415f40.h>
@@ -3157,11 +3158,14 @@ s32 CTextureUtil::Unk_4732b0(s32 count, s32 arg2, s32 arg3, IGPUBuffer* vertices
 // triangles through the vertex and index buffers. The last rectangle's
 // corners are read back from the stack (GVN's scan limit: the indices are
 // written in the same loop, which is what puts them out of its reach).
-// NON_MATCHING: the 0x20000 test's two blocks are laid out the other way
-// (the original falls through into the vf33/vf35 calls), and the scheduler
-// interleaves the third and fourth rectangles' vertex stores differently
-// (four instructions in another order); the instructions are otherwise the
-// original's.
+// The buffers' offsets are 32-bit sums (the sizes as u32: with size_t the
+// wrap tests are 64-bit compares), and `(flags & 0x20000) == 0` lays the
+// first test's blocks out as the original (falling into the vf33/vf35 calls).
+// NON_MATCHING: scheduling only: the scheduler interleaves the third and
+// fourth rectangles' vertex stores (and the stores of rects[2][0] and
+// rects[3][1] to the stack) differently, which renumbers the registers of
+// the last rectangle's corners. Tried: the 48 orders of the vertices'
+// statements (corner order, x or y first).
 s32 CTextureUtil::Unk_473410(f32 x, f32 y, f32 width, f32 height, f32 arg5, f32 arg6, f32 arg7, f32 arg8,
                              u32 flags) {
     Unk_Viewport viewport;
@@ -3171,7 +3175,7 @@ s32 CTextureUtil::Unk_473410(f32 x, f32 y, f32 width, f32 height, f32 arg5, f32 
     if (!(flags & 0x40000)) {
         field_20->vf41(-1, 1);
     }
-    if (!(flags & 0x20000)) {
+    if ((flags & 0x20000) == 0) {
         u8 passes[0x20];
         field_30.field_0->vf33(passes, flags & 0xffff);
         field_30.field_0->vf35(0);
@@ -3215,22 +3219,22 @@ s32 CTextureUtil::Unk_473410(f32 x, f32 y, f32 width, f32 height, f32 arg5, f32 
     }
     field_30.Unk_Layout1();
     u32 vertexStart = field_29bb8;
-    bool wrap = vertexStart + sizeof(vertices) >= field_29bbc;
+    bool wrap = vertexStart + static_cast<u32>(sizeof(vertices)) >= field_29bbc;
     if (wrap) {
         vertexStart = 0;
         field_29bb8 = 0;
     }
-    field_29bb8 = vertexStart + sizeof(vertices);
+    field_29bb8 = vertexStart + static_cast<u32>(sizeof(vertices));
     memcpy(static_cast<IGPUBuffer*>(field_29bc8[0])->Map(wrap ? 6 : 2, vertexStart, sizeof(vertices)), vertices,
            sizeof(vertices));
     static_cast<IGPUBuffer*>(field_29bc8[0])->Unmap();
     u32 indexStart = field_29bc0;
-    wrap = indexStart + sizeof(indices) >= field_29bc4;
+    wrap = indexStart + static_cast<u32>(sizeof(indices)) >= field_29bc4;
     if (wrap) {
         indexStart = 0;
         field_29bc0 = 0;
     }
-    field_29bc0 = indexStart + sizeof(indices);
+    field_29bc0 = indexStart + static_cast<u32>(sizeof(indices));
     memcpy(static_cast<IGPUBuffer*>(field_29bc8[2])->Map(wrap ? 6 : 2, indexStart, sizeof(indices)), indices,
            sizeof(indices));
     static_cast<IGPUBuffer*>(field_29bc8[2])->Unmap();
@@ -12384,6 +12388,320 @@ s32 CTextureUtil::Unk_484f50(f32 scale, CRenderTexture* source, CRenderTexture* 
         return result;
     if (outMode != nullptr)
         *outMode = mode;
+    return 0;
+}
+
+// 0x7100485610: `source` blurred along the velocity into `target`: the
+// levels and taps of Unk_483e50 for the view's motion, `velocity` generated
+// from the depth first with `generate` (Unk_484f50's body, with
+// Unk_483e50's view), reduced into `velocityWork`'s first texture when the
+// blur runs at `work`'s size or must be decoded, and dilated (a 3x3 Gaussian
+// of `sigma`) when `*dilation` is 1; then every level's pass of Unk_47a380
+// ping-pongs between the work textures (or `temp` and `source`), the last
+// one weighted by `color`, and a half-size result is composed into `target`
+// with Unk_47a850
+// NON_MATCHING: a first draft with the original's calls, arguments and
+// branches; the registers, spill slots and the order of some blocks differ.
+s32 CTextureUtil::Unk_485610(f32 scale, f32 length, f32 arg2, f32 arg3, f32 ratio, CRenderTexture* source,
+                             CRenderTexture* target, CRenderTexture* temp, CRenderTextureArray* work,
+                             CRenderTexture* velocity, CRenderTexture* reduced, CRenderTextureArray* velocityWork,
+                             const u64* dilation, const f32* sigma, bool generate, const MATRIXT44* view,
+                             const MATRIXT44* previous, const MATRIXT44* projection,
+                             const MATRIXT44* previousProjection, CRenderTexture* depth, s32 type,
+                             const Unk_Float2* depthScale, const Unk_Float2* linear, const Unk_Float2* range,
+                             s32 mode, const Unk_Float2* offset, bool arg26, bool arg27, const Unk_Float2* arg28,
+                             u32 count, const Unk_Float2* arg30, s32 arg31, const Unk_Float4* color, bool clear) {
+    CRenderTexture* half;
+    CRenderTexture* from;
+    bool downsampled;
+    if (work != nullptr && source->field_54 > work->field_38[work->field_90]->field_54) {
+        half = work->field_30 < 2 ? nullptr : work->field_38[1];
+        Unk_Float4 one(1.0f, 1.0f, 1.0f, 1.0f);
+        Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
+        Unk_47d960(0.0f, 0.0f, 0.0f, 1.0f, source, half, nullptr, 0, &one, 0, false, false, 1, &zero, nullptr, -1);
+        downsampled = true;
+        from = half;
+    } else {
+        half = nullptr;
+        downsampled = false;
+        from = source;
+    }
+    MATRIXT44 a = *view;
+    MATRIXT44 b = *previous;
+    Unk_NormalizeRow(a.field_0[0]);
+    Unk_NormalizeRow(a.field_0[1]);
+    Unk_NormalizeRow(a.field_0[2]);
+    Unk_NormalizeRow(b.field_0[0]);
+    Unk_NormalizeRow(b.field_0[1]);
+    Unk_NormalizeRow(b.field_0[2]);
+    CRenderTexture* depthSource = depth != nullptr ? depth : source;
+    s32 taps;
+    s32 levels;
+    s32 first;
+    f32 blurLength;
+    f32 motion;
+    f32 step;
+    Unk_484f50_View camera;
+    Unk_484f50_View lerped;
+    Unk_483e50(scale, length, ratio, from, &a, &b, projection, previousProjection, arg27, count,
+               const_cast<Unk_Float2*>(arg30), arg31, &taps, &levels, &first, &blurLength, &motion, &step, &camera,
+               &lerped);
+    f32 k = blurLength / static_cast<f32>(static_cast<u32>(from->field_58));
+    Unk_Float2 velocityScale = reduced != nullptr || !generate ? *offset : Unk_Float2(k, k);
+    if (levels == 0) {
+        if (source == target) {
+            return 0;
+        }
+        levels = first = 0;
+        blurLength = step = 0.0f;
+        CRenderTexture::Unk_49cf50(nullptr, nullptr);
+        Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
+        return Unk_47d960(0.0f, 0.0f, 0.0f, 1.0f, source, target, nullptr, 0, const_cast<Unk_Float4*>(color), 0,
+                          false, false, 1, &zero, nullptr, -1);
+    }
+    CRenderTexture::Unk_49cf50(nullptr, nullptr);
+    if (clear) {
+        Unk_471410();
+    }
+    Unk_GPUTexture* fromTexture = Unk_GetTexture(from);
+    Unk_GPUTexture* velocityTexture = Unk_GetTexture(velocity);
+    bool sameSize =
+        fromTexture->field_4c == velocityTexture->field_4c && fromTexture->field_50 == velocityTexture->field_50;
+    s32 filter = Unk_238d008;
+    Unk_GetTexture(from)->vf15(filter);
+    Unk_GetTexture(target)->vf15(filter);
+    if (temp != nullptr) {
+        Unk_GetTexture(temp)->vf15(filter);
+    }
+    Unk_GetTexture(velocity)->vf15(sameSize ? Unk_238d00c : Unk_238d008);
+    f32 fromWidth = static_cast<f32>(static_cast<u32>(from->field_54));
+    f32 fromHeight = static_cast<f32>(static_cast<u32>(from->field_58));
+    f32 u1 = from->field_88 * fromWidth + from->field_90;
+    f32 v1 = from->field_8c * fromHeight + from->field_94;
+    bool srgb = Unk_428030(velocity->field_2c.field_c);
+    if (reduced != nullptr && mode == -2) {
+        mode = !Unk_428030(reduced->field_2c.field_c);
+    }
+    f32 rx;
+    f32 ry;
+    Unk_40f980(projection, &rx, &ry);
+    f32 aspect = rx / ry;
+    if (generate) {
+        s32 saved = velocity->field_a0;
+        velocity->Unk_SetA0(1);
+        MATRIXT44 inverse;
+        Unk_4155f0(&inverse, projection);
+        MATRIXT44 t = a;
+        MATRIXT44 m1;
+        MATRIXT44_MatrixMultiply(&m1, &inverse, &t);
+        MATRIXT44 previousInverse;
+        Unk_4155f0(&previousInverse, &b);
+        MATRIXT44 m2;
+        MATRIXT44_MatrixMultiply(&m2, &previousInverse, previousProjection);
+        MATRIXT44 m3;
+        MATRIXT44_MatrixMultiply(&m3, &m1, &m2);
+        MATRIXT44 m4;
+        Unk_4155f0(&m4, &m3);
+        MATRIXT44 transform = m4;
+        Unk_Float2 factor(0.5f / velocityScale.field_0[0].field_0 * aspect, -0.5f / velocityScale.field_0[1].field_0);
+        Unk_Float2 targetEncoding = srgb ? Unk_Float2(1.0f, 0.0f) : Unk_Float2(0.5f, 0.5f);
+        Unk_Float2 depthEncoding = mode == 0 ? Unk_Float2(1.0f, 0.0f) : Unk_Float2(0.5f, 0.5f);
+        velocity->Unk_49d250(0, 0, 1, 0, 0);
+        f32 width = static_cast<f32>(static_cast<u32>(velocity->field_54));
+        f32 height = static_cast<f32>(static_cast<u32>(velocity->field_58));
+        f32 u3;
+        f32 v3;
+        if (reduced != nullptr) {
+            Unk_GetCoords(reduced, &u3, &v3);
+        } else {
+            u3 = 1.0f;
+            v3 = 1.0f;
+        }
+        Unk_47a030(0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, 0.0f, 0.0f, u3, v3,
+                   reinterpret_cast<const Unk_47a030_Arg1*>(&camera), &transform, &factor, &targetEncoding,
+                   &depthEncoding, type, depthScale, range, Unk_GetTexture(depthSource),
+                   reduced != nullptr ? Unk_GetTexture(reduced) : nullptr, 0);
+        ::Unk_49e3a0(0x1f, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+        velocity->Unk_SetA0(saved);
+        arg27 = false;
+    }
+    CRenderTexture* vel = velocity;
+    if (velocityWork != nullptr) {
+        bool linearWork = srgb && !Unk_428030(velocityWork->field_38[velocityWork->field_90]->field_2c.field_c);
+        u32 next = 0;
+        if ((downsampled && velocity->field_54 > velocityWork->field_38[velocityWork->field_90]->field_54) ||
+            (*dilation != 0 && linearWork)) {
+            vel = velocityWork->Unk_Texture(0);
+            next = velocityWork->field_30 != 1;
+            vel->Unk_49d250(0, 0, 1, 0, 0);
+            f32 s = linearWork ? 0.5f : 1.0f;
+            f32 o = linearWork ? 0.5f : 0.0f;
+            Unk_Float4 decode(s, s, o, o);
+            f32 width = static_cast<f32>(static_cast<u32>(vel->field_54));
+            f32 height = static_cast<f32>(static_cast<u32>(vel->field_58));
+            f32 vu;
+            f32 vv;
+            Unk_GetCoords(velocity, &vu, &vv);
+            Unk_47aa60(0.0f, 0.0f, width, height, 0.0f, 0.0f, vu, vv, &decode, Unk_GetTexture(velocity), nullptr,
+                       0);
+            srgb = srgb && !linearWork;
+        }
+        if (*dilation != 0) {
+            CRenderTexture* out = vel;
+            if (*dilation == 1) {
+                f32 m = sigma[0] > sigma[1] ? sigma[0] : sigma[1];
+                if (m > 0.0f) {
+                    out = static_cast<s32>(next) < velocityWork->field_30 ? velocityWork->field_38[next] : nullptr;
+                    Unk_Float4 one(1.0f, 1.0f, 1.0f, 1.0f);
+                    if (m < 0.744f) {
+                        Unk_486a80(vel, out, 1.0f, reinterpret_cast<const Unk_Float4*>(sigma), 0, &one, false,
+                                   false, false, 0, 0);
+                    } else {
+                        Unk_4870b0(vel, out, 1.0f, reinterpret_cast<const Unk_Float4*>(sigma), 0, &one, false,
+                                   false, false, 0, 0);
+                    }
+                }
+            }
+            if (vel != out) {
+                velocity = out;
+            }
+            vel = out;
+        }
+    }
+    if (field_20->field_58) {
+        velocityScale.field_0[1].field_0 = -velocityScale.field_0[1].field_0;
+    }
+    CRenderTexture* targets[2];
+    CRenderTexture* input;
+    if (downsampled) {
+        targets[1] = half;
+        targets[0] = nullptr;
+        if (work->Unk_Texture(0) == half) {
+            targets[0] = work->Unk_Texture(1);
+        }
+        if (work->Unk_Texture(1) == half) {
+            targets[0] = work->Unk_Texture(0);
+        }
+        input = half;
+    } else {
+        input = source;
+        targets[0] = temp;
+        targets[1] = source;
+    }
+    Unk_Float2 near = *arg28;
+    Unk_484f50_View current;
+    Unk_4628f0(&current.field_0, &a);
+    current.field_10 = *reinterpret_cast<const Unk_Vector3*>(a.field_0[3]);
+    Unk_40f6e0(projection, false, nullptr, &current.field_1c, &current.field_20, &current.field_24,
+               &current.field_28, &current.field_2c, &current.field_30, nullptr, nullptr, nullptr, nullptr, nullptr,
+               nullptr, nullptr);
+    f32 blend;
+    f32 distance = near.field_0[0].field_0;
+    f32 depthRange = near.field_0[1].field_0;
+    if (depthRange > 0.0f) {
+        if (distance == 0.0f) {
+            blend = 0.0f;
+        } else {
+            f32 zFar = current.field_30;
+            f32 zNear = current.field_2c;
+            f32 d = depthRange > zFar ? zFar : depthRange;
+            d = depthRange < zNear ? zNear : d;
+            f32 z0 = zFar * (d - zNear) / (zFar - zNear) / d;
+            f32 d1 = distance + d;
+            f32 z1 = zFar * (d1 - zNear) / (zFar - zNear) / d1;
+            blend = (linear->field_0[1].field_0 + linear->field_0[0].field_0 * z1) -
+                    (linear->field_0[1].field_0 + linear->field_0[0].field_0 * z0);
+        }
+    } else {
+        blend = distance * linear->field_0[0].field_0;
+    }
+    f32 texel = 1.0f / fromHeight + 1.0f / fromHeight;
+    f32 motionScale = arg27 ? k : 0.0f;
+    CRenderTexture* to = input;
+    if (levels >= 1) {
+        f32 q = u1 / aspect;
+        f32 mul = srgb ? 1.0f : 2.0f;
+        f32 add = (srgb ? 0.0f : -1.0f) + mul * 0.0f;
+        f32 sx = velocityScale.field_0[0].field_0 * scale;
+        f32 sy = velocityScale.field_0[1].field_0 * scale;
+        f32 decodeX = sx * mul;
+        f32 decodeY = sy * mul;
+        f32 decodeZ = sx * add + 0.0f;
+        f32 decodeW = sy * add + 0.0f;
+        for (s32 pass = 0; pass < levels; pass++) {
+            s32 n = pass == 0 ? first : taps;
+            Unk_Float4 c;
+            if (pass == levels - 1) {
+                to = downsampled ? targets[pass & 1] : target;
+                c = *color;
+            } else {
+                to = targets[pass & 1];
+                c = Unk_Float4(1.0f, 1.0f, 1.0f, 1.0f);
+            }
+            to->Unk_49d250(0, 0, 1, 0, 0);
+            Unk_Float4 colors[16];
+            if (n >= 1) {
+                f32 w = 1.0f / n;
+                for (s32 i = 0; i < n; i++) {
+                    colors[i] = Unk_Float4(w * c.field_0[0].field_0, w * c.field_0[1].field_0,
+                                           w * c.field_0[2].field_0, w * c.field_0[3].field_0);
+                }
+            }
+            f32 p = powf(static_cast<f32>(taps), static_cast<f32>(levels + ~pass));
+            f32 velWidth = static_cast<f32>(static_cast<u32>(vel->field_54));
+            f32 velHeight = static_cast<f32>(static_cast<u32>(vel->field_58));
+            f32 vu = vel->field_88 * velWidth + vel->field_90;
+            f32 vv = vel->field_8c * velHeight + vel->field_94;
+            f32 st = p * step;
+            f32 inv = 1.0f / p;
+            Unk_Float4 decode(decodeX, decodeY, decodeZ, decodeW);
+            Unk_Float2 scale1(q * (u1 * st), v1 * (v1 * st));
+            Unk_Float2 scale2(st * vu * (vu / aspect), vv * (st * vv));
+            Unk_Float2 steps(inv, inv * -0.5f);
+            Unk_47a380(0.0f, 0.0f, fromWidth, fromHeight, 0.0f, 0.0f, u1, v1, 0.0f, 0.0f, vu, vv, texel,
+                       motionScale, arg2, blend, n, &decode, &scale1, &scale2, &steps, arg26, colors,
+                       Unk_GetTexture(input), Unk_GetTexture(vel), arg31, 0);
+            input = to;
+        }
+    }
+    if (downsampled) {
+        CRenderTexture* final = source;
+        if (source == target) {
+            Unk_Float4 one(1.0f, 1.0f, 1.0f, 1.0f);
+            Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
+            Unk_47d960(0.0f, 0.0f, 0.0f, 1.0f, source, temp, nullptr, 0, &one, 0, false, false, 1, &zero, nullptr,
+                       -1);
+            final = temp;
+        }
+        target->Unk_49d250(0, 0, 1, 0, 0);
+        f32 targetWidth = static_cast<f32>(static_cast<u32>(target->field_54));
+        f32 targetHeight = static_cast<f32>(static_cast<u32>(target->field_58));
+        f32 limit = 1.0f / static_cast<f32>(static_cast<u32>(to->field_58)) * 4.0f;
+        bool linearVelocity = Unk_428030(velocity->field_2c.field_c);
+        f32 mul = linearVelocity ? 1.0f : 2.0f;
+        f32 add = (linearVelocity ? 0.0f : -1.0f) + mul * 0.0f;
+        f32 sx = velocityScale.field_0[0].field_0 * scale;
+        f32 sy = velocityScale.field_0[1].field_0 * scale;
+        Unk_Float4 decode(sx * mul, sy * mul, sx * add + 0.0f, sy * add + 0.0f);
+        f32 fu;
+        f32 fv;
+        Unk_GetCoords(final, &fu, &fv);
+        f32 tu;
+        f32 tv;
+        Unk_GetCoords(to, &tu, &tv);
+        f32 vu;
+        f32 vv;
+        Unk_GetCoords(velocity, &vu, &vv);
+        Unk_47a850(0.0f, 0.0f, targetWidth, targetHeight, 0.0f, 0.0f, fu, fv, 0.0f, 0.0f, tu, tv, 0.0f, 0.0f, vu, vv,
+                   texel, limit > arg3 ? limit : arg3, &decode, Unk_GetTexture(final), Unk_GetTexture(to),
+                   Unk_GetTexture(velocity), arg31, 0);
+    }
+    Unk_GetTexture(source)->vf15(0);
+    Unk_GetTexture(target)->vf15(0);
+    if (temp != nullptr) {
+        Unk_GetTexture(temp)->vf15(0);
+    }
+    Unk_GetTexture(vel)->vf15(0);
     return 0;
 }
 

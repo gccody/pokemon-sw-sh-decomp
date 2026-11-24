@@ -20,18 +20,21 @@ s32 Unk_43e600(IGPUDevice* self, s32 n);
 u32 Unk_447030(s32 usage);
 struct Unk_SiGfxVertexFormat;
 
-// 0x7100448b70, 0x7100448c30 (deleting): releases SiGfx's buffers, giving
-// back the memory the device counts for each
-// NON_MATCHING: 0x7100448b70, in the two loads after the loop's calls: the
-// original reloads the count, then the array; this the array, then the
-// count (five spellings of the loop give the same).
+// releases SiGfx's buffer `i`, giving back the memory the device counts for
+// it (inline: written in the loop, the reloads after its calls come in the
+// other order, the array first)
+static inline void Unk_ReleaseBuffer(IGPUBuffer* self, u32 i) {
+    if (self->field_50[i] != nullptr) {
+        self->field_50[i]->vf3();
+        Unk_43e620(self->field_18, self->field_44);
+    }
+}
+
+// 0x7100448b70, 0x7100448c30 (deleting): releases SiGfx's buffers
 IGPUBuffer::~IGPUBuffer() {
     if (field_50 != nullptr) {
         for (u32 i = 0; i < field_48; i++) {
-            if (field_50[i] != nullptr) {
-                field_50[i]->vf3();
-                Unk_43e620(field_18, field_44);
-            }
+            Unk_ReleaseBuffer(this, i);
         }
         UNK_DELETE_ARRAY(field_50);
     }
@@ -395,40 +398,48 @@ IGPUInputAttribute::~IGPUInputAttribute() {
 
 // how many bytes an element of a vertex format is (inline)
 static inline u32 Unk_ElementSize(s32 format) {
+    u32 size = 0;
     switch (format) {
     case 2:
-        return 16;
+        size = 16;
+        break;
     case 6:
-        return 12;
+        size = 12;
+        break;
     case 14:
     case 16:
-        return 8;
+        size = 8;
+        break;
     case 30:
     case 38:
     case 41:
-        return 4;
-    default:
-        return 0;
+        size = 4;
+        break;
     }
+    return size;
 }
 
 // how many components an element of a vertex format has (inline)
 static inline u32 Unk_ElementComponents(s32 format) {
+    u32 count = 0;
     switch (format) {
     case 2:
     case 14:
     case 30:
-        return 4;
+        count = 4;
+        break;
     case 6:
-        return 3;
+        count = 3;
+        break;
     case 16:
     case 38:
-        return 2;
+        count = 2;
+        break;
     case 41:
-        return 1;
-    default:
-        return 0;
+        count = 1;
+        break;
     }
+    return count;
 }
 
 // SiGfx's vertex format, as the input attribute makes it (placeholder)
@@ -465,10 +476,12 @@ inline Unk_SiGfxVertexFormat* Unk_CreateVertexFormat(IGPUDevice* device, void* a
 }
 
 // 0x7100449890 (its log lines name it)
-// NON_MATCHING: the element loop's two format switches: the original sets
-// each result to 0 before the range check and lays the jump table's blocks
-// out with the 0 case joining, and its registers for the two results are
-// swapped (w13/w14); the rest is the same.
+// The helpers keep their result in a variable set to 0 before the switch: the
+// original's 0 is set before the range check, which then joins directly.
+// NON_MATCHING: the element loop's two format switches: the registers of the
+// two results and their formats are exchanged (w13/w14), and the first
+// switch's blocks for 16 and 12 bytes are laid out the other way round (every
+// order of its cases gives the same); the rest is the same.
 s32 IGPUInputAttribute::BuildInputAttribute(const Unk_InputElement* elements, s32 count, void* arg3, s32 arg4) {
     UNK_DELETE_ARRAY(field_20);
     if (field_28 != nullptr) {

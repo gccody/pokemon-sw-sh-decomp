@@ -3143,17 +3143,6 @@ inline s32 CPostEffect::SetLightGhostEnable(bool enable) {
 // code gave them (the object is their first argument); their log lines name them.
 
 // the kinds of formats 0x7100423480 tells apart (inline)
-static inline bool Unk_423480_A(s32 format) {
-    switch (format) {
-    case 2:
-    case 10:
-    case 24:
-    case 28:
-        return true;
-    default:
-        return false;
-    }
-}
 static inline bool Unk_423480_B(s32 format) {
     return (format >= 1 && format <= 4) || (format >= 9 && format <= 12);
 }
@@ -3192,14 +3181,22 @@ static inline bool Unk_423480_C(s32 format) {
     }
 }
 
-// 0x7100423480: whether a format is one of three kinds (placeholder)
-// NON_MATCHING: the tests are the original's, but here the block of the second
-// kind's test is duplicated for the path where the first kind's test failed
-// (the original sets the result to 0 at the entry and branches back to it)
+// 0x7100423480: whether a format is one of three kinds (placeholder). The
+// first kind's switch is written here with the result assigned in its cases:
+// the default edge then reaches the join directly, so the result's 0 is set
+// at the entry (as an inline returning true or false, the cases' edge is the
+// direct one and the second kind's test is duplicated).
 bool Unk_423480(s32 format) {
-    bool result = Unk_423480_A(format);
-    if (format == 0) {
+    bool result = false;
+    switch (format) {
+    case 0:
         return false;
+    case 2:
+    case 10:
+    case 24:
+    case 28:
+        result = true;
+        break;
     }
     if (Unk_423480_B(format)) {
         return true;
@@ -5610,6 +5607,8 @@ inline CTextureUtil* CPostEffect::Unk_TextureUtil() {
 // half isn't stored as one 8-byte constant.
 // NON_MATCHING: register allocation in the two loops (x and y of the
 // rectangle get s1/s3 instead of s2/s1, 22 instructions); the table matches.
+// Tried: the rectangle before the factor, the fractions in locals, the
+// factor inline in the call, the buffer by reference.
 s32 CPostEffect::DrawDebugBuffers() {
     // a texture to draw, or a device texture if there is none, and its scale
     struct Unk_DebugBuffer {
@@ -6043,13 +6042,11 @@ s32 CPostEffect::Unk_428cc0(f32* out, s32 from, s32 to, f32 a, f32 b) {
     return 0;
 }
 
-// 0x7100428f00: the render target the feedback is read from
-// NON_MATCHING: the format test and the size comparisons are the original's;
-// after them the original has one block for each of field_278's and
-// field_670's paths (the second tests field_970 again when it is entered from
-// the size branch), where here the paths are duplicated (844 bytes, not 704).
-// Tried: the tests nested, field_970 tested in the field_670 helper, one
-// return at the end.
+// 0x7100428f00: the render target the feedback is read from. The original
+// has one block for each of field_278's and field_670's paths, so each
+// helper is called once (the second tests field_970 again when it is entered
+// from the size branch); the target's width is converted before it is
+// multiplied (`(f32)w * scale`, the registers of the product).
 Unk_RenderTexture* CPostEffect::Unk_428f00() {
     // CPostEffect::GetEffectiveFeedbackEnable(), its log line says
     bool feedback = field_bce;
@@ -6075,21 +6072,17 @@ Unk_RenderTexture* CPostEffect::Unk_428f00() {
     }
     Unk_RenderTexture* texture = textures->field_38[index];
     const Unk_428f00_Target* target = reinterpret_cast<const Unk_428f00_Target*>(field_1168);
-    if ((texture->field_54 != static_cast<u32>(field_5a4 * static_cast<f32>(target->field_4c)) ||
-         texture->field_58 != static_cast<u32>(field_5a8 * static_cast<f32>(target->field_50))) &&
-        count >= 1) {
-        if (!field_96c && Unk_24e09bc == 0) {
-            return Unk_428f00_Copy();
+    u32 width = static_cast<u32>(static_cast<f32>(target->field_4c) * field_5a4);
+    bool resize = (texture->field_54 != width ||
+                   texture->field_58 != static_cast<u32>(field_5a8 * static_cast<f32>(target->field_50))) &&
+                  count >= 1;
+    if (!resize || field_96c || Unk_24e09bc != 0) {
+        if (!(resize && field_96c && field_970 != 0) && !field_10d6) {
+            return nullptr;
         }
         if (field_96c && field_970 != 0) {
             return Unk_428f00_Previous(textures);
         }
-    }
-    if (!field_10d6) {
-        return nullptr;
-    }
-    if (field_96c && field_970 != 0) {
-        return Unk_428f00_Previous(textures);
     }
     return Unk_428f00_Copy();
 }
@@ -6344,7 +6337,9 @@ s32 CPostEffect::Unk_42df80(s32* outFormat, f32* outScale, f32* outScale2, f32* 
 // 0x71004280e0: a number by field_1008's mode (tan of half of field_6cc)
 // NON_MATCHING: the default case's multiplication by 0 is merged into the
 // others' (the original keeps its own block that loads field_100c into s0 and
-// 0 into s1); the rest is the same
+// 0 into s1, i.e. its own `fmul field_100c, 0.0` tail-merged with the rest);
+// the rest is the same. Tried: the default as the initial value, the product
+// before the mode 3 test, an if/else returning one result, `scale * value`.
 f32 CPostEffect::Unk_4280e0() {
     f32 value;
     switch (field_1008) {
@@ -6387,9 +6382,11 @@ static inline const f32& Unk_Greater(const f32& a, const f32& b) {
 
 // 0x7100427ad0: whether field_6c4 or field_6c8 is to change (each limited by
 // field_8f4 to field_8f8 and by field_90c and field_910)
-// NON_MATCHING: the original folds the last two selects into one with a
-// `fccmp` (select(next < current && now < before, before, current)); one
-// instruction more here
+// NON_MATCHING: one register: the original's last select picks `before`
+// (s9) where this one picks `next` (s0), the same value when both tests hold.
+// The `fccmp` comes from the `&&` (a minimum, Unk_Less, gives one select more);
+// `current = before` there makes the compare use `before` too, and an inner
+// test `!(now >= before)` gives `lt` for `mi`.
 bool CPostEffect::Unk_427ad0() {
     f32 low = field_8f4;
     f32 x = field_90c;
@@ -6426,7 +6423,9 @@ bool CPostEffect::Unk_427ad0() {
     now = field_eec;
     if (Unk_4622e0(field_6c4, current, now, before)) {
         f32 next = now < before ? before : current;
-        current = Unk_Less(next, current);
+        if (now < before && next < current) {
+            current = next;
+        }
     }
     return (high < current ? high : current) != field_6c8;
 }
@@ -6757,7 +6756,8 @@ bool Unk_4385e0(s32 format) {
 // 0x7100434570: whether field_848 and the colour of field_f84 are positive
 // NON_MATCHING: field_848's comparison: the original keeps its `cset` result
 // in w20 across the calls; here the loaded value is kept in s8 (d8 is saved)
-// and compared again where it is used
+// and compared again where it is used (the luminance's test became an `and`
+// here, a branch there; `s32`/`u8` results don't change it)
 bool CPostEffect::Unk_434570() {
     bool result = field_848 > 0.0f;
     if (field_f80 == -1) {
@@ -6803,7 +6803,10 @@ static inline bool Unk_428030_A(s32 format) {
 // return of false) and the 32-bit floats' flag comes out of it in w8; here
 // the zero test of the linear format stays a cbnz after the 16-bit test.
 // Tried: the tests in other orders, the linear format left out, a zero test
-// first, the result's last test on the linear format
+// first, the result's last test on the linear format; also one switch for
+// both kinds with `case 0: return false` and the 32-bit flag set in its cases
+// (Unk_423480's shape: then the 16-bit test becomes a bit-mask lookup) and all
+// 72 orders of the three helpers with four spellings of each test.
 bool Unk_428030(s32 format) {
     if (Unk_428030_A(format)) {
         return true;
@@ -6897,7 +6900,8 @@ s32 CPostEffect::Unk_426070(s32 view, f32 value) {
 // lazy draw commands' lines name CPostEffect::ExecuteLazyDrawCommand)
 // NON_MATCHING: only the frame and one constant: the original sets up the
 // frame before the count's test (not shrink-wrapped: the -1 return has its
-// own return block there) and moves -1 into w0 after the log line.
+// own return block there) and moves -1 into w0 after the log line. Tried: one
+// `result` returned at the end, the body nested in the count's test.
 s32 CPostEffect::EndCommandList_SiGfx() {
     if (--field_11cc != 0) {
         return 0;
@@ -7164,7 +7168,9 @@ static inline Unk_Vector3 Unk_WhiteRGB(f32 temperature, bool planck, const f32* 
 // NON_MATCHING (0x710043c690 below): the same size, layout and calls; only
 // Unk_XYZ's scheduling in its three copies differs (the original computes
 // 1 - x before the luminance's select and subtracts y after the division).
-// Tried: z first, the scale inline, `scale * x`, an if for the select.
+// Tried: z first, the scale inline, `scale * x`, an if for the select; with
+// `1 - x` in a local before Y the second copy is the original's but for two
+// registers (s1/s5).
 // 0x710043c690: the RGB colour, in a colour space, of white light of a
 // colour temperature (relative to 6500 K's) at a luminance (see Unk_43cae0),
 // optionally inverted, and an alpha (an out-of-line function: unlike
@@ -9355,6 +9361,199 @@ s32 CPostEffect::Unk_42e560() {
     return 0;
 }
 
+// a colour space assigned with a test for itself (0x710042f540's copy of
+// field_ba4)
+struct Unk_CopiedColorSpace : Unk_410f90 {
+    Unk_CopiedColorSpace& operator=(const Unk_410f90& other) {
+        if (this != &other) {
+            field_0 = other.field_0;
+            field_8 = other.field_8;
+            field_10 = other.field_10;
+            field_18 = other.field_18;
+        }
+        return *this;
+    }
+};
+
+// whether a transfer function is one of PFXTBCSM_SCRGB's (6 to 14, and
+// PFXEOTF_PQ's 16; inline)
+static inline bool Unk_IsScRgbEotf(s32 eotf) {
+    return eotf == 16 || (eotf >= 6 && eotf <= 14);
+}
+
+// the output modes (Unk_24e09bc) the colour chart's swatch gets its scale bar
+// in (inline)
+static inline bool Unk_IsScaleBarMode(s32 mode) {
+    return (mode == 1) | (mode == 3) | (mode == 5);
+}
+
+// CPostEffect::GetEffectiveTonemapBackendColorSpaceMode (its log line names
+// it; inline)
+inline s32 CPostEffect::Unk_BackendColorSpaceMode() {
+    if (field_59c) {
+        return 0;
+    }
+    s32 mode = field_9ac;
+    if (mode == 1) {
+        if (field_96c && field_978 != 0 && !Unk_IsScRgbEotf(field_978)) {
+#line 17924
+            PPFX_ERROR("CPostEffect::GetEffectiveTonemapBackendColorSpaceMode(): PFXTBCSM_SCRGB is available only with PFXEOTF_PQ(PFXEOTF_ST2084) or PFXEOTF_SCRGB_LINEAR.\n");
+        }
+        return 1;
+    }
+    return mode;
+}
+
+// 0x710042f540: part `kind` of the colour chart in the `w` by `h` rectangle
+// at `x`, `y` (`width` isn't used): the transfer function's ramps and patches
+// (kinds 0 to 4) and the swatch (5), with its scale bar where the output asks
+// for one
+// NON_MATCHING: a draft (3312 bytes, not 3336): the calls, their arguments
+// and the blocks are the original's (three call sites of
+// DrawRectGPU_OptoElectronicTransfer, one per group of kinds, as there).
+// Left: the new texture util's block is placed after the release here (after
+// kinds 1 and 2 there), Unk_IsScaleBarMode's tests become one bit test (the
+// original keeps `(mode | 2) == 3` and `mode == 5` as csets, with the load of
+// Unk_238c2e0 first), and the registers and spill slots of the parameters.
+s32 CPostEffect::Unk_42f540(s32 kind, bool second, bool hdr, const Unk_42f540_Params* params, f32 width, f32 height,
+                            f32 x, f32 y, f32 w, f32 h, f32 a, f32 b, f32 c, f32 d) {
+    f32 p8 = params->field_8;
+    f32 pc = params->field_c;
+    f32 p10 = params->field_10;
+    void* surface = params->field_0;
+    s32 p14 = params->field_14;
+    bool pc8 = params->field_c8;
+    s32 eotf = params->field_28;
+    s32 p2c = params->field_2c;
+    f32 pb0 = params->field_b0;
+    f32 pb4 = params->field_b4;
+    f32 pb8 = params->field_b8;
+    f32 pbc = params->field_bc;
+    f32 pc0 = params->field_c0;
+    f32 pc4 = params->field_c4;
+    f32 pd0 = params->field_d0;
+    f32 pd4 = params->field_d4;
+    f32 pd8 = params->field_d8;
+    f32 pdc = params->field_dc;
+    Unk_CopiedColorSpace space;
+    space = field_ba4;
+    s32 backend = Unk_BackendColorSpaceMode();
+    f32 luminance = field_9a8;
+    bool linear = Unk_IsScRgbEotf(eotf);
+    if (field_18->field_58) {
+        y = height - y;
+        h = -h;
+    }
+    bool single = p2c == 1;
+    CTextureUtil* util = Unk_TextureUtil();
+    const Unk_Float4* color = &params->field_18;
+    const MATRIXT44* matrix = &params->field_30;
+    const MATRIXT44* matrix2 = &params->field_70;
+    s32 either = second || single;
+    s32 result;
+    switch (kind) {
+    case 0: {
+        CRenderTexture* texture = hdr ? util->field_29b08[1] : util->field_29b00;
+        if (second) {
+            MATRIXT44 identity;
+            Unk_Identity(&identity);
+            result = util->DrawRectGPU_OptoElectronicTransfer(
+                x, y, w, h, a, b, c, d, 1, nullptr, Unk_GetTexture(texture), surface, eotf, backend, 0, luminance, p8,
+                pc, matrix, &identity, &space, 1.0f, pb4, pdc, 1.0f, -3.40282347e+38f, 0.0f, 0.0f, false,
+                field_99c, field_9a0, field_9a4, color, either, 0.0f, 0.18f, 1.0f, nullptr,
+                false, false, false, 0.0f, 0, false);
+            break;
+        }
+        MATRIXT44 identity;
+        Unk_Identity(&identity);
+        MATRIXT44 identity2;
+        Unk_Identity(&identity2);
+        result = util->DrawRectGPU_OptoElectronicTransfer(
+            x, y, w, h, a, b, c, d, 1, nullptr, Unk_GetTexture(texture), surface, eotf, backend, 0, luminance, p8, pc,
+            &identity, &identity2, &space, 1.0f, linear ? pb4 : pb8, pdc, 1.0f, -3.40282347e+38f, 0.0f, 0.0f, false,
+            field_99c, field_9a0, field_9a4, color, either, 0.0f, 0.18f, 100.0f, nullptr, false,
+            false, false, 0.0f, 0, false);
+        break;
+    }
+    case 1:
+    case 2: {
+        CRenderTexture* texture = hdr ? util->field_29b08[2] : util->field_29b08[0];
+        result = util->DrawRectGPU_OptoElectronicTransfer(
+            x, y, w, h, a, b, c, d, 1, nullptr, Unk_GetTexture(texture), surface, eotf, backend, p14, luminance, p8, pc,
+            matrix, matrix2, &space, pb0, pb4, pdc, p10, -3.40282347e+38f, pc0, pc4, pc8,
+            field_99c, field_9a0, field_9a4, color, either, pbc, pd4, pd0, nullptr, false, false,
+            false, 0.0f, 0, false);
+        break;
+    }
+    case 3:
+    case 4:
+        field_18->vf44(1);
+        if (second) {
+            CRenderTexture* texture = kind == 4 ? util->field_29b08[5] : util->field_29b08[7];
+            MATRIXT44 identity;
+            Unk_Identity(&identity);
+            result = util->DrawRectGPU_OptoElectronicTransfer(
+                x, y, w, h, a, b, c, d, 1, nullptr, Unk_GetTexture(texture), surface, eotf, backend, 0, luminance, p8,
+                pc, matrix, &identity, &space, pb0, pb4, pdc, 1.0f, -3.40282347e+38f, 0.0f, 0.0f, false,
+                field_99c, field_9a0, field_9a4, color, either, 0.0f, 0.18f, 1.0f, nullptr,
+                false, false, false, 0.0f, 0, false);
+        } else {
+            CRenderTexture* texture = kind == 4 ? util->field_29b08[4] : util->field_29b08[6];
+            MATRIXT44 identity;
+            Unk_Identity(&identity);
+            MATRIXT44 identity2;
+            Unk_Identity(&identity2);
+            result = util->DrawRectGPU_OptoElectronicTransfer(
+                x, y, w, h, a, b, c, d, 1, nullptr, Unk_GetTexture(texture), surface, eotf, backend, 0, luminance, p8,
+                pc, &identity, &identity2, &space, pb0, linear ? pb4 : pb8, pdc, 1.0f, -3.40282347e+38f, 0.0f, 0.0f,
+                false, field_99c, field_9a0, field_9a4, color, either, 0.0f, 0.18f, 100.0f,
+                nullptr, false, false, false, 0.0f, 0, false);
+        }
+        field_18->vf44(0);
+        break;
+    case 5:
+        field_18->vf44(1);
+        result = util->DrawRectGPU_OptoElectronicTransfer(
+            x, y, w, h, a, b, c, d, 1, nullptr, Unk_GetTexture(util->field_29b08[3]), surface, eotf, backend, p14,
+            luminance, p8, pc, matrix, matrix2, &space, pb0, pb4, pdc, p10, -3.40282347e+38f, pc0,
+            pc4, pc8, field_99c, field_9a0, field_9a4, color, either, pbc, pd4, pd0, nullptr,
+            false, false, true, pd8, 0, false);
+        if (Unk_238c2e0 != 0 && Unk_IsScaleBarMode(Unk_24e09bc) &&
+            Unk_482380_get(reinterpret_cast<const Unk_482380*>(util))) {
+            f32 u0 = 0.0f;
+            f32 u1 = 1.0f;
+            bool split = false;
+            if (field_96c) {
+                split = field_974 > 1;
+                if (split) {
+                    u0 = second ? 0.5f : 0.0f;
+                    u1 = second ? 1.0f : 0.5f;
+                }
+            }
+            f32 scale = eotf < 6 || eotf == 17 ? 2.0f : 1.0f;
+            Unk_Float4 colour(scale, scale, scale, 0.6666666f);
+            if (split && Unk_238c2e0 == 2 && Unk_IsScaleBarMode(Unk_24e09bc)) {
+                f32 part = w / 3.0f;
+                f32 base = u0 / 3.0f;
+                for (s32 i = 0; i < 3; i++) {
+                    result = util->DrawRectGPU_MadT1_Sn(part * i + x, y, part, h, base + i / 3.0f, 0.0f,
+                                                        base + (i / 3.0f + 1.0f / 6.0f), 1.0f, 1, nullptr, &colour,
+                                                        Unk_GetTexture(util->field_29b08[8]), 0, 0x10000);
+                }
+            } else {
+                result = util->DrawRectGPU_MadT1_Sn(x, y, w, h, u0, 0.0f, u1, 1.0f, 1, nullptr, &colour,
+                                                    Unk_GetTexture(util->field_29b08[8]), 0, 0x10000);
+            }
+        }
+        field_18->vf44(0);
+        break;
+    default:
+        result = -4;
+        break;
+    }
+    return result;
+}
+
 // 0x7100430250: the colour chart's parts (0x710042f540) laid out in the
 // `width` by `height` area from `x`, `y` (half size for an HDR output)
 // NON_MATCHING: a draft; the calls and their arguments are the original's,
@@ -9527,6 +9726,302 @@ s32 CPostEffect::Unk_4306b0(void* surface, f32 a, f32 b, f32 c, s32 arg4, const 
     }
     return 0;
 }
+
+// a PQ (SMPTE ST 2084) code value's linear light, 1 being 10000 nits (inline)
+static inline f32 Unk_PqEotf(f32 value) {
+    value = value < 0.0f ? 0.0f : std::min(value, 1.0f);
+    f32 numerator = std::max(powf(value, 0.012683313f) + -0.8359375f, 0.0f);
+    f32 denominator = 18.8515625f - powf(value, 0.012683313f) * 18.6875f;
+    return powf(numerator / denominator, 6.2773948f);
+}
+
+// 0x7100430a10: `source` through the output's transfer function into
+// `surface` (as the device's only target when `target` is given, with four
+// jittered taps when it is resized), with the luminances the output is mapped
+// for (measured by field_588's luminance when field_990 is negative), the scale
+// bar and the colour chart (`arg4` isn't used)
+// NON_MATCHING: a draft (4388 bytes, not 4396): the calls and their arguments
+// are the original's; the blocks are placed in another order (the original
+// has the luminance's resize loop and its first frame after the colour
+// chart's test, before the measurement), and the registers and spill slots
+// differ throughout.
+s32 CPostEffect::Unk_430a10(Unk_RenderTexture* source_, void* target, void* surface, bool arg4) {
+    extern Unk_DeviceSettings Unk_24e1500;
+    CRenderTexture* source = reinterpret_cast<CRenderTexture*>(source_);
+    CTextureUtil* util = Unk_TextureUtil();
+    s32 mode = Unk_24e09bc;
+    f32 p0;
+    f32 p1;
+    f32 p2;
+    s32 eotf;
+    if (field_96c) {
+        p0 = field_980;
+        p1 = field_984;
+        p2 = field_988;
+        eotf = field_978;
+    } else {
+        eotf = 13;
+        p1 = 1.0f;
+        p0 = 1.0f;
+        p2 = 1.0f;
+    }
+    bool chart = mode != 0 && eotf != 15;
+    s32 format;
+    f32 scale;
+    f32 scale2;
+    f32 dither;
+    bool hasGamma;
+    f32 gamma;
+    MATRIXT44* first;
+    MATRIXT44* second;
+    Unk_42df80(&format, &scale, &scale2, &dither, &hasGamma, &gamma, &first, &second, false, true);
+    gamma = hasGamma ? 1.0f / gamma : 1.0f;
+    Unk_Float4 color(field_8e8, 0.0f, 0.0f, 0.0f);
+    MATRIXT44 m;
+    Unk_Identity(&m);
+    bool any = false;
+    if (second != nullptr) {
+        MATRIXT44_MatrixMultiply(&m, &m, second);
+        any = true;
+    }
+    if (first != nullptr) {
+        MATRIXT44_MatrixMultiply(&m, &m, first);
+        any = true;
+    }
+    MATRIXT44 inverse;
+    Unk_Identity(&inverse);
+    if (any) {
+        MATRIXT44 result;
+        Unk_4155f0(&result, &m);
+        inverse = result;
+    }
+    MATRIXT44 conversion = field_1094;
+    Unk_CopiedColorSpace space;
+    space = field_ba4;
+    f32 q0 = field_96c ? field_98c : 0.0f;
+    f32 white = field_990;
+    f32 exposure = field_994;
+    bool fixed = field_998;
+    CTextureLuminanceManage* luminance = Unk_Luminance588();
+    f32 peak = luminance == nullptr && white < 0.0f ? 100.0f : white;
+    f32 low = 0.0f;
+    f32 mapped;
+    if (peak < 0.0f) {
+        if (Unk_24e1500.field_10 >= 2 && field_18->field_28 % Unk_24e1500.field_10 != 0) {
+            exposure = 0.18f;
+            mapped = 100.0f;
+            low = 0.0f;
+        } else {
+            luminance->field_4f8 = 0;
+            luminance->Unk_4b8b50();
+            if (field_590 != 0 && luminance->Unk_4b89b0() >= 0) {
+                s32 count = field_580;
+                CRenderTexture* prev = Unk_OetfBase();
+                CRenderTexture* next = prev;
+                bool done = false;
+                for (s32 i = 0; i < count; i++) {
+                    u32 width = prev->field_54;
+                    next = field_578 != nullptr ? field_578[i] : nullptr;
+                    if (width >= 1024) {
+                        Unk_Float4 ones(1.0f, 1.0f, 1.0f, 1.0f);
+                        Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
+                        util->Unk_47dfa0(0.0f, 0.0f, 0.0f, 1.0f, prev, next, 0, &ones, 0, false, false, 1, &zero,
+                                         nullptr, -1);
+                    } else {
+                        util->Unk_481540(prev, next, !(done || width > 1023), false);
+                    }
+                    done = done || width < 1024;
+                    prev = next;
+                }
+                util->Unk_481540(next, luminance->field_48, false, true);
+                luminance->Unk_4b8a40(false, 1.0f, 1.0f, 0.0f, 0.0f);
+                field_590 = 0;
+            } else {
+                if (field_590 == 0) {
+                    Unk_Float4 ones(1.0f, 1.0f, 1.0f, 1.0f);
+                    Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
+                    util->Unk_47dfa0(0.0f, 0.0f, 0.0f, 1.0f, source, Unk_OetfBase(), 0, &ones, 0, false, false, 1,
+                                     &zero, nullptr, 1);
+                }
+                field_590++;
+            }
+            if (target == nullptr) {
+                Unk_49e3a0(0x1f, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+            }
+            const f32* measured =
+                reinterpret_cast<const f32*>(Unk_4b9210_get(reinterpret_cast<const Unk_4b9210*>(luminance)));
+            mapped = Unk_PqEotf(measured[0]) * 3000.0f;
+            low = Unk_PqEotf(measured[1]);
+            exposure = Unk_PqEotf(measured[2]) * 100.0f;
+        }
+        peak = mapped * (mapped / Unk_42f320(mapped, second, format));
+    } else {
+        mapped = peak;
+        if (!fixed) {
+            mapped = Unk_42f320(peak, second, format);
+        }
+        if (exposure < 0.0f) {
+            Unk_429da0_Item* item = &field_2a0[field_298];
+            if (item->field_0) {
+                f32 value;
+                if (item->field_24 > 0.0f) {
+                    value = item->field_24;
+                } else if (item->field_70 == nullptr) {
+                    value = 0.0f;
+                } else {
+                    value = item->field_5c;
+                }
+                exposure = value * field_8c0.field_0;
+            }
+        }
+    }
+    if (chart) {
+        Unk_431b40();
+        if (target == nullptr) {
+            Unk_49e3a0(0x1f, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+        }
+    }
+    f32 q1;
+    f32 q2;
+    if (field_96c) {
+        q1 = field_bc4;
+        q2 = field_bc8;
+    } else {
+        q1 = 0.0f;
+        q2 = 0.0f;
+    }
+    bool custom = field_999;
+    if (custom) {
+        switch (field_99c) {
+        case 9:
+            if (field_9a0 == 2.19921875f) {
+                custom = false;
+            }
+            break;
+        case 10:
+            if (field_9a0 == 2.6f) {
+                custom = false;
+            }
+            break;
+        case 11:
+        case 12:
+            if (field_9a0 == 1.8f) {
+                custom = false;
+            }
+            break;
+        case 13:
+            if (field_9a0 == 2.2f) {
+                custom = false;
+            }
+            break;
+        case 14:
+            if (field_9a0 == 2.4f) {
+                custom = false;
+            }
+            break;
+        }
+    }
+    if (Unk_238c2e0 != 0 && Unk_IsScaleBarMode(Unk_24e09bc) &&
+        Unk_482380_get(reinterpret_cast<const Unk_482380*>(util))) {
+        CRenderTexture* bar = util->field_29b08[9];
+        Unk_49b230_Object* barSurface = bar->field_b8[bar->field_a0];
+        s32 status = bar->Unk_49d250(0, 0, 1, 0, 0);
+        if (status < 0) {
+            return status;
+        }
+        CRenderTexture::Unk_49cf50(nullptr, nullptr);
+        const Unk_SurfaceSize* barSize = reinterpret_cast<const Unk_SurfaceSize*>(barSurface);
+        f32 u1 = source->field_88 * static_cast<f32>(static_cast<u32>(source->field_54)) + source->field_90;
+        f32 v1 = source->field_8c * static_cast<f32>(static_cast<u32>(source->field_58)) + source->field_94;
+        f32 barWidth = static_cast<f32>(barSize->field_4c);
+        f32 barHeight = static_cast<f32>(barSize->field_50);
+        util->DrawRectGPU_OptoElectronicTransfer(
+            0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, u1, v1, 1, nullptr, Unk_GetTexture(source), barSurface, eotf, 0,
+            format, field_9a8, scale, scale2, &conversion, &inverse, &space, p0, p1, p2, gamma, field_968, q1, q2,
+            custom, field_99c, field_9a0, field_9a4, &color, field_96c ? field_974 : 0, q0, exposure, mapped, nullptr,
+            false, true, false, 0.0f, 0, false);
+        f32 x0;
+        f32 y0;
+        f32 x1;
+        f32 y1;
+        util->Unk_47e000(reinterpret_cast<s32*>(&x0), reinterpret_cast<s32*>(&y0), reinterpret_cast<s32*>(&x1),
+                         reinterpret_cast<s32*>(&y1));
+        util->DrawRectGPU_OptoElectronicTransfer(
+            0.0f, 0.0f, barWidth, barHeight, 0.0f, 0.0f, u1, v1, 1, nullptr, Unk_GetTexture(source), barSurface, 5, 0,
+            format, field_9a8, scale, scale2, &conversion, &inverse, &space, p0, y0, 1.0f, gamma, field_968, q1, q2,
+            custom, field_99c, field_9a0, field_9a4, &color, field_96c ? field_974 : 0, q0, exposure, mapped, nullptr,
+            false, true, false, 0.0f, 0, false);
+        CRenderTexture* scaleBar = util->field_29b08[8];
+        Unk_49b230_Object* scaleSurface = scaleBar->field_b8[scaleBar->field_a0];
+        status = scaleBar->Unk_49d250(0, 0, 1, 0, 0);
+        if (status < 0) {
+            return status;
+        }
+        CRenderTexture::Unk_49cf50(nullptr, nullptr);
+        f32 clear[4] = {};
+        field_18->vf51(0xff0, clear, 1.0f, 0);
+        const Unk_SurfaceSize* scaleSize = reinterpret_cast<const Unk_SurfaceSize*>(scaleSurface);
+        util->Unk_481180(0.0f, 0.0f, static_cast<f32>(scaleSize->field_4c), static_cast<f32>(scaleSize->field_50), 0.0f,
+                         0.0f, bar->field_88 * static_cast<f32>(static_cast<u32>(bar->field_54)) + bar->field_90,
+                         bar->field_8c * static_cast<f32>(static_cast<u32>(bar->field_58)) + bar->field_94, 4.0f,
+                         -1.0f, 0.8f, Unk_GetTexture(bar), Unk_238c2e0 == 2 && Unk_IsScaleBarMode(Unk_24e09bc), 0);
+        if (target == nullptr) {
+            Unk_49e3a0(0x1f, 0, 0, nullptr, nullptr, 0, nullptr, nullptr, 1.0f);
+        }
+    }
+    const Unk_SurfaceSize* size = reinterpret_cast<const Unk_SurfaceSize*>(surface);
+    f32 sourceWidth = static_cast<f32>(static_cast<u32>(source->field_54));
+    f32 sourceHeight = static_cast<f32>(static_cast<u32>(source->field_58));
+    s32 count = field_f30;
+    if (count == -1) {
+        count = field_f2c;
+    }
+    f32 u1 = source->field_88 * sourceWidth + source->field_90;
+    f32 v1 = source->field_8c * sourceHeight + source->field_94;
+    f32 width = static_cast<f32>(size->field_4c);
+    f32 height = static_cast<f32>(size->field_50);
+    f32 sharpness = field_f34 > 0.0f ? field_f34 : -field_f34;
+    bool jitter = (sourceWidth != width || sourceHeight != height) && count == 1;
+    s32 taps = jitter ? 4 : 1;
+    Unk_Float4 offsets[4];
+    if (jitter) {
+        f32 k = fminf(sharpness, 1.0f) * 0.5f;
+        f32 dx = u1 / sourceWidth * k;
+        f32 dy = v1 / sourceHeight * k;
+        offsets[0] = Unk_Float4(-dx, -dy, 0.0f, 0.0f);
+        offsets[1] = Unk_Float4(dx, -dy, 0.0f, 0.0f);
+        offsets[2] = Unk_Float4(-dx, dy, 0.0f, 0.0f);
+        offsets[3] = Unk_Float4(dx, dy, 0.0f, 0.0f);
+    } else {
+        offsets[0] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
+    }
+    if (target != nullptr) {
+        Unk_SetTarget(static_cast<CRenderTexture*>(target));
+    }
+    s32 backend = Unk_BackendColorSpaceMode();
+    s32 result = util->DrawRectGPU_OptoElectronicTransfer(
+        0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, taps, offsets, Unk_GetTexture(source), surface, eotf, backend,
+        format, field_9a8, scale, scale2, &conversion, &inverse, &space, p0, p1, p2, gamma, field_968, q1, q2, custom,
+        field_99c, field_9a0, field_9a4, &color, field_96c ? field_974 : 0, q0, exposure, mapped, nullptr, false, true,
+        false, 0.0f, 0, false);
+    util->Unk_47e000(reinterpret_cast<s32*>(&field_1130_0), reinterpret_cast<s32*>(&field_1134),
+                     reinterpret_cast<s32*>(&field_1138), reinterpret_cast<s32*>(&field_113c));
+    field_1140 = field_1130_0 * 100.0f;
+    field_1144 = field_1134 * 100.0f;
+    field_1148 = field_1138 * 100.0f;
+    field_114c = mapped;
+    field_1150 = low;
+    field_1154 = exposure;
+    field_1158 = p0 * mapped * 100.0f;
+    field_115c = p0 * low * 100.0f;
+    *reinterpret_cast<f32*>(&field_1160) = p0 * exposure * 100.0f;
+    if (chart) {
+        Unk_4306b0(surface, scale, scale2, gamma, format, &color, eotf, &inverse, low, mapped, exposure, peak);
+        return 0;
+    }
+    return result;
+}
+
 
 // 0x7100431b40: the colour chart's look-up textures for the output's colour
 // spaces, drawn again when they or field_bc4 and field_bc8 changed (what they

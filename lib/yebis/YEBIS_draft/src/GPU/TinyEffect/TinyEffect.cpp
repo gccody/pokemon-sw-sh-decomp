@@ -527,7 +527,7 @@ struct Unk_TinyShader : SiSDK3::ISiInterface {
     virtual void vf15();
     virtual void vf16();
     virtual void vf17();
-    virtual bool vf18(u32 size, const char* code, s32 arg3);  // pSiGfxShader->Create()
+    virtual bool vf18(size_t size, const char* code, s32 arg3);  // pSiGfxShader->Create()
 };
 
 // a SiGfx shader program as CreateProgram uses it (placeholder)
@@ -681,11 +681,12 @@ s32 CTinyEffect::CreateSiGfxProgramResources(Unk_TinyPass* pass) {
 }
 
 // 0x710044c370 (its log lines name it)
+// The shaders' Create() takes the size as a size_t: the zero extension of the
+// 32-bit size is the first of the call's argument copies.
 // NON_MATCHING: the order of the zeros of the path without an effect file
 // (the original: vertexSize, shaderProgram, fragment, vertex, fragmentSize,
-// fragmentCode, vertexCode) and of the shaders' Create() arguments (the
-// original copies the size first); the locals' declaration order decides
-// both, and none of the 270 orders tried gives the original's.
+// fragmentCode, vertexCode); the locals' declaration order decides it, and
+// none of the orders tried (270 before the size_t, ~2000 after) gives it.
 s32 CTinyEffect::CreateProgram(Unk_TinyProgram* program) {
     Unk_TinyGfxDevice* device = reinterpret_cast<Unk_TinyGfxDevice*>(field_80);
     const Unk_TFXString& programNames = program->field_8;

@@ -344,23 +344,23 @@ bool SiIOCSVDocument::vf16(s32 row, s32 count) {
 }
 
 // 0x710057fbf0
-// NON_MATCHING: four bytes longer. The original keeps the row's address in x0 from the test of
-// its cell count to the call that grows it; this computes it again before the call.
-// (Tried: the row as `&[]` or `+`, the tests joined with &&, through the array, the
-// assignment through the row.)
+// (The row and the cell through SiArray's operator[]: the row's address is
+// then one value from the test of its cell count to the call that grows it,
+// kept in x0, where `&m_pData[row]` gives two addresses that InstCombine
+// merges with the members' offsets separately.)
 bool SiIOCSVDocument::vf17(s32 column, s32 row, const char* value) {
     if (static_cast<s32>(field_20.m_itemCount) <= row) {
         if (!field_20.Unk_SetCount(row + 1)) {
             return false;
         }
     }
-    SiArray<SiString<char> >* cells = &field_20.m_pData[row];
-    if (static_cast<s32>(cells->m_itemCount) <= column) {
-        if (!cells->Unk_SetCount(column + 1)) {
+    SiArray<SiString<char> >& cells = field_20[row];
+    if (static_cast<s32>(cells.m_itemCount) <= column) {
+        if (!cells.Unk_SetCount(column + 1)) {
             return false;
         }
     }
-    Unk_StringAssign(&field_20.m_pData[row].m_pData[column], value);
+    Unk_StringAssign(&field_20[row][column], value);
     return true;
 }
 

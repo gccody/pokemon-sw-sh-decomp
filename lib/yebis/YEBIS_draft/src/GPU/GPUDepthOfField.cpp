@@ -651,14 +651,19 @@ f32 CDepthOfField::Unk_4af690(f32 angle, f32 distance, f32 width) {
 }
 
 // 0x71004afae0
-// NON_MATCHING: the original compares the distance with zero once (the
-// absolute value reuses the flags of the early exit's test) and returns from
-// each path; here a second `fcmp` and a shared return block.
+// (the absolute distance is taken before the early exit's test: its compare is
+// then the test's; case 1 reads field_1d8 into a local, whose store shares the
+// return with case 0's)
+// NON_MATCHING: registers: the original has the aperture and the distance in
+// s1/s2 and 0.5 in s0 (here s0/s1 and s3); the absolute value is scheduled
+// after the scale, and the loads of field_1c4 and field_1ac before the
+// subtractions.
 s32 CDepthOfField::Unk_4afae0(f32* nearSize, f32* farSize) {
     switch (field_1c8) {
     case 0: {
         f32 aperture = field_1cc.field_0;
         f32 distance = field_1d0;
+        f32 absDistance = Unk_Abs(distance);
         if (aperture == 0.0f || distance == 0.0f) {
             if (nearSize != nullptr)
                 *nearSize = 0.0f;
@@ -670,7 +675,6 @@ s32 CDepthOfField::Unk_4afae0(f32* nearSize, f32* farSize) {
         f32 near = field_1a8;
         f32 scale = focal * near / (focal - near);
         f32 depth = distance > -scale ? distance : -scale;
-        f32 absDistance = Unk_Abs(distance);
         f32 coc = aperture * 0.5f * scale / absDistance;
         f32 blur;
         if (depth > 0.0f)
@@ -689,8 +693,9 @@ s32 CDepthOfField::Unk_4afae0(f32* nearSize, f32* farSize) {
             *farSize = blur / size * 2.0f;
         return 0;
     }
-    case 1:
-        if (field_1d8 < 0.0f) {
+    case 1: {
+        f32 far = field_1d8;
+        if (far < 0.0f) {
             if (nearSize != nullptr)
                 *nearSize = 0.0f;
             if (farSize != nullptr)
@@ -700,8 +705,9 @@ s32 CDepthOfField::Unk_4afae0(f32* nearSize, f32* farSize) {
         if (nearSize != nullptr)
             *nearSize = field_1d4;
         if (farSize != nullptr)
-            *farSize = field_1d8;
+            *farSize = far;
         return 0;
+    }
     default:
         return -3;
     }
@@ -2310,15 +2316,15 @@ s32 CDepthOfField::Unk_4a79e0() {
 }
 
 // 0x71004b4540: the two sets' textures copied into their alternates, faded by
-// the level
-// NON_MATCHING: one swap: the original reads field_1dc before it stores the zero
-// vector (with the read first here, `this` and the utilities exchange x19/x20).
+// the level. The fade is read between the two vectors (the original's load
+// order), and the release is given the object: with the global read again,
+// `this` and the utilities exchange x19/x20.
 s32 CDepthOfField::Unk_4b4540(s32 index) {
     // (written as a negated test: the return is laid out last)
     if (!(field_1dc != 0.0f))
         return 1;
     CTextureUtil* util = Unk_GetTextureUtil();
-    Unk_ReleaseTextureUtil();
+    Unk_ReleaseTextureUtil(util);
     CRenderTexture* sources[2] = {field_450[index], field_448[index]};
     CRenderTexture* targets[4] = {Unk_4b35a0(true, index), Unk_4b35a0(false, index), nullptr, nullptr};
     f32 scale = (static_cast<f32>(index) + 1.0f) * 0.8f * 0.25f + 0.25f;
@@ -2331,8 +2337,8 @@ s32 CDepthOfField::Unk_4b4540(s32 index) {
         s32 filter = Unk_GetTexture(source)->vf16();
         Unk_GetTexture(source)->vf15(8);
         Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
-        Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
         f32 alpha = scale * field_1dc;
+        Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
         alpha = alpha < 0.0f ? 0.0f : (alpha > 1.0f ? 1.0f : alpha);
         s32 status = util->Unk_47dfa0(0.0f, 0.0f, alpha, 1.0f, source, target, 0, &color, 0, false, false, 1, &zero,
                                       nullptr, -1);
@@ -2494,10 +2500,20 @@ s32 CDepthOfField::Unk_4b0650(s32 count, s32 mode, CRenderTexture* source, CRend
     return result;
 }
 
+// the mode 5 strength's ratio (inline: written in the caller, the absolute
+// value is multiplied the other way round)
+static inline f32 Unk_Ratio(f32 a, f32 b) {
+    f32 ratio = 0.0f;
+    if (a > 0.0f)
+        ratio = a / b;
+    if (ratio <= 0.0f)
+        ratio = 1.0f;
+    return ratio;
+}
+
 // 0x71004b0db0
-// NON_MATCHING: registers: the near size's last product lands in s3 in the
-// original, and the mode 5 strength multiplies the absolute value by the ratio
-// (operands swapped here).
+// NON_MATCHING: registers: the near size's last product (the store of
+// constants->field_4) lands in s3 in the original, s0 here.
 void CDepthOfField::Unk_4b0db0(bool near, bool far) {
     CTextureUtil* util = Unk_GetTextureUtil();
     Unk_ReleaseTextureUtil();
@@ -2521,11 +2537,7 @@ void CDepthOfField::Unk_4b0db0(bool near, bool far) {
         f32 nearPlane = field_1a8;
         f32 c = powf(nearPlane / (focal - nearPlane) + 1.0f, field_2bc);
         if (field_2ac == 5) {
-            f32 ratio = 0.0f;
-            if (field_3e4 > 0.0f)
-                ratio = field_3e4 / field_1c0;
-            if (ratio <= 0.0f)
-                ratio = 1.0f;
+            f32 ratio = Unk_Ratio(field_3e4, field_1c0);
             f32 strength = field_2b0 > 0.0f ? field_2b0 : -field_2b0;
             strength = strength * ratio;
             blur = 0.0f;
@@ -3602,15 +3614,10 @@ s32 CDepthOfField::Unk_4b3280(s32 level) {
 }
 
 // 0x71004a7390: checks a description (the ranges in field_20 are pairs, the
-// first one used, the others used or not, each used one beyond the last)
-// NON_MATCHING: in each pair's last test the original compares the begin with
-// the previous one before it tests whether a pair was unused; here the unused
-// test comes second. Tried: the three conditions in every order, with && and
-// ||, the flag as a bool, an or of the values and per-pair variables.
-// At the IR level the original is `or i1 (begin > previous begin), unused`;
-// here Reassociate ranks the flag (set in the block before the previous
-// begin's load) lower and puts it first. Keeping the previous pair in
-// loop-carried locals gets that order, but then begin's compare comes first.
+// first one used, the others used or not, each used one beyond the last).
+// The order of the four loads decides the last test's: Reassociate ranks the
+// compares by their loads, and only the previous begin read last puts its
+// compare before the unused flag.
 s32 CDepthOfField::ValidateInitParam(CRenderTexture* source, const Unk_Desc* desc) {
     if (static_cast<u32>(desc->field_0[1]) < 16) {
         return -6;
@@ -3635,7 +3642,9 @@ s32 CDepthOfField::ValidateInitParam(CRenderTexture* source, const Unk_Desc* des
         bool unused = false;
         for (s32 i = 1; i < 7; i++) {
             s32 begin = desc->field_20[i * 2];
+            s32 prevEnd = desc->field_20[i * 2 - 1];
             s32 end = desc->field_20[i * 2 + 1];
+            s32 prevBegin = desc->field_20[i * 2 - 2];
             if (begin < 0 && end >= 0) {
                 return -6;
             }
@@ -3648,7 +3657,7 @@ s32 CDepthOfField::ValidateInitParam(CRenderTexture* source, const Unk_Desc* des
             if (begin < 0 || end < 0) {
                 unused = true;
             }
-            if (!(end > desc->field_20[i * 2 - 1] || begin > desc->field_20[i * 2 - 2] || unused)) {
+            if (!(end > prevEnd || begin > prevBegin || unused)) {
                 return -6;
             }
         }

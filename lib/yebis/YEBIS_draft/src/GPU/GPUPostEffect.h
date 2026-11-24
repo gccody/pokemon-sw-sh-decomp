@@ -377,6 +377,17 @@ extern void* Unk_24e09d8;
 // 0x710238c2e4, 0x710238c2e8: the first descriptor the post effect's texture
 // and sampler pools keep for themselves (-1: the pool's last ones) and how
 // many (placeholders)
+// 0x710238c2e0: whether the colour chart's swatch gets its scale bar (2: in
+// three parts; placeholder)
+extern s32 Unk_238c2e0;
+// 0x7100482380 (lib/yebis/leaf/Unk_455350.cpp): whether the texture util's
+// texture 0x29b48 has its flag at 0x4c (placeholder type)
+struct Unk_482380;
+bool Unk_482380_get(const Unk_482380* self);
+// 0x71004b9210 (lib/yebis/leaf/Unk_4b79a0.cpp): a luminance's measured
+// values (at 0x64; placeholder type)
+struct Unk_4b9210;
+const u8* Unk_4b9210_get(const Unk_4b9210* self);
 extern s32 Unk_238c2e4;
 extern s32 Unk_238c2e8;
 // 0x7100418e30, 0x7100418e40, 0x7100418e50 (ppfx.cpp): the post effect's
@@ -845,11 +856,15 @@ public:
     // rectangle at `x`, `y` of the `width` by `height` area
     s32 Unk_42f540(s32 kind, bool second, bool hdr, const Unk_42f540_Params* params, f32 width, f32 height, f32 x,
                    f32 y, f32 w, f32 h, f32 a, f32 b, f32 c, f32 d);
+    // CPostEffect::GetEffectiveTonemapBackendColorSpaceMode (its log line
+    // names it; inline: 0x710042f540)
+    s32 Unk_BackendColorSpaceMode();
     // 0x7100430250: its parts (0x710042f540) laid out in a `width` by
     // `height` area from `x`, `y`
     s32 Unk_430250(bool second, bool hdr, bool pq, bool flag, const Unk_42f540_Params* params, f32 x, f32 y,
                    f32 width, f32 height);
-    // 0x7100430a10 (not written yet; placeholder signature, from the call)
+    // 0x7100430a10: `source` through the output's transfer function into
+    // `surface`, with the scale bar and the colour chart
     s32 Unk_430a10(Unk_RenderTexture* source, void* arg2, void* surface, bool arg4);
     s32 DrawDebugBuffers();  // 0x71004386d0 (its log line names it)
     // the shared texture util, made if no one has it and released again

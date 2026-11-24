@@ -301,6 +301,9 @@ void* SiFixedHeapAllocator2::vf8(size_t elementSize, size_t count, int alignment
 // NON_MATCHING: the original calls SiPool::Unk_4be3f0 out of line (three
 // calls); here clang inlines it (cost 210 to 220 of 250). With the calls kept
 // out of line the rest is two register choices away (the loop's free block).
+// The other SiPool instances' callers show the same thing (their members are
+// instantiated in files of their own here, lib/yebis/instances): the
+// original's Unk_4be3f0 must have cost 250 or more, with the same code.
 void SiFixedHeapAllocator2::vf9(void* p, const char*, int) {
     if (p == nullptr) {
         return;

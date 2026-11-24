@@ -1255,3 +1255,77 @@ Not written: the canvas's own window 0x71004fbb20 and its slot 26
 0x71004ee290 (its switch is unswitched for formats 0x46 and 0x47 and its
 stride table is guarded by the mask of `Unk_4ed0f0`'s cases).
 
+
+## Later round: the hard tail (near misses revisited)
+
+Every `m` function was revisited with variant searches (statement, case and
+declaration permutations compiled in parallel). What decided the matches, and
+what the optimized IR showed about the ones that stay:
+
+### Idioms that decided matches here
+
+- One more inline level gives the inlined body one more run of the function
+  passes: `IGPUResource`'s and `IGPUBuffer`'s base destructors matched once
+  the list search and erase, or the per-element release, moved into a static
+  inline helper (the deleting destructors, which inline the base one, already
+  matched).
+- Inline cost decides call against inline: `-Rpass=inline -Rpass-missed=inline`
+  on qc's compile line (for analysis only) prints the costs. An `operator=`
+  written `{ Copy(other); return *this; }` costs 260 against a threshold of
+  250 and stays a call, as in the original.
+- A test LLVM adds by unswitching (CutLeft's `count >= 1`) mustn't be written
+  out: written, it lands before the length test.
+- `*(p + n - 1)` and `p[n - 1]` schedule differently: with the pointer form the
+  first character is loaded before the last one's address is computed.
+- A `u32` passed to a `size_t` parameter is zero-extended with `mov w1, wN`,
+  and that copy comes first among a call's argument copies.
+- A wrap test `offset + sizeof(x) >= limit` is 64-bit; the original's `add w;
+  cmp w` is `offset + static_cast<u32>(sizeof(x))`.
+- `(flags & 0x20000) == 0` and `!(flags & 0x20000)` place the blocks
+  differently; `a ? x : (b ? y : 0)` written as an `if`/`else` into a local
+  keeps the outer `csel ne`, folded into one expression it becomes `csel eq`.
+- An element reached as `SiArray<T>& row = array[i];` stays one address across
+  later tests and calls; `&array.m_pData[i]` lets InstCombine fold the address
+  into each member's offset, and the base is computed again before a call.
+- The order of a switch's cases decides which tails the branch folder merges:
+  most orders give the same code, a few give the original's (permute them).
+  Where each case stores with the field offset folded in and the result is
+  held outside `w0`, the element's offset is computed inside each case.
+- `field_10 = field_10 | bit` and `field_10 |= bit` order the load and the
+  shift differently.
+- `if (a < b && next < current) current = next;` gives an `fccmp` chain; a
+  minimum of a select doesn't.
+- One inline body in the original means one call of the helper in the source:
+  rewrite early returns as nested conditions so each `return helper()` occurs
+  once.
+- `if (count > 0) { ... }` and an early `if (count < 1) return 0;` lay the
+  unswitched loops out differently.
+- The order of the loads decides Reassociate's order of a short-circuit
+  chain's compares; an absolute value computed before an early-exit test on
+  the same value reuses that test's `fcmp`.
+- Store order can be the source's column order (a 3x3 part filled column by
+  column after the zero chains).
+
+### What the IR shows about what's left
+
+- Reassociate ranks arguments by position (3 and up) and readnone intrinsics
+  such as `llvm.maxnum` as ordinary instructions, and LLVM 7's Reassociate
+  also reorders `i1` `and`s by rank: an argument's test always ends up before
+  a load's. That is the `fmul σ, 2σ` against `2σ, σ` of the Gaussian family
+  (0x7100413170 and its eleven siblings) and the `ccmp`s that come out as two
+  blocks (0x710049e290, 0x710049d250, 0x71004a65a0).
+- At the first InstCombine an argument ranks below a load, so `arg == load`
+  is swapped: SiMap's insert (0x71004c09a0 and its copies) compares with the
+  operands swapped because its node is the balancing function's argument
+  until tail-call elimination makes it a loop variable.
+- Early returns inside a scope with a local become selects on the cleanup slot
+  in the first SimplifyCFG, then one `and`/`or` ordered by rank (SiIO's vf5,
+  RootSignature's vf12).
+- Reassociate breaks up `x - c` only when `x` is a single-use add: a surviving
+  `(a + b) - c` next to `a - c` (the quad tree split 0x7100532ca0) means the
+  original's sum had other uses.
+- SiMap's erase (0x71004c0e60 and its copies): the original reloads the
+  children after the stores to the returned iterator, as if they could alias;
+  here they can't.
+- The locale tables (0x71004ca820 and four copies) and most of the large PPFX
+  functions differ only in the register allocator's tie-breaks.
