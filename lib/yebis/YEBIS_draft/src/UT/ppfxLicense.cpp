@@ -18,6 +18,106 @@ static inline void Unk_DeleteBytes(u8* bytes) {
         Unk_4b9a60(Unk_238d5f8, reinterpret_cast<u64*>(bytes) - 1);
 }
 
+// the first four bytes of `bits` as a little-endian value, bit by bit
+static inline void Unk_ReadBits(s32* value, const u8* bits) {
+    *value = 0;
+    for (s32 i = 0; i < 32; i++) {
+        u8 bit = bits[i / 8] & (1 << (7 - i % 8));
+        *value |= bit << (i / 8 * 8);
+    }
+}
+
+// 0x71004ba5a0: splits the signature (Unk_4baf20) into a tree of streams; one
+// leaf is what it says (`out`), three are the first day's year, month and
+// day, and four more leaves, decoded with the key (Unk_4bb390), have to be
+// copies of those four.
+bool Unk_4ba5a0_Self::Unk_4ba5a0(s32* year, s32* month, s32* day, u8** out, size_t* outSize, const u8* data,
+                                 size_t size, const char* key, size_t keySize) {
+    u8* a0 = nullptr;
+    u8* a1 = nullptr;
+    size_t a0Size = 0;
+    size_t a1Size = 0;
+    Unk_4baf20(&a0, &a0Size, &a1, &a1Size, data, size);
+    u8* b0 = nullptr;
+    u8* b1 = nullptr;
+    u8* c0 = nullptr;
+    u8* c1 = nullptr;
+    size_t b0Size = 0;
+    size_t b1Size = 0;
+    size_t c0Size = 0;
+    size_t c1Size = 0;
+    Unk_4baf20(&b0, &b0Size, &b1, &b1Size, a0, a0Size);
+    Unk_4baf20(&c0, &c0Size, &c1, &c1Size, a1, a1Size);
+    u8* d = nullptr;
+    size_t dSize = 0;
+    Unk_4bb390(&d, &dSize, c1, c1Size, reinterpret_cast<const u8*>(key), keySize);
+    u8* f0 = nullptr;
+    u8* f1 = nullptr;
+    u8* e1 = nullptr;
+    u8* e0 = nullptr;
+    u8* h0 = nullptr;
+    u8* h1 = nullptr;
+    u8* g1 = nullptr;
+    u8* g0 = nullptr;
+    size_t f0Size = 0;
+    size_t f1Size = 0;
+    size_t e1Size = 0;
+    size_t e0Size = 0;
+    size_t h0Size = 0;
+    size_t h1Size = 0;
+    size_t g1Size = 0;
+    size_t g0Size = 0;
+    Unk_4baf20(&e0, &e0Size, &e1, &e1Size, b0, b0Size);
+    Unk_4baf20(&f0, &f0Size, &f1, &f1Size, e0, e0Size);
+    Unk_4baf20(&g0, &g0Size, &g1, &g1Size, c0, c0Size);
+    Unk_4baf20(&h0, &h0Size, &h1, &h1Size, g0, g0Size);
+    u8* dh0 = nullptr;
+    u8* dh1 = nullptr;
+    u8* dg1 = nullptr;
+    size_t dh0Size = 0;
+    size_t dh1Size = 0;
+    size_t dg1Size = 0;
+    Unk_4bb390(&dh0, &dh0Size, h0, h0Size, reinterpret_cast<const u8*>(key), keySize);
+    Unk_4bb390(&dh1, &dh1Size, h1, h1Size, reinterpret_cast<const u8*>(key), keySize);
+    Unk_4bb390(&dg1, &dg1Size, g1, g1Size, reinterpret_cast<const u8*>(key), keySize);
+    bool result;
+    if (b1Size != 0 && f0Size != 0 && f1Size != 0 && e1Size != 0 && memcmp(b1, d, b1Size) == 0 &&
+        memcmp(f0, dh0, f0Size) == 0 && memcmp(f1, dh1, f1Size) == 0 && memcmp(e1, dg1, e1Size) == 0) {
+#line 107
+        *out = UNK_NEW_ARRAY(u8, b1Size);
+        memcpy(*out, b1, b1Size);
+        *outSize = b1Size;
+        Unk_ReadBits(year, f0);
+        Unk_ReadBits(month, f1);
+        Unk_ReadBits(day, e1);
+        result = true;
+    } else {
+        *year = 0;
+        *month = 0;
+        *day = 0;
+        result = false;
+    }
+    Unk_DeleteBytes(a0);
+    Unk_DeleteBytes(a1);
+    Unk_DeleteBytes(b0);
+    Unk_DeleteBytes(b1);
+    Unk_DeleteBytes(c0);
+    Unk_DeleteBytes(c1);
+    Unk_DeleteBytes(d);
+    Unk_DeleteBytes(f0);
+    Unk_DeleteBytes(f1);
+    Unk_DeleteBytes(e1);
+    Unk_DeleteBytes(e0);
+    Unk_DeleteBytes(h0);
+    Unk_DeleteBytes(h1);
+    Unk_DeleteBytes(g1);
+    Unk_DeleteBytes(g0);
+    Unk_DeleteBytes(dh0);
+    Unk_DeleteBytes(dh1);
+    Unk_DeleteBytes(dg1);
+    return result;
+}
+
 // 0x71004baf20
 // NON_MATCHING: the same loop; the original spills the out-parameters at the
 // entry (here they get callee-saved registers first), and its selects of the
@@ -53,10 +153,8 @@ void Unk_4ba5a0_Self::Unk_4baf20(u8** out0, size_t* outSize0, u8** out1, size_t*
         }
         shift &= 7;
         index >>= 3;
-        u8 direction = data[index] & (8 << shift);
-        backward = (direction >> (shift + 3)) != 0;
-        u8 stream = data[index] & (4 << shift);
-        s32 which = (stream >> (shift + 2)) != 0;
+        backward = Unk_NibbleBit(data, index, shift, 3);
+        s32 which = Unk_NibbleBit(data, index, shift, 2);
         size_t n = counts[which]++;
         if (n >= sizes[which] * 8) {
             u8* old = nullptr;
@@ -75,7 +173,7 @@ void Unk_4ba5a0_Self::Unk_4baf20(u8** out0, size_t* outSize0, u8** out1, size_t*
             buffers[which][sizes[which]] = 0;
             sizes[which]++;
         }
-        u32 bit = ((data[index] & (2 << shift)) >> (shift + 1)) != 0;
+        u32 bit = Unk_NibbleBit(data, index, shift, 1);
         buffers[which][n >> 3] |= bit << (7 - (n & 7));
     }
 #line 274

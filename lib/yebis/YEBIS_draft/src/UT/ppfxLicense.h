@@ -74,6 +74,12 @@ struct Unk_4ba5a0_Self {
     // 0x71004baf20: splits `size` bytes of nibbles into two bit streams (each
     // nibble: the direction of the next one, the stream, the bit)
     void Unk_4baf20(u8** out0, size_t* outSize0, u8** out1, size_t* outSize1, const u8* data, size_t size);
+    // (inlined in Unk_4baf20) a bit of the nibble at `shift` of `data[index]`.
+    // A member: Unk_4ba5a0 still passes Unk_4baf20 its `this`, so Unk_4baf20
+    // used it before the inliner ran.
+    bool Unk_NibbleBit(const u8* data, size_t index, size_t shift, s32 bit) const {
+        return ((data[index] & ((1 << bit) << shift)) >> (shift + bit)) != 0;
+    }
 };
 
 class VerifyFeatureLicense {

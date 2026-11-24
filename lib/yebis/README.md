@@ -41,6 +41,35 @@ the original's `SiCore` include directory, and check.py compares those
 literals by the file they name. `__LINE__` is compared as is: the headers keep
 the original's line numbers with `#line`.
 
+## License key material
+
+YEBIS checks a license at start-up (`ppfx.cpp`, 0x7100418840, with
+`UT/ppfxLicense.cpp`). The check passes two 32-byte strings from the
+executable's rodata to the decoder: Sword 0x7101b32879 and 0x7101b05d89.
+They're Silicon Studio's license key material, so they're never written
+into this repository, printed, or copied into notes or PR text. The code
+refers to them only as undefined externs. check.py compares a reference
+to a data symbol by its address (the `data_symbols.csv` row), not by
+content, so the functions can match without the bytes.
+
+A build that needs the bytes themselves (a byte-identical executable)
+must generate their definitions at build time from the user's own
+`data/original/` dump. Those generated files are gitignored, like the
+`*.pb.cc` files that `tools/protos.py generate` writes. Don't add a
+fallback that spells the bytes out. Tools that print strings or data
+(`funcs.py show` aside) must not be pointed at those two addresses.
+
+Two idioms decided the decoder (0x71004ba5a0):
+- **An argument the callee doesn't use, kept in the caller:** the original
+  passes `this` to 0x71004baf20 (`mov x0, x19` before each call). LLVM's
+  dead-argument pass turns an unused `this` into undef at the call sites,
+  and the move disappears. The callee used `this` before inlining: its bit
+  reads call an inline member (`Unk_NibbleBit`). Write it that way rather
+  than adding a fake use.
+- **The stack slots follow the declaration order:** the tree's leaves are
+  declared first, then the inner node, with every pointer before every size.
+  The frees follow that order too.
+
 ## SiSDK3 containers
 
 `SiSDK3::SiArray<T, ALIGN>` (`SiCore_Array.h`, 0x50 bytes): a vtable (a
