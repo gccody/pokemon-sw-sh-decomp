@@ -11,7 +11,6 @@ extern SiSDK3::ISiStringTable::Unk_Item Unk_238e248[];
 extern SiSDK3::ISiStringTable::Unk_Item Unk_238e2e8[];
 extern SiSDK3::ISiStringTable::Unk_Item Unk_238e388[];
 
-// NON_MATCHING: two registers in one loop (see Unk_LocaleTable.h)
 // 0x71004ca820
 const SiSDK3::ISiStringTable::Unk_Item* Unk_4ca820(const Unk_4ca820_arg0& language) {
     UNK_LOCALE_TABLE(language, Unk_238e248, Unk_238e2e8, Unk_238e388);

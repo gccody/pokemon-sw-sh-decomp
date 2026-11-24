@@ -4856,10 +4856,10 @@ namespace PPFX {
 
 // 0x7100425750: the vignette handed to the glare, and the target surface
 // (CTextureUtil::Unk_470880 is given field_a: a bool its body doesn't use)
-// NON_MATCHING: the block layout of the optical
-// vignette's `has` (the original shares one block for the false and
-// field_950 paths), case 4's field_960 (a phi of the two loads in the
-// original) and the first select's compare (reused by the branch there).
+// NON_MATCHING: case 4's field_960 (a phi of the two loads in the original)
+// and the first select: the original selects on `uge` and keeps field_59c's
+// test a branch of its own, reusing the select's compare; here the two tests
+// are one `ccmp`. `has` set by `if`s from false gives the original's blocks.
 s32 CPostEffect::Unk_425750() {
     Unk_42a0f0();
     Unk_428220();
@@ -4892,11 +4892,13 @@ s32 CPostEffect::Unk_425750() {
             break;
         }
         field_198->field_18c = true;
-        bool has;
+        bool has = false;
         if (field_918 == 2) {
-            has = !(field_93c <= 0.0f) && field_948 != 0.0f && ((field_940 != 0.0f) | (field_944 != 0.0f));
-        } else {
-            has = !(field_950 <= 0.0f);
+            if (!(field_93c <= 0.0f) && field_948 != 0.0f && ((field_940 != 0.0f) | (field_944 != 0.0f))) {
+                has = true;
+            }
+        } else if (!(field_950 <= 0.0f)) {
+            has = true;
         }
         if (field_104f && field_1a0->field_3a8) {
             reinterpret_cast<CDepthOfField*>(field_1a0)->Unk_4b5ae0();
@@ -5605,10 +5607,6 @@ inline CTextureUtil* CPostEffect::Unk_TextureUtil() {
 // every time, as in the original (one call per helper below). The rectangle is
 // a POD of four floats (Unk_Rect): with Unk_Float4's constructor its constant
 // half isn't stored as one 8-byte constant.
-// NON_MATCHING: register allocation in the two loops (x and y of the
-// rectangle get s1/s3 instead of s2/s1, 22 instructions); the table matches.
-// Tried: the rectangle before the factor, the fractions in locals, the
-// factor inline in the call, the buffer by reference.
 s32 CPostEffect::DrawDebugBuffers() {
     // a texture to draw, or a device texture if there is none, and its scale
     struct Unk_DebugBuffer {
@@ -5629,6 +5627,13 @@ s32 CPostEffect::DrawDebugBuffers() {
                 return level->field_b0 != nullptr ? level->field_b0 : level->field_a0;
             }
             return level->field_b8 != nullptr ? level->field_b8 : level->field_a8;
+        }
+
+        // the tile of the target a buffer is drawn into (an inline function:
+        // the tile's own inline level decides the loops' registers)
+        static Unk_Rect Unk_Tile(f32 x, f32 y) {
+            Unk_Rect rect = {1.0f / 16, 1.0f / 16, x / 16, y / 16};
+            return rect;
         }
 
         Unk_DebugBuffer(CRenderTexture* texture, Unk_GPUTexture* deviceTexture, f32 scale)
@@ -5743,13 +5748,13 @@ s32 CPostEffect::DrawDebugBuffers() {
         if (buffers[i].field_0 != nullptr) {
             f32 factor = buffers[i].field_10 * Unk_238c2d8;
             Unk_49b230_Object* target = reinterpret_cast<Unk_49b230_Object*>(field_1168);
-            Unk_Rect rect = {1.0f / 16, 1.0f / 16, x / 16, y / 16};
+            Unk_Rect rect = Unk_DebugBuffer::Unk_Tile(x, y);
             CRenderTextureArray::Unk_4a6a50(target, buffers[i].field_0, 0, reinterpret_cast<const Unk_Float4*>(&rect),
                                             false, 3, factor);
         } else if (buffers[i].field_8 != nullptr) {
             f32 factor = buffers[i].field_10 * Unk_238c2d8;
             Unk_49b230_Object* target = reinterpret_cast<Unk_49b230_Object*>(field_1168);
-            Unk_Rect rect = {1.0f / 16, 1.0f / 16, x / 16, y / 16};
+            Unk_Rect rect = Unk_DebugBuffer::Unk_Tile(x, y);
             CRenderTextureArray::CopyToSurface(target, buffers[i].field_8, 0, factor,
                                                reinterpret_cast<const Unk_Float4*>(&rect), 1.0f, false, 1.0f, 3);
         }
@@ -5760,13 +5765,13 @@ s32 CPostEffect::DrawDebugBuffers() {
         if (buffers[i].field_0 != nullptr) {
             f32 factor = Unk_238c2dc;
             Unk_49b230_Object* target = reinterpret_cast<Unk_49b230_Object*>(field_1168);
-            Unk_Rect rect = {1.0f / 16, 1.0f / 16, x / 16, y / 16};
+            Unk_Rect rect = Unk_DebugBuffer::Unk_Tile(x, y);
             CRenderTextureArray::Unk_4a6a50(target, buffers[i].field_0, 0x15,
                                             reinterpret_cast<const Unk_Float4*>(&rect), false, 3, factor);
         } else if (buffers[i].field_8 != nullptr) {
             f32 factor = Unk_238c2dc;
             Unk_49b230_Object* target = reinterpret_cast<Unk_49b230_Object*>(field_1168);
-            Unk_Rect rect = {1.0f / 16, 1.0f / 16, x / 16, y / 16};
+            Unk_Rect rect = Unk_DebugBuffer::Unk_Tile(x, y);
             CRenderTextureArray::CopyToSurface(target, buffers[i].field_8, 0x15, factor,
                                                reinterpret_cast<const Unk_Float4*>(&rect), 1.0f, false, 1.0f, 3);
         }
@@ -6335,11 +6340,11 @@ s32 CPostEffect::Unk_42df80(s32* outFormat, f32* outScale, f32* outScale2, f32* 
 }
 
 // 0x71004280e0: a number by field_1008's mode (tan of half of field_6cc)
-// NON_MATCHING: the default case's multiplication by 0 is merged into the
-// others' (the original keeps its own block that loads field_100c into s0 and
-// 0 into s1, i.e. its own `fmul field_100c, 0.0` tail-merged with the rest);
-// the rest is the same. Tried: the default as the initial value, the product
-// before the mode 3 test, an if/else returning one result, `scale * value`.
+// NON_MATCHING: one register: case 2's product is put in s3 (the original:
+// s0). The product is selected by the mode (`mode == 3 ? value : value *
+// scale`), which gives the default case its own `field_100c * 0.0` block as
+// in the original. Tried: case orders, an initial value, the switch or the
+// cotangent in inline helpers, the case's arithmetic through locals.
 f32 CPostEffect::Unk_4280e0() {
     f32 value;
     switch (field_1008) {
@@ -6359,10 +6364,11 @@ f32 CPostEffect::Unk_4280e0() {
         value = 0.0f;
         break;
     }
+    f32 result = field_1008 == 3 ? value : value * field_100c;
+    result += field_1010;
     if (field_1008 == 3) {
-        return value + field_1010;
+        return result;
     }
-    f32 result = value * field_100c + field_1010;
     if (field_1a0 != nullptr && Unk_4afa90_get(reinterpret_cast<const Unk_4afa90*>(field_1a0)) > 0.0f) {
         result += Unk_4afa70_get(reinterpret_cast<const Unk_4afa70*>(field_1a0)) * -0.5f;
     }
@@ -6382,11 +6388,8 @@ static inline const f32& Unk_Greater(const f32& a, const f32& b) {
 
 // 0x7100427ad0: whether field_6c4 or field_6c8 is to change (each limited by
 // field_8f4 to field_8f8 and by field_90c and field_910)
-// NON_MATCHING: one register: the original's last select picks `before`
-// (s9) where this one picks `next` (s0), the same value when both tests hold.
-// The `fccmp` comes from the `&&` (a minimum, Unk_Less, gives one select more);
-// `current = before` there makes the compare use `before` too, and an inner
-// test `!(now >= before)` gives `lt` for `mi`.
+// The last test is a `&` of the two comparisons (with `&&` GVN knows
+// `now < before` where `next` is compared and compares `before` instead).
 bool CPostEffect::Unk_427ad0() {
     f32 low = field_8f4;
     f32 x = field_90c;
@@ -6423,8 +6426,8 @@ bool CPostEffect::Unk_427ad0() {
     now = field_eec;
     if (Unk_4622e0(field_6c4, current, now, before)) {
         f32 next = now < before ? before : current;
-        if (now < before && next < current) {
-            current = next;
+        if ((now < before) & (next < current)) {
+            current = before;
         }
     }
     return (high < current ? high : current) != field_6c8;
@@ -6753,19 +6756,19 @@ bool Unk_4385e0(s32 format) {
     return linear != 26;
 }
 
+// a colour's luminance in colour space 0 (inline: its test stays a branch, so
+// field_848's comparison is kept as a flag across the calls)
+static inline f32 Unk_Space0Luminance(const Unk_4278c0_Data& color) {
+    Unk_410f90 space;
+    Unk_410f90_set(&space, 0);
+    return Unk_Luminance(space, reinterpret_cast<const Unk_Vector3&>(color.field_0));
+}
+
 // 0x7100434570: whether field_848 and the colour of field_f84 are positive
-// NON_MATCHING: field_848's comparison: the original keeps its `cset` result
-// in w20 across the calls; here the loaded value is kept in s8 (d8 is saved)
-// and compared again where it is used (the luminance's test became an `and`
-// here, a branch there; `s32`/`u8` results don't change it)
 bool CPostEffect::Unk_434570() {
     bool result = field_848 > 0.0f;
-    if (field_f80 == -1) {
-        Unk_410f90 space;
-        Unk_410f90_set(&space, 0);
-        if (Unk_Luminance(space, reinterpret_cast<const Unk_Vector3&>(field_f84.field_0)) <= 0.0f) {
-            result = false;
-        }
+    if (field_f80 == -1 && Unk_Space0Luminance(field_f84) <= 0.0f) {
+        result = false;
     }
     return result & (field_f80 != 0);
 }
@@ -6898,10 +6901,9 @@ s32 CPostEffect::Unk_426070(s32 view, f32 value) {
 
 // 0x7100426210: CPostEffect::EndCommandList_SiGfx (its log line names it; the
 // lazy draw commands' lines name CPostEffect::ExecuteLazyDrawCommand)
-// NON_MATCHING: only the frame and one constant: the original sets up the
-// frame before the count's test (not shrink-wrapped: the -1 return has its
-// own return block there) and moves -1 into w0 after the log line. Tried: one
-// `result` returned at the end, the body nested in the count's test.
+// Each branch has its own `list` (the -1 return leaves its scope: the
+// original's own block for `mov w0, #-1`, and one return block, so the frame
+// isn't shrink-wrapped).
 s32 CPostEffect::EndCommandList_SiGfx() {
     if (--field_11cc != 0) {
         return 0;
@@ -6910,7 +6912,6 @@ s32 CPostEffect::EndCommandList_SiGfx() {
     Unk_SiGfxDrawContext* context = device->field_30;
     Unk_SiGfxDevice* sigfx = device->field_38;
     Unk_CommandListMaker* maker = field_11a0;
-    void* list;
     if (maker != nullptr) {
         context->vf10();
         Unk_43fc30(field_18);
@@ -6939,7 +6940,7 @@ s32 CPostEffect::EndCommandList_SiGfx() {
             if (field_11c0 == nullptr) {
                 field_11c0 = sigfx->vf22(1, 0, nullptr);
             }
-            list = field_11c0;
+            void* list = field_11c0;
             if (!context->vf8(list)) {
 #line 42123
                 PPFX_ERROR("CPostEffect::EndCommandList_SiGfx(): Failed pSiGfxDrawContext->BeginCommandList(pTempCommandList).\n");
@@ -6966,7 +6967,7 @@ s32 CPostEffect::EndCommandList_SiGfx() {
                     PPFX_ERROR("CPostEffect::ExecuteLazyDrawCommand(): Failed GPUSiGfxLazyDrawCommand::Execute().\n");
                 }
             }
-            list = context->vf10();
+            void* list = context->vf10();
             context->vf9();
             Unk_SiGfxQueue* queue = sigfx->vf19();
             queue->vf10(1, &list);
@@ -6989,15 +6990,10 @@ s32 CPostEffect::EndCommandList_SiGfx() {
 // 0x710043cd40: the Planckian locus in CIE 1960 u and v at a reciprocal
 // colour temperature (in mireds: 0 to 640, every 10 tabulated). Its statics
 // are reached through the GOT: an inline function's.
-// NON_MATCHING: the table and the lookup match; in the lerp at the end the
-// fraction is allocated to s1 (the original: s0, the parameter's register),
-// so the two products come out with other registers. Tried: the lerp written
-// elementwise, through locals, with the far entry read first, `t -= i`, the
-// clamp's division after the join. With the differences and the products as
-// Unk_Float2 temporaries (d, then s = d * f, then lo + s) only the second
-// product's operands are swapped (`fmul s2, s0, s2`): Reassociate ranks the
-// fraction (the phi of t + 4) below the v difference (the 4th table load + 1)
-// and commutes that multiply; the original's fraction outranks both.
+// The division is computed before the clamp's test (CodeGenPrepare makes the
+// select of it a branch only after Reassociate has ranked the fraction above
+// the table's loads; written inside the ternary, the fraction is a phi ranked
+// below them and the second product's operands are swapped).
 inline Unk_Float2 Unk_43cd40(const f32* mired) {
     static const Unk_Float2 table[65] = {
         Unk_Float2(0.180046f, 0.263577f),
@@ -7066,7 +7062,8 @@ inline Unk_Float2 Unk_43cd40(const f32* mired) {
         Unk_Float2(0.346646f, 0.360515f),
         Unk_Float2(0.349746f, 0.360483f)
     };
-    f32 t = *mired < 0.0f ? 0.0f : (*mired > 640.0f ? 640.0f : *mired) / 10.0f;
+    f32 scaled = (*mired > 640.0f ? 640.0f : *mired) / 10.0f;
+    f32 t = *mired < 0.0f ? 0.0f : scaled;
     s32 i = static_cast<s32>(floorf(t));
     s32 next = i + 1 < 64 ? i + 1 : 64;
     f32 f = t - static_cast<f32>(i);
@@ -7652,8 +7649,11 @@ inline Unk_Float2 Unk_ShaftPosition(const CPostEffect* self, const Unk_Float2* s
 
 // 0x71004291c0: the light shafts handed to the glare (whether there are any)
 // NON_MATCHING: the loop's induction variable is based at field_64 (the
-// original's at the item), so its addressing modes differ; the rest is the
-// original's
+// original's at the item: with a `u32` index LSR picks the item, but the loop
+// is then counted up), and case 0 and the default of the shaft position's
+// switch each get the `shift = 0` copy (the original: one block that case 0
+// falls into). `at` is declared where it is set and `color` isn't in a scope
+// of its own: that gives the original's stack slots.
 bool CPostEffect::Unk_4291c0() {
     Unk_45eb90_Self* glare = field_198;
     field_c6d = false;
@@ -7665,7 +7665,6 @@ bool CPostEffect::Unk_4291c0() {
     }
     s32 count = field_478;
     s32 drawn = 0;
-    Unk_Float2 at;
     for (s32 i = 0; i < count; i++) {
         if (!field_858[i].field_60 || field_848 <= 0.0f) {
             continue;
@@ -7692,23 +7691,21 @@ bool CPostEffect::Unk_4291c0() {
             depth = field_858[i].field_5c;
         }
         f32 position = offset + scale * depth;
-        {
-            Unk_Rect color = field_858[i].field_0;
-            if (field_59c) {
-                color.field_0 = field_8d0 * color.field_0;
-                color.field_4 = field_8d0 * color.field_4;
-                color.field_8 = field_8d0 * color.field_8;
-            }
-            reinterpret_cast<CRenderGlare*>(field_198)->Unk_4552e0(
-                drawn, reinterpret_cast<const Unk_GlareRect*>(&color), field_858[i].field_1c, field_858[i].field_10,
-                position, field_858[i].field_20, field_858[i].field_14, field_858[i].field_18);
+        Unk_Rect color = field_858[i].field_0;
+        if (field_59c) {
+            color.field_0 = field_8d0 * color.field_0;
+            color.field_4 = field_8d0 * color.field_4;
+            color.field_8 = field_8d0 * color.field_8;
         }
+        reinterpret_cast<CRenderGlare*>(field_198)->Unk_4552e0(
+            drawn, reinterpret_cast<const Unk_GlareRect*>(&color), field_858[i].field_1c, field_858[i].field_10,
+            position, field_858[i].field_20, field_858[i].field_14, field_858[i].field_18);
         Unk_455350_set(reinterpret_cast<Unk_455350*>(field_198), drawn,
                        reinterpret_cast<const Unk_455350_Float4*>(&field_858[i].field_34), field_858[i].field_24,
                        field_858[i].field_30, field_858[i].field_28, field_858[i].field_2c);
         Unk_45e900_set(reinterpret_cast<Unk_455350*>(field_198), drawn,
                        reinterpret_cast<const Unk_455350_Float4*>(&field_858[i].field_4c));
-        at = Unk_ShaftPosition(this, &field_858[i].field_44);
+        Unk_Float2 at = Unk_ShaftPosition(this, &field_858[i].field_44);
         Unk_4553a0_set(reinterpret_cast<Unk_455350*>(field_198), drawn, reinterpret_cast<const Unk_455350_Float2*>(&at));
         drawn++;
     }
@@ -10027,9 +10024,10 @@ s32 CPostEffect::Unk_430a10(Unk_RenderTexture* source_, void* target, void* surf
 // spaces, drawn again when they or field_bc4 and field_bc8 changed (what they
 // were drawn for is kept in field_10e4); 1 without an HDR output
 // NON_MATCHING: the original copies the colour spaces into the state through
-// a temporary (stores to it that nothing reads), gives gamma's 1 a block of
-// its own (here materialised before the test) and keeps `mode - 1` where this
-// keeps `mode`.
+// a temporary (stores to it that nothing reads; a temporary or a local copy in
+// the source is removed here) and gives gamma's 1 a block of its own (here
+// materialised before the test). `hdr` is computed before the PQ test (the
+// original keeps `mode - 1`).
 s32 CPostEffect::Unk_431b40() {
     CTextureUtil* util = Unk_GetTextureUtil();
     Unk_ReleaseTextureUtil();
@@ -10056,12 +10054,12 @@ s32 CPostEffect::Unk_431b40() {
     f32 limit = field_113c;
     s32 mode = Unk_24e09bc;
     bool pq = mode == 1 || mode == 3 || mode == 5;
+    bool hdr = static_cast<u32>(mode - 1) < 3;
     if (mode == 1 || mode == 3 || mode == 5) {
         util->Unk_480740(util->field_29b08[3], true, true, &conversion, false, 0, gamma, 4.0f, -1.0f, 0.0f);
     }
     f32 range = pq ? 4.0f : 4.5f;
     f32 low = pq ? -1.0f : -2.0f;
-    bool hdr = static_cast<u32>(mode - 1) < 3;
     {
         MATRIXT44 identity;
         Unk_Identity(&identity);

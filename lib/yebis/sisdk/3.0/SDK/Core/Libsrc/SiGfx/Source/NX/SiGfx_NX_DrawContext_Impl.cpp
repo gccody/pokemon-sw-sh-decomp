@@ -280,7 +280,14 @@ bool SiGfxNXDrawContext::vf9() {
 // NON_MATCHING: the colours' loop compares the count of targets in 64 bits
 // in the original (`ldrsw x8; cmp x8, #2; b.le`), here in 32 (`ldr w8; cmp
 // w8, #3; b.lt`): s32, s64 and u32 counters, `!=` and the operands'
-// order give the same. The stencil's mask is selected the other way round
+// order give the same. In the IR here GVN's PRE makes the original's i64
+// phis of the reloaded count (the sign extension carried across the else
+// paths) and InstCombine then folds them into i32 phis once the first
+// compare is narrowed; the original keeps them, as if the loop had been
+// unrolled only after the last GVN (with -unroll-threshold below 235 it isn't
+// unrolled at all: no window where only the late unroll fires). Also tried:
+// the count in a local, while, nested ifs, `continue`, the colour through a
+// pointer or a loop. The stencil's mask is selected the other way round
 // (`csel w3, w9, wzr, ne` for `csel w3, wzr, w9, eq`). The rest, the colour
 // bit that only moves on for a target not cleared included, is the
 // original's.
@@ -521,7 +528,8 @@ void SiGfxNXDrawContext::vf14(s32 count, const Unk_Viewport* viewports) {
 // other's registers (the original has the scissors' in x10 and the
 // rectangles' in x11). Tried: references to both in either order, pointers
 // stepped by the loop, a local rectangle assigned, the sizes first, s64/u32
-// counters.
+// counters, the rectangle's four stores or the whole loop in a static inline
+// helper (either parameter order, references or pointers).
 // 0x710053ca70
 void SiGfxNXDrawContext::vf15(s32 count, const Unk_Scissor* scissors) {
     if (count < 0 || count > 15) {
@@ -2054,7 +2062,11 @@ bool SiGfxNXDrawContext::vf69(ISiGfxResource* pResource, Unk_NXDrawFlush* pMap) 
 // Written as a switch, the rest is the original's: its blocks are in the
 // cases' order (10, 1, 3), its comparisons in their values' (an if-else chain
 // compares 10 first). Tried: a null resource as kind 0, a default case, the
-// result in a variable.
+// result in a variable. The IR has one return block; the copy is block
+// placement's tail duplication (-tail-dup-placement=0 gives 384 bytes), so
+// the edges' frequencies differ. Also tried: the textures' flush as a static
+// inline helper, if-else chains and switches in all six orders, an s32 kind,
+// the kind not in a local.
 // 0x7100540c70
 bool SiGfxNXDrawContext::vf70(ISiGfxResource* pResource, const Unk_NXDrawFlush* pFlush) {
     if (pResource == nullptr) {
@@ -2575,7 +2587,10 @@ void SiGfxNXDrawContext::vf91(u32 a1, u32 stages, s32 slot, ISiGfxResource* pRes
 
 // NON_MATCHING: the last call of slot 8 (its result unused) is a tail call
 // here; the original calls it and returns. Tried: slot 8 returning a
-// reference (the README's dereferenceable case): still a tail call.
+// reference (the README's dereferenceable case): still a tail call. (Codegen
+// only keeps the call if the IR has a load or another unspeculatable
+// instruction between it and the return, or the call isn't marked `tail`,
+// which an escaping local at TailCallElim would do.)
 // 0x7100542570
 void SiGfxNXDrawContext::vf92(u32 a1, u32 stages, s32 slot, ISiGfxResource* pResource) {
     if (pResource == nullptr) {

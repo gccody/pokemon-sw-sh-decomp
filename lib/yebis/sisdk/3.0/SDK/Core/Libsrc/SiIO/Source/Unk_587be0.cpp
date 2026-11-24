@@ -10,7 +10,6 @@ extern Unk_LocaleTableItem Unk_2397868[];
 extern Unk_LocaleTableItem Unk_23978a8[];
 extern Unk_LocaleTableItem Unk_23978e8[];
 
-// NON_MATCHING: two registers in one loop (see Unk_LocaleTable.h)
 // 0x7100587be0
 const void* Unk_587be0(const Unk_4ca820_arg0& language) {
     UNK_LOCALE_TABLE(language, Unk_2397868, Unk_23978a8, Unk_23978e8);

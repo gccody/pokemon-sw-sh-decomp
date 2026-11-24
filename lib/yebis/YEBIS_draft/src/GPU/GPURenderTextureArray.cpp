@@ -730,8 +730,11 @@ struct Unk_4a6aa0_Surface {
 };
 
 // 0x71004a6aa0
-// NON_MATCHING: the rectangle's four values are loaded late and get other registers;
-// the flag of the same size is tested with tbnz (cbnz in the original).
+// NON_MATCHING: the rectangle's four values are loaded late and get other
+// registers (x and h swap s10 and s12), and the colours' two halves are
+// stored in the other order. The filter test is `arg5 == 0 || same` (with
+// the negated form the flag of the same size is tested with tbnz, cbnz in
+// the original).
 s32 CRenderTextureArray::CopyToSurface(Unk_49b230_Object* surface, Unk_GPUTexture* source, s32 index, f32 scale,
                                        const Unk_Float4* rect, f32 u1, bool arg4, f32 v1, s32 arg5) {
     IGPUDevice* device;
@@ -774,10 +777,10 @@ s32 CRenderTextureArray::CopyToSurface(Unk_49b230_Object* surface, Unk_GPUTextur
     f32 x = rx * width;
     f32 y = ry * height;
     s32 filter = source->vf19();
-    if (arg5 != 0 && !same)
-        source->vf17(0);
-    else
+    if (arg5 == 0 || same)
         source->vf17(1);
+    else
+        source->vf17(0);
     result = util->DrawRectGPU_MadT1_Sn(x, y, w, h, 0.0f, 0.0f, u1, v1, 1, &values, &colors, source, index, 0x10000);
     source->vf17(filter);
     return result;

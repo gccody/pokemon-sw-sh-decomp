@@ -194,12 +194,17 @@ bool SiGfxFontDrawHelper::Unk_544010(void* font) {
     return true;
 }
 
-// NON_MATCHING: the original's loop keeps the index in a 32-bit register
-// (`ldr w21, [x25, w24, sxtw #2]`) and ends the visible glyphs' branch with a
-// select of 3 or 0 that is then compared with 3: a cleanup destination, so
-// the loop's body has a scope with a destructor (0x7100544610 has the same,
-// with a `continue` as 2). Which object it is isn't known; here the loop
-// walks a pointer and the branches come out in another order.
+// The select of 3 or 0 that ends the visible glyphs' branch (compared with 3
+// after it) is a cleanup destination: the font's pointer is a local of the
+// loop's body, whose lifetime marker is a cleanup that the `break` (3, a
+// `while` loop's end) and the fall-through (0) leave through; the glyph's is
+// declared before the loop, or the `continue` (2) joins them. The loop is
+// Unk_544610's (`c` read again at each step, a 32-bit index).
+// NON_MATCHING: the glyph's advance is converted in each branch here (16
+// bytes more); the original converts it once, before the test of the size.
+// Tried: the advance in a local (before the test, in the loop's scope or
+// before it: the empty glyphs' branch becomes selects), the sizes in locals,
+// the test as `&`, the visible glyphs' branch first.
 // 0x7100544290
 bool SiGfxFontDrawHelper::Unk_544290(const char* text, Unk_Vec2* pSize, u32 flags, f32 scale) {
     *pSize = Unk_Vec2();
@@ -219,8 +224,10 @@ bool SiGfxFontDrawHelper::Unk_544290(const char* text, Unk_Vec2* pSize, u32 flag
     f32 lineHeight = ceilf(static_cast<f32>(metrics->field_8 - metrics->field_c) * scale);
     bool pending = false;
     f32 width = 0.0f;
-    for (s32 i = 0; buffer[i] != 0; i++) {
-        u32 c = buffer[i];
+    u32 c = buffer[0];
+    s32 i = 0;
+    const Unk_544290_Glyph* glyph;
+    while (true) {
         if (c == '\n') {
             if (!(flags & 0x20)) {
                 if (width > 0.0f) {
@@ -230,28 +237,35 @@ bool SiGfxFontDrawHelper::Unk_544290(const char* text, Unk_Vec2* pSize, u32 flag
                 }
                 width = 0.0f;
             }
+            c = buffer[++i];
             continue;
+        }
+        if (c == 0) {
+            break;
         }
         Unk_544290_Font* font = static_cast<Unk_544290_Font*>(field_20);
         if (font == nullptr || font->vf5()->vf14() != 8) {
             return false;
         }
-        const Unk_544290_Glyph* glyph =
-            static_cast<const Unk_544290_Glyph*>(reinterpret_cast<SiGfxNXFont*>(font)->Unk_4ffbe0(c));
+        glyph = static_cast<const Unk_544290_Glyph*>(reinterpret_cast<SiGfxNXFont*>(font)->Unk_4ffbe0(c));
         if (glyph == nullptr) {
             return false;
         }
-        if (glyph->field_68 > 0 || glyph->field_6c > 0) {
+        if (glyph->field_68 <= 0 && glyph->field_6c <= 0) {
+            if (buffer[i + 1] == 0) {
+                break;
+            }
+            width += static_cast<f32>(glyph->field_58);
+            c = buffer[++i];
+            continue;
+        } else {
             pending = true;
             width += static_cast<f32>(glyph->field_58);
-            if (buffer[i + 1] == 0) {
+            i++;
+            if (buffer[i] == 0) {
                 break;
             }
-        } else {
-            if (buffer[i + 1] == 0) {
-                break;
-            }
-            width += static_cast<f32>(glyph->field_58);
+            c = buffer[i];
         }
     }
     if (pending) {
@@ -717,7 +731,7 @@ bool SiGfxFontDrawHelper::Unk_545910() {
     Unk_PrimitiveStates* states = pContext->vf85();
     states->field_0 = program;
     states->field_8 = reinterpret_cast<Unk_PrimitiveFormat*>(field_1c0);
-    states->field_16c = 4;
+    states->field_16c.field_0 = 4;
     states->field_10 = 1;
     states->field_14 = 3;
     states->field_34 = false;

@@ -932,23 +932,32 @@ s32 CDepthOfField::Unk_4b4c40() {
     return result;
 }
 
+// util's Unk_48b1e0 in white (inline: the colour is stored after the
+// caller's arguments are read, which a local of the caller isn't)
+static inline s32 Unk_DrawWhite(CTextureUtil* util, f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1,
+                                f32 v1, f32 arg8, f32 arg9, f32 arg10, Unk_GPUTexture* texture, s32 arg12,
+                                void* arg13, s32 arg14, bool mirror, void* arg16, void* arg17, void* arg18,
+                                void* arg19, s32 arg20, f32 arg21, u32 flags) {
+    Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+    return util->Unk_48b1e0(x, y, width, height, u0, v0, u1, v1, arg8, arg9, arg10, texture, arg12, arg13, arg14,
+                            mirror, arg16, arg17, arg18, arg19, arg20, arg21, &color, flags);
+}
+
 // 0x71004b4e10
-// NON_MATCHING: the order of the loads and stores before the call (scheduling).
 s32 CDepthOfField::Unk_4b4e10() {
     if (field_238 != nullptr) {
         CTextureUtil* util = Unk_GetTextureUtil();
         Unk_ReleaseTextureUtil();
         Unk_440c00_get(reinterpret_cast<u64>(field_20), 8);
-        Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
         field_20->vf45(2);
         CRenderTexture* source = field_228;
         f32 u1;
         f32 v1;
         Unk_GetCoords(source, &u1, &v1);
-        util->Unk_48b1e0(0.0f, 0.0f, static_cast<f32>(static_cast<u32>(source->field_54)),
+        Unk_DrawWhite(util, 0.0f, 0.0f, static_cast<f32>(static_cast<u32>(source->field_54)),
                          static_cast<f32>(static_cast<u32>(source->field_58)), 0.0f, 0.0f, u1, v1, field_190,
                          field_194, field_1b0, field_238, field_16c, nullptr, 0, field_240, &field_1e8, nullptr,
-                         nullptr, nullptr, 0, 0.5f, &color, 0);
+                         nullptr, nullptr, 0, 0.5f, 0);
         Unk_440c00_get(reinterpret_cast<u64>(field_20), 15);
         field_20->vf45(0);
     }
@@ -1930,11 +1939,13 @@ static inline f32 Unk_Saturate(f32 value) {
 }
 
 // 0x71004b4ab0
-// NON_MATCHING: 400 vs 396 bytes, block placement: the original lays the clamp
-// of the ratio to 1 and the tests after it out after the return (as if
-// unlikely) and falls through to the bias; the instructions are the same.
-// Tried: the tests negated (`!(ratio < 0)`, nested) and the search written out
-// here instead of through Unk_NearPosition.
+// The block placement (the clamp of the ratio to 1 after the return) comes
+// from Unk_NearPosition testing `field_3e8 == 1 || m <= 0` (in that order);
+// the clamp of `next` is a minimum followed by its own zero test (one select
+// on each, no sign extension pulled into them).
+// NON_MATCHING: one instruction: `count - 1` is scheduled before the scale's
+// products here, after `index + 1` in the original (not the IR's order, which
+// was tried both ways, nor the minimum's spelling).
 f32 CDepthOfField::Unk_4b4ab0(bool near) {
     if (!near) {
         return field_27c;
@@ -1943,11 +1954,15 @@ f32 CDepthOfField::Unk_4b4ab0(bool near) {
     s32 count = field_2f0;
     f32 pos = (1.0f - t) * static_cast<f32>(count) * 0.9999f;
     s32 index = static_cast<s32>(pos);
-    s32 next = index + 1 < 0 ? 0 : (index + 1 > count - 1 ? count - 1 : index + 1);
+    s32 next = index + 1 > count - 1 ? count - 1 : index + 1;
+    if (index + 1 < 0) {
+        next = 0;
+    }
+    f32 frac = pos - static_cast<f32>(index);
     const f32* table = field_358[field_2a8];
     f32 a = table[index];
     f32 b = table[next];
-    return (a + (b - a) * (pos - static_cast<f32>(index))) * 0.87890625f;
+    return (a + (b - a) * frac) * 0.87890625f;
 }
 
 // 0x7101eba354: the blur sizes of each kind, by field_14
@@ -2667,7 +2682,10 @@ static inline void Unk_Identity(MATRIXT44* out) {
 // 0x71004b4ab0's search). `frac` and `s` are declared outside the loop: with
 // them in the loop's scope, the two returns of the clamp meet in their
 // cleanup block and SimplifyCFG folds the clamp into a select (the original
-// keeps it a branch to the shared exit)
+// keeps it a branch to the shared exit). The mode is tested before the
+// clamped ratio (`field_3e8 == 1 || m <= 0.0f`; the code tests them the other
+// way round): that places the ratio's blocks as the original in all three
+// callers.
 inline f32 CDepthOfField::Unk_NearPosition(bool far) {
     if (!field_c0.field_6d) {
         return 0.0f;
@@ -2683,7 +2701,7 @@ inline f32 CDepthOfField::Unk_NearPosition(bool far) {
         return bias;
     }
     f32 m = ratio > 1.0f ? 1.0f : ratio;
-    if (m <= 0.0f || field_3e8 == 1) {
+    if (field_3e8 == 1 || m <= 0.0f) {
         return bias;
     }
     f32 value = 1.0f / powf(m, powf(10.0f, -(bias * 2.0f - 1.0f)));
@@ -2705,13 +2723,13 @@ inline f32 CDepthOfField::Unk_NearPosition(bool far) {
 
 // 0x71004b1100: the taps' offsets (the points of `count` rings, scaled to the
 // aspect ratio and rotated), as the constants of field_c8
-// NON_MATCHING: 2184 vs 2196 bytes, same stack layout; the searches' clamps
-// are branches as in the original now, but the ratio's zero path is laid out
-// differently (the original duplicates its `< 0` test into that path and
-// falls through to the clamp to 0-1 from there); the scale matrix's third
-// element is stored as a constant merged with its neighbours (the original
-// stores a register), and the near loop walks the points with another
-// register.
+// NON_MATCHING: 2184 vs 2196 bytes, same stack layout and the same near
+// position blocks; the A57 FP load balancing pass (it runs after register
+// allocation) colours the position's two products the other way round (s0/s3
+// against s3/s0), the scale matrix's third element is stored as a constant
+// merged with its neighbours (the original stores a register), the near
+// loop walks the points through another base (+4) and folds `y * -0.5f +
+// 0.5f` into a subtraction the original doesn't make.
 s32 CDepthOfField::Unk_4b1100(bool near, bool far, s32 count, f32 angle) {
     CTextureUtil* util = Unk_GetTextureUtil();
     Unk_ReleaseTextureUtil();
@@ -3573,42 +3591,53 @@ s32 CDepthOfField::Unk_4b29b0(s32 level) {
     return result;
 }
 
+// util's Unk_490780 in white (inline)
+static inline s32 Unk_BlurWhite(CTextureUtil* util, f32 scale, CRenderTexture* source, CRenderTexture* temp,
+                                CRenderTexture* target, s32 count, const f32* weights, bool normalize, s32 index) {
+    Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+    return util->Unk_490780(scale, source, temp, target, count, weights, normalize, index, &color, false, 0, 0);
+}
+// util's Unk_490e70 in white over the full range (inline)
+static inline s32 Unk_LineBlurWhite(CTextureUtil* util, f32 angle, f32 length, f32 scale, void* source, void* temp,
+                                    void* target, s32 count, const f32* weights, bool normalize, s32 index) {
+    Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+    Unk_Float4 range(1.0f, 0.0f, -3.40282347e+38f, 3.40282347e+38f);
+    return util->Unk_490e70(angle, length, scale, source, temp, target, count, weights, normalize, index, &color,
+                            nullptr, &range, false, 0, 0);
+}
+
+// util's Unk_496b40 in white with one weight (inline)
+static inline s32 Unk_FadeWhite(CTextureUtil* util, f32 arg0, f32 arg1, CRenderTexture* source, CRenderTexture* source2,
+                                CRenderTexture* target, const Unk_Float& value) {
+    Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
+    Unk_Float4 weight(value, value, value, value);
+    return util->Unk_496b40(arg0, arg1, source, source2, target, &weight, 0, &color, 0, false, false, 0, 0);
+}
+
 // 0x71004b3280: a level of the seventh kind: two hexagonal blurs and their
 // sum, faded into the alternate texture
-// NON_MATCHING: scheduling and registers (the original keeps the levels'
-// pointer in a stack slot and computes the level's address again for the
-// last call; the constants 1 and 9 are materialised earlier). The callees
-// 0x7100490780 and 0x7100496b40 have placeholder signatures.
+// The white colours are built in inline helpers (Unk_BlurWhite and its
+// neighbours): the original stores them after the calls' other arguments.
+// NON_MATCHING: the stack layout (the original has the weights highest, then
+// the range, the colour and the last colour; the slots are shared otherwise)
+// and the levels' pointer (the original keeps it in a stack slot and computes
+// the level's address again for the last call, whose field_28 it reads
+// through the pre-indexed field_a0 pointer). The callees 0x7100490780 and
+// 0x7100496b40 have placeholder signatures.
 s32 CDepthOfField::Unk_4b3280(s32 level) {
     Unk_Level* item = &field_4a8[level];
     CTextureUtil* util = Unk_GetTextureUtil();
     Unk_ReleaseTextureUtil();
     const f32 weights[9] = {0.71f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.71f};
-    {
-        Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
-        util->Unk_490780(1.0f, item->field_38, item->field_68[3], item->field_68[0], 9, weights, 1, field_220, &color,
-                         false, 0, 0);
-    }
-    {
-        Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
-        Unk_Float4 range(1.0f, 0.0f, -3.40282347e+38f, 3.40282347e+38f);
-        util->Unk_490e70(0.52359879f, 9.0f, 1.0f, item->field_38, item->field_68[3], item->field_68[1], 9,
-                         const_cast<f32*>(weights), 1, field_220, &color, nullptr, &range, false, 0, 0);
-    }
-    {
-        Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
-        Unk_Float4 range(1.0f, 0.0f, -3.40282347e+38f, 3.40282347e+38f);
-        util->Unk_490e70(1.04719758f, 9.0f, 1.0f, item->field_38, item->field_68[3], item->field_68[2], 9,
-                         const_cast<f32*>(weights), 1, field_220, &color, nullptr, &range, false, 0, 0);
-    }
+    Unk_BlurWhite(util, 1.0f, item->field_38, item->field_68[3], item->field_68[0], 9, weights, 1, field_220);
+    Unk_LineBlurWhite(util, 0.52359879f, 9.0f, 1.0f, item->field_38, item->field_68[3], item->field_68[1], 9, weights,
+                      1, field_220);
+    Unk_LineBlurWhite(util, 1.04719758f, 9.0f, 1.0f, item->field_38, item->field_68[3], item->field_68[2], 9, weights,
+                      1, field_220);
     CRenderTexture* sources[3] = {item->field_68[0], item->field_68[1], item->field_68[2]};
     s32 result = util->Unk_48d220(1.0f / 3.0f, 1.0f, item->field_a0, 3, sources, nullptr, field_224, 0);
     if (field_1dc != 0.0f && item->field_28 == 1) {
-        Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
-        Unk_Float value(item->field_2c);
-        Unk_Float4 weight(value, value, value, value);
-        util->Unk_496b40(1.0f, 0.002f, item->field_a0, item->field_78[0], item->field_a0, &weight, 0, &color, 0,
-                         false, false, 0, 0);
+        Unk_FadeWhite(util, 1.0f, 0.002f, item->field_a0, item->field_78[0], item->field_a0, Unk_Float(item->field_2c));
     }
     return result;
 }

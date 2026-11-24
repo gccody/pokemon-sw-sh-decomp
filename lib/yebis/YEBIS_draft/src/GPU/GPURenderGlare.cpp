@@ -475,10 +475,17 @@ static inline T* Unk_NewWith(A arg, const char* file, int line) {
 // glare's objects and their textures (with two of them, `field_b0.field_0`'s
 // bit 28, the textures one after the other take the two flags in turn), then
 // the numbers' defaults
-// NON_MATCHING: the same calls, allocation lines and stores; the levels'
-// description loop is unrolled for at most 4 descriptions here (7, each
-// cleared first, in the original), the bit-28 tests read field_b0 through
-// `this` instead of a spilled &field_b0, and register allocation and the
+// The levels' description count is set by a test of `level >= 0 && extra`
+// after `extra` is known: as a select on both, its known bits allow 7
+// iterations, and the loop over the four descriptions is unrolled 7 times as
+// in the original (with `if (extra) count = 4;` inside the level test it is
+// unrolled 4 times).
+// NON_MATCHING: the same calls, allocation lines and stores; the frame is
+// 0x10 bytes smaller (the shared slot of the strings and descriptions starts
+// at sp+0xa8, sp+0xc0 in the original), the bit-28 tests read field_b0
+// through `this` instead of a spilled &field_b0, the results of the
+// textures' Unk_49ab20 are tested after they are merged into `result` (the
+// original tests the call's own result), and register allocation and the
 // order of the constant stores at the end differ
 s32 CRenderGlare::CreateSystemObjects() {
     Unk_452f00(&field_b0);
@@ -756,9 +763,9 @@ s32 CRenderGlare::CreateSystemObjects() {
         bool extra = false;
         if (level >= 0) {
             extra = width <= field_b0.field_4 / 16 || i == levels - 1;
-            if (extra) {
-                count = 4;
-            }
+        }
+        if (level >= 0 && extra) {
+            count = 4;
         }
         Unk_49ab20_Desc descs[4];
         for (s32 j = 0; j < count; j++) {
@@ -2333,11 +2340,10 @@ s32 CRenderGlare::Unk_458720() {
 }
 
 // 0x7100458e20: the ghosts' levels, each by its colour, added up into
-// m_pBloomResult (their textures halved into each other first)
-// NON_MATCHING: register allocation of the second loop (the textures', the
-// colours' and the levels' pointers and the constant 1 get x23/x25/x26/x28,
-// the original x26/x23/x28/x25), and the colour loop's scheduling (the
-// original computes the blue difference before the alpha one)
+// m_pBloomResult (their textures halved into each other first). The tinted
+// colour is lerped into the array by Unk_Float4Lerp and scaled in place
+// there (with four scalar lerps the colour loop's schedule and the second
+// loop's registers differ).
 s32 CRenderGlare::Unk_458e20() {
     CTextureUtil* util = Unk_GetTextureUtil();
     Unk_ReleaseTextureUtil();
@@ -2373,15 +2379,13 @@ s32 CRenderGlare::Unk_458e20() {
             s32 k = i - first;
             k = k > 0 ? k : 0;
             const Unk_Float4& c = Unk_24e58c8[k % 3 + 1];
-            f32 r = Unk_Lerp(s_white.field_0[0].field_0, c.field_0[0].field_0, t);
-            f32 g = Unk_Lerp(s_white.field_0[1].field_0, c.field_0[1].field_0, t);
-            f32 b = Unk_Lerp(s_white.field_0[2].field_0, c.field_0[2].field_0, t);
-            f32 a = Unk_Lerp(s_white.field_0[3].field_0, c.field_0[3].field_0, t);
-            scale *= 3.0f / (Unk_Abs(r) + Unk_Abs(g) + Unk_Abs(b));
-            colors[i].field_0[0].field_0 = r * scale;
-            colors[i].field_0[1].field_0 = g * scale;
-            colors[i].field_0[2].field_0 = b * scale;
-            colors[i].field_0[3].field_0 = a * scale;
+            Unk_Float4Lerp(&colors[i], &s_white, &c, t);
+            scale *= 3.0f / (Unk_Abs(colors[i].field_0[0].field_0) + Unk_Abs(colors[i].field_0[1].field_0) +
+                             Unk_Abs(colors[i].field_0[2].field_0));
+            colors[i].field_0[0].field_0 *= scale;
+            colors[i].field_0[1].field_0 *= scale;
+            colors[i].field_0[2].field_0 *= scale;
+            colors[i].field_0[3].field_0 *= scale;
         } else {
             colors[i].field_0[0].field_0 = scale;
             colors[i].field_0[1].field_0 = scale;
@@ -2688,10 +2692,11 @@ static inline f32 Unk_ShaftLeast(s32 format) {
 // 0x710045ca70: the light shaft of view `index` (field_1f8's), blurred out
 // from its centre in up to eight passes of four steps through m_pStarGeneration's
 // textures, into `target` (m_pLightShaftResult for none)
+// The tint is applied by a loop over the colour's channels, which keeps
+// `color` in memory as the original does.
 // NON_MATCHING: a first draft with the original's calls and arithmetic. The
-// original keeps `color` in memory (its tint is applied by a loop over the
-// channels, which SROA can't undo: with one, 25 fewer differences), spills
-// `this` instead of keeping it in x20, and branches out of the level loop
+// original spills `this` instead of keeping it in x20 (the registers differ
+// from there on), and branches out of the level loop
 // before the step and the ping-pong index are updated (here they become
 // selects folded into the loop's exit test).
 s32 CRenderGlare::Unk_45ca70(CRenderTexture* target, s32 index) {
@@ -2728,9 +2733,11 @@ s32 CRenderGlare::Unk_45ca70(CRenderTexture* target, s32 index) {
     f32 d = field_1f8[index].field_30;
     Unk_GlareRect color = field_1f8[index].field_0;
     if (a == 0.0f && (tint.field_0 != 1.0f || tint.field_4 != 1.0f || tint.field_8 != 1.0f)) {
-        color.field_0 *= tint.field_0;
-        color.field_4 *= tint.field_4;
-        color.field_8 *= tint.field_8;
+        f32* c = &color.field_0;
+        const f32* t = &tint.field_0;
+        for (s32 n = 0; n < 3; n++) {
+            c[n] *= t[n];
+        }
     }
     s32 k = 0;
     for (s32 i = 0; i < count; i++) {

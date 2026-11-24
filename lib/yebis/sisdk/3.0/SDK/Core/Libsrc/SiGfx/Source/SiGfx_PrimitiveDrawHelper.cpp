@@ -254,12 +254,12 @@ bool SiGfxPrimitiveDrawHelper::Unk_5474b0() {
     return false;
 }
 
-// NON_MATCHING: the original places the test of the primitives' count
-// right after case 1, which falls into the part after the switch (`b.lt` to
-// the return); here that part comes after case 5 and every case jumps to it
-// (592 bytes for 600). (The vertices' copy is a plain `memcpy` in the
-// original. Tried: every order of the cases and of the default, the default
-// as zero primitives, the locals initialised, `!last` tested first.)
+// The copy of the kept vertices is under a test of `last` of its own, with
+// the source's address computed before the count is tested: the two tests
+// stay apart (`last` first) and every case reaches the part after the
+// switch through the first case's block. The kind of what is drawn is
+// assigned with the word after it (an 8-byte store) before the kind is set.
+// The vertices' copy is a plain `memcpy`.
 // 0x7100547500
 bool SiGfxPrimitiveDrawHelper::Unk_547500(bool last, const u8* pData) {
     if (!field_184) {
@@ -300,20 +300,24 @@ bool SiGfxPrimitiveDrawHelper::Unk_547500(bool last, const u8* pData) {
     if (primitives < 1) {
         return true;
     }
-    if (kept != 0 && !last) {
+    if (!last) {
         const u8* pKept = pData + static_cast<s64>(field_178 - kept) * field_174;
-        switch (kept) {
-        case 1:
-            Unk_4c9380(field_190.field_100, pKept, field_174);
-            break;
-        case 2:
-            Unk_4c9380(&field_190.field_100[field_174], pKept, field_174);
-            Unk_4c9380(field_190.field_100, pKept + field_174, field_174);
-            break;
+        u8* pBuffer = field_190.field_100;
+        if (kept != 0) {
+            switch (kept) {
+            case 1:
+                Unk_4c9380(pBuffer, pKept, field_174);
+                break;
+            case 2:
+                Unk_4c9380(&pBuffer[field_174], pKept, field_174);
+                Unk_4c9380(pBuffer, pKept + field_174, field_174);
+                break;
+            }
         }
     }
-    field_490->vf85()->field_16c = 4;
-    field_490->vf85()->field_16c = field_180;
+    Unk_PrimitiveStates::Unk_DrawKind kind = {4, 0};
+    field_490->vf85()->field_16c = kind;
+    field_490->vf85()->field_16c.field_0 = field_180;
     field_490->vf85()->field_188 |= 4;
     field_490->vf24(field_178, 0, 1, 0);
     if (last) {
@@ -1605,7 +1609,7 @@ bool SiGfxPrimitiveDrawHelper::Unk_548640(Unk_PrimitiveTexture* pTexture, const 
     states->field_14 = 3;
     states->field_34 = false;
     states->field_35 = false;
-    states->field_16c = 5;
+    states->field_16c.field_0 = 5;
     states->field_60[0].field_0 = desc->field_84;
     states->field_60[0].field_c = 1;
     states->field_60[0].field_10 = 5;
@@ -1700,7 +1704,7 @@ bool SiGfxPrimitiveDrawHelper::Unk_54cab0(Unk_PrimitiveTexture* pPlane0, Unk_Pri
     states->field_2d = desc->field_85;
     states->field_34 = false;
     states->field_35 = false;
-    states->field_16c = 5;
+    states->field_16c.field_0 = 5;
     states->field_60[0].field_0 = desc->field_84;
     states->field_60[0].field_c = 1;
     states->field_60[0].field_10 = 5;

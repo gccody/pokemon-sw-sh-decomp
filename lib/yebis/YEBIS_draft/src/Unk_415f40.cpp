@@ -2005,13 +2005,24 @@ void Unk_4146f0(u32 count, f32* offsets, f32* weights, bool normalize, f32 sigma
 // The flag is set and then cleared, which keeps its test a branch (see
 // Unk_413170).
 // NON_MATCHING: one instruction: the original multiplies 2 sigma by sigma,
-// here sigma by 2 sigma (Reassociate puts the operand of lower rank first; the
-// original's order needs the second sigma to be another value of at least
-// 2 sigma's rank at that point, merged with the first only later: a later
-// load or a phi (two array elements merged by GVN after the loops are
-// unrolled), or `sigma > 1e-8f ? sigma : 1e-8f` next to fmaxf's (ISel makes
-// both fmaxnm); a single clamped value, however it is passed to a helper or
-// clamped, always comes out sigma first; no natural source was found)
+// here sigma by 2 sigma. Reassociate's canonicalizeOperands puts the operand
+// of lower rank first (ties keep the source order), and InstCombine swaps
+// back only an operand of lower complexity (an argument or a cast): with
+// sigma an argument (Unk_4121e0) the original's order comes out, with
+// sigma = fmaxf(...) (llvm.maxnum, rank arg + 1) the product 2 sigma always
+// ranks one above it. So the original's second factor was, at Reassociate,
+// another value of at least 2 sigma's rank that becomes the same register
+// later. Verified: `2.0f * sigma * (raw > 1e-8f ? raw : 1e-8f)` with `raw`
+// the unclamped parameter (a select, rank arg + 2, a tie; ISel makes it
+// fmaxnm(raw, 1e-8) too and MachineCSE merges the two) gives the original in
+// all twelve of the family (0x7100413170, 0x7100413860 and this one match
+// outright, the others lose this difference). Not used: it is a second clamp
+// of the same value. Ruled out in round 2 (each still sigma first): std::max
+// either way round, a MAX macro, `if (!(s > e)) s = e;`, a double clamp,
+// sigma + sigma, a helper taking sigma by value or const reference, a helper
+// that clamps again (folded), sigma in a local struct or array (forwarded
+// by EarlyCSE w/ MemorySSA before Reassociate), k computed inside the taps
+// loop, negated factors (-2 sigma * -sigma).
 void Unk_414af0(u32 count, f32* offsets, f32* weights, bool normalize, f32 sigma, f32 x) {
     sigma = fmaxf(sigma, 1e-8f);
     f32 s = sigma * 2.5066283f;

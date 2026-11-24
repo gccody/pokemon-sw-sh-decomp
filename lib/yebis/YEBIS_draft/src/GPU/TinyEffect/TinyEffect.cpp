@@ -1535,22 +1535,22 @@ s32 CTinyEffect::Unk_44eac0() {
 }
 
 // 0x710044f250
-// NON_MATCHING: the end of the first loop is `start + count` in the original
-// (`add w8, w5, w6`) and `count + start` here, whichever way it is written.
-// Copies of the two (`u32 first = start; u32 number = count;` after the
-// defaults, used only by this loop) give the original, a difference of debug
-// values alone.
+// The defaults go to copies of `start` and `count`, the count's declared
+// first: Reassociate orders `first + number` by the copies' phis, which come
+// in that order (`add w8, w5, w6`).
 s32 CTinyEffect::ApplyVertexInputs(Unk_TinyLayout* layout, IGPUBuffer** buffers, const u32* offsets,
                                    const u32* strides, u32 start, u32 count) {
+    u32 number = count;
+    u32 first = start;
     if (layout == nullptr || buffers == nullptr) {
         if (layout != nullptr || buffers != nullptr) {
             return -6;
         }
-        start = 0;
-        count = 16;
+        first = 0;
+        number = 16;
     }
     if (buffers != nullptr) {
-        for (u32 i = start; i < start + count; i++) {
+        for (u32 i = first; i < first + number; i++) {
             if (buffers[i]->field_5c) {
 #line 11243
                 PPFX_ERROR("CTinyEffect::ApplyVertexInputs(): apGPUVertexBuffers[%d] is currently mapped. Call Unmap() first.",
@@ -1560,17 +1560,17 @@ s32 CTinyEffect::ApplyVertexInputs(Unk_TinyLayout* layout, IGPUBuffer** buffers,
         }
     }
     field_130 = layout->field_78;
-    field_138 = count;
-    field_13c = start;
-    for (u32 i = 0; i < count; i++) {
+    field_138 = number;
+    field_13c = first;
+    for (u32 i = 0; i < number; i++) {
         if (buffers[i] != nullptr) {
             field_140.field_0[i] = buffers[i]->field_50[buffers[i]->field_58];
         } else {
             field_140.field_0[i] = nullptr;
         }
     }
-    memcpy(field_140.field_80, offsets, count * sizeof(u32));
-    memcpy(field_140.field_c0, strides, count * sizeof(u32));
+    memcpy(field_140.field_80, offsets, number * sizeof(u32));
+    memcpy(field_140.field_c0, strides, number * sizeof(u32));
     return 0;
 }
 

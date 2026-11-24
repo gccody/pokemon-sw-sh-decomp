@@ -1262,7 +1262,12 @@ bool SiGfxGeometryUtility::vf10(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVe
 // NON_MATCHING: the registers differ (the original keeps the height in v9 and
 // spills the radius, -radius and the index buffer), and the index buffer's
 // description has more stores in the original (its field_1c is 8 before it is
-// 2, and the zeros of 0x20 to 0x3f stay: not reproduced yet).
+// 2, and the zeros of 0x20 to 0x3f stay: not reproduced yet). Those are
+// the description's constructor's stores surviving dead store elimination:
+// field_18 and field_1c (8) as one 8-byte store, field_24 and field_28 as
+// one at 0x24, which a later 4-byte store only partly overwrites. Tried
+// (round 2): flags 8, the format and element size by if/else (SimplifyCFG
+// sinks the stores into selects before DSE, nothing changes).
 bool SiGfxGeometryUtility::vf11(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVertexBuffer,
                                 SiGfxNXBuffer* pIndexBuffer, f32 radius, f32 height, s32 segments,
                                 Unk_GeometryBounds* pBounds) {
