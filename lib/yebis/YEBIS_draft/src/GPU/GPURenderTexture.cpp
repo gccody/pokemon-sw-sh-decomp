@@ -451,7 +451,11 @@ s32 CRenderTexture::Unk_49b230() {
 // 0x710049bb30: the render texture of an existing texture
 // NON_MATCHING: the description's reset: the original zeroes fields 0x4 to
 // 0xc with one store each and field 0 apart (here one 16-byte store), and it
-// sets the -6 for both null checks before the first.
+// sets the -6 for both null checks before the first. The original's stores
+// are a 12-byte memset's expansion (field_c, then 4 and 8 as one) and a
+// 13-byte one for field_14 to field_20, so its field 0 wasn't in the run
+// MemCpyOpt merged; field_0 = 0 written after the reset, a combined null
+// test and a result variable for the -6 don't give it.
 s32 CRenderTexture::vf6(IGPUDevice* device, Unk_49b230_Object* texture) {
     IGPUDevice* previous = field_20;
     Unk_49ec80();
@@ -1047,6 +1051,9 @@ s32 CRenderTexture::EndTiling(void* arg0, s32 arg1, s32* arg2, bool* arg3, f32 a
 // with the loaded test first (verified by compiling edited IR); Reassociate
 // puts the argument's test first in any source form tried (nested ifs, a
 // bool local, an inline helper, a result variable, goto, a negated `||`).
+// The bitwise `Unk_24e53e8 & !(flags & 0x100000)` keeps one block but tests
+// the flag's byte with `tst` (the bool's range lets InstCombine merge the
+// two tests); `(Unk_24e53e8 != 0) & ...` becomes one `bics`.
 s32 Unk_49e290(u32 flags, CRenderTexture* target, s32 arg2, bool* done, f32 arg4) {
     if (Unk_24e53e8 && !(flags & 0x100000)) {
         s32 result = CRenderTexture::EndTiling(nullptr, arg2, nullptr, done, arg4);

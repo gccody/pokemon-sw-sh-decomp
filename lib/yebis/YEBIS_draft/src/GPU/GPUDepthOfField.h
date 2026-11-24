@@ -8,7 +8,12 @@
 
 namespace PPFX {
 
-// 0x71004385e0 (GPUPostEffect.cpp's TU; placeholder signature, from its callers)
+// 0x71004385e0 (GPUPostEffect.cpp's TU; placeholder signature, from its callers).
+// It is an `inline` function there (a linkonce copy: its callers in that TU
+// reload members after the call, no attributes are inferred for it); the
+// TUs that only call it see this plain declaration. Moving its definition
+// and its format helpers into a shared header would make the declarations
+// agree.
 bool Unk_4385e0(s32 format);
 
 class IGPUBuffer;

@@ -3901,7 +3901,11 @@ static inline s32 Unk_SetTonemapBackend(PPFX::CPostEffect* self, f32 gamma, f32 
 // integers (`fmov w23, s11` at the entry, `csel w8, w23, w8, gt`, the store a
 // `str w8`) and compares the selected bits as a float; here they are
 // `fmaxnm`s. Unk_Float parameters, by-value and by-reference maxima and
-// two reads of the maximum were tried (as with Unk_423db0). The callers
+// two reads of the maximum were tried (as with Unk_423db0); also the
+// helper taking an Unk_Float (by value or reference), the maximum bound to a
+// reference of named locals (so that the member's store copies through the
+// selected pointer) and the arguments swapped: all give the float select.
+// The callers
 // (lib/yebis/leaf's Unk_418470_call and its game caller) don't pass the
 // floats yet.
 s32 Unk_4244a0(u64 self_, u32 tonemap, f32 exposure, f32 gamma, f32 factor, f32 dither) {
@@ -4324,7 +4328,10 @@ s32 Unk_43a7e0(u64 self_, u32 index, f32 x, f32 y, f32 z, f32 w) {
 // NON_MATCHING: the same arithmetic, but the tone's sixteen stores pair up at
 // other offsets (here m[0][0] is stored alone first and the pairs are odd; the
 // original pairs every row's elements 0-1 and 2-3). Element order, a loop by
-// columns and a lerp of two matrices were tried.
+// columns and a lerp of two matrices were tried; also every direction of
+// both loops, `s64`/`u32` indices, a row pointer, a flat loop and the
+// sixteen stores written out in the original's store order (with `j`
+// counted down the pairs are the original's, their order isn't).
 s32 Unk_43a840(u64 self_, u32 index, f32 amount) {
     PPFX::CPostEffect* self = reinterpret_cast<PPFX::CPostEffect*>(self_);
     PPFX::MATRIXT44 tone;
@@ -4860,6 +4867,9 @@ namespace PPFX {
 // and the first select: the original selects on `uge` and keeps field_59c's
 // test a branch of its own, reusing the select's compare; here the two tests
 // are one `ccmp`. `has` set by `if`s from false gives the original's blocks.
+// Tried for the select: `x < 0 ? 1 : x`, an `if` from field_91c, a shared
+// `negative` flag, the field_59c test outside (nested `if`s), an if/else
+// with the default in the else, the scale test outside.
 s32 CPostEffect::Unk_425750() {
     Unk_42a0f0();
     Unk_428220();
@@ -5149,7 +5159,8 @@ static inline s32 Unk_425410_GetFormat(u64 object, u64 other) {
 // here the tests use the pointers' `orr` again and the format's two
 // conditions are merged with `ccmp`, and the stores of field_58 to field_6c
 // come in another order. The scale and bias are selected as integers in both
-// (Unk_Float).
+// (Unk_Float). Tried: `has` as `(object | other) != 0` or with `|`, the
+// sources set before an `if` of the format, `use` with `&`.
 s32 Unk_425410(PPFX::CPostEffect* self, u32 source, u64 object, u64 other, u32 mode, f32 scale, f32 bias) {
     self->field_895 = true;
     bool has = object != 0 || other != 0;
@@ -5340,8 +5351,12 @@ namespace PPFX {
 // a device to keep using (the device objects stay then)
 // NON_MATCHING: the same calls and releases in the same order; the register
 // allocation differs (the original keeps the reuse flag on the stack and
-// &field_18 in x26, and rematerialises the texture util's size each time)
-// and so the scheduling of the first block.
+// &field_18 in x26, and rematerialises the texture util's size each time:
+// here constant hoisting keeps it in x23) and so the scheduling of the first
+// block. The original also lays the vf4 test (field_40 null) out after the
+// first texture util block and stores field_40 once on each path (`mov x20,
+// xzr` and a store of x20); tried: the reuse test nested the other way, the
+// stores in the branches, `reuse ? keep : nullptr` (a csel), an `s32` flag.
 s32 CPostEffect::Uninitialize(void* device) {
     IGPUDevice* keep = static_cast<IGPUDevice*>(device);
 #line 10387
@@ -5779,14 +5794,18 @@ s32 CPostEffect::DrawDebugBuffers() {
     return 0;
 }
 
-bool Unk_4385e0(s32 format);
+// (an inline function: callers in other files call this copy, and as a
+// linkonce function it isn't known not to write memory, so Unk_429f20 reloads
+// field_1a0 after calling it)
+inline bool Unk_4385e0(s32 format);
+
+// a render texture's format (inline: in a branch it keeps the null test of
+// the texture a branch that is threaded into Unk_41af70's)
+static inline s32 Unk_FormatOf(const Unk_RenderTexture* texture) {
+    return texture->field_38;
+}
 
 // 0x7100429f20
-// NON_MATCHING: the original reloads field_1a0 for the last call, as if
-// Unk_4385e0 could write memory (here it is known not to, so field_1a0 stays
-// in x19 and `this` doesn't: the prologue moves and the registers differ; with
-// Unk_4385e0 only declared, that part matches); format0 is a select of two
-// addresses here, a branch to each load in the original
 s32 CPostEffect::Unk_429f20(bool set, bool enable) {
     Unk_4aa5a0_Self* dof = field_1a0;
     if (dof == nullptr) {
@@ -5797,12 +5816,7 @@ s32 CPostEffect::Unk_429f20(bool set, bool enable) {
     }
     dof->field_1e0 = enable;
     Unk_RenderTexture* texture = Unk_41af70();
-    s32 format0;
-    if (texture != nullptr) {
-        format0 = texture->field_38;
-    } else {
-        format0 = field_6a8;
-    }
+    s32 format0 = texture != nullptr ? Unk_FormatOf(texture) : field_6a8;
     s32 index = field_5e0;
     if (index == -1) {
         index = field_190->field_90;
@@ -5898,6 +5912,7 @@ s32 CPostEffect::Unk_42b8a0() {
 
 // whether a format's channels are 32-bit floats (inline)
 static inline bool Unk_IsFloat32Format(s32 format) {
+    bool result = false;
     switch (format) {
     case 2:
     case 6:
@@ -5906,10 +5921,10 @@ static inline bool Unk_IsFloat32Format(s32 format) {
     case 21:
     case 40:
     case 41:
-        return true;
-    default:
-        return false;
+        result = true;
+        break;
     }
+    return result;
 }
 // whether they are 16-bit floats or shared-exponent ones (inline)
 static inline bool Unk_IsFloat16Format(s32 format) {
@@ -5926,6 +5941,8 @@ static inline bool Unk_IsFloat16Format(s32 format) {
 // the linear format of an sRGB one (inline)
 static inline s32 Unk_LinearFormat(s32 format) {
     switch (format) {
+    case 0:
+        return 0;
     case 29:
         return 28;
     case 72:
@@ -6340,11 +6357,10 @@ s32 CPostEffect::Unk_42df80(s32* outFormat, f32* outScale, f32* outScale2, f32* 
 }
 
 // 0x71004280e0: a number by field_1008's mode (tan of half of field_6cc)
-// NON_MATCHING: one register: case 2's product is put in s3 (the original:
-// s0). The product is selected by the mode (`mode == 3 ? value : value *
-// scale`), which gives the default case its own `field_100c * 0.0` block as
-// in the original. Tried: case orders, an initial value, the switch or the
-// cotangent in inline helpers, the case's arithmetic through locals.
+// The product is selected by the mode (`mode == 3 ? value : value * scale`),
+// which gives the default case its own `field_100c * 0.0` block; case 2 adds
+// its constant in a second statement (in one expression the product is put
+// in s3).
 f32 CPostEffect::Unk_4280e0() {
     f32 value;
     switch (field_1008) {
@@ -6355,7 +6371,8 @@ f32 CPostEffect::Unk_4280e0() {
         value = -0.09597635f - logf(tanf(field_6cc * 0.5f));
         break;
     case 2:
-        value = 1.0f / tanf(field_6cc * 0.5f) * 0.2f + 0.30255502f;
+        value = 1.0f / tanf(field_6cc * 0.5f) * 0.2f;
+        value += 0.30255502f;
         break;
     case 3:
         value = field_100c;
@@ -6546,7 +6563,12 @@ static inline const Unk_Float& Unk_Max(const Unk_Float& a, const Unk_Float& b) {
 // NON_MATCHING: the same instructions but for the callee-saved registers of
 // `filter`, `list`, `negate`, the count and the first texture's filter (a
 // rotation of w25 to w28: here `filter` takes w25, the original w28; tried
-// the scale test first and the texture utility fetched later). Each element
+// the scale test first and the texture utility fetched later, `s64` and
+// `u32` indices and counts, the list test's spellings, the colour's loop
+// index, the third filter by `if`, a helper for the filters' calls; the
+// restore loop's first saved filter read into a local before the call loads
+// it before the parent loop, the original between the loop and the virtual
+// call). Each element
 // of the colour read where its magnitude is taken (not all four first) gives
 // the original's loads and order.
 s32 CPostEffect::Unk_432ca0(f32 scale, Unk_RenderTexture* arg1, Unk_RenderTexture* arg2, Unk_RenderTexture* arg3,
@@ -6741,19 +6763,19 @@ s32 CPostEffect::Unk_4299a0() {
     return 0;
 }
 
-// 0x71004385e0: whether a format is a fixed-point one
-// NON_MATCHING: here the three switches become one table; the original keeps
-// one table for the 32-bit floats and the sRGB formats (case 0 on its own),
-// then a bit test for the 16-bit ones, and combines the results with `bic`
-bool Unk_4385e0(s32 format) {
-    if (Unk_IsFloat32Format(format)) {
-        return false;
-    }
+// 0x71004385e0: whether a format is a fixed-point one (inline, see above)
+// The 32-bit floats' and the sRGB formats' switches become one table (case 0
+// on its own: Unk_LinearFormat's `case 0`), the 16-bit test a bit test after
+// it; the 32-bit flag is a local of its helper (with `return true` in the
+// cases the switch becomes a bit mask before it can be merged).
+inline bool Unk_4385e0(s32 format) {
     s32 linear = Unk_LinearFormat(format);
-    if (linear != 0 && Unk_IsFloat16Format(linear)) {
+    bool f32 = Unk_IsFloat32Format(format);
+    bool f16 = Unk_IsFloat16Format(linear);
+    if (f32) {
         return false;
     }
-    return linear != 26;
+    return !(f16 || linear == 26);
 }
 
 // a colour's luminance in colour space 0 (inline: its test stays a branch, so
@@ -6802,21 +6824,25 @@ static inline bool Unk_428030_A(s32 format) {
 }
 
 // 0x7100428030: whether a format is one of a kind (placeholder)
-// NON_MATCHING: the original's table also covers case 0 (straight to the
-// return of false) and the 32-bit floats' flag comes out of it in w8; here
-// the zero test of the linear format stays a cbnz after the 16-bit test.
-// Tried: the tests in other orders, the linear format left out, a zero test
-// first, the result's last test on the linear format; also one switch for
-// both kinds with `case 0: return false` and the 32-bit flag set in its cases
-// (Unk_423480's shape: then the 16-bit test becomes a bit-mask lookup) and all
-// 72 orders of the three helpers with four spellings of each test.
+// NON_MATCHING: the jump table is the original's (Unk_428030_A's cases, the
+// 32-bit floats' flag set in it, case 0 straight to the return of false: the
+// zero test first), but the 16-bit test comes out as a bitmap lookup whose
+// true case returns true at once (`format != 26` folded); the original keeps
+// a switch bit test (`lsl; tst`) and its `format != 26` compare, and combines
+// the 32-bit flag with `bic`. Tried: the 16-bit test nested around the last
+// two tests (one shared return), its helper with a result local, the tests
+// in other orders and spellings, the linear format (its sRGB cases would get
+// their own table entries, which the original's table doesn't have).
 bool Unk_428030(s32 format) {
+    if (format == 0) {
+        return false;
+    }
     if (Unk_428030_A(format)) {
         return true;
     }
     bool f32 = PPFX::Unk_IsFloat32Format(format);
-    s32 linear = PPFX::Unk_LinearFormat(format);
-    if (!((linear != 0 && PPFX::Unk_IsFloat16Format(linear)) || ((format == 26) | f32))) {
+    bool f16 = PPFX::Unk_IsFloat16Format(format);
+    if (!(f16 || ((format == 26) | f32))) {
         return false;
     }
     if (Unk_425410_Format(format)) {
@@ -7167,7 +7193,8 @@ static inline Unk_Vector3 Unk_WhiteRGB(f32 temperature, bool planck, const f32* 
 // 1 - x before the luminance's select and subtracts y after the division).
 // Tried: z first, the scale inline, `scale * x`, an if for the select; with
 // `1 - x` in a local before Y the second copy is the original's but for two
-// registers (s1/s5).
+// registers (s1/s5). Also non-static `inline`, `const f32&` parameters,
+// `1 - x - y` in a local first or by `-=`, the result by elements.
 // 0x710043c690: the RGB colour, in a colour space, of white light of a
 // colour temperature (relative to 6500 K's) at a luminance (see Unk_43cae0),
 // optionally inverted, and an alpha (an out-of-line function: unlike
@@ -7232,11 +7259,14 @@ static inline f32 Unk_Sqrt(f32 x) {
 // 0x710042a590: what changed since the last frame's view: whether the eye
 // moved further than field_d08, whether it moved, whether the projection and
 // the rotation changed, and whether anything did
-// NON_MATCHING: 24 bytes shorter. The original computes both frustums in the
-// entry block and folds only the first three comparisons into one fccmp
-// chain, the top's with the two NaN tests (orr); here all four fold together
-// and the NaN test of field_6c4 comes first. The rotation and distance parts
-// have the original's shape.
+// NON_MATCHING: 28 bytes shorter. The original computes the bottoms, lefts
+// and rights in the entry block and folds only their comparisons into one
+// fccmp chain, and computes the tops after it, in the block that combines
+// their comparison with the two NaN tests (orr); here all four fold together.
+// The NaN tests as a `|` are closer than as `||`; the comparison as `||`s
+// or through operator==, the frustums' order and the products' association
+// make no difference. The rotation and distance parts have the original's
+// shape.
 s32 CPostEffect::Unk_42a590(bool* far, bool* moved, bool* projection, bool* rotation, bool* any) {
     f32 scale = field_6c4;
     f32 w = scale * (field_6d0 * field_420);
@@ -7249,7 +7279,7 @@ s32 CPostEffect::Unk_42a590(bool* far, bool* moved, bool* projection, bool* rota
     f32 yh2 = h2 * field_6f0;
     Unk_Frustum current = {yh - h, xw - w, w + xw, h + yh};
     Unk_Frustum previous = {yh2 - h2, xw2 - w2, w2 + xw2, h2 + yh2};
-    bool projectionChanged = current != previous || field_6c4 != field_6c4 || field_6c8 != field_6c8;
+    bool projectionChanged = current != previous || (field_6c4 != field_6c4) | (field_6c8 != field_6c8);
     f32 dx = field_6f4.field_0[3][0] - field_774.field_0[3][0];
     f32 dy = field_6f4.field_0[3][1] - field_774.field_0[3][1];
     f32 dz = field_6f4.field_0[3][2] - field_774.field_0[3][2];
@@ -7653,7 +7683,12 @@ inline Unk_Float2 Unk_ShaftPosition(const CPostEffect* self, const Unk_Float2* s
 // is then counted up), and case 0 and the default of the shaft position's
 // switch each get the `shift = 0` copy (the original: one block that case 0
 // falls into). `at` is declared where it is set and `color` isn't in a scope
-// of its own: that gives the original's stack slots.
+// of its own: that gives the original's stack slots. Tried: the item by
+// reference or pointer (or Unk_LightShaft), `s64` indices, the shaft
+// position's switch with `shift` set before it, the tests' spellings; a `u32`
+// index (the item-based IV, counted up) with the factors read offset first
+// is the closest (18 differing instructions against 37), but the original
+// tests a signed count.
 bool CPostEffect::Unk_4291c0() {
     Unk_45eb90_Self* glare = field_198;
     field_c6d = false;
@@ -8781,9 +8816,13 @@ s32 CPostEffect::ApplyEffects_GenerateNormalAndLinearDepth() {
 // Unk_48b280 for a depth factor source) from `source` (null: texture field_5d8)
 // into `target` (null: texture field_5e0), with `mask` (field_80's) and its
 // depth spaces; a negative `view` draws for every view
-// NON_MATCHING: register allocation and scheduling only (the original keeps
-// `keep` in w28 where this spills it, and pairs the mask numbers' stores):
-// about 85 instructions.
+// NON_MATCHING: register allocation and scheduling only (v0 or u0 spilled,
+// two operand orders, a few stores scheduled one place off): about 50
+// instructions. The depth factors are stored through the elements' floats
+// (`.field_0`: stored as element objects they are integers, and the scale
+// and bias defaults become integer constants); the declaration order of the
+// four (bias2 first) is the closest of the 24, and the size's reads in this
+// order the closest a greedy search of single moves found.
 s32 CPostEffect::Unk_42cc90(s32 view, bool clear, void* source, void* target, bool keep, void* mask, u32 maskSpace,
                             u32 depthSpace, u32 flags, f32 offset) {
     if (!field_1051 && field_50 == nullptr) {
@@ -8822,12 +8861,12 @@ s32 CPostEffect::Unk_42cc90(s32 view, bool clear, void* source, void* target, bo
         to = Unk_AsTexture(Unk_TextureAt(field_5e0));
     }
     CRenderTexture* size = from != nullptr ? from : to;
-    f32 u0 = size->field_90;
-    f32 v0 = size->field_94;
     f32 fw = static_cast<f32>(static_cast<u32>(size->field_54));
     f32 fh = static_cast<f32>(static_cast<u32>(size->field_58));
     f32 su = size->field_88;
+    f32 u0 = size->field_90;
     f32 sv = size->field_8c;
+    f32 v0 = size->field_94;
     f32 tw = static_cast<f32>(static_cast<u32>(to->field_54));
     f32 th = static_cast<f32>(static_cast<u32>(to->field_58));
     if (from != nullptr || !keep) {
@@ -8875,9 +8914,9 @@ s32 CPostEffect::Unk_42cc90(s32 view, bool clear, void* source, void* target, bo
         maskTexture = Unk_GetTexture(static_cast<CRenderTexture*>(mask));
         maskTexture->vf15(4);
         maskScale = Unk_DepthFactors(6, maskSpace, 1.0f, 0.0f);
+        f32 bias2 = 0.0f;
         f32 scale2 = 1.0f;
         f32 scale = 1.0f;
-        f32 bias2 = 0.0f;
         f32 bias = 0.0f;
         if (field_50 != nullptr) {
             scale = field_60;
@@ -8931,10 +8970,10 @@ s32 CPostEffect::Unk_42cc90(s32 view, bool clear, void* source, void* target, bo
             bias2 = field_6c;
         }
         Unk_Float4 depthFactors;
-        depthFactors.field_0[0] = scale;
-        depthFactors.field_0[1] = bias;
-        depthFactors.field_0[2] = scale2;
-        depthFactors.field_0[3] = bias2;
+        depthFactors.field_0[0].field_0 = scale;
+        depthFactors.field_0[1].field_0 = bias;
+        depthFactors.field_0[2].field_0 = scale2;
+        depthFactors.field_0[3].field_0 = bias2;
         util->Unk_48b280(0.0f, 0.0f, tw, th, 0.0f, 0.0f, u1, v1, depth, texture, &depthFactors, &factors.field_0, type,
                          view, maskTexture, &maskScale, &depthScale, flags, maskV, &colour, 0);
     }
@@ -10115,9 +10154,11 @@ s32 CPostEffect::Unk_431b40() {
 
 // 0x71004320b0: Unk_48cc30 from `source` and field_1f0 to field_218 (the
 // output `target`, else texture field_5f8) with the camera's planes
-// NON_MATCHING: the original folds the far plane's last two selects into one
-// (fccmp, as in 0x7100427ad0) and keeps the sigma in s12 (here s8): about
-// 100 instructions.
+// NON_MATCHING: register allocation and the scheduling of the parameters'
+// loads and spills: about 50 instructions. The far plane's last minimum is
+// Unk_427ad0's `&` of the two comparisons (one fccmp, as in the original);
+// the order of the parameters' reads (depth's flag first) is the closest
+// one a greedy search of single moves found (85 to 48 differing).
 s32 CPostEffect::Unk_4320b0(Unk_RenderTexture* source, Unk_RenderTexture* target, bool flag, bool force) {
     if (!force && !field_10de) {
         return 0;
@@ -10138,15 +10179,15 @@ s32 CPostEffect::Unk_4320b0(Unk_RenderTexture* source, Unk_RenderTexture* target
     f32 xw = field_6d4 * w;
     f32 yh = h * field_6d8;
     Unk_40f8d0(&projection, false, true, xw - w, w + xw, yh - h, h + yh, scale, field_6c8);
+    bool depth = field_10df;
     f32 a0 = field_ec0;
     f32 a3 = field_ecc;
     f32 a4 = field_ed0;
     f32 a5 = field_ed4;
     f32 a6 = field_ed8;
     f32 a1 = field_ec4;
-    f32 sigma = field_f00;
-    bool depth = field_10df;
     f32 a2 = field_ec8;
+    f32 sigma = field_f00;
     f32 blur2 = field_ef8;
     f32 blur3 = field_efc;
     s32 count = field_ebc;
@@ -10197,7 +10238,9 @@ s32 CPostEffect::Unk_4320b0(Unk_RenderTexture* source, Unk_RenderTexture* target
     now = field_eec;
     if (Unk_4622e0(field_6c4, current, now, before)) {
         f32 next = now < before ? before : current;
-        current = next < current ? next : current;
+        if ((now < before) & (next < current)) {
+            current = before;
+        }
     }
     f32 farPlane = high < current ? high : current;
     f32 fade[2];
@@ -10507,8 +10550,12 @@ s32 CPostEffect::Unk_433450() {
 
 // 0x7100433d00: `source` tone mapped into the history texture (or into
 // field_670's texture, then copied into it)
-// NON_MATCHING: register allocation only (s10 to s13, x21/x22, and `space`
-// in w8 where the original keeps a `mov w9, wzr`): about 120 instructions.
+// NON_MATCHING: register allocation only (s10 to s13, x21/x22) and the
+// colour's stores, which come before `space`'s test here (after the aspect's
+// division in the original). With the colour read after `space`, as the
+// original's order suggests, `space` takes the register of field_96c's test
+// and its `mov w9, wzr` block goes (8 bytes shorter); read before it, the
+// diamond is the original's.
 s32 CPostEffect::Unk_433d00(Unk_RenderTexture* source) {
     field_10e1 = false;
     s32 format;
@@ -10545,11 +10592,11 @@ s32 CPostEffect::Unk_433d00(Unk_RenderTexture* source) {
     f32 w = static_cast<f32>(target->field_54);
     f32 h = static_cast<f32>(target->field_58);
     Unk_SetTarget(Unk_AsTexture(target));
+    Unk_Float4 colour(field_8e8, field_8e8, field_8e8, field_8e8);
     s32 space = field_96c ? field_974 : 0;
     IGPUSurface* surface =
         reinterpret_cast<IGPUSurface*>(Unk_AsTexture(target)->field_b8[Unk_AsTexture(target)->field_a0]);
     f32 aspect = width / height;
-    Unk_Float4 colour(field_8e8, field_8e8, field_8e8, field_8e8);
     reinterpret_cast<CRenderGlare*>(field_198)->TonemapToSurface(
         surface, false,
         Unk_AsTexture(source), hasGamma, fmt, &colour, matrix, w, h, 0.0f, 0.0f, dither, gamma, scale, scale2, step,
@@ -10566,8 +10613,10 @@ s32 CPostEffect::Unk_433d00(Unk_RenderTexture* source) {
 // 0x7100434000: `source` tone mapped into the feedback's tone map texture (or
 // field_670's one, then copied into it), then the feedback blended from it
 // NON_MATCHING: register allocation only (x21/x22 zeroed in the other order,
-// `space` in w8 where the original keeps a `mov w9, wzr`, the TonemapToSurface
-// argument stores scheduled differently).
+// the TonemapToSurface argument stores scheduled differently). The colour is
+// read before `space` (as in Unk_433d00: otherwise `space` takes field_96c's
+// register and its `mov w9, wzr` block goes) in a scope of its own, which
+// keeps the original's frame.
 s32 CPostEffect::Unk_434000(Unk_RenderTexture* source) {
     field_10e1 = false;
     Unk_RenderTexture* history = field_268;
@@ -10616,12 +10665,12 @@ s32 CPostEffect::Unk_434000(Unk_RenderTexture* source) {
     f32 height = field_424;
     bool flag = field_67b;
     Unk_SetTarget(Unk_AsTexture(target));
-    s32 space = field_96c ? field_974 : 0;
-    IGPUSurface* surface =
-        reinterpret_cast<IGPUSurface*>(Unk_AsTexture(target)->field_b8[Unk_AsTexture(target)->field_a0]);
-    f32 aspect = width / height;
     {
         Unk_Float4 colour(field_8e8, field_8e8, field_8e8, field_8e8);
+        s32 space = field_96c ? field_974 : 0;
+        IGPUSurface* surface =
+            reinterpret_cast<IGPUSurface*>(Unk_AsTexture(target)->field_b8[Unk_AsTexture(target)->field_a0]);
+        f32 aspect = width / height;
         reinterpret_cast<CRenderGlare*>(field_198)->TonemapToSurface(
             surface, false, Unk_AsTexture(source), hasGamma, fmt, &colour, matrix, w, h, 0.0f, 0.0f, dither, gamma,
             scale, scale2, field_968, matrix2, field_8c0.field_0 / Unk_SceneLuminance(this), &field_8d4, field_8e4,

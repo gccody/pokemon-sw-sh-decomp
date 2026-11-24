@@ -210,14 +210,8 @@ bool SiGfxShaderEffectVariation::vf15(ISiIOStream* stream) {
 }
 
 // 0x7100575390
-// NON_MATCHING: scheduling: before the zeros' loop, this loads the buffer
-// first (into x12) and computes the count and the position after "0x" after
-// it; the original loads it after them (into x8). The loop itself is the
-// original's with an `s32` counter and the copy's `&buffer[...]` (with an
-// `s64` counter or `buffer + ...`, the index is added to the reloaded buffer
-// each time). Tried: the position as s64, the stores as pointers, the count
-// in a local (vectorised), a guarded do-while, the length as u32/s64, the
-// order of the terms (~70 variants).
+// As in slot 8, the indices are computed in statements of their own (the
+// zeros' and the copy's), before the buffer is read.
 bool SiGfxShaderEffectVariation::vf12(SiString<char>* out, void*, void*, s32 size, const u8* bytes) {
     *out = field_120;
     for (s64 i = 0; i < static_cast<s32>(field_d0.m_itemCount); i++) {
@@ -235,9 +229,11 @@ bool SiGfxShaderEffectVariation::vf12(SiString<char>* out, void*, void*, s32 siz
         out->m_pBuffer[position + 1] = 'x';
         s32 j = 0;
         for (; j < item->field_1c - 2 - length; j++) {
-            out->m_pBuffer[position + 2 + j] = '0';
+            s32 index = position + 2 + j;
+            out->m_pBuffer[index] = '0';
         }
-        memcpy(&out->m_pBuffer[position + 2 + j], text, length);
+        s32 index = position + 2 + j;
+        memcpy(&out->m_pBuffer[index], text, length);
     }
     return true;
 }

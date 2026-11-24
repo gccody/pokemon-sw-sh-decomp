@@ -392,6 +392,10 @@ bool SiGfxNXRenderTarget::Unk_5564a0() {
 // laid out in another order (4 bytes more). The formats are read through
 // pointers computed in each branch (the descriptions are of two types), which
 // gives the original's `add x8, x0, #4 ; ldr w8, [x8]` after the shared call.
+// (Round 3: the index as s32/s64/u32/size_t, `!= 8`, the format pointer
+// declared outside the loop, the element by reference, the value instead of
+// a pointer, a pointer to the formats: no change; walking the elements with
+// a pointer unrolls the loop fully.)
 bool SiGfxNXRenderTarget::Unk_556730() {
     field_298.field_0 = 0;
     for (s32 i = 0; i < 8; i++) {

@@ -370,7 +370,16 @@ bool SiMap<K, V, Compare, ALIGN>::Unk_4c09a0(const K& key, V value) {
 // reloads and the advance loop's store of each parent; nothing in the
 // original's code shows such a capture); in the
 // balancing the second rotations' ends and some reloads of the parent
-// differ.
+// differ. (Round 3: with a capture that emits nothing,
+// `__builtin_assume(&result != &position)` after the result's construction,
+// the stand-in child chosen right first (`m_pRight != nullptr ? m_pRight :
+// m_pLeft`), the last case's parent read once into pParent and the leaf's
+// unlink comparing `pRemoved == parent->m_pRight`, 316 of the 418
+// instructions line up with the original's, against 48 here; what is left
+// is the first test, of the right child (both children loaded by one ldp).
+// Without the capture none of these changes helps. Tried for a natural
+// capture: an iterator operator= that tests `this != &other` (in the
+// advance, or assigning a copy), the advance on a temporary.)
 template <class K, class V, class Compare, int ALIGN>
 typename SiMap<K, V, Compare, ALIGN>::Unk_Iterator SiMap<K, V, Compare, ALIGN>::Unk_4c0e60(
     const Unk_Iterator& position) {

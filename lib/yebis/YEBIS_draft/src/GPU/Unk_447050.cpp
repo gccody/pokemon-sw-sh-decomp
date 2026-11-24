@@ -108,11 +108,8 @@ u32 Unk_446ae0(s32 format) {
 
 // 0x7100446b20: a texture format's name (the log lines' formats), copied to
 // buffer if there is one
-// NON_MATCHING: the block that returns the name without a buffer is laid out
-// after the last case here, and after GPUFMT_D24S8's (before GPUFMT_D16's and
-// GPUFMT_A8's) in the original; the instructions are the same. Tried: the
-// default label at every position, the name initialised before the switch,
-// the last two formats tested in the default, one return or two.
+// (GPUFMT_D24S8's case comes last: the case order places the block that
+// returns the name without a buffer after it, before GPUFMT_D16's)
 const char* Unk_446b20(s32 format, char* buffer) {
     static char Unk_24e1bf0[0x40];
     const char* name;
@@ -138,14 +135,14 @@ const char* Unk_446b20(s32 format, char* buffer) {
     case 41:
         name = "GPUFMT_R32F";
         break;
-    case 45:
-        name = "GPUFMT_D24S8";
-        break;
     case 55:
         name = "GPUFMT_D16";
         break;
     case 65:
         name = "GPUFMT_A8";
+        break;
+    case 45:
+        name = "GPUFMT_D24S8";
         break;
     default:
         sprintf(Unk_24e1bf0, "0x%08x", format);
@@ -312,17 +309,21 @@ u32 Unk_446e60(s32 count) {
 // 0x7100446eb0: the multisample type and quality of a number of samples
 // and a quality (both between 1 and 16, 16 for a negative one; no quality
 // for one sample)
-// NON_MATCHING: here the inlined switch of Unk_446e40 becomes a lookup
-// table; the original keeps it a jump table whose case 1 also sets the
-// quality to 0 (the test of one sample merged into the switch, which a
-// non-constant result then keeps from becoming a table) and branches on the
-// quality's sign. Eight orders of the tests were tried.
+// NON_MATCHING: the original keeps the inlined switch of Unk_446e40 a jump
+// table whose case 1 also sets the quality to 0 (the test of one sample
+// merged into the switch, which a non-constant result then keeps from
+// becoming a table), folds the count's lower bound into its sign's select
+// (csinc on `count != 0`), branches on the quality's sign and threads the
+// count's upper bound into the switch. This order (quality first, the
+// count's lower bound before its upper one) is the only one of ~600 tried
+// that keeps the jump table (316 bytes against 340); with the count first,
+// with `if`s or with `count == 0` the switch becomes a lookup table (~100).
 s32 Unk_446eb0(s32 count, s32 quality, u32* outType, s32* outQuality) {
-    s32 n = count < 0 ? 16 : count;
-    n = n < 16 ? n : 16;
-    n = n > 1 ? n : 1;
     s32 q = quality < 0 ? 16 : quality;
     q = q < 16 ? q : 16;
+    s32 n = count < 0 ? 16 : count;
+    n = n > 1 ? n : 1;
+    n = n < 16 ? n : 16;
     if (n == 1) {
         q = 0;
     }

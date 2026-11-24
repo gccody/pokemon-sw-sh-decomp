@@ -289,6 +289,9 @@ bool SiGfxNXBuffer::Unk_537df0(const Unk_MakeDesc* desc) {
 // test instead of sharing the other failure's block (as in 0x7100537df0),
 // and the heap's flags are read as a byte (ldrb) where the original reads
 // the word.
+// (Round 3: the flags in a u32 local, as a bool, `% 2`, `== 0`; the result in a
+// variable with one exit, nested tests, the initialisation's result in a
+// local: none changes either difference.)
 // 0x7100538090
 bool SiGfxNXBuffer::Unk_538090(const Unk_MakeDesc* desc) {
     void* device = Unk_NXDevice(field_20)->vf85();

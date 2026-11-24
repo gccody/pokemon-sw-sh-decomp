@@ -746,10 +746,9 @@ namespace PPFX {
 // context (the settings' one if they have another) and its device, keeps the
 // settings, makes the device's states and buffers and sets the default states
 // (the flags from the number of frame slots: one comparison kept in a local,
-// stored last, gives the original's store order)
-// NON_MATCHING: the end: the original materialises the 0 it returns before
-// the last log line's tests, which branch to the return block; here they
-// branch to a block of their own that sets it (one instruction shorter).
+// stored last, gives the original's store order). The blend colour lives in
+// a scope of its own: its lifetime ends before the last log line, so that
+// line's tests branch to the return block with the 0 set before them.
 s32 Unk_43fdd0(IGPUDevice* self, const Unk_DeviceSettings* settings, void* arg) {
 #line 4284
     PPFX_LOG("==== IGPUDevice::InitializeDevice() ====\n");
@@ -813,12 +812,13 @@ s32 Unk_43fdd0(IGPUDevice* self, const Unk_DeviceSettings* settings, void* arg) 
     self->vf39();
     self->vf40(-1);
     self->vf42(0);
-    Unk_BlendColor color = {};
-    self->vf50(&color);
-    result = 0;
+    {
+        Unk_BlendColor color = {};
+        self->vf50(&color);
+    }
 #line 4350
     PPFX_LOG("==== IGPUDevice::InitializeDevice() succeeded. ====\n");
-    return result;
+    return 0;
 }
 
 // 0x71004400a0

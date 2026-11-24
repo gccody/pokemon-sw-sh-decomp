@@ -1381,3 +1381,43 @@ What is left, by cause:
 - 0x71005581e0's array delete loop matches with a pointer loop in
   `SiCore_Memory.h`, which breaks 20 to 30 matched array deletes elsewhere.
 - 0x7100423160 and 0x710043b590 differ only inside libc++'s map emplace loop.
+
+### Third pass over the tail
+
+What decided matches:
+
+- An `inline` function emitted out of line (linkonce) gets no inferred
+  attributes, so its callers reload members after calling it: a caller that
+  reloads after a pure-looking callee means the callee is `inline`
+  (0x71004385e0 and its caller 0x7100429f20).
+- A switch case that returns its own value (`case 0: return 0;`) keeps its own
+  jump-table entry; a helper's result kept in a local (`result = true;
+  break;`) keeps its switch mergeable into the caller's table.
+- A local's scope decides where a constant return value is set: a local with a
+  constructor at function scope ends its lifetime between the last log line
+  and the return; in its own `{ }` scope the tests branch straight to the
+  return block.
+- A switch's case order places the shared return block: try every single
+  move of one case from ascending order (0x7100446b20).
+- GVN's PRE turns a member's address used in both branches of an `if` and
+  after the join into a phi kept in a callee-saved register; a reference to
+  the member taken before the `if` (`void*& buffer = field_3a60;`) gives
+  the original's direct reads (SiGfxNXDrawContext::vf8).
+- For straight-line float code, enumerating every valid statement order is
+  cheap (500 orders in minutes) and found 0x71004c9110's order; when a sibling
+  function already matches, copy its local-variable shape first (the shader
+  effect variation's vf12 from its vf8).
+- One failure exit: failures that all branch to one block setting false are
+  nested tests with a single `return false` at the end.
+- Stack layout follows where locals are declared: an inlined helper's allocas
+  go to the front of the caller's entry block, so the caller's locals in their
+  own scopes after the arrays give the original's frame order.
+- `b.le` after an `fcmp` is `!(x > 0.0f)`, not `x <= 0.0f`.
+- Dead-argument elimination runs before the inliner: an argument the original
+  still passes to a callee that ignores it is used by an inline no-op in the
+  callee.
+
+Single-site mutation sweeps (loop index types, `&&`/`||` and `&` forms,
+`static inline` against `inline`) over every remaining function found no
+further matches on their own: what is left is mostly register allocation,
+scheduling and block placement in functions over 1 KB.

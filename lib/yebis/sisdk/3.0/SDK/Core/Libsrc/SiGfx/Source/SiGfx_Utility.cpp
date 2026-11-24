@@ -1142,6 +1142,8 @@ bool Unk_4ee290(u32 format, u8* data, s32 width, s32 height) {
 // Also tried (72 forms): s32/s64 rows with s32/u32 bottom numbers, the
 // bottom row from `height - 1 - i`, the test cast, the decrement in the
 // increment or the body.
+// (Round 3: i as s32/s64/int with j as s32/int declared before or after it,
+// j as u32 tested through a cast, i < j in the loop's condition: no change.)
 bool Unk_4ee110(u32 format, u8* data, s32 width, s32 height, s32 pitch) {
     if (Unk_IsBlockFormat(format)) {
         if ((format >= 0x46 && format <= 0x54) || (format >= 0x5e && format <= 0x63)) {

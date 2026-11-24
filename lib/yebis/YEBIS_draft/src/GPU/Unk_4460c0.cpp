@@ -31,10 +31,9 @@ void IGPUPixelContainer::Unk_445f80() {
 }
 
 // 0x7100445fd0
-// NON_MATCHING: where -6 is put in w0: the original does it for the null
-// test's own return and again before the size test, sharing that one with
-// the last return; this does it once at the top and again for the middle
-// return (same instructions otherwise; five other spellings give the same).
+// (the format test is written first: the original's -6 is then set before
+// the size test, which shares it with the last return, although the sizes
+// are still tested first)
 s32 IGPUPixelContainer::vf7(void* a1, u32 a2, u32 a3, bool a4) {
     if (a1 == nullptr) {
         return -6;
@@ -45,7 +44,7 @@ s32 IGPUPixelContainer::vf7(void* a1, u32 a2, u32 a3, bool a4) {
     if (field_44.field_14 != 0) {
         return -4;
     }
-    if ((a2 != 0 || a3 != 0) && field_10 == 1) {
+    if (field_10 == 1 && (a2 != 0 || a3 != 0)) {
         return -6;
     }
     if (field_44.field_4 == 3 && a3 != 0) {

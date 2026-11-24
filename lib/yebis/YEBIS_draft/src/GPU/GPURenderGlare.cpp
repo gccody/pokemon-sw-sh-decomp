@@ -1444,8 +1444,8 @@ s32 CRenderGlare::GenerateGlare_Afterimage() {
     f32 decay = rate * (k * k);
     f32 lag = rate / k;
     f32 brightness = luminance * 0.125f;
-    f32 fade = 1.0f - powf(0.5f, decay / 0.05f);
     f32 keep = powf(0.5f, lag / 0.05f);
+    f32 fade = 1.0f - powf(0.5f, decay / 0.05f);
     fade = fade < 1.0f && fade > 0.0f ? fade : 1.0f;
     keep = keep < 1.0f && keep > 0.0f ? keep : 0.0f;
     f32 least = Unk_AfterimageLeast(field_b0.field_18[3]);
@@ -1661,6 +1661,8 @@ static inline void Unk_ColorLerp(Unk_Float4* out, const Unk_Float4* white, const
 // `texture` (`flag`: the sixth star definition's colours). Its two
 // function-local statics (and 0x7100458e20's) complete the TU's merged
 // statics, which the static initialiser 0x710045fbe0 needs.
+// The fourth case's format test is `(format != 0) & Unk_IsGlareFormatB(format)`
+// (closer than `&&`).
 // NON_MATCHING: register allocation from the start (`this` in x19, not x21),
 // the line loop's blocks are laid out in another order (the format test
 // before the line's parameters), the constants the loop uses aren't hoisted
@@ -1785,7 +1787,7 @@ s32 CRenderGlare::Unk_459730(const Unk_4a0540* star, CRenderTexture* target, CGP
         if (Unk_4385e0(format)) {
             if (Unk_IsGlareFormatA(format)) {
                 threshold = limit.field_0 > 1.5259022e-05f ? limit.field_0 : 1.5259022e-05f;
-            } else if (format != 0 && Unk_IsGlareFormatB(format)) {
+            } else if ((format != 0) & Unk_IsGlareFormatB(format)) {
                 threshold = limit.field_0 > 0.0009775171f ? limit.field_0 : 0.0009775171f;
             } else if (Unk_IsGlareFormatC(format)) {
                 threshold = limit.field_0 > 0.003921569f ? limit.field_0 : 0.003921569f;
@@ -2226,6 +2228,8 @@ s32 CRenderGlare::Unk_45a820() {
 
 // 0x7100458720: the ghosts' levels blurred, each from the one before (field_3fc
 // their ratio), then added up by 0x7100458e20
+// The ratio's format test is `(format != 0) & Unk_IsGlareFormatB(format)`
+// (closer than `&&`).
 // NON_MATCHING: the original keeps `weight` on the stack (an integer `csel`
 // for its clamp, reloaded after every call) and all eight constants in d8-d15;
 // here it is a register and three constants are spilled, so registers, the
@@ -2238,7 +2242,7 @@ s32 CRenderGlare::Unk_458720() {
     } else {
         f32 ratio = powf(Unk_458250(), 1.0f / static_cast<f32>(field_3d8));
         s32 format = field_b0.field_18[2];
-        if (Unk_IsGlareFormatC(format) || (format != 0 && Unk_IsGlareFormatB(format))) {
+        if (Unk_IsGlareFormatC(format) || ((format != 0) & Unk_IsGlareFormatB(format))) {
             ratio = 2.0f;
         } else {
             ratio = fminf(ratio, 2.0f);
@@ -2259,8 +2263,8 @@ s32 CRenderGlare::Unk_458720() {
     for (s32 i = 0; i < levels; i++) {
         Unk_45_320* entry = &field_320[i];
         CRenderTexture* low = entry->field_10;
-        CRenderTexture* blur = entry->field_18;
         CRenderTexture* work = entry->field_20;
+        CRenderTexture* blur = entry->field_18;
         f32 scale = 1.0f;
         if (i != 0) {
             scale = field_b0.field_4a ? 1.5f : 1.0f;
@@ -2545,9 +2549,14 @@ static inline s32 Unk_GlareLinear(s32 format) {
 
 // 0x7100457760: `source` tone mapped into `target` (field_140 the mode),
 // through m_pGlareSource's first texture when the sizes differ
-// NON_MATCHING: the original stores the colours' elements 1 and 2 as the
-// pair (filling them in reverse order gives it for the copy's colour only),
-// tests `resize` with `tbz`, and swaps two registers of the size tests.
+// The two scaled colours are filled element by element (2, 1, 0, then 3):
+// the DAG then pairs the stores of elements 1 and 2 as the original does.
+// NON_MATCHING: the original tests `resize` with `tbz` (its known bits are
+// lost: a phi at instruction selection; here it is a select and `cbz`), and
+// swaps two registers of the size tests (w11/w12: the sRGB mask's shift and
+// the source's width). Tried: every order of the declarations before
+// `unscaled`, the sRGB test as a switch, an `||` chain, a local format, and
+// `resize` as an if/else, an int, a u8 and a negated select.
 s32 CRenderGlare::Unk_457760(CRenderTexture* source, CRenderTexture* target) {
     CTextureUtil* util = Unk_GetTextureUtil();
     Unk_ReleaseTextureUtil();
@@ -2614,7 +2623,11 @@ s32 CRenderGlare::Unk_457760(CRenderTexture* source, CRenderTexture* target) {
             Unk_440d50_get(device, 1);
         }
         f32 k = field_164 / field_134;
-        Unk_Float4 color(k, k, k, 1.0f);
+        Unk_Float4 color;
+        color.field_0[2] = k;
+        color.field_0[1] = k;
+        color.field_0[0] = k;
+        color.field_0[3] = 1.0f;
         Unk_Float4 offset(0.0f, 0.0f, 0.0f, 0.0f);
         util->Unk_47dfa0(0.0f, 0.0f, 0.0f, 1.0f, source, target, format, &color, 1, false, false, 1, &offset,
                          nullptr, -1);
@@ -2631,7 +2644,11 @@ s32 CRenderGlare::Unk_457760(CRenderTexture* source, CRenderTexture* target) {
             format = field_2e0;
         }
         CRenderTexture* work = Unk_ArrayTexture(m_pGlareSource, 0);
-        Unk_Float4 color(k, k, k, 1.0f);
+        Unk_Float4 color;
+        color.field_0[2] = k;
+        color.field_0[1] = k;
+        color.field_0[0] = k;
+        color.field_0[3] = 1.0f;
         Unk_Float4 offset(0.0f, 0.0f, 0.0f, 0.0f);
         util->Unk_47dfa0(0.0f, 0.0f, 0.0f, 1.0f, source, work, format, &color, 0, false, false, 1, &offset,
                          nullptr, -1);
@@ -2694,6 +2711,7 @@ static inline f32 Unk_ShaftLeast(s32 format) {
 // textures, into `target` (m_pLightShaftResult for none)
 // The tint is applied by a loop over the colour's channels, which keeps
 // `color` in memory as the original does.
+// The view loop's index is `s64` and the taps' `u32` (closer than `s32`).
 // NON_MATCHING: a first draft with the original's calls and arithmetic. The
 // original spills `this` instead of keeping it in x20 (the registers differ
 // from there on), and branches out of the level loop
@@ -2726,8 +2744,8 @@ s32 CRenderGlare::Unk_45ca70(CRenderTexture* target, s32 index) {
     f32 scale = powf(field_158 * 0.25f, 1.0f / static_cast<f32>(count));
     CRenderTextureArray* array = static_cast<CRenderTextureArray*>(m_pStarGeneration);
     CRenderTexture* pair[2] = {array->field_38[field_b0.field_18[10]], array->field_38[field_b0.field_18[10] + 1]};
-    Unk_GlareRect tint = field_1f8[index].field_34;
     f32 a = field_1f8[index].field_24;
+    Unk_GlareRect tint = field_1f8[index].field_34;
     f32 b = field_1f8[index].field_28;
     f32 c = field_1f8[index].field_2c;
     f32 d = field_1f8[index].field_30;
@@ -2740,7 +2758,7 @@ s32 CRenderGlare::Unk_45ca70(CRenderTexture* target, s32 index) {
         }
     }
     s32 k = 0;
-    for (s32 i = 0; i < count; i++) {
+    for (s64 i = 0; i < count; i++) {
         f32 level = i == 0 ? scale * 0.25f : scale;
         f32 weights[4];
         weights[0] = level * powf(0.5f, step * 0.0f);
@@ -2767,7 +2785,7 @@ s32 CRenderGlare::Unk_45ca70(CRenderTexture* target, s32 index) {
             f32 cu = source->field_90 + source->field_88 * (field_1f8[index].field_44.field_0[0].field_0 *
                                                             static_cast<f32>(static_cast<u32>(source->field_54)));
             f32 cv = source->field_94 + source->field_8c * (cy * static_cast<f32>(static_cast<u32>(source->field_58)));
-            for (s32 j = 0; j < taps; j++) {
+            for (u32 j = 0; j < taps; j++) {
                 f32 w = weights[j];
                 if (final) {
                     colors[j] = Unk_Float4(color.field_0 * w, color.field_4 * w, color.field_8 * w, color.field_c * w);
@@ -2819,6 +2837,8 @@ namespace PPFX {
 // m_pGlareResult (or m_pBloomResult alone), then the lens distortion, its chromatic
 // aberration's blur, the bloom, the blur and the light ghosts; the result goes
 // to field_420
+// `idle`'s second test, the Unk_456bf0 test and the fixed-format test are
+// `&` of their parts (closer than `&&`).
 // NON_MATCHING: a first draft with the original's calls, log lines and
 // arithmetic; the stack layout (the colour space temporaries, the colours and
 // the textures), the registers and the block layout of the tests at the top
@@ -2834,7 +2854,7 @@ s32 CRenderGlare::GenerateGlare_Composite() {
         bool streaks = Unk_4570b0();
         bool afterimage = Unk_457370();
         s32 frames = field_1f4;
-        bool idle = field_200 < 1 || (field_210 == -1 && field_220 < 1);
+        bool idle = field_200 < 1 || ((field_210 == -1) & (field_220 < 1));
         bool released = !field_368 || field_360 == 0;
         CRenderTexture* source = static_cast<CRenderTexture*>(m_pBloomResult);
         if ((idle & released) != true || (ghosts | color | streaks | afterimage) || frames >= 1) {
@@ -2877,7 +2897,7 @@ s32 CRenderGlare::GenerateGlare_Composite() {
             f32 k = 1.0f / Unk_Luminance(colorSpace, def->field_18);
             colors[0] = Unk_Float4(cr * k, cg * k, cb * k, ca * k);
             u32 count = 1;
-            if (Unk_456bf0() && field_428) {
+            if (Unk_456bf0() & field_428) {
                 textures[1] = static_cast<CRenderTexture*>(m_pStarResult);
                 def = field_170;
                 Unk_410f90 colorSpace;
@@ -2958,7 +2978,7 @@ s32 CRenderGlare::GenerateGlare_Composite() {
             for (u32 i = 0; i < count; i++) {
                 Unk_GetTexture(textures[i])->vf17(0);
             }
-            if (fixed && field_411) {
+            if (fixed & field_411) {
                 Unk_471460_update(reinterpret_cast<u64>(util), 16, 0);
             }
             source = static_cast<CRenderTexture*>(m_pGlareResult);
@@ -3300,6 +3320,7 @@ static inline void Unk_SubRect(Unk_Float4* r, const Unk_Float4* rect) {
 }
 
 // 0x710045f1c0 (its caller's log line names it)
+// The light shaft's two field_18c tests are `&` of their parts (closer than `&&`).
 // NON_MATCHING: a first draft: the calls, their arguments and the stores are
 // the original's; the registers, the spill slots and the order of the
 // blocks are not yet (the viewport is clamped in other registers, the
@@ -3374,8 +3395,8 @@ s32 CRenderGlare::TonemapToSurface(IGPUSurface* surface, bool hasSurface, CRende
     if (field_138 * intensity > 0.0f) {
         glare = field_420;
     }
-    f32 glareWidth = 0.0f;
     f32 glareHeight = 0.0f;
+    f32 glareWidth = 0.0f;
     Unk_GPUTexture* glareTexture;
     if (glare != nullptr) {
         glareWidth = static_cast<f32>(static_cast<u32>(glare->field_54));
@@ -3396,7 +3417,7 @@ s32 CRenderGlare::TonemapToSurface(IGPUSurface* surface, bool hasSurface, CRende
         rects[1] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
     }
     if (field_180) {
-        f32 ratio = Unk_478880(field_b0.field_74, field_b0.field_78, field_18c && field_198 >= 0.0f);
+        f32 ratio = Unk_478880(field_b0.field_74, field_b0.field_78, field_18c & (field_198 >= 0.0f));
         f32 s = 1.0f;
         if (!field_18c) {
             f32 a = field_180 ? field_184 : 0.0f;
@@ -3412,7 +3433,7 @@ s32 CRenderGlare::TonemapToSurface(IGPUSurface* surface, bool hasSurface, CRende
     }
     f32 vignette = 0.0f;
     f32 radius = field_198;
-    if (field_18c && radius >= 0.0f) {
+    if (field_18c & (radius >= 0.0f)) {
         vignette = field_158;
         f32 least = 1.0f / height;
         radius = least < radius ? radius : least;

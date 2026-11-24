@@ -153,7 +153,10 @@ s32 CTinyEffect::Unk_44afa0() {
 // 0x710044b1d0
 // NON_MATCHING: in the search by semantic (the loop LLVM unswitches) the
 // original keeps the next index in the result's register and -1 in another;
-// here -1 is the result's register and the indices move into it.
+// here -1 is the result's register and the indices move into it. An `s64`
+// index gives the original's registers but 64-bit index arithmetic where the
+// original's is 32-bit (`sub w21`); a result variable with `break`, `while`,
+// the index outside the loop and the two tests as one `||` change nothing.
 s32 CTinyEffect::Unk_44b1d0(const char* name, bool semantic) {
     if (field_2f1) {
         if (field_328.empty()) {

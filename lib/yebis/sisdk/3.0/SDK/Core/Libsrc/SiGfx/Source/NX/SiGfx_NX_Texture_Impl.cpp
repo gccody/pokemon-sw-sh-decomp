@@ -470,18 +470,25 @@ SiGfxNXVolume* SiGfxNXTexture::vf29(s32 level) {
     return &field_288.m_pData[level];
 }
 
-// NON_MATCHING: the original keeps the address of the views' count
-// (this + 0x358) in a register and a stack slot from the start to the last
-// loop, one value more than here: its callee-saved registers and stack
-// slots are shifted by one (the frame is 0xa0, here 0x90); the code is
-// otherwise the original's.
+// The views are made on the first call, and the command list is taken in a
+// second test of the same flag (its pointer's null store is threaded into
+// both paths, and GVN's PRE keeps the views' count's address in a stack
+// slot for the last loop, as in the original). The inner loop has no test of
+// its own for a single level (its guard is the loop's), and the second
+// image's index is a local.
+// NON_MATCHING: two loads: the views' loop's guard (after the two arrays'
+// SetCount) reads the count through the address the phi keeps (`ldr w8,
+// [x21]`) where the original folds it (`ldr w8, [x19, #0x358]`): CodeGenPrepare
+// sinks the address only into blocks where `this` is already used, and here
+// the guard is one block for the SetCount's four exits until it is
+// tail-duplicated after instruction selection. Tried: s32/s64/u64 indices, the
+// count's casts, the flags' order.
 // 0x71005611d0
 bool SiGfxNXTexture::vf30(Unk_NXTextureDrawContext* pContext) {
     void* commandBuffer = pContext->vf102();
-    SiGfxNXCommandList* pList = nullptr;
-    SiGfxNXCommandQueue* pQueue = nullptr;
+    bool first = field_3e8.m_itemCount == 0;
     bool own = false;
-    if (field_3e8.m_itemCount == 0) {
+    if (first) {
         field_3e8.Unk_SetCount(field_348.m_itemCount);
         field_398.Unk_SetCount(field_348.m_itemCount);
         for (s64 i = 0; i < static_cast<s32>(field_348.m_itemCount); i++) {
@@ -489,6 +496,10 @@ bool SiGfxNXTexture::vf30(Unk_NXTextureDrawContext* pContext) {
                 field_28->Unk_4fb230(reinterpret_cast<u64>(field_328), reinterpret_cast<u64>(field_348.m_pData[i]));
             field_3e8.m_pData[i] = nvnDeviceGetImageHandle(Unk_NXDevice(field_28)->vf85(), field_398.m_pData[i]);
         }
+    }
+    SiGfxNXCommandList* pList = nullptr;
+    SiGfxNXCommandQueue* pQueue = nullptr;
+    if (first) {
         pList = reinterpret_cast<SiGfxNXCommandList*>(field_28->vf92());
         commandBuffer = pList->vf15();
         pQueue = reinterpret_cast<SiGfxNXCommandQueue*>(field_28->vf91());
@@ -501,16 +512,14 @@ bool SiGfxNXTexture::vf30(Unk_NXTextureDrawContext* pContext) {
     nvnCommandBufferBindProgram(commandBuffer, pProgram->vf38(), pProgram->vf39());
     s32 layers = static_cast<s32>(field_348.m_itemCount) / field_22c;
     for (s32 layer = 0; layer < layers; layer++) {
-        if (field_22c < 2) {
-            continue;
-        }
         s32 width = field_1e8;
         s32 height = field_1ec;
         for (s32 level = 0; level < field_22c - 1; level++) {
             width >>= 1;
             height >>= 1;
             nvnCommandBufferBindImage(commandBuffer, 5, 0, field_3e8.m_pData[layer * field_22c + level]);
-            nvnCommandBufferBindImage(commandBuffer, 5, 1, field_3e8.m_pData[layer * field_22c + level + 1]);
+            s32 next = layer * field_22c + level + 1;
+            nvnCommandBufferBindImage(commandBuffer, 5, 1, field_3e8.m_pData[next]);
             nvnCommandBufferDispatchCompute(commandBuffer, (width + 7) / 8, (height + 7) / 8, 1);
             nvnCommandBufferBarrier(commandBuffer, 0x10);
         }

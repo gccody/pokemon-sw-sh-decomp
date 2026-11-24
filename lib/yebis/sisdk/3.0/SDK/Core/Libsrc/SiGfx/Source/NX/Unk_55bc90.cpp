@@ -25,20 +25,23 @@ SiSDK3::SiGfxNXDrawContext::Unk_States::Unk_States() : field_2760(16) {
 // 0x710055ba20
 SiSDK3::SiGfxNXDrawContext::Unk_States::~Unk_States() {}
 
-// NON_MATCHING: the same instructions in another order, and field_0 stored
-// alone where the original stores it with field_4 as one word (`stp x9,
-// xzr, [x19]`; here field_4 to field_18 are one memset). The original
-// schedules the zeros of the first ranges' bits and of field_8 to field_18
-// before the lowest slots, and the first range's lowest last. Tried: the 120
-// orders of the five first stores with the 6 orders of the reset's three, the
-// reset as an assignment, the first range's reset after the others.
+// field_4 is cleared before field_0 is set: a zero stored right before the
+// loop's memset (the six words from field_8) is merged into it by MemCpyOpt,
+// and field_0's store between them keeps the two words one 8-byte store
+// (`stp x9, xzr, [x19]`, with the memset's first word).
+// NON_MATCHING: the ranges' resets are scheduled in another order (the
+// original computes every range's lowest slot first, field_2760's last, with
+// the first ranges' bits' zeros among them, then stores the -1s and the other
+// zeros in pairs). Tried: the 120 orders of the first five statements, the
+// reset's three stores in all six orders (a local helper), one loop or four,
+// field_2760's reset before or after the loop.
 // 0x710055ba30
 void Unk_55ba30(void* p) {
     SiSDK3::SiGfxNXDrawContext::Unk_States* states = static_cast<SiSDK3::SiGfxNXDrawContext::Unk_States*>(p);
     memset(&states->field_20, 0, sizeof(states->field_20));
     Unk_55bc90(reinterpret_cast<Unk_55bc90_States*>(&states->field_508));
-    states->field_0 = 0x7fffffff;
     states->field_4 = 0;
+    states->field_0 = 0x7fffffff;
     for (s32 i = 0; i < 6; i++) {
         states->field_8[i] = 0;
     }
