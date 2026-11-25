@@ -158,12 +158,11 @@ PKMN_OFFSET_ASSERT(Unk_1655760, field_20, 0x20);
 PKMN_SIZE_ASSERT(Unk_1655760, 0x28);
 
 // What runs the jobs in the background (placeholder: the global behind the
-// GOT slot the job's destructor reads, and the member it calls).
+// GOT slot the job's destructor reads, Unk_27fa890, and the member it calls).
 class Unk_1657ba0_type {
 public:
     void Unk_1657ba0(Unk_1655760* job);  // forgets a job
 };
-extern Unk_1657ba0_type* Unk_1657ba0_instance;
 
 // What a step returns (placeholder: StepSequenceJob's vf3, 0x710165bb20, takes
 // it apart): 0 runs the next step at once, 1 ends the job, 5 waits.
@@ -257,3 +256,5 @@ PKMN_SIZE_ASSERT(MonitoringServerAddressResolveJob, 0x4b8);
 }  // namespace common
 }  // namespace pia
 }  // namespace nn
+
+extern nn::pia::common::Unk_1657ba0_type* Unk_27fa890;
