@@ -17,8 +17,7 @@ u32 Unk_819630_call(const Unk_819630* self);
 void Unk_819660_call(const Unk_819660* self, u32 value, u32 arg2);
 u16 Unk_819690_call(const Unk_819690* self);
 void Unk_819a10_call(const Unk_819a10* self);
-// Named (..., u32); the code below gives it the u8 as it is.
-bool Unk_819a60_call(const Unk_819a60* self, u32 pokeId);
+bool Unk_819a60_call(const Unk_819a60* self, u8 pokeId);
 
 // The battle Pokemon and its accessors.
 struct Unk_7eef40;
@@ -32,13 +31,10 @@ bool Unk_7ef220_get(const Unk_7ef220* self);
 bool Unk_7ee6c0_getField298(const Unk_7ee6c0* self);
 bool Unk_7ef4c0(const Unk_7ee6b0* poke, u32 condition);
 bool Unk_7f0aa0(const Unk_7ee6b0* poke, u32 flag);
-// Named (u32, u32); the code below gives it a u16 (0x7100785c80 tests 16 bits).
-s32 Unk_7f7ae0_call(u32 self, u32 value);
+s32 Unk_7f7ae0_call(u16 self, u32 value);
 bool Unk_7f7ff0(u32 percent);
-// Named (void*, u32); it compares 8 bits (0x710082cd00).
-bool Unk_82cd00(void* self, u32 pokeId);
-// Named (void*, u64, u32, u32); the code below gives it the u8 as it is.
-bool Unk_859570(void* self, u64 pokeId, u32 arg2, u32 arg3);
+bool Unk_82cd00(void* self, u8 pokeId);
+bool Unk_859570(void* self, u8 pokeId, u32 arg2, u32 arg3);
 bool Unk_819d40(const Unk_819600_Self* self, u8 pokeId, u32 id, u32 other);
 
 inline u16 Unk_85c190_Species(const Unk_7ee6b0* poke) {
