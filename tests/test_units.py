@@ -127,3 +127,10 @@ def test_blocked_functions_cost_more(areas):
                           blocked=lambda f: f.sword == 0x0)
     assert units[0].score == 4 + U.BLOCKED_COST
     assert [u.id for u in U.ordered(units)] == ["u100", "u0"]
+
+
+def test_new_files_avoid_include_dirs(areas):
+    rows = [fn(0x0, 8), fn(0x10, 8)]
+    index = {0x4: "lib/x/include/y/Z.cpp", 0x8: "lib/x/src/W.cpp"}
+    units = U.build_units(rows, areas, [(0x0, 0x10), (0x10, 0x1000)], index, unit_funcs=1)
+    assert all("include" not in p.file for u in units for p in u.parts)

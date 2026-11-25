@@ -197,7 +197,9 @@ def area_dirs(index: dict[int, str], amap: AreaMap, areas) -> dict[str, str]:
 
 def nearest_dir(addr: int, area: str, hand: list[tuple[int, str]], amap: AreaMap) -> str | None:
     """The directory of the hand-written file whose address comment is nearest
-    to `addr` in the same area (`hand`: sorted (offset, path))."""
+    to `addr` in the same area (`hand`: sorted (offset, path)). Files under an
+    `include` directory don't count: a new source file never goes there."""
+    hand = [h for h in hand if "include" not in PurePosixPath(h[1]).parts]
     i = bisect.bisect_left(hand, (addr, ""))
     best = None
     for j in (i - 1, i):
