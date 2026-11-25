@@ -118,9 +118,7 @@ void Unk_861ee0(void* self, u8 pokeId) {
 }
 
 // 0x7100861f50
-// NON_MATCHING: the original takes a u8 (it keeps w1, `mov w20, w1`); the
-// placeholder name's u64 keeps x1.
-void Unk_861f50(void* self, u64 value, u32 kind) {
+void Unk_861f50(void* self, u8 value, u32 kind) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
     u8 pokeId = value;
     if (Unk_819600_call(static_cast<const Unk_819600*>(self), 2) != pokeId)

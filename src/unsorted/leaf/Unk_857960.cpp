@@ -2760,28 +2760,28 @@ void Unk_861c20_update() {}
 // 0x7100861c30
 void Unk_861c30_update() {}
 
-void Unk_861f50(void*, u64, u32);
+void Unk_861f50(void*, u8, u32);
 
 // 0x7100861f40
 void Unk_861f40_call(void* self, u64 value) {
     Unk_861f50(self, value, 2);
 }
 
-void Unk_861f50(void*, u64, u32);
+void Unk_861f50(void*, u8, u32);
 
 // 0x7100862100
 void Unk_862100_call(void* self, u64 value) {
     Unk_861f50(self, value, 4);
 }
 
-void Unk_861f50(void*, u64, u32);
+void Unk_861f50(void*, u8, u32);
 
 // 0x71008621e0
 void Unk_8621e0_call(void* self, u64 value) {
     Unk_861f50(self, value, 4);
 }
 
-void Unk_861f50(void*, u64, u32);
+void Unk_861f50(void*, u8, u32);
 
 // 0x71008622c0
 void Unk_8622c0_call(void* self, u64 value) {
