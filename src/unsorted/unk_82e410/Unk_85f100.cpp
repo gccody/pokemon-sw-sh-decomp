@@ -28,8 +28,7 @@ PKMN_OFFSET_ASSERT(Unk_836520_Arg, field_18, 0x18);
 bool Unk_819d00(const Unk_819600_Self* self, const Unk_836520_Arg& arg);
 
 u64 Unk_7f88a0(u8 index);
-// Named with one parameter (_Z10Unk_7f78c0j), but 0x71007f78c0 takes a kind
-// (w0) and a Pokemon (w1, as 0x71007f88a0's).
+// 0x71007f78c0 takes a kind (w0) and a Pokemon (w1, as 0x71007f88a0's).
 u64 Unk_7f78c0(u32 kind, u8 index);
 
 // Sets variable 0x27 to 0x7100819690's value 6, when the event's variable
@@ -67,8 +66,6 @@ void Unk_85f250(void* self, u8 pokeId) {
         Unk_819660_call(static_cast<const Unk_819660*>(self), 0x38, 0x2000);
 }
 
-// NON_MATCHING: calls Unk_7f78c0 with its two parameters; its name
-// (_Z10Unk_7f78c0j) has one.
 // 0x710085f2c0
 void Unk_85f2c0(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
@@ -118,8 +115,6 @@ void Unk_85f440(void* self, u8 pokeId) {
         Unk_819640_call(static_cast<const Unk_819640*>(self), 0x50, 1);
 }
 
-// NON_MATCHING: calls Unk_7f78c0 with its two parameters; its name
-// (_Z10Unk_7f78c0j) has one.
 // 0x710085f4f0
 void Unk_85f4f0(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
@@ -139,8 +134,6 @@ void Unk_85f4f0(void* self, u8 pokeId) {
     Unk_819d00(flow, arg);
 }
 
-// NON_MATCHING: calls Unk_7f78c0 with its two parameters; its name
-// (_Z10Unk_7f78c0j) has one.
 // 0x710085f5c0
 void Unk_85f5c0(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
@@ -156,8 +149,6 @@ void Unk_85f5c0(void* self, u8 pokeId) {
         Unk_819640_call(static_cast<const Unk_819640*>(self), 0x50, 1);
 }
 
-// NON_MATCHING: calls Unk_7f78c0 with its two parameters; its name
-// (_Z10Unk_7f78c0j) has one.
 // 0x710085f680
 void Unk_85f680(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
