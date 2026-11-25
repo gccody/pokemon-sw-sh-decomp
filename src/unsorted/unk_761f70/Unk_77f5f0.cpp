@@ -15,7 +15,7 @@ void Unk_770af0(void* data, u32 size, u32 key);
 // Selects the growth rate of a species' form, then reads the experience a
 // level needs (src/battle/battle_engine/Unk_7ee6b0.h).
 void Unk_76bd60(u16 species, u8 form);
-u32 Unk_76bdf0(u32 level);
+u32 Unk_76bdf0(u8 level);
 
 struct Unk_77f5f0_Global {
     u8 _0[0x278];
@@ -174,9 +174,6 @@ void Unk_77fc60() {
 }
 
 // 0x710077fd10
-// NON_MATCHING: functions.csv names the callee _Z10Unk_76bdf0j, but it takes a
-// u8 (the original keeps the counter 8-bit and passes it unextended): rename
-// it _Z10Unk_76bdf0h.
 u8 Unk_77fd10(u16 species, u8 form, u32 exp) {
     Unk_76bd60(species, form);
     u8 level;
