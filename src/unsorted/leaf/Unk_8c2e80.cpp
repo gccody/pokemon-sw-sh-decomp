@@ -136,12 +136,12 @@ struct Unk_8c5740_arg1 {
 PKMN_OFFSET_ASSERT(Unk_8c5740_arg1, field_0, 0x0);
 
 struct Unk_7ee6b0;
-u64 Unk_7ef2b0(const Unk_7ee6b0*);
+u64 Unk_7ef2b0_call(void*);
 const Unk_7ee6b0* Unk_8c20a0(void*, u32);
 
 // 0x71008c5740
 u64 Unk_8c5740_call(void* self, const Unk_8c5740_arg1* value) {
-    u64 r1 = Unk_7ef2b0(Unk_8c20a0(self, value->field_0));
+    u64 r1 = Unk_7ef2b0_call(const_cast<Unk_7ee6b0*>(Unk_8c20a0(self, value->field_0)));
     return r1 & 1;
 }
 

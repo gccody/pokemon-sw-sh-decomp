@@ -13,7 +13,7 @@ u16 Unk_7f09c0_getField76(const Unk_7f09c0* self);
 u8 Unk_764ca0(void* self);
 bool Unk_7ebab0(u16 move);
 // Named after the Pokemon it's given.
-bool Unk_7ef2b0(const Unk_7ee6b0* poke);
+bool Unk_7ef2b0_call(void* self);
 u32 Unk_7e9a00(u64 self, u8 index);
 void Unk_7e9a10(u64 self, u8 index, u32 value);
 
@@ -147,7 +147,7 @@ u32 Unk_81b610(const Unk_819600_Self* self, u8 pokeId) {
         u8 target = Unk_81b610_Target(self, i);
         if (target == 0x1f)
             return 0;
-        total += Unk_7ef2b0(Unk_7ed1e0(Unk_81b200_Con(self), target));
+        total += Unk_7ef2b0_call(Unk_7ed1e0(Unk_81b200_Con(self), target));
     }
     return total;
 }

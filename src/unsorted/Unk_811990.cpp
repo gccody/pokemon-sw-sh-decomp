@@ -3,7 +3,7 @@
 // command for the clients. Placeholder names: rename once they're known.
 #include "unsorted/Unk_811d90.h"
 
-void Unk_816320(u64, u32, u32, ...);
+void Unk_816320(u64, u16, ...);
 void Unk_817de0(const Unk_8139c0_Self* self);
 
 void Unk_817e00(const Unk_8139c0_Self* self, u8 pokeId);

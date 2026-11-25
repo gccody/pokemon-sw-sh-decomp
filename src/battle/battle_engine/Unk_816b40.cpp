@@ -28,8 +28,6 @@ void Unk_816b90(const Unk_8139c0_Self* self, u8 pokeId) {
 }
 
 // 0x7100816c00
-// NON_MATCHING: Unk_7ef2b0 is named with no parameters (_Z10Unk_7ef2b0v), but
-// the original passes it the Pokemon; this calls the leaf's Unk_7ef2b0_call.
 void Unk_816c00(const Unk_8139c0_Self* self, u8 pokeId, u32 value, u32 arg3, u8 arg4) {
     Unk_7ee6b0* poke = Unk_8139c0_Poke(self, pokeId);
     Unk_7f13b0_set(reinterpret_cast<Unk_7f13b0*>(poke), value);

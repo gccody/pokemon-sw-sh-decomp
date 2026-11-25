@@ -21,22 +21,17 @@ extern const u8 Unk_1f12a80[0xbd] __attribute__((visibility("hidden")));
 void Unk_8151d0(Unk_8151d0_Que* que, u16 id, u8 format, const u32* args);
 
 // 0x7100816320
-// NON_MATCHING: the name gives a third fixed u32 parameter; the original has
-// only two before the variadic ones (it saves x2..x7 into its va_list).
-// Declared as Unk_816320(u64 que, u16 id, ...), reading every argument with
-// va_arg and with args declared before the va_list, the same code matches.
-void Unk_816320(u64 que, u32 id, u32 arg, ...) {
-    u8 format = Unk_1f12a80[static_cast<u16>(id)];
-    va_list list;
+void Unk_816320(u64 que, u16 id, ...) {
+    u8 format = Unk_1f12a80[id];
     u32 args[16] = {};
-    va_start(list, arg);
+    va_list list;
+    va_start(list, id);
     u32 count = 0;
-    u32 value = arg;
     for (;;) {
+        u32 value = va_arg(list, u32);
         args[count++] = value;
         if (value == 0xffff0000)
             break;
-        value = va_arg(list, u32);
     }
     va_end(list);
     Unk_8151d0(reinterpret_cast<Unk_8151d0_Que*>(que), id, format, args);
