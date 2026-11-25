@@ -1,20 +1,8 @@
 // Scope: common
 //
-// What the League Card's views keep their parts in (each view's +0x58): two
-// key -> part tables, looked up by the parts' 8-byte keys. Placeholder names:
-// rename them once the classes are known.
-#include <types.h>
-
-struct Unk_14aae90_Vec2 {
-    f32 x;
-    f32 y;
-};
-
-// Copies `from` into `to` field by field.
-static inline void Unk_14aae90_Copy(Unk_14aae90_Vec2* to, const Unk_14aae90_Vec2& from) {
-    to->x = from.x;
-    to->y = from.y;
-}
+// The League Card views' parts and their animations (Unk_14aae90.h): the
+// tables' lookups.
+#include "contents/trainer_license/state/Unk_14aae90.h"
 
 // A node of a chain (+0x18: the next one) with an offset at +0x30.
 struct Unk_14aae90_Node {
@@ -36,92 +24,6 @@ Unk_14aae90_Vec2 Unk_14aae90(const Unk_14aae90_Node* node) {
     }
     return {x, y};
 }
-
-// A part of the first table.
-struct Unk_14aaec0_Part {
-    u8 _0[0x48];
-    Unk_14aae90_Vec2 field_48;
-    Unk_14aae90_Vec2 field_50;
-    u8 field_58;
-};
-PKMN_OFFSET_ASSERT(Unk_14aaec0_Part, field_48, 0x48);
-PKMN_OFFSET_ASSERT(Unk_14aaec0_Part, field_50, 0x50);
-PKMN_OFFSET_ASSERT(Unk_14aaec0_Part, field_58, 0x58);
-
-struct Unk_14aaec0_Entry {
-    u64 key;
-    Unk_14aaec0_Part* part;
-};
-PKMN_SIZE_ASSERT(Unk_14aaec0_Entry, 0x10);
-
-// An iterator over a table's entries. The lookups have the loop shape of a
-// find_if over a one-pointer iterator class (the first iteration peeled), as in
-// src/unsorted/Unk_14f76f0.cpp.
-template <class T>
-struct Unk_14aaec0_Iter {
-    T* ptr;
-
-    Unk_14aaec0_Iter(T* p) : ptr(p) {}
-    bool operator==(const Unk_14aaec0_Iter& other) const { return ptr == other.ptr; }
-    bool operator!=(const Unk_14aaec0_Iter& other) const { return ptr != other.ptr; }
-    T& operator*() const { return *ptr; }
-    T* operator->() const { return ptr; }
-    Unk_14aaec0_Iter& operator++() {
-        ++ptr;
-        return *this;
-    }
-};
-
-template <class Iter, class Pred>
-static inline Iter Unk_FindIf(Iter first, Iter last, Pred pred) {
-    for (; first != last; ++first) {
-        if (pred(*first))
-            break;
-    }
-    return first;
-}
-
-// A key -> value table: its entries and their count.
-template <class T>
-struct Unk_14aaec0_Table {
-    T* data;
-    u64 size;
-
-    Unk_14aaec0_Iter<T> begin() const { return Unk_14aaec0_Iter<T>(data); }
-    Unk_14aaec0_Iter<T> end() const { return Unk_14aaec0_Iter<T>(data + size); }
-};
-
-// An animation of the second table: a layout (gflib3, 0x7100685xxx) and the
-// animation's index in it.
-struct Unk_14ab180_Anim {
-    void* layout;
-    u32 index;
-};
-PKMN_SIZE_ASSERT(Unk_14ab180_Anim, 0x10);
-
-struct Unk_14ab180_Entry {
-    u64 key;
-    Unk_14ab180_Anim anim;
-};
-PKMN_SIZE_ASSERT(Unk_14ab180_Entry, 0x18);
-
-struct Unk_14aaec0_Parts {
-    u8 _0[0x220];
-    Unk_14aaec0_Table<Unk_14aaec0_Entry> field_220;
-    u8 _230[0x2c0 - 0x230];
-    Unk_14aaec0_Table<Unk_14ab180_Entry> field_2c0;
-
-    Unk_14ab180_Anim* Unk_14ab180(const u64& key);
-
-    Unk_14aaec0_Part* Unk_GetPart(const u64& key) const {
-        Unk_14aaec0_Iter<Unk_14aaec0_Entry> it =
-            Unk_FindIf(field_220.begin(), field_220.end(),
-                       [key](const Unk_14aaec0_Entry& e) { return e.key == key; });
-        return it == field_220.end() ? nullptr : it->part;
-    }
-};
-PKMN_OFFSET_ASSERT(Unk_14aaec0_Parts, field_220, 0x220);
-PKMN_OFFSET_ASSERT(Unk_14aaec0_Parts, field_2c0, 0x2c0);
 
 // gflib3's layout animations (placeholders: the signatures are what the calls
 // pass).
@@ -178,34 +80,35 @@ bool Unk_14ab080(u64 self, u64 key) {
 void Unk_14ab0c0(u64 self, u64 key) {
     Unk_14ab180_Anim* anim =
         reinterpret_cast<Unk_14aaec0_Parts*>(self)->Unk_14ab180(*reinterpret_cast<const u64*>(key));
-    if (!Unk_685a50(anim->layout, anim->index))
-        Unk_685850(anim->layout, anim->index, true);
-    Unk_685ab0(anim->layout, anim->index, true);
-    Unk_685910(anim->layout, anim->index, 0.0f);
+    if (!Unk_685a50(anim->layout.m_ptr, anim->index))
+        Unk_685850(anim->layout.m_ptr, anim->index, true);
+    Unk_685ab0(anim->layout.m_ptr, anim->index, true);
+    Unk_685910(anim->layout.m_ptr, anim->index, 0.0f);
 }
 
 // 0x71014ab180
 Unk_14ab180_Anim* Unk_14aaec0_Parts::Unk_14ab180(const u64& key) {
     Unk_14aaec0_Iter<Unk_14ab180_Entry> it =
-        Unk_FindIf(field_2c0.begin(), field_2c0.end(),
+        Unk_FindIf(field_280.begin(), field_280.end(),
                    [key](const Unk_14ab180_Entry& e) { return e.key == key; });
-    return it == field_2c0.end() ? nullptr : &it->anim;
+    return it == field_280.end() ? nullptr : &it->anim;
 }
 
 // 0x71014ab200
 void Unk_14ab200(u64 self, u64 key) {
     Unk_14ab180_Anim* anim =
         reinterpret_cast<Unk_14aaec0_Parts*>(self)->Unk_14ab180(*reinterpret_cast<const u64*>(key));
-    if (Unk_685a50(anim->layout, anim->index))
-        Unk_6859b0(anim->layout, anim->index);
+    if (Unk_685a50(anim->layout.m_ptr, anim->index))
+        Unk_6859b0(anim->layout.m_ptr, anim->index);
 }
 
 // 0x71014ab2b0
 bool Unk_14ab2b0(u64 self, u64 key) {
     Unk_14ab180_Anim* anim =
         reinterpret_cast<Unk_14aaec0_Parts*>(self)->Unk_14ab180(*reinterpret_cast<const u64*>(key));
-    if (Unk_685820(anim->layout, anim->index) && Unk_685a50(anim->layout, anim->index) &&
-        !Unk_685c60(reinterpret_cast<u64>(anim->layout), anim->index))
+    if (Unk_685820(anim->layout.m_ptr, anim->index) &&
+        Unk_685a50(anim->layout.m_ptr, anim->index) &&
+        !Unk_685c60(reinterpret_cast<u64>(anim->layout.m_ptr), anim->index))
         return false;
     return true;
 }
@@ -214,7 +117,7 @@ bool Unk_14ab2b0(u64 self, u64 key) {
 bool Unk_14ab380(u64 self, u64 key) {
     Unk_14ab180_Anim* anim =
         reinterpret_cast<Unk_14aaec0_Parts*>(self)->Unk_14ab180(*reinterpret_cast<const u64*>(key));
-    if (Unk_685820(anim->layout, anim->index) && Unk_685a50(anim->layout, anim->index))
+    if (Unk_685820(anim->layout.m_ptr, anim->index) && Unk_685a50(anim->layout.m_ptr, anim->index))
         return true;
     return false;
 }
@@ -223,24 +126,24 @@ bool Unk_14ab380(u64 self, u64 key) {
 void Unk_14ab440(u64 self, u64 key, f32 frame) {
     Unk_14ab180_Anim* anim =
         reinterpret_cast<Unk_14aaec0_Parts*>(self)->Unk_14ab180(*reinterpret_cast<const u64*>(key));
-    if (!Unk_685a50(anim->layout, anim->index))
+    if (!Unk_685a50(anim->layout.m_ptr, anim->index))
         return;
-    Unk_685ab0(anim->layout, anim->index, false);
-    Unk_685910(anim->layout, anim->index, frame);
+    Unk_685ab0(anim->layout.m_ptr, anim->index, false);
+    Unk_685910(anim->layout.m_ptr, anim->index, frame);
 }
 
 // 0x71014ab510
 f32 Unk_14ab510(Unk_14aaec0_Parts* self, const u64& key) {
     Unk_14ab180_Anim* anim = self->Unk_14ab180(key);
-    if (!Unk_685a50(anim->layout, anim->index))
+    if (!Unk_685a50(anim->layout.m_ptr, anim->index))
         return 0.0f;
-    return Unk_685b90(anim->layout, anim->index);
+    return Unk_685b90(anim->layout.m_ptr, anim->index);
 }
 
 // 0x71014ab5c0
 f32 Unk_14ab5c0(Unk_14aaec0_Parts* self, const u64& key) {
     Unk_14ab180_Anim* anim = self->Unk_14ab180(key);
-    if (!Unk_685a50(anim->layout, anim->index))
+    if (!Unk_685a50(anim->layout.m_ptr, anim->index))
         return 0.0f;
-    return Unk_685bf0(anim->layout, anim->index);
+    return Unk_685bf0(anim->layout.m_ptr, anim->index);
 }
