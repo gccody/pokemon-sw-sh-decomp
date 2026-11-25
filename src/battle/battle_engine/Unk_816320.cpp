@@ -23,6 +23,8 @@ void Unk_8151d0(Unk_8151d0_Que* que, u16 id, u8 format, const u32* args);
 // 0x7100816320
 // NON_MATCHING: the name gives a third fixed u32 parameter; the original has
 // only two before the variadic ones (it saves x2..x7 into its va_list).
+// Declared as Unk_816320(u64 que, u16 id, ...), reading every argument with
+// va_arg and with args declared before the va_list, the same code matches.
 void Unk_816320(u64 que, u32 id, u32 arg, ...) {
     u8 format = Unk_1f12a80[static_cast<u16>(id)];
     va_list list;
@@ -122,6 +124,9 @@ static inline u8 Unk_8151d0_Encode(Unk_8151d0_Que* self, u16 id, u32 start) {
 }
 
 // 0x71008167c0
+// NON_MATCHING: the original stores field_0 separately on the "reached the end"
+// path (a duplicated block) and schedules the 0xc1 header writes differently;
+// the rest, registers included, is the same.
 void Unk_8167c0(Unk_8151d0_Que* self, u32 pos) {
     u32 end = self->field_0;
     u32 read = self->field_4;
