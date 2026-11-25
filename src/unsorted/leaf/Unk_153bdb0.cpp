@@ -164,6 +164,22 @@ void Unk_1540800_setField5d8(Unk_1540800* self, u64 value) {
 
 void Unk_eb6230(void*, u32);
 
+// 0x7101542ab0
+void Unk_1542ab0_call(void* self) {
+    Unk_eb6230(self, 0);
+    Unk_eb6230(self, 2);
+}
+
+void Unk_eb6230(void*, u32);
+
+// 0x7101542ae0
+void Unk_1542ae0_call(void* self) {
+    Unk_eb6230(self, 1);
+    Unk_eb6230(self, 3);
+}
+
+void Unk_eb6230(void*, u32);
+
 // 0x7101542b60
 void Unk_1542b60_call(void* self) {
     Unk_eb6230(self, 3);

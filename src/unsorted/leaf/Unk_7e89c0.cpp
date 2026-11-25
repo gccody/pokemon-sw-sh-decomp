@@ -796,3 +796,14 @@ void Unk_7ebf80_call(Unk_7ebf80* self) {
         self->field_0 = nullptr;
     }
 }
+
+extern Unk_239a418* Unk_27cec58;
+
+// 0x71007ec0c0
+void Unk_7ec0c0_call() {
+    Unk_239a418* v0 = Unk_27cec58;
+    if (v0 != 0) {
+        Unk_27cec58 = nullptr;
+        static_cast<Unk_239a458*>(v0)->vf5();
+    }
+}

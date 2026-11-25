@@ -234,6 +234,14 @@ void Unk_15247d0_clearField5cc(Unk_15247d0* self) {
 
 void Unk_eb6230(void*, u32);
 
+// 0x7101524840
+void Unk_1524840_call(void* self) {
+    Unk_eb6230(self, 1);
+    Unk_eb6230(self, 3);
+}
+
+void Unk_eb6230(void*, u32);
+
 // 0x71015248c0
 void Unk_15248c0_call(void* self) {
     Unk_eb6230(self, 3);
@@ -337,6 +345,22 @@ void Unk_1527be0_set(Unk_1527be0* self, bool value) {
 
 void Unk_eb6230(void*, u32);
 
+// 0x7101528830
+void Unk_1528830_call(void* self) {
+    Unk_eb6230(self, 0);
+    Unk_eb6230(self, 2);
+}
+
+void Unk_eb6230(void*, u32);
+
+// 0x7101528860
+void Unk_1528860_call(void* self) {
+    Unk_eb6230(self, 1);
+    Unk_eb6230(self, 3);
+}
+
+void Unk_eb6230(void*, u32);
+
 // 0x7101528890
 void Unk_1528890_call(void* self) {
     Unk_eb6230(self, 2);
@@ -381,6 +405,22 @@ u8* Unk_1529670_getField5d0Ptr(Unk_1529670* self) {
 
 void Unk_eb6230(void*, u32);
 
+// 0x710152a6e0
+void Unk_152a6e0_call(void* self) {
+    Unk_eb6230(self, 0);
+    Unk_eb6230(self, 2);
+}
+
+void Unk_eb6230(void*, u32);
+
+// 0x710152a710
+void Unk_152a710_call(void* self) {
+    Unk_eb6230(self, 1);
+    Unk_eb6230(self, 3);
+}
+
+void Unk_eb6230(void*, u32);
+
 // 0x710152a790
 void Unk_152a790_call(void* self) {
     Unk_eb6230(self, 3);
@@ -403,6 +443,14 @@ PKMN_OFFSET_ASSERT(Unk_152c1b0, field_5cc, 0x5cc);
 // 0x710152c1b0
 void Unk_152c1b0_clearField5cc(Unk_152c1b0* self) {
     self->field_5cc = 0;
+}
+
+void Unk_eb6230(void*, u32);
+
+// 0x710152c220
+void Unk_152c220_call(void* self) {
+    Unk_eb6230(self, 1);
+    Unk_eb6230(self, 3);
 }
 
 void Unk_eb6230(void*, u32);
@@ -534,6 +582,14 @@ PKMN_OFFSET_ASSERT(Unk_15317e0, field_5cc, 0x5cc);
 // 0x71015317e0
 void Unk_15317e0_clearField5cc(Unk_15317e0* self) {
     self->field_5cc = 0;
+}
+
+void Unk_eb6230(void*, u32);
+
+// 0x7101531850
+void Unk_1531850_call(void* self) {
+    Unk_eb6230(self, 1);
+    Unk_eb6230(self, 3);
 }
 
 void Unk_eb6230(void*, u32);

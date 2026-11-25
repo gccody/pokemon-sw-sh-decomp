@@ -110,6 +110,14 @@ void Unk_87dae0_call(const Unk_819640* self) {
     Unk_819640_call(self, 0x51, 1);
 }
 
+struct Unk_819660;
+void Unk_819660_call(const Unk_819660*, u32, u32);
+
+// 0x710087daf0
+void Unk_87daf0_call(const Unk_819660* self) {
+    Unk_819660_call(self, 0x38, 0x1ab8);
+}
+
 void Unk_87e280(void*, u32, u32);
 
 // 0x710087dfa0

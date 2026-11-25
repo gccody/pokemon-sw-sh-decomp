@@ -276,6 +276,19 @@ void Unk_819940_call(const Unk_819940* self, u32 value) {
     Unk_7cb320(self->field_0, value);
 }
 
+struct Unk_7c56e0;
+struct Unk_819950 {
+    Unk_7c56e0* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_819950, field_0, 0x0);
+
+bool Unk_7c56e0_check(const Unk_7c56e0*, u32);
+
+// 0x7100819950
+void Unk_819950_call(const Unk_819950* self, u32 value) {
+    Unk_7c56e0_check(self->field_0, value);
+}
+
 struct Unk_7ca9e0;
 struct Unk_819960 {
     Unk_7ca9e0* field_0;
@@ -369,6 +382,19 @@ void Unk_81a670_call(const Unk_81a670* self) {
     Unk_7fe3b0(self->field_8);
 }
 
+struct Unk_7c5910;
+struct Unk_81be80 {
+    Unk_7c5910* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_81be80, field_0, 0x0);
+
+void Unk_7c5910_call(const Unk_7c5910*, u32);
+
+// 0x710081be80
+void Unk_81be80_call(const Unk_81be80* self, u32 value) {
+    Unk_7c5910_call(self->field_0, value);
+}
+
 struct Unk_81be90 {
     void* field_0;
 };
@@ -379,6 +405,45 @@ void Unk_7cce80(void*, u32, u32);
 // 0x710081be90
 void Unk_81be90_call(const Unk_81be90* self, u32 value, u32 arg2) {
     Unk_7cce80(self->field_0, value, arg2);
+}
+
+struct Unk_7cb3d0;
+struct Unk_81bf10 {
+    Unk_7cb3d0* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_81bf10, field_0, 0x0);
+
+void Unk_7cb3d0_call(const Unk_7cb3d0*, u32, u32);
+
+// 0x710081bf10
+void Unk_81bf10_call(const Unk_81bf10* self, u32 value, u32 arg2) {
+    Unk_7cb3d0_call(self->field_0, value, arg2);
+}
+
+struct Unk_7cb3b0;
+struct Unk_81bf20 {
+    Unk_7cb3b0* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_81bf20, field_0, 0x0);
+
+void Unk_7cb3b0_call(const Unk_7cb3b0*, u32, u32);
+
+// 0x710081bf20
+void Unk_81bf20_call(const Unk_81bf20* self, u32 value, u32 arg2) {
+    Unk_7cb3b0_call(self->field_0, value, arg2);
+}
+
+struct Unk_7cd200;
+struct Unk_81bf30 {
+    Unk_7cd200* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_81bf30, field_0, 0x0);
+
+void Unk_7cd200_call(const Unk_7cd200*, u32);
+
+// 0x710081bf30
+void Unk_81bf30_call(const Unk_81bf30* self, u32 value) {
+    Unk_7cd200_call(self->field_0, value);
 }
 
 struct Unk_81c3a0 {

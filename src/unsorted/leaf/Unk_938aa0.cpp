@@ -370,6 +370,19 @@ void Unk_952910_call(const Unk_952910* self, u32 value) {
     Unk_9a8190(self->field_4c8, value);
 }
 
+struct Unk_952920 {
+    u8 _0[0x4c8];
+    void* field_4c8;
+};
+PKMN_OFFSET_ASSERT(Unk_952920, field_4c8, 0x4c8);
+
+void Unk_9a8a10_call(void*);
+
+// 0x7100952920
+void Unk_952920_call(const Unk_952920* self) {
+    Unk_9a8a10_call(self->field_4c8);
+}
+
 struct Unk_952930 {
     u8 _0[0x4c8];
     void* field_4c8;
