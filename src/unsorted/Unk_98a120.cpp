@@ -51,22 +51,26 @@ void Unk_8ec970();
 
 // 0x710098a120
 u8 Unk_98a120(const Unk_23c4ef0_Scene* scene) {
-    return Unk_8ec930_getField2d(reinterpret_cast<const Unk_8ec930*>(Unk_98a120_Sub38(scene, 0xe0)));
+    return Unk_8ec930_getField2d(
+        reinterpret_cast<const Unk_8ec930*>(Unk_98a120_Sub38(scene, 0xe0)));
 }
 
 // 0x710098a140
 u16 Unk_98a140(const Unk_23c4ef0_Scene* scene) {
-    return Unk_8ec940_getField26(reinterpret_cast<const Unk_8ec940*>(Unk_98a120_Sub38(scene, 0xe0)));
+    return Unk_8ec940_getField26(
+        reinterpret_cast<const Unk_8ec940*>(Unk_98a120_Sub38(scene, 0xe0)));
 }
 
 // 0x710098a160
 u8 Unk_98a160(const Unk_23c4ef0_Scene* scene) {
-    return Unk_8ec950_getField28(reinterpret_cast<const Unk_8ec950*>(Unk_98a120_Sub38(scene, 0xe0)));
+    return Unk_8ec950_getField28(
+        reinterpret_cast<const Unk_8ec950*>(Unk_98a120_Sub38(scene, 0xe0)));
 }
 
 // 0x710098a180
 u8 Unk_98a180(const Unk_23c4ef0_Scene* scene) {
-    return Unk_8ec960_getField29(reinterpret_cast<const Unk_8ec960*>(Unk_98a120_Sub38(scene, 0xe0)));
+    return Unk_8ec960_getField29(
+        reinterpret_cast<const Unk_8ec960*>(Unk_98a120_Sub38(scene, 0xe0)));
 }
 
 // NON_MATCHING: the original passes the +0xe0 object on to 0x71008ec970,
