@@ -146,15 +146,13 @@ u8 Unk_8a8550(void* self) {
     return result.field_0;
 }
 
-// NON_MATCHING: the flag is a bool (the original masks it with `and #1`);
-// the name, from its caller, gives it as u32.
 // 0x71008a85b0
-u16 Unk_8a85b0(void* self, void* other, u32 flag) {
+u16 Unk_8a85b0(void* self, void* other, bool flag) {
     Unk_8a82e0* object = static_cast<Unk_8a82e0*>(self);
     Unk_7fe080(object->field_8.get(), object->field_0);
     Unk_8139d0_clearField0(
         Unk_7e88d0_getField10(reinterpret_cast<const Unk_7e88d0*>(object->field_28.get())));
-    Unk_8a85b0_Query query = {other, flag != 0};
+    Unk_8a85b0_Query query = {other, flag};
     u64 result;
     Unk_855f20(Unk_828930_getFielda20(static_cast<const Unk_828930*>(Unk_7e8910_getField130(
                    reinterpret_cast<const Unk_7e8910*>(object->field_28.get())))),
