@@ -118,13 +118,12 @@ struct Unk_8181d0 {
 };
 PKMN_OFFSET_ASSERT(Unk_8181d0, field_10, 0x10);
 
-void Unk_7fe2f0(u64);
-void Unk_802630();
+u8* Unk_7fe2f0(u64);
+void Unk_802630(u8*);
 
 // 0x71008181d0
 void Unk_8181d0_call(const Unk_8181d0* self, u8 /*pokeId*/) {
-    Unk_7fe2f0(self->field_10);
-    Unk_802630();
+    Unk_802630(Unk_7fe2f0(self->field_10));
 }
 
 struct Unk_8185d0 {

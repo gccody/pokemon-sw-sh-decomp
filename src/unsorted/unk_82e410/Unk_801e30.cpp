@@ -27,11 +27,8 @@ void Unk_801e30(Unk_8022b0_Table* self) {
     }
 }
 
-// NON_MATCHING: the side is a u8 parameter in the original (the index is
-// `and x, #0xff` + madd); the placeholder name's u32 gives `and w` + umaddl.
-// With a u8 side (rename to _Z10Unk_8021d0Pvhhj) it matches.
 // 0x71008021d0
-bool Unk_8021d0(void* self, u32 pos1, u32 pos2, u32 kind) {
+bool Unk_8021d0(void* self, u8 pos1, u8 pos2, u32 kind) {
     const Unk_8022b0_Table* table = static_cast<const Unk_8022b0_Table*>(self);
     Unk_8022b0_Entry* a = Unk_Find(table, pos1, kind);
     Unk_8022b0_Entry* b = Unk_Find(table, pos2, kind);
@@ -43,10 +40,7 @@ bool Unk_8021d0(void* self, u32 pos1, u32 pos2, u32 kind) {
     return true;
 }
 
-// NON_MATCHING: the side is a u8 parameter in the original (the index is
-// `and x, #0xff` + madd); the placeholder name's u32 gives `and w` + umaddl.
-// With a u8 side (rename to _Z10Unk_8022b0mhj) it matches.
 // 0x71008022b0
-Unk_8022b0_Entry* Unk_8022b0(u64 self, u32 pos, u32 kind) {
+Unk_8022b0_Entry* Unk_8022b0(u64 self, u8 pos, u32 kind) {
     return Unk_Find(reinterpret_cast<const Unk_8022b0_Table*>(self), pos, kind);
 }
