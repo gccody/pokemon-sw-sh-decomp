@@ -81,6 +81,18 @@ public:
     void Unk_1373770(s32 list, void* const& object);
     bool Unk_13737c0(s32 list, void* const& object);
     Unk_239a418_Ref<Unk_76f440> Unk_1373860(s32 list, s32 index, Unk_239a418_Allocator* allocator);
+    void Unk_1373970(s32 list, s32 index, void* const& object);
+    s32 Unk_13739c0();   // the first empty list, 0 if none is
+    bool Unk_1373cb0();  // whether a list is empty
+    void Unk_1373eb0();
+    void Unk_1373f30(s32 count);
+    void Unk_1373f50();
+    u32 Unk_1373f60();
+    void Unk_1373f70(s32 count);
+    void Unk_1373f90(s32 count);
+    u32 Unk_1373fb0();
+    void Unk_1373fc0(s32 job, bool value);
+    u32 Unk_1373fe0(u32 max);  // a number from 0 to max, from the next seed
 
     Unk_1373320_R field_60;
     Unk_1373460_R field_1fb0;
