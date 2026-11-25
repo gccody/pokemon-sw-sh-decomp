@@ -179,3 +179,54 @@ void Scheduler::SchedulerWorkerThread::vf2() {
 
 }  // namespace nex
 }  // namespace nn
+
+// The nodes of three std::map-style trees (libc++'s __tree_node: the links,
+// the colour, then the value) and their destroy functions, which free a
+// subtree with NEX's allocator. Their containers aren't known: the trees are
+// placeholders (the destroy functions don't use them, only pass them on).
+struct Unk_15d4930_Node {
+    Unk_15d4930_Node* m_left;
+    Unk_15d4930_Node* m_right;
+    Unk_15d4930_Node* m_parent;
+    bool m_black;
+    nn::nex::String m_key;
+};
+PKMN_OFFSET_ASSERT(Unk_15d4930_Node, m_key, 0x20);
+
+// 0x71015d4930: a tree whose values start with a String.
+void Unk_15d4930(void* tree, Unk_15d4930_Node* node) {
+    if (node != nullptr) {
+        Unk_15d4930(tree, node->m_left);
+        Unk_15d4930(tree, node->m_right);
+        node->m_key.~String();
+        Unk_15b9390(reinterpret_cast<u64>(node));
+    }
+}
+
+struct Unk_15d4b50_Node {
+    Unk_15d4b50_Node* m_left;
+    Unk_15d4b50_Node* m_right;
+};
+
+// 0x71015d4b50: a tree of trivially destroyed values.
+void Unk_15d4b50(void* tree, Unk_15d4b50_Node* node) {
+    if (node != nullptr) {
+        Unk_15d4b50(tree, node->m_left);
+        Unk_15d4b50(tree, node->m_right);
+        Unk_15b9390(reinterpret_cast<u64>(node));
+    }
+}
+
+struct Unk_15d4b90_Node {
+    Unk_15d4b90_Node* m_left;
+    Unk_15d4b90_Node* m_right;
+};
+
+// 0x71015d4b90: the same, for another tree.
+void Unk_15d4b90(void* tree, Unk_15d4b90_Node* node) {
+    if (node != nullptr) {
+        Unk_15d4b90(tree, node->m_left);
+        Unk_15d4b90(tree, node->m_right);
+        Unk_15b9390(reinterpret_cast<u64>(node));
+    }
+}
