@@ -7,7 +7,7 @@
 // the class is known.
 #include <types.h>
 
-#include "unsorted/Unk_98a420.h"
+#include "battle/battle_scene/Unk_23c4ef0_Seq.h"
 
 extern u32 Unk_27d6bc0 __attribute__((visibility("hidden")));
 
@@ -33,6 +33,8 @@ void Unk_98a2e0(const Unk_23c4ef0_Scene* scene, u64 arg1);
 void Unk_98a310(const Unk_23c4ef0_Scene* scene, u32 arg1, u64 arg2);
 void Unk_98a350(const Unk_23c4ef0_Scene* scene, u32 arg1, u64 arg2);
 void Unk_98a390(const Unk_23c4ef0_Scene* scene, u32 arg1, u32 arg2, bool arg3);
+
+void Unk_97f190(Unk_23c4ef0_Poke* poke, const Unk_5cfaf0_Name& name, bool arg2);
 
 // The view system, as these slots see it.
 class Unk_9b3b50_Self {
@@ -323,17 +325,45 @@ public:
     virtual void vf283();
     virtual u8 vf284(u32 pos);
 
-    u8 _8[0x5c8 - 0x8];
+    // The second object at a position, none for 0xff (like
+    // Unk_23c4ef0_Owner::GetPoke's).
+    Unk_239a418_Ref<Unk_23c4ef0_Poke> Unk_GetPoke580(u32 pos) const {
+        if (pos == 0xff)
+            return Unk_239a418_Ref<Unk_23c4ef0_Poke>();
+        return field_580[pos];
+    }
+
+    u8 _8[0x580 - 0x8];
+    // Each position's second object (Unk_23c4ef0_Owner::field_580).
+    Unk_239a418_Ref<Unk_23c4ef0_Poke> field_580[7];
+    u8 _5b8[0x5c8 - 0x5b8];
     Unk_23c4ef0_Scene* field_5c8;
     u8 _5d0[0x16f4 - 0x5d0];
     u32 field_16f4;
+    u8 _16f8[0x1734 - 0x16f8];
+    bool field_1734;
 };
+PKMN_OFFSET_ASSERT(Unk_9b3b50_Self, field_580, 0x580);
 PKMN_OFFSET_ASSERT(Unk_9b3b50_Self, field_5c8, 0x5c8);
 PKMN_OFFSET_ASSERT(Unk_9b3b50_Self, field_16f4, 0x16f4);
+PKMN_OFFSET_ASSERT(Unk_9b3b50_Self, field_1734, 0x1734);
+
+// The scene's field this file reads (unsorted/Unk_98a420.h has the scene with
+// its fields, which Unk_23c4ef0_Seq.h's declaration of Unk_98a290 conflicts
+// with): its +0x38 object.
+struct Unk_9b3b50_Scene {
+    u8 _0[0x38];
+    u64 field_38;
+};
+PKMN_OFFSET_ASSERT(Unk_9b3b50_Scene, field_38, 0x38);
+
+// The +0x38 object's Unk_23bdd98 (0x710098ab90).
+u8* Unk_98ab90(u64 object);
 
 // What the scene's +0x38 object leads to, at `offset`.
 static u8* Unk_9b3b50_Sub38(const Unk_9b3b50_Self* self, u64 offset) {
-    return Unk_98ab90(reinterpret_cast<u64>(self->field_5c8->field_38)) + offset;
+    return Unk_98ab90(reinterpret_cast<const Unk_9b3b50_Scene*>(self->field_5c8)->field_38) +
+           offset;
 }
 
 // 0x71009b3b50
@@ -391,6 +421,24 @@ void Unk_9b3cc0(Unk_9b3b50_Self* self, u64 arg1) {
     }
     self->field_16f4 = 0;
     Unk_98a250(self->field_5c8, arg1, false);
+}
+
+// 0x71009b3cf0
+void Unk_9b3cf0(Unk_9b3b50_Self* self, u8 arg1, u32 arg2, u64 arg3, u64 arg4, u64 arg5, bool arg6) {
+    if (Unk_27d6bc0 != 0x50b) {
+        Unk_27d6bc0 = 0x50b;
+    }
+    u8 pos = self->vf284(self->vf230(arg1));
+    Unk_239a418_Ref<Unk_23c4ef0_Poke> poke = self->Unk_GetPoke580(pos);
+    if (poke.m_ptr && poke.m_ptr->vf50())
+        Unk_97f190(poke.m_ptr, Unk_5cfad0_Literal("ba_order01").Unk_5cfad0(), false);
+    self->field_1734 = arg6;
+    if (arg6) {
+        self->field_16f4 = 0;
+        self->field_5c8->Unk_98a290(arg1, arg2, false);
+    } else {
+        self->field_16f4 = 100;
+    }
 }
 
 // 0x71009b3e90
