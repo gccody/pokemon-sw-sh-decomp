@@ -166,3 +166,74 @@ template class ThreadVariable<qList<SecurityContext>>;
 
 }  // namespace nex
 }  // namespace nn
+
+namespace nn {
+namespace nex {
+
+// N2nn3nex18DefaultChainPolicyIPNS0_3JobEEE (a template argument of qChain's
+// RTTI): an element's links.
+template <class T>
+class DefaultChainPolicy {
+public:
+    static T& Next(T element) { return element->m_chainNext; }
+    static T& Prev(T element) { return element->m_chainPrev; }
+};
+
+// N2nn3nex6qChainIPNS0_3JobENS0_18DefaultChainPolicyIS3_EEEE: an intrusive
+// list, linked through its elements.
+template <class T, class Policy>
+class qChain : public RootObject {
+public:
+    // 0x71015d0280 (D2, another unit's), 0x71015d5010 (D0)
+    ~qChain() override {
+        for (T element = m_first, end = m_end; end != element;) {
+            T next = Policy::Next(element);
+            Remove(element);
+            element = next;
+        }
+    }
+
+    void Remove(T element) {
+        T next = Policy::Next(element);
+        T prev = Policy::Prev(element);
+        if (prev != nullptr) {
+            Policy::Next(prev) = next;
+        }
+        Policy::Prev(element) = nullptr;
+        if (next != nullptr) {
+            Policy::Prev(next) = prev;
+        }
+        Policy::Next(element) = nullptr;
+        if (m_first == element) {
+            m_first = next;
+        }
+        if (m_last == element) {
+            m_last = prev;
+        }
+        m_count--;
+    }
+
+    T m_first;
+    T m_last;
+    T m_end;
+    size_t m_count;
+};
+using Unk_JobChain = qChain<Job*, DefaultChainPolicy<Job*>>;
+PKMN_SIZE_ASSERT(Unk_JobChain, 0x28);
+
+template class qChain<Job*, DefaultChainPolicy<Job*>>;
+
+}  // namespace nex
+}  // namespace nn
+
+// What 0x71015cd070 keeps pointers to.
+struct Unk_15d50b0;
+
+// 0x71015d50b0: libc++'s slow path of push_back (a reallocation).
+// NON_MATCHING: the original moves the old elements with a loop (unrolled by
+// 4), as libc++ does when the allocator has a construct(); qVector.h's
+// MemAllocator has none, so this copies them with memcpy. A MemAllocator with
+// `void construct(T* p, const T& v) { new (p) T(v); }` gives the original's
+// code exactly (checked in a scratch build).
+template void std::vector<Unk_15d50b0*, nn::nex::MemAllocator<Unk_15d50b0*>>::__push_back_slow_path<
+    Unk_15d50b0* const&>(Unk_15d50b0* const& value);

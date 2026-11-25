@@ -35,44 +35,6 @@ PKMN_SIZE_ASSERT(Operation, 0x20);
 // 0x71015d48f0 (D2), 0x71015d4900 (D0: a trap, the class is abstract)
 Operation::~Operation() {}
 
-// N2nn3nex3JobE (as lib/nex/Unk_1630ba0.cpp declares it). Its members end at
-// 0x62: a derived class's begin in its tail padding.
-class Job : public RefCountedObject {
-public:
-    ~Job() override;
-    virtual void vf2();
-    virtual void vf3() = 0;
-    virtual void vf4();
-    virtual void vf5();
-    virtual void vf6();
-    virtual void vf7();
-    virtual void vf8();
-    virtual void vf9();
-    virtual void vf10();
-    virtual void vf11();
-
-    u64 field_10;
-    u64 field_18;
-    u8 field_20;
-    // called when the job is done (state 5), with the job and m_callbackData
-    void (*m_callback)(Job* job, void* data);
-    u32 m_callbackData;
-    u32 field_34;
-    u32 m_type;
-    u32 field_3c;
-    u32 m_state;
-    u32 field_44;
-    u32 field_48;
-    u64 field_50;
-    u64 field_58;
-    u8 field_60;
-    u8 field_61;
-};
-PKMN_OFFSET_ASSERT(Job, m_callback, 0x28);
-PKMN_OFFSET_ASSERT(Job, m_state, 0x40);
-PKMN_OFFSET_ASSERT(Job, field_61, 0x61);
-PKMN_SIZE_ASSERT(Job, 0x68);
-
 // N2nn3nex20JobSignalCallContextE: gives the call context with the ID
 // m_contextId its result.
 class JobSignalCallContext : public Job {
