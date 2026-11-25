@@ -316,3 +316,17 @@ void Unk_178dd30(void* builder, const Unk_178dd30_Info& info) {
     }
     nvnSamplerBuilderSetReductionFilter(builder, Unk_1f4897c[(info.field_6 >> 8) & 3]);
 }
+
+// 0x710178d6d0: shader stage bits to NVN's (vertex, hull, domain, geometry,
+// pixel, compute to vertex, tessellation control and evaluation, geometry,
+// fragment, compute).
+int Unk_178d6d0(int stages) {
+    static const int nvnStageBits[] = {0x1, 0x8, 0x10, 0x4, 0x2, 0x20};
+    int nvnStages = 0;
+    for (int i = 0; i < 6; i++) {
+        if (stages & (1 << i)) {
+            nvnStages |= nvnStageBits[i];
+        }
+    }
+    return nvnStages;
+}
