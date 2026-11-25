@@ -27,20 +27,17 @@ void Unk_23bd130::vf2() {
     field_40 = bg;
 }
 
-void Unk_8ea2b0(void* p, u64 id, u32 arg2, u32 arg3, u32 arg4);
+void Unk_8ea2b0(void* p, u32 id, bool arg2, bool arg3, bool arg4);
 
 // 0x71008ea250
-// NON_MATCHING: register allocation: Unk_8ea2b0's flags are bools (it matches
-// with Unk_8ea2b0 declared so).
 void Unk_8ea250(void* p, u32 id, bool arg2, bool arg3) {
     Unk_23bd130* self = static_cast<Unk_23bd130*>(p);
     Unk_8ea2b0(p, id, arg2, self->field_10->field_370->vf267() == 2, arg3);
 }
 
 // 0x71008ea2b0
-// NON_MATCHING: the flags are bools (the original masks them); the name gives
-// them as u32. With bools, only the order of two of the stores differs.
-void Unk_8ea2b0(void* p, u64 id, u32 arg2, u32 arg3, u32 arg4) {
+// NON_MATCHING: only the order of two of the stores differs.
+void Unk_8ea2b0(void* p, u32 id, bool arg2, bool arg3, bool arg4) {
     Unk_23bd130* self = static_cast<Unk_23bd130*>(p);
     if (self->field_10->field_370->vf275()) {
         Unk_8faa60_Flags flags;
@@ -60,9 +57,8 @@ void Unk_8ea2b0(void* p, u64 id, u32 arg2, u32 arg3, u32 arg4) {
 }
 
 // 0x71008ea3b0
-// NON_MATCHING: the flag is a bool (the original masks it); the name gives it
-// as a u32. With a bool, the constant 1 isn't hoisted above the branch.
-void Unk_8ea3b0(u64 p, u32 arg1) {
+// NON_MATCHING: the constant 1 isn't hoisted above the branch.
+void Unk_8ea3b0(u64 p, bool arg1) {
     Unk_23bd130* self = reinterpret_cast<Unk_23bd130*>(p);
     if (self->field_10->field_370->vf275()) {
         Unk_8faa60_Flags flags;

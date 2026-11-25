@@ -250,7 +250,7 @@ void Unk_8e8650_set(const Unk_8e8650* self, Unk_8e8650* value) {
     *value = *self;
 }
 
-void Unk_8ea2b0(void*, u64, u32, u32, u32);
+void Unk_8ea2b0(void*, u32, bool, bool, bool);
 
 // 0x71008ea3a0
 void Unk_8ea3a0_call(void* self, u64 value, bool arg2, bool arg3) {
