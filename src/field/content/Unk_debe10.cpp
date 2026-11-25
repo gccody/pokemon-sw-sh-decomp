@@ -92,12 +92,14 @@ bool HaxeSymbolPokemonObject::IsGimmickSymbolPokemon() const {
 
 // 0x7100debf50
 bool HaxeSymbolPokemonObject::IsContainsCreateArea(HaxeVector3 pos) const {
-    return Unk_c8dd50(Owner(this)->field_a70, float32x4_t{pos.X, pos.Y, pos.Z, 0.0f}, 0, 0.0f);
+    Unk_debce0_Areas areas = Owner(this)->field_a70;
+    return Unk_c8dd50(areas, float32x4_t{pos.X, pos.Y, pos.Z, 0.0f}, 0, 0.0f);
 }
 
 // 0x7100debfc0
 bool HaxeSymbolPokemonObject::IsContainsVanishArea(HaxeVector3 pos) const {
-    return Unk_c8dd50(Owner(this)->field_a70, float32x4_t{pos.X, pos.Y, pos.Z, 0.0f}, 1, 0.0f);
+    Unk_debce0_Areas areas = Owner(this)->field_a70;
+    return Unk_c8dd50(areas, float32x4_t{pos.X, pos.Y, pos.Z, 0.0f}, 1, 0.0f);
 }
 
 }  // namespace content

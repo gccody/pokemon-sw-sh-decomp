@@ -15,7 +15,7 @@ struct Unk_debce0_Areas {
 PKMN_SIZE_ASSERT(Unk_debce0_Areas, 0xa0);
 
 // 0x7100c8dd50
-bool Unk_c8dd50(Unk_debce0_Areas areas, const float32x4_t& pos, int index, float margin);
+bool Unk_c8dd50(const Unk_debce0_Areas& areas, const float32x4_t& pos, int index, float margin);
 
 struct Unk_debce0_Owner {
     // 0x7100d0b900
