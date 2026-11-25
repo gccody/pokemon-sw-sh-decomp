@@ -194,6 +194,9 @@ public:
         vf13();
     }
     void vf31(void* a1, f32 a2) override;
+    // NON_MATCHING: its thunk 0x710030d630 (the function is the leafgen one):
+    // field_16c is addressed as this - 0x154 here, the original keeps the
+    // adjusted this (sub x8, x0, #0x2c0; ldrh [x8, #0x16c]).
     void vf32(u32 a1, f32 a2) override {
         if (a1 == 0x36) {
             field_214 = a2;
@@ -227,6 +230,9 @@ void Unk_237c628::vf0(u32 a1, bool a2) {
 }
 
 // 0x710030d370, and its thunk 0x710030d400
+// NON_MATCHING: the thunk 0x710030d400 (the function matches): it addresses
+// the fields from the incoming this (ldur [x8, #-0xac]), the original from
+// the adjusted one (sub x0, x0, #0x2c0; ldr [x0, #0x214]).
 void Unk_237c628::vf28(u32 a1) {
     if (a1 != 0xffffffff) {
         u32 value = Unk_Round(a1 / field_214);
@@ -265,7 +271,7 @@ u32 Unk_237c628::vf16() {
 // 0x710030d7c0, and its thunk 0x710030d800
 void Unk_237c628::vf18() {
     Unk_38d590(this);
-    field_80 = log10f(field_214) * 3986.3135f;
+    field_80 = log10f(field_214) * 3986.3135f;  // 1200 / log10(2): cents
 }
 
 // 0x710030d840
