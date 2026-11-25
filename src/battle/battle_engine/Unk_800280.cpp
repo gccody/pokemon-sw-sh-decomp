@@ -69,13 +69,10 @@ static void Unk_8002a0_Add(Unk_800280* self, u8 id) {
 }
 
 // 0x71008002a0
-// NON_MATCHING: the original takes arg1 as a u8 (it extends it at every use;
-// the existing name gives a u32, truncated once here), which also changes the
-// frame. With a u8 it still differs in where the id's extension for the list
-// compare happens and in two stores' order.
-bool Unk_8002a0(void* object, u32 arg1, u64 arg2) {
+// NON_MATCHING: where the id's extension for the list compare happens and two
+// stores' order differ.
+bool Unk_8002a0(void* object, u8 value, u64 arg2) {
     Unk_800280* self = static_cast<Unk_800280*>(object);
-    u8 value = arg1;
     if (self->field_11 == value)
         return false;
     if (self->field_1a0 != 0)

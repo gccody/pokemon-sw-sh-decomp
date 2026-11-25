@@ -81,8 +81,8 @@ void Unk_7ee040_set(Unk_7ee040* self);
 struct Unk_7f1cd0;
 void Unk_7f1cd0_set(Unk_7f1cd0* self);
 
-void Unk_8006e0(void* self, u32 arg1, u32 arg2);
-void Unk_8002a0(void* self, u32 arg1, u64 arg2);
+void Unk_8006e0(void* self, u8 arg1, u8 arg2);
+void Unk_8002a0(void* self, u8 arg1, u64 arg2);
 void Unk_7ffbd0(void* self, u32 arg1, void* arg2);
 void Unk_7ffce0(void* self, u32 arg1, u32 arg2);
 void Unk_7ffe50(void* self, u32 arg1, u32 arg2);
