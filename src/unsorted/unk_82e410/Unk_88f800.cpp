@@ -14,7 +14,7 @@ void Unk_819ac0(const Unk_819600_Self* self, u8 pokeId);
 
 void Unk_88f960(void* self, u8 pokeId, u8 arg2, u8 arg3);
 // Named (void*, u64, u32); its code takes two bytes (see below).
-void Unk_88ff20(void* self, u64 pokeId, u32 form);
+void Unk_88ff20(void* self, u8 pokeId, u8 form);
 
 static inline u32 Unk_88f800_Var(void* self, u32 index) {
     return Unk_819600_call(static_cast<const Unk_819600*>(self), index);
@@ -103,8 +103,6 @@ void Unk_88fb10(void* self, u8 pokeId) {
         Unk_8196b0_call(static_cast<const Unk_8196b0*>(self), 1, 1);
 }
 
-// NON_MATCHING: Unk_88ff20's name gives it a u64 and a u32, so the Pokemon
-// is extended for it; with (void*, u8, u8) this matches.
 // 0x710088fb60
 void Unk_88fb60(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
@@ -115,8 +113,6 @@ void Unk_88fb60(void* self, u8 pokeId) {
         Unk_88ff20(self, pokeId, 0);
 }
 
-// NON_MATCHING: Unk_88ff20's name gives it a u64 and a u32, so the Pokemon
-// is extended for it; with (void*, u8, u8) this matches.
 // 0x710088fbd0
 void Unk_88fbd0(void* self, u8 pokeId) {
     if (Unk_81a310(static_cast<const Unk_819600_Self*>(self)) == 3)
@@ -157,8 +153,6 @@ void Unk_88fcd0(void* self, u8 pokeId) {
     Unk_819640_call(static_cast<const Unk_819640*>(self), 0x3c, 1);
 }
 
-// NON_MATCHING: Unk_88ff20's name gives it a u64 and a u32, so the Pokemon
-// is extended for it; with (void*, u8, u8) this matches.
 // 0x710088fd90
 void Unk_88fd90(void* self, u8 pokeId) {
     if (Unk_88f800_Var(self, 4) != pokeId)
@@ -185,8 +179,6 @@ void Unk_88fe10(void* self, u8 pokeId) {
     Unk_819640_call(static_cast<const Unk_819640*>(self), 0x3c, 1);
 }
 
-// NON_MATCHING: Unk_88ff20's name gives it a u64 and a u32, so the Pokemon
-// is extended for it; with (void*, u8, u8) this matches.
 // 0x710088feb0
 void Unk_88feb0(void* self, u8 pokeId) {
     if (Unk_88f800_Var(self, 4) != pokeId)
@@ -197,12 +189,8 @@ void Unk_88feb0(void* self, u8 pokeId) {
     Unk_88ff20(self, pokeId, 1);
 }
 
-// NON_MATCHING: the name gives (void*, u64, u32), but the original takes two
-// bytes: it compares the form with `uxtb` and masks the Pokemon for
-// Unk_803d60. With (void*, u8, u8) (_Z10Unk_88ff20Pvhh) it and its four
-// callers match.
 // 0x710088ff20
-void Unk_88ff20(void* self, u64 pokeId, u32 form) {
+void Unk_88ff20(void* self, u8 pokeId, u8 form) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
     Unk_7ee6b0* poke = Unk_8196d0(flow, pokeId);
     if (Unk_85c190_Species(poke) != 0x36b)
