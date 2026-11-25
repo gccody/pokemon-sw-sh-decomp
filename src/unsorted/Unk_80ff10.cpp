@@ -54,10 +54,15 @@ void Unk_80ffa0(const Unk_811d90_Self* self, Unk_7ee6b0* poke, s32 index, const 
     }
 }
 
+// Queues command 0x3d with the two ids.
+static inline void Unk_810170_PutIds(u64 que, u8 pokeId, u8 otherId) {
+    Unk_8150c0(que, 0x3d, pokeId, otherId);
+}
+
 // 0x7100810170
 void Unk_810170(const Unk_811d90_Self* self, const Unk_7ee6b0* poke, const Unk_7ee6b0* other) {
     Unk_816f20(self->field_20, Unk_7ee6b0_getField7d(poke), Unk_7ee6b0_getField7d(other));
-    Unk_8150c0(self->field_18, 0x3d, Unk_7ee6b0_getField7d(poke), Unk_7ee6b0_getField7d(other));
+    Unk_810170_PutIds(self->field_18, Unk_7ee6b0_getField7d(poke), Unk_7ee6b0_getField7d(other));
 }
 
 // 0x7100810450
