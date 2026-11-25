@@ -258,18 +258,16 @@ Unk_7e9b00_Node* Unk_7eb050(const Unk_7eaac0_Pool* /*self*/,
     return nullptr;
 }
 
-// NON_MATCHING: arg1 and arg2 are u8 in the original (cmp w8, w21, uxtb); its
-// name gives them as u32, so the casts are hoisted out of the loop.
 // 0x71007eb130
-u32 Unk_7eb130(void* self, u32 arg1, u32 arg2, u32 arg3) {
+u32 Unk_7eb130(void* self, u8 arg1, u8 arg2, u32 arg3) {
     const Unk_7eaac0_Pool* pool = static_cast<const Unk_7eaac0_Pool*>(self);
     for (Unk_7e9b00_Node* node = pool->field_1588; node != nullptr; node = Unk_7eaac0_Next(node)) {
         if (Unk_7eaac0_Kind(node) == 2 &&
             Unk_7e9ba0_getField38(reinterpret_cast<const Unk_7e9ba0*>(node)) == arg3) {
             u8 owner = Unk_7eaac0_Owner(node);
-            if (owner == static_cast<u8>(arg1))
+            if (owner == arg1)
                 Unk_7e9c60_setField3a(reinterpret_cast<Unk_7e9c60*>(node), arg2);
-            else if (owner == static_cast<u8>(arg2))
+            else if (owner == arg2)
                 Unk_7e9c60_setField3a(reinterpret_cast<Unk_7e9c60*>(node), arg1);
         }
     }

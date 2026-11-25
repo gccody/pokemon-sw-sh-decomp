@@ -87,7 +87,7 @@ void Unk_7ffbd0(void* self, u32 arg1, void* arg2);
 void Unk_7ffce0(void* self, u32 arg1, u32 arg2);
 void Unk_7ffe50(void* self, u32 arg1, u32 arg2);
 bool Unk_8021d0(void* self, u32 arg1, u32 arg2, u32 arg3);
-void Unk_7eb130(void* self, u32 arg1, u32 arg2, u32 arg3);
+void Unk_7eb130(void* self, u8 arg1, u8 arg2, u32 arg3);
 void Unk_802ff0(void* self, u8 pokeId);
 
 void Unk_7f1000(Unk_7ee6b0* self, u32 stat, u8 value);
