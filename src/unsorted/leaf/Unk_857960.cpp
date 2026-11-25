@@ -2606,14 +2606,14 @@ void Unk_85ef10_call(void* self, u32 value) {
     Unk_81b550(self, value);
 }
 
-void Unk_8608d0(void*, u64, u32, u32);
+void Unk_8608d0(void*, u8, u8, u32);
 
 // 0x71008607e0
 void Unk_8607e0_call(void* self, u64 value) {
     Unk_8608d0(self, value, 0xe, 1);
 }
 
-void Unk_8608d0(void*, u64, u32, u32);
+void Unk_8608d0(void*, u8, u8, u32);
 
 // 0x7100860980
 void Unk_860980_call(void* self, u64 value) {

@@ -6,10 +6,8 @@
 // Placeholder names.
 #include "unsorted/unk_82e410/Unk_860110.h"
 
-// NON_MATCHING: named with a u64 Pokemon and a u32 kind; the original
-// compares both as bytes and keeps w1 (mov w20, w1, not mov x20, x1).
 // 0x71008608d0
-void Unk_8608d0(void* self, u64 pokeId, u32 kind, u32 stat) {
+void Unk_8608d0(void* self, u8 pokeId, u8 kind, u32 stat) {
     Unk_860370_Check(self, pokeId, kind, stat);
 }
 
@@ -113,14 +111,12 @@ void Unk_860e20(void* self, u8 pokeId) {
     Unk_819640_call(static_cast<const Unk_819640*>(self), 0x50, 1);
 }
 
-// NON_MATCHING: the original passes `pokeId` to 0x710081b750 (in w1), which
-// is named without it; with a u8 parameter there, the rest matches.
 // 0x7100860f30
 void Unk_860f30(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
     if (Unk_819600_call(static_cast<const Unk_819600*>(self), 4) != pokeId)
         return;
-    if (!Unk_81b750(flow))
+    if (!Unk_81b750(flow, pokeId))
         return;
     u32 move = Unk_819690_call(static_cast<const Unk_819690*>(self));
     u32 value = Unk_819600_call(static_cast<const Unk_819600*>(self), 0x12);

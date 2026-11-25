@@ -20,7 +20,7 @@ bool Unk_81be10(const Unk_819600_Self* self, u8 pokeId);
 bool Unk_81bd20(const Unk_819600_Self* self);
 struct Unk_819a20;
 bool Unk_819a20_call(const Unk_819a20* self);
-bool Unk_81b750(const Unk_819600_Self* self);
+bool Unk_81b750(const Unk_819600_Self* self, u8 pokeId);
 
 // As in Unk_86dd10.h: what Unk_81a510 is given (field_0 and field_1 two
 // Pokemon), with a message list at +0xc.
