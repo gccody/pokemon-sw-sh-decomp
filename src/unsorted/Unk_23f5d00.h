@@ -2,9 +2,9 @@
 // A class on gflib3's other reference-counted object (src/gflib3/
 // Unk_239a4c0.h), vtable 0x71023f5d00, 6 slots, 0x180 bytes, constructed by
 // 0x7100ead190: a holder of a reference (Unk_236d618) and a reference. (The
-// constructor isn't decompiled yet: it inlines Unk_239a4c0's, which stores a
-// root class's vptr, 0x710236d378, and takes the allocator from a TLS stack.
-// The derived classes call it out of line.) Its
+// constructor inlines Unk_239a4c0's, which stores the root class's vptr,
+// 0x710236d378, and takes the allocator from a TLS stack. The derived
+// classes call it out of line.) Its
 // destructor is its key function, out of line and too big to be inlined:
 // its D0 and its thunks tail-call its D2. Slot 5 is its own (a static's
 // address; the derived classes override it). Placeholder names: rename once

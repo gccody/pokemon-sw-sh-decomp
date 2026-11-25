@@ -24,6 +24,24 @@ PKMN_OFFSET_ASSERT(Unk_2771620_Stack, field_80, 0x80);
 // The TLS slot that holds the current thread's stack.
 extern nn::os::TlsSlot Unk_2771620;
 
+// The allocator on top of this thread's stack: null when the thread has no
+// stack or it's empty (what the objects' constructors take, where
+// Unk_2771620_Current falls back to the default heap).
+inline Unk_239a418_Allocator* Unk_2771620_Top() {
+    Unk_2771620_Stack* stack =
+        reinterpret_cast<Unk_2771620_Stack*>(nn::os::GetTlsValue(Unk_2771620));
+    if (stack == nullptr || stack->field_80 == 0)
+        return nullptr;
+    return stack->field_0[stack->field_80 - 1];
+}
+
+// The constructor of the reference-counted objects' root
+// (src/gflib3/Unk_239a418.h).
+inline Unk_236d378::Unk_236d378()
+    : field_10(0), field_18(0), field_20(0), field_28(0), field_30(0), field_38(0), field_40(0) {
+    field_8 = Unk_2771620_Top();
+}
+
 // Makes an allocator the current one while it's alive.
 class Unk_2771620_Scope {
 public:
