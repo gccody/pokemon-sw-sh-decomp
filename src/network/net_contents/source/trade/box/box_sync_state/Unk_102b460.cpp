@@ -6,6 +6,7 @@
 // Here are the base's handle getter and reference counting, which it overrides
 // itself as Unk_239a418 does (src/gflib3/Unk_5e2700.cpp), and the derived
 // class's destructors. Placeholder names: rename once the classes are known.
+#include <algorithm>
 #include <vector>
 
 #include <types.h>
@@ -24,14 +25,22 @@ struct Unk_27e51b8 {
     }
 };
 
+// What Unk_24093d8's vf8 calls, each given a value.
+class Unk_24093d8_Listener {
+public:
+    virtual void vf0();
+    virtual void vf1(u64 value);
+};
+
 // The interface at +0x48 (vtable 0x71024093d8): the object's, with the type
-// 0x71027e51b8 and three functions of its own.
+// 0x71027e51b8 and three functions of its own: a list of listeners (add,
+// remove, and call them all with a value).
 class Unk_24093d8 : public Unk_239a458 {
 public:
     const Unk_239a418_Type* vf_type() override { return Unk_27e51b8::Unk_GetType(); }
-    virtual void vf6() = 0;
-    virtual void vf7() = 0;
-    virtual void vf8() = 0;
+    virtual void vf6(Unk_24093d8_Listener* listener) = 0;
+    virtual void vf7(Unk_24093d8_Listener* listener) = 0;
+    virtual void vf8(u64 value) = 0;
 };
 
 // The interface at +0x50 (vtable 0x7102409430).
@@ -57,11 +66,11 @@ class Unk_24092b8 : public Unk_2409398 {
 public:
     ~Unk_24092b8() override;
     const Unk_239a418_Type* vf_type() override;
-    void vf6() override;
-    void vf7() override;
-    void vf8() override;
+    void vf6(Unk_24093d8_Listener* listener) override;
+    void vf7(Unk_24093d8_Listener* listener) override;
+    void vf8(u64 value) override;
 
-    std::vector<u64, Unk_2771620_Allocator<u64>> field_60;
+    std::vector<Unk_24093d8_Listener*, Unk_2771620_Allocator<Unk_24093d8_Listener*>> field_60;
     // A lock of the shape of gflib3's static one (src/gflib3/Unk_65f110.h).
     Unk_2778770 field_90;
 };
@@ -98,4 +107,19 @@ void Unk_2409398::vf5() {
         handle->field_60 = nullptr;
         vf3();
     }
+}
+
+// 0x7101029340, 0x710102b970 (its thunk from +0x48)
+void Unk_24092b8::vf7(Unk_24093d8_Listener* listener) {
+    field_90.Lock();
+    auto it = std::find(field_60.begin(), field_60.end(), listener);
+    if (it != field_60.end())
+        field_60.erase(it);
+    field_90.Unlock();
+}
+
+// 0x7101029e70, 0x710102ba60 (its thunk from +0x48)
+void Unk_24092b8::vf8(u64 value) {
+    for (Unk_24093d8_Listener* listener : field_60)
+        listener->vf1(value);
 }
