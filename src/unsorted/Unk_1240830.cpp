@@ -197,9 +197,6 @@ public:
 // folded), gives the owner's object a callable that makes the next object;
 // when another's is, makes Unk_2426310 the next one. This object, until
 // there's a next one.
-// NON_MATCHING: matches once 0x7101241f30, 0x7101242df0 and 0x7101242e00 have
-// the names of the local functions above (checked with them renamed): their
-// rows name the leaf copies, so the addresses it takes don't resolve.
 Unk_239a418_Ref<Unk_239a418> Unk_2425ff8::vf8() {
     if (Unk_12164a0()->field_60->Unk_Take(0xc554692e5686862e)) {
         Unk_239a418_Ref<Unk_1158640_Owner> owner =
