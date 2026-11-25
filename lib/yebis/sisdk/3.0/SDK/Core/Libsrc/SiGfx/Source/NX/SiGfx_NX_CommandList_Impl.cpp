@@ -11,14 +11,20 @@ namespace SiSDK3 {
 // RemoveByIndex is the form its callers there show, where the assert is
 // folded away): an assert that the build's NDEBUG doesn't compile out, at
 // its line of the header, then the elements after it moved down (inline:
-// the strings are the header's).
+// the strings are the header's). The move is a test of the count against
+// the next index (`cmp count, i`), then a do/while that compares the index
+// with the count.
 template <class T, int ALIGN>
 inline void Unk_RemoveByIndexChecked(SiArray<T, ALIGN>* array, size_t iIndex) {
     if (!(iIndex < array->m_itemCount)) {
         __assert_fail("iIndex<m_itemCount", "../../../../Include\\SiCore/SiCore_Array.h", 1007, "RemoveByIndex");
     }
-    for (s64 i = iIndex + 1; i < static_cast<s64>(array->m_itemCount); i++) {
-        array->m_pData[i - 1] = array->m_pData[i];
+    s64 i = iIndex + 1;
+    if (static_cast<s64>(array->m_itemCount) > i) {
+        do {
+            array->m_pData[i - 1] = array->m_pData[i];
+            i++;
+        } while (i < static_cast<s64>(array->m_itemCount));
     }
     array->m_itemCount--;
     array->Unk_UpdateRange();
@@ -219,16 +225,9 @@ void SiGfxNXCommandList::vf17() {
     field_58.vf3();
 }
 
-// NON_MATCHING: 4 instructions: the removal's guard compares the count with
-// the index (`cmp x10, x8 ; b.le`) where this compares the index with the
-// count, and the second loop increments its counter before the source's
-// offset (here after). (Round 6: references to field_150's count and data
-// gave the original's two spilled addresses and its size; the removal as
-// `count > i` or with size_t, the copy's index as `j + base`, a second
-// counter, the source read first: the same or worse.)
 // 0x710053a790
-// (Round 5: the removal's loop written `count > i`, as a while, from the
-// index with `count - 1`, the count in a local: the same or worse.)
+// (The order of the second loop's three increments, the counter first, is
+// the counter's increment in the source's index `data[j++]`.)
 void SiGfxNXCommandList::Unk_53a790() {
     // the memory that the GPU is past is let go of
     size_t i = 0;
@@ -253,10 +252,10 @@ void SiGfxNXCommandList::Unk_53a790() {
         size_t& count = field_150.m_itemCount;
         OverwrittenEntry*& data = field_150.m_pData;
         size_t base = field_1a0.m_itemCount;
-        for (size_t j = 0; j < count; j++) {
+        for (size_t j = 0; j < count;) {
             field_1a0.Unk_SetCount(base + count);
             DiscontinuedEntry* entry = &field_1a0.m_pData[base + j];
-            static_cast<OverwrittenEntry&>(*entry) = data[j];
+            static_cast<OverwrittenEntry&>(*entry) = data[j++];
             nvnSyncInitialize(entry->field_10, Unk_NXDevice(field_18)->vf85());
             nvnCommandBufferFenceSync(field_88, entry->field_10, 0, 1);
         }

@@ -4908,9 +4908,12 @@ s32 CTextureUtil::Unk_474570(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
 
 // 0x7100474e70: the same from render textures, into a render texture or a
 // GPU texture (one of the two)
-// NON_MATCHING: the same instructions, three runs of them in another order
-// (the copies of the parameters, the stores of the sixteen coordinates, the
-// last arguments' stores).
+// The sixteen coordinates are four vectors built in an initializer (their
+// stores' order), and the third texture's flag is a local after `same` (the
+// order of the last arguments' stores).
+// NON_MATCHING: the same instructions, but the copies of the parameters at
+// the entry come in another order (the original copies x2 and x1 before w5
+// and x4).
 s32 CTextureUtil::Unk_474e70(f32 arg9, f32 arg10, f32 arg11, CRenderTexture* target, Unk_GPUTexture* targetTexture,
                              CRenderTexture* source0, CRenderTexture* source1, s32 arg20, CRenderTexture* source2,
                              bool im, const Unk_Vector3* arg19, s32 mode, CRenderTexture* source3,
@@ -4948,30 +4951,20 @@ s32 CTextureUtil::Unk_474e70(f32 arg9, f32 arg10, f32 arg11, CRenderTexture* tar
     Unk_GetCoords(source1, &u1, &v1);
     f32 du = source1->field_88 + source1->field_90;
     f32 dv = source1->field_8c + source1->field_94;
-    f32 coords[16];
-    coords[0] = -du;
-    coords[1] = -dv;
-    coords[2] = u1 - du;
-    coords[3] = v1 - dv;
-    coords[4] = du;
-    coords[5] = -dv;
-    coords[6] = u1 + du;
-    coords[7] = v1 - dv;
-    coords[8] = -du;
-    coords[9] = dv;
-    coords[10] = u1 - du;
-    coords[11] = v1 + dv;
-    coords[12] = du;
-    coords[13] = dv;
-    coords[14] = u1 + du;
-    coords[15] = v1 + dv;
+    Unk_Float4 coords[4] = {
+        Unk_Float4(-du, -dv, u1 - du, v1 - dv),
+        Unk_Float4(du, -dv, u1 + du, v1 - dv),
+        Unk_Float4(-du, dv, u1 - du, v1 + dv),
+        Unk_Float4(du, dv, u1 + du, v1 + dv),
+    };
     f32 ratio = static_cast<f32>(static_cast<u32>(source0->field_58)) / height - 0.5f;
     ratio = ratio > 0.0f ? ratio : -ratio;
     bool same = ratio <= 0.005f;
-    result = Unk_474570(0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, arg9, arg10, arg11, coords,
+    bool has2 = source2 != nullptr;
+    result = Unk_474570(0.0f, 0.0f, width, height, 0.0f, 0.0f, u1, v1, arg9, arg10, arg11, &coords[0].field_0[0].field_0,
                         Unk_GetTexture(source0), Unk_GetTexture(source1),
                         source2 != nullptr ? Unk_GetTexture(source2) : nullptr,
-                        source3 != nullptr ? Unk_GetTexture(source3) : nullptr, source2 != nullptr, im, arg19, arg20,
+                        source3 != nullptr ? Unk_GetTexture(source3) : nullptr, has2, im, arg19, arg20,
                         mode, arg22, arg23, linear, same, 0);
     return result < 0 ? result : 0;
 }
@@ -7406,11 +7399,10 @@ s32 CTextureUtil::Unk_48ef10(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
 
 // 0x710048eb30
 // The corners are computed a step at a time for all four values (as a
-// vector operation would be: subtract, add 0.5, scale, offset), which gives
-// the original's schedule.
-// NON_MATCHING: one register: the original puts the first corner's product
-// in s16 (s5 here). Tried: every order of the four values in each step,
-// new names for each step, a local array, the product's operands swapped.
+// vector operation would be: subtract, add 0.5, scale and offset), which
+// gives the original's schedule. The scale and the offset are one statement:
+// a named product puts a DBG_VALUE between the multiply and its add, which
+// stops the A57 FP load balancing pass from moving the first one to s16.
 s32 CTextureUtil::Unk_48eb30(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg8, f32 arg9,
                              f32 arg10, f32 arg11, f32 arg12, Unk_GPUTexture* texture, const void* arg14,
                              const Unk_Float2* arg15, u32 flags) {
@@ -7459,14 +7451,10 @@ s32 CTextureUtil::Unk_48eb30(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
     y0 = y0 + 0.5f;
     x1 = x1 + 0.5f;
     y1 = y1 + 0.5f;
-    x0 = x0 * sizeX;
-    y0 = y0 * sizeY;
-    x1 = x1 * sizeX;
-    y1 = y1 * sizeY;
-    x0 = x0 + originX;
-    y0 = y0 + originY;
-    x1 = x1 + originX;
-    y1 = y1 + originY;
+    x0 = x0 * sizeX + originX;
+    y0 = y0 * sizeY + originY;
+    x1 = x1 * sizeX + originX;
+    y1 = y1 * sizeY + originY;
     return Unk_471f60(x, y, width, height, u0, v0, u1, v1, x0, y0, x1, y1, flags);
 }
 
@@ -9028,13 +9016,15 @@ inline void Unk_BlurLevels(f32 length, f32 ratio, s32 count, s32 maxLevels, s32*
 // 0x71004823b0: `source` blurred along `offset` (in its texels) in passes of
 // up to Unk_411c70's taps, ping-ponging between `temp` and `source` and
 // ending in `target`, the last pass weighted by `color`
+// The used count is converted at each of its uses: a named float of it moves
+// the weights' registers.
 // NON_MATCHING: register allocation (the last pass's colour and the weights'
-// count have each other's registers, the colour's y is spilled instead of its
-// x) and the offsets' products: the original multiplies `scaleX * j` by the
-// direction, here the direction comes first (Reassociate ranks the outer
-// loop's phi lower). Tried: every order of the branches' assignments and the
-// declarations, the colour as four floats or a pointer, the products'
-// spellings.
+// count have each other's registers, the colour's x is spilled instead of its
+// y, the directions' two `fnmul`s come in the other order) and the offsets'
+// products: the original multiplies `scaleX * j` by the direction, here the
+// direction comes first (Reassociate ranks the outer loop's phi lower).
+// Tried: every order of the branches' assignments and the declarations, the
+// colour as four floats or a pointer, the products' spellings.
 s32 CTextureUtil::Unk_4823b0(f32 ratio, CRenderTexture* source, void* target, void* temp, const Unk_Float2* offset,
                              s32 maxLevels, s32 index, void* color, bool clear) {
     f32 sourceWidth = static_cast<f32>(static_cast<u32>(source->field_54));
@@ -9079,7 +9069,6 @@ s32 CTextureUtil::Unk_4823b0(f32 ratio, CRenderTexture* source, void* target, vo
     f32 u1 = scaleX * width + source->field_90;
     f32 v1 = scaleY * height + source->field_94;
     CRenderTexture* targets[2] = {static_cast<CRenderTexture*>(temp), source};
-    f32 usedWeight = static_cast<f32>(used);
     f32 firstWeight = static_cast<f32>(first);
     for (s32 i = 0; i < levels; i++) {
         CRenderTexture* destination;
@@ -9093,7 +9082,7 @@ s32 CTextureUtil::Unk_4823b0(f32 ratio, CRenderTexture* source, void* target, vo
             n = first;
         } else {
             weight = Unk_Float4(1.0f, 1.0f, 1.0f, 1.0f);
-            total = usedWeight;
+            total = static_cast<f32>(used);
             destination = targets[i & 1];
             n = used;
         }
@@ -9115,8 +9104,8 @@ s32 CTextureUtil::Unk_4823b0(f32 ratio, CRenderTexture* source, void* target, vo
         if (i < levels - 1) {
             Unk_43fc90_get(reinterpret_cast<u64>(field_20));
         }
-        directionX *= usedWeight;
-        directionY *= usedWeight;
+        directionX *= static_cast<f32>(used);
+        directionY *= static_cast<f32>(used);
         source = destination;
     }
     return 0;
@@ -12253,7 +12242,9 @@ inline Unk_Float2 Unk_Normalize(const Unk_Float2& v) {
 // and its sample loop needs one register less (x26 here); the loop guards
 // come out as `cmp #1; b.lt` / `cmp #0; b.le` the other way round; the
 // original computes u0 and v0 before u1 and v1 (written so here, it moves
-// the rest further away).
+// the rest further away), and everything up to the scales before the call
+// of Unk_49cf50 (right and bottom are computed with the scales: it comes
+// closest).
 s32 CTextureUtil::Unk_481820(CRenderTexture* source, CRenderTexture* target, const Unk_Float2& offset,
                              const Unk_Float4& rect) {
     f32 u1;
@@ -12286,14 +12277,14 @@ s32 CTextureUtil::Unk_481820(CRenderTexture* source, CRenderTexture* target, con
         points[i].field_0[0].field_0 = length * direction.field_0[0].field_0;
         points[i].field_0[1].field_0 = length * direction.field_0[1].field_0;
     }
+    f32 right = width + left;
+    f32 bottom = height + top;
     f32 scaleX = width * offset.field_0[0].field_0;
     f32 scaleY = height * offset.field_0[1].field_0;
     for (s32 i = 0; i < count; i++) {
         offsets[i] = Unk_Float4(scaleX * points[i].field_0[0].field_0, scaleY * points[i].field_0[1].field_0, 0.0f,
                                 0.0f);
     }
-    f32 right = width + left;
-    f32 bottom = height + top;
     Unk_GPUTexture* texture = Unk_GetTexture(source);
     if (offset.field_0[0].field_0 == 0.0f && offset.field_0[1].field_0 == 0.0f) {
         result = DrawRectGPU_MadT1_Sn(0.0f, 0.0f, w, h, left, top, right, bottom, 1, offsets, nullptr, texture, 0, 0);

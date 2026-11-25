@@ -6863,16 +6863,18 @@ static inline bool Unk_428030_A(s32 format) {
 }
 
 // 0x7100428030: whether a format is one of a kind (placeholder)
-// NON_MATCHING: the jump table is the original's (Unk_428030_A's cases, the
-// 32-bit floats' flag set in it, case 0 straight to the return of false: the
-// zero test first), but the 16-bit test comes out as a bitmap lookup whose
-// true case returns true at once (`format != 26` folded); the original keeps
-// a switch bit test (`lsl; tst`) and its `format != 26` compare, and combines
-// the 32-bit flag with `bic`. Tried: the 16-bit test nested around the last
-// two tests (one shared return), its helper with a result local, the tests
-// in other orders and spellings, the linear format (its sRGB cases would get
-// their own table entries, which the original's table doesn't have).
+// NON_MATCHING: 4 instructions: the 32-bit flag's `eor #1; and` where the
+// original has `bic`, and the return of `format != 26` goes through the
+// result's phi (`cset w8; mov w0, w8`, the original sets w0 directly). What
+// decided the rest: the comparison with 26 made first, at the entry: with
+// it there, `return !is26` can't be folded on the 16-bit edge, which keeps
+// the 16-bit switch a bit test that branches to the shared return (as the
+// original's two `cmp w0, #0x1a`). Before that (19 instructions): the
+// 16-bit test came out as a bitmap lookup returning true. Tried: the 16-bit
+// test nested around the last two tests, `||`, `&`, ternaries, int and u8
+// flags, the tests in other orders.
 bool Unk_428030(s32 format) {
+    bool is26 = format == 26;
     if (format == 0) {
         return false;
     }
@@ -6881,13 +6883,13 @@ bool Unk_428030(s32 format) {
     }
     bool f32 = PPFX::Unk_IsFloat32Format(format);
     bool f16 = PPFX::Unk_IsFloat16Format(format);
-    if (!(f16 || ((format == 26) | f32))) {
+    if (!(f16 || (is26 | f32))) {
         return false;
     }
     if (Unk_425410_Format(format)) {
         return false;
     }
-    return format != 26;
+    return !is26;
 }
 
 namespace PPFX {

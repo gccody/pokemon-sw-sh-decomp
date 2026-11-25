@@ -623,6 +623,12 @@ s32 CRenderTextureArray::Unk_4a6070(s32 index, bool depth, s32 arg2, void* arg3,
 // technique tests `n != 0` before it reads the table (the original reads
 // first and tests both with one ccmp), and with no device the original
 // passes a constant null to Unk_442c50_get from its own block.
+// (Round 7: the first SimplifyCFG already merges the two tests into one
+// `and i1`, with the table's test first, and Reassociate then puts the
+// count's test first: the count is a phi, which ranks below the load. The
+// original's ccmp needs the load's test first. `&`, a `for (;;)` with a
+// break, the tests in `if`s inside the loop, an s32 copy of the count, a
+// row pointer: the same or worse.)
 s32 CRenderTextureArray::Unk_4a65a0(s32 target, s32 source, u32 count, s32 index, bool flag, f32 scale) {
     CTextureUtil* util = Unk_GetTextureUtil();
     Unk_ReleaseTextureUtil();
