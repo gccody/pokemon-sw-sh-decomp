@@ -1,10 +1,8 @@
 // Scope: common
-// The application's slots (vtable 0x710236d268, class Unk_236d258 of
-// src/unsorted/virtual/Unk_5df990.cpp, on gflib3's Unk_239a068), written as
-// free functions over its fields: the sound system told whether the console
-// plays through its speaker, the system singletons made from the
-// application's heaps, and what shutting down finalises. Placeholder names:
-// rename once the classes are known.
+// The application's slots (src/unsorted/Unk_5650.h): the sound system told
+// whether the console plays through its speaker, the system singletons made
+// from the application's heaps, and what shutting down finalises.
+// Placeholder names: rename once the classes are known.
 #include <cstring>
 #include <memory>
 
@@ -12,6 +10,7 @@
 #include <types.h>
 
 #include "gflib3/Unk_239a418.h"
+#include "unsorted/Unk_5650.h"
 #include "unsorted/Unk_d0c0.h"
 
 namespace nn {
@@ -25,16 +24,6 @@ void GetActiveAudioDeviceName(AudioDeviceName* outName);
 
 }  // namespace audio
 
-namespace os {
-
-// Only its size: the application keeps one at +0x1050.
-struct SystemEventType {
-    u8 _0[0x28];
-};
-
-bool TryWaitSystemEvent(SystemEventType* event);
-
-}  // namespace os
 }  // namespace nn
 
 // src/gflib3/Unk_New.h (declared here: its inline body would be inlined).
@@ -157,14 +146,6 @@ struct Unk_5650_Sound {
 PKMN_OFFSET_ASSERT(Unk_5650_Sound, field_108, 0x108);
 
 extern Unk_5650_Sound* Unk_24ba4f0;
-
-// The application (Unk_236d258): the event that tells it the audio output
-// changed.
-struct Unk_236d258_Self {
-    u8 _0[0x1050];
-    nn::os::SystemEventType field_1050;
-};
-PKMN_OFFSET_ASSERT(Unk_236d258_Self, field_1050, 0x1050);
 
 // The other singletons' globals, and what shuts them down.
 extern void* Unk_24ba588;
