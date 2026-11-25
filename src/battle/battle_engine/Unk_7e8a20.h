@@ -21,5 +21,5 @@ void Unk_7e9050_call(void* self, u64 event);
 
 // Declared as src/unsorted/leaf/Unk_819600.cpp declares them (its callers
 // there match): the system as a void*.
-u32 Unk_7e9830(void* self, u32 label);
+u32 Unk_7e9830(void* self, u16 label);
 bool Unk_7e97b0(void* self, u32 label, u32 value);

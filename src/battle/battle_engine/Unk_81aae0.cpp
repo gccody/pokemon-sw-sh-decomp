@@ -94,8 +94,6 @@ static inline u8 Unk_81ad70_Target(const Unk_819600_Self* self, u8 index) {
 }
 
 // 0x710081ad70
-// NON_MATCHING: Unk_7e9830's label is a u16 (as Unk_7e95a0's is): declared so,
-// the index is zero-extended twice (no register kept for it) and this matches
 bool Unk_81ad70(const Unk_819600_Self* self, u8 pokeId) {
     u32 count = Unk_7e9830(self->field_30, 5);
     for (u32 i = 0; i < count; i++) {
