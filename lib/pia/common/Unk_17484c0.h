@@ -15,6 +15,8 @@
 // What the protocols send (an opaque message of
 // pia/common/Unk_16a90f0.h's PacketWriter) and the setter of its payload.
 struct Unk_16a9e40_arg1 {
+    explicit Unk_16a9e40_arg1(u32 protocol) : field_0(protocol) {}
+
     u32 field_0;  // the protocol
     u8 _4[0x10 - 0x4];
 };
@@ -88,7 +90,7 @@ public:
     virtual void vf14();
     virtual void vf15();
     virtual void vf16();
-    virtual Unk_16a9e40_message* vf17(Unk_16a9e40_arg1* message, u8 station, u32 arg3, bool arg4, bool arg5,
+    virtual Unk_16a9e40_message* vf17(const Unk_16a9e40_arg1& message, u8 station, u32 arg3, bool arg4, bool arg5,
                                       bool arg6, bool arg7);
 
     Unk_165e060 Unk_173caa0();
