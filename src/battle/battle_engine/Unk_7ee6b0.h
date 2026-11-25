@@ -242,7 +242,7 @@ u32 Unk_785c80(u64 self, u16 arg1, u32 arg2);
 void Unk_76bc60(u16 species, u8 form);
 u32 Unk_76bc80(u32 param);
 void Unk_76bd60(u16 species, u8 form);
-u32 Unk_76bdf0(u32 param);
+u32 Unk_76bdf0(u8 param);
 
 // Declared as src/unsorted/leaf/Unk_7ed7d0.cpp names it (the battle
 // Pokemon's TU, called out of line).
