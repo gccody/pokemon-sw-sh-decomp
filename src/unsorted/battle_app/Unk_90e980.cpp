@@ -7,8 +7,14 @@
 #include "unsorted/battle_app/Unk_90e980.h"
 
 // 0x710090e980
+// NON_MATCHING: ordering. The same 259 instructions, but the stores are
+// scheduled in another order (and so paired differently: the vptrs at +0x0
+// and +0x8 aren't one stp). With Unk_23bdf08 holding the 48 entries its
+// constructor isn't inlined (its loop is unrolled first), and the stores
+// before that call are in the original's order.
 Unk_23bde48::Unk_23bde48()
-    : field_318(0),
+    : field_2f0(0),
+      field_318(0),
       field_320(0),
       field_328(0),
       field_330(0),
