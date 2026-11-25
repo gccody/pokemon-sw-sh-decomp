@@ -146,14 +146,15 @@ u8 Unk_8034a0(const Unk_802dd0_Self* self, u8 kind) {
     return count;
 }
 
+// NON_MATCHING: block layout: the original returns true right after each
+// entry's check, with its own `mov w0, #1; ret`; this shares one return block.
 // 0x7100803560
 bool Unk_803560(void* self_, u8 pokeId) {
     const Unk_802dd0_Self* self = static_cast<const Unk_802dd0_Self*>(self_);
-    u32 i = 0;
-    for (; i < 5; i++) {
+    for (u32 i = 0; i < 5; i++) {
         const Unk_802dd0_Self::Entry& entry = self->field_0[i];
         if (entry.field_0 != 0 && entry.field_2 == pokeId)
-            break;
+            return true;
     }
-    return i < 5;
+    return false;
 }

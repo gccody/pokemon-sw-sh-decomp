@@ -43,6 +43,7 @@ PKMN_OFFSET_ASSERT(Unk_802660_Self, field_14e, 0x14e);
 PKMN_SIZE_ASSERT(Unk_802660_Self, 0x14f);
 
 bool Unk_802940(const Unk_802660_Self* self, u8 value);
+bool Unk_802ac0(const Unk_802660_Self* self, u8 value);
 
 // 0x7100802660
 void Unk_802660(Unk_802660_Self* self, const Unk_802660_Self* other) {
@@ -54,7 +55,7 @@ void Unk_802670(Unk_802660_Self* self, Unk_7ecc90_Con* con) {
     for (u32 i = 0; i < 4; i++)
         self->field_0[i].clear();
     for (u32 i = 0; i < 30; i++) {
-        bool flag = false;
+        u8 flag = 0;
         if (Unk_7ed1f0(con, i))
             flag = Unk_7ef2b0_call(Unk_7ed1e0(con, i));
         self->field_f4[i] = flag;
@@ -90,14 +91,14 @@ void Unk_802870(Unk_802660_Self* self, u8 value) {
     }
 }
 
+// NON_MATCHING: addressing: the original keeps &field_f4[value] in one
+// register (a pre-indexed load, then a store through it); this loads and stores
+// through [self + value, #0xf4] and zero-extends value separately.
 // 0x71008028d0
 void Unk_8028d0(void* self_, u8 value) {
     Unk_802660_Self* self = static_cast<Unk_802660_Self*>(self_);
-    if (value >= 30)
-        return;
-    u8& flag = self->field_f4[value];
-    if (flag != 0) {
-        flag = 0;
+    if (Unk_802ac0(self, value)) {
+        self->field_f4[value] = 0;
         if (!Unk_802940(self, value) && self->field_14e < 30)
             self->field_130[self->field_14e++] = value;
     }
@@ -167,7 +168,7 @@ u8 Unk_802c60(const Unk_802660_Self* self) {
     for (u32 i = 0; i < 4; i++) {
         u8 count = self->field_0[i].field_0;
         if (count != 0) {
-            u8 last = count - 1;
+            u32 last = count - 1;
             return self->field_0[i].field_1f[last];
         }
     }
