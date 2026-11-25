@@ -149,8 +149,8 @@ public:
 };
 PKMN_SIZE_ASSERT(Unk_165fb30, 0x28);
 
-// An nn::os::MutexType (recursive): locks and unlocks it (tail calls to
-// nn::os::LockMutex and UnlockMutex).
+// An nn::os::MutexType (recursive, pia/common/Unk_174aea0.h): locks and
+// unlocks it (each a tail call through a PLT stub).
 class Unk_1655c60 {
 public:
     explicit Unk_1655c60(s32 arg);
