@@ -49,3 +49,12 @@ def test_cmake_args():
 def test_unexpected_changes():
     porcelain = " M data/functions.csv\n M src/a.cpp\n?? .swarm/sidecar.json\nR  src/b.cpp -> src/c.cpp\n"
     assert W.unexpected_changes(porcelain) == ["src/a.cpp", "src/c.cpp"]
+    # the first line keeps its leading space (git() only strips the end)
+    assert W.unexpected_changes(" M data/functions.csv\n M data/data_symbols.csv") == []
+
+
+def test_archived_sidecar_never_overwrites(tmp_path):
+    assert W.archived_sidecar(tmp_path, "u10").name == "sidecar-u10.json"
+    (tmp_path / "sidecar-u10.json").write_text("{}")
+    assert W.archived_sidecar(tmp_path, "u10").name == "sidecar-u10-2.json"
+    assert W.archived_sidecar(tmp_path, "").name == "sidecar-unknown.json"
