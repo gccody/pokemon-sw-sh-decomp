@@ -31,6 +31,8 @@ static Unk_13f1360_Object* FindObject(s64 id) {
     return nullptr;
 }
 
+// NON_MATCHING: the original loads the object's id before testing it for null
+// (a ccmp); the natural test branches on null first.
 // 0x71013bd690: whether there's an object with the id.
 s64 Unk_13bd690_call(Unk_13bd600_Script* self, const Unk_13bd600_Arg* args) {
     s64 id = args[1].i;
