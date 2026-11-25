@@ -97,8 +97,8 @@ struct Unk_7ffb40;
 void Unk_7ffb40_set(Unk_7ffb40* self, u8 value, u32 arg2, u32 arg3, u8 arg4);
 struct Unk_7fe350;
 void* Unk_7fe350_getField2a8(const Unk_7fe350* self);
-void Unk_7ff4f0(void* self, u32 arg1, u32 arg2);
-void Unk_7ff570(void* self, u32 arg1, u32 arg2);
+void Unk_7ff4f0(void* self, u8 arg1, s32 arg2);
+void Unk_7ff570(void* self, u8 arg1, u8 arg2);
 // A client's party.
 struct Unk_7fc430_Party;
 Unk_7fc430_Party* Unk_7ed1a0(Unk_7ecc90_Con* self, u32 client);

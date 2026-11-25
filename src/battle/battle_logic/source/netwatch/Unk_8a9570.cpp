@@ -8,7 +8,7 @@ bool Unk_7ca170(const Unk_7c2d80_Main* self, u8 client);
 u8 Unk_7c9b60(void* self, u8 client, u32 index);
 // Returns a 32-bit value: Unk_7cb7a0 compares it with a u8 unmasked.
 u32 Unk_7cb540(const Unk_7c2d80_Main* self, u8 position);
-u8 Unk_7cb660(void* self, u32 value);
+u8 Unk_7cb660(void* self, u8 value);
 void Unk_7cae30(const Unk_7c2d80_Main* self, u8 position, u8* client, u8* index);
 u32 Unk_7ccf30(const Unk_7c2d80_Main* self, u8 client);
 Unk_8a9570_Name Unk_7ccfe0(const Unk_7c2d80_Main* self, u8 client);
@@ -39,9 +39,6 @@ u32 Unk_23b9048::vf281(u8 client, u32 index) {
 }
 
 // 0x71008a95d0
-// NON_MATCHING: the original compares the position's low byte with 5 but passes
-// vf228's whole result on, as if Unk_7cb660 took a u8; its name (Pvj) says u32,
-// so the u8 is extended first (one more and, other registers).
 u8 Unk_23b9048::vf282(s32 value) {
     if (field_58 == nullptr)
         return value % 2;

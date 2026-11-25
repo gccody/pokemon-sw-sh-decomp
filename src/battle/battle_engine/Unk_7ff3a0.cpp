@@ -42,10 +42,8 @@ void Unk_7ff410(Unk_7ff3a0* self, const Unk_7ff3a0* other) {
     self->field_68 = other->field_68;
 }
 
-// NON_MATCHING: the original takes `side` (and `index`) as u8 (indexes with
-// uxtb); the existing name has u32, so the index is zero-extended twice.
 // 0x71007ff460
-u64 Unk_7ff460(void* self, u32 side) {
+u64 Unk_7ff460(void* self, u8 side) {
     u64* p = static_cast<Unk_7ff3a0*>(self)->getField8(side);
     return p != nullptr ? *p : 0;
 }
@@ -67,10 +65,8 @@ u64 Unk_7ff4c0(void* self, u8 side, u32 index) {
     return p != nullptr ? *p : 0;
 }
 
-// NON_MATCHING: the original takes `side` (and `index`) as u8 (indexes with
-// uxtb); the existing name has u32, so the index is zero-extended twice.
 // 0x71007ff4f0
-void Unk_7ff4f0(void* self, u32 side, u32 index) {
+void Unk_7ff4f0(void* self, u8 side, s32 index) {
     u64* p = static_cast<Unk_7ff3a0*>(self)->getField18(side, index);
     if (p != nullptr && *p < 0xff)
         ++*p;
@@ -82,11 +78,9 @@ u64 Unk_7ff540(void* self, u8 side, u8 index) {
     return p != nullptr ? *p : 0;
 }
 
-// NON_MATCHING: the original takes `side` (and `index`) as u8 (indexes with
-// uxtb); the existing name has u32, so the index is zero-extended twice and
-// the checks are scheduled differently.
+// NON_MATCHING: the checks are scheduled differently.
 // 0x71007ff570
-void Unk_7ff570(void* self, u32 side, u32 index) {
+void Unk_7ff570(void* self, u8 side, u8 index) {
     u64* p = static_cast<Unk_7ff3a0*>(self)->getField68(side, index);
     if (p != nullptr && *p < 0xff)
         ++*p;

@@ -18,7 +18,7 @@ u16 Unk_8a86e0(void* self, u8 id1, u8 id2, u32 id, u32 arg4, bool flag);
 struct Unk_7c2d80_Main;
 struct Unk_7ecc90_Con;
 u32 Unk_7cb420(const Unk_7c2d80_Main* self, Unk_7ecc90_Con* arg, u8 id);
-u8 Unk_7cb660(void* self, u32 value);
+u8 Unk_7cb660(void* self, u8 value);
 void* Unk_7ed5e0(Unk_7ecc90_Con* self, u8 slot);
 u32 Unk_8c20f0(void* self, u32 index);
 
