@@ -1,11 +1,18 @@
 // Scope: common
-// NEX 4.6.8: a stream read, and the jobs that process a protocol's events and
+// NEX 4.6.8: OnlineCore's result descriptions and error codes, its sleep,
+// time and error report, its Log (RTTI: N2nn3nex3LogE, its TraceLog
+// N2nn3nex8TraceLogE) and LockChecker (N2nn3nex11LockCheckerE); then a stream
+// read, and the jobs that process a protocol's events and
 // messages (RTTI: N2nn3nex23JobProcessProtocolEventE,
 // N2nn3nex25JobProcessProtocolMessageE, both derived from N2nn3nex3JobE). A
 // message job holds a CallProtocolMethodOperation (N2nn3nex27CallProtocolMethodOperationE,
 // derived from N2nn3nex9OperationE) and a reference to a reference-counted object.
+#include <stdarg.h>
+#include <string.h>
+
 #include <atomic>
 
+#include <nn/err.h>
 #include <nn/nex/ByteStream.h>
 #include <nn/nex/Call.h>
 #include <nn/nex/RefCountedObject.h>
@@ -13,13 +20,8 @@
 
 #include "Unk_1630ba0.h"
 
-// 0x71015b8f50: the system tick (a wrapper of the SDK's).
+// 0x71015b8f50: the system tick (a wrapper of the SDK's, lib/nex/Unk_15b8f50.cpp).
 u64 Unk_15b8f50();
-namespace nn {
-namespace os {
-u64 GetSystemTickFrequency();
-}  // namespace os
-}  // namespace nn
 
 // 0x71015d90b0, 0x71015d78a0: what a protocol job takes and gives back when
 // it starts and ends (the object's slots 11 and 16 with itself).
@@ -51,6 +53,260 @@ struct Unk_15bbd10_arg1 {
 PKMN_SIZE_ASSERT(Unk_15bbd10_arg1, 0x18);
 u64 Unk_15ce860_get(const Unk_15ce860* self);
 void Unk_15bbd10_set(Unk_15bbd10* self, Unk_15bbd10_arg1 value);
+
+// A result code as a case label (the codes are signed: NEX compares them so).
+#define UNK_CODE(code) static_cast<s32>(code)
+
+// 0x71015b8a50: a result code's description number (-1: none).
+s32 Unk_15b8a50(s32 code) {
+    s32 description = -1;
+    switch (code) {
+    case UNK_CODE(0xe0000000):
+        description = 0x386;
+        break;
+    case UNK_CODE(0xe0000001):
+        description = 0x387;
+        break;
+    case UNK_CODE(0xe0000002):
+        description = 0x388;
+        break;
+    case UNK_CODE(0xe0000003):
+        description = 0x389;
+        break;
+    case UNK_CODE(0xe0000008):
+        description = 0x38e;
+        break;
+    case UNK_CODE(0xe0000009):
+        description = 0x38f;
+        break;
+    case UNK_CODE(0xe000000c):
+        description = 0x392;
+        break;
+    case UNK_CODE(0xe000000e):
+        description = 0x394;
+        break;
+    case UNK_CODE(0xe000000f):
+        description = 0x395;
+        break;
+    case UNK_CODE(0xe0000010):
+        description = 0x396;
+        break;
+    case UNK_CODE(0xe0000011):
+        description = 0x397;
+        break;
+    case UNK_CODE(0xe0000012):
+        description = 0x398;
+        break;
+    case UNK_CODE(0xe0000013):
+        description = 0x399;
+        break;
+    case UNK_CODE(0xe0000014):
+        description = 0x39a;
+        break;
+    case UNK_CODE(0xe0000015):
+        description = 0x39b;
+        break;
+    case UNK_CODE(0xe0000016):
+        description = 0x39c;
+        break;
+    case UNK_CODE(0xe0000017):
+        description = 0x39d;
+        break;
+    case UNK_CODE(0xe0000018):
+        description = 0x39e;
+        break;
+    case UNK_CODE(0xe0000019):
+        description = 0x39f;
+        break;
+    case UNK_CODE(0xe000001a):
+        description = 0x3a0;
+        break;
+    case UNK_CODE(0xe000001b):
+        description = 0x3a1;
+        break;
+    case UNK_CODE(0xe000001c):
+        description = 0x3a2;
+        break;
+    case UNK_CODE(0xe0010000):
+        description = 0x3b7;
+        break;
+    case UNK_CODE(0xe0010001):
+        description = 0x3b8;
+        break;
+    case UNK_CODE(0xe0010002):
+        description = 0x3b9;
+        break;
+    case UNK_CODE(0xe0010005):
+        description = 0x3bc;
+        break;
+    case UNK_CODE(0xe0010006):
+        description = 0x3bd;
+        break;
+    case UNK_CODE(0xe0010007):
+        description = 0x3be;
+        break;
+    case UNK_CODE(0xe0010008):
+        description = 0x3bf;
+        break;
+    case UNK_CODE(0xe0010009):
+        description = 0x3c0;
+        break;
+    case UNK_CODE(0xe001000a):
+        description = 0x3c1;
+        break;
+    case UNK_CODE(0xe001000b):
+        description = 0x3c2;
+        break;
+    case UNK_CODE(0xe001000c):
+        description = 0x3c3;
+        break;
+    case UNK_CODE(0xe001000d):
+        description = 0x3c4;
+        break;
+    case UNK_CODE(0xe001000e):
+        description = 0x3c5;
+        break;
+    case UNK_CODE(0xe0010010):
+        description = 0x3c7;
+        break;
+    case UNK_CODE(0xe0010011):
+        description = 0x3c8;
+        break;
+    case UNK_CODE(0xe0010012):
+        description = 0x3c9;
+        break;
+    case UNK_CODE(0xe0010013):
+        description = 0x3ca;
+        break;
+    case UNK_CODE(0x60010014):
+        description = 0x3cb;
+        break;
+    case UNK_CODE(0xe0100000):
+        description = 0x385;
+        break;
+    case UNK_CODE(0xe0010015):
+        description = 0x3cc;
+        break;
+    case UNK_CODE(0xe0010016):
+        description = 0x3cd;
+        break;
+    case UNK_CODE(0xe0010017):
+        description = 0x3ce;
+        break;
+    case UNK_CODE(0xe0010018):
+        description = 0x3cf;
+        break;
+    case UNK_CODE(0xe0010019):
+        description = 0x3d0;
+        break;
+    case UNK_CODE(0xa0000004):
+        description = 0x38a;
+        break;
+    case UNK_CODE(0xa0000005):
+        description = 0x38b;
+        break;
+    case UNK_CODE(0xa0000006):
+        description = 0x38c;
+        break;
+    case UNK_CODE(0xa0000007):
+        description = 0x38d;
+        break;
+    case UNK_CODE(0xa000000a):
+        description = 0x390;
+        break;
+    case UNK_CODE(0xa000000b):
+        description = 0x391;
+        break;
+    case UNK_CODE(0xa000000d):
+        description = 0x393;
+        break;
+    case UNK_CODE(0xa000001d):
+        description = 0x3a3;
+        break;
+    case UNK_CODE(0xa0010003):
+        description = 0x3ba;
+        break;
+    case UNK_CODE(0xa0010004):
+        description = 0x3bb;
+        break;
+    case UNK_CODE(0xa001000f):
+        description = 0x3c6;
+        break;
+    case UNK_CODE(0xa001001b):
+        description = 0x3d2;
+        break;
+    }
+    return description;
+}
+#undef UNK_CODE
+
+// 0x71015b87f0: the result's description.
+int Unk_15b87f0(const Unk_15bbc10* self);
+
+// 0x71015b8cf0: the result as an error code (2306-xxxx, or 2307-xxxx for
+// module 0x72).
+nn::err::ErrorCode Unk_15b8cf0(const Unk_15bbc10* self) {
+    int description = Unk_15b87f0(self);
+    u32 value;
+    if (description == 0) {
+        value = 0;
+    } else if (description < 0) {
+        value = 23060000;
+    } else {
+        value = ((self->m_code & 0x7ff0000) == 0x720000 ? 23070000 : 23060000) + description;
+    }
+    nn::err::ErrorCode errorCode = {value / 10000, value % 10000};
+    return errorCode;
+}
+
+// A time (a copy constructor of its own: returned through memory), as in
+// lib/nex/include/nn/nex/Unk_15bbcf0.cpp.
+struct Unk_244f0b0_Time {
+    Unk_244f0b0_Time() : m_value(0) {}
+    Unk_244f0b0_Time(const Unk_244f0b0_Time& other) : m_value(other.m_value) {}
+
+    u64 m_value;
+};
+// 0x71015bde80
+Unk_244f0b0_Time Unk_15bde80(u32 arg);
+// 0x71015be030
+Unk_244f0b0_Time Unk_15be030();
+extern bool Unk_244f0f0;
+extern Unk_244f0b0_Time Unk_27f3570;  // the last time read
+
+// 0x71015b8d60: the time (and records it as the last one read).
+Unk_244f0b0_Time Unk_15b8d60() {
+    Unk_244f0b0_Time time = Unk_244f0f0 ? Unk_15bde80(0) : Unk_15be030();
+    Unk_27f3570 = time;
+    return time;
+}
+
+// 0x71015be1a0
+void Unk_15be1a0(void* list, const u32* value);
+// Where errors are reported.
+struct Unk_27f35d8_t {
+    u8 _0[0x38];
+    u8 m_codes[0x80];
+    u8 m_args[0x10];
+};
+PKMN_OFFSET_ASSERT(Unk_27f35d8_t, m_args, 0xb8);
+extern Unk_27f35d8_t* Unk_27f35d8;
+
+// 0x71015b8dc0: reports an error (the source file and line aren't used).
+void Unk_15b8dc0(const char* file, u32 line, u32 code, u32 arg) {
+    Unk_15be1a0(Unk_27f35d8->m_codes, &code);
+    Unk_15be1a0(Unk_27f35d8->m_args, &arg);
+}
+
+// 0x71015b8e10: sleeps `ms` milliseconds (0: yields).
+void Unk_15b8e10(u32 ms) {
+    if (ms != 0) {
+        nn::TimeSpan time = {static_cast<s64>(static_cast<u64>(ms) * 1000000)};
+        nn::os::SleepThread(time);
+    } else {
+        nn::os::YieldThread();
+    }
+}
 
 // 0x7101630ba0: a 32-bit value from the stream (zero, and the stream's error
 // flag, when there isn't enough left).
