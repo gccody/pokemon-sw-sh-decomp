@@ -8,7 +8,7 @@
 
 void Unk_9a7300(void*, u32);
 void Unk_9a7680(void*, f32);
-bool Unk_7ccca0(u64, u32);
+bool Unk_7ccca0(u64, u8);
 void Unk_97f120(Unk_23c4ef0_Poke*, bool);
 void Unk_9805d0(Unk_23c4ef0_Poke*);
 void Unk_c444b0(void*, u32, s32);
