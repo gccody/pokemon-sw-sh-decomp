@@ -62,7 +62,7 @@ void Unk_781640() {
 }
 
 // 0x71007816b0
-Unk_23a7b38::Unk_23a7b38() : field_8(0) {}
+Unk_23a7b38::Unk_23a7b38(Unk_239a418_Allocator*) : field_8(0) {}
 
 // 0x71007816f0
 void Unk_23a7b38::Unk_7816f0(s32 index) {

@@ -116,3 +116,8 @@ s32 Unk_23a7b38::Unk_7822a0() const {
     s8 value = Unk_Root()->Get<s8>(46, 0);
     return value < 0 ? -value : 0;
 }
+
+// 0x7100782300
+u8 Unk_23a7b38::Unk_782300() const {
+    return Unk_Root()->Get<u8>(48, 0);
+}

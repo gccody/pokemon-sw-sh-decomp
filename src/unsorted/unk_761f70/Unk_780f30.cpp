@@ -124,6 +124,12 @@ s32 Unk_7811b0(u32 index) {
     return Unk_277a178.field_0->Unk_782240();
 }
 
+// 0x71007811e0
+u8 Unk_7811e0(u32 index) {
+    Unk_277a178.field_0->Unk_7816f0(index);
+    return Unk_277a178.field_0->Unk_782300();
+}
+
 // 0x7100781210
 u16 Unk_781210(u32 index) {
     Unk_277a178.field_0->Unk_7816f0(index);

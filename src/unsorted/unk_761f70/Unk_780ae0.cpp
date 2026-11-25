@@ -21,13 +21,9 @@ extern std::unique_ptr<Unk_23a7b38, Unk_23f4660_Deleter> Unk_277a178
     __attribute__((visibility("hidden")));
 
 // 0x7100780ae0
-// NON_MATCHING: the original passes the allocator to the constructor (x1). It
-// matches once Unk_23a7b38's constructor takes it (0x71007816b0,
-// _ZN11Unk_23a7b38C2EP21Unk_239a418_Allocator) and this passes it on:
-// Unk_2771620_MakeUnique<Unk_23a7b38>(heap, heap).
 void Unk_780ae0(Unk_239a418_Allocator* heap) {
     Unk_7814e0(heap);
-    Unk_277a178 = Unk_2771620_MakeUnique<Unk_23a7b38>(heap);
+    Unk_277a178 = Unk_2771620_MakeUnique<Unk_23a7b38>(heap, heap);
 }
 
 // 0x7100780bd0
