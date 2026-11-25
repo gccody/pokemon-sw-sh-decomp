@@ -70,6 +70,13 @@ struct Unk_164e020 {
         return *this;
     }
 
+    // The fields' class's destructor (what the D0s inline).
+    ~Unk_164e020() {
+        m_vtable = Unk_24566d8 + 2;
+        field_28.~qBuffer();
+        Unk_1638210(this);
+    }
+
     void** m_vtable;
     u8 m_baseVersion;  // the base's
     u8 m_version;
@@ -109,6 +116,12 @@ struct Unk_164da60 {
         const nn::nex::qBuffer& buffer = other.field_18;
         Unk_15cf360(&field_18, buffer);
         return *this;
+    }
+
+    ~Unk_164da60() {
+        m_vtable = Unk_2456628 + 2;
+        field_18.~qBuffer();
+        Unk_1638210(this);
     }
 
     void** m_vtable;
