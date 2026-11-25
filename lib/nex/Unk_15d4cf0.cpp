@@ -150,10 +150,19 @@ PKMN_OFFSET_ASSERT(ThreadVariable<qList<SecurityContext>>, m_default, 0x18);
 PKMN_OFFSET_ASSERT(ThreadVariable<qList<SecurityContext>>, m_cs, 0x30);
 PKMN_OFFSET_ASSERT(ThreadVariable<qList<SecurityContext>>, m_values, 0x78);
 
-// 0x71015d5220, 0x71015d5290, 0x71015d5320
-template void ThreadVariable<qList<SecurityContext>>::vf2();
-template void ThreadVariable<qList<SecurityContext>>::vf3();
-template void ThreadVariable<qList<SecurityContext>>::vf4(u64 threadId);
+// 0x71015d2210 (D2, another unit's), 0x71015d51f0 (D0)
+// NON_MATCHING (D2 only): the original destroys the CriticalSection with its
+// out-of-line destructor (0x71015b9300), which InstanceTable.h doesn't declare.
+template <class T>
+ThreadVariable<T>::~ThreadVariable() {
+    Unk_15d5220_Lock lock(&m_cs);
+    while (m_values.size() != 0) {
+        m_values.erase(m_values.begin());
+    }
+}
+
+// 0x71015d5220 (slot 2), 0x71015d5290 (slot 3), 0x71015d5320 (slot 4)
+template class ThreadVariable<qList<SecurityContext>>;
 
 }  // namespace nex
 }  // namespace nn
