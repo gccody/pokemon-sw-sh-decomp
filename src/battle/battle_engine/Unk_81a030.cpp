@@ -113,9 +113,6 @@ bool Unk_81a2d0(const Unk_819600_Self* self, const Unk_8642b0_Arg& arg) {
 }
 
 // 0x710081a310
-// NON_MATCHING: the code matches, but under its own signature: the existing
-// name _Z10Unk_81a310v takes no parameters, and the original reads
-// self->field_20 from x0 (rename to _Z10Unk_81a310PK15Unk_819600_Self).
 u8 Unk_81a310(const Unk_819600_Self* self) {
     Unk_8341a0_Result result;
     Unk_8341a0_Arg arg{0x1f};

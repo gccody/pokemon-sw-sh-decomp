@@ -41,7 +41,7 @@ struct Unk_1787ac0_Info {
     u32 field_4;
 };
 void Unk_1787ac0(Unk_1787ac0_Buffer* self, Unk_1791080_Device* device, const Unk_1787ac0_Info* info,
-                 Unk_1787ac0_Pool* pool, s64 offset);
+                 Unk_1787ac0_Pool* pool, s64 offset, u64 size);
 void Unk_1787bb0(Unk_1787ac0_Buffer* self, Unk_1791080_Device* device);
 void Unk_1787c60(void* self, void* address);
 void Unk_1791380(const Unk_1787ac0_Buffer* self, const char* label);
@@ -121,8 +121,8 @@ PKMN_OFFSET_ASSERT(Unk_17d4ec0_Shape, field_18, 0x18);
 PKMN_OFFSET_ASSERT(Unk_17d4ec0_Shape, field_5b, 0x5b);
 
 // 0x7101786fd0
-// NON_MATCHING: the original passes the info's size as a sixth argument to
-// Unk_1787ac0, whose placeholder name has five parameters
+// NON_MATCHING: the mesh's three pointers are loaded in another order (pool
+// last), so the registers differ.
 void Unk_1786fd0(Unk_17d4ec0_Shape* self, Unk_1791080_Device* device) {
     int count = self->field_5b;
     for (int i = 0; i < count; ++i) {
@@ -132,14 +132,12 @@ void Unk_1786fd0(Unk_17d4ec0_Shape* self, Unk_1791080_Device* device) {
         Unk_1787ac0_Info* info = mesh->field_18;
         Unk_1787a90_set(reinterpret_cast<Unk_1787a90*>(buffer));
         info->field_4 = 8;
-        Unk_1787ac0(buffer, device, info, pool, mesh->field_20);
+        Unk_1787ac0(buffer, device, info, pool, mesh->field_20, info->field_0);
         Unk_1791380(buffer, "g3d_index");
     }
 }
 
 // 0x7101787080
-// NON_MATCHING: the original passes the info's size as a sixth argument to
-// Unk_1787ac0, whose placeholder name has five parameters
 void Unk_1787080(Unk_17d4ec0_Shape* self, Unk_1791080_Device* device, Unk_1787ac0_Pool* pool,
                  s64 offset) {
     int count = self->field_5b;
@@ -149,7 +147,7 @@ void Unk_1787080(Unk_17d4ec0_Shape* self, Unk_1791080_Device* device, Unk_1787ac
         Unk_1787ac0_Info* info = mesh->field_18;
         Unk_1787a90_set(reinterpret_cast<Unk_1787a90*>(buffer));
         info->field_4 = 8;
-        Unk_1787ac0(buffer, device, info, pool, mesh->field_20 + offset);
+        Unk_1787ac0(buffer, device, info, pool, mesh->field_20 + offset, info->field_0);
         Unk_1791380(buffer, "g3d_index");
     }
 }
