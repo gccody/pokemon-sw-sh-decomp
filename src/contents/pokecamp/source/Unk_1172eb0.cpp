@@ -60,6 +60,11 @@ void Unk_1173090(const Unk_241c218_Self* self, u32 value) {
         Unk_11744a0(target.m_ptr, value);
 }
 
+// NON_MATCHING: the transform's reset (Unk_11730e0, inlined) loads the two
+// constants' GOT addresses after the zero store at +0xe0, where the original
+// loads both first (and allocates x10 for the first copy); struct copies,
+// field-wise copies, memcpy, by-value temporaries and other store orders all
+// give this order.
 // 0x71011730e0
 void Unk_11730e0(Unk_241c218_Self* self) {
     self->field_e0 = {};
@@ -67,6 +72,11 @@ void Unk_11730e0(Unk_241c218_Self* self) {
     self->field_100 = Unk_1f07af0;
 }
 
+// NON_MATCHING: the transform's reset (Unk_11730e0, inlined) loads the two
+// constants' GOT addresses after the zero store at +0xe0, where the original
+// loads both first (and allocates x10 for the first copy); struct copies,
+// field-wise copies, memcpy, by-value temporaries and other store orders all
+// give this order.
 // 0x7101173110
 void Unk_1173110(Unk_241c218_Self* self, void* arg, const Unk_241c218_Pair& pair, u32 value) {
     self->field_b8 = pair.field_8;
@@ -77,6 +87,11 @@ void Unk_1173110(Unk_241c218_Self* self, void* arg, const Unk_241c218_Pair& pair
     Unk_11730e0(self);
 }
 
+// NON_MATCHING: the transform's reset (Unk_11730e0, inlined) loads the two
+// constants' GOT addresses after the zero store at +0xe0, where the original
+// loads both first (and allocates x10 for the first copy); struct copies,
+// field-wise copies, memcpy, by-value temporaries and other store orders all
+// give this order.
 // 0x71011731a0
 void Unk_11731a0(Unk_241c218_Self* self,
                  const Unk_241c218_Ref& ref,
@@ -90,6 +105,11 @@ void Unk_11731a0(Unk_241c218_Self* self,
     Unk_11730e0(self);
 }
 
+// NON_MATCHING: the transform's reset (Unk_11730e0, inlined) loads the two
+// constants' GOT addresses after the zero store at +0xe0, where the original
+// loads both first (and allocates x10 for the first copy); struct copies,
+// field-wise copies, memcpy, by-value temporaries and other store orders all
+// give this order.
 // 0x7101173280
 void Unk_1173280(Unk_241c218_Self* self) {
     self->field_b8 = 0;

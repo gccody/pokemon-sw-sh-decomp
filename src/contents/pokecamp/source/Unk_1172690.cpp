@@ -50,6 +50,10 @@ bool Unk_1172950(u64 self) {
     return Unk_241c218_IsBusy(Unk_11719d0(reinterpret_cast<Unk_241c218_Self*>(self)->field_88));
 }
 
+// NON_MATCHING: the busy test after the target is dropped is one block in the
+// original, shared by the path that drops it and the one that finds it gone;
+// here clang duplicates it into the second (an extra tbnz). The target is a
+// by-value argument so that the drop's null store stays, as in the original.
 // 0x7101172770
 bool Unk_1172770(Unk_241c218_Self* self) {
     if (Unk_241c218_IsBusy(Unk_11719d0(self->field_88)))
