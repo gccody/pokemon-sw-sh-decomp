@@ -71,12 +71,9 @@ static_assert(__builtin_offsetof(Unk_7aaba0_Self, field_640) == 0x640,
               "Unk_7aaba0_Self::field_640");
 
 // 0x71007aaba0
-// The step is signed (-10, -1, 1: the callbacks below and in Unk_7ab130.cpp),
-// but the placeholder name gives it as u32, hence the cast. Renaming it to
-// _Z10Unk_7aaba0Pvi would let the parameter be s32.
-void Unk_7aaba0(void* obj, u32 step) {
+// The step is signed: -10, -1 or 1 (the callbacks below and in Unk_7ab130.cpp).
+void Unk_7aaba0(void* obj, s32 delta) {
     auto* self = static_cast<Unk_7aaba0_Self*>(obj);
-    s32 delta = static_cast<s32>(step);
     s32 value = self->field_640;
     s32 max = self->field_644;
     if (delta > 0 && value == max) {
