@@ -8,6 +8,7 @@
 // Its +0x48 interface adds three pure virtual functions, so its deleting
 // destructor and that destructor's thunks are traps. Placeholder names:
 // rename once the classes are known.
+#include <algorithm>
 #include <vector>
 
 #include <types.h>
@@ -27,14 +28,22 @@ struct Unk_27e51c8 {
     }
 };
 
+// What Unk_2409238's vf8 calls, each given a reference.
+class Unk_2409238_Listener {
+public:
+    virtual void vf0();
+    virtual void vf1(Unk_239a418_Ref<Unk_239a418> ref);
+};
+
 // The interface at +0x48 (vtable 0x7102409238): the object's, with the type
-// 0x71027e51c8 and three functions of its own.
+// 0x71027e51c8 and three functions of its own: a list of listeners (add,
+// remove, and call them all with a reference).
 class Unk_2409238 : public Unk_239a458 {
 public:
     const Unk_239a418_Type* vf_type() override { return Unk_27e51c8::Unk_GetType(); }
-    virtual void vf6() = 0;
-    virtual void vf7() = 0;
-    virtual void vf8() = 0;
+    virtual void vf6(Unk_2409238_Listener* listener) = 0;
+    virtual void vf7(Unk_2409238_Listener* listener) = 0;
+    virtual void vf8(const Unk_239a418_Ref<Unk_239a418>& ref) = 0;
 };
 
 // The interface at +0x50 (vtable 0x7102409290).
@@ -83,17 +92,17 @@ void Unk_24091f8::vf5() {
 }
 
 // A class on it (vtable 0x7102409118): a vector, then a lock. Its type getter
-// is in src/unsorted/types/Unk_102a960.cpp; its vf6-vf8 (primary slots 7-9:
-// 0x7101028ec0, 0x7101029430, 0x7101029de0) aren't written yet.
+// is in src/unsorted/types/Unk_102a960.cpp; its vf6 (0x7101028ec0, primary
+// slot 7) isn't written yet.
 class Unk_2409118 : public Unk_24091f8 {
 public:
     ~Unk_2409118() override;
     const Unk_239a418_Type* vf_type() override;
-    void vf6() override;
-    void vf7() override;
-    void vf8() override;
+    void vf6(Unk_2409238_Listener* listener) override;
+    void vf7(Unk_2409238_Listener* listener) override;
+    void vf8(const Unk_239a418_Ref<Unk_239a418>& ref) override;
 
-    std::vector<u64, Unk_2771620_Allocator<u64>> field_60;
+    std::vector<Unk_2409238_Listener*, Unk_2771620_Allocator<Unk_2409238_Listener*>> field_60;
     // A lock of the shape of gflib3's static one (src/gflib3/Unk_65f110.h).
     Unk_2778770 field_90;
 };
@@ -104,3 +113,18 @@ static_assert(__builtin_offsetof(Unk_2409118, field_90) == 0x90, "Unk_2409118::f
 // 0x710102a730, 0x710102a7d0 (D0), thunks 0x710102a9d0/0x710102aa70 (+0x48)
 // and 0x710102ae30/0x710102aed0 (+0x50)
 Unk_2409118::~Unk_2409118() {}
+
+// 0x7101029430, 0x710102ac40 (its thunk from +0x48)
+void Unk_2409118::vf7(Unk_2409238_Listener* listener) {
+    field_90.Lock();
+    auto it = std::find(field_60.begin(), field_60.end(), listener);
+    if (it != field_60.end())
+        field_60.erase(it);
+    field_90.Unlock();
+}
+
+// 0x7101029de0, 0x710102ad30 (its thunk from +0x48)
+void Unk_2409118::vf8(const Unk_239a418_Ref<Unk_239a418>& ref) {
+    for (Unk_2409238_Listener* listener : field_60)
+        listener->vf1(ref);
+}
