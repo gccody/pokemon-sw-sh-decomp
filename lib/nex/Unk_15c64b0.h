@@ -50,13 +50,12 @@ public:
             m_impl.Update(data, size);
         }
     }
-    const u8* GetDigest() {
-        if (m_done) {
-            return m_digest;
+    // takes the digest (once)
+    void Final() {
+        if (!m_done) {
+            m_impl.GetHash(m_digest, sizeof(m_digest));
+            m_done = true;
         }
-        m_impl.GetHash(m_digest, sizeof(m_digest));
-        m_done = true;
-        return m_digest;
     }
 
     nn::crypto::detail::Md5Impl m_impl;

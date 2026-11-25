@@ -11,7 +11,8 @@ namespace nex {
 bool MD5Checksum::vf2(const Buffer& in, Buffer* out) {
     Unk_15c64b0_Md5Context context;
     context.Update(in.m_data + in.m_offset, in.m_size);
-    Unk_15c3ee0(reinterpret_cast<u64>(out), const_cast<u8*>(context.GetDigest()), 0x10, -1);
+    context.Final();
+    Unk_15c3ee0(reinterpret_cast<u64>(out), context.m_digest, 0x10, -1);
     return true;
 }
 
@@ -19,12 +20,13 @@ bool MD5Checksum::vf2(const Buffer& in, Buffer* out) {
 bool MD5Checksum::vf3(const void* const* data, const size_t* sizes, size_t count,
                       Unk_15c6560_Digest* out) {
     Unk_15c64b0_Md5Context context;
-    for (size_t i = 0; i < count; i++) {
-        if (data[i] != nullptr && sizes[i] != 0) {
-            context.Update(data[i], sizes[i]);
+    for (; count != 0; count--, sizes++, data++) {
+        if (*data != nullptr && *sizes != 0) {
+            context.Update(*data, *sizes);
         }
     }
-    memcpy(out->m_data, context.GetDigest(), 0x10);
+    context.Final();
+    memcpy(out->m_data, context.m_digest, 0x10);
     out->m_size = 0x10;
     return true;
 }
@@ -32,13 +34,14 @@ bool MD5Checksum::vf3(const void* const* data, const size_t* sizes, size_t count
 // 0x71015c6630
 u32 MD5Checksum::vf6(const void* const* data, const size_t* sizes, size_t count) {
     Unk_15c64b0_Md5Context context;
-    for (size_t i = 0; i < count; i++) {
-        if (data[i] != nullptr && sizes[i] != 0) {
-            context.Update(data[i], sizes[i]);
+    for (; count != 0; count--, sizes++, data++) {
+        if (*data != nullptr && *sizes != 0) {
+            context.Update(*data, *sizes);
         }
     }
     u32 checksum;
-    memcpy(&checksum, context.GetDigest(), sizeof(checksum));
+    context.Final();
+    memcpy(&checksum, context.m_digest, sizeof(checksum));
     return checksum;
 }
 
@@ -53,15 +56,17 @@ bool MD5ChecksumWithKey::vf3(const void* const* data, const size_t* sizes, size_
                              Unk_15c6560_Digest* out) {
     Unk_15c64b0_Md5Context context;
     size_t keyLength = m_key.m_data.size();
-    for (size_t i = 0; i < count; i++) {
-        if (data[i] != nullptr && sizes[i] != 0) {
-            context.Update(data[i], sizes[i]);
+    for (; count != 0; count--, sizes++, data++) {
+        if (*data != nullptr && *sizes != 0) {
+            context.Update(*data, *sizes);
         }
     }
     if (keyLength != 0) {
-        context.Update(m_key.m_data.empty() ? nullptr : &m_key.m_data[0], keyLength);
+        const u8* key = m_key.m_data.data();
+        context.Update(m_key.m_data.empty() ? nullptr : key, keyLength);
     }
-    memcpy(out->m_data, context.GetDigest(), 0x10);
+    context.Final();
+    memcpy(out->m_data, context.m_digest, 0x10);
     out->m_size = 0x10;
     return true;
 }
@@ -70,13 +75,17 @@ bool MD5ChecksumWithKey::vf3(const void* const* data, const size_t* sizes, size_
 bool MD5ChecksumWithKey::vf2(const Buffer& in, Buffer* out) {
     Unk_15c64b0_Md5Context context;
     size_t keyLength = m_key.m_data.size();
-    if (in.m_size != 0 && in.m_data + in.m_offset != nullptr) {
-        context.Update(in.m_data + in.m_offset, in.m_size);
+    const u8* data = in.m_data + in.m_offset;
+    size_t size = in.m_size;
+    if (size != 0 && data != nullptr) {
+        context.Update(data, size);
     }
     if (keyLength != 0) {
-        context.Update(m_key.m_data.empty() ? nullptr : &m_key.m_data[0], keyLength);
+        const u8* key = m_key.m_data.data();
+        context.Update(m_key.m_data.empty() ? nullptr : key, keyLength);
     }
-    Unk_15c3ee0(reinterpret_cast<u64>(out), const_cast<u8*>(context.GetDigest()), 0x10, -1);
+    context.Final();
+    Unk_15c3ee0(reinterpret_cast<u64>(out), context.m_digest, 0x10, -1);
     return true;
 }
 
@@ -84,16 +93,18 @@ bool MD5ChecksumWithKey::vf2(const Buffer& in, Buffer* out) {
 u32 MD5ChecksumWithKey::vf6(const void* const* data, const size_t* sizes, size_t count) {
     Unk_15c64b0_Md5Context context;
     size_t keyLength = m_key.m_data.size();
-    for (size_t i = 0; i < count; i++) {
-        if (data[i] != nullptr && sizes[i] != 0) {
-            context.Update(data[i], sizes[i]);
+    for (; count != 0; count--, sizes++, data++) {
+        if (*data != nullptr && *sizes != 0) {
+            context.Update(*data, *sizes);
         }
     }
     if (keyLength != 0) {
-        context.Update(m_key.m_data.empty() ? nullptr : &m_key.m_data[0], keyLength);
+        const u8* key = m_key.m_data.data();
+        context.Update(m_key.m_data.empty() ? nullptr : key, keyLength);
     }
+    context.Final();
     u32 checksum;
-    memcpy(&checksum, context.GetDigest(), sizeof(checksum));
+    memcpy(&checksum, context.m_digest, sizeof(checksum));
     return checksum;
 }
 
