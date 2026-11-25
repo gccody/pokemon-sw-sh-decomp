@@ -10,6 +10,7 @@
 #include <nn/nex/Call.h>
 #include <nn/nex/RefCountedObject.h>
 #include <nn/nex/SharedPtr.h>
+#include <nn/nex/qVector.h>
 
 // 0x71015b8f50: the system tick (a wrapper of the SDK's).
 u64 Unk_15b8f50();
@@ -243,5 +244,131 @@ void JobProcessProtocolMessage::vf3() {
     }
 }
 
+// N2nn3nex3KeyE (lib/nex/core/RefCountedObject.cpp)
+class Key : public RefCountedObject {
+public:
+    // 0x71015ce120
+    Key();
+    // 0x71015ce560
+    ~Key() override;
+    // 0x71015c5ea0
+    Key& operator=(const Key& other);
+
+    qVector<u8> m_data;
+};
+PKMN_SIZE_ASSERT(Key, 0x28);
+
+// N2nn3nex12PluginObjectE
+class PluginObject : public RootObject {};
+
+// N2nn3nex19EncryptionAlgorithmE
+class EncryptionAlgorithm : public PluginObject {
+public:
+    // 0x71015c6bc0: takes the key if its length is in the algorithm's range.
+    bool Unk_15c6bc0(const Key& key);
+
+    virtual u32 vf2(const Buffer& in, Buffer* out) = 0;
+    virtual void vf3(Buffer* buffer);
+    virtual u32 vf4(const Buffer& in, Buffer* out) = 0;
+
+    u64 field_8;
+    Key m_key;
+    u64 m_minKeyLength;
+    u64 m_maxKeyLength;
+};
+PKMN_SIZE_ASSERT(EncryptionAlgorithm, 0x48);
+
+// N2nn3nex13RC4EncryptionE
+class RC4Encryption : public EncryptionAlgorithm {
+public:
+    // 0x71015c6e50
+    RC4Encryption();
+    // 0x71015c6f50
+    ~RC4Encryption() override;
+    // 0x71015c7210: copies `in` to `out` and encrypts it there.
+    u32 vf2(const Buffer& in, Buffer* out) override;
+    // 0x71015c7370: copies `in` to `out` and decrypts it there.
+    u32 vf4(const Buffer& in, Buffer* out) override;
+
+    u8 _48[0x250];
+};
+PKMN_SIZE_ASSERT(RC4Encryption, 0x298);
+
+// N2nn3nex17ChecksumAlgorithmE
+class ChecksumAlgorithm : public PluginObject {
+public:
+    u64 field_8;
+    u8 field_10;
+};
+
+// N2nn3nex22KeyedChecksumAlgorithmE
+class KeyedChecksumAlgorithm : public ChecksumAlgorithm {
+public:
+    // 0x71015c63b0: takes the key if its length is in the algorithm's range.
+    bool Unk_15c63b0(const Key& key);
+
+    Key m_key;
+    u64 m_minKeyLength;
+    u64 m_maxKeyLength;
+};
+PKMN_SIZE_ASSERT(KeyedChecksumAlgorithm, 0x50);
+
+// N2nn3nex12HMACChecksumE
+class HMACChecksum : public KeyedChecksumAlgorithm {
+public:
+    // 0x71015c3fe0
+    HMACChecksum();
+    // 0x71015c40b0
+    ~HMACChecksum() override;
+    // 0x71015c4620: appends the buffer's checksum to it.
+    bool Unk_15c4620(Buffer* buffer);
+
+    u8 _50[0x88];
+};
+PKMN_SIZE_ASSERT(HMACChecksum, 0xd8);
+
 }  // namespace nex
 }  // namespace nn
+
+// What encrypts and checksums with one key: RC4 and an HMAC.
+struct Unk_16310f0 {
+    Unk_16310f0();
+    ~Unk_16310f0();
+    void Unk_1631150(const nn::nex::Key& key);
+    bool Unk_1631200(const nn::nex::Buffer& in, nn::nex::Buffer* out, const nn::nex::Key& key);
+
+    u64 field_0;
+    nn::nex::RC4Encryption m_encryption;
+    nn::nex::HMACChecksum m_checksum;
+    nn::nex::Key m_key;
+};
+PKMN_OFFSET_ASSERT(Unk_16310f0, m_checksum, 0x2a0);
+PKMN_OFFSET_ASSERT(Unk_16310f0, m_key, 0x378);
+PKMN_SIZE_ASSERT(Unk_16310f0, 0x3a0);
+
+// 0x71016310f0
+Unk_16310f0::Unk_16310f0() {}
+
+// 0x7101631120
+Unk_16310f0::~Unk_16310f0() {}
+
+// 0x7101631150
+void Unk_16310f0::Unk_1631150(const nn::nex::Key& key) {
+    m_encryption.Unk_15c6bc0(key);
+    m_checksum.Unk_15c63b0(key);
+    m_key = key;
+}
+
+// 0x7101631200: `in` encrypted with the key into `out`, its checksum after it.
+bool Unk_16310f0::Unk_1631200(const nn::nex::Buffer& in, nn::nex::Buffer* out,
+                              const nn::nex::Key& key) {
+    nn::nex::RC4Encryption encryption;
+    nn::nex::HMACChecksum checksum;
+    if (!checksum.Unk_15c63b0(key) || !encryption.Unk_15c6bc0(key)) {
+        return false;
+    }
+    if (encryption.vf2(in, out) != 0) {
+        return false;
+    }
+    return checksum.Unk_15c4620(out);
+}
