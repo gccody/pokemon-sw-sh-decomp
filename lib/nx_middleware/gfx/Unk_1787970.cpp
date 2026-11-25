@@ -40,8 +40,9 @@ struct Unk_1787ac0_Info {
 };
 
 // 0x7101787ac0
+// `size` is the info's size again: its callers pass it, this reads the info's.
 void Unk_1787ac0(Unk_1787ac0_Buffer* self, Unk_1791080_Device* device, const Unk_1787ac0_Info* info,
-                 Unk_1787ac0_Pool* pool, s64 offset) {
+                 Unk_1787ac0_Pool* pool, s64 offset, u64 /*size*/) {
     u8 builder[0x40];
     nvnBufferBuilderSetDefaults(builder);
     nvnBufferBuilderSetDevice(builder, device->field_0);
