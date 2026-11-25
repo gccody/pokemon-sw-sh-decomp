@@ -61,7 +61,7 @@ u32 Unk_7c58b0_get(const Unk_7c58b0* self);
 struct Unk_7c56e0;
 bool Unk_7c56e0_check(const Unk_7c56e0* self, u32 value);
 struct Unk_7cac80;
-u8 Unk_7cac80_call(const Unk_7cac80* self, u32 value);
+u8 Unk_7cac80_call(const Unk_7cac80* self, u8 value);
 void* Unk_7d0b80_getFieldf0(const Unk_7d0b80* self);
 u8 Unk_7ee6b0_getField7d(const Unk_7ee6b0* self);
 struct Unk_7eef40;
@@ -106,10 +106,8 @@ struct Unk_8aa230_Main {
 };
 PKMN_OFFSET_ASSERT(Unk_8aa230_Main, field_88, 0x88);
 
-// NON_MATCHING: Unk_7cac80_call is named with a u32 parameter, so the
-// position gets masked (the original passes it as it is); and the original
-// tests the setup's flag before comparing the sides again, where this one
-// reuses the first comparison.
+// NON_MATCHING: the original tests the setup's flag before comparing the
+// sides again, where this one reuses the first comparison.
 // 0x71008aa230
 void Unk_23b9048::vf232(u8* out1, u8* out2, const Unk_7ee6b0* poke) {
     u32 types = Unk_7f05d0(const_cast<Unk_7ee6b0*>(poke));
