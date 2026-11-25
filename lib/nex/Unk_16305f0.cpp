@@ -97,9 +97,7 @@ void Unk_1630ac0(nn::nex::ProtocolCallContext* ctx, void* result) {
 
 // 0x7101630b10: the protocol's ID in 7 bits (0x7f: in the u16 after it), with
 // the top bit set for a request.
-// NON_MATCHING: the original tests all of `request`'s 32 bits (cmp w2, #0): its
-// parameter is a u32, which the bool of the name (and of the calls) doesn't give.
-void nn::nex::Message::Unk_1630b10(u16 protocolId, bool request) {
+void nn::nex::Message::Unk_1630b10(u16 protocolId, u32 request) {
     u8 flag = request ? 0x80 : 0;
     if (protocolId < 0x7f) {
         Write(static_cast<u8>(flag | (protocolId & 0x7f)));

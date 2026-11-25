@@ -11,7 +11,7 @@ public:
     virtual ~Message();
 
     // 0x7101630b10, 0x7101630a90: the protocol's and the method's IDs.
-    void Unk_1630b10(u16 protocolId, bool request);
+    void Unk_1630b10(u16 protocolId, u32 request);
     void Unk_1630a90(u32 methodId);
 
     u8 _70[0x0];
