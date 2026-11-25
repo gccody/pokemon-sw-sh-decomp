@@ -91,19 +91,15 @@ u32 Unk_8039a0(const Unk_803830_Ring* ring, u32 field_0) {
     return 0;
 }
 
-// NON_MATCHING: the original masks the index to a u8 (`and w8, w1, #0xff`):
-// it takes a u8, but its callers declare it with a u32
 // 0x7100803a50
-u16 Unk_803a50(void* self, u32 index) {
+u16 Unk_803a50(void* self, u8 index) {
     if (index < 5)
         return static_cast<u16*>(self)[index];
     return 0;
 }
 
-// NON_MATCHING: the original masks the index to a u8 (`and w8, w1, #0xff`):
-// it takes a u8, but its callers declare it with a u32
 // 0x7100803a70
-void Unk_803a70(void* self, u32 index, u16 value) {
+void Unk_803a70(void* self, u8 index, u16 value) {
     if (index < 5)
         static_cast<u16*>(self)[index] = value;
 }

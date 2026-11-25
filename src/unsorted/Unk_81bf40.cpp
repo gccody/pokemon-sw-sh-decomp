@@ -38,7 +38,7 @@ u32 Unk_7ca1c0_getField150(const Unk_7ca1c0* self);
 u8 Unk_7ca890_get(const Unk_7ca890* self);
 bool Unk_7caa70_check(const Unk_7caa70* self);
 bool Unk_7caaf0_check(const Unk_7caaf0* self);
-u8 Unk_7cb2c0_call(const Unk_7cb2c0* self, u32 value);
+u8 Unk_7cb2c0_call(const Unk_7cb2c0* self, u8 value);
 u8 Unk_7cb850_getField174(const Unk_7cb850* self);
 u8 Unk_7cb490(u8 pokeId);
 void Unk_7cbcf0(Unk_7c2d80_Main* self, u32 amount);
@@ -75,7 +75,7 @@ struct Unk_7f98e0_Arg;
 void Unk_7f98e0(const Unk_7f98e0_Arg* arg, u32 rule, u8 value, Unk_7ecc90_Con* con, void* out);
 struct Unk_82b4f0;
 u64 Unk_82b4f0_getField8(const Unk_82b4f0* self);
-u8* Unk_82afd0();
+u8* Unk_82afd0(void* self);
 void Unk_812e40(unsigned long self, unsigned long value);
 
 namespace {
@@ -149,10 +149,8 @@ void Unk_81c1b0(const Unk_819600_Self* self, const Unk_7f98e0_Arg* arg, void* ou
 }
 
 // 0x710081c220
-// NON_MATCHING: Unk_7cb2c0_call's name gives its value as u32 (j), so the u8
-// from Unk_7cb490 is zero-extended here (one extra `and`), as in
-// Unk_8199a0 (src/battle/battle_engine/Unk_819930.cpp); the callee masks it
-// itself (`and w2, w1, #0xff`), i.e. it really takes a u8.
+// NON_MATCHING: a load is scheduled before the mask of the call's argument
+// (the original masks first); otherwise the same.
 bool Unk_81c220(const Unk_819600_Self* self, u8 pokeId) {
     u8 side = Unk_7cb490(pokeId);
     u8 count = Unk_84f4e0(self->field_18, side);
@@ -180,6 +178,7 @@ void Unk_81c300(const Unk_819600_Self* self, u8 pokeId, u32 index) {
 
 // 0x710081c370
 void Unk_81c370(const Unk_819600_Self* self, u32 value) {
-    Unk_82b4f0_getField8(static_cast<const Unk_82b4f0*>(self->field_28));
-    Unk_812e40(reinterpret_cast<unsigned long>(Unk_82afd0() + 0x10), value);
+    u8* table = Unk_82afd0(reinterpret_cast<void*>(
+        Unk_82b4f0_getField8(static_cast<const Unk_82b4f0*>(self->field_28))));
+    Unk_812e40(reinterpret_cast<unsigned long>(table + 0x10), value);
 }
