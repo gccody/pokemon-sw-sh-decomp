@@ -25,10 +25,12 @@ struct Unk_27e51b8 {
     }
 };
 
-// What Unk_24093d8's vf8 calls, each given a value.
-class Unk_24093d8_Listener {
+// A listener, named after its list's growth (src/gflib3/families/Unk_5ac520.cpp):
+// what Unk_24093d8's vf8 calls, each given a value.
+class Unk_102c130 {
 public:
-    virtual void vf0();
+    // Called when it's added, with the list's handle.
+    virtual void vf0(Unk_239a418_Ref<Unk_239a418_Handle> handle);
     virtual void vf1(u64 value);
 };
 
@@ -38,8 +40,8 @@ public:
 class Unk_24093d8 : public Unk_239a458 {
 public:
     const Unk_239a418_Type* vf_type() override { return Unk_27e51b8::Unk_GetType(); }
-    virtual void vf6(Unk_24093d8_Listener* listener) = 0;
-    virtual void vf7(Unk_24093d8_Listener* listener) = 0;
+    virtual void vf6(Unk_102c130* listener) = 0;
+    virtual void vf7(Unk_102c130* listener) = 0;
     virtual void vf8(u64 value) = 0;
 };
 
@@ -66,11 +68,11 @@ class Unk_24092b8 : public Unk_2409398 {
 public:
     ~Unk_24092b8() override;
     const Unk_239a418_Type* vf_type() override;
-    void vf6(Unk_24093d8_Listener* listener) override;
-    void vf7(Unk_24093d8_Listener* listener) override;
+    void vf6(Unk_102c130* listener) override;
+    void vf7(Unk_102c130* listener) override;
     void vf8(u64 value) override;
 
-    std::vector<Unk_24093d8_Listener*, Unk_2771620_Allocator<Unk_24093d8_Listener*>> field_60;
+    std::vector<Unk_102c130*, Unk_2771620_Allocator<Unk_102c130*>> field_60;
     // A lock of the shape of gflib3's static one (src/gflib3/Unk_65f110.h).
     Unk_2778770 field_90;
 };
@@ -109,8 +111,17 @@ void Unk_2409398::vf5() {
     }
 }
 
+// 0x7101029020, 0x710102b960 (its thunk from +0x48). Named in data/functions.csv as a free function
+// (a caller devirtualizes it: src/unsorted/leaf/Unk_1028e70.cpp).
+void Unk_24092b8::vf6(Unk_102c130* listener) {
+    field_90.Lock();
+    field_60.push_back(listener);
+    listener->vf0(m_handle);
+    field_90.Unlock();
+}
+
 // 0x7101029340, 0x710102b970 (its thunk from +0x48)
-void Unk_24092b8::vf7(Unk_24093d8_Listener* listener) {
+void Unk_24092b8::vf7(Unk_102c130* listener) {
     field_90.Lock();
     auto it = std::find(field_60.begin(), field_60.end(), listener);
     if (it != field_60.end())
@@ -120,6 +131,6 @@ void Unk_24092b8::vf7(Unk_24093d8_Listener* listener) {
 
 // 0x7101029e70, 0x710102ba60 (its thunk from +0x48)
 void Unk_24092b8::vf8(u64 value) {
-    for (Unk_24093d8_Listener* listener : field_60)
+    for (Unk_102c130* listener : field_60)
         listener->vf1(value);
 }

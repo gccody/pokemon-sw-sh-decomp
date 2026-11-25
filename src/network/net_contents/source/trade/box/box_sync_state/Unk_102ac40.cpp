@@ -28,10 +28,12 @@ struct Unk_27e51c8 {
     }
 };
 
-// What Unk_2409238's vf8 calls, each given a reference.
-class Unk_2409238_Listener {
+// A listener, named after its list's growth (src/gflib3/families/Unk_5ac520.cpp):
+// what Unk_2409238's vf8 calls, each given a reference.
+class Unk_102bf70 {
 public:
-    virtual void vf0();
+    // Called when it's added, with the list's handle.
+    virtual void vf0(Unk_239a418_Ref<Unk_239a418_Handle> handle);
     virtual void vf1(Unk_239a418_Ref<Unk_239a418> ref);
 };
 
@@ -41,8 +43,8 @@ public:
 class Unk_2409238 : public Unk_239a458 {
 public:
     const Unk_239a418_Type* vf_type() override { return Unk_27e51c8::Unk_GetType(); }
-    virtual void vf6(Unk_2409238_Listener* listener) = 0;
-    virtual void vf7(Unk_2409238_Listener* listener) = 0;
+    virtual void vf6(Unk_102bf70* listener) = 0;
+    virtual void vf7(Unk_102bf70* listener) = 0;
     virtual void vf8(const Unk_239a418_Ref<Unk_239a418>& ref) = 0;
 };
 
@@ -92,17 +94,16 @@ void Unk_24091f8::vf5() {
 }
 
 // A class on it (vtable 0x7102409118): a vector, then a lock. Its type getter
-// is in src/unsorted/types/Unk_102a960.cpp; its vf6 (0x7101028ec0, primary
-// slot 7) isn't written yet.
+// is in src/unsorted/types/Unk_102a960.cpp.
 class Unk_2409118 : public Unk_24091f8 {
 public:
     ~Unk_2409118() override;
     const Unk_239a418_Type* vf_type() override;
-    void vf6(Unk_2409238_Listener* listener) override;
-    void vf7(Unk_2409238_Listener* listener) override;
+    void vf6(Unk_102bf70* listener) override;
+    void vf7(Unk_102bf70* listener) override;
     void vf8(const Unk_239a418_Ref<Unk_239a418>& ref) override;
 
-    std::vector<Unk_2409238_Listener*, Unk_2771620_Allocator<Unk_2409238_Listener*>> field_60;
+    std::vector<Unk_102bf70*, Unk_2771620_Allocator<Unk_102bf70*>> field_60;
     // A lock of the shape of gflib3's static one (src/gflib3/Unk_65f110.h).
     Unk_2778770 field_90;
 };
@@ -114,8 +115,17 @@ static_assert(__builtin_offsetof(Unk_2409118, field_90) == 0x90, "Unk_2409118::f
 // and 0x710102ae30/0x710102aed0 (+0x50)
 Unk_2409118::~Unk_2409118() {}
 
+// 0x7101028ec0. Named in data/functions.csv as a free function (a caller
+// devirtualizes it: src/unsorted/leaf/Unk_1028e70.cpp).
+void Unk_2409118::vf6(Unk_102bf70* listener) {
+    field_90.Lock();
+    field_60.push_back(listener);
+    listener->vf0(m_handle);
+    field_90.Unlock();
+}
+
 // 0x7101029430, 0x710102ac40 (its thunk from +0x48)
-void Unk_2409118::vf7(Unk_2409238_Listener* listener) {
+void Unk_2409118::vf7(Unk_102bf70* listener) {
     field_90.Lock();
     auto it = std::find(field_60.begin(), field_60.end(), listener);
     if (it != field_60.end())
@@ -125,6 +135,6 @@ void Unk_2409118::vf7(Unk_2409238_Listener* listener) {
 
 // 0x7101029de0, 0x710102ad30 (its thunk from +0x48)
 void Unk_2409118::vf8(const Unk_239a418_Ref<Unk_239a418>& ref) {
-    for (Unk_2409238_Listener* listener : field_60)
+    for (Unk_102bf70* listener : field_60)
         listener->vf1(ref);
 }
