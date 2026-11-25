@@ -5,6 +5,74 @@
 // to the battle state's handler objects (Unk_86dd10.h). Placeholder names.
 #include "unsorted/unk_82e410/Unk_86dd10.h"
 
+// 0x710086e460
+void Unk_86e460(void* self, u8 pokeId) {
+    const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
+    if (Unk_819600_call(static_cast<const Unk_819600*>(self), 2) != pokeId)
+        return;
+    if (Unk_819600_call(static_cast<const Unk_819600*>(self), 0x14) !=
+        Unk_819690_call(static_cast<const Unk_819690*>(self)))
+        return;
+    u8 type;
+    switch (Unk_86dd10_Item(Unk_8196d0(flow, pokeId))) {
+        case 0x390:
+            type = 9;
+            break;
+        case 0x388:
+            type = 1;
+            break;
+        case 0x389:
+            type = 2;
+            break;
+        case 0x38a:
+            type = 3;
+            break;
+        case 0x38b:
+            type = 4;
+            break;
+        case 0x38c:
+            type = 5;
+            break;
+        case 0x38d:
+            type = 6;
+            break;
+        case 0x38e:
+            type = 7;
+            break;
+        case 0x38f:
+            type = 8;
+            break;
+        case 0x391:
+            type = 0xa;
+            break;
+        case 0x392:
+            type = 0xb;
+            break;
+        case 0x393:
+            type = 0xc;
+            break;
+        case 0x394:
+            type = 0xd;
+            break;
+        case 0x395:
+            type = 0xe;
+            break;
+        case 0x396:
+            type = 0xf;
+            break;
+        case 0x397:
+            type = 0x10;
+            break;
+        case 0x398:
+            type = 0x11;
+            break;
+        default:
+            type = 0;
+            break;
+    }
+    Unk_819640_call(static_cast<const Unk_819640*>(self), 0x12, Unk_82da30(type));
+}
+
 // 0x710086e5a0
 void Unk_86e5a0(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
@@ -112,6 +180,25 @@ void Unk_86e830(void* self, u8 pokeId) {
     Unk_803d60(list, other);
     Unk_803d60(list, item);
     Unk_81a510(flow, arg);
+}
+
+// NON_MATCHING: Unk_8197f0_call and Unk_81b230 are named with u32 values, so
+// pokeId is zero-extended for them (an extra register). Declared with u8 (as
+// they forward them to Unk_7cbf80(void*, u8, u8)), it matches.
+// 0x710086e930
+void Unk_86e930(void* self, u8 pokeId) {
+    const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
+    u32 target = Unk_819600_call(static_cast<const Unk_819600*>(self), 2);
+    if (static_cast<u8>(target) == pokeId) {
+        if (!Unk_81ae20(flow, pokeId))
+            return;
+        if (Unk_819600_call(static_cast<const Unk_819600*>(self), 0x12) !=
+            Unk_819690_call(static_cast<const Unk_819690*>(self)))
+            return;
+        Unk_819650_call(static_cast<const Unk_819650*>(self), 0x27);
+    } else if (!Unk_8197f0_call(static_cast<const Unk_8197f0*>(self), pokeId, target)) {
+        Unk_81b230(self, pokeId);
+    }
 }
 
 // 0x710086e9d0
