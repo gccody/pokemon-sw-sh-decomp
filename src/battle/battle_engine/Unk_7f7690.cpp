@@ -52,7 +52,6 @@ union Unk_7f7940_Condition {
 };
 
 // 0x71007f7940
-// NON_MATCHING: the original builds the value with bfi
 u64 Unk_7f7940(u8 pokeId, u8 turns) {
     Unk_7f7940_Condition condition;
     condition.field_0 = 0;
