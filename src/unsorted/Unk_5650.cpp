@@ -162,7 +162,7 @@ void Unk_eadcc0(void* self);
 void Unk_1306ce0_call(void* self);
 void Unk_13184b0(void* self);
 void Unk_791b70(void* self);
-void Unk_ea2fe0();
+void Unk_ea2fe0(void* object);
 void Unk_130e090(void* self);
 void Unk_e9f980(void* self);
 void Unk_e87c50(void* self);
@@ -266,15 +266,13 @@ void Unk_5840() {
     }
 }
 
-// NON_MATCHING: Unk_ea2fe0 is given Unk_24ba608's object, but its name has no
-// parameter.
 // 0x7100005770
 void Unk_5770(Unk_236d258_Self* self) {
     Unk_eadcc0(Unk_24ba588);
     Unk_1306ce0_call(Unk_24ba698);
     Unk_13184b0(Unk_24ba688);
     Unk_791b70(Unk_24ba4f0);
-    Unk_ea2fe0();
+    Unk_ea2fe0(Unk_24ba608);
     Unk_130e090(Unk_24ba5c8);
     Unk_e9f980(Unk_24ba5a8);
     Unk_e87c50(Unk_24ba6b8);
