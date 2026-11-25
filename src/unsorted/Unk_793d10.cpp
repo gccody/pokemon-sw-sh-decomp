@@ -69,10 +69,10 @@ bool Unk_793fb0(Unk_23a8158* self, u64 name, u32 arg2, f32 arg3) {
 u32 Unk_794040(void* handle, void* arg1) {
     Unk_23a8158* self = static_cast<Unk_23a8158*>(handle);
     if (!self->Unk_HasName())
-        return false;
+        return 0;
     s64 index = Unk_791a00(Unk_24ba4f0, self, false);
     if (index == -1)
-        return false;
+        return 0;
     return Unk_7938b0(Unk_27ce848, arg1, index);
 }
 
