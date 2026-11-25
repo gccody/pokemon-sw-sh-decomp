@@ -921,7 +921,7 @@ struct Unk_675750_80 {
     virtual void vf17();
     virtual void vf18();
     virtual void vf19();
-    virtual u32 vf20(u64);
+    virtual u32 vf20(u64, s64);
 };
 
 struct Unk_675750_arg1 {
@@ -937,8 +937,8 @@ struct Unk_675750 {
 PKMN_OFFSET_ASSERT(Unk_675750, field_80, 0x80);
 
 // 0x7100675750
-bool Unk_675750_call(const Unk_675750* self, const Unk_675750_arg1* value) {
-    u32 r0 = self->field_80->vf20(value->field_8);
+bool Unk_675750_call(const Unk_675750* self, const Unk_675750_arg1* value, s64 index) {
+    u32 r0 = self->field_80->vf20(value->field_8, index);
     return r0 == 1;
 }
 
@@ -961,7 +961,7 @@ struct Unk_6757c0_80 {
     virtual void vf15();
     virtual void vf16();
     virtual void vf17();
-    virtual u32 vf18(u64, u64);
+    virtual u32 vf18(u64, u64, s64);
 };
 
 struct Unk_6757c0_arg1 {
@@ -985,8 +985,9 @@ PKMN_OFFSET_ASSERT(Unk_6757c0, field_80, 0x80);
 // 0x71006757c0
 bool Unk_6757c0_call(const Unk_6757c0* self,
                      const Unk_6757c0_arg1* value,
-                     const Unk_6757c0_arg2* arg2) {
-    u32 r0 = self->field_80->vf18(value->field_8, arg2->field_8);
+                     const Unk_6757c0_arg2* arg2,
+                     s64 index) {
+    u32 r0 = self->field_80->vf18(value->field_8, arg2->field_8, index);
     return r0 == 1;
 }
 
