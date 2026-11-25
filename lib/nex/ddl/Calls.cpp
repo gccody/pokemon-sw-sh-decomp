@@ -120,12 +120,12 @@ void Unk_15b3fa0();
 void Unk_164e820_update();
 void Unk_164e830_update();
 void Unk_164e840_update();
-void Unk_164e850();
-void Unk_164e8f0();
-void Unk_164e990();
+void Unk_164e850(nn::nex::ByteStream* s, nn::nex::ProtocolCallContext* ctx);
+void Unk_164e8f0(nn::nex::ByteStream* s, nn::nex::ProtocolCallContext* ctx);
+void Unk_164e990(nn::nex::ByteStream* s, nn::nex::ProtocolCallContext* ctx);
 void Unk_164ea30_update();
-void Unk_164ea40();
-void Unk_164eae0();
+void Unk_164ea40(nn::nex::ByteStream* s, nn::nex::ProtocolCallContext* ctx);
+void Unk_164eae0(nn::nex::ByteStream* s, nn::nex::ProtocolCallContext* ctx);
 
 extern Unk_Handlers Unk_27f20d8;
 extern Unk_Handlers Unk_27f2340;
@@ -2623,7 +2623,7 @@ bool Unk_164cc50(nn::nex::ClientProtocol* self, nn::nex::ProtocolCallContext* ct
         if (ctx != nullptr) {
             Unk_1630ac0(ctx, arg2);
         }
-        Unk_27f9b68.m_handlers[7] = Unk_164e850;
+        Unk_27f9b68.m_handlers[7] = reinterpret_cast<void (*)()>(Unk_164e850);
         if (!self->m_canDefer || !Unk_1630b90(self, 0x10)) {
             return Unk_162f1a0(self, ctx, &msg);
         }
@@ -2659,7 +2659,7 @@ bool Unk_164ce30(nn::nex::ClientProtocol* self, nn::nex::ProtocolCallContext* ct
         if (ctx != nullptr) {
             Unk_1630ac0(ctx, arg5);
         }
-        Unk_27f9b68.m_handlers[9] = Unk_164e8f0;
+        Unk_27f9b68.m_handlers[9] = reinterpret_cast<void (*)()>(Unk_164e8f0);
         if (!self->m_canDefer || !Unk_1630b90(self, 0x10)) {
             return Unk_162f1a0(self, ctx, &msg);
         }
@@ -2685,7 +2685,7 @@ bool Unk_164d0c0(nn::nex::ClientProtocol* self, nn::nex::ProtocolCallContext* ct
         if (ctx != nullptr) {
             Unk_1630ac0(ctx, arg3);
         }
-        Unk_27f9b68.m_handlers[10] = Unk_164e990;
+        Unk_27f9b68.m_handlers[10] = reinterpret_cast<void (*)()>(Unk_164e990);
         if (!self->m_canDefer || !Unk_1630b90(self, 0x10)) {
             return Unk_162f1a0(self, ctx, &msg);
         }
@@ -2739,7 +2739,7 @@ bool Unk_164d510(nn::nex::ClientProtocol* self, nn::nex::ProtocolCallContext* ct
         if (ctx != nullptr) {
             Unk_1630ac0(ctx, arg4);
         }
-        Unk_27f9b68.m_handlers[15] = Unk_164ea40;
+        Unk_27f9b68.m_handlers[15] = reinterpret_cast<void (*)()>(Unk_164ea40);
         if (!self->m_canDefer || !Unk_1630b90(self, 0x10)) {
             return Unk_162f1a0(self, ctx, &msg);
         }
@@ -2765,7 +2765,7 @@ bool Unk_164d750(nn::nex::ClientProtocol* self, nn::nex::ProtocolCallContext* ct
         if (ctx != nullptr) {
             Unk_1630ac0(ctx, arg3);
         }
-        Unk_27f9b68.m_handlers[16] = Unk_164eae0;
+        Unk_27f9b68.m_handlers[16] = reinterpret_cast<void (*)()>(Unk_164eae0);
         if (!self->m_canDefer || !Unk_1630b90(self, 0x10)) {
             return Unk_162f1a0(self, ctx, &msg);
         }

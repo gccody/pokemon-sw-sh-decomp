@@ -112,7 +112,7 @@ void Unk_817190(const Unk_8139c0_Self* self, u32 arg1, u32 arg2) {
 }
 
 // 0x71008171c0
-void Unk_8171c0(const Unk_8139c0_Self* self, u32 arg1, u32 arg2) {
+void Unk_8171c0(const Unk_8139c0_Self* self, u8 arg1, u32 arg2) {
     Unk_7ffe50(Unk_7fe1e0_getField28(reinterpret_cast<const Unk_7fe1e0*>(self->field_10)), arg2,
                arg1);
 }

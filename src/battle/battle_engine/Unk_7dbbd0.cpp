@@ -10,7 +10,7 @@ void Unk_816bc0(const Unk_8139c0_Self* self, u8 pokeId);
 void Unk_816e80(const Unk_8139c0_Self* self, u8 pokeId);
 void Unk_817130(const Unk_8139c0_Self* self, u32 value);
 void Unk_817190(const Unk_8139c0_Self* self, u32 arg1, u32 arg2);
-void Unk_8171c0(const Unk_8139c0_Self* self, u32 arg1, u32 arg2);
+void Unk_8171c0(const Unk_8139c0_Self* self, u8 arg1, u32 arg2);
 void Unk_8173b0(const Unk_8139c0_Self* self, u8 pokeId, u8 otherId);
 void Unk_8177f0(const Unk_8139c0_Self* self, u8 pokeId, u16 value);
 void Unk_817830(const Unk_8139c0_Self* self, u8 pokeId);

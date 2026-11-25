@@ -2333,7 +2333,7 @@ void Unk_859450_call(void* self, u64 value) {
     Unk_859470(self, value, 1);
 }
 
-void Unk_859570(void*, u64, u32, u32);
+void Unk_859570(void*, u8, u32, u32);
 
 // 0x7100859460
 void Unk_859460_call(void* self, u64 value) {
@@ -2347,7 +2347,7 @@ void Unk_8596b0_call(void* self, u64 value) {
     Unk_859470(self, value, 2);
 }
 
-void Unk_859570(void*, u64, u32, u32);
+void Unk_859570(void*, u8, u32, u32);
 
 // 0x71008596c0
 void Unk_8596c0_call(void* self, u64 value) {
@@ -2361,7 +2361,7 @@ void Unk_8596d0_call(void* self, u64 value) {
     Unk_859470(self, value, 4);
 }
 
-void Unk_859570(void*, u64, u32, u32);
+void Unk_859570(void*, u8, u32, u32);
 
 // 0x71008596e0
 void Unk_8596e0_call(void* self, u64 value) {
@@ -2375,7 +2375,7 @@ void Unk_8596f0_call(void* self, u64 value) {
     Unk_859470(self, value, 3);
 }
 
-void Unk_859570(void*, u64, u32, u32);
+void Unk_859570(void*, u8, u32, u32);
 
 // 0x7100859700
 void Unk_859700_call(void* self, u64 value) {
@@ -2389,7 +2389,7 @@ void Unk_859710_call(void* self, u64 value) {
     Unk_859470(self, value, 5);
 }
 
-void Unk_859570(void*, u64, u32, u32);
+void Unk_859570(void*, u8, u32, u32);
 
 // 0x7100859720
 void Unk_859720_call(void* self, u64 value) {
@@ -2403,7 +2403,7 @@ void Unk_859730_call(void* self, u64 value) {
     Unk_859470(self, value, 6);
 }
 
-void Unk_859570(void*, u64, u32, u32);
+void Unk_859570(void*, u8, u32, u32);
 
 // 0x7100859740
 void Unk_859740_call(void* self, u64 value) {
@@ -2417,7 +2417,7 @@ void Unk_859750_call(void* self, u64 value) {
     Unk_859470(self, value, 0x2e);
 }
 
-void Unk_859570(void*, u64, u32, u32);
+void Unk_859570(void*, u8, u32, u32);
 
 // 0x7100859760
 void Unk_859760_call(void* self, u64 value) {
@@ -2760,28 +2760,28 @@ void Unk_861c20_update() {}
 // 0x7100861c30
 void Unk_861c30_update() {}
 
-void Unk_861f50(void*, u64, u32);
+void Unk_861f50(void*, u8, u32);
 
 // 0x7100861f40
 void Unk_861f40_call(void* self, u64 value) {
     Unk_861f50(self, value, 2);
 }
 
-void Unk_861f50(void*, u64, u32);
+void Unk_861f50(void*, u8, u32);
 
 // 0x7100862100
 void Unk_862100_call(void* self, u64 value) {
     Unk_861f50(self, value, 4);
 }
 
-void Unk_861f50(void*, u64, u32);
+void Unk_861f50(void*, u8, u32);
 
 // 0x71008621e0
 void Unk_8621e0_call(void* self, u64 value) {
     Unk_861f50(self, value, 4);
 }
 
-void Unk_861f50(void*, u64, u32);
+void Unk_861f50(void*, u8, u32);
 
 // 0x71008622c0
 void Unk_8622c0_call(void* self, u64 value) {

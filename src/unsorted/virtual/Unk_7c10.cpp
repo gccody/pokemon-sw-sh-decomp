@@ -23,18 +23,6 @@ public:
 // 0x7100007c90
 void Unk_236d358::vf0() {}
 
-class Unk_236d378 {
-public:
-    virtual void vf0();
-    virtual void vf1();
-};
-
-// 0x710000a8d0
-void Unk_236d378::vf0() {}
-
-// 0x7100007d10
-void Unk_236d378::vf1() {}
-
 class Unk_236d418 {
 public:
     virtual ~Unk_236d418();
