@@ -57,7 +57,7 @@ struct Unk_ba75f0 {
 };
 PKMN_OFFSET_ASSERT(Unk_ba75f0, field_5d0, 0x5d0);
 
-void Unk_1315b90(void*, u64, u64, u32, u32, u32);
+void Unk_1315b90(void*, u32, u32, u32, u32, u32);
 
 // 0x7100ba75f0
 void Unk_ba75f0_call(const Unk_ba75f0* self, u64 value, u64 arg2) {
@@ -70,7 +70,7 @@ struct Unk_ba7610 {
 };
 PKMN_OFFSET_ASSERT(Unk_ba7610, field_5d0, 0x5d0);
 
-void Unk_1315b90(void*, u64, u64, u32, u32, u32);
+void Unk_1315b90(void*, u32, u32, u32, u32, u32);
 
 // 0x7100ba7610
 void Unk_ba7610_call(const Unk_ba7610* self, u64 value, u64 arg2) {

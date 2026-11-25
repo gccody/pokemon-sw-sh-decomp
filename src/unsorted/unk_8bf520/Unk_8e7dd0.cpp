@@ -11,7 +11,7 @@
 
 struct Unk_14abe00_Parts;
 void Unk_14ac370(Unk_14abe00_Parts* self, u64 key, u32 arg);
-void Unk_1315b90(void* self, u64 arg1, u64 arg2, u32 arg3, u32 arg4, u32 arg5);
+void Unk_1315b90(void* self, u32 arg1, u32 arg2, u32 arg3, u32 arg4, u32 arg5);
 u64 Unk_e7f7c0_get(const struct Unk_e7f7c0* self);
 void Unk_e806b0(Unk_23f4660* view, bool visible, bool children);
 void Unk_e80580(u64 view, u32 arg1, u32 arg2);
@@ -75,10 +75,6 @@ void Unk_8e85d0_set(const Unk_8e85d0* self, Unk_8e85d0* value)
     __attribute__((visibility("hidden")));
 
 // 0x71008e7dd0
-// NON_MATCHING: Unk_1315b90's name (_Z11Unk_1315b90Pvmmjjj) gives its second
-// and third parameters as u64: the original passes u32s (mov w1, wzr; the
-// callee reads w1 and w2), and the value's register differs. Declared with
-// u32s, this matches.
 void Unk_23bcc08::Unk_8e7dd0(u32 value) {
     Unk_239a418_Ref<Unk_8e7dd0_Parts> parts = Unk_8e7dd0_GetParts(this);
     Unk_239a418_Ref<Unk_239a418> a = parts.m_ptr->field_2e8;
