@@ -52,7 +52,7 @@ void Unk_13fa3c0(Unk_13bd600_Owner* self, const u64& hash);
 
 // 0x71013bdbb0
 s64 Unk_13bdbb0_call(Unk_13bd600_Script* self, const Unk_13bd600_Arg* args) {
-    u64 hash = Unk_13b12d0(self, args[1].i);
+    u64 hash = Unk_13b12d0(reinterpret_cast<Unk_66efd0*>(self), args[1].i);
     Unk_13fa3c0(self->field_84, hash);
     return 1;
 }
@@ -67,8 +67,8 @@ void Unk_d2aa70(const u64& arg1, const u64& arg2, const u64& arg3, bool arg4);
 // 0x71013bdc20
 s64 Unk_13bdc20_call(Unk_13bd600_Script* self, const Unk_13bd600_Arg* args) {
     u64 kind = 0x0ac6b1274261ea10;
-    u64 hash1 = Unk_13b12d0(self, args[1].i);
-    u64 hash2 = Unk_13b12d0(self, args[2].i);
+    u64 hash1 = Unk_13b12d0(reinterpret_cast<Unk_66efd0*>(self), args[1].i);
+    u64 hash2 = Unk_13b12d0(reinterpret_cast<Unk_66efd0*>(self), args[2].i);
     Unk_d2aa70(kind, hash1, hash2, args[3].i != 0);
     return hash2;
 }
