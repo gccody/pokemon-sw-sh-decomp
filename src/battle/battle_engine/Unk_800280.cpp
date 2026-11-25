@@ -36,15 +36,25 @@ u8 Unk_7f8960(const unsigned long* value);
 u16 Unk_7f89e0(const unsigned long* value);
 u32 Unk_7f8b70_get(const Unk_7f8b70* self);
 
-static void Unk_8002a0_Reset(Unk_800280* self, u64 value) {
-    self->field_58 = value;
+static void Unk_8002a0_Clear(Unk_800280* self) {
+    self->field_58 = Unk_7f8780_get();
     self->field_88 = 0;
+    self->field_178 = 0;
+    self->field_1a0 = 0;
     for (u32 i = 0; i < 5; i++)
         self->field_130[i] = 0x1f;
-    self->field_178 = 0;
 }
 
-static void Unk_8002a0_Add(Unk_800280* self, u32 id) {
+static void Unk_8002a0_Start(Unk_800280* self, u64 value) {
+    self->field_1a0 = 1;
+    self->field_58 = value;
+    self->field_88 = 0;
+    self->field_178 = 0;
+    for (u32 i = 0; i < 5; i++)
+        self->field_130[i] = 0x1f;
+}
+
+static void Unk_8002a0_Add(Unk_800280* self, u8 id) {
     if (id == 0x1f || self->field_1a0 == 0)
         return;
     u32 count = self->field_178;
@@ -59,19 +69,20 @@ static void Unk_8002a0_Add(Unk_800280* self, u32 id) {
 }
 
 // 0x71008002a0
+// NON_MATCHING: the original takes arg1 as a u8 (it extends it at every use;
+// the existing name gives a u32, truncated once here), which also changes the
+// frame. With a u8 it still differs in where the id's extension for the list
+// compare happens and in two stores' order.
 bool Unk_8002a0(void* object, u32 arg1, u64 arg2) {
     Unk_800280* self = static_cast<Unk_800280*>(object);
     u8 value = arg1;
     if (self->field_11 == value)
         return false;
-    if (self->field_1a0 != 0) {
-        Unk_8002a0_Reset(self, Unk_7f8780_get());
-        self->field_1a0 = 0;
-    }
+    if (self->field_1a0 != 0)
+        Unk_8002a0_Clear(self);
     if (value != 0) {
         self->field_1b8 = value;
-        self->field_1a0 = 1;
-        Unk_8002a0_Reset(self, arg2);
+        Unk_8002a0_Start(self, arg2);
         Unk_8002a0_Add(self, Unk_7f88e0(&arg2));
     }
     self->field_11 = value;
@@ -81,9 +92,9 @@ bool Unk_8002a0(void* object, u32 arg1, u64 arg2) {
 // 0x7100800430
 u32 Unk_800430(const Unk_800280* self) {
     u32 base = self->field_88;
-    u8 n = Unk_7f8960(&self->field_58);
+    u32 n = Unk_7f8960(&self->field_58);
     u32 extra = 0;
-    if (n > self->field_88 && n != 0)
+    if (n > self->field_88 && n > 0)
         extra = n - self->field_88;
     return base + extra;
 }
