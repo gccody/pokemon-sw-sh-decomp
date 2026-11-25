@@ -10,20 +10,16 @@ u64 Unk_7f87a0(u8 index, u8 b) {
     return (u64)(((index & 0x1f) << 3) | 2) | ((b << 8) & 0x3f00);
 }
 
-// NON_MATCHING: the parameters are u8, u8, u16 (with those types this body
-// matches); the existing name gives them as u32
 // 0x71007f87c0
-u64 Unk_7f87c0(u32 index, u32 b, u32 c) {
+u64 Unk_7f87c0(u8 index, u8 b, u16 c) {
     u64 head = ((index & 0x1f) << 3) | 2;
     u64 low = (b << 8) & 0x3f00;
     u64 high = (u64)(c & 0xffff) << 14;
     return head | low | high;
 }
 
-// NON_MATCHING: the parameters are u8, u8 (with those types this body
-// matches); the existing name gives them as u32
 // 0x71007f87f0
-u64 Unk_7f87f0(u32 index, u32 b) {
+u64 Unk_7f87f0(u8 index, u8 b) {
     return (u64)(((index & 0x1f) << 3) | 3) | ((u64)(b & 0x3f) << 8);
 }
 
@@ -92,11 +88,8 @@ u32 Unk_7f8960(const u64* value) {
     }
 }
 
-// NON_MATCHING: the value is a u16 (with a u16 parameter this body matches:
-// the two cases' constants become lookup tables); the existing name gives it
-// as int
 // 0x71007f8990
-void Unk_7f8990(void* self, int field) {
+void Unk_7f8990(void* self, u16 field) {
     u64* value = static_cast<u64*>(self);
     switch (*value & 7) {
         case 1:

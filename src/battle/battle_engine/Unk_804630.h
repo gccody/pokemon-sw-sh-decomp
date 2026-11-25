@@ -83,7 +83,7 @@ u32 Unk_7f7690(u32 max);
 
 u8 Unk_781130(u32 move, u32 arg);
 void Unk_7f8ab0(void* self, s32 value);
-void Unk_7f8990(void* self, s32 value);
+void Unk_7f8990(void* self, u16 value);
 
 // The target list as src/unsorted/leaf/Unk_812cf0.cpp's getter of +0x4d
 // types it.
