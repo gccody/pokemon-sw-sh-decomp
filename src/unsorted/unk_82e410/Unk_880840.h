@@ -16,7 +16,7 @@ u32 Unk_8196a0_call(const Unk_8196a0* self, u32 value);
 void Unk_8196b0_call(const Unk_8196b0* self, u32 value, u32 arg2);
 bool Unk_81b7e0(const Unk_819600_Self* self, u8 pokeId, u32 value);
 // Named (void*, u64, u32); it takes a u8 (0x7100880b40 keeps only w1).
-void Unk_880b40(void* self, u64 pokeId, u32 index);
+void Unk_880b40(void* self, u8 pokeId, u32 index);
 
 struct Unk_803c60;
 void Unk_803c60_set(Unk_803c60* self);

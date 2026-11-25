@@ -72,7 +72,7 @@ u16 Unk_780d10(u32 id);
 s32 Unk_781210(u32 value);
 s64 Unk_7ff460(void* object, u8 value);
 void* Unk_7c58c0(void* self, u8 value);
-u16 Unk_8a85b0(void* self, void* object, u32 value);
+u16 Unk_8a85b0(void* self, void* object, bool value);
 u8 Unk_7cb660(void* self, u8 value);
 struct Unk_7ecc90_Con;
 void* Unk_7ed1b0(const Unk_7ecc90_Con* self, u32 index);

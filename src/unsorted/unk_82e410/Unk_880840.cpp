@@ -14,7 +14,7 @@ bool Unk_7f7c40(s32 condition);
 u16 Unk_803c00(u32 kind);
 void Unk_8806b0(void* self, u8 pokeId, u8 arg2, u32 arg3);
 // Named (void*, u64, u32); the code below gives it a u8 and a u16.
-void Unk_8810e0(void* self, u64 pokeId, u32 value);
+void Unk_8810e0(void* self, u8 pokeId, u16 value);
 
 // 0x7100880870
 void Unk_880870(void* self, u8 pokeId) {
@@ -46,8 +46,6 @@ void Unk_880930(void* self, u8 pokeId) {
     }
 }
 
-// NON_MATCHING: Unk_8810e0 is named (void*, u64, u32), so the u8 and the u16
-// are extended (and the registers swap). Matches as (void*, u8, u16).
 // 0x71008809c0
 void Unk_8809c0(void* self, u8 pokeId) {
     u16 value = 0x120;
@@ -74,10 +72,8 @@ void Unk_880ab0(void* self, u8 pokeId) {
     Unk_8196b0_call(static_cast<const Unk_8196b0*>(self), 0, Unk_81b7e0(flow, pokeId, 1));
 }
 
-// NON_MATCHING: named (void*, u64, u32): the u64 is kept in x19 (mov x19, x1
-// for mov w19, w1). Matches as (void*, u8, u32).
 // 0x7100880b40
-void Unk_880b40(void* self, u64 pokeId, u32 index) {
+void Unk_880b40(void* self, u8 pokeId, u32 index) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
     if (!Unk_7ef4c0(Unk_8196d0(flow, pokeId), index))
         return;
