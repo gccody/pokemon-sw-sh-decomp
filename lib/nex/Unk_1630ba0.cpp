@@ -10,7 +10,8 @@
 #include <nn/nex/Call.h>
 #include <nn/nex/RefCountedObject.h>
 #include <nn/nex/SharedPtr.h>
-#include <nn/nex/qVector.h>
+
+#include "Unk_1630ba0.h"
 
 // 0x71015b8f50: the system tick (a wrapper of the SDK's).
 u64 Unk_15b8f50();
@@ -244,23 +245,6 @@ void JobProcessProtocolMessage::vf3() {
     }
 }
 
-// N2nn3nex3KeyE (lib/nex/core/RefCountedObject.cpp)
-class Key : public RefCountedObject {
-public:
-    // 0x71015ce120
-    Key();
-    // 0x71015ce560
-    ~Key() override;
-    // 0x71015c5ea0
-    Key& operator=(const Key& other);
-
-    qVector<u8> m_data;
-};
-PKMN_SIZE_ASSERT(Key, 0x28);
-
-// N2nn3nex12PluginObjectE
-class PluginObject : public RootObject {};
-
 // N2nn3nex19EncryptionAlgorithmE
 class EncryptionAlgorithm : public PluginObject {
 public:
@@ -293,13 +277,6 @@ public:
     u8 _48[0x250];
 };
 PKMN_SIZE_ASSERT(RC4Encryption, 0x298);
-
-// N2nn3nex17ChecksumAlgorithmE
-class ChecksumAlgorithm : public PluginObject {
-public:
-    u64 field_8;
-    u8 field_10;
-};
 
 // N2nn3nex22KeyedChecksumAlgorithmE
 class KeyedChecksumAlgorithm : public ChecksumAlgorithm {
