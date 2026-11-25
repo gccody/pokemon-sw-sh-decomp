@@ -6,6 +6,7 @@
 // inline destructors and their thunks are emitted here.
 #include "gflib3/Unk_239a418.h"
 #include "gflib3/Unk_239a4c0.h"
+#include "gflib3/Unk_5e2700_Task.h"
 #include "gflib3/Unk_New.h"
 
 // What makes the objects' handles: its allocator, at +0x8.
@@ -72,5 +73,43 @@ void Unk_239a4c0::vf2() {
     u64 arg2 = field_18;
     u64 arg3 = field_20;
     this->~Unk_239a4c0();
+    allocator->vf3(arg1, arg2, arg3);
+}
+
+// Called with the owner of the tasks (the global Unk_5e5020_Owner points to)
+// and a task, before the task is destroyed.
+void Unk_5e5020(void* owner, void* task);
+extern void* Unk_5e5020_Owner;
+
+// NON_MATCHING: register allocation. The original keeps the temporary's handle
+// and the assigned one in two registers (copied), this in one.
+// 0x71005e2500: sets the weak reference (or clears it).
+void Unk_5e2500(Unk_239a360_Self* self, const Unk_239a360_Weak* weak) {
+    self->field_160 = weak ? *weak : Unk_239a360_Weak();
+}
+
+// 0x71005e25c0: the weak reference, while its object is there.
+Unk_239a360_Weak* Unk_5e25c0(Unk_239a360_Self* self) {
+    return Unk_5e3aa0(&self->field_160) ? &self->field_160 : nullptr;
+}
+
+// 0x71005e26a0: waits until it's done.
+void Unk_5e26a0(void* object) {
+    Unk_239a360_Self* self = static_cast<Unk_239a360_Self*>(object);
+    nn::os::LockMutex(&self->field_130);
+    while (!self->field_170)
+        nn::os::WaitConditionVariable(&self->field_150, &self->field_130);
+    nn::os::UnlockMutex(&self->field_130);
+}
+
+// 0x71005e25f0: Unk_239a360's vf3, destroy and free once it's done.
+void Unk_5e25f0(Unk_239a360_Self* self) {
+    Unk_5e26a0(self);
+    Unk_5e5020(Unk_5e5020_Owner, self);
+    Unk_239a418_Allocator* allocator = self->field_8;
+    u64 arg1 = self->field_10;
+    u64 arg2 = self->field_18;
+    u64 arg3 = self->field_20;
+    self->~Unk_239a360_Self();
     allocator->vf3(arg1, arg2, arg3);
 }
