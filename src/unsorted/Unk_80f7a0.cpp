@@ -1,7 +1,7 @@
 // Scope: common
 // Battle server command wrappers: act on the server's state, then queue the
 // command for the clients. Placeholder names: rename once they're known.
-#include "unsorted/Unk_811d90.h"
+#include "unsorted/Unk_80f7a0.h"
 
 u8 Unk_7ee6b0_getField7d(const Unk_7ee6b0* self);
 u8 Unk_7f0ba0(const Unk_7ee6b0* self, u32 index);
@@ -25,17 +25,6 @@ bool Unk_7ef2b0_call(void* self);
 void Unk_7ef260(Unk_7ee6b0* self, u8 arg1, u8 arg2);
 void Unk_7f13e0(Unk_7ee6b0* self, u16 amount);
 u8 Unk_803600(void* self, u8 id);
-
-// Unk_811d90_Self with the main module at +0x10 too.
-struct Unk_80fb90_Self {
-    u8 _0[0x10];
-    const Unk_7fe250* field_10;
-    u64 field_18;
-    const Unk_8139c0_Self* field_20;
-};
-PKMN_OFFSET_ASSERT(Unk_80fb90_Self, field_10, 0x10);
-PKMN_OFFSET_ASSERT(Unk_80fb90_Self, field_18, 0x18);
-PKMN_OFFSET_ASSERT(Unk_80fb90_Self, field_20, 0x20);
 
 // 0x710080f7a0
 void Unk_80f7a0(void* self, const Unk_7ee6b0* poke, u32 flag) {
