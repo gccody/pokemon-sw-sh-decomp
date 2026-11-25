@@ -4,11 +4,11 @@
 #include "unsorted/Unk_811d90.h"
 
 struct Unk_8181d0;
-void Unk_8181d0_call(const Unk_8181d0* self);
+void Unk_8181d0_call(const Unk_8181d0* self, u8 pokeId);
 
 void Unk_818170(const Unk_8139c0_Self* self, u8 pokeId);
 void Unk_8181a0(const Unk_8139c0_Self* self, u8 pokeId);
-void Unk_8181f0(const Unk_8139c0_Self* self);
+void Unk_8181f0(const Unk_8139c0_Self* self, u8 pokeId);
 bool Unk_818210(const Unk_8139c0_Self* self, u8 pokeId);
 void Unk_818240(const Unk_8139c0_Self* self, u8 pokeId);
 void Unk_8182e0(const Unk_8139c0_Self* self, u8 pokeId);
@@ -27,13 +27,13 @@ void Unk_811dd0(const Unk_811d90_Self* self, u8 pokeId) {
 
 // 0x7100811e10
 void Unk_811e10(const Unk_811d90_Self* self, u32 value) {
-    Unk_8181d0_call(reinterpret_cast<const Unk_8181d0*>(self->field_20));
+    Unk_8181d0_call(reinterpret_cast<const Unk_8181d0*>(self->field_20), value);
     Unk_8150c0(self->field_18, 0x5a, value);
 }
 
 // 0x7100811e50
 void Unk_811e50(const Unk_811d90_Self* self, u32 value) {
-    Unk_8181f0(self->field_20);
+    Unk_8181f0(self->field_20, value);
     Unk_8150c0(self->field_18, 0x5b, value);
 }
 

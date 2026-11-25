@@ -16,8 +16,8 @@ void Unk_8178c0(const Unk_8139c0_Self* self, u8 pokeId);
 struct Unk_7fe210;
 struct Unk_7fe230;
 struct Unk_8022b0_Entry;
-Unk_8022b0_Entry* Unk_7fe210_call(const Unk_7fe210* self, u64 value, u64 arg2);
-void* Unk_7fe230_call(const Unk_7fe230* self, u64 value, u64 arg2);
+Unk_8022b0_Entry* Unk_7fe210_call(const Unk_7fe210* self, u32 value, u32 arg2);
+void* Unk_7fe230_call(const Unk_7fe230* self, u32 value, u32 arg2);
 
 bool Unk_802430(Unk_8022b0_Entry* self);
 bool Unk_8023b0(Unk_8022b0_Entry* self, const u64* value);
@@ -80,7 +80,6 @@ bool Unk_7dc1a0(Unk_7cdac0_Self* self, u32*, const u32* args) {
 }
 
 // 0x71007dc1e0
-// NON_MATCHING: Unk_7fe230_call's name gives its keys as u64; they are 32-bit (mov w, not x).
 bool Unk_7dc1e0(Unk_7cdac0_Self* self, u32*, const u32* args) {
     u32 key1 = args[0];
     u32 key2 = args[1];
@@ -91,14 +90,12 @@ bool Unk_7dc1e0(Unk_7cdac0_Self* self, u32*, const u32* args) {
 }
 
 // 0x71007dc220
-// NON_MATCHING: Unk_7fe230_call's name gives its keys as u64; they are 32-bit (mov w, not x).
 bool Unk_7dc220(Unk_7cdac0_Self* self, u32*, const u32* args) {
     Unk_8017d0_clearField10(static_cast<Unk_8017d0*>(Unk_7dc020_Other(self, args[1], args[0])));
     return true;
 }
 
 // 0x71007dc250
-// NON_MATCHING: Unk_7fe230_call's name gives its keys as u64; they are 32-bit (mov w, not x).
 bool Unk_7dc250(Unk_7cdac0_Self* self, u32*, const u32* args) {
     u32 key1 = args[0];
     u32 key2 = args[1];
@@ -109,7 +106,6 @@ bool Unk_7dc250(Unk_7cdac0_Self* self, u32*, const u32* args) {
 }
 
 // 0x71007dc330
-// NON_MATCHING: Unk_7fe210_call's name gives its keys as u64; they are 32-bit (mov w, not x).
 bool Unk_7dc330(Unk_7cdac0_Self* self, u32*, const u32* args) {
     u32 key1 = args[0];
     u32 key2 = args[1];

@@ -114,7 +114,6 @@ bool Unk_7dc790(Unk_7cdac0_Self* self, u32*, const u32* args) {
 }
 
 // 0x71007dc7c0
-// NON_MATCHING: Unk_8181d0_call's name has no id parameter; the original passes args[0].
 bool Unk_7dc7c0(Unk_7cdac0_Self* self, u32*, const u32* args) {
     u8 pokeId = args[0];
     Unk_8181d0_call(reinterpret_cast<const Unk_8181d0*>(Unk_7cdac0_Server(self)), pokeId);
@@ -122,7 +121,6 @@ bool Unk_7dc7c0(Unk_7cdac0_Self* self, u32*, const u32* args) {
 }
 
 // 0x71007dc7f0
-// NON_MATCHING: Unk_8181f0's name has no id parameter; the original passes args[0].
 bool Unk_7dc7f0(Unk_7cdac0_Self* self, u32*, const u32* args) {
     u8 pokeId = args[0];
     Unk_8181f0(Unk_7cdac0_Server(self), pokeId);
