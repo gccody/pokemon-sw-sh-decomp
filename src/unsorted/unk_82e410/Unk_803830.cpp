@@ -125,7 +125,8 @@ struct Unk_7ee6b0;
 struct Unk_803d20;
 u8 Unk_7ee6b0_getField7d(const Unk_7ee6b0* self);
 void Unk_803d20_set(Unk_803d20* self, u32 value, u16 arg2);
-void Unk_803d60(void* self, u32 value);
+struct Unk_840b50_List;
+void Unk_803d60(Unk_840b50_List* self, u32 value);
 u16 Unk_7f89e0(const u64* self);
 
 // The table is searched by kind; clang unrolls the loop into a switch and a
@@ -148,15 +149,15 @@ bool Unk_803a90(u32 kind, const u64* arg1, const Unk_7ee6b0* arg2, u16 arg3, voi
     if (id < 0)
         id = entry->field_4;
     Unk_803d20_set(static_cast<Unk_803d20*>(out), 2, id);
-    Unk_803d60(out, Unk_7ee6b0_getField7d(arg2));
+    Unk_803d60(static_cast<Unk_840b50_List*>(out), Unk_7ee6b0_getField7d(arg2));
     if (arg3 != 0)
-        Unk_803d60(out, arg3);
+        Unk_803d60(static_cast<Unk_840b50_List*>(out), arg3);
     switch (kind) {
         case 8:
-            Unk_803d60(out, Unk_7f89e0(arg1));
+            Unk_803d60(static_cast<Unk_840b50_List*>(out), Unk_7f89e0(arg1));
             break;
         case 18:
-            Unk_803d60(out, 0x49);
+            Unk_803d60(static_cast<Unk_840b50_List*>(out), 0x49);
             break;
     }
     return true;

@@ -28,14 +28,15 @@ u8 Unk_803600(void* self, u8 id) {
     return Unk_803600_Find(static_cast<Unk_803600_Slots*>(self), id);
 }
 
-bool Unk_7cad50(void* self, u8 index);
+struct Unk_7c2d80_Main;
+bool Unk_7cad50(const Unk_7c2d80_Main* self, u8 index);
 
 // 0x71008036a0
 bool Unk_8036a0(void* self, void* target, u8 id) {
     u8 index = Unk_803600_Find(static_cast<Unk_803600_Slots*>(self), id);
     if (index == 5)
         return false;
-    return Unk_7cad50(target, index);
+    return Unk_7cad50(static_cast<const Unk_7c2d80_Main*>(target), index);
 }
 
 struct Unk_803760_Table {
