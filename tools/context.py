@@ -132,6 +132,12 @@ def class_names(mangled: str) -> list[str]:
     return [p for p in parts if not p.startswith("St") and p != "std"]
 
 
+def inline_hazards(calls: list[int], index: dict[int, str], file: str | None) -> list[int]:
+    """The callees defined in `file`, the function's own source file: clang
+    inlines a small callee of the same TU, and the original calls it."""
+    return [t for t in calls if file and index.get(t) == file]
+
+
 # --------------------------------------------------------------------------- helpers
 def demangle(names: list[str]) -> dict[str, str]:
     exe = shutil.which("llvm-cxxfilt") or next((str(p) for p in ROOT.glob("toolchain/*/bin/llvm-cxxfilt*")), None)
@@ -218,6 +224,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  mangled: {fn.name}")
     print("  " + ", ".join(f"{v} 0x{fn.addr(v) + BASE:x} ({fn.size(v)} bytes)" for v in VERSIONS if fn.in_version(v)))
     print(f"  scope {fn.scope}, status {fn.status}")
+    own_file = None
     if fn.sword is not None:
         all_units = U.build_units(rows, U.read_areas_csv(), U.exe_segments("sword"), index, "UmMO",
                                   exists=lambda p: (ROOT / p).exists())
@@ -226,6 +233,7 @@ def main(argv: list[str] | None = None) -> int:
             part = next(p for p in u.parts if any(f is fn for f in p.funcs))
             print(f"  area {u.area}, unit {u.id}, segment 0x{part.segment[0] + BASE:x}-0x{part.segment[1] + BASE:x}")
             print(f"  source file: {part.file}{' (new)' if part.new_file else ''}")
+            own_file = part.file
         else:
             print("  in no unit (an excluded area)")
     if fn.scope == "diverged":
@@ -294,6 +302,9 @@ def main(argv: list[str] | None = None) -> int:
             continue
         label = dm.get(r.name, r.name) if r.name else f"(unnamed: placeholder Unk_{t:x} unless there's evidence)"
         print(f"  {'b ' if tail else 'bl'} 0x{t + BASE:x} {r.status} {label}" + (f"   [{where}]" if where else ""))
+    for t in inline_hazards([t for t, _ in calls], index, own_file):
+        print(f"  ! 0x{t + BASE:x} is defined in {own_file}: clang would inline it, and the original calls it."
+              f" Put this function in another file (one of the unit's, or a new Unk_{fn.sword:x}.cpp next to it)")
     strings = []
     for t in refs:
         if t in data_syms:

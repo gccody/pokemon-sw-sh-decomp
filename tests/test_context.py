@@ -52,3 +52,9 @@ def test_rank_similar():
 
 def test_ghidra_path(tmp_path: Path):
     assert context.ghidra_path("sword", 0xbc0b00, tmp_path) == tmp_path / "sword" / "7100bc0b00.c"
+
+
+def test_inline_hazards():
+    index = {0x10: "src/a/X.cpp", 0x20: "src/a/Y.cpp"}
+    assert context.inline_hazards([0x10, 0x20, 0x30], index, "src/a/X.cpp") == [0x10]
+    assert context.inline_hazards([0x10], index, None) == []
