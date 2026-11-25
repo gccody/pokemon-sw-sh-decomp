@@ -81,10 +81,14 @@ void MeshPacketWriter::vf9(Unk_16a9320_arg1* arg) {
     u32 stations = Unk_1739b30(&field_fec, field_1040, arg);
     field_1040 = 0;
     if (stations != 0) {
-        Unk_16a9e40_arg1 message;
-        message.field_0 = 0x8000000;
-        u32 connected = Unk_174de50_get(Unk_27fc2d8)->Unk_174b0f0(false);
-        if (vf24(&message, connected & stations, 0, false, false, false, true) != nullptr) {
+        Unk_16a9e40_message* sent;
+        {
+            Unk_16a9e40_arg1 message;
+            message.field_0 = 0x8000000;
+            u32 connected = Unk_174de50_get(Unk_27fc2d8)->Unk_174b0f0(false);
+            sent = vf24(&message, connected & stations, 0, false, false, false, true);
+        }
+        if (sent != nullptr) {
             Unk_173caa0();
             if (field_1040 != 0) {
                 Unk_1739b30(&field_fec, field_1040, arg);
