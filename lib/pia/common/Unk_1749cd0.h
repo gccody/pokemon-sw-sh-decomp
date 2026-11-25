@@ -13,7 +13,7 @@ class Unk_1652c70 {
 public:
     virtual ~Unk_1652c70();
 
-    Unk_1652c70& Unk_1652cf0(const Unk_1652c70& other);  // copies both fields
+    Unk_1652c70& operator=(const Unk_1652c70& other);  // copies both fields
 
     u8 field_8[0x10];
     u16 field_18;

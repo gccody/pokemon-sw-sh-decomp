@@ -152,7 +152,7 @@ u8 Unk_8ec960_getField29(const Unk_8ec960* self) {
 }
 
 // 0x71008ec970
-void Unk_8ec970() {}
+void Unk_8ec970(void*) {}
 
 struct Unk_8ec980_10 {
     u8 _0[0x60];

@@ -18,7 +18,8 @@ void Unk_3101f0(void* self);
 void Unk_313160(void* self);
 void Unk_316ee0(void* self);
 void Unk_3191e0(void* self);
-void Unk_31b340(void* self);
+struct Unk_237dba8;
+void Unk_31b340(Unk_237dba8* self, void* owner);
 void Unk_34d6a0(void* self);
 void Unk_34fc00(void* self);
 void Unk_34fc50(void* self);
@@ -88,8 +89,8 @@ void Unk_3132f0(void* self) {
 }
 
 // 0x710031a7d0
-void Unk_31a7d0(void* self) {
-    Unk_31b340(static_cast<u8*>(self) + 0x60);
+void Unk_31a7d0(void* self, void* owner) {
+    Unk_31b340(reinterpret_cast<Unk_237dba8*>(static_cast<u8*>(self) + 0x60), owner);
 }
 
 // 0x710031c5d0

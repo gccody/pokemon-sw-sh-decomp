@@ -50,10 +50,10 @@ void Unk_791da0_call(u64 /*unused*/) {
 }
 
 extern void* Unk_27ce848;
-void Unk_793a60(void*, void*);
+void Unk_793a60(void*, u32);
 
 // 0x7100791db0
-void Unk_791db0_call(void* /*unused*/, void* value) {
+void Unk_791db0_call(void* /*unused*/, u32 value) {
     Unk_793a60(Unk_27ce848, value);
 }
 
