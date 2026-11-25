@@ -329,14 +329,16 @@ inline void Unk_FreeBlock(void* p) {
 namespace nn {
 namespace nex {
 
-// What a Log writes its lines to (its slot 2).
-class Unk_15b8e30_8 : public RootObject {
+// N2nn3nex9LogDeviceE: what a Log writes its lines to (the default one,
+// 0x71027f3638, is a N2nn3nex16LogDeviceConsoleE, lib/nex/Unk_15b9290.cpp).
+class LogDevice : public RootObject {
 public:
-    virtual void vf2(const char* text);
+    virtual void Output(const char* text);
 };
 
-// What a Log formats its lines with (its slot 7).
-class Unk_15b8e30_10 : public RootObject {
+// N2nn3nex12OutputFormatE: what a Log formats its lines with (the default one
+// is 0x71027f3698).
+class OutputFormat : public RootObject {
 public:
     virtual void vf2();
     virtual void vf3();
@@ -355,8 +357,8 @@ public:
 
 // The objects a Log is made with, which it doesn't delete (the original TU's
 // own: it addresses them directly).
-extern Unk_15b8e30_8 Unk_27f3638 __attribute__((visibility("hidden")));
-extern Unk_15b8e30_10 Unk_27f3698 __attribute__((visibility("hidden")));
+extern LogDevice Unk_27f3638 __attribute__((visibility("hidden")));
+extern OutputFormat Unk_27f3698 __attribute__((visibility("hidden")));
 
 // N2nn3nex3LogE
 class Log : public RootObject {
@@ -389,11 +391,11 @@ public:
         char buffer[0x100];
         memset(buffer, 0, sizeof(buffer));
         field_10->vf7(buffer, sizeof(buffer) - 1, nullptr, 0, format, args);
-        field_8->vf2(buffer);
+        field_8->Output(buffer);
     }
 
-    Unk_15b8e30_8* field_8;
-    Unk_15b8e30_10* field_10;
+    LogDevice* field_8;
+    OutputFormat* field_10;
     Unk_15b8e30_18* field_18;
     u64 field_20;
 };
