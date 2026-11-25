@@ -19,7 +19,8 @@ void Unk_819650_call(const Unk_819650* self, u8 value);
 void Unk_819660_call(const Unk_819660* self, u32 value, u32 arg2);
 u16 Unk_819690_call(const Unk_819690* self);
 void Unk_8196c0_call(const Unk_8196c0* self);
-// Defined as void; 0x710086e930 tests its result.
+// Defined as void; 0x710086e930 tests its result. It forwards both values
+// to Unk_7cbf80(void*, u8, u8), and 0x710086e930 passes them unextended.
 bool Unk_8197f0_call(const Unk_8197f0* self, u32 value, u32 arg2);
 
 // The battle Pokemon and its accessors.
@@ -37,6 +38,8 @@ u8 Unk_81a310(const Unk_819600_Self* self);
 u8 Unk_81a350(const Unk_819600_Self* self, u8 arg);
 bool Unk_81ae20(const Unk_819600_Self* self, u8 pokeId);
 bool Unk_81b100(const Unk_819600_Self* self, u8 pokeId, u8 otherId);
+// Named (void*, u32); it forwards the value as a u8, and 0x710086e930 passes
+// it unextended.
 void Unk_81b230(void* arg, u32 pokeId);
 void Unk_81b430(const Unk_819600_Self* self, u8 pokeId);
 bool Unk_81b500(const Unk_819600_Self* self, u32 ratio);
