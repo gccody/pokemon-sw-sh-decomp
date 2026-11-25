@@ -615,7 +615,7 @@ def render_file(specs: dict[int, StreamOut]) -> tuple[str, str]:
 # --------------------------------------------------------------------------- protocol calls
 MESSAGE_CTOR = 0x15DE0E0    # nn::nex::Message::Message()
 MESSAGE_DTOR = 0x15DE2D0    # nn::nex::Message::~Message()
-SET_PROTOCOL = 0x1630B10    # Message::Unk_1630b10(u16 protocolId, bool request)
+SET_PROTOCOL = 0x1630B10    # Message::Unk_1630b10(u16 protocolId, u32 request)
 REGISTER = 0x1630A20        # Unk_1630a20(Message*, ProtocolCallContext*): the call's ID
 SET_METHOD = 0x1630A90      # Message::Unk_1630a90(u32 methodId)
 ADD_RESULT = 0x1630AC0      # Unk_1630ac0(ProtocolCallContext*, void*): where a result goes
