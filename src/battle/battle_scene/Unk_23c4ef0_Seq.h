@@ -155,7 +155,7 @@ void Unk_98aac0_set(Unk_98aac0* self, u32 value);
 void Unk_8a7f60_setField8(Unk_8a7f60* self, u32 value);
 void Unk_8a7f70_setFieldc(Unk_8a7f70* self, u32 value);
 void Unk_8ea3a0_call(void* self, u64 value, bool arg2, bool arg3);
-void Unk_8ea3b0(u64 self, u32 arg1);
+void Unk_8ea3b0(u64 self, bool arg1);
 
 void Unk_8ea490(u64 self);
 
