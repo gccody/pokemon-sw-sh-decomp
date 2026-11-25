@@ -383,13 +383,8 @@ bool SiGfxQuadTree<T>::Unk_5333b0(QuadNode* node, s32 x, s32 y) {
     return true;
 }
 
-// 0x7100531880
-// NON_MATCHING: the original tests the pixel mode for 2 first and has the
-// one-bit case's loop right after the tests (the switch's last case falls
-// through to it); here both are the other way round, whatever the order of
-// the cases or the form of the tests.
-// (Round 3: `if (mode == 2) ... else if (mode == 1)`, a switch with case 2
-// first, if/else both ways, a mode local, an early return: the same code.)
+// 0x7100531880 (the stride is read before the tests: see the NX face cache's
+// slot 8, Unk_5339d0.cpp)
 bool SiGfxFreeTypeFaceCache::vf8(SiGfxFreeTypeGlyph* glyph, const Unk_FTBitmap* bitmap, SiGfxImage* image) {
     if (bitmap->field_1a != 1 && bitmap->field_1a != 2) {
         return false;
@@ -397,8 +392,14 @@ bool SiGfxFreeTypeFaceCache::vf8(SiGfxFreeTypeGlyph* glyph, const Unk_FTBitmap* 
     SiGfxImage::ImageData2D* data = image->vf17(0, 0);
     u8* dst = data->field_0 + glyph->field_70 + glyph->field_74 * data->field_14;
     const u8* src = bitmap->field_10;
-    if (bitmap->field_1a == 1) {
-        s32 stride = glyph->field_78;
+    s32 stride = glyph->field_78;
+    if (bitmap->field_1a == 2) {
+        for (u32 y = 0; y < bitmap->field_0; y++) {
+            memcpy(dst, src, bitmap->field_4);
+            src += bitmap->field_8;
+            dst += data->field_14;
+        }
+    } else if (bitmap->field_1a == 1) {
         for (u32 y = 0; y < bitmap->field_0; y++) {
             u8 mask = 0x80;
             for (u32 x = 0; x < bitmap->field_4; x++) {
@@ -411,12 +412,6 @@ bool SiGfxFreeTypeFaceCache::vf8(SiGfxFreeTypeGlyph* glyph, const Unk_FTBitmap* 
             }
             dst += stride;
             src = bitmap->field_10 + bitmap->field_8 * y;
-        }
-    } else if (bitmap->field_1a == 2) {
-        for (u32 y = 0; y < bitmap->field_0; y++) {
-            memcpy(dst, src, bitmap->field_4);
-            src += bitmap->field_8;
-            dst += data->field_14;
         }
     }
     return true;

@@ -15,7 +15,7 @@
 // 0x71004c3510: a string's hash
 u32 Unk_4c3510(const SiSDK3::SiString<char>* s);
 // 0x71004c4700: assigns a string (Unk_StringFuncs.h's declaration)
-void Unk_4c4700(void*, void*);
+SiSDK3::SiString<char>& Unk_4c4700(void*, void*);
 // 0x71004c5a90: snprintf
 int Unk_4c5a90(char* buffer, size_t size, const char* format, ...);
 // 0x71004cbf40: SiGfx's kernel (leafgen's name and type)

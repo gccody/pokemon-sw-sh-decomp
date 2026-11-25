@@ -111,10 +111,11 @@ public:
     }
 
     // the element at index, counted from the head (inline in its callers:
-    // placeholder name; SiGfxShaderEffectVariationList's slot 10)
-    T Unk_GetAt(s64 index) {
+    // placeholder name; SiGfxShaderEffectVariationList's slot 10: an unsigned
+    // index, whose walk is guarded by a test of the index against zero)
+    T Unk_GetAt(u64 index) {
         T node = m_pHead;
-        for (s64 i = 0; i < index; i++) {
+        for (u64 i = 0; i < index; i++) {
             node = node->m_pNext;
         }
         return node;

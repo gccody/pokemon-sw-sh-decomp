@@ -318,6 +318,11 @@ bool SiGfxNXRootSignature::vf13(s32 index, u32 a2, u32 a3, u32 a4, u32 a5) {
 // before the count is set, the code is the original's but for that store's
 // place. Tried: every single-line move.
 // 0x71005577e0
+// (Round 5: the count's layout is MachineBlockPlacement's tail duplication of
+// the merge block after the allocator's null test; the parameter stored
+// first and SetCount called through it gives dist 18 against 22 but the
+// store's place is wrong. The allocator in a local, size_t count, a
+// reference to the array: no change.)
 bool SiGfxNXRootSignature::vf14(s32 index, u32 a2, s32 count) {
     bool result = false;
     if (field_25 && index >= 0) {

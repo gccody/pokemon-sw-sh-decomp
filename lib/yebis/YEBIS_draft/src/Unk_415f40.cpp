@@ -214,19 +214,22 @@ static const MATRIXT44 Unk_HueSin = {{
     {0.0f, 0.0f, 0.0f, 0.0f},
 }};
 
+// (one loop over the sixteen elements: written as two nested loops, three of
+// the stores it shares with the other branch of Unk_40fb30 are sunk into the
+// block after the branches, which the original doesn't do)
 static inline void Unk_HueLuminance(MATRIXT44* out, f32 c, f32 s) {
-    for (s32 i = 0; i < 4; i++) {
-        for (s32 j = 0; j < 4; j++) {
-            out->field_0[i][j] = Unk_HueBase.field_0[i][j] + c * Unk_HueCos.field_0[i][j] + s * Unk_HueSin.field_0[i][j];
-        }
+    for (s32 i = 0; i < 16; i++) {
+        (&out->field_0[0][0])[i] = (&Unk_HueBase.field_0[0][0])[i] + c * (&Unk_HueCos.field_0[0][0])[i] +
+                                   s * (&Unk_HueSin.field_0[0][0])[i];
     }
 }
 
 // 0x710040fb30: a hue rotation, about the grey axis or keeping the luminance
 // (the SVG hueRotate matrix)
-// NON_MATCHING: the same size, another instruction order. Here the last
-// stores of the two branches (m[0][3], m[1][3], m[3][3]) are merged into the
-// block after them; the original keeps all sixteen in each branch.
+// NON_MATCHING: the same instructions, the luminance's in another order (the
+// original computes and stores m[2][2] and m[2][3] right after the first row,
+// and the products with the tables' zeroes first). Each branch keeps its
+// sixteen stores, as in the original.
 MATRIXT44* Unk_40fb30(MATRIXT44* out, bool luminance, f32 angle) {
     if (luminance) {
         f32 s = sinf(angle);
@@ -356,12 +359,16 @@ static inline f32 Unk_Lerp(f32 a, f32 b, f32 t) {
 
 // 0x7100410200: a translation, with a scale of 1 - x, 1 - y, 1 - z weighted
 // by `w`
-// NON_MATCHING: the original shares the translation's stores and the last
-// store of 1.0f (to m[0][0] or m[3][3], through a selected pointer) between
-// the two branches; here each branch keeps its own.
+// (The identity is written out as Unk_40f660 writes its matrix, the
+// translation's zeroes apart: their stores share their addresses with the
+// translation's, so both branches end alike and the original's shared stores
+// come out, the last 1.0f through a selected pointer.)
 void Unk_410200(MATRIXT44* out, f32 x, f32 y, f32 z, f32 w) {
     if (w == 0.0f) {
-        Unk_Identity(out);
+        out->field_0[0][1] = out->field_0[0][2] = out->field_0[0][3] = out->field_0[1][0] = out->field_0[1][2] =
+            out->field_0[1][3] = out->field_0[2][0] = out->field_0[2][1] = out->field_0[2][3] = 0.0f;
+        out->field_0[3][0] = out->field_0[3][1] = out->field_0[3][2] = 0.0f;
+        out->field_0[0][0] = out->field_0[1][1] = out->field_0[2][2] = out->field_0[3][3] = 1.0f;
         out->field_0[3][0] = x;
         out->field_0[3][1] = y;
         out->field_0[3][2] = z;

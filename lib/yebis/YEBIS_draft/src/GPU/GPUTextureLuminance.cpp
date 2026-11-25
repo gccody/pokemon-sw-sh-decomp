@@ -353,6 +353,9 @@ s32 CTextureLuminance::Unk_4b8240(CRenderTexture* source, bool flag) {
 // 0x71004b8450: the luminance from what was read back
 // NON_MATCHING: register allocation in the conversion of the colour (the
 // original keeps red, green, blue and alpha in s0 to s3 and 1/255 in s4).
+// (Round 5: all 24 orders of the four conversions with both store orders and
+// the sum from the locals or the stored fields, and the four as a loop into
+// an array: none better.)
 s32 CTextureLuminance::Unk_4b8450(bool flag) {
     if (field_74 >= 0.0f) {
         return 0;

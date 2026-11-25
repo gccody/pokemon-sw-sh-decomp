@@ -2480,11 +2480,11 @@ s32 CPostEffect::Initialize(const Unk_417b30_Desc* desc, u32 glareQuality, u32 d
         field_2a8[i].field_10 = FLT_MAX;
     }
     for (s32 i = 0; i < field_400; i++) {
-        field_2a8[i].field_14 = 0.5f;
-        field_2a8[i].field_18 = 0.5f;
+        field_2a8[i].field_14.field_0 = 0.5f;
+        field_2a8[i].field_18.field_0 = 0.5f;
     }
     for (s32 i = 0; i < field_400; i++) {
-        field_2a8[i].field_4 = 0.0f;
+        field_2a8[i].field_4 = 0;
         field_2a8[i].field_8 = -1.0f;
     }
     for (s32 i = 0; i < field_400; i++) {
@@ -6248,15 +6248,19 @@ struct Unk_StaticMatrix : MATRIXT44 {
 // scales, the dither's amount, the gamma (and whether there is one), and the
 // two colour matrices (null: none; the colour space's conversion and
 // field_1094's are folded into function-local copies)
-// NON_MATCHING: the same tests and arithmetic, but the HDR part's else path
-// (scale3 = scale2 and the gamma's last test) is laid out after the HDR part
-// (the original: before it, with field_59c's test duplicated), one float
-// register fewer is used (the original keeps 1.0 in s11 and scale3 apart from
-// scale2) and x4 to x7 are spilled one by one, not in pairs.
+// NON_MATCHING: 58 instructions (was 161): the tests, the calls and the block
+// order are the original's; what is left is register allocation (x19/x21 of
+// the first tests, gamma in s12/s13 where the original keeps it in s10 and
+// the final one in s0, x4 to x7 spilled in another pairing) and the
+// `csel ..., eq` of `matrix`. What decided the rest: the space as an `if`
+// with its own -1 test, the HDR test as `!(field_96c == 0 && Unk_24e09bc ==
+// 0)` (as `||` it becomes an `orr`), `hasMatrix` read just before `matrix`,
+// the identity test as one `&&` chain and `hasGamma` computed before the
+// stores.
 s32 CPostEffect::Unk_42df80(s32* outFormat, f32* outScale, f32* outScale2, f32* outDither, bool* outHasGamma,
                             f32* outGamma, MATRIXT44** outMatrix, MATRIXT44** outMatrix2, bool linear, bool keep) {
-    u32 toneMap = field_8c8;
     s32 format = field_6a4;
+    u32 toneMap = field_8c8;
     if (field_106c && field_59c && field_599) {
         format = Unk_SrgbFormat(format);
     }
@@ -6277,12 +6281,27 @@ s32 CPostEffect::Unk_42df80(s32* outFormat, f32* outScale, f32* outScale2, f32* 
         scale = scale / divisor;
     }
     bool hasMatrix = field_b34[0];
-    bool hasMatrix2 = field_b34[1];
     MATRIXT44* matrix = hasMatrix ? &field_9b4[0] : nullptr;
+    bool hasMatrix2 = field_b34[1];
     MATRIXT44* matrix2 = hasMatrix2 ? &field_9b4[1] : nullptr;
     static Unk_StaticMatrix converted2;
     MATRIXT44 conversion = Unk_429c50(true);
-    if (!Unk_IsIdentity(conversion)) {
+    if (!(conversion.field_0[0][0] == 1.0f &&
+          conversion.field_0[0][1] == 0.0f &&
+          conversion.field_0[0][2] == 0.0f &&
+          conversion.field_0[0][3] == 0.0f &&
+          conversion.field_0[1][0] == 0.0f &&
+          conversion.field_0[1][1] == 1.0f &&
+          conversion.field_0[1][2] == 0.0f &&
+          conversion.field_0[1][3] == 0.0f &&
+          conversion.field_0[2][0] == 0.0f &&
+          conversion.field_0[2][1] == 0.0f &&
+          conversion.field_0[2][2] == 1.0f &&
+          conversion.field_0[2][3] == 0.0f &&
+          conversion.field_0[3][0] == 0.0f &&
+          conversion.field_0[3][1] == 0.0f &&
+          conversion.field_0[3][2] == 0.0f &&
+          conversion.field_0[3][3] == 1.0f)) {
         converted2 = conversion;
         if (hasMatrix2) {
             MATRIXT44 m;
@@ -6293,13 +6312,19 @@ s32 CPostEffect::Unk_42df80(s32* outFormat, f32* outScale, f32* outScale2, f32* 
     }
     static Unk_StaticMatrix converted;
     f32 scale3 = scale2;
-    if ((field_96c || Unk_24e09bc != 0) && !linear) {
-        u32 space = field_96c ? (field_97c != 0xffffffff ? field_97c : 1) : 1;
+    if (!(field_96c == 0 && Unk_24e09bc == 0) && !linear) {
+        s32 space = 1;
+        if (field_96c) {
+            space = field_97c;
+            if (space == -1) {
+                space = 1;
+            }
+        }
         if (keep) {
-            if (space == 1) {
-                gamma = field_8c4.field_0 <= 0.0f ? 1.0f : gamma / 2.2f;
-            } else {
+            if (space != 1 || field_8c4.field_0 <= 0.0f) {
                 gamma = 1.0f;
+            } else {
+                gamma = gamma / 2.2f;
             }
         } else {
             scale3 = 1.0f;
@@ -6327,8 +6352,13 @@ s32 CPostEffect::Unk_42df80(s32* outFormat, f32* outScale, f32* outScale2, f32* 
         }
     }
     if (!field_59c && !field_96c && Unk_24e09bc == 0 && !linear && field_9ac == 1) {
-        gamma = gamma != 0.0f ? gamma / 2.2f : 1.0f;
+        if (gamma != 0.0f) {
+            gamma = gamma / 2.2f;
+        } else {
+            gamma = 1.0f;
+        }
     }
+    bool hasGamma = gamma != 1.0f;
     if (outFormat != nullptr) {
         *outFormat = format;
     }
@@ -6342,7 +6372,7 @@ s32 CPostEffect::Unk_42df80(s32* outFormat, f32* outScale, f32* outScale2, f32* 
         *outDither = dither;
     }
     if (outHasGamma != nullptr) {
-        *outHasGamma = gamma != 1.0f;
+        *outHasGamma = hasGamma;
     }
     if (outGamma != nullptr) {
         *outGamma = gamma;
@@ -7139,12 +7169,13 @@ inline Unk_Float3 Unk_43cae0(const Unk_Vector3& color, const f32* luminance, con
 // XYZ from x, y and the luminance: Y itself, or (negative) Y over y
 // (inline)
 static inline Unk_Vector3 Unk_XYZ(f32 x, f32 y, const f32* luminance) {
+    f32 z = 1.0f - x;
     f32 Y = *luminance;
     if (Y < 0.0f) {
         Y = -(Y * y);
     }
     f32 scale = Y / y;
-    Unk_Vector3 result = {{x * scale, Y, (1.0f - x - y) * scale}};
+    Unk_Vector3 result = {{x * scale, Y, (z - y) * scale}};
     return result;
 }
 
@@ -7191,10 +7222,13 @@ static inline Unk_Vector3 Unk_WhiteRGB(f32 temperature, bool planck, const f32* 
 // NON_MATCHING (0x710043c690 below): the same size, layout and calls; only
 // Unk_XYZ's scheduling in its three copies differs (the original computes
 // 1 - x before the luminance's select and subtracts y after the division).
-// Tried: z first, the scale inline, `scale * x`, an if for the select; with
-// `1 - x` in a local before Y the second copy is the original's but for two
-// registers (s1/s5). Also non-static `inline`, `const f32&` parameters,
-// `1 - x - y` in a local first or by `-=`, the result by elements.
+// `1 - x` in a local before Y (kept: 25 differing instructions against 27)
+// gives the first two copies the original's order but for registers (the
+// first copy's 1.0 is materialised later); the third converts y before 1 - x.
+// Tried: z first, the scale inline, `scale * x`, an if for the select, the
+// select as a ternary, x or y converted to float in other places,
+// non-static `inline`, `const f32&` parameters, `1 - x - y` in a local first
+// or by `-=`, the result by elements.
 // 0x710043c690: the RGB colour, in a colour space, of white light of a
 // colour temperature (relative to 6500 K's) at a luminance (see Unk_43cae0),
 // optionally inverted, and an alpha (an out-of-line function: unlike
@@ -7237,11 +7271,6 @@ Unk_Float4 Unk_43c690(const f32* temperature, const Unk_410f90* space, const f32
 
 // a view's frustum at unit distance: its bottom, left, right and top
 struct Unk_Frustum {
-    bool operator!=(const Unk_Frustum& other) const {
-        return !(field_0 == other.field_0 && field_4 == other.field_4 && field_8 == other.field_8 &&
-                 field_c == other.field_c);
-    }
-
     f32 field_0;
     f32 field_4;
     f32 field_8;
@@ -7259,42 +7288,49 @@ static inline f32 Unk_Sqrt(f32 x) {
 // 0x710042a590: what changed since the last frame's view: whether the eye
 // moved further than field_d08, whether it moved, whether the projection and
 // the rotation changed, and whether anything did
-// NON_MATCHING: 28 bytes shorter. The original computes the bottoms, lefts
-// and rights in the entry block and folds only their comparisons into one
-// fccmp chain, and computes the tops after it, in the block that combines
-// their comparison with the two NaN tests (orr); here all four fold together.
-// The NaN tests as a `|` are closer than as `||`; the comparison as `||`s
-// or through operator==, the frustums' order and the products' association
-// make no difference. The rotation and distance parts have the original's
-// shape.
+// NON_MATCHING: 16 instructions, the entry block's schedule (the frustums'
+// arithmetic and the order of the three fccmps) and the registers after it.
+// What gave the original's shape: the bottoms, lefts and rights compared with
+// `|` (one fccmp chain), `||` the tops' comparison `|` the two NaN tests (a
+// block of its own, where the tops are computed); the second frustum computed
+// after the first one is stored; the rotation as `||`s of `!=` (the last
+// test's block at the end); `any` computed before the stores.
 s32 CPostEffect::Unk_42a590(bool* far, bool* moved, bool* projection, bool* rotation, bool* any) {
     f32 scale = field_6c4;
     f32 w = scale * (field_6d0 * field_420);
     f32 xw = field_6d4 * w;
     f32 h = scale * field_6d0;
     f32 yh = h * field_6d8;
+    Unk_Frustum current;
+    current.field_8 = w + xw;
+    current.field_4 = xw - w;
+    current.field_0 = yh - h;
+    current.field_c = h + yh;
     f32 w2 = scale * (field_420 * field_6e8);
     f32 xw2 = field_6ec * w2;
     f32 h2 = scale * field_6e8;
     f32 yh2 = h2 * field_6f0;
-    Unk_Frustum current = {yh - h, xw - w, w + xw, h + yh};
     Unk_Frustum previous = {yh2 - h2, xw2 - w2, w2 + xw2, h2 + yh2};
-    bool projectionChanged = current != previous || (field_6c4 != field_6c4) | (field_6c8 != field_6c8);
+    bool projectionChanged = ((current.field_0 != previous.field_0) | (current.field_4 != previous.field_4) |
+                              (current.field_8 != previous.field_8)) ||
+                             ((current.field_c != previous.field_c) | (field_6c4 != field_6c4) |
+                              (field_6c8 != field_6c8));
     f32 dx = field_6f4.field_0[3][0] - field_774.field_0[3][0];
     f32 dy = field_6f4.field_0[3][1] - field_774.field_0[3][1];
     f32 dz = field_6f4.field_0[3][2] - field_774.field_0[3][2];
     f32 distance = Unk_Sqrt(dx * dx + dy * dy + dz * dz);
     bool isFar = distance > field_d08;
     bool hasMoved = distance > 0.0f;
-    bool rotationChanged = !(field_6f4.field_0[0][0] == field_774.field_0[0][0] &&
-                             field_6f4.field_0[0][1] == field_774.field_0[0][1] &&
-                             field_6f4.field_0[0][2] == field_774.field_0[0][2] &&
-                             field_6f4.field_0[1][0] == field_774.field_0[1][0] &&
-                             field_6f4.field_0[1][1] == field_774.field_0[1][1] &&
-                             field_6f4.field_0[1][2] == field_774.field_0[1][2] &&
-                             field_6f4.field_0[2][0] == field_774.field_0[2][0] &&
-                             field_6f4.field_0[2][1] == field_774.field_0[2][1] &&
-                             field_6f4.field_0[2][2] == field_774.field_0[2][2]);
+    bool rotationChanged = field_6f4.field_0[0][0] != field_774.field_0[0][0] ||
+                           field_6f4.field_0[0][1] != field_774.field_0[0][1] ||
+                           field_6f4.field_0[0][2] != field_774.field_0[0][2] ||
+                           field_6f4.field_0[1][0] != field_774.field_0[1][0] ||
+                           field_6f4.field_0[1][1] != field_774.field_0[1][1] ||
+                           field_6f4.field_0[1][2] != field_774.field_0[1][2] ||
+                           field_6f4.field_0[2][0] != field_774.field_0[2][0] ||
+                           field_6f4.field_0[2][1] != field_774.field_0[2][1] ||
+                           field_6f4.field_0[2][2] != field_774.field_0[2][2];
+    bool anyChanged = (distance > 0.0f) || projectionChanged || rotationChanged;
     if (far != nullptr) {
         *far = isFar;
     }
@@ -7308,7 +7344,7 @@ s32 CPostEffect::Unk_42a590(bool* far, bool* moved, bool* projection, bool* rota
         *rotation = rotationChanged;
     }
     if (any != nullptr) {
-        *any = (distance > 0.0f) || projectionChanged || rotationChanged;
+        *any = anyChanged;
     }
     return 0;
 }
@@ -7334,6 +7370,20 @@ inline u32 CPostEffect::GetMaxMotionBlurCameraRecurrences() {
         return 2;
     }
     return 0xffffffff;
+}
+
+// a perspective projection from a field of view's tangent, an aspect ratio and
+// a lens shift (inline)
+static inline void Unk_Perspective(MATRIXT44* out, f32 n, f32 f, f32 tangent, f32 aspect, f32 shiftX, f32 shiftY) {
+    f32 w = n * (tangent * aspect);
+    f32 h = n * tangent;
+    f32 xw = shiftX * w;
+    f32 yh = h * shiftY;
+    f32 right = w + xw;
+    f32 bottom = yh - h;
+    f32 top = h + yh;
+    f32 left = xw - w;
+    Unk_40f8d0(out, false, true, left, right, bottom, top, n, f);
 }
 
 // 0x710042a7e0: CPostEffect::UpdateParameters_Base (its log line names it):
@@ -7415,21 +7465,11 @@ s32 CPostEffect::UpdateParameters_Base() {
         util->field_29a68 = field_cec ? 1 : 2;
         MATRIXT44 projection;
         {
-            f32 scale = field_6c4;
-            f32 w = scale * (field_6d0 * field_420);
-            f32 xw = field_6d4 * w;
-            f32 h = scale * field_6d0;
-            f32 yh = h * field_6d8;
-            Unk_40f8d0(&projection, false, true, xw - w, w + xw, yh - h, h + yh, scale, field_6c8);
+            Unk_Perspective(&projection, field_6c4, field_6c8, field_6d0, field_420, field_6d4, field_6d8);
         }
         MATRIXT44 previous;
         {
-            f32 scale = field_6c4;
-            f32 w = scale * (field_6e8 * field_420);
-            f32 xw = field_6ec * w;
-            f32 h = scale * field_6e8;
-            f32 yh = h * field_6f0;
-            Unk_40f8d0(&previous, false, true, xw - w, w + xw, yh - h, h + yh, scale, field_6c8);
+            Unk_Perspective(&previous, field_6c4, field_6c8, field_6e8, field_420, field_6ec, field_6f0);
         }
         bool far;
         bool moved;
@@ -7687,8 +7727,12 @@ inline Unk_Float2 Unk_ShaftPosition(const CPostEffect* self, const Unk_Float2* s
 // reference or pointer (or Unk_LightShaft), `s64` indices, the shaft
 // position's switch with `shift` set before it, the tests' spellings; a `u32`
 // index (the item-based IV, counted up) with the factors read offset first
-// is the closest (18 differing instructions against 37), but the original
-// tests a signed count.
+// is the closest (18 differing instructions against 33), but the original
+// tests a signed count (so does `i != count`, also 18). Kept: `offset`
+// assigned before `scale` from the factors (their registers, as in
+// 0x7100429460). 0x7100429460's fix for the same IV (the skip test as
+// `!on || x`) doesn't apply: the loop's skips have no stores and the item
+// isn't held in a reference across the calls.
 bool CPostEffect::Unk_4291c0() {
     Unk_45eb90_Self* glare = field_198;
     field_c6d = false;
@@ -7721,8 +7765,8 @@ bool CPostEffect::Unk_4291c0() {
         } else {
             f32 factors[4];
             Unk_428cc0(factors, field_858[i].field_64, 2, 1.0f, 0.0f);
-            scale = factors[0];
             offset = factors[1];
+            scale = factors[0];
             depth = field_858[i].field_5c;
         }
         f32 position = offset + scale * depth;
@@ -7779,14 +7823,19 @@ static inline s32 Unk_LightGhostKind(s32 kind) {
     return kinds[kind];
 }
 
+// whether a colour has no red, green or blue (inline)
+static inline bool Unk_IsBlack(const Unk_Rect& color) {
+    return (color.field_0 <= 0.0f) & (color.field_4 <= 0.0f) & (color.field_8 <= 0.0f);
+}
+
 // 0x7100429460: the light ghosts handed to the glare (whether there are any)
-// NON_MATCHING: LoopUnswitch splits the loop on the invariant `none` (an
-// extra unrolled loop that only clears the ghosts; the original has one loop
-// testing `none | (on == 0)` each time). Written as `!(x > 0.0f) & ...` the
-// loop stays whole, but the four tests become `le` instead of the original's
-// `ls`. Without unswitching (-loop-unswitch-threshold=0, diagnostic only)
-// what is left is the loop's induction variable based at field_30 instead of
-// the item. The table's offsets match once the statics block is complete.
+// NON_MATCHING: 11 instructions: the original's `and`s of the four tests of
+// `none` take their operands the other way round (the later test first) and
+// its loads come in another order, and it tests `none | (on == 0)` where this
+// tests `(on != 0) & !none` (bic). What decided the rest: the two skips as
+// two `if`s with their own store and `continue` (one test would make the loop
+// small enough for LoopUnswitch to split it on `none`), `scale` assigned
+// after `offset` from the factors (their registers), and field_2c stored last.
 bool CPostEffect::Unk_429460() {
     Unk_45eb90_Self* glare = field_198;
     field_c6e = false;
@@ -7794,14 +7843,16 @@ bool CPostEffect::Unk_429460() {
     if (glare->field_114 >= 0) {
         glare->field_200 = 0;
     }
-    bool none = (field_848 <= 0.0f) & (field_198->field_224.field_0 <= 0.0f) & (field_198->field_224.field_4 <= 0.0f) &
-                (field_198->field_224.field_8 <= 0.0f);
+    bool none = (field_848 <= 0.0f) & Unk_IsBlack(field_198->field_224);
     s32 count = field_524;
     s32 drawn = 0;
     for (s32 i = 0; i < count; i++) {
         const Unk_423ba0_Item& ghost = field_868[i];
-        if ((none | (ghost.field_0 == 0)) ||
-            (ghost.field_4.field_0 <= 0.0f && ghost.field_4.field_4 <= 0.0f && ghost.field_4.field_8 <= 0.0f)) {
+        if (!ghost.field_0 || none) {
+            field_198->field_208[i].field_0 = false;
+            continue;
+        }
+        if (ghost.field_4.field_0 <= 0.0f && ghost.field_4.field_4 <= 0.0f && ghost.field_4.field_8 <= 0.0f) {
             field_198->field_208[i].field_0 = false;
             continue;
         }
@@ -7818,8 +7869,8 @@ bool CPostEffect::Unk_429460() {
         } else {
             f32 factors[4];
             Unk_428cc0(factors, ghost.field_30, 2, 1.0f, 0.0f);
-            scale = factors[0];
             offset = factors[1];
+            scale = factors[0];
             depth = ghost.field_2c;
         }
         Unk_423ba0_Item& out = field_198->field_208[i];
@@ -7828,8 +7879,8 @@ bool CPostEffect::Unk_429460() {
         out.field_1c = ghost.field_1c;
         out.field_4 = ghost.field_4;
         out.field_24 = ghost.field_24;
-        out.field_2c = offset + scale * depth;
         out.field_28 = ghost.field_28;
+        out.field_2c = offset + scale * depth;
         if (out.field_24 == 1) {
             field_c6f = true;
         }
@@ -8215,49 +8266,37 @@ static inline s32 Unk_DepthCastType(s32 source) {
 }
 
 // 0x710042be10: the velocity of the scene's depth (once a frame)
-// NON_MATCHING: the original keeps the depth scale's two floats in d8/d9
-// across the calls (frame 0x170, read back for the falloff) where this
-// reloads them from the stack (frame 0x140); the depth cast type's selection
-// is laid out differently (the original's IsDepthFormat test and table share
-// a block after the source == 8 test) and the table needs the full statics
-// block
+// NON_MATCHING: 82 instructions (was 224): the frame is 0x10 smaller, the
+// first projection's loads are scheduled earlier, and the depth cast type is
+// a select (csinv) where the original keeps a switch on it (a jump table
+// whose four cases join field_50's test, type spilled as 64 bits). What
+// decided the rest: the projections through an inline helper, field_d64's
+// address taken early (it is kept in x21), the depth factors through the
+// inline Unk_DepthFactors (their array is the frame's top slot) kept in
+// locals for the falloff, the falloff's default set in both branches and its
+// range read into locals, and one FXDCT call for both depth cases.
 s32 CPostEffect::Unk_42be10() {
     if (!field_10da || field_10db) {
         return 0;
     }
     MATRIXT44 projection;
-    {
-        f32 scale = field_6c4;
-        f32 w = scale * (field_6d0 * field_420);
-        f32 xw = field_6d4 * w;
-        f32 h = scale * field_6d0;
-        f32 yh = h * field_6d8;
-        Unk_40f8d0(&projection, false, true, xw - w, w + xw, yh - h, h + yh, scale, field_6c8);
-    }
+    Unk_Perspective(&projection, field_6c4, field_6c8, field_6d0, field_420, field_6d4, field_6d8);
     MATRIXT44 previous;
-    {
-        f32 scale = field_6c4;
-        f32 w = scale * (field_6e8 * field_420);
-        f32 xw = field_6ec * w;
-        f32 h = scale * field_6e8;
-        f32 yh = h * field_6f0;
-        Unk_40f8d0(&previous, false, true, xw - w, w + xw, yh - h, h + yh, scale, field_6c8);
-    }
+    Unk_Perspective(&previous, field_6c4, field_6c8, field_6e8, field_420, field_6ec, field_6f0);
     s32 source = field_58;
     Unk_RenderTexture* external = field_50;
     bool own = source == 8 || external != nullptr;
     Unk_RenderTexture* depth;
-    s32 type;
     if (source == 8) {
         depth = field_190->field_80[static_cast<s32>(field_190->field_94)];
-        type = FXDCT_GetDepthCastTypeFromDepthFormat(depth->field_38);
     } else {
         depth = own ? external : Unk_TextureAt(field_5e0);
-        if (Unk_IsDepthFormat(depth->field_38)) {
-            type = FXDCT_GetDepthCastTypeFromDepthFormat(depth->field_38);
-        } else {
-            type = Unk_CheckDepthCastType(Unk_DepthCastType(own ? source : 3));
-        }
+    }
+    s32 type;
+    if (source == 8 || Unk_IsDepthFormat(depth->field_38)) {
+        type = FXDCT_GetDepthCastTypeFromDepthFormat(depth->field_38);
+    } else {
+        type = Unk_CheckDepthCastType(Unk_DepthCastType(own ? source : 3));
     }
     f32 scale;
     f32 bias;
@@ -8270,33 +8309,42 @@ s32 CPostEffect::Unk_42be10() {
     }
     s32 from;
     if (source == 8) {
-        bias = field_1014 ? 1.0f : bias;
-        scale = field_1014 ? -1.0f : scale;
+        if (field_1014) {
+            scale = -1.0f;
+            bias = 1.0f;
+        }
         from = 0;
     } else {
         bias = own ? bias : 0.0f;
         scale = own ? scale : 1.0f;
         from = own ? 6 : 2;
     }
-    f32 factors[4];
-    Unk_428cc0(factors, from, 0, scale, bias);
-    Unk_Float2 depthScale(factors[0], factors[1]);
-    Unk_Float2 falloff(1.0f, 0.0f);
+    Unk_Rect factors = Unk_DepthFactors(from, 0, scale, bias);
+    f32 depthMul = factors.field_0;
+    f32 depthAdd = factors.field_4;
+    Unk_Float2 depthScale(depthMul, depthAdd);
     const Unk_Float2* range = nullptr;
+    Unk_Float2 falloff;
     if (field_ce5 && static_cast<u32>(field_ce8 - 1) < 2) {
         bool inside = Unk_4622e0(field_6c4, field_6c8, field_d10, field_d14);
         range = inside ? &field_1084 : nullptr;
+        falloff = Unk_Float2(1.0f, 0.0f);
         if (own && inside) {
-            Unk_428cc0(factors, 0, 2, 1.0f, 0.0f);
-            f32 a = depthScale.field_0[1].field_0 * factors[0] + factors[1];
-            f32 b = depthScale.field_0[0].field_0 * factors[0];
-            falloff.field_0[0] = b * range->field_0[0].field_0;
-            falloff.field_0[1] = a * range->field_0[0].field_0 + range->field_0[1].field_0;
+            Unk_Rect view = Unk_DepthFactors(0, 2, 1.0f, 0.0f);
+            f32 a = depthAdd * view.field_0 + view.field_4;
+            f32 b = depthMul * view.field_0;
+            f32 r0 = range->field_0[0].field_0;
+            f32 r1 = range->field_0[1].field_0;
+            falloff.field_0[0] = b * r0;
+            falloff.field_0[1] = a * r0 + r1;
             range = &falloff;
         }
+    } else {
+        falloff = Unk_Float2(1.0f, 0.0f);
     }
     Unk_RenderTexture* target = field_d70;
     Unk_RenderTexture* velocity = field_d78;
+    const Unk_Float2* jitter = &field_d64;
     s32 mode;
     if (field_d2c == 0) {
         mode = -2;
@@ -8310,7 +8358,7 @@ s32 CPostEffect::Unk_42be10() {
     s32 result = util->Unk_484f50(field_108c, reinterpret_cast<CRenderTexture*>(depth),
                                   reinterpret_cast<CRenderTexture*>(target), reinterpret_cast<CRenderTexture*>(velocity),
                                   &field_6f4, &field_774, &projection, &previous, type, &depthScale, range, mode,
-                                  &field_d64, false, &field_d6c);
+                                  jitter, false, &field_d6c);
     if (result < 0) {
         return result;
     }
@@ -8356,9 +8404,9 @@ static inline s32 Unk_ToneMapShader(s32 shader) {
 }
 
 // 0x710042a0f0: the tone map's output format and shader numbers
-// NON_MATCHING: the defaults for 0xffffffff get jump-threaded into the
-// `low == 8 && field_599` test (the original merges both paths and folds the
-// test into one ccmp); field_106b's conditional store is speculated into a
+// NON_MATCHING: (`field_599 && low == 8`, field_599 tested first, merges the
+// defaults' paths and folds the test into one ccmp as in the original;
+// `low == 8 && field_599` gets jump-threaded into the defaults) field_106b's conditional store is speculated into a
 // select (the original keeps the branch and stores 1 in the block that also
 // picks the 0x30001/0x30002 formats); and the shader switch's case 0 is a
 // separate test here. The table (0x71024e0dcc) needs the full statics block.
@@ -8375,7 +8423,7 @@ s32 CPostEffect::Unk_42a0f0() {
     }
     field_8c8 = toneMap;
     u32 low = toneMap & 0xffff;
-    if (low == 8 && field_599) {
+    if (field_599 && low == 8) {
         toneMap = (toneMap & 0xffff0000) | (toneMap >> 16);
         field_8c8 = toneMap;
         low = toneMap >> 16;
@@ -8610,10 +8658,15 @@ static inline bool Unk_ApplyDepthOfField(CPostEffect* self, s32* result) {
 // 0x710042c300: CPostEffect::ApplyEffects_GenerateNormalAndLinearDepth (its
 // log line names it): the normal and linear depth of the scene's depth into
 // texture field_1f0
-// NON_MATCHING: the original keeps the matrix pointer 0xe48 in x2 for the
-// identity test, orders the selects of the near and far planes differently
-// and allocates the registers of the coordinates otherwise: about 165
-// instructions.
+// NON_MATCHING: 130 instructions (was 203), mostly register allocation and
+// spill slots (mode and offset, the coordinates, the near and far planes);
+// the original also keeps the matrix pointer 0xe48 in x2 for the identity
+// test. What decided the rest: field_58 read again into a local for the
+// depth cast type (CodeGenPrepare makes a branch of `own ? field_58 : 3`
+// when the load is in the select's block), field_50 read before field_58,
+// the frustum's sides as locals, the flip matrix with its diagonal stored in
+// order, the scales and offsets as chained assignments and the texel size
+// copied as one object.
 s32 CPostEffect::ApplyEffects_GenerateNormalAndLinearDepth() {
     s32 mode;
     Unk_Float offset;
@@ -8655,8 +8708,8 @@ s32 CPostEffect::ApplyEffects_GenerateNormalAndLinearDepth() {
         }
         break;
     }
-    s32 source = field_58;
     Unk_RenderTexture* external = field_50;
+    s32 source = field_58;
     bool own = source == 8 || external != nullptr;
     Unk_RenderTexture* depth;
     if (source == 8) {
@@ -8672,16 +8725,14 @@ s32 CPostEffect::ApplyEffects_GenerateNormalAndLinearDepth() {
     if (source == 8 || Unk_IsDepthFormat(depth->field_38)) {
         type = FXDCT_GetDepthCastTypeFromDepthFormat(depth->field_38);
     } else {
-        type = Unk_CheckDepthCastType(Unk_DepthCastType(own ? source : 3));
+        s32 index = field_58;
+        type = Unk_CheckDepthCastType(Unk_DepthCastType(own ? index : 3));
     }
-    f32 depthScale;
-    f32 depthBias;
+    f32 depthScale = 1.0f;
+    f32 depthBias = 0.0f;
     if (field_50 != nullptr) {
         depthScale = field_60;
         depthBias = field_64;
-    } else {
-        depthBias = 0.0f;
-        depthScale = 1.0f;
     }
     s32 from;
     if (source == 8) {
@@ -8696,12 +8747,15 @@ s32 CPostEffect::ApplyEffects_GenerateNormalAndLinearDepth() {
         from = own ? 6 : 2;
     }
     Unk_Rect factors = Unk_DepthFactors(from, 0, depthScale, depthBias);
-    f32 nearZ = field_6c4;
-    f32 w = nearZ * (field_6d0 * field_420);
-    f32 h = nearZ * field_6d0;
+    f32 w = field_6d0 * field_420 * field_6c4;
+    f32 h = field_6d0 * field_6c4;
     f32 xw = field_6d4 * w;
     f32 yh = h * field_6d8;
-    Unk_Float2 size((w + xw) - (xw - w), (h + yh) - (yh - h));
+    f32 right = w + xw;
+    f32 left = xw - w;
+    f32 bottom = yh - h;
+    f32 top = h + yh;
+    Unk_Float2 size(right - left, top - bottom);
     MATRIXT44 transform;
     Unk_Identity(&transform);
     switch (mode) {
@@ -8711,8 +8765,10 @@ s32 CPostEffect::ApplyEffects_GenerateNormalAndLinearDepth() {
         break;
     default: {
         {
-            Unk_Float3 scales(scale, scale, scale);
-            Unk_Float3 offsets(offset, offset, offset);
+            Unk_Float3 scales;
+            scales.field_0[0] = scales.field_0[1] = scales.field_0[2] = scale;
+            Unk_Float3 offsets;
+            offsets.field_0[0] = offsets.field_0[1] = offsets.field_0[2] = offset;
             MATRIXT44 m;
             Unk_40f660(&m, reinterpret_cast<const Unk_Vector3*>(&scales), reinterpret_cast<const Unk_Vector3*>(&offsets));
             MATRIXT44_MatrixMultiply(&transform, &transform, &m);
@@ -8722,8 +8778,13 @@ s32 CPostEffect::ApplyEffects_GenerateNormalAndLinearDepth() {
         }
         if (field_e00) {
             MATRIXT44 flip;
-            Unk_Identity(&flip);
+            flip.field_0[0][1] = flip.field_0[0][2] = flip.field_0[0][3] = flip.field_0[1][0] = flip.field_0[1][2] =
+                flip.field_0[1][3] = flip.field_0[2][0] = flip.field_0[2][1] = flip.field_0[2][3] = flip.field_0[3][0] =
+                    flip.field_0[3][1] = flip.field_0[3][2] = 0.0f;
+            flip.field_0[0][0] = 1.0f;
+            flip.field_0[1][1] = 1.0f;
             flip.field_0[2][2] = -1.0f;
+            flip.field_0[3][3] = 1.0f;
             MATRIXT44_MatrixMultiply(&transform, &transform, &flip);
         }
         if (Unk_E04() == 1) {
@@ -8746,7 +8807,7 @@ s32 CPostEffect::ApplyEffects_GenerateNormalAndLinearDepth() {
     }
     f32 tw = static_cast<f32>(target->field_54);
     f32 th = static_cast<f32>(target->field_58);
-    Unk_Float2 texel(depthTexture->field_88, depthTexture->field_8c);
+    Unk_Float2 texel = *reinterpret_cast<const Unk_Float2*>(&depthTexture->field_88);
     Unk_SetTarget(Unk_AsTexture(target));
     f32 low = field_8f4;
     f32 x = field_90c;
@@ -8792,11 +8853,7 @@ s32 CPostEffect::ApplyEffects_GenerateNormalAndLinearDepth() {
     f32 farPlane = high < current ? high : current;
     MATRIXT44 projection;
     if (mode == 2) {
-        f32 pw = n * (field_6d0 * field_420);
-        f32 ph = n * field_6d0;
-        f32 pxw = field_6d4 * pw;
-        f32 pyh = ph * field_6d8;
-        Unk_40f8d0(&projection, false, true, pxw - pw, pw + pxw, pyh - ph, ph + pyh, n, f);
+        Unk_Perspective(&projection, n, f, field_6d0, field_420, field_6d4, field_6d8);
     } else {
         Unk_Identity(&projection);
     }
@@ -8999,8 +9056,10 @@ inline f32 CPostEffect::Unk_AdaptationRate(f32 speed) const {
 
 // 0x710042d490: the active view's auto exposure: the scene's luminance
 // measured from `source` every field_68 frames, and the exposure adapted to it
-// NON_MATCHING: a draft (252 of 700 instructions differ): the control flow is
-// the original's, the measurement's stack slots and the float chains are not
+// NON_MATCHING: a draft (266 differing instructions, was 292): the control
+// flow is the original's; the frame is 0x10 smaller (the dither's slot is
+// not next to the other outputs), and the measurement's stack slots and the
+// float chains differ. `delay / 10` is computed before the slots (as there).
 s32 CPostEffect::Unk_42d490(Unk_RenderTexture* source) {
     extern Unk_DeviceSettings Unk_24e1500;
     if (field_67b) {
@@ -9035,8 +9094,9 @@ s32 CPostEffect::Unk_42d490(Unk_RenderTexture* source) {
             delay = 0;
             break;
         }
+        s32 frames = delay / 10;
         s32 slots = field_18 != nullptr ? static_cast<s32>(Unk_24e1500.field_10 > 1 ? Unk_24e1500.field_10 : 1) : -1;
-        levels = std::min(std::max(delay / 10 / slots, 1), 5);
+        levels = std::min(std::max(frames / slots, 1), 5);
         items[view].field_68 = levels + 1;
         s32 step = static_cast<s32>(static_cast<f32>((delay - (levels + 1)) / (levels + 1)) + 0.4999f);
         luminance->field_4f8 = std::max(std::min(step, 15), 0);
@@ -9182,8 +9242,12 @@ s32 CPostEffect::Unk_42d490(Unk_RenderTexture* source) {
 // 0x710042e560: the active view's auto focus: the depth at the focus point
 // measured every field_40 frames, and the focus distance (field_38) adapted to
 // it within the depth of field's limits
-// NON_MATCHING: a draft; the control flow follows the original, the
-// registers and the float chains don't yet
+// NON_MATCHING: 256 instructions (was 283): the field_604 case of the depth
+// is laid out at the end there, and most of the rest is register allocation
+// and scheduling in the float chains. What decided the rest: field_4 is an
+// integer mode and the focus point's elements are element objects (the
+// point is copied element by element), `delay / 6` is computed before the
+// slots, and field_94 is a signed index.
 s32 CPostEffect::Unk_42e560() {
     extern Unk_DeviceSettings Unk_24e1500;
     field_679 = true;
@@ -9206,8 +9270,9 @@ s32 CPostEffect::Unk_42e560() {
         } else {
             delay = static_cast<s32>((time < 0.0f ? 0.5f : time) / field_7f4);
         }
+        s32 frames = delay / 6;
         s32 slots = field_18 != nullptr ? static_cast<s32>(Unk_24e1500.field_10 > 1 ? Unk_24e1500.field_10 : 1) : -1;
-        levels = std::min(std::max(delay / 6 / slots, 1), 7);
+        levels = std::min(std::max(frames / slots, 1), 7);
         items[view].field_40 = levels + 1;
         s32 step = static_cast<s32>(static_cast<f32>((delay - (levels + 1)) / (levels + 1)) + 0.4999f);
         luminance->field_4f8 = std::max(std::min(step, 15), 0);
@@ -9245,7 +9310,7 @@ s32 CPostEffect::Unk_42e560() {
                 linear = false;
             } else if (field_678) {
                 depth = scene;
-                texture = reinterpret_cast<Unk_GPUTexture*>(field_190->field_60[field_190->field_94]);
+                texture = reinterpret_cast<Unk_GPUTexture*>(field_190->field_60[static_cast<s32>(field_190->field_94)]);
                 external = false;
                 linear = true;
             } else {
@@ -10155,7 +10220,8 @@ s32 CPostEffect::Unk_431b40() {
 // 0x71004320b0: Unk_48cc30 from `source` and field_1f0 to field_218 (the
 // output `target`, else texture field_5f8) with the camera's planes
 // NON_MATCHING: register allocation and the scheduling of the parameters'
-// loads and spills: about 50 instructions. The far plane's last minimum is
+// loads and spills: about 40 instructions (the projection through the inline
+// Unk_Perspective took 7 off). The far plane's last minimum is
 // Unk_427ad0's `&` of the two comparisons (one fccmp, as in the original);
 // the order of the parameters' reads (depth's flag first) is the closest
 // one a greedy search of single moves found (85 to 48 differing).
@@ -10173,12 +10239,7 @@ s32 CPostEffect::Unk_4320b0(Unk_RenderTexture* source, Unk_RenderTexture* target
     Unk_RenderTexture* other = field_218;
     Unk_RenderTexture* output = target != nullptr ? nullptr : Unk_TextureAt(field_5f8);
     MATRIXT44 projection;
-    f32 scale = field_6c4;
-    f32 w = scale * (field_6d0 * field_420);
-    f32 h = scale * field_6d0;
-    f32 xw = field_6d4 * w;
-    f32 yh = h * field_6d8;
-    Unk_40f8d0(&projection, false, true, xw - w, w + xw, yh - h, h + yh, scale, field_6c8);
+    Unk_Perspective(&projection, field_6c4, field_6c8, field_6d0, field_420, field_6d4, field_6d8);
     bool depth = field_10df;
     f32 a0 = field_ec0;
     f32 a3 = field_ecc;
@@ -10389,7 +10450,8 @@ s32 CPostEffect::Unk_432570() {
 
 // 0x7100433450: the motion blur of field_618's texture into field_620's, in
 // field_1078's way (2: from the velocity, made first when it has to be)
-// NON_MATCHING: a draft (238 of 554 instructions differ): the velocity mode's
+// NON_MATCHING: a draft (about 230 of 554 instructions differ; the projections
+// go through the inline Unk_Perspective): the velocity mode's
 // depth selection and stack slots differ, and the recurrences' minimum is a
 // select here where the original keeps GetMaxMotionBlurCameraRecurrences's
 // branches; CTextureUtil::Unk_4845c0 is given the range through a cast (its
@@ -10403,21 +10465,11 @@ s32 CPostEffect::Unk_433450() {
     reinterpret_cast<CRenderTextureArray*>(field_190)->Unk_4a5ff0(1, 0x7fffffff);
     MATRIXT44 projection;
     {
-        f32 scale = field_6c4;
-        f32 w = scale * (field_6d0 * field_420);
-        f32 xw = field_6d4 * w;
-        f32 h = scale * field_6d0;
-        f32 yh = h * field_6d8;
-        Unk_40f8d0(&projection, false, true, xw - w, w + xw, yh - h, h + yh, scale, field_6c8);
+        Unk_Perspective(&projection, field_6c4, field_6c8, field_6d0, field_420, field_6d4, field_6d8);
     }
     MATRIXT44 previous;
     {
-        f32 scale = field_6c4;
-        f32 w = scale * (field_6e8 * field_420);
-        f32 xw = field_6ec * w;
-        f32 h = scale * field_6e8;
-        f32 yh = h * field_6f0;
-        Unk_40f8d0(&previous, false, true, xw - w, w + xw, yh - h, h + yh, scale, field_6c8);
+        Unk_Perspective(&previous, field_6c4, field_6c8, field_6e8, field_420, field_6ec, field_6f0);
     }
     f32 x = field_cf0.field_0;
     f32 y = field_cf4.field_0;
@@ -10756,7 +10808,8 @@ s32 CPostEffect::EndPostEffectScene_Process(u32 flags, s32 samples) {
     if (field_5d0 == 2) {
         field_78 = 1;
         Unk_RenderTexture* scene = field_70;
-        field_70 = scene != nullptr ? scene : Unk_TextureAt(field_5d8);
+        Unk_RenderTexture* current = Unk_TextureAt(field_5d8);
+        field_70 = scene != nullptr ? scene : current;
         u32 toneMap = field_8c8;
         Unk_Float exposure = field_8c0;
         f32 scale = field_7fc;
@@ -10827,16 +10880,25 @@ s32 CPostEffect::EndPostEffectScene_Process(u32 flags, s32 samples) {
         }
         Unk_RenderTexture* source = field_5b8;
         if (source == nullptr) {
-            source = field_70 != nullptr ? field_70 : Unk_TextureAt(field_5d8);
+            source = Unk_TextureAt(field_5d8);
+            if (field_70 != nullptr) {
+                source = field_70;
+            }
         }
         Unk_RenderTexture* source2 = field_5c0;
         if (source2 == nullptr) {
-            source2 = field_70 != nullptr ? field_70 : Unk_TextureAt(field_5d8);
+            source2 = Unk_TextureAt(field_5d8);
+            if (field_70 != nullptr) {
+                source2 = field_70;
+            }
         }
         f32 amount = field_8d0 * (Unk_434570() ? 1.0f : 0.0f) * field_198->field_138;
         Unk_RenderTexture* glare = amount > 0.0f ? field_198->field_420 : nullptr;
         f32 ratio = field_5d4;
-        Unk_RenderTexture* scene = field_70 != nullptr ? field_70 : Unk_TextureAt(field_5d8);
+        Unk_RenderTexture* scene = Unk_TextureAt(field_5d8);
+        if (field_70 != nullptr) {
+            scene = field_70;
+        }
         s32 blend = Unk_BlendMode(field_be0);
         const Unk_SurfaceSize* size = reinterpret_cast<const Unk_SurfaceSize*>(field_1168);
         f32 sw = static_cast<f32>(size->field_4c);
@@ -11087,7 +11149,9 @@ s32 CPostEffect::EndPostEffectScene_PreProcess(u32 flags, s32 samples) {
 // 0x7100435ed0: CPostEffect::EndPostEffectScene_InternalProcess (its log
 // lines name it): every effect of the frame, the glare and the tone map
 // NON_MATCHING: a first draft; the effects' order and calls are the
-// original's, the control flow and registers are not yet
+// original's, the control flow and registers are not yet. The projection goes
+// through the inline Unk_Perspective, with field_734's address taken before it
+// (the original keeps it in x26 across the call).
 s32 CPostEffect::Unk_435ed0() {
     CTextureUtil* util = Unk_GetTextureUtil();
     Unk_ReleaseTextureUtil();
@@ -11095,7 +11159,10 @@ s32 CPostEffect::Unk_435ed0() {
     s32 result;
     bool copy = (field_596 || field_70 != nullptr) ? true : field_104e;
     if (!field_106c && copy) {
-        Unk_RenderTexture* scene = field_70 != nullptr ? field_70 : Unk_TextureAt(field_5d8);
+        Unk_RenderTexture* scene = Unk_TextureAt(field_5d8);
+        if (field_70 != nullptr) {
+            scene = field_70;
+        }
         Unk_RenderTexture* work = Unk_TextureAt(field_5e0);
         bool found = false;
         if (field_70 == nullptr) {
@@ -11182,7 +11249,10 @@ s32 CPostEffect::Unk_435ed0() {
             target = Unk_WorkTexture(field_1b0);
             Unk_RenderTexture* source = field_b8;
             if (source == nullptr) {
-                source = field_70 != nullptr ? field_70 : Unk_TextureAt(field_5d8);
+                source = Unk_TextureAt(field_5d8);
+                if (field_70 != nullptr) {
+                    source = field_70;
+                }
             }
             Unk_Float4 ones(1.0f, 1.0f, 1.0f, 1.0f);
             Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
@@ -11247,18 +11317,14 @@ s32 CPostEffect::Unk_435ed0() {
         Unk_RenderTexture* depth = Unk_TextureAt(field_628);
         Unk_RenderTexture* target = Unk_TextureAt(field_62c);
         MATRIXT44 projection;
-        f32 scale = field_6c4;
-        f32 w = scale * (field_6d0 * field_420);
-        f32 xw = field_6d4 * w;
-        f32 h = scale * field_6d0;
-        f32 yh = h * field_6d8;
         bool flip = !field_1091;
         s32 count = field_d84;
         void* data = field_d88;
-        Unk_40f8d0(&projection, false, true, xw - w, w + xw, yh - h, h + yh, scale, field_6c8);
+        const MATRIXT44* camera = &field_734;
+        Unk_Perspective(&projection, field_6c4, field_6c8, field_6d0, field_420, field_6d4, field_6d8);
         Unk_Float2 depthScale(factors[0], factors[1]);
         result = util->Unk_488860(field_de4, field_de0, field_d94, field_d98, field_dc4, field_dc8, flip, count, data,
-                                  Unk_AsTexture(depth), Unk_AsTexture(target), nullptr, nullptr, &field_734, &projection,
+                                  Unk_AsTexture(depth), Unk_AsTexture(target), nullptr, nullptr, camera, &projection,
                                   &depthScale, field_d90, &field_dd0, &field_d9c, &field_dac, &field_db4, field_dc0,
                                   field_dcc);
         if (result < 0) {

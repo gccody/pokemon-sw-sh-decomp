@@ -42,10 +42,11 @@ void SiGfxNXFreeTypeManager::vf6() {
 // NON_MATCHING: the same calls and stores; the original keeps the
 // description's 2 and 1 (its element size and count) in callee-saved
 // registers from the vertex format's calls on (`mov w24, #2` before the
-// first slot 19), and tests the indices' flag before the buffer's result
-// (`tbnz w25 ; tbnz w0`), where here the result comes first. Tried: the
-// description built before the vertex format, the free's test of the
-// pointer instead of the flag.
+// first slot 19), and keeps the indices' flag a `cset` through the fill loop
+// (here it becomes 0 after it). The flag is tested before the buffer's
+// result: one test of both (`!failed && !result`). Tried: the description
+// built before the vertex format, the free's test of the pointer instead of
+// the flag, the flag computed after the loop or after the buffer's call.
 // 0x71005514c0
 bool SiGfxNXFreeTypeManager::Unk_5514c0() {
     ISiAllocator* pAllocator = field_8.m_pAllocator;
@@ -78,11 +79,10 @@ bool SiGfxNXFreeTypeManager::Unk_5514c0() {
     desc.field_18 = 1;
     desc.field_28 = 0xc000;
     desc.field_30 = indices;
-    if (!buffer->vf21(&desc)) {
-        if (!failed) {
+    bool result = buffer->vf21(&desc);
+    if (!failed && !result) {
 #line 199
-            SI_FREE(pAllocator, indices);
-        }
+        SI_FREE(pAllocator, indices);
         field_68 = buffer;
         return true;
     }

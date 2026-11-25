@@ -225,6 +225,8 @@ void SiGfxNXCommandList::vf17() {
 // in two spilled registers across the second loop for the inline free at its
 // end (this addresses them from `this`).
 // 0x710053a790
+// (Round 5: the removal's loop written `count > i`, as a while, from the
+// index with `count - 1`, the count in a local: the same or worse.)
 void SiGfxNXCommandList::Unk_53a790() {
     // the memory that the GPU is past is let go of
     size_t i = 0;

@@ -1405,10 +1405,16 @@ static inline f32 Unk_DefaultLuminance(const Unk_Vector3& color) {
 
 // 0x710045c1e0 (its log line names it): the afterimage, the last frame's
 // glare faded into this one's
-// NON_MATCHING: the original keeps the glare's sizes and coordinates in
-// d8-d15 (here three are spilled at once), divides the rate once after the
-// float test (here in both of its blocks) and tests the clamps' bounds the
-// other way round; the calls and the stores are the same. The factors come
+// NON_MATCHING: the original keeps all eight of the glare's and the target's
+// sizes and coordinates in d8-d15 across the luminance (here three are
+// spilled at once) and divides the rate once after the float test (here in
+// both of its blocks); the calls and the stores are the same. What decided
+// the rest: the clamps written `x > 0.0f && x < 1.0f` (the backend tests the
+// upper bound first), the hold kept as an Unk_Float set when `!(keep <
+// 0.999f)` (an integer select), `(format != 0) &` for the bias (its zero
+// test survives), the colours filled by chained assignments (stores from the
+// last element), the coordinates computed before the bias switch, and the
+// brightness's product written after the fade's clamp. The factors come
 // from inline functions: written in place, the selects of constants let
 // InstCombine fold the square, and the format mask isn't hoisted into x22.
 // m_ppAfterimageGeneration is an array of CRenderTextureArray pointers: with a cast at the
@@ -1441,35 +1447,39 @@ s32 CRenderGlare::GenerateGlare_Afterimage() {
     f32 level = Unk_458420();
     f32 rate = field_178 / field_170->field_68;
     f32 k = Unk_AfterimageFactor(field_b0.field_18[3]);
-    f32 decay = rate * (k * k);
     f32 lag = rate / k;
-    f32 brightness = luminance * 0.125f;
-    f32 keep = powf(0.5f, lag / 0.05f);
+    f32 decay = rate * (k * k);
     f32 fade = 1.0f - powf(0.5f, decay / 0.05f);
-    fade = fade < 1.0f && fade > 0.0f ? fade : 1.0f;
-    keep = keep < 1.0f && keep > 0.0f ? keep : 0.0f;
+    f32 keep = powf(0.5f, lag / 0.05f);
+    fade = fade > 0.0f && fade < 1.0f ? fade : 1.0f;
+    f32 brightness = luminance * 0.125f;
+    keep = keep > 0.0f && keep < 1.0f ? keep : 0.0f;
     f32 least = Unk_AfterimageLeast(field_b0.field_18[3]);
+    Unk_Float hold = keep;
+    if (!(keep < 0.999f)) {
+        hold = 0.999f;
+    }
+    f32 u = scaleU * glareWidth + offsetU;
+    f32 v = scaleV * glareHeight + offsetV;
     f32 value = brightness * level * (fade > least ? fade : least);
-    Unk_Float hold = keep < 0.999f ? keep : 0.999f;
     s32 format = field_b0.field_18[3];
     Unk_Float bias;
     if (Unk_IsGlareFormatC(format)) {
         bias = -1.0f / 255.0f;
-    } else if (format != 0 && Unk_IsGlareFormatB(format)) {
+    } else if ((format != 0) & Unk_IsGlareFormatB(format)) {
         bias = -1.0f / 1023.0f;
     } else {
         bias = -1.0f / 32767.0f;
     }
     Unk_Float4 colors[2];
-    colors[0] = Unk_Float4(value, value, value, value);
-    colors[1] = Unk_Float4(hold, hold, hold, hold);
+    colors[0].field_0[0] = colors[0].field_0[1] = colors[0].field_0[2] = colors[0].field_0[3] = value;
+    colors[1].field_0[0] = colors[1].field_0[1] = colors[1].field_0[2] = colors[1].field_0[3] = hold;
     Unk_Float4 params[3];
-    params[0] = Unk_Float4(bias, bias, bias, bias);
+    params[0].field_0[0] = params[0].field_0[1] = params[0].field_0[2] = params[0].field_0[3] = bias;
     params[1] = Unk_Float4(0.0f, 0.0f, 0.0f, 0.0f);
     params[2] = Unk_Float4(64512.0f, 64512.0f, 64512.0f, 64512.0f);
     Unk_GPUTexture* textures[2] = {Unk_GetTexture(glare), Unk_GetTexture(previous)};
-    s32 result = util->Unk_4776f0(0.0f, 0.0f, width, height, 0.0f, 0.0f, scaleU * glareWidth + offsetU,
-                                  scaleV * glareHeight + offsetV, 2, textures, colors, params, slot, 0);
+    s32 result = util->Unk_4776f0(0.0f, 0.0f, width, height, 0.0f, 0.0f, u, v, 2, textures, colors, params, slot, 0);
     if (result < 0) {
 #line 4956
         PPFX_ERROR("CRenderGlare::GenerateGlare_Afterimage(): pTexUtil->DrawRectGPU_MadOffsetTn() failed (0x%x: %s).\n",
@@ -3325,7 +3335,10 @@ static inline void Unk_SubRect(Unk_Float4* r, const Unk_Float4* rect) {
 // the original's; the registers, the spill slots and the order of the
 // blocks are not yet (the viewport is clamped in other registers, the
 // rectangles of `rect` interleaved otherwise, the copy's weights filled by a
-// loop the original unrolls differently)
+// loop the original unrolls differently). The surface's size is converted
+// before the tests and chosen by selects (the original's two fcsel). Not
+// yet found: the original orders the viewport's bounds by integer selects
+// (`csel w`, as a std::swap of the two ends gives, which wasn't closer).
 s32 CRenderGlare::TonemapToSurface(IGPUSurface* surface, bool hasSurface, CRenderTexture* source, bool hasGamma,
                                    s32 format, const Unk_Float4* color, const MATRIXT44* matrix, f32 width, f32 height,
                                    f32 x, f32 y, f32 intensity, f32 gamma, f32 exposure, f32 white, f32 step,
@@ -3364,12 +3377,10 @@ s32 CRenderGlare::TonemapToSurface(IGPUSurface* surface, bool hasSurface, CRende
         step = Unk_SurfaceStep(pixels->field_44.field_0);
     }
     if (surface != nullptr) {
-        if (width == 0.0f) {
-            width = static_cast<f32>(pixels->field_44.field_8);
-        }
-        if (height == 0.0f) {
-            height = static_cast<f32>(pixels->field_44.field_c);
-        }
+        f32 w = static_cast<f32>(pixels->field_44.field_8);
+        f32 h = static_cast<f32>(pixels->field_44.field_c);
+        width = width == 0.0f ? w : width;
+        height = height == 0.0f ? h : height;
     }
     Unk_Viewport current;
     field_20->vf17(&current);

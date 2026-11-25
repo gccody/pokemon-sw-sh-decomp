@@ -185,28 +185,29 @@ bool SiIOCSVDocument::vf6(ISiIOStream* stream) {
 }
 
 // 0x710057eb50
-// NON_MATCHING: 24 bytes short: the original reads the first character
-// before its loop (the loop's first test of '\r' is a copy of its own) and
-// returns through the UTF-8 path's epilogue; here the early return has its
-// own (tried: a while loop, an else-if chain, the tests reordered). The original's
-// last string assignment is a call, not a tail call, which is why the early return
-// shares its epilogue.
+// (The first character is read before the loop and the next one at its end,
+// which gives the original's two copies of the test of '\r'. The last string
+// assignment is a call, not a tail call, because the assignment returns a
+// reference: see Unk_StringFuncs.h.)
 void SiIOCSVDocument::Unk_57eb50(ISiIOStream* stream, SiString<char>* line) {
     Unk_StringAssign(line, "");
     field_70.Unk_Clear();
     if (stream->vf20()) {
         return;
     }
-    do {
-        u8 c = stream->vf29(true);
-        if (c == '\r') {
-            continue;
+    u8 c = stream->vf29(true);
+    for (;;) {
+        if (c != '\r') {
+            if (c == '\n' || c == 0xff) {
+                break;
+            }
+            field_70.Unk_Add(c);
         }
-        if (c == '\n' || c == 0xff) {
+        if (stream->vf20()) {
             break;
         }
-        field_70.Unk_Add(c);
-    } while (!stream->vf20());
+        c = stream->vf29(true);
+    }
     field_70.Unk_Add(0);
     Unk_StringReserve(line, field_70.m_itemCount);
     if (field_18) {

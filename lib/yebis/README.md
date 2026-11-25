@@ -1421,3 +1421,35 @@ Single-site mutation sweeps (loop index types, `&&`/`||` and `&` forms,
 `static inline` against `inline`) over every remaining function found no
 further matches on their own: what is left is mostly register allocation,
 scheduling and block placement in functions over 1 KB.
+
+### Rewrites from the asm (fourth and fifth passes)
+
+Fresh rewrites from the original's asm, with Ghidra's decompilation of the
+original for the control flow, worked better on mid-sized functions than
+more variants of the existing source. What decided matches and large drops:
+
+- Whole-value arithmetic: where every product comes before every sum, or one
+  step runs across all lanes before the next (subtract, add 0.5, scale,
+  offset), the original used inline vector or quaternion operators.
+- `x > c ? c : x` gives `fmin`, `x < c ? x : c` gives `fminnm`.
+- A caller that copies an argument register its callee never reads: the
+  callee used the argument before dead-argument elimination (an inline no-op
+  `Unk_Ignore(arg)` in the callee).
+- A member's address kept in a callee-saved register across calls is a local
+  pointer taken early (`const Unk_Float2* jitter = &field_d64;`).
+- `field ? field : Call()` where the original calls unconditionally and then
+  selects: the call's result is a local written first.
+- `if (x <= 9) { A } else { B }` and an early `if (x > 9) { B; break; }` lay
+  out differently (plain if/else swaps are canonical and change nothing).
+- Chained assignments (`v[0] = v[1] = v[2] = v[3] = x`) store the highest
+  pair first.
+- A `return` inside a scope holding an object with a destructor gives the
+  cleanup-destination flag and the result copy inside the shared cleanup.
+- A call result that is a reference (`SiString& operator=`) isn't turned into
+  a tail call when its return is shared with an early return.
+- `bool r = call(); if (!flag && !r)` tests the flag first; nesting the flag
+  test inside the result test reverses them.
+- A 32-bit counter compared with a 64-bit index stays 32-bit only without
+  `nsw`: a `u32` counted down in the test (`(s32)--j`).
+- A local read just before a pair of `if`/`else if` cases decides where
+  LoopSimplify puts their loops' preheaders, and so the cases' test order.

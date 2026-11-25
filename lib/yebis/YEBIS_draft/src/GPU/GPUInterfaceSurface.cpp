@@ -912,16 +912,16 @@ s32 IGPUSurface::vf15(IGPUSurface* surface, s32 index) {
 }
 
 // 0x71004449a0
-// NON_MATCHING: the original's loop carries the node in two registers (the
-// iterator that list::erase unlinks and the node it frees and reads the
-// attachment from), with the matches' index test computed first; here one
-// register, and the loop is laid out otherwise. A reference to the element
-// and a pointer to it were tried.
+// (The iterator is advanced after an erase too, unless the erase gave the
+// end: the original's test of the end on both paths. The two matches are
+// computed before they're tested together.)
 s32 IGPUSurface::vf16(IGPUSurface* surface, s32 index) {
     for (auto it = field_90.begin(); it != field_90.end();) {
-        if ((surface == nullptr || it->field_8 == surface) && (index == -1 || it->field_0 == index)) {
-            IGPUSurface* other = it->field_8;
+        bool surfaceMatch = surface == nullptr || it->field_8 == surface;
+        bool indexMatch = index == -1 || it->field_0 == index;
+        if (surfaceMatch && indexMatch) {
             s32 i = it->field_0;
+            IGPUSurface* other = it->field_8;
             if (other->DetachFromSiGfxRenderTarget(i) >= 0) {
                 other->field_80[i] = nullptr;
             }
@@ -931,7 +931,8 @@ s32 IGPUSurface::vf16(IGPUSurface* surface, s32 index) {
             } else {
                 field_88 = -1;
             }
-        } else {
+        }
+        if (it != field_90.end()) {
             ++it;
         }
     }

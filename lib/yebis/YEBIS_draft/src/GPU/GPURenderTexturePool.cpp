@@ -54,6 +54,10 @@ bool CRenderTexturePool::Unk_49f7b0(const CRenderTexture* texture, s32 width, s3
 // NON_MATCHING: register allocation only (11 instructions). In the loop that
 // makes the missing textures, the original keeps the new texture in x26 and
 // its name, then its list entry, in x20; here they're swapped.
+// (Round 5: the name read into the constructor's argument directly, the
+// texture kept only in `textures[i]`, a scope for the number, the entry's
+// stores swapped, if/else for the shared test, a reference to the slot: the
+// same or worse.)
 s32 CRenderTexturePool::AllocateTextures(s32 count, CRenderTexture** textures, s32 width, s32 height, s32 format,
                                          bool shared, u32 flags, u32 mask) {
     if (count == 0)
