@@ -32,7 +32,7 @@ void Unk_7e97f0(void* self, u32 label, u32 ratio) {
 }
 
 // 0x71007e9830
-u32 Unk_7e9830(void* self, u32 label) {
+u32 Unk_7e9830(void* self, u16 label) {
     Unk_7e9dc0_Var* var = Unk_7e9d60(static_cast<Unk_7e8a20*>(self)->field_70, label);
     if (var != nullptr)
         return Unk_7e9f50_getFieldc(reinterpret_cast<const Unk_7e9f50*>(var));

@@ -299,7 +299,6 @@ static inline u8 Unk_819600_Target(const Unk_819600_Self* self, u8 index) {
 }
 
 // 0x710081acc0
-// NON_MATCHING: the original saves one register pair less
 bool Unk_81acc0(const Unk_819600_Self* self, u8 pokeId) {
     u32 count = Unk_7e9830(self->field_30, 5);
     for (u32 i = 0; i < count; i++) {
