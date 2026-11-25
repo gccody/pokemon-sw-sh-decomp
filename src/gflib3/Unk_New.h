@@ -14,11 +14,15 @@
 #include "gflib3/Unk_239a418.h"
 #include "unsorted/Unk_2771620.h"
 
+// The allocation is tested as a T*: when the constructor isn't inlined, its
+// call is split in two, one of them with a null pointer (LLVM's call site
+// splitting needs the tested value to be the call's argument). With the
+// constructor inlined, a void* test gives the same code.
 struct Unk_New {
     template <class T, class... Args>
     T* Create(Unk_239a418_Allocator* allocator, Args&&... args) {
         Unk_2771620_Scope scope(allocator);
-        void* p = allocator->vf2(sizeof(T), alignof(T));
+        T* p = static_cast<T*>(allocator->vf2(sizeof(T), alignof(T)));
         if (p == nullptr)
             allocator->vf23();
         T* object = ::new (p) T(std::forward<Args>(args)...);
