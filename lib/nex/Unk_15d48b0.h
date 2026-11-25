@@ -1,9 +1,9 @@
 #pragma once
-// NEX 4.6.8's scheduler's worker thread (RTTI
-// N2nn3nex9Scheduler21SchedulerWorkerThreadE, derived from
+// NEX 4.6.8's Job (RTTI N2nn3nex3JobE), the scheduler's worker thread
+// (N2nn3nex9Scheduler21SchedulerWorkerThreadE, derived from
 // N2nn3nex13WorkerThreadsE) and its Pacer (N2nn3nex5PacerE), as
 // lib/nex/Unk_15d48b0.cpp and Unk_15d4cf0.cpp use them.
-#include <nn/nex/RootObject.h>
+#include <nn/nex/RefCountedObject.h>
 
 // What the scheduler's worker thread runs for (its +0x1b0: the instance index
 // the thread takes).
@@ -15,6 +15,45 @@ PKMN_OFFSET_ASSERT(Unk_15d4ca0_Scheduler, m_instanceIndex, 0x1b0);
 
 namespace nn {
 namespace nex {
+
+// N2nn3nex3JobE (as lib/nex/Unk_1630ba0.cpp declares it). Its members end at
+// 0x62: a derived class's begin in its tail padding.
+class Job : public RefCountedObject {
+public:
+    ~Job() override;
+    virtual void vf2();
+    virtual void vf3() = 0;
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+
+    // the links of the chain (qChain) the job is in
+    Job* m_chainNext;
+    Job* m_chainPrev;
+    u8 field_20;
+    // called when the job is done (state 5), with the job and m_callbackData
+    void (*m_callback)(Job* job, void* data);
+    u32 m_callbackData;
+    u32 field_34;
+    u32 m_type;
+    u32 field_3c;
+    u32 m_state;
+    u32 field_44;
+    u32 field_48;
+    u64 field_50;
+    u64 field_58;
+    u8 field_60;
+    u8 field_61;
+};
+PKMN_OFFSET_ASSERT(Job, m_callback, 0x28);
+PKMN_OFFSET_ASSERT(Job, m_state, 0x40);
+PKMN_OFFSET_ASSERT(Job, field_61, 0x61);
+PKMN_SIZE_ASSERT(Job, 0x68);
 
 // N2nn3nex13WorkerThreadsE (its slot 4 is pure).
 class WorkerThreads : public RootObject {
