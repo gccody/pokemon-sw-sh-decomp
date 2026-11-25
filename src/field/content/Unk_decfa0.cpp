@@ -12,15 +12,14 @@
 #include "field/content/Unk_decfa0_Owner.h"
 
 // The Pokemon's functions these call, by the placeholder types their names were given
-// with (src/unsorted/leaf/Unk_d0a100.cpp). The collision's radius setter also takes the
-// radius (in s0), which its name leaves out.
+// with (src/unsorted/leaf/Unk_d0a100.cpp).
 struct Unk_d0a100;
 struct Unk_d0a110;
 struct Unk_d0b220;
 struct Unk_d0b570;
 f32 Unk_d0a100_getField4dc(const Unk_d0a100* self);
 f32 Unk_d0a110_getField514(const Unk_d0a110* self);
-void Unk_d0b220_call(Unk_d0b220* self);
+void Unk_d0b220_call(Unk_d0b220* self, f32 radius);
 bool Unk_d0b570_call(const Unk_d0b570* self, void* value, void* arg2, u32 arg3);
 
 namespace field {
@@ -85,9 +84,7 @@ HaxeVector3 HaxeSymbolPokemonObject::GetEventCollisionOffset() const {
 
 // 0x7100ded560
 void HaxeSymbolPokemonObject::SetCollisionR(float radius) {
-    // The radius stays in s0 for the callee (see above).
-    static_cast<void>(radius);
-    Unk_d0b220_call(static_cast<Unk_d0b220*>(field_0));
+    Unk_d0b220_call(static_cast<Unk_d0b220*>(field_0), radius);
 }
 
 // 0x7100ded570

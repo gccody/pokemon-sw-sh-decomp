@@ -8,6 +8,7 @@
 #include "field/content/HaxeSymbolPokemonObject.h"
 #include "field/content/Unk_decfa0_Owner.h"
 #include "unsorted/Unk_d0c0.h"
+#include "unsorted/Unk_d281c0.h"
 
 // The Pokemon's species and form getters, by the placeholder types their names were
 // given with (src/unsorted/leaf/Unk_d4fb90.cpp).
@@ -18,25 +19,6 @@ u16 Unk_d4fba0_getField5c0(const Unk_d4fba0* self);
 
 // 0x71012fef00: formats the voice's name from the three numbers and plays it.
 int Unk_12fef00(void* player, u32 monsNo, int formNo, int voice);
-
-// What an effect follows: an object's handle, taken over from the object's getter.
-// The parameter's type isn't known; this one converts from the handle the way the
-// original's call does (into a temporary of its own).
-class Unk_d281c0_Target {
-public:
-    Unk_d281c0_Target(Unk_239a418_Ref<Unk_239a418_Handle>&& handle) : m_handle(std::move(handle)) {}
-
-    Unk_239a418_Ref<Unk_239a418_Handle> m_handle;
-};
-
-// 0x7100d281c0: starts an effect (the type, the object it follows, the offset from it,
-// ..., the effect's name and the scale). Unk_d281c0_call's name leaves the scale out.
-void Unk_d281c0_call(u32 type,
-                     Unk_d281c0_Target target,
-                     const float32x4_t& offset,
-                     const void* arg3,
-                     Unk_5cfaf0_Name name,
-                     float scale);
 
 extern const u8 Unk_1f07bd0[];
 
@@ -52,9 +34,6 @@ bool HaxeSymbolPokemonObject::GetEnableGroundRaycast() const {
     return Owner(this)->Unk_GetEnableGroundRaycast();
 }
 
-// NON_MATCHING: the code is identical, but the original calls 0x7100d281c0 under its
-// leaf placeholder name Unk_d281c0_call(u32, void*, void*, void*, void*), which leaves
-// out the scale (s0) and gives the by-value parameters as pointers.
 // 0x7100ded6b0
 void HaxeSymbolPokemonObject::StartBalloonEffect(int type) {
     Unk_d281c0_call(type, Owner(this)->vf2(), float32x4_t{0.0f, 4.0f, 0.0f, 0.0f}, Unk_1f07bd0,

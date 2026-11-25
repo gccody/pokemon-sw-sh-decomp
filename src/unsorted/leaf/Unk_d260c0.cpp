@@ -11,14 +11,6 @@ u32 Unk_d260c0_call() {
     return r0 == 2 ? r0 : (r0 == 1);
 }
 
-extern void* Unk_27e0740;
-void Unk_e43620(void*, u32, void*, void*, void*, void*);
-
-// 0x7100d281c0
-void Unk_d281c0_call(u32 self, void* value, void* arg2, void* arg3, void* arg4) {
-    Unk_e43620(Unk_27e0740, self, value, arg2, arg3, arg4);
-}
-
 // 0x7100d29850
 u32 Unk_d29850() {
     return 0;

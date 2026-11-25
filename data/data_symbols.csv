@@ -70,6 +70,7 @@ Sword,Shield,Size,Name
 0x7101f06038,0x7101f06038,,_length_code
 0x7101f07288,0x7101f07288,,Unk_1f07288
 0x7101f072e0,0x7101f072e0,,Unk_1f072e0
+0x7101f07bd0,0x7101f07bd0,,Unk_1f07bd0
 0x7101f0821c,0x7101f0821c,4,_ZZN6gflnet3p2p4sync4ping2pb32protobuf_AssignDesc_ping_2eprotoEvE13Ping_offsets_@ping.pb
 0x7101f08220,0x7101f08220,4,_ZZN6gflnet3p2p4sync4ping2pb32protobuf_AssignDesc_ping_2eprotoEvE18PingReply_offsets_@ping.pb
 0x7101f08224,0x7101f08224,4,_ZZN6gflnet3p2p4sync4ping2pb32protobuf_AssignDesc_ping_2eprotoEvE19PingSynced_offsets_@ping.pb

@@ -9,6 +9,7 @@
 
 class Unk_23f15e8 : public Unk_23f5d00 {
 public:
+    Unk_23f15e8();
     ~Unk_23f15e8() override;
     u8* vf5() override;
     Unk_23f5d00_Member<void> field_180;
@@ -16,6 +17,9 @@ public:
 PKMN_OFFSET_ASSERT(Unk_23f15e8, field_180, 0x180);
 
 extern Unk_e3b230_Name Unk_27dfec0 __attribute__((visibility("hidden")));
+
+// 0x7100e3b6d0
+Unk_23f15e8::Unk_23f15e8() {}
 
 // 0x7100e3b7b0
 u8* Unk_23f15e8::vf5() {

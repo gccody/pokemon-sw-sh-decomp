@@ -80,8 +80,6 @@ u32 Unk_7ffb00(const Unk_7ee6b0_Field* self) {
     return left + gone;
 }
 
-// NON_MATCHING: the existing name (_Z10Unk_7ffb80v) has no parameter, but the
-// function acts on the counter in x0. Under the name below it matches.
 // Returns whether the counter ran out (its active byte).
 // 0x71007ffb80
 u8 Unk_7ffb80(Unk_7ee6b0_Field* self) {
