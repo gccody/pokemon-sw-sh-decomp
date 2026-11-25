@@ -1022,7 +1022,7 @@ bool Unk_1743f00_check(const Unk_1743f00* self) {
     return self->field_440 != Unk_1f452f4;
 }
 
-void Unk_1748f30(u64);
+void Unk_1748f30(s64);
 
 // 0x7101748960
 void Unk_1748960_call(u64 self) {
