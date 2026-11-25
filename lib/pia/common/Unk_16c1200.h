@@ -2,9 +2,9 @@
 // A Pia object keeping a list of 0x30-byte entries (an id, a station index
 // that's 0xfd when unset, another id and a flag), with a pool of free entries
 // that Unk_16c1390 allocates. Its members are 0x71016c1200-0x71016c1b70
-// (lib/pia/common/Unk_16c1200.cpp, lib/pia/common/Unk_16c1a70.cpp; 0x71016c1b60
-// is Unk_16c1b60_set in lib/nx_middleware/leaf). No RTTI: placeholder names,
-// the class after its first member.
+// (lib/pia/common/Unk_16c1200.cpp; 0x71016c1b60 is Unk_16c1b60_set in
+// lib/nx_middleware/leaf). No RTTI: placeholder names, the class after its
+// first member.
 #include "pia/common/Unk_1734ed0.h"
 
 namespace nn {
