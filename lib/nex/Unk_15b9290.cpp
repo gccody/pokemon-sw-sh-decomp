@@ -248,6 +248,49 @@ public:
     PseudoSingleton(u32 id);
 };
 
+// An element of a packet buffer pool (0x68 bytes).
+struct Unk_15b9490_Element {
+    static void operator delete[](void* p) { Unk_Free(p); }
+    ~Unk_15b9490_Element() {}
+
+    u8 _0[0x20];
+    u64 field_20;
+    u8 _28[0x40];
+};
+PKMN_SIZE_ASSERT(Unk_15b9490_Element, 0x68);
+
+// A packet buffer pool: its elements and the buffer they're in.
+struct Unk_15b9490_Pool {
+    static void operator delete(void* p) {
+        if (p != nullptr) {
+            Unk_Free(p);
+        }
+    }
+
+    void Unk_Release() {
+        if (m_allocated) {
+            m_allocated = false;
+            for (u64 i = 0; i < m_count; i++) {
+                m_elements[i].field_20 = 0;
+            }
+            delete[] m_elements;
+            m_elements = nullptr;
+            if (m_buffer != nullptr) {
+                delete m_buffer;
+                m_buffer = nullptr;
+            }
+        }
+    }
+
+    Unk_15b9490_Element* m_elements;
+    u64 m_count;
+    u8 _10[0x8];
+    bool m_allocated;
+    RootObject* m_buffer;
+};
+PKMN_OFFSET_ASSERT(Unk_15b9490_Pool, m_allocated, 0x18);
+PKMN_OFFSET_ASSERT(Unk_15b9490_Pool, m_buffer, 0x20);
+
 // N2nn3nex19PacketBufferManagerE (its ID is 14)
 class PacketBufferManager : public PseudoSingleton {
 public:
@@ -264,25 +307,29 @@ public:
     ~PacketBufferManager() override;
     // 0x71015b9490: releases the buffers (unless field_40 is set).
     void Unk_15b9490();
+    // 0x71015b99c0
+    void Unk_15b99c0();
 
     u64 field_20;
     u64 field_28;
-    u64 field_30;
+    u8* field_30;
     u64 field_38;
     u64 field_40;
     u64 field_48;
     u64 field_50;
     u32 field_58;
     bool field_5c;
-    u64 field_60;
-    u64 field_68;
+    Unk_15b9490_Pool* field_60;
+    Unk_15b9490_Pool* field_68;
 };
 PKMN_OFFSET_ASSERT(PacketBufferManager, field_5c, 0x5c);
+PKMN_OFFSET_ASSERT(PacketBufferManager, field_68, 0x68);
 PKMN_SIZE_ASSERT(PacketBufferManager, 0x70);
 
 PacketBufferManager::PacketBufferManager()
-    : PseudoSingleton(14), field_20(0), field_28(0), field_30(0), field_38(0), field_40(0),
-      field_48(8), field_50(4), field_58(0), field_5c(false), field_60(0), field_68(0) {}
+    : PseudoSingleton(14), field_20(0), field_28(0), field_30(nullptr), field_38(0), field_40(0),
+      field_48(8), field_50(4), field_58(0), field_5c(false), field_60(nullptr),
+      field_68(nullptr) {}
 
 PacketBufferManager::~PacketBufferManager() {
     field_40 = 0;
@@ -323,4 +370,81 @@ bool Unk_15b9950(bool flag) {
     }
     Unk_244eee8 = flag;
     return true;
+}
+
+// What pseudo-singleton 1's field_10 holds at 0xe8 (its slot 20 is called
+// before the packet buffers are released).
+class Unk_15b9490_e8 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+};
+struct Unk_15b9490_10 {
+    u8 _0[0xe8];
+    Unk_15b9490_e8* field_e8;
+};
+struct Unk_15b9490_1 {
+    u8 _0[0x10];
+    Unk_15b9490_10* field_10;
+};
+
+inline bool Unk_GetFlag() {
+    Unk_15b9860_Lock lock(&nn::nex::Unk_27f2a80);
+    return Unk_244eee8;
+}
+
+void nn::nex::PacketBufferManager::Unk_15b9490() {
+    Unk_15b9860_Lock lock(&Unk_27f2a80);
+    if (field_40 != 0) {
+        return;
+    }
+    if (!Unk_GetFlag() || !Unk_15b9860()) {
+        return;
+    }
+    Unk_15b9490_1* singleton = static_cast<Unk_15b9490_1*>(Unk_GetPseudoSingleton(1));
+    if (singleton != nullptr && singleton->field_10 != nullptr &&
+        singleton->field_10->field_e8 != nullptr) {
+        singleton->field_10->field_e8->vf20();
+    }
+    Unk_15b99c0();
+    if (field_68 != nullptr) {
+        field_68->Unk_Release();
+    }
+    if (field_68 != nullptr) {
+        delete field_68;
+        field_68 = nullptr;
+    }
+    if (field_60 != nullptr) {
+        field_60->Unk_Release();
+    }
+    if (field_60 != nullptr) {
+        delete field_60;
+        field_60 = nullptr;
+    }
+    if (field_30 != nullptr) {
+        Unk_Free(field_30);
+    }
+    field_30 = nullptr;
+    field_28 = 0;
+    field_20 = 0;
+    field_5c = false;
 }
