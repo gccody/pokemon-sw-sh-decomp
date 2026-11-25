@@ -5,7 +5,7 @@
 // rename once the classes are known.
 #include <types.h>
 
-void Unk_7aaba0(void* obj, u32 step);
+void Unk_7aaba0(void* obj, s32 step);
 void Unk_1500c40(u64);
 
 struct Unk_7ab130_Obj {

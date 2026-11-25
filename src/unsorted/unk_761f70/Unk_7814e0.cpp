@@ -90,7 +90,7 @@ u8 Unk_23a7b38::Unk_781820() const {
 }
 
 // 0x7100781880
-u8 Unk_23a7b38::Unk_781880() const {
+u32 Unk_23a7b38::Unk_781880() const {
     return Unk_Root()->Get<u8>(16, 0);
 }
 
@@ -106,7 +106,7 @@ bool Unk_23a7b38::Unk_781940() const {
 }
 
 // 0x71007819a0
-u8 Unk_23a7b38::Unk_7819a0() const {
+u32 Unk_23a7b38::Unk_7819a0() const {
     return Unk_Root()->Get<u8>(20, 0);
 }
 
@@ -116,6 +116,6 @@ s32 Unk_23a7b38::Unk_781a00() const {
 }
 
 // 0x7100781a60
-u8 Unk_23a7b38::Unk_781a60() const {
+u32 Unk_23a7b38::Unk_781a60() const {
     return Unk_Root()->Get<u8>(38, 0);
 }

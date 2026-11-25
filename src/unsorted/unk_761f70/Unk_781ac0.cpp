@@ -26,7 +26,7 @@ u8 Unk_23a7b38::Unk_781be0() const {
 }
 
 // 0x7100781c40
-u8 Unk_23a7b38::Unk_781c40() const {
+u32 Unk_23a7b38::Unk_781c40() const {
     return Unk_Root()->Get<u8>(32, 0);
 }
 
@@ -46,7 +46,7 @@ u16 Unk_23a7b38::Unk_781d60() const {
 }
 
 // 0x7100781dc0
-u8 Unk_23a7b38::Unk_781dc0(u8 kind) const {
+u32 Unk_23a7b38::Unk_781dc0(u8 kind) const {
     switch (kind) {
         case 0:
             return Unk_Root()->Get<u8>(50, 0);
@@ -85,7 +85,7 @@ u8 Unk_23a7b38::Unk_782000(u8 kind) const {
 }
 
 // 0x7100782120
-u8 Unk_23a7b38::Unk_782120() const {
+u32 Unk_23a7b38::Unk_782120() const {
     return Unk_Root()->Get<u8>(68, 0);
 }
 
