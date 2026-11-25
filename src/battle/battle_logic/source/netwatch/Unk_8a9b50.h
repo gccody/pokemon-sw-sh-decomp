@@ -1,6 +1,7 @@
 #pragma once
 // The battle logic's view of the battle (vtable 0x71023b9058, class
-// Unk_23b9048), as slots 173 to 250, 262, 313 and 314 show it.
+// Unk_23b9048), as slots 173 to 250, 262, 313 and 314 and the function at
+// 0x71008aa360 show it.
 // Unk_8a8e30.h and Unk_8a9570.h declare the class too; this declaration is
 // the same, with the signatures these functions show. Placeholder names:
 // rename once the class is known.
@@ -19,12 +20,21 @@ struct Unk_7fc430_Party;
 // slot 245 (read through leaf functions with their own placeholder types).
 struct Unk_8a9b50_Info;
 
-// The pokémon slot 233 is given.
-struct Unk_8aa430_Poke {
-    u8 _0[0x33d];
-    u8 field_33d;
+struct Unk_7d0b80;
+class Unk_2432540;
+struct Unk_67be60;
+
+// What slot 250 fills: an object from the main module (+0x58's per-client
+// references), the object it is compared with and two bytes about it.
+struct Unk_8aa600_Out {
+    Unk_2432540* field_0;
+    Unk_67be60* field_8;
+    u8 field_10;
+    u8 field_11;
 };
-PKMN_OFFSET_ASSERT(Unk_8aa430_Poke, field_33d, 0x33d);
+PKMN_OFFSET_ASSERT(Unk_8aa600_Out, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_8aa600_Out, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_8aa600_Out, field_11, 0x11);
 
 class Unk_23b9048 : public Unk_239a4c0 {
 public:
@@ -256,13 +266,13 @@ public:
     virtual u32 vf229(u32 client);
     virtual u8 vf230(u8 pokeId);
     virtual u32 vf231(u32 client);
-    virtual u32 vf232();
-    virtual u32 vf233(u32 value, const Unk_8aa430_Poke* poke);
-    virtual u32 vf234(u32 value);
-    virtual u32 vf235(u32 value);
-    virtual u32 vf236(u32 value);
-    virtual u32 vf237();
-    virtual u32 vf238();
+    virtual void vf232(u8* out1, u8* out2, const Unk_7ee6b0* poke);
+    virtual u8 vf233(u32 move, const Unk_7ee6b0* poke);
+    virtual u16 vf234(u32 move);
+    virtual u16 vf235(u32 move);
+    virtual u32 vf236(u32 move);
+    virtual bool vf237(u8 pokeId);
+    virtual bool vf238(u8 client, u8 pokeId, u32 move, bool* out);
     virtual void vf239(u32* out1, u32* out2);
     virtual void vf240(u32* out1, u32* out2);
     virtual void vf241(u32* out1, u32* out2, u32 index, u32 kind);
@@ -271,11 +281,11 @@ public:
     virtual void vf244(u32* out1, u32* out2, u32 index);
     virtual void
     vf245(u32* out1, u32* out2, u8 value, u8 pokeId, u32 arg4, u32 arg5, u32 arg6, u32 arg7);
-    virtual bool vf246(u32 arg1, u32 arg2);
-    virtual Unk_7c2d80_Ref vf247();
-    virtual u32 vf248();
-    virtual u32 vf249();
-    virtual u32 vf250();
+    virtual bool vf246(u8 client, u8 index);
+    virtual Unk_7c2d80_Ref vf247(u8 client);
+    virtual bool vf248(u8 client);
+    virtual u8 vf249();
+    virtual void vf250(Unk_8aa600_Out* out, u8 client);
     virtual u64 vf251();
     virtual Unk_7ecc90_Con* vf252();
     virtual Unk_7ee6b0* vf253(u8 client);
@@ -285,7 +295,7 @@ public:
     virtual const Unk_7fc430_Party* vf257();
     virtual const Unk_7fc430_Party* vf258(u32 value);
     virtual const Unk_7fc430_Party* vf259(u8 client);
-    virtual u64 vf260();
+    virtual const Unk_7d0b80* vf260();
     virtual u64 vf261();
     virtual bool vf262();
     virtual const Unk_8a9b50_Info* vf263();
@@ -315,7 +325,7 @@ public:
     virtual void vf287();
     virtual void vf288();
     virtual void vf289();
-    virtual void vf290();
+    virtual Unk_7c2d80_Ref vf290(u8 client, u16* out);
     virtual void vf291();
     virtual u8 vf292();
     virtual bool vf293(u8 client);
@@ -338,8 +348,8 @@ public:
     virtual u32 vf310();
     virtual void vf311();
     virtual void vf312();
-    virtual u32 vf313();
-    virtual u32 vf314();
+    virtual u8 vf313();
+    virtual u8 vf314();
     virtual void vf315();
     virtual void vf316();
     virtual void vf317();
@@ -352,13 +362,18 @@ public:
     virtual void vf324();
     virtual void vf325();
 
+    void
+    Unk_8aa360(u32* outMove, s32* outIndex, u32 species, u16 form, bool arg4, bool arg5, u32 move);
+
     Unk_7c2d80_Main* field_58;
     void* field_60;
     void* field_68;
     u32 field_70;
     u32 field_74;
-    u8 _78[0x20];
+    void* field_78;
+    u8 _80[0x18];
 };
 PKMN_OFFSET_ASSERT(Unk_23b9048, field_58, 0x58);
 PKMN_OFFSET_ASSERT(Unk_23b9048, field_60, 0x60);
+PKMN_OFFSET_ASSERT(Unk_23b9048, field_78, 0x78);
 PKMN_SIZE_ASSERT(Unk_23b9048, 0x98);
