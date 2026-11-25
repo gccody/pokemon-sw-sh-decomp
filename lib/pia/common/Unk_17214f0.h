@@ -75,9 +75,18 @@ PKMN_OFFSET_ASSERT(Event, m_event, 0x20);
 
 }  // namespace pead
 
+class Unk_1721740;
+// Its constructor and destructor, out of line (lib/nx_middleware/leaf/Unk_1721740.cpp,
+// written before the class was known: the destructor's parameter is its `this`).
+void Unk_1721740_set(Unk_1721740* self);
+void Unk_1721750_update(u64 self);
+
 // 0x50 bytes: an nn::os::MessageQueueType, then its buffer.
 class Unk_1721740 {
 public:
+    Unk_1721740() { Unk_1721740_set(this); }
+    ~Unk_1721740() { Unk_1721750_update(reinterpret_cast<u64>(this)); }
+
     void Unk_1721760(int count, pead::Heap* heap);
     void Unk_1721810();
     bool Unk_1721850(uintptr_t message, int type);
