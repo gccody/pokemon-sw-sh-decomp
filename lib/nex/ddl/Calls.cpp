@@ -113,10 +113,10 @@ void Unk_15af720_update();
 void Unk_15af730();
 void Unk_15af830();
 void Unk_15af8c0();
-void Unk_15b3ce0();
-void Unk_15b3d20();
+void Unk_15b3ce0(nn::nex::ByteStream* s, nn::nex::ProtocolCallContext* ctx);
+void Unk_15b3d20(nn::nex::ByteStream* s, nn::nex::ProtocolCallContext* ctx);
 void Unk_15b3df0_update();
-void Unk_15b3fa0();
+void Unk_15b3fa0(nn::nex::ByteStream* s, nn::nex::ProtocolCallContext* ctx);
 void Unk_164e820_update();
 void Unk_164e830_update();
 void Unk_164e840_update();
@@ -2428,7 +2428,7 @@ bool Unk_15b1cf0(nn::nex::ClientProtocol* self, nn::nex::ProtocolCallContext* ct
         if (ctx != nullptr) {
             Unk_1630ac0(ctx, arg2);
         }
-        Unk_27f26f8.m_handlers[1] = Unk_15b3ce0;
+        Unk_27f26f8.m_handlers[1] = reinterpret_cast<void (*)()>(Unk_15b3ce0);
         if (!self->m_canDefer || !Unk_1630b90(self, 0x10)) {
             return Unk_162f1a0(self, ctx, &msg);
         }
@@ -2459,7 +2459,7 @@ bool Unk_15b1f10(nn::nex::ClientProtocol* self, nn::nex::ProtocolCallContext* ct
         if (ctx != nullptr) {
             Unk_1630ac0(ctx, arg2);
         }
-        Unk_27f2860.m_handlers[0] = Unk_15b3fa0;
+        Unk_27f2860.m_handlers[0] = reinterpret_cast<void (*)()>(Unk_15b3fa0);
         if (!self->m_canDefer || !Unk_1630b90(self, 0x10)) {
             return Unk_162f1a0(self, ctx, &msg);
         }
@@ -2513,7 +2513,7 @@ bool Unk_15b2740(nn::nex::ClientProtocol* self, nn::nex::ProtocolCallContext* ct
         if (ctx != nullptr) {
             Unk_1630ac0(ctx, arg3);
         }
-        Unk_27f26f8.m_handlers[40] = Unk_15b3d20;
+        Unk_27f26f8.m_handlers[40] = reinterpret_cast<void (*)()>(Unk_15b3d20);
         if (!self->m_canDefer || !Unk_1630b90(self, 0x10)) {
             return Unk_162f1a0(self, ctx, &msg);
         }
