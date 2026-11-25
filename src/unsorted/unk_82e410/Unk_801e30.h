@@ -36,8 +36,8 @@ struct Unk_8022b0_Table {
 PKMN_SIZE_ASSERT(Unk_8022b0_Table, 0x580);
 
 void Unk_801e30(Unk_8022b0_Table* self);
-Unk_8022b0_Entry* Unk_8022b0(u64 self, u32 pos, u32 kind);
-bool Unk_8021d0(void* self, u32 pos1, u32 pos2, u32 kind);
+Unk_8022b0_Entry* Unk_8022b0(u64 self, u8 pos, u32 kind);
+bool Unk_8021d0(void* self, u8 pos1, u8 pos2, u32 kind);
 
 void Unk_802350(Unk_8022b0_Entry* self, const Unk_8022b0_Entry* other);
 void Unk_802370(Unk_8022b0_Entry* self, Unk_8022b0_Entry* other);
