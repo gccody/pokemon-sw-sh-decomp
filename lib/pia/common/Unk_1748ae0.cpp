@@ -132,9 +132,7 @@ void Unk_1748ab0::Unk_1748e80(s32 sample) {
 }
 
 // 0x7101748f30
-// NON_MATCHING: the original's test is signed (cmp x0, #0; b.le), as in
-// Unk_1748fb0: its parameter is an s64, where its name has a u64 (cbz here).
-nn::pia::Unk_165e060 Unk_1748f30(u64 timeout) {
+nn::pia::Unk_165e060 Unk_1748f30(s64 timeout) {
     if (timeout <= 0) {
         return nn::pia::Unk_165e060Value<0x10c07>();
     }
