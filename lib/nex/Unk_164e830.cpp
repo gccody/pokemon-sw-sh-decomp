@@ -2,7 +2,7 @@
 // NEX 4.6.8: the D0s of the "LocationData" and "SubscriptionData" data
 // classes' fields classes (lib/nex/Unk_164e150.h; vtables 0x71024566e8,
 // 0x7102456638, and 0x7102456798, a class derived from SubscriptionData's
-// fields), and the D0, the result dispatch (slot 21) and the factory (slot
+// fields), a vector of SubscriptionData's stream-in, and the D0, the result dispatch (slot 21) and the factory (slot
 // 22) of their protocol's client (vtable 0x7102456528).
 #include "Unk_164e150.h"
 
@@ -13,20 +13,25 @@ void Unk_1638220(nn::nex::ClientProtocol* self);
 // 0x710162efb0: reports an unexpected result.
 void Unk_162efb0(const Unk_15bbc10& result);
 
+using nn::nex::ReadLength;
+
+// 0x710164dc90
+void Unk_164dc90_read(nn::nex::ByteStream* s, Unk_164da60& v);
+
 // The protocol's result handlers (lib/nex/ddl/Calls.cpp stores them), each
 // called with the response and the client's argument.
 extern Unk_Handlers Unk_27f9b68;
 using Unk_Handler = void (*)(nn::nex::ByteStream* response, void* arg);
 
 // 0x710164ec40
-void Unk_164ec40(Unk_164da60* self) {
-    self->~Unk_164da60();
+void Unk_164ec40(Unk_2456628* self) {
+    self->Unk_2456628::~Unk_2456628();
     Unk_15b6e10(self);
 }
 
 // 0x710164ec80
-void Unk_164ec80(Unk_164e020* self) {
-    self->~Unk_164e020();
+void Unk_164ec80(Unk_24566d8* self) {
+    self->Unk_24566d8::~Unk_24566d8();
     Unk_15b6e10(self);
 }
 
@@ -37,8 +42,8 @@ void Unk_164ecc0(nn::nex::ClientProtocol* self) {
 }
 
 // 0x710164ed40
-void Unk_164ed40(Unk_164da60* self) {
-    self->~Unk_164da60();
+void Unk_164ed40(Unk_2456628* self) {
+    self->Unk_2456628::~Unk_2456628();
     Unk_15b6e10(self);
 }
 
@@ -62,4 +67,22 @@ nn::nex::ClientProtocol* Unk_164ecf0(nn::nex::ClientProtocol* self) {
         Unk_164e720_init(client, 0);
     }
     return client;
+}
+
+// 0x710164ed80: a vector of SubscriptionData (its u32 count, then each one).
+void Unk_164ed80_read(nn::nex::ByteStream* s, nn::nex::qVector<Unk_164da60>& v) {
+    v.clear();
+    u32 count;
+    if (!ReadLength(s, count)) return;
+    v.reserve(count);
+    for (u32 i = 0; i < count; i++) {
+        if (s->m_error) return;
+        Unk_164da60 data;
+        Unk_164dc90_read(s, data);
+        if (s->m_error) {
+            v.clear();
+            return;
+        }
+        v.push_back(data);
+    }
 }
