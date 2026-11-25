@@ -5,6 +5,16 @@
 
 #include "gflib3/Unk_239a418.h"
 
+void Unk_eb6230(void*, u32);
+
+// 0x7101321340
+void Unk_1321340_call(void* self, bool value) {
+    if (value != 0) {
+        Unk_eb6230(self, 1);
+    }
+    Unk_eb6230(self, 3);
+}
+
 u32 Unk_eb6530(void*);
 
 // 0x7101321380

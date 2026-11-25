@@ -103,6 +103,20 @@ void Unk_8e6880_set(Unk_8e6880* self, Unk_8e6880_arg1* value) {
     value->field_0 = v0;
 }
 
+struct Unk_8e6f20 {
+    u8 _0[0x6fc];
+    u8 field_6fc;
+};
+PKMN_OFFSET_ASSERT(Unk_8e6f20, field_6fc, 0x6fc);
+
+void Unk_eb8a30(void*, u32);
+
+// 0x71008e6f20
+void Unk_8e6f20_call(Unk_8e6f20* self) {
+    Unk_eb8a30(self, 1);
+    self->field_6fc = 0;
+}
+
 struct Unk_8e80e0 {
     u8 _0[0x5cc];
     u8 field_5cc;

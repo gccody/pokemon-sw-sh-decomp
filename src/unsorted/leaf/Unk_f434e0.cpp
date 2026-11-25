@@ -13,6 +13,22 @@ u32 Unk_f434e0_call(void* self) {
     return ~r0 & 1;
 }
 
+struct Unk_f43600 {
+    u8 _0[0x5cb];
+    u8 field_5cb;
+};
+PKMN_OFFSET_ASSERT(Unk_f43600, field_5cb, 0x5cb);
+
+void Unk_eb6230(void*, u32);
+
+// 0x7100f43600
+void Unk_f43600_call(Unk_f43600* self, u32 /*unused*/) {
+    if (self->field_5cb != 0) {
+        Unk_eb6230(self, 3);
+        self->field_5cb = 0;
+    }
+}
+
 struct Unk_f43630 {
     u8 _0[0x5cc];
     u32 field_5cc;

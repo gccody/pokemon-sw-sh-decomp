@@ -584,6 +584,22 @@ u32 Unk_767810_call(const Unk_767810* self) {
     return r0 & 0xff;
 }
 
+struct Unk_767830 {
+    u8 _0[0x98];
+    u64 field_98;
+};
+PKMN_OFFSET_ASSERT(Unk_767830, field_98, 0x98);
+void Unk_77d3c0(u64, u32);
+
+// 0x7100767830
+void Unk_767830_call(const Unk_767830* self, u32 value) {
+    if (value >= 0x100) {
+        Unk_77d3c0(self->field_98, 0xff);
+        return;
+    }
+    Unk_77d3c0(self->field_98, value);
+}
+
 struct Unk_767850 {
     u8 _0[0x98];
     void* field_98;

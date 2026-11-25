@@ -31,6 +31,15 @@ void Unk_7ff870_set(Unk_7ff870* self, const Unk_7ff870_arg1* value) {
     self->field_8 = value->field_8;
 }
 
+extern "C" void* memset(void*, int, unsigned long);
+void Unk_7ff8f0(void*);
+
+// 0x71007ff8c0
+void Unk_7ff8c0_call(void* self) {
+    memset(self, 0, 0x1c0);
+    Unk_7ff8f0(self);
+}
+
 // 0x71007ffa70
 void Unk_7ffa70() {}
 

@@ -109,6 +109,18 @@ u32 Unk_eeb410_getField0(const Unk_eeb410* self) {
     return self->field_0;
 }
 
+struct Unk_eef800 {
+    void* field_0;
+};
+PKMN_OFFSET_ASSERT(Unk_eef800, field_0, 0x0);
+
+void Unk_eb6230(void*, u32);
+
+// 0x7100eef800
+void Unk_eef800_call(const Unk_eef800* self) {
+    Unk_eb6230(self->field_0, 3);
+}
+
 // 0x7100eef810
 void Unk_eef810_update() {}
 
