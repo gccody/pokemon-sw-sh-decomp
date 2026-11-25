@@ -6,7 +6,7 @@
 
 struct Unk_7fc430_Party;
 const Unk_7fc430_Party* Unk_7ed1b0(const Unk_7ecc90_Con* self, u32 client);
-// NON_MATCHING callee: named without the Pokemon it's given.
+// Named after the Pokemon it's given.
 u32 Unk_7ef6a0(const Unk_7ee6b0* poke);
 bool Unk_855b30(const Unk_7ee6b0* poke);
 bool Unk_7eb540(u16 value);
@@ -61,8 +61,6 @@ void Unk_81b930(const Unk_819600_Self* self, u8* pokeIds, u32 count, u8 otherId,
 }
 
 // 0x710081bb60
-// NON_MATCHING: only the call to Unk_7ef6a0, whose placeholder name has no
-// parameter (it's given the Pokemon): matches once renamed
 u32 Unk_81bb60(const Unk_819600_Self* self, u8 pokeId) {
     Unk_7ee6b0* poke = Unk_7ed1e0(Unk_7fe1d0_getField8(self->field_8), pokeId);
     if (poke != nullptr)
@@ -100,8 +98,7 @@ void Unk_81bd40(const Unk_819600_Self* self, u8 pokeId, u8 count, u8 value) {
 }
 
 // 0x710081bc20
-// NON_MATCHING: Unk_81bd40's zero-extensions (see there), and the call to
-// Unk_82afd0 (named without its parameter)
+// NON_MATCHING: Unk_81bd40's zero-extensions (see there).
 void Unk_81bc20(void* arg, u64 pokeId, u32 count, u32 value) {
     const Unk_819600_Self* self = static_cast<const Unk_819600_Self*>(arg);
     if (Unk_7ca1c0_getField150(static_cast<const Unk_7ca1c0*>(self->field_0)) == 0)
@@ -119,8 +116,6 @@ void Unk_81bc20(void* arg, u64 pokeId, u32 count, u32 value) {
 }
 
 // 0x710081bd20
-// NON_MATCHING: only the call to Unk_82afd0, whose placeholder name has no
-// parameter: matches once renamed
 u8 Unk_81bd20(const Unk_819600_Self* self) {
     return Unk_81b200_Entry(self)->field_36;
 }

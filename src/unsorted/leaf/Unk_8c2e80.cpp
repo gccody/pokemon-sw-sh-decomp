@@ -3,6 +3,8 @@
 // TUs). Placeholder types: rename and move once the owning classes are known.
 #include <types.h>
 
+struct Unk_7ee6b0;
+
 struct Unk_8c2e80_170 {
     virtual void vf0();
     virtual void vf1();
@@ -38,13 +40,13 @@ struct Unk_8c3220_arg1 {
 };
 PKMN_OFFSET_ASSERT(Unk_8c3220_arg1, field_0, 0x0);
 
-u32 Unk_7ef6a0();
-void Unk_8c20a0(void*, u32);
+struct Unk_7ee6b0;
+u32 Unk_7ef6a0(const Unk_7ee6b0*);
+const Unk_7ee6b0* Unk_8c20a0(void*, u32);
 
 // 0x71008c3220
 bool Unk_8c3220_call(void* self, const Unk_8c3220_arg1* value) {
-    Unk_8c20a0(self, value->field_0);
-    u32 r1 = Unk_7ef6a0();
+    u32 r1 = Unk_7ef6a0(Unk_8c20a0(self, value->field_0));
     return r1 != 0;
 }
 
@@ -53,13 +55,13 @@ struct Unk_8c3250_arg1 {
 };
 PKMN_OFFSET_ASSERT(Unk_8c3250_arg1, field_0, 0x0);
 
-u32 Unk_7ef6a0();
-void Unk_8c20a0(void*, u32);
+struct Unk_7ee6b0;
+u32 Unk_7ef6a0(const Unk_7ee6b0*);
+const Unk_7ee6b0* Unk_8c20a0(void*, u32);
 
 // 0x71008c3250
 bool Unk_8c3250_call(void* self, const Unk_8c3250_arg1* value) {
-    Unk_8c20a0(self, value->field_0);
-    u32 r1 = Unk_7ef6a0();
+    u32 r1 = Unk_7ef6a0(Unk_8c20a0(self, value->field_0));
     return r1 == 0;
 }
 
@@ -69,7 +71,7 @@ struct Unk_8c32f0_arg1 {
 PKMN_OFFSET_ASSERT(Unk_8c32f0_arg1, field_0, 0x0);
 
 u64 Unk_7ef630();
-void Unk_8c20a0(void*, u32);
+const Unk_7ee6b0* Unk_8c20a0(void*, u32);
 
 // 0x71008c32f0
 u64 Unk_8c32f0_call(void* self, const Unk_8c32f0_arg1* value) {
@@ -133,13 +135,13 @@ struct Unk_8c5740_arg1 {
 };
 PKMN_OFFSET_ASSERT(Unk_8c5740_arg1, field_0, 0x0);
 
-u64 Unk_7ef2b0();
-void Unk_8c20a0(void*, u32);
+struct Unk_7ee6b0;
+u64 Unk_7ef2b0(const Unk_7ee6b0*);
+const Unk_7ee6b0* Unk_8c20a0(void*, u32);
 
 // 0x71008c5740
 u64 Unk_8c5740_call(void* self, const Unk_8c5740_arg1* value) {
-    Unk_8c20a0(self, value->field_0);
-    u64 r1 = Unk_7ef2b0();
+    u64 r1 = Unk_7ef2b0(Unk_8c20a0(self, value->field_0));
     return r1 & 1;
 }
 
@@ -215,7 +217,7 @@ struct Unk_8c5b20_arg1 {
 PKMN_OFFSET_ASSERT(Unk_8c5b20_arg1, field_0, 0x0);
 
 u32 Unk_7f0b30();
-void Unk_8c20a0(void*, u32);
+const Unk_7ee6b0* Unk_8c20a0(void*, u32);
 
 // 0x71008c5b20
 bool Unk_8c5b20_call(void* self, const Unk_8c5b20_arg1* value) {

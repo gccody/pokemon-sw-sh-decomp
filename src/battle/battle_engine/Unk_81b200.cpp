@@ -12,7 +12,7 @@ struct Unk_7f09c0;
 u16 Unk_7f09c0_getField76(const Unk_7f09c0* self);
 u8 Unk_764ca0(void* self);
 bool Unk_7ebab0(u16 move);
-// NON_MATCHING callee: named without the Pokemon it's given.
+// Named after the Pokemon it's given.
 bool Unk_7ef2b0(const Unk_7ee6b0* poke);
 u32 Unk_7e9a00(u64 self, u8 index);
 void Unk_7e9a10(u64 self, u8 index, u32 value);
@@ -51,8 +51,6 @@ static inline Unk_7ecc90_Con* Unk_81b200_Con(const Unk_819600_Self* self) {
 }
 
 // 0x710081b230
-// NON_MATCHING: only the call to Unk_82afd0, whose placeholder name has no
-// parameter (it's given the object at +0x28's field): matches once renamed
 void Unk_81b230(void* arg, u32 pokeId) {
     const Unk_819600_Self* self = static_cast<const Unk_819600_Self*>(arg);
     if (Unk_7f0b70_check(
@@ -74,10 +72,7 @@ void Unk_81b230(void* arg, u32 pokeId) {
 }
 
 // 0x710081b320
-// NON_MATCHING: the Pokemon is a u8 (compared with uxtb), the placeholder
-// name gives a u32; and the call to Unk_82afd0 (named without its parameter)
-void Unk_81b320(void* arg, u32 pokeId) {
-    const Unk_819600_Self* self = static_cast<const Unk_819600_Self*>(arg);
+void Unk_81b320(const Unk_819600_Self* self, u8 pokeId) {
     if (Unk_7e9830(self->field_30, 0x55) != 0)
         return;
     if (Unk_7e9830(self->field_30, 4) != pokeId)
@@ -158,10 +153,7 @@ u32 Unk_81b610(const Unk_819600_Self* self, u8 pokeId) {
 }
 
 // 0x710081b6e0
-// NON_MATCHING: the Pokemon is a u8 (compared with uxtb), the placeholder
-// name gives a u32: matches with a u8
-bool Unk_81b6e0(void* arg, u32 pokeId) {
-    const Unk_819600_Self* self = static_cast<const Unk_819600_Self*>(arg);
+bool Unk_81b6e0(const Unk_819600_Self* self, u8 pokeId) {
     if (Unk_7e9830(self->field_30, 2) == pokeId) {
         s32 count = Unk_7e9830(self->field_30, 0x35);
         if (count > 0)
@@ -193,10 +185,7 @@ bool Unk_81b7e0(const Unk_819600_Self* self, u8 pokeId, u32 value) {
 }
 
 // 0x710081b860
-// NON_MATCHING: the Pokemon is a u8 (compared with uxtb), the placeholder
-// name gives a u32: matches with a u8
-void Unk_81b860(void* arg, u32 pokeId) {
-    const Unk_819600_Self* self = static_cast<const Unk_819600_Self*>(arg);
+void Unk_81b860(const Unk_819600_Self* self, u8 pokeId) {
     if (Unk_7e9830(self->field_30, 3) == pokeId) {
         Unk_7ee6b0* poke = Unk_7ed1e0(Unk_81b200_Con(self), pokeId);
         bool flag = Unk_7f09c0_getField76(reinterpret_cast<const Unk_7f09c0*>(poke)) != 0;

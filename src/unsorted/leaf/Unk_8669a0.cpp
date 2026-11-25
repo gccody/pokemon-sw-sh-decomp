@@ -3139,18 +3139,20 @@ void Unk_86b8b0_call(void* self, u32 value) {
     Unk_86b540(self, 0, value);
 }
 
-void Unk_81b320(void*, u32);
+struct Unk_819600_Self;
+void Unk_81b320(const Unk_819600_Self*, u8);
 
 // 0x710086ea90
 void Unk_86ea90_call(void* self, u32 value) {
-    Unk_81b320(self, value);
+    Unk_81b320(static_cast<const Unk_819600_Self*>(self), value);
 }
 
-void Unk_81b860(void*, u32);
+struct Unk_819600_Self;
+void Unk_81b860(const Unk_819600_Self*, u8);
 
 // 0x710086eb40
 void Unk_86eb40_call(void* self, u32 value) {
-    Unk_81b860(self, value);
+    Unk_81b860(static_cast<const Unk_819600_Self*>(self), value);
 }
 
 void Unk_86f720(void*, u32);

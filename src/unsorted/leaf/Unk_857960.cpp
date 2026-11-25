@@ -2620,11 +2620,12 @@ void Unk_860980_call(void* self, u64 value) {
     Unk_8608d0(self, value, 0xc, 1);
 }
 
-void Unk_81b6e0(void*, u32);
+struct Unk_819600_Self;
+void Unk_81b6e0(const Unk_819600_Self*, u8);
 
 // 0x7100860f20
 void Unk_860f20_call(void* self, u32 value) {
-    Unk_81b6e0(self, value);
+    Unk_81b6e0(static_cast<const Unk_819600_Self*>(self), value);
 }
 
 void Unk_861190(void*, u64, u32);

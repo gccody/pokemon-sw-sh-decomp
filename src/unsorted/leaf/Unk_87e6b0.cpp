@@ -1747,11 +1747,12 @@ const u8* Unk_888ee0_update(Unk_888ee0* self) {
     return Unk_23b6190;
 }
 
-void Unk_81b6e0(void*, u32);
+struct Unk_819600_Self;
+void Unk_81b6e0(const Unk_819600_Self*, u8);
 
 // 0x7100888f00
 void Unk_888f00_call(void* self, u32 value) {
-    Unk_81b6e0(self, value);
+    Unk_81b6e0(static_cast<const Unk_819600_Self*>(self), value);
 }
 
 extern const u8 Unk_23b61b0[] __attribute__((visibility("hidden")));
@@ -2020,11 +2021,12 @@ void Unk_88a580_call(void* self, u32 value) {
     Unk_81b230(self, value);
 }
 
-void Unk_81b320(void*, u32);
+struct Unk_819600_Self;
+void Unk_81b320(const Unk_819600_Self*, u8);
 
 // 0x710088a590
 void Unk_88a590_call(void* self, u32 value) {
-    Unk_81b320(self, value);
+    Unk_81b320(static_cast<const Unk_819600_Self*>(self), value);
 }
 
 extern const u8 Unk_23b63c0[] __attribute__((visibility("hidden")));
@@ -2498,11 +2500,12 @@ const u8* Unk_88c7f0_update(Unk_88c7f0* self) {
     return Unk_23b6810;
 }
 
-void Unk_81b860(void*, u32);
+struct Unk_819600_Self;
+void Unk_81b860(const Unk_819600_Self*, u8);
 
 // 0x710088c810
 void Unk_88c810_call(void* self, u32 value) {
-    Unk_81b860(self, value);
+    Unk_81b860(static_cast<const Unk_819600_Self*>(self), value);
 }
 
 extern const u8 Unk_23b6830[] __attribute__((visibility("hidden")));

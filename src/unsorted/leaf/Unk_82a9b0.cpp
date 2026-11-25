@@ -99,12 +99,11 @@ struct Unk_82aa30 {
 PKMN_OFFSET_ASSERT(Unk_82aa30, field_40, 0x40);
 
 u64 Unk_82b4f0_getField8(const Unk_82b4f0*);
-void Unk_82afd0();
+void Unk_82afd0(void*);
 
 // 0x710082aa30
 void Unk_82aa30_call(const Unk_82aa30* self) {
-    Unk_82b4f0_getField8(self->field_40);
-    Unk_82afd0();
+    Unk_82afd0(reinterpret_cast<void*>(Unk_82b4f0_getField8(self->field_40)));
 }
 
 struct Unk_82aa50 {
