@@ -111,6 +111,8 @@ void Unk_2409398::vf5() {
     }
 }
 
+// NON_MATCHING (its thunk 0x710102b960): identical, but its row in data/functions.csv still
+// has the free-function name, so the thunk's tail call is to an unknown symbol.
 // 0x7101029020, 0x710102b960 (its thunk from +0x48). Named in data/functions.csv as a free function
 // (a caller devirtualizes it: src/unsorted/leaf/Unk_1028e70.cpp).
 void Unk_24092b8::vf6(Unk_102c130* listener) {
