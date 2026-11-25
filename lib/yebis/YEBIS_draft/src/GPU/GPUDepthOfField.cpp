@@ -1237,7 +1237,8 @@ s32 CDepthOfField::Unk_4b6530(CRenderTexture* source, void* arg2, CRenderTexture
 
 // 0x71004b4ff0: the numbers of levels with a near and a far blur, and the
 // levels' and the passes' sources scaled down from `source`
-// `skip` is `same & (i >= field_218)`.
+// `skip` is `same & (i >= field_218)`. In the passes' loop the width isn't a
+// named float and y's half is (their DBG_VALUEs steer the FP load balancing).
 // NON_MATCHING: 2744 vs 2792 bytes, same calls and arguments; registers and
 // scheduling differ, and the two scale vectors (field_178 clamped) are stored
 // as two float elements here, where the original stores the first element
@@ -1324,7 +1325,6 @@ s32 CDepthOfField::Unk_4b4ff0(CRenderTexture* source) {
             Unk_Pass* second = field_428;
             f32 size = (field_3e0 - 1.5f) * powf(0.5f, static_cast<f32>(i)) + 1.5f;
             size = size < 2.0f ? 2.0f : std::min(size, 65000.0f);
-            f32 width = static_cast<f32>(static_cast<u32>(field_c0.field_0[1]));
             f32 height = static_cast<f32>(static_cast<u32>(field_c0.field_0[2]));
             f32 last = field_3dc;
             if (i == field_3f8 - 1) {
@@ -1332,15 +1332,16 @@ s32 CDepthOfField::Unk_4b4ff0(CRenderTexture* source) {
             }
             f32 x = second[i].field_78.field_0;
             f32 y;
-            if (width < height) {
-                f32 ratio = width / height;
+            if (static_cast<f32>(static_cast<u32>(field_c0.field_0[1])) < height) {
+                f32 ratio = static_cast<f32>(static_cast<u32>(field_c0.field_0[1])) / height;
                 x = x * ratio;
                 y = ratio * first[i].field_78.field_0;
             } else {
                 y = first[i].field_78.field_0;
             }
             x = x * 0.5f / field_1e4 * field_1e8.field_0[0].field_0 + field_1e8.field_0[1].field_0;
-            y = y * 0.5f / field_1e4 * field_1e8.field_0[0].field_0 + field_1e8.field_0[1].field_0;
+            f32 half = y * 0.5f;
+            y = half / field_1e4 * field_1e8.field_0[0].field_0 + field_1e8.field_0[1].field_0;
             Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
             Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
             util->Unk_4816a0(size, field_3d8 / field_3ac, last / field_3ac, field_430[i],
@@ -2805,14 +2806,20 @@ static inline void Unk_ScaleOnly(MATRIXT44* out, const Unk_Vector3* scale) {
 // aspect ratio and rotated), as the constants of field_c8
 // The table position is a named float before its conversion (its DBG_VALUE
 // decides how the A57 FP load balancing pass colours the two products), the
-// near loop's size is converted where it is read, and the scale matrices are
+// near loop's size is converted where it is read (in the position's
+// expression, as in the first near block), and the scale matrices are
 // Unk_ScaleOnly's (all twelve zeros in one chain, so MemCpyOpt makes three
-// 16-byte memsets and the diagonal's 1.0 is stored on its own).
-// NON_MATCHING: registers and the near loop's layout: the original walks the
-// points and the generator's state through other registers, and keeps the
+// 16-byte memsets and the diagonal's 1.0 is stored on its own). In the near
+// loop the parameters are copied before the point is read (the original loads
+// x and y after the copy), the length test is `!(length <= 0.0f)` (`b.hi`),
+// and the scaled point's elements are named floats.
+// NON_MATCHING: registers and the near loop's setup: the original walks the
+// points through a pointer to the element (here to its y, `orr x, sp, #4`)
+// and keeps the generator's state in another register, and keeps the
 // position's `y * -0.5f + 0.5f` (`fmov s1, #-0.5` in the loop) where here
 // InstCombine or Reassociate turn the direct form into a subtraction
-// (`0.5f - p.x * -0.5f` keeps the -0.5 for x instead, closest overall).
+// (`0.5f - p.x * -0.5f` keeps the -0.5 for x instead, closest overall; every
+// combination of the two elements' spellings was tried).
 s32 CDepthOfField::Unk_4b1100(bool near, bool far, s32 count, f32 angle) {
     CTextureUtil* util = Unk_GetTextureUtil();
     Unk_ReleaseTextureUtil();
@@ -2848,15 +2855,14 @@ s32 CDepthOfField::Unk_4b1100(bool near, bool far, s32 count, f32 angle) {
     MATRIXT44_MatrixMultiply(&matrix, &matrix, &scaling);
     if (near) {
         f32 t = Unk_NearPosition(far);
-        f32 size = static_cast<f32>(field_2f0);
         static Unk_Random random(1);
         f32 jitter = 0.0f / rings;
-        f32 position = (1.0f - t) * size * 0.9999f;
+        f32 position = (1.0f - t) * static_cast<f32>(field_2f0) * 0.9999f;
         s32 index = static_cast<s32>(position);
         for (s32 i = 0; i < taps; i++) {
+            Unk_462090_Params params = field_378[field_2a8][index];
             f32 x = points[i].field_0[0].field_0;
             f32 y = points[i].field_0[1].field_0;
-            Unk_462090_Params params = field_378[field_2a8][index];
             Unk_Float2 p(-x, -y);
             Unk_Float2 position(0.5f - p.field_0[0].field_0 * -0.5f, 0.5f - y * 0.5f);
             Unk_Float2 area(0.0078125f, 0.0078125f);
@@ -2867,10 +2873,12 @@ s32 CDepthOfField::Unk_4b1100(bool near, bool far, s32 count, f32 angle) {
             falloff.field_0[3].field_0 = falloff.field_0[0].field_0 > 0.0f ? 1.0f : 0.0f;
             f32 length = Unk_Sqrt(x * x + y * y);
             f32 factor = 1.0f;
-            if (length > 0.0f) {
+            if (!(length <= 0.0f)) {
                 factor = length / (1.0f - falloff.field_0[0].field_0) / params.field_14;
             }
-            p = Unk_Float2(factor * points[i].field_0[0].field_0, factor * points[i].field_0[1].field_0);
+            f32 px = factor * points[i].field_0[0].field_0;
+            f32 py = factor * points[i].field_0[1].field_0;
+            p = Unk_Float2(px, py);
             p = Unk_Transform(p, matrix);
             constants[i].field_0[0] = p.field_0[0];
             constants[i].field_0[1] = p.field_0[1];
@@ -2911,7 +2919,8 @@ s32 CDepthOfField::Unk_4b1100(bool near, bool far, s32 count, f32 angle) {
 // in a callee-saved register from the near test on and lays the near
 // position's ratio test and the technique selection's two near branches out
 // differently (the blades' table position is a named float, as in
-// 0x71004b1100). `first` is
+// 0x71004b1100; so are the rectangles' scaled w and the far offset's
+// diameter, for the FP load balancing). `first` is
 // handed to Unk_NearPosition, which ignores it: an argument used only there
 // survives DeadArgElim, so 0x71004b4c40 passes `i == 0` as the original does.
 s32 CDepthOfField::Unk_4b35f0(f32 scale, CRenderTexture* source, CRenderTexture* target, void* arg3, void* arg4,
@@ -3064,7 +3073,8 @@ s32 CDepthOfField::Unk_4b35f0(f32 scale, CRenderTexture* source, CRenderTexture*
             rects[i].field_0[0].field_0 = rects[i].field_0[0].field_0 * 2.0f;
             rects[i].field_0[1].field_0 = sign * rects[i].field_0[1].field_0;
             rects[i].field_0[2].field_0 = rects[i].field_0[2].field_0 * 2.0f - 1.0f;
-            rects[i].field_0[3].field_0 = bias + rects[i].field_0[3].field_0 * sign;
+            f32 scaled = rects[i].field_0[3].field_0 * sign;
+            rects[i].field_0[3].field_0 = bias + scaled;
         }
     }
     constants[12].field_0[2].field_0 = 0.0f;
@@ -3075,7 +3085,8 @@ s32 CDepthOfField::Unk_4b35f0(f32 scale, CRenderTexture* source, CRenderTexture*
         f32 ax = Unk_Abs(x);
         f32 y = Unk_4b0db0_Distance(this) * 0.002f;
         f32 offset = Unk_MaxF(ax, Unk_Abs(y));
-        constants[12].field_0[2].field_0 = Unk_MaxF(sizeX, sizeY) * (offset * 2.0f);
+        f32 diameter = offset * 2.0f;
+        constants[12].field_0[2].field_0 = Unk_MaxF(sizeX, sizeY) * diameter;
     }
     effect->vf22(util->field_30.field_c4, constants, 15);
     effect->vf22(util->field_30.field_cc, sizes, 5);
@@ -3534,16 +3545,18 @@ s32 CDepthOfField::Unk_4b5b40() {
 // source and target swap and it gets worse), keeps more of the level's
 // addresses in stack slots (&field_a8, &field_38) and multiplies the
 // source's size by its scale before Unk_49d250 (here after it, although
-// the IR has it before). What decided the rest: the first fade's target
+// the IR has it before). What decided the rest: the item's address taken
+// before the texture util is fetched (the level's `sxtw` comes first in the
+// original), the first fade's target
 // (field_a8) read before its test, both fade tests `&&`, the bias read
 // as an Unk_Float through the Unk_Float2 at field_d8 (integer loads and
 // stores) and the range written element by element, the target's size
 // converted where it is read.
 s32 CDepthOfField::Unk_4b29b0(s32 level) {
     Unk_Level* levels = field_4a8;
+    Unk_Level* item = &levels[level];
     CTextureUtil* util = Unk_GetTextureUtil();
     Unk_ReleaseTextureUtil();
-    Unk_Level* item = &levels[level];
     bool same = item->field_0 == static_cast<u32>(item->field_a0->field_54);
     if (!Unk_442c50_get(reinterpret_cast<u64>(field_20)))
         same &= field_224 == 0;

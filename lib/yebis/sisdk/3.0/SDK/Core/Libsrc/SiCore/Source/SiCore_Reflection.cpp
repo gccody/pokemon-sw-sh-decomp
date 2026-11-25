@@ -45,21 +45,17 @@ void SiReflectionObject::Unk_4cb170() {
 }
 
 // 0x71004cb420
-// NON_MATCHING: 9 instructions: the loop's index is zero-extended from the
-// base's count in the original (`and x12, x12, #0xffffffff`, here `sxtw`),
-// and two registers are exchanged. The list's final size is the size before
-// the loop plus the base's count, computed before the loop (`add x10, x12,
-// x8`): the original adds them in the source, it doesn't reread the list's
-// count (round 6; the index as u32, s64, size_t, counted up or down: the
-// same or worse).
+// (The index is an s64 from the base's count as an int, counted down to 1
+// with `i - 1` read: the original's zero-extended start. The int counter
+// declared after the pointer is incremented after the index.)
 void SiReflectionObject::Unk_4cb420() {
-    s64 count = 0;
     size_t total = field_58.m_count;
     SiReflectionObject* pBase = field_50;
+    int count = 0;
     if (pBase != nullptr) {
         total += pBase->field_80.m_itemCount;
-        for (int i = static_cast<int>(pBase->field_80.m_itemCount) - 1; i >= 0; i--) {
-            field_58.AddHead(pBase->field_80.m_pData[i]);
+        for (s64 i = static_cast<int>(pBase->field_80.m_itemCount); i > 0; i--) {
+            field_58.AddHead(pBase->field_80.m_pData[i - 1]);
             count++;
         }
     }
