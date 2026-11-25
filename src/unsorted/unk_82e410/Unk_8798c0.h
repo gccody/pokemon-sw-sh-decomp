@@ -137,3 +137,92 @@ PKMN_SIZE_ASSERT(Unk_836520_Arg, 0x40);
 PKMN_OFFSET_ASSERT(Unk_836520_Arg, field_14, 0x14);
 PKMN_OFFSET_ASSERT(Unk_836520_Arg, field_18, 0x18);
 bool Unk_819d00(const Unk_819600_Self* self, const Unk_836520_Arg& arg);
+
+// What the handlers of 0x710087a0a0-0x710087a8c4 call.
+struct Unk_819650;
+struct Unk_819690;
+struct Unk_8197a0;
+void Unk_819650_call(const Unk_819650* self, u8 value);
+u16 Unk_819690_call(const Unk_819690* self);
+// Named (..., u32); 0x710087a0a0 passes it a u8 without extending it.
+u8 Unk_8197a0_call(const Unk_8197a0* self, u32 value);
+u16 Unk_7ef200(const Unk_7ee6b0* self);
+u32 Unk_7f05d0(void* object);
+u32 Unk_7f79e0(Unk_7ee6b0* self, u32 divisor, bool check);
+// Named (u32, u32); 0x710087a310 passes it u8s without extending them.
+u64 Unk_7f7940(u32 pokeId, u32 turns);
+u32 Unk_82da30(u8 type);
+bool Unk_7f0aa0(const Unk_7ee6b0* poke, u32 flag);
+bool Unk_86ff60(void* self, u8 pokeId, bool flag);
+void Unk_870270(void* self, u8 pokeId, const Unk_7ee6b0* poke, u16 message);
+// Named (u32); 0x710087a7b0 passes it a second value (the Pokemon) in w1.
+u64 Unk_7f78c0(u32 kind, u8 pokeId);
+// Named (void*, u32); they compare the value as a byte.
+void Unk_87a210(void* self, u32 pokeId);
+void Unk_87a7b0(void* self, u32 pokeId);
+
+// The parameter block of 0x710082fa10 (through Unk_81a190): field_0 the
+// Pokemon, field_4 a kind, field_8 a packed value (Unk_7f87a0), a message
+// list at +0x14 and a flag at +0x38.
+struct Unk_82fa10_Arg {
+    u8 field_0;
+    u8 _1[3];
+    u32 field_4;
+    u64 field_8;
+    u8 field_10;
+    u8 _11;
+    u16 field_12;
+    Unk_840b50_List field_14;
+    u8 field_38;
+
+    Unk_82fa10_Arg() : field_0(0x1f), field_4(0x16), field_8(0), field_10(2), field_12(0xea) {
+        Unk_803c60_set(reinterpret_cast<Unk_803c60*>(&field_14));
+    }
+};
+PKMN_OFFSET_ASSERT(Unk_82fa10_Arg, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_82fa10_Arg, field_14, 0x14);
+PKMN_OFFSET_ASSERT(Unk_82fa10_Arg, field_38, 0x38);
+PKMN_SIZE_ASSERT(Unk_82fa10_Arg, 0x40);
+bool Unk_81a190(const Unk_819600_Self* self, const Unk_82fa10_Arg& arg);
+
+// As in Unk_886280.h: what 0x710087a210 gives Unk_819b80, with a message
+// list at +0x10.
+struct Unk_84d950_Arg {
+    u8 field_0;
+    u8 field_1;
+    u16 field_2;
+    u8 field_4;
+    u8 field_5;
+    u8 field_6;
+    u8 field_7;
+    u8 field_8;
+    u8 field_9;
+    u8 field_a;
+    u8 field_b;
+    u8 field_c;
+    u8 field_d;
+    u8 _e[2];
+    Unk_840b50_List field_10;
+
+    Unk_84d950_Arg()
+        : field_0(0x1f),
+          field_1(0x1f),
+          field_2(0),
+          field_4(0),
+          field_5(0x1f),
+          field_6(0),
+          field_7(0),
+          field_8(0),
+          field_9(0),
+          field_a(0),
+          field_b(0),
+          field_c(5),
+          field_d(5) {
+        Unk_803c60_set(reinterpret_cast<Unk_803c60*>(&field_10));
+    }
+};
+PKMN_OFFSET_ASSERT(Unk_84d950_Arg, field_2, 0x2);
+PKMN_OFFSET_ASSERT(Unk_84d950_Arg, field_c, 0xc);
+PKMN_OFFSET_ASSERT(Unk_84d950_Arg, field_10, 0x10);
+PKMN_SIZE_ASSERT(Unk_84d950_Arg, 0x34);
+bool Unk_819b80(const Unk_819600_Self* self, const Unk_84d950_Arg& arg);
