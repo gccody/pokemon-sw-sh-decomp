@@ -5,6 +5,7 @@
     python tools/worktree_setup.py --jobs 4            # ... with ninja running 4 compiles at once
     python tools/worktree_setup.py create ../w1 --branch swarm-unit/u7c3a40 --unit u7c3a40 [--base HEAD]
     python tools/worktree_setup.py teardown ../w1      # remove the worktree, its build dir and its branch link
+    python tools/worktree_setup.py reuse ../w1 --branch swarm-unit/u7c3b00 --unit u7c3b00   # next unit, same build dir
 
 Setting up (safe to run again):
 
@@ -24,7 +25,13 @@ Setting up (safe to run again):
    tools/units.py) if there's none yet, with the commit the worktree started
    from as `base` (tools/integrate.py replays the commits after it).
 
-`teardown` refuses the main checkout, and a worktree with changes to tracked
+`reuse` gives a finished worker's worktree the next unit: it drops the
+local data/functions.csv and data/data_symbols.csv changes, starts the new
+branch at this checkout's HEAD (the stack tip; `--base` for another), keeps
+the old sidecar as `.swarm/sidecar-<old unit>.json` and starts a new one.
+The build dirs stay, so the next build only recompiles what changed.
+
+`teardown` and `reuse` refuse the main checkout, and a worktree with changes to tracked
 files other than data/functions.csv and data/data_symbols.csv (which a worker
 changes but never commits) unless `--force` is given.
 """
@@ -46,7 +53,7 @@ GAMES = ("sword", "shield")
 
 
 def git(*args: str, cwd: Path = ROOT, check: bool = True) -> str:
-    return subprocess.run(["git", *args], cwd=cwd, check=check, capture_output=True, text=True).stdout.strip()
+    return subprocess.run(["git", *args], cwd=cwd, check=check, capture_output=True, text=True).stdout.rstrip()
 
 
 # --------------------------------------------------------------------------- pure parts (tested)
@@ -195,6 +202,35 @@ def cmd_teardown(args) -> int:
     return 0
 
 
+def archived_sidecar(swarm: Path, unit: str) -> Path:
+    """Where `reuse` keeps the finished unit's sidecar (never overwriting one)."""
+    p = swarm / f"sidecar-{unit or 'unknown'}.json"
+    n = 1
+    while p.exists():
+        n += 1
+        p = swarm / f"sidecar-{unit or 'unknown'}-{n}.json"
+    return p
+
+
+def cmd_reuse(args) -> int:
+    path = Path(args.path).resolve()
+    if path == main_checkout().resolve():
+        raise SystemExit("refusing to reuse the main checkout")
+    changed = unexpected_changes(git("status", "--porcelain", cwd=path))
+    if changed:
+        raise SystemExit(f"{path} has uncommitted changes to {', '.join(changed[:5])}: commit them first")
+    base = git("rev-parse", args.base)  # resolved here: the stack tip of the checkout running this
+    git("checkout", "--", *LOCAL_CHANGES, cwd=path)
+    git("switch", "-q", "-c", args.branch, base, cwd=path)
+    swarm = path / ".swarm"
+    sc = swarm / "sidecar.json"
+    if sc.exists():
+        old = json.loads(sc.read_text(encoding="utf-8")).get("unit", "")
+        sc.rename(archived_sidecar(swarm, old))
+    print(f"{path}: now {args.branch} at {base[:10]}")
+    return setup(path, args.jobs, args.unit, not args.no_configure, base)
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--jobs", type=int, help="compiles ninja runs at once (default: CPU cores / --workers)")
@@ -209,11 +245,17 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--base", default="HEAD", help="commit to start the branch from (default HEAD)")
     p.add_argument("--unit")
     p.add_argument("--jobs", type=int, dest="jobs_sub")
+    p = sub.add_parser("reuse", help="give a finished worker's worktree the next unit, keeping its build dirs")
+    p.add_argument("path")
+    p.add_argument("--branch", required=True)
+    p.add_argument("--unit", required=True)
+    p.add_argument("--base", default="HEAD", help="commit to start the branch from (default: this checkout's HEAD)")
+    p.add_argument("--jobs", type=int, dest="jobs_sub")
     p = sub.add_parser("teardown", help="remove a worktree and its build dir")
     p.add_argument("path")
     p.add_argument("--force", action="store_true")
     args = ap.parse_args(argv)
-    if args.cmd == "create" and args.jobs_sub:
+    if args.cmd in ("create", "reuse") and args.jobs_sub:
         args.jobs = args.jobs_sub
     if args.jobs is None:
         args.jobs = int(os.environ.get("PKMN_JOBS") or default_jobs(os.cpu_count(), args.workers))
@@ -221,6 +263,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_create(args)
     if args.cmd == "teardown":
         return cmd_teardown(args)
+    if args.cmd == "reuse":
+        return cmd_reuse(args)
     if not args.unit:
         sc = ROOT / ".swarm" / "sidecar.json"
         args.unit = None if sc.exists() else os.environ.get("PKMN_UNIT")

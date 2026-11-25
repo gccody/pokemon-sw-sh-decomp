@@ -14,8 +14,11 @@ python tools/worktree_setup.py create ../swarm-w-<unit> --branch swarm-unit/<uni
 # ... the worker runs, commits to swarm-unit/<unit> ...
 python tools/integrate.py swarm-unit/<unit> --new-branch swarm/<NNN>-<unit>
 git push -u origin swarm/<NNN>-<unit>      # then the PR, from .swarm/integrate-<unit>.md
-python tools/worktree_setup.py teardown ../swarm-w-<unit> --force   # --force: its functions.csv is changed
+# the next unit in the same worktree, keeping its build dirs (no full rebuild):
+python tools/worktree_setup.py reuse ../swarm-w-<unit> --branch swarm-unit/<next> --unit <next>
 git branch -D swarm-unit/<unit>
+# or, when the run is over:
+python tools/worktree_setup.py teardown ../swarm-w-<unit> --force   # --force: its functions.csv is changed
 ```
 
 The pilot (unit `u7e97b0`, 9 functions, 2026-11-24) took one first build of
