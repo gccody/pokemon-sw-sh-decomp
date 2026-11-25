@@ -71,30 +71,36 @@ bool Unk_15c3ee0(u64 buffer, void* data, u32 size, u64 pos);
 // 0x71015c4e00: copies another buffer.
 void Unk_15c4e00(nn::nex::Buffer* self, const nn::nex::Buffer& other);
 
-// 0x71015b78f0: the lock the RC4 encryption takes (slot 2 enters it, slot 4
-// leaves it).
-class Unk_15b78f0 {
+namespace nn {
+namespace nex {
+
+// N2nn3nex15CriticalSectionE (its destructor's vtable, 0x71015b9300's): the
+// lock the RC4 encryption takes (slot 2 enters it, slot 4 leaves it). Only
+// what this code uses; nn/nex/InstanceTable.h declares it too.
+class CriticalSection {
 public:
-    Unk_15b78f0(u32 arg, bool recursive);
+    // 0x71015b78f0
+    CriticalSection(u32 arg, bool recursive);
     // 0x71015b9300
-    ~Unk_15b78f0();
-    virtual void vf0();
-    virtual void vf1();
+    virtual ~CriticalSection();
     virtual void vf2();
     virtual void vf3();
     virtual void vf4();
 
     u8 _8[0x40];
 };
-PKMN_SIZE_ASSERT(Unk_15b78f0, 0x48);
+PKMN_SIZE_ASSERT(CriticalSection, 0x48);
+
+}  // namespace nex
+}  // namespace nn
 
 // Holds the lock for its scope (an inline helper; the name isn't the executable's).
 class Unk_15b78f0_Scope {
 public:
-    explicit Unk_15b78f0_Scope(Unk_15b78f0* lock) : m_lock(lock) { m_lock->vf2(); }
+    explicit Unk_15b78f0_Scope(nn::nex::CriticalSection* lock) : m_lock(lock) { m_lock->vf2(); }
     ~Unk_15b78f0_Scope() { m_lock->vf4(); }
 
-    Unk_15b78f0* m_lock;
+    nn::nex::CriticalSection* m_lock;
 };
 
 // What a checksum's slot 3 writes: the digest and its length.
@@ -282,7 +288,7 @@ public:
     u8 m_i;
     u8 m_j;
     bool m_reset;
-    Unk_15b78f0 m_lock;
+    nn::nex::CriticalSection m_lock;
 };
 PKMN_OFFSET_ASSERT(RC4Encryption, m_state, 0x148);
 PKMN_OFFSET_ASSERT(RC4Encryption, m_reset, 0x24a);
