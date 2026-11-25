@@ -308,6 +308,155 @@ void Unk_15b8e10(u32 ms) {
     }
 }
 
+// NEX's blocks: the function that frees each (null: free) sits 0x10 bytes
+// before it (lib/nex/include/nn/nex/Unk_15bbcf0.cpp's Unk_Free).
+extern "C" void free(void* p);
+struct Unk_15b8f70_Block {
+    void (*m_free)(void* block);
+    u8 _8[0x8];
+};
+PKMN_SIZE_ASSERT(Unk_15b8f70_Block, 0x10);
+
+inline void Unk_FreeBlock(void* p) {
+    Unk_15b8f70_Block* block = static_cast<Unk_15b8f70_Block*>(p) - 1;
+    if (block->m_free != nullptr) {
+        block->m_free(block);
+    } else {
+        free(block);
+    }
+}
+
+namespace nn {
+namespace nex {
+
+// What a Log writes its lines to (its slot 2).
+class Unk_15b8e30_8 : public RootObject {
+public:
+    virtual void vf2(const char* text);
+};
+
+// What a Log formats its lines with (its slot 7).
+class Unk_15b8e30_10 : public RootObject {
+public:
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7(char* buffer, u32 size, void* arg3, u64 arg4, const char* format,
+                     va_list args);
+};
+
+// Whether a Log writes (its slot 2).
+class Unk_15b8e30_18 : public RootObject {
+public:
+    virtual bool vf2();
+};
+
+// The objects a Log is made with, which it doesn't delete (the original TU's
+// own: it addresses them directly).
+extern Unk_15b8e30_8 Unk_27f3638 __attribute__((visibility("hidden")));
+extern Unk_15b8e30_10 Unk_27f3698 __attribute__((visibility("hidden")));
+
+// N2nn3nex3LogE
+class Log : public RootObject {
+public:
+    // The original TU defines NEX's allocator, so its D0s free inline.
+    static void operator delete(void* p) {
+        if (p != nullptr) {
+            Unk_FreeBlock(p);
+        }
+    }
+
+    Log() : field_8(&Unk_27f3638), field_10(&Unk_27f3698), field_18(nullptr), field_20(1) {}
+    // 0x71015b8e30 (D2), 0x71015b8f90 (D0)
+    ~Log() override;
+    // 0x71015b9040
+    virtual void vf2(const char* format, ...);
+    // 0x71015b9160
+    virtual void vf3(const char* format, ...);
+
+    void Unk_Write(const char* format, va_list args) {
+        if (field_8 == nullptr) {
+            return;
+        }
+        if (field_18 != nullptr && !field_18->vf2()) {
+            return;
+        }
+        if (field_10 == nullptr) {
+            return;
+        }
+        char buffer[0x100];
+        memset(buffer, 0, sizeof(buffer));
+        field_10->vf7(buffer, sizeof(buffer) - 1, nullptr, 0, format, args);
+        field_8->vf2(buffer);
+    }
+
+    Unk_15b8e30_8* field_8;
+    Unk_15b8e30_10* field_10;
+    Unk_15b8e30_18* field_18;
+    u64 field_20;
+};
+PKMN_SIZE_ASSERT(Log, 0x28);
+
+Log::~Log() {
+    if (field_10 != &Unk_27f3698 && field_10 != nullptr) {
+        delete field_10;
+    }
+    if (field_8 != &Unk_27f3638 && field_8 != nullptr) {
+        delete field_8;
+    }
+    if (field_18 != nullptr) {
+        delete field_18;
+    }
+}
+
+void Log::vf2(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    Unk_Write(format, args);
+    va_end(args);
+}
+
+void Log::vf3(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    Unk_Write(format, args);
+    va_end(args);
+}
+
+// N2nn3nex8TraceLogE
+class TraceLog : public Log {};
+
+// N2nn3nex11LockCheckerE
+class LockChecker : public RootObject {
+public:
+    // As Log's.
+    static void operator delete(void* p) {
+        if (p != nullptr) {
+            Unk_FreeBlock(p);
+        }
+    }
+
+    // 0x71015b8f60 (D2), 0x71015b8f70 (D0)
+    ~LockChecker() override;
+};
+
+LockChecker::~LockChecker() {}
+
+}  // namespace nex
+}  // namespace nn
+
+// NON_MATCHING: data layout: the original's TU merges the guard, the log and
+// the Log's two default objects (0x71027f3638, 0x71027f3698) into one block
+// of its globals and addresses them all from the guard's address; here the
+// defaults are another TU's.
+// 0x71015b8ec0: the trace log.
+nn::nex::TraceLog* Unk_15b8ec0() {
+    static nn::nex::TraceLog s_log;
+    return &s_log;
+}
+
 // 0x7101630ba0: a 32-bit value from the stream (zero, and the stream's error
 // flag, when there isn't enough left).
 u32 Unk_1630ba0(nn::nex::ByteStream* stream) {
