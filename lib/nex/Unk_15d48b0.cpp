@@ -10,6 +10,8 @@
 #include <nn/nex/RefCountedObject.h>
 #include <nn/nex/qVector.h>
 
+#include "Unk_15d48b0.h"
+
 namespace nn {
 namespace nex {
 
@@ -155,6 +157,23 @@ void JobSignalCallContext::vf3() {
     m_state = 5;
     if (m_callback != nullptr) {
         m_callback(this, &m_callbackData);
+    }
+}
+
+}  // namespace nex
+}  // namespace nn
+
+// 0x71015be1a0: sets the calling thread's value of a thread-local key.
+void Unk_15be1a0(void* key, const u32* value);
+
+namespace nn {
+namespace nex {
+
+// 0x71015d4ca0: the thread takes the scheduler's instance.
+void Scheduler::SchedulerWorkerThread::vf2() {
+    if (Unk_27f3838) {
+        u32 index = m_scheduler->m_instanceIndex;
+        Unk_15be1a0(Unk_27f3830, &index);
     }
 }
 
