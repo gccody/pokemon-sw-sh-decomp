@@ -17,9 +17,10 @@
 #include "unsorted/Unk_1240830_2423d30.h"
 #include "unsorted/Unk_2423ec8.h"
 
-// src/unsorted/leaf/Unk_11575f0.cpp: fields of what the camp's callables get.
+// src/unsorted/leaf/Unk_11575f0.cpp: fields of what the camp's callables get
+// (the first a flag: its callers test bit 0).
 struct Unk_115ba20;
-u8 Unk_115ba20_getField3b0(const Unk_115ba20* self);
+bool Unk_115ba20_getField3b0(const Unk_115ba20* self);
 struct Unk_115b9f0;
 u8* Unk_115b9f0_getField328Ptr(Unk_115b9f0* self);
 
@@ -69,6 +70,12 @@ public:
     }
 };
 
+// Has the object run `callable` (through a callable that calls it), letting
+// go of what it gives back.
+inline void Unk_1158640_Run(Unk_1158640_Owner* owner, Unk_23d4470_Callable& callable) {
+    Unk_239a418_Ref<Unk_239a418> result = owner->Unk_1158640(Unk_1124210_Callable(callable));
+}
+
 // A reference to a new Unk_2425ff8: its constructor makes the object on the
 // allocator.
 struct Unk_1240890_Made : Unk_239a418_Ref<Unk_239a418> {
@@ -91,6 +98,14 @@ void Unk_2425e60::vf7() {
 }
 
 namespace {
+
+// What an object does with a reference: the owner keeps a callable holding
+// it under `hash`. `target` is what Unk_2423ec8::Unk_12164a0 gives, read after
+// the reference is.
+template <class Target>
+void Unk_1127d00_Keep(Target* target, u64 hash, const Unk_239a418_Ref<Unk_239a418>& ref) {
+    Unk_123dad0(target->field_60, hash, ref, false);
+}
 
 // A reference takes the other's object (a copy), letting go of its own after.
 template <class T>
@@ -145,10 +160,9 @@ bool Unk_1241ce0(Unk_2425ff8* const* captured, Unk_115ba20* const* object) {
     Unk_2425ff8* self = *captured;
     if (!Unk_115ba20_getField3b0(p))
         return false;
-    Unk_123dad0(self->Unk_12164a0()->field_60, 0xa1a11995fefe6ce6,
-                *reinterpret_cast<const Unk_239a418_Ref<Unk_239a418>*>(
-                    Unk_115b9f0_getField328Ptr(reinterpret_cast<Unk_115b9f0*>(p))),
-                false);
+    Unk_1127d00_Keep(self->Unk_12164a0(), 0xa1a11995fefe6ce6,
+                     *reinterpret_cast<const Unk_239a418_Ref<Unk_239a418>*>(
+                         Unk_115b9f0_getField328Ptr(reinterpret_cast<Unk_115b9f0*>(p))));
     Unk_2426100* next = Unk_Create<Unk_2426100>(self->field_8);
     Unk_Assign(self->field_70, Unk_239a418_Ref<Unk_239a418>(next));
     next->Unk_1216550(Unk_1240890_Made(self->field_8));
@@ -181,15 +195,15 @@ public:
 
 // 0x71012415b0: when a name's callable is taken out (the names' hashes are
 // folded), gives the owner's object a callable that makes the next object;
-// or makes Unk_2426310 the next one. This object, until there's a next one.
+// when another's is, makes Unk_2426310 the next one. This object, until there's a next one.
 Unk_239a418_Ref<Unk_239a418> Unk_2425ff8::vf8() {
     if (Unk_12164a0()->field_60->Unk_Take(0xc554692e5686862e)) {
         Unk_239a418_Ref<Unk_1158640_Owner> owner =
             reinterpret_cast<Unk_12415b0_Result*>(Unk_12164a0())->field_358;
         Unk_1241ce0_Callable callable(this);
-        Unk_239a418_Ref<Unk_239a418> result =
-            owner.m_ptr->Unk_1158640(Unk_1124210_Callable(callable));
-    } else if (Unk_12164a0()->field_60->Unk_Take(0xcf2e38d49d8fd87e)) {
+        Unk_1158640_Run(owner.m_ptr, callable);
+    }
+    if (Unk_12164a0()->field_60->Unk_Take(0xcf2e38d49d8fd87e)) {
         Unk_Assign(field_70, Unk_239a418_Ref<Unk_239a418>(Unk_Create<Unk_2426310>(field_8)));
     }
     if (field_70.m_ptr)
@@ -197,13 +211,14 @@ Unk_239a418_Ref<Unk_239a418> Unk_2425ff8::vf8() {
     return Unk_239a418_Ref<Unk_239a418>(this);
 }
 
-// 0x7101242140: makes Unk_2426208 the next object, or makes the one kept in
-// field_78 the next one, when a name's callable is taken out (the names'
+// 0x7101242140: makes Unk_2426208 the next object, then makes the one kept
+// in field_78 the next one, each when a name's callable is taken out (the names'
 // hashes are folded). This object, until there's a next one.
 Unk_239a418_Ref<Unk_239a418> Unk_2426100::vf8() {
     if (Unk_12164a0()->field_60->Unk_Take(0xbaa046a2066759ee)) {
         Unk_Assign(field_70, Unk_239a418_Ref<Unk_239a418>(Unk_Create<Unk_2426208>(field_8)));
-    } else if (Unk_12164a0()->field_60->Unk_Take(0x44b3013f578e8a70)) {
+    }
+    if (Unk_12164a0()->field_60->Unk_Take(0x44b3013f578e8a70)) {
         Unk_Copy(field_70, field_78);
         field_78.Reset();
     }
