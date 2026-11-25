@@ -115,8 +115,10 @@ static_assert(__builtin_offsetof(Unk_2409118, field_90) == 0x90, "Unk_2409118::f
 // and 0x710102ae30/0x710102aed0 (+0x50)
 Unk_2409118::~Unk_2409118() {}
 
-// 0x7101028ec0. Named in data/functions.csv as a free function (a caller
-// devirtualizes it: src/unsorted/leaf/Unk_1028e70.cpp).
+// NON_MATCHING (its thunk 0x710102ac30): identical, but its row in data/functions.csv still
+// has the free-function name, so the thunk's tail call is to an unknown symbol.
+// 0x7101028ec0, 0x710102ac30 (its thunk from +0x48). Named in data/functions.csv as a free function
+// (a caller devirtualizes it: src/unsorted/leaf/Unk_1028e70.cpp).
 void Unk_2409118::vf6(Unk_102bf70* listener) {
     field_90.Lock();
     field_60.push_back(listener);
