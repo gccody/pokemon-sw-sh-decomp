@@ -114,16 +114,33 @@ struct Unk_23b7ee8_Station {
 };
 PKMN_SIZE_ASSERT(Unk_23b7ee8_Station, 0x10);
 
-// The member at +0xa0: an array of stations at +0x80 (pointer, count).
+// An array of stations (pointer, count).
+struct Unk_23b7ee8_Stations {
+    const Unk_23b7ee8_Station* begin() const { return field_0; }
+    const Unk_23b7ee8_Station* end() const { return field_0 + field_8; }
+
+    // The entry of a station, or end().
+    const Unk_23b7ee8_Station* Find(u64 stationId) const {
+        for (const Unk_23b7ee8_Station* it = begin(); it != end(); ++it) {
+            if (it->field_0 == stationId)
+                return it;
+        }
+        return end();
+    }
+
+    Unk_23b7ee8_Station* field_0;
+    u64 field_8;
+};
+PKMN_SIZE_ASSERT(Unk_23b7ee8_Stations, 0x10);
+
+// The member at +0xa0: an array of stations at +0x80.
 struct Unk_23b7ee8_a0 {
     void Unk_898380(u64 stationId, u8 clientId);
 
     u8 _0[0x80];
-    Unk_23b7ee8_Station* field_80;
-    u64 field_88;
+    Unk_23b7ee8_Stations field_80;
 };
 PKMN_OFFSET_ASSERT(Unk_23b7ee8_a0, field_80, 0x80);
-PKMN_OFFSET_ASSERT(Unk_23b7ee8_a0, field_88, 0x88);
 
 struct Unk_23b7ee8_88 {
     u8 _0[0x4];
