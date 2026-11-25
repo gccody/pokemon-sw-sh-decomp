@@ -5,6 +5,7 @@
 // TUs). Placeholder names: rename once the classes are known.
 #include "battle/battle_logic/source/net/Unk_8974a0.h"
 
+#include <algorithm>
 #include <cstring>
 
 #include <nn/err.h>
@@ -140,10 +141,11 @@ void Unk_23b7ee8::vf12() {
 u8 Unk_23b7ee8::vf13(u64 stationId) {
     Unk_23b7ee8_Station* begin = field_a0.field_80;
     Unk_23b7ee8_Station* end = begin + field_a0.field_88;
-    for (Unk_23b7ee8_Station* it = begin; it != end; ++it) {
-        if (it->field_0 == stationId)
-            return it->field_8;
-    }
+    Unk_23b7ee8_Station* it = begin;
+    while (it != end && it->field_0 != stationId)
+        ++it;
+    if (it != begin + field_a0.field_88)
+        return it->field_8;
     return 5;
 }
 
@@ -206,22 +208,15 @@ void Unk_23b7ee8::vf0(const pb::BattleCommand& battleCommand, u64 peer) {
     if (client == 0xfd)
         return;
     u32 type = battleCommand.commandtype();
-    if (!Unk_8a7000(field_3b8, battleCommand.clientid()))
+    u32 clientId = battleCommand.clientid();
+    if (!Unk_8a7000(field_3b8, clientId))
         return;
-    Unk_23b7ee8_Command* command;
-    if (type == 2) {
-        command = field_238[client + 1].get();
-    } else if (type == 1 && battleCommand.clientid() == field_190.field_81) {
-        command = field_238[0].get();
-    } else {
-        return;
+    if (type == 1) {
+        if (battleCommand.clientid() == field_190.field_81)
+            field_238[0]->Set(battleCommand);
+    } else if (type == 2) {
+        field_238[client + 1]->Set(battleCommand);
     }
-    command->field_0 = battleCommand.commandtype();
-    command->field_4 = battleCommand.clientid();
-    command->field_8 = battleCommand.cmdseqno();
-    command->field_2720 = battleCommand.body().size();
-    std::memset(command->field_c, 0, sizeof(command->field_c));
-    std::memcpy(command->field_c, battleCommand.body().data(), battleCommand.body().size());
 }
 
 // 0x7100897ed0, its thunk from +0x78 0x7100897ef0
@@ -254,7 +249,7 @@ void Unk_23b7ee8::Unk_897f70() {
         Unk_239a418_Ref<Unk_23b8280> object = Unk_LockOrNone<Unk_23b8280>(field_150[i]);
         if (object.m_ptr == nullptr || !object.m_ptr->field_61)
             continue;
-        const Unk_23b7ee8_Peer& station = object.m_ptr->field_88;
+        Unk_23b7ee8_Peer station = object.m_ptr->field_88;
         Unk_23b7ee8_Peer& entry = field_190.field_0[i];
         if (entry.field_a)
             continue;
@@ -281,7 +276,7 @@ void Unk_23b7ee8::Unk_898100() {
 void Unk_23b7ee8::vf3(const pb::Timer& timer, u64 peer) {
     u8 client = Unk_6ae9d0(peer);
     if (client < 8) {
-        field_368[client].field_0 = timer.focusmode();
-        field_368[client].field_4 = timer.timer();
+        Unk_23b7ee8_Timer value = {timer.focusmode(), timer.timer()};
+        field_368[client] = value;
     }
 }

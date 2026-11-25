@@ -13,6 +13,7 @@
 // src/unsorted/virtual/Unk_8923e0.cpp and src/unsorted/types/Unk_898c10.cpp
 // declare it without them (and name the EmptyCommand handler, 0x7100897d20,
 // vf16). Placeholder names: rename once the classes are known.
+#include <cstring>
 #include <memory>
 
 #include <types.h>
@@ -141,6 +142,15 @@ PKMN_OFFSET_ASSERT(Unk_23b7ee8_148, field_2a0, 0x2a0);
 
 // A client's last BattleCommand: its type, client, sequence number and body.
 struct Unk_23b7ee8_Command {
+    void Set(const pb::BattleCommand& battleCommand) {
+        field_0 = battleCommand.commandtype();
+        field_4 = battleCommand.clientid();
+        field_8 = battleCommand.cmdseqno();
+        field_2720 = battleCommand.body().size();
+        std::memset(field_c, 0, sizeof(field_c));
+        std::memcpy(field_c, battleCommand.body().data(), battleCommand.body().size());
+    }
+
     u32 field_0;
     u8 field_4;
     u32 field_8;
