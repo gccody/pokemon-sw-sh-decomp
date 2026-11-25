@@ -86,3 +86,15 @@ Unk_3476d0_Obj* Unk_3351b0(void* self, u32 id, u32 type) {
         return index->field_38.GetAndAddRef(id);
     return index->field_0.GetAndAddRef(id);
 }
+
+// The first or the second table, by type.
+// 0x71003352b0
+Unk_334be0_Index<Unk_3476d0_Obj>* Unk_3352b0(Unk_334be0_T* self, u32 type) {
+    return type != 0 ? &self->field_38 : &self->field_0;
+}
+
+// The same, for another caller.
+// 0x71003352c0
+Unk_334be0_Index<Unk_3476d0_Obj>* Unk_3352c0(Unk_334be0_T* self, u32 type) {
+    return type != 0 ? &self->field_38 : &self->field_0;
+}
