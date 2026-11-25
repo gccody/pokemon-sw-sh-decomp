@@ -83,7 +83,7 @@ void StationLocation::Unk_1749960(const StationLocation& other) {
 // 0x71017499e0
 StationLocation::~StationLocation() {}
 
-// 0x7101749a80 (named _Z11Unk_1749a80Pv in data/functions.csv)
+// 0x7101749a80
 StationLocation& StationLocation::operator=(const StationLocation& other) {
     if (this != &other) {
         Unk_1749960(other);
