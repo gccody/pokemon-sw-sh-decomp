@@ -105,11 +105,11 @@ struct Unk_d0b220 {
 };
 PKMN_OFFSET_ASSERT(Unk_d0b220, field_b30, 0xb30);
 
-void Unk_d09bb0(void*, void*);
+void Unk_d09bb0(void*, void*, f32);
 
 // 0x7100d0b220
-void Unk_d0b220_call(Unk_d0b220* self) {
-    Unk_d09bb0(self, &self->field_b30);
+void Unk_d0b220_call(Unk_d0b220* self, f32 radius) {
+    Unk_d09bb0(self, &self->field_b30, radius);
 }
 
 struct Unk_d0b570 {

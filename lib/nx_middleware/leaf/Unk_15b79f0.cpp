@@ -335,19 +335,14 @@ void Unk_15bb880_set(Unk_15bb880* self) {
     self->field_20 = 0;
 }
 
-struct Unk_15bbc70_arg1 {
-    u32 field_0;
-};
-PKMN_OFFSET_ASSERT(Unk_15bbc70_arg1, field_0, 0x0);
-
 struct Unk_15bbc70 {
     u32 field_0;
 };
 PKMN_OFFSET_ASSERT(Unk_15bbc70, field_0, 0x0);
 
 // 0x71015bbc70
-bool Unk_15bbc70_check(const Unk_15bbc70* self, const Unk_15bbc70_arg1* value) {
-    return self->field_0 == value->field_0;
+bool Unk_15bbc70_check(const Unk_15bbc70* self, const u32* value) {
+    return self->field_0 == *value;
 }
 
 struct Unk_15bbc90_arg1 {

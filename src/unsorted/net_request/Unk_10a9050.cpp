@@ -11,11 +11,7 @@ struct Unk_New {
     T* Create(Unk_239a418_Allocator* allocator, Args&&... args);
 };
 
-struct Unk_15bbc70_arg1 {
-    u32 field_0;
-};
-
-bool Unk_15bbc70_check(const Unk_15bbc70* self, const Unk_15bbc70_arg1* value);
+bool Unk_15bbc70_check(const Unk_15bbc70* self, const u32* value);
 
 // The network system (gflib3) and its connection.
 struct Unk_6a41e0;
@@ -53,12 +49,9 @@ void Unk_2411318::vf4(bool ok) {
         SetResult(1);
 }
 
-// NON_MATCHING: the code's stack slot (sp+8, the original's is just below the
-// frame record): the original's is a scalar (a u32), Unk_15bbc70_check's name
-// takes a struct. Its thunk (body inlined) differs the same way.
 // 0x71010a9090, its thunk from +0x60 0x71010a90e0
 void Unk_2411318::vf5(const Unk_15bbc70* result) {
-    Unk_15bbc70_arg1 code = {0x8074000e};
+    u32 code = 0x8074000e;
     SetResult(Unk_15bbc70_check(result, &code));
 }
 

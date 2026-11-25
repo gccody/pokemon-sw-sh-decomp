@@ -103,13 +103,13 @@ struct Unk_817c60 {
 };
 PKMN_OFFSET_ASSERT(Unk_817c60, field_10, 0x10);
 
-u64 Unk_7fe1e0_getField28(const Unk_7fe1e0*);
-void Unk_7ffb80();
+struct Unk_7ee6b0_Field;
+Unk_7ee6b0_Field* Unk_7fe1e0_getField28(const Unk_7fe1e0*);
+u8 Unk_7ffb80(Unk_7ee6b0_Field*);
 
 // 0x7100817c60
 void Unk_817c60_call(const Unk_817c60* self) {
-    Unk_7fe1e0_getField28(self->field_10);
-    Unk_7ffb80();
+    Unk_7ffb80(Unk_7fe1e0_getField28(self->field_10));
 }
 
 struct Unk_8181d0 {
