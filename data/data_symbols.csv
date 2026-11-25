@@ -115,6 +115,9 @@ Sword,Shield,Size,Name
 0x7101f0aaa8,0x7101f0aaa8,20,_ZZN6google8protobuf58protobuf_AssignDesc_google_2fprotobuf_2fdescriptor_2eprotoEvE32SourceCodeInfo_Location_offsets_@descriptor.pb
 0x7101f0aabc,0x7101f0aabc,4,_ZZN6google8protobuf58protobuf_AssignDesc_google_2fprotobuf_2fdescriptor_2eprotoEvE26GeneratedCodeInfo_offsets_@descriptor.pb
 0x7101f0aac0,0x7101f0aac0,16,_ZZN6google8protobuf58protobuf_AssignDesc_google_2fprotobuf_2fdescriptor_2eprotoEvE37GeneratedCodeInfo_Annotation_offsets_@descriptor.pb
+0x7101f0c2e0,0x7101f0c2e0,,Unk_1f0c2e0
+0x7101f0c40c,0x7101f0c40c,,Unk_1f0c40c
+0x7101f0c438,0x7101f0c438,,Unk_1f0c438
 0x7101f0c4b8,0x7101f0c4b8,,Unk_1f0c4b8
 0x7101f0c4ec,0x7101f0c4ec,,Unk_1f0c4ec
 0x7101f0c51c,0x7101f0c51c,,Unk_1f0c51c
@@ -4781,6 +4784,13 @@ Sword,Shield,Size,Name
 0x7102779b60,0x7102779b60,,Unk_2779b60
 0x7102779c28,0x7102779c28,,Unk_2779c28
 0x7102779ca8,0x7102779ca8,,Unk_2779ca8
+0x7102779ed8,0x7102779ed8,,Unk_2779ed8
+0x7102779ee8,0x7102779ee8,,Unk_2779ee8
+0x7102779f38,0x7102779f38,,Unk_2779f38
+0x7102779f88,0x7102779f88,,Unk_2779f88
+0x7102779fd8,0x7102779fd8,,Unk_2779fd8
+0x710277a0d8,0x710277a0d8,,Unk_277a0d8
+0x710277a128,0x710277a128,,Unk_277a128
 0x710277a178,0x710277a178,,Unk_277a178
 0x710277a1a0,0x710277a1a0,,Unk_277a1a0
 0x71027ce828,0x71027ce828,,_ZZN11Unk_23a7dc811Unk_GetTypeEvE4type
