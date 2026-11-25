@@ -9,6 +9,8 @@
 #include <types.h>
 
 #include "gflib3/Unk_239a418.h"
+#include "unsorted/Unk_2771620.h"
+#include "unsorted/unk_8bf520/Unk_8c6550.h"
 
 // gflib3's class with vtable 0x710239fd70 (its constructor 0x710066afd0, D2
 // 0x710066b040, D0 0x710066b2b0 and vf7 to vf9 are gflib3's, not written
@@ -53,3 +55,7 @@ Unk_23bb160::~Unk_23bb160() = default;
 void Unk_23bb160::Unk_8c65f0(const void* data, u64 size) {
     Unk_239fd60::vf7(data, size, "");
 }
+
+// 0x71008c6710
+Unk_23bb228::Unk_23bb228(u8 arg1, u32 first, u32 last, u32 mask)
+    : field_54(first), field_58(last), field_5c(14), field_60(mask), field_64(arg1) {}
