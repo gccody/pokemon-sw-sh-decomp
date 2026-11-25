@@ -1422,11 +1422,17 @@ bool SiGfxGeometryUtility::vf11(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVe
 // then the guard's `subs`), the loops' counter i is declared before the
 // running triangle (the order of their phis) and the cell's first corner is
 // a local declared before the next column.
-// NON_MATCHING: the index buffer's description is 20 bytes short: the
+// NON_MATCHING: the index buffer's description is 16 bytes short: the
 // original keeps its constructor's stores of field_18 and field_1c (0 and 8
 // as one 8-byte store) and of the zeros from 0x20 (see vf11's note), and
 // the element size's selects (written `< 0x10000` for the second, as in
-// vf9) are scheduled otherwise.
+// vf9) are scheduled otherwise. (Round 6) The stores survive DSE when they
+// are in another block than the assignments: a default constructor (flags
+// 8, its zeros merged into memsets before it is inlined) and the format and
+// element size set by an if/else whose two branches assign them in opposite
+// orders (SimplifyCFG can't sink them, MergedLoadStoreMotion does, and the
+// empty diamond is only folded after DSE) keep them all at the IR level;
+// the DAG then merges and drops other pairs than the original (dist 17).
 bool SiGfxGeometryUtility::vf12(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVertexBuffer,
                                 SiGfxNXBuffer* pIndexBuffer, f32 radius, s32 slices, s32 stacks,
                                 Unk_GeometryBounds* pBounds) {
@@ -1559,6 +1565,7 @@ bool SiGfxGeometryUtility::vf12(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVe
         pBounds->field_4[2] = -radius;
         pBounds->field_10[0] = radius;
         pBounds->field_10[1] = radius;
+        pBounds->field_10[2] = 0.0f;
     }
     return true;
 }

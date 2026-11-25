@@ -962,10 +962,11 @@ static inline f32 Unk_Sign(Unk_4a3cc0_Self* self) {
     return (Unk_Next(self) & 1) != 0 ? -1.0f : 1.0f;
 }
 
-// a number from `lo` to `hi` (inline)
+// a number from `lo` to `hi` (inline; the random number isn't a named local:
+// its DBG_VALUE would keep the A57 FP load balancing pass from renaming the
+// product, which the original's registers show it did)
 static inline f32 Unk_Range(Unk_4a3cc0_Self* self, f32 lo, f32 hi) {
-    f32 r = Unk_Random(self);
-    return lo + (hi - lo) * r;
+    return lo + Unk_Random(self) * (hi - lo);
 }
 
 // whether a line's shape is under a quarter (inline)
@@ -981,8 +982,13 @@ static inline bool Unk_Small(f32 shape) {
 // InstCombine, keeps field_4c's doubling a second store (no select).
 // NON_MATCHING: 12 bytes longer; the original doesn't fold `spread` into the
 // test of field_50 (separate cbz; here `spread` comes out inverted and or-ed
-// with the compare), and keeps 1.0f in s8 across the colour call (here it's
-// rematerialised); the rest is the registers that follow.
+// with the compare; `spread &&` first doesn't help), and keeps 1.0f in s8
+// across the colour call (here it's rematerialised); two products have their
+// operands the other way round (`width = size * |field_4|` in the second
+// branch, field_50's `pow * e`: Reassociate's ranks put the earlier value
+// first, and storing e into field_50 first adds a reload after powf; width
+// computed once after the branches is much worse); the rest is the
+// registers that follow.
 inline void Unk_4a2e20(Unk_4a3cc0_Self* self, Unk_4a2e20_Item* item) {
     Unk_4a2e20_Item empty;
     if (item == nullptr)

@@ -154,8 +154,7 @@ struct Unk_49b230_Object {
     virtual s32 vf23(u32 level, Unk_49b230_Object** surface);  // a texture's mip level's surface
 
     u8 _8[0x24 - 0x8];
-    bool field_24;  // whether the texture is a render target too
-    u8 _25[0x28 - 0x25];
+    u32 field_24;  // its usage flags (IGPUResource's; bit 0: a render target too)
     u32 field_28;  // a surface's flags (bit 28: tiled)
     u8 _2c[0x44 - 0x2c];
     s32 field_44;  // its format

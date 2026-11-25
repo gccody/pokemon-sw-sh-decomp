@@ -219,11 +219,13 @@ void SiGfxNXCommandList::vf17() {
     field_58.vf3();
 }
 
-// NON_MATCHING: 12 bytes short. The removal's guard compares the count with
+// NON_MATCHING: 4 instructions: the removal's guard compares the count with
 // the index (`cmp x10, x8 ; b.le`) where this compares the index with the
-// count, and the original keeps the addresses of field_150's count and data
-// in two spilled registers across the second loop for the inline free at its
-// end (this addresses them from `this`).
+// count, and the second loop increments its counter before the source's
+// offset (here after). (Round 6: references to field_150's count and data
+// gave the original's two spilled addresses and its size; the removal as
+// `count > i` or with size_t, the copy's index as `j + base`, a second
+// counter, the source read first: the same or worse.)
 // 0x710053a790
 // (Round 5: the removal's loop written `count > i`, as a while, from the
 // index with `count - 1`, the count in a local: the same or worse.)
@@ -246,11 +248,15 @@ void SiGfxNXCommandList::Unk_53a790() {
     }
     // what NVN replaced while it recorded waits for the commands
     if (field_150.m_itemCount != 0) {
+        // (references taken first: the original keeps both addresses for
+        // the inline free at the end)
+        size_t& count = field_150.m_itemCount;
+        OverwrittenEntry*& data = field_150.m_pData;
         size_t base = field_1a0.m_itemCount;
-        for (size_t j = 0; j < field_150.m_itemCount; j++) {
-            field_1a0.Unk_SetCount(base + field_150.m_itemCount);
+        for (size_t j = 0; j < count; j++) {
+            field_1a0.Unk_SetCount(base + count);
             DiscontinuedEntry* entry = &field_1a0.m_pData[base + j];
-            static_cast<OverwrittenEntry&>(*entry) = field_150.m_pData[j];
+            static_cast<OverwrittenEntry&>(*entry) = data[j];
             nvnSyncInitialize(entry->field_10, Unk_NXDevice(field_18)->vf85());
             nvnCommandBufferFenceSync(field_88, entry->field_10, 0, 1);
         }

@@ -317,10 +317,9 @@ bool SiGfxNXTexture::vf22(Unk_Desc* desc) {
     return true;
 }
 
-// NON_MATCHING: the copy is inline now (the pairs at 0x68 and 0x70 split the
-// trivially copied members), but the original copies the pairs from the
-// temporary where this stores their zeros directly, and the stores of the
-// blocks before them come in another order (4 bytes, 27 instructions off).
+// The description's move assignment: the pairs at 0x68 are one member
+// without a move assignment (Unk_Pairs), copied from the temporary by a
+// 16-byte copy of their own.
 // 0x710055ffd0
 void SiGfxNXTexture::Unk_Desc::Unk_55ffd0() {
     *this = Unk_Desc();
@@ -581,14 +580,10 @@ bool SiGfxNXTexture::vf32(Unk_NXTextureOwner* pOwner) {
     return true;
 }
 
-// 0x71005601b0
-// NON_MATCHING: the original peels the volumes' loop's first iteration (its
-// element is the buffer the reserve just made) and lays the cube and array
-// cases out after the volumes' (44 bytes more); the surfaces' case matches.
-// The peeled iteration's count test is 32-bit (`ldr w8; cmp w8, #2`) and the
-// rest 64-bit, the signature of a peel with an InstCombine after it. Tried:
-// s32/u32 counters and counts, while/do-while, the element by index or
-// reference, a guard of the count (-unroll-peel-count=1 crashes clang 7).
+// 0x71005601b0: the first volume is made apart, before the loop over the
+// others, through a pointer taken right after the reserve (the buffer it just
+// made, kept in a register for both calls); its count test is 32-bit
+// (`ldr w8; cmp w8, #2`), the loop's 64-bit.
 bool SiGfxNXTexture::Unk_5601b0() {
     field_238.Unk_FreeAll();
     field_288.Unk_FreeAll();
@@ -603,10 +598,17 @@ bool SiGfxNXTexture::Unk_5601b0() {
         break;
     case 3:
         field_288.Unk_SetCount(field_22c);
-        for (s64 i = 0; i < static_cast<s32>(field_288.m_itemCount); i++) {
-            SiGfxNXVolume* volume = &field_288.m_pData[i];
-            volume->Unk_565ab0(field_28);
-            volume->Unk_565c10(this, i);
+        {
+            SiGfxNXVolume* volume = &field_288.m_pData[0];
+            if (static_cast<s32>(field_288.m_itemCount) > 0) {
+                volume->Unk_565ab0(field_28);
+                volume->Unk_565c10(this, 0);
+                for (s64 i = 1; i < static_cast<s32>(field_288.m_itemCount); i++) {
+                    volume = &field_288.m_pData[i];
+                    volume->Unk_565ab0(field_28);
+                    volume->Unk_565c10(this, i);
+                }
+            }
         }
         break;
     case 4:
@@ -838,7 +840,9 @@ bool SiGfxNXTexture::vf39(u32 kind) {
 // as `~flags & 8`, declared first, from a local of the flags, the 3D flag as
 // `kind == 3`; (round 2) the switch in a static inline helper (flags by
 // reference or pointer: the switch is lowered otherwise), the access
-// flags or the size and view stores in helpers.
+// flags or the size and view stores in helpers; (round 6) the access flags
+// as an if on an initialised local (=8 or =0 first), `== 0 ? 8 : 0`, the
+// depth by if/else or a local, the 3D flag by kind.
 // 0x7100561ef0
 bool SiGfxNXTexture::vf44(void* texture, void* view) {
     if (texture == nullptr || view == nullptr) {

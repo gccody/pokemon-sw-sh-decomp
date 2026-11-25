@@ -1623,10 +1623,10 @@ s32 TEXSHADERSET::CreateEffect(void* device) {
     field_2275c = field_0->vf15("tech_Fxaa2_Tonemap");
     field_22760 = field_0->vf15("tech_Fxaa2_Tonemap_Falloff");
     field_22764 = field_0->vf15("tech_Smaa_EdgeDetection");
-    field_2276c = field_0->vf15("tech_Smaa_BlendingWeightCalculation");
-    field_22774 = field_0->vf15("tech_Smaa_BlendingWeightCalculation_Diag");
-    field_22770 = field_0->vf15("tech_Smaa_BlendingWeightCalculation_Corner");
-    field_22778 = field_0->vf15("tech_Smaa_BlendingWeightCalculation_Diag_Corner");
+    field_2276c[0][0] = field_0->vf15("tech_Smaa_BlendingWeightCalculation");
+    field_2276c[1][0] = field_0->vf15("tech_Smaa_BlendingWeightCalculation_Diag");
+    field_2276c[0][1] = field_0->vf15("tech_Smaa_BlendingWeightCalculation_Corner");
+    field_2276c[1][1] = field_0->vf15("tech_Smaa_BlendingWeightCalculation_Diag_Corner");
     field_2277c = field_0->vf15("tech_Smaa_NeighborhoodBlending");
     field_22780 = field_0->vf15("tech_Smaa_NeighborhoodBlending_Falloff");
     field_22788 = field_0->vf15("tech_ColorModulateByChannel_R");
@@ -7506,9 +7506,8 @@ s32 Unk_49ca70(void* self, void* arg1, u32 arg2);
 
 // 0x710048f230
 // NON_MATCHING: the original's frame has 0x20 bytes more below the size
-// vector, passes 0 for 0x710048f470's arg13 (which that function doesn't read:
-// in the original TU something kept it alive until dead-argument elimination
-// ran), and keeps `this` and `target` in each other's registers.
+// vector, and keeps `this` and `target` in each other's registers. (The 0 for
+// 0x710048f470's arg13 comes from that function's Unk_Ignore.)
 s32 CTextureUtil::Unk_48f230(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, CRenderTexture* target,
                              CRenderTexture* source, CRenderTexture* temp, CRenderTexture* temp2,
                              const Unk_Float2* arg10, s32 arg11, s32 arg12, s32 arg13, bool arg14, void* arg15,
@@ -8142,10 +8141,12 @@ s32 CTextureUtil::Unk_48b6e0(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
     return Unk_471c50(x, y, width, height, u0, v0, u1, v1, flags);
 }
 
-// 0x710048f470
+// 0x710048f470 (arg13 is used by an inline no-op: 0x710048f230 still passes
+// it, so dead-argument elimination didn't see it unused)
 s32 CTextureUtil::Unk_48f470(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, f32 arg8,
                              f32 arg9, CRenderTexture* target, CRenderTexture* source, const Unk_Float4* arg12,
                              s32 arg13, s32 arg14, u32 flags) {
+    Unk_Ignore(arg13);
     Unk_GPUTexture* texture = Unk_GetTexture(source);
     s32 result = target->Unk_49d250(0, 0, 1, 0, 0);
     if (result < 0)
@@ -8168,11 +8169,9 @@ s32 CTextureUtil::Unk_48f470(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
 // 0x710048f620
 // The clamp's upper bound is `amount > 1.0f ? 1.0f : amount` (`fmin`; the
 // other way round it is `fminnm`).
-// NON_MATCHING: the fallback technique's load reuses the table's base address
-// here (CodeGenPrepare shares it); the original adds the two indices to
-// `this` first and materialises the table's offset again for the fallback
-// (8 bytes more). Tried: the indices as bools, `(&field_2276c)[2 * a + b]`
-// (no `* 8`/`* 4` adds), a row pointer, the fallback as the table's [0][0].
+// The table is a plain array member (not a union with named fields): the
+// fallback, its [0][0], then gets its own address in its block and the
+// table's offset is added after the two indices (`ldr w1, [x8, x9]`).
 s32 CTextureUtil::Unk_48f620(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1,
                              CRenderTexture* target, CRenderTexture* source, const Unk_Float4* arg10, s32 arg11,
                              s32 arg12, s32 arg13, u32 flags) {
@@ -8183,9 +8182,9 @@ s32 CTextureUtil::Unk_48f620(f32 x, f32 y, f32 width, f32 height, f32 u0, f32 v0
     CRenderTexture::Unk_49cf50(nullptr, nullptr);
     bool diagonal = arg12 > 0;
     bool corner = arg13 > 0;
-    s32 technique = field_30.field_2276c_table[diagonal][corner];
+    s32 technique = field_30.field_2276c[diagonal][corner];
     if (technique == 0)
-        technique = field_30.field_2276c;
+        technique = field_30.field_2276c[0][0];
     field_30.field_0->vf29(technique);
     field_30.field_0->vf26(field_30.field_10[0], texture);
     field_30.field_0->vf26(field_30.field_10[1], Unk_Texture29ad8(0));
@@ -10075,15 +10074,16 @@ namespace PPFX {
 // The mirrored position is an Unk_Float3 built from the light's elements (x
 // and y copied as objects, z negated: two 32-bit words and a float, as the
 // original).
-// NON_MATCHING: 1200 bytes for 1204: after the loop the original reloads the
-// count on the normal exits only (GVN's load PRE: the breaks already have it,
-// then `sxtw` before qsort); here the two unswitched loops' normal exits and
-// breaks reach one block, two predecessors lack the value and PRE gives up
-// (one `ldrsw`). Also the count and the capacity have each other's registers
-// in the exit test, and the colour test's first compare is scheduled before
-// the argument copies. Tried: the locals of the body (v, p, light, out, the
-// projections' temporaries) inside and outside the loop, `s64` index, the
-// exit test's and the final test's spellings.
+// The body before the capacity test is its own scope: the `break` then leaves
+// no locals' lifetimes behind and goes straight to the loop's end, where
+// JumpThreading reloads the count on the normal exits only (`ldr w8` before
+// the `cbz`, `sxtw` before qsort, as the original).
+// NON_MATCHING: 1212 bytes for 1204: the stores of x and y stay two `str`s in
+// both loops (`stp` in the original: AArch64StorePairSuppress's trace
+// through the block finds it store-bound here), and the colour test's first
+// compare is scheduled before the argument copies. Tried for those: the
+// colour test in an inline helper, nested, merged into the first test; p and
+// v outside the loop; the index's and the copy's spellings.
 s32 CTextureUtil::Unk_488380(f32 maxDistance, f32 arg1, f32 scale, s32 count, void* data, const MATRIXT44* view,
                              const MATRIXT44* projection, bool rightHanded, const Unk_Float4* color) {
     const Unk_29af8* lights = static_cast<const Unk_29af8*>(data);
@@ -10113,38 +10113,40 @@ s32 CTextureUtil::Unk_488380(f32 maxDistance, f32 arg1, f32 scale, s32 count, vo
     f32 nearPlane = near;
     field_29af4 = 0;
     for (s32 i = 0; i < count; i++) {
-        const Unk_29af8* light = &lights[i];
-        Unk_Float3 v;
-        Unk_Float4 p;
-        if (rightHanded) {
-            Unk_410070(reinterpret_cast<Unk_Vector3*>(&p), reinterpret_cast<const Unk_Vector3*>(light->field_0), &m);
-        } else {
-            v = Unk_Float3(light->field_0[0], light->field_0[1], -light->field_0[2].field_0);
-            Unk_410070(reinterpret_cast<Unk_Vector3*>(&p), reinterpret_cast<const Unk_Vector3*>(&v), &m);
-        }
-        f32 z = p.field_0[2].field_0;
-        f32 limit = nearPlane < maxDistance ? maxDistance : nearPlane;
-        if (light->field_34 > 0.0f && z <= limit)
-            continue;
-        if (z <= near || z >= far)
-            continue;
-        p.field_0[3].field_0 = 1.0f;
-        f32 px = p.field_0[0].field_0;
-        f32 sx = px * projection->field_0[0][0] + z * projection->field_0[2][0];
-        f32 py = p.field_0[1].field_0;
-        f32 radius = light->field_c * scale;
-        if ((sx > 0.0f ? sx : -sx) - projection->field_0[0][0] * radius > z) {
-            f32 sy = py * projection->field_0[1][1] + z * projection->field_0[2][1];
-            f32 ry = radius * projection->field_0[1][1];
-            if ((sy > 0.0f ? sy : -sy) - ry > z)
+        {
+            const Unk_29af8* light = &lights[i];
+            Unk_Float3 v;
+            Unk_Float4 p;
+            if (rightHanded) {
+                Unk_410070(reinterpret_cast<Unk_Vector3*>(&p), reinterpret_cast<const Unk_Vector3*>(light->field_0), &m);
+            } else {
+                v = Unk_Float3(light->field_0[0], light->field_0[1], -light->field_0[2].field_0);
+                Unk_410070(reinterpret_cast<Unk_Vector3*>(&p), reinterpret_cast<const Unk_Vector3*>(&v), &m);
+            }
+            f32 z = p.field_0[2].field_0;
+            f32 limit = nearPlane < maxDistance ? maxDistance : nearPlane;
+            if (light->field_34 > 0.0f && z <= limit)
                 continue;
+            if (z <= near || z >= far)
+                continue;
+            p.field_0[3].field_0 = 1.0f;
+            f32 px = p.field_0[0].field_0;
+            f32 sx = px * projection->field_0[0][0] + z * projection->field_0[2][0];
+            f32 py = p.field_0[1].field_0;
+            f32 radius = light->field_c * scale;
+            if ((sx > 0.0f ? sx : -sx) - projection->field_0[0][0] * radius > z) {
+                f32 sy = py * projection->field_0[1][1] + z * projection->field_0[2][1];
+                f32 ry = radius * projection->field_0[1][1];
+                if ((sy > 0.0f ? sy : -sy) - ry > z)
+                    continue;
+            }
+            s32 index = field_29af4++;
+            Unk_29af8* out = &field_29af8[index];
+            *out = *light;
+            out->field_0[0].field_0 = px;
+            out->field_0[1].field_0 = py;
+            out->field_0[2].field_0 = z;
         }
-        s32 index = field_29af4++;
-        Unk_29af8* out = &field_29af8[index];
-        *out = *light;
-        out->field_0[0].field_0 = px;
-        out->field_0[1].field_0 = py;
-        out->field_0[2].field_0 = z;
         if (field_29af4 >= field_29af0)
             break;
     }

@@ -222,12 +222,15 @@ public:
     s32 Unk_4af020(s32 mode, f32 fov, f32 distance, f32 width, f32 value, f32 exponent, f32 angle, f32 focus,
                    f32 a7, f32* outSize, Unk_Float* outFNumber, Unk_Float* outValue, f32* outCoc, f32* outRatio, Unk_Float4* outClip,
                    f32 limit);
-    // field_3b0's rounding of a value (inline)
+    // field_3b0's rounding of a value (inline; the scaled exponent is a named
+    // local: its DBG_VALUE keeps the A57 FP load balancing pass from renaming
+    // the product, as in the original)
     f32 Unk_Quantize(f32 x) {
         f32 step = field_3b0;
         if (step <= 0.0f)
             return x;
-        return exp2f(floorf(2.0f * (logf(x) / 0.6931472f) / step + 0.49999f) * step * 0.5f);
+        f32 e = floorf(2.0f * (logf(x) / 0.6931472f) / step + 0.49999f) * step;
+        return exp2f(e * 0.5f);
     }
     // 0x71004afc40: the camera (placeholder parameter names)
     // (the mode's position among the floats decides the order of the entry's copies)

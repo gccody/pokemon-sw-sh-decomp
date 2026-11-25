@@ -1453,3 +1453,35 @@ more variants of the existing source. What decided matches and large drops:
   `nsw`: a `u32` counted down in the test (`(s32)--j`).
 - A local read just before a pair of `if`/`else if` cases decides where
   LoopSimplify puts their loops' preheaders, and so the cases' test order.
+
+### Sixth pass: debug values and the FP register balancing
+
+- DBG_VALUEs steer the AArch64 "A57 FP load balancing" pass. It runs after
+  register allocation and renames the register of a multiply whose next use
+  is another multiply or an add; a named local puts a DBG_VALUE between them
+  (the build has `-g`), which counts as a use and stops the rename. When only
+  floating-point register numbers differ, remove a named intermediate or add
+  one (`Unk_Range`, `Unk_Quantize`, the `half` of 0x71004afd80, the float
+  position before an `s32` conversion). `-print-before/after=aarch64-a57-fp-load-balancing`
+  shows the decision.
+- Whole-value colours (all conversions, then all products, then the stores)
+  are a small struct with operators returning unnamed temporaries
+  (`return {a.r * b.r, ...};`); a named local inside the operator breaks it
+  again (0x71004b8450, 0x71004aff50).
+- A run of zero stores in one chain becomes 16-byte memsets, and a diagonal's
+  1.0 is stored on its own (`Unk_ScaleOnly`).
+- Implicit move assignment groups trivially movable members into one memcpy;
+  a member with a user-declared copy constructor has no move assignment and
+  gets a copy of its own (the NX texture's description, 0x710055ffd0).
+- A loop whose first element is handled before it (the pointer kept from
+  right after the reserve, a 32-bit count test before the 64-bit ones) is
+  written with the first element by hand (0x71005601b0).
+- A loop body put in its own `{ }` scope before a `break` lets the `break`
+  cross no lifetimes, so no cleanup-destination switch, and JumpThreading
+  puts a reload on the normal exits only (0x7100488380).
+- A union of named fields and an array makes a table and its fallback share
+  one base; a plain array member read as `[0][0]` for the fallback doesn't
+  (0x710048f620).
+- `ldrb; tbz #0` on a flags field is a `u32` tested with `& 1`; a `bool` field
+  gives `cbz`.
+- `bool keep = !(x < 0.0f); v = keep ? x : 1.0f;` gives `fcsel ..., pl`.

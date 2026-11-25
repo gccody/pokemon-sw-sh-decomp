@@ -2561,12 +2561,9 @@ static inline s32 Unk_GlareLinear(s32 format) {
 // through m_pGlareSource's first texture when the sizes differ
 // The two scaled colours are filled element by element (2, 1, 0, then 3):
 // the DAG then pairs the stores of elements 1 and 2 as the original does.
-// NON_MATCHING: the original tests `resize` with `tbz` (its known bits are
-// lost: a phi at instruction selection; here it is a select and `cbz`), and
-// swaps two registers of the size tests (w11/w12: the sRGB mask's shift and
-// the source's width). Tried: every order of the declarations before
-// `unscaled`, the sRGB test as a switch, an `||` chain, a local format, and
-// `resize` as an if/else, an int, a u8 and a negated select.
+// The source's width is read into a local before the first texture, the
+// plain path (`!resize`) comes first, and field_13c is read into a local
+// just before the scaled path's call (found by a randomized source search).
 s32 CRenderGlare::Unk_457760(CRenderTexture* source, CRenderTexture* target) {
     CTextureUtil* util = Unk_GetTextureUtil();
     Unk_ReleaseTextureUtil();
@@ -2579,9 +2576,10 @@ s32 CRenderGlare::Unk_457760(CRenderTexture* source, CRenderTexture* target) {
     }
     Unk_GPUTexture* texture = Unk_GetTexture(source);
     bool srgb = Unk_IsGlareSrgb(field_2e0);
+    s32 width = source->field_54;
     CRenderTexture* first = static_cast<CRenderTextureArray*>(m_pGlareSource)->field_38[0];
     bool filtered = (texture->field_5c & 0x20000) != 0;
-    bool larger = static_cast<u32>(source->field_54) > static_cast<u32>(first->field_54) * 2 + 1 ||
+    bool larger = static_cast<u32>(width) > static_cast<u32>(first->field_54) * 2 + 1 ||
                   static_cast<u32>(source->field_58) > static_cast<u32>(first->field_58) * 2 + 1;
     bool shrink = larger & (field_308 == 0);
     bool differ = source->field_54 != first->field_54 || source->field_58 != first->field_58;
@@ -2642,7 +2640,19 @@ s32 CRenderGlare::Unk_457760(CRenderTexture* source, CRenderTexture* target) {
         util->Unk_47dfa0(0.0f, 0.0f, 0.0f, 1.0f, source, target, format, &color, 1, false, false, 1, &offset,
                          nullptr, -1);
         field_2f8 = target;
-    } else if (resize) {
+    } else if (!resize) {
+        s32 linear = Unk_GlareLinear(format);
+        if (source->field_54 == target->field_54 && source->field_58 == target->field_58) {
+            Unk_GetTexture(source)->vf17(1);
+        }
+        if (fixed && field_411) {
+            Unk_440d50_get(reinterpret_cast<u64>(field_20), 1);
+        }
+        util->Unk_48e260(source, target, field_164, 1.0f / field_134, field_13c, field_144, angle, field_190,
+                         field_194, field_198, mode, shaftRect, linear, 1, false);
+        field_2f8 = target;
+        Unk_GetTexture(source)->vf17(0);
+    } else {
         Unk_440cf0_get(device, 0);
         field_20->vf46(0);
         f32 scale = 0.0f;
@@ -2677,21 +2687,10 @@ s32 CRenderGlare::Unk_457760(CRenderTexture* source, CRenderTexture* target) {
         if (fixed && field_411) {
             Unk_440d50_get(reinterpret_cast<u64>(field_20), 1);
         }
-        util->Unk_48e260(work, target, intensity, step, field_13c, field_144, angle, field_190, field_194,
+        f32 value = field_13c;
+        util->Unk_48e260(work, target, intensity, step, value, field_144, angle, field_190, field_194,
                          field_198, mode, shaftRect, linear, 1, false);
         Unk_GetTexture(work)->vf17(0);
-    } else {
-        s32 linear = Unk_GlareLinear(format);
-        if (source->field_54 == target->field_54 && source->field_58 == target->field_58) {
-            Unk_GetTexture(source)->vf17(1);
-        }
-        if (fixed && field_411) {
-            Unk_440d50_get(reinterpret_cast<u64>(field_20), 1);
-        }
-        util->Unk_48e260(source, target, field_164, 1.0f / field_134, field_13c, field_144, angle, field_190,
-                         field_194, field_198, mode, shaftRect, linear, 1, false);
-        field_2f8 = target;
-        Unk_GetTexture(source)->vf17(0);
     }
     if (fixed && field_411) {
         Unk_471460_update(reinterpret_cast<u64>(util), 16, 1);
