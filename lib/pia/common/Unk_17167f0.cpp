@@ -6,7 +6,57 @@
 // lib/pia/README.md).
 #include <types.h>
 
+// pead's intrusive list (lib/pia/common/Unk_1716660.cpp).
+struct Unk_17166a0_arg0 {
+    Unk_17166a0_arg0* field_0;
+    Unk_17166a0_arg0* field_8;
+};
+PKMN_SIZE_ASSERT(Unk_17166a0_arg0, 0x10);
+void Unk_17166a0(Unk_17166a0_arg0* node);
+void Unk_1716680(Unk_17166a0_arg0* self, Unk_17166a0_arg0* node);
+
 namespace pead {
+
+// A block of an ExpHeap's memory: its node in the heap's lists, the padding
+// in front of its data and the data's size. The data follows it.
+struct Unk_1716c20_block {
+    u8* Unk_end() { return reinterpret_cast<u8*>(this) + sizeof(*this) + m_offset + m_size; }
+
+    Unk_17166a0_arg0 m_node;
+    u16 field_10;
+    u16 m_offset;
+    size_t m_size;
+};
+PKMN_OFFSET_ASSERT(Unk_1716c20_block, m_offset, 0x12);
+PKMN_OFFSET_ASSERT(Unk_1716c20_block, m_size, 0x18);
+PKMN_SIZE_ASSERT(Unk_1716c20_block, 0x20);
+
+// A list of blocks, by their node at `m_offset`.
+struct Unk_1716c20_list {
+    Unk_1716c20_block* Unk_object(Unk_17166a0_arg0* node) {
+        return reinterpret_cast<Unk_1716c20_block*>(reinterpret_cast<u8*>(node) - m_offset);
+    }
+    Unk_17166a0_arg0* Unk_node(Unk_1716c20_block* block) {
+        return reinterpret_cast<Unk_17166a0_arg0*>(reinterpret_cast<u8*>(block) + m_offset);
+    }
+    void Unk_pushBack(Unk_1716c20_block* block) {
+        Unk_1716680(&m_head, Unk_node(block));
+        m_count++;
+    }
+    void Unk_insertBefore(Unk_1716c20_block* next, Unk_1716c20_block* block) {
+        Unk_1716680(Unk_node(next), Unk_node(block));
+        m_count++;
+    }
+    void Unk_erase(Unk_1716c20_block* block) {
+        Unk_17166a0(Unk_node(block));
+        m_count--;
+    }
+
+    Unk_17166a0_arg0 m_head;
+    int m_count;
+    int m_offset;
+};
+PKMN_SIZE_ASSERT(Unk_1716c20_list, 0x18);
 
 class Heap {
 public:
@@ -61,9 +111,15 @@ public:
     virtual void vf25(u32 value);
     virtual u32 vf26();
 
+    // 0x7101716c20: gives `block` back to the free list, in address order,
+    // merging it with its neighbours.
+    void Unk_1716c20(Unk_1716c20_block* block);
+
     u32 field_d4;
-    u8 _d8[0x30];
+    Unk_1716c20_list m_freeList;
+    Unk_1716c20_list m_usedList;
 };
+PKMN_OFFSET_ASSERT(ExpHeap, m_freeList, 0xd8);
 PKMN_OFFSET_ASSERT(ExpHeap, field_d4, 0xd4);
 PKMN_SIZE_ASSERT(ExpHeap, 0x108);
 
@@ -97,6 +153,44 @@ bool ExpHeap::vf17(const void* memory) const {
     }
     return reinterpret_cast<const void*>(begin) <= memory &&
            memory < reinterpret_cast<const void*>(end);
+}
+
+// NON_MATCHING: the original walks the list by block (comparing each with the
+// head's block) and lays the merge paths out differently; this walks it by node.
+// 0x7101716c20
+void ExpHeap::Unk_1716c20(Unk_1716c20_block* block) {
+    Unk_1716c20_block* prev = nullptr;
+    Unk_1716c20_block* end = m_freeList.Unk_object(&m_freeList.m_head);
+    for (Unk_1716c20_block* next = m_freeList.Unk_object(m_freeList.m_head.field_8); next != end;
+         next = m_freeList.Unk_object(m_freeList.Unk_node(next)->field_8)) {
+        if (next <= block) {
+            prev = next;
+            continue;
+        }
+        bool merged = false;
+        if (prev != nullptr && prev->Unk_end() == reinterpret_cast<u8*>(block)) {
+            prev->m_size += sizeof(Unk_1716c20_block) + block->m_offset + block->m_size;
+            block = prev;
+            merged = true;
+        }
+        if (block->Unk_end() == reinterpret_cast<u8*>(next)) {
+            if (!merged) {
+                m_freeList.Unk_insertBefore(next, block);
+            }
+            block->m_size += sizeof(Unk_1716c20_block) + next->m_offset + next->m_size;
+            m_freeList.Unk_erase(next);
+            return;
+        }
+        if (!merged) {
+            m_freeList.Unk_insertBefore(next, block);
+        }
+        return;
+    }
+    if (m_freeList.m_count != 0 && prev->Unk_end() == reinterpret_cast<u8*>(block)) {
+        prev->m_size += sizeof(Unk_1716c20_block) + block->m_offset + block->m_size;
+        return;
+    }
+    m_freeList.Unk_pushBack(block);
 }
 
 }  // namespace pead
