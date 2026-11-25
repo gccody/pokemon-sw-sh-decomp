@@ -70,6 +70,75 @@ void Unk_810d10(const Unk_811d90_Self* self,
     Unk_8150c0(self->field_18, 0x86, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
 }
 
+// What Unk_810be0 queues: a command's values, and the six 5-bit values of
+// the command it queues first, which it then clears.
+struct Unk_810be0_Arg1 {
+    u32 field_0;
+    u8 _4[0xe - 0x4];
+    u8 field_e;
+};
+PKMN_OFFSET_ASSERT(Unk_810be0_Arg1, field_e, 0xe);
+
+struct Unk_810be0_Arg2 {
+    u32 field_0;
+    u8 field_4;
+    u8 field_5;
+    u8 field_6;
+    u8 field_7;
+    bool field_8;
+    u8 _9;
+    bool field_a;
+    u8 _b[0xe - 0xb];
+    bool field_e;
+    u8 _f;
+    u32 field_10_0 : 5;
+    u32 field_10_1 : 5;
+    u32 field_10_2 : 5;
+    u32 field_10_3 : 5;
+    u32 field_10_4 : 5;
+    u32 field_10_5 : 5;
+};
+PKMN_OFFSET_ASSERT(Unk_810be0_Arg2, field_4, 0x4);
+PKMN_OFFSET_ASSERT(Unk_810be0_Arg2, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_810be0_Arg2, field_a, 0xa);
+PKMN_OFFSET_ASSERT(Unk_810be0_Arg2, field_e, 0xe);
+
+struct Unk_810be0_Arg3 {
+    u16 field_0;
+    u16 field_2;
+};
+PKMN_OFFSET_ASSERT(Unk_810be0_Arg3, field_2, 0x2);
+
+// NON_MATCHING: register allocation (self, arg1 and arg3 take x21..x23 in
+// another order) and the order of the loads for the 0x86 command.
+// 0x7100810be0
+void Unk_810be0(const Unk_811d90_Self* self,
+                const Unk_810be0_Arg1& arg1,
+                Unk_810be0_Arg2* arg2,
+                const Unk_810be0_Arg3* arg3) {
+    // arg1 is a reference: the original loads its field_0 before testing
+    // the value, which clang only does for a pointer it knows is valid.
+    u32 value = Unk_812dd0_getField0(reinterpret_cast<const Unk_812dd0*>(arg2));
+    if (value == 0)
+        value = arg1.field_0;
+    if (Unk_812e90_check(reinterpret_cast<const Unk_812e90*>(arg2))) {
+        Unk_816500(reinterpret_cast<void*>(self->field_18), arg3->field_0, 0x97, arg2->field_10_0,
+                   arg2->field_10_1, arg2->field_10_2, arg2->field_10_3, arg2->field_10_4,
+                   arg2->field_10_5);
+        Unk_812cf0_clearField10(reinterpret_cast<Unk_812cf0*>(arg2));
+    }
+    if (Unk_831030_check(reinterpret_cast<const Unk_831030*>(arg3))) {
+        Unk_816500(reinterpret_cast<void*>(self->field_18), arg3->field_2, 0x86, arg2->field_4,
+                   arg2->field_5, value, arg1.field_e, arg2->field_6, arg2->field_7, arg2->field_e,
+                   arg2->field_8);
+    } else {
+        Unk_810d10(self, arg2->field_4, arg2->field_5, value, arg1.field_e, arg2->field_6,
+                   arg2->field_7, arg2->field_e, arg2->field_8);
+    }
+    arg2->field_6 = 0;
+    arg2->field_a = true;
+}
+
 // 0x7100810d80
 // The move goes to Unk_780d40 as a u32, and into the command as a u16.
 void Unk_810d80(const Unk_810be0_Self* self, const Unk_7ee6b0* poke, u32 move, u8 arg3) {
@@ -82,14 +151,18 @@ void Unk_810d80(const Unk_810be0_Self* self, const Unk_7ee6b0* poke, u32 move, u
 // 0x7100810fb0
 void Unk_810fb0(Unk_810be0_Self* self, u8 pokeId, bool flag, const Unk_23acc98_Message* message) {
     Unk_7ee6b0* poke = Unk_7ecc90(Unk_7fe1d0_getField8(self->field_10), pokeId);
-    if (flag && poke != nullptr) {
-        u8 id = Unk_7ee6b0_getField7d(poke);
-        if (id != 0x1f)
-            Unk_8150c0(self->field_18, 0xb6, id);
+    if (flag) {
+        if (poke != nullptr) {
+            u8 id = Unk_7ee6b0_getField7d(poke);
+            if (id != 0x1f)
+                Unk_8150c0(self->field_18, 0xb6, id);
+        }
         Unk_80dd60(self, message);
-        id = Unk_7ee6b0_getField7d(poke);
-        if (id != 0x1f)
-            Unk_8150c0(self->field_18, 0xb7, id);
+        if (poke != nullptr) {
+            u8 id = Unk_7ee6b0_getField7d(poke);
+            if (id != 0x1f)
+                Unk_8150c0(self->field_18, 0xb7, id);
+        }
     } else {
         Unk_80dd60(self, message);
     }
