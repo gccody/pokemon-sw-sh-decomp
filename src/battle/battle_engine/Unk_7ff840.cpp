@@ -9,7 +9,7 @@ void Unk_7ff8f0(void* object) {
     Unk_7ee6b0_Field* self = static_cast<Unk_7ee6b0_Field*>(object);
     for (u32 i = 0; i < Unk_7ee6b0_Field::kSlots; i++)
         Unk_7ee6b0_Field_clearSlot(self, i);
-    self->field_0 = false;
+    self->field_0 = 0;
     self->field_4 = 0xff;
     self->field_c = 0;
     self->field_10 = 0x1f;

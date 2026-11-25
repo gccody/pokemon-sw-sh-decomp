@@ -11,7 +11,7 @@ struct Unk_7ee6b0_Field {
 
     // A counter (src/unsorted/leaf/Unk_7ff860.cpp reads and sets it through
     // placeholder types of its own).
-    bool field_0;
+    u8 field_0;   // active
     u32 field_4;  // its turns (0xff: no end)
     u32 field_8;
     u32 field_c;  // turns gone
