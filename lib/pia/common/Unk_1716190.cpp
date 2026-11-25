@@ -226,11 +226,16 @@ struct Unk_1716190_arg0 {
 PKMN_OFFSET_ASSERT(Unk_1716190_arg0, field_30, 0x30);
 PKMN_OFFSET_ASSERT(Unk_1716190_arg0, field_628, 0x628);
 
+// NON_MATCHING: the original keeps the result in x19 across the call and
+// branches on it (a phi of constants); this folds it into `eor`/`and`.
 // 0x7101716190
 bool Unk_1716190(Unk_1716190_arg0* self) {
     return self->field_628 == 1 && !self->vf7(true);
 }
 
+// NON_MATCHING: the original tests bit 0 of the state where `== 0` was
+// expected, ORs the flags the other way round and lays the blocks out
+// differently; this is its logic, read from the asm.
 // 0x71017161e0
 bool Unk_17161e0(Unk_1716190_arg0* self) {
     bool any = self->field_30 | self->field_31 | self->field_32 | self->field_33 |
