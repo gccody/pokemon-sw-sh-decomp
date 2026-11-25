@@ -42,7 +42,9 @@ struct Unk_10ff4b0_Arg;
 class Unk_2418090 {
 public:
     Unk_2418090() : field_8(0) {}
-    virtual ~Unk_2418090();
+    // 0x71010ff550, and its D0 at 0x71010ff5a0: inline, as the derived
+    // steps' destructors inline it.
+    virtual ~Unk_2418090() = default;
     virtual void vf2(u64 value, const Unk_239a418_Ref<Unk_239a418>& object);
     virtual void vf3();
     virtual void vf4(bool value) = 0;

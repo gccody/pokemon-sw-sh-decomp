@@ -108,7 +108,7 @@ void Unk_7ff630(Unk_7ff630_Ids* self, u8 id) {
     }
 }
 
-bool Unk_7cce80(void* self, u32 id, u32 arg);
+bool Unk_7cce80(void* self, u8 id, u8 arg);
 
 // NON_MATCHING: the original still tests `anyTrue && anyFalse` (an `and`) after
 // the `anyTrue` branch; here that is folded to `anyFalse`.

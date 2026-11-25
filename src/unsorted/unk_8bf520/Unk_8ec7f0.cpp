@@ -136,13 +136,7 @@ PKMN_OFFSET_ASSERT(Unk_8ec910_Record, field_24, 0x24);
 PKMN_OFFSET_ASSERT(Unk_8ec910_Record, field_26, 0x26);
 
 // 0x71008ec910
-// The existing name gives the record and the five bytes as unsigned long.
-void Unk_8ec910(unsigned long self,
-                unsigned long arg1,
-                unsigned long arg2,
-                unsigned long arg3,
-                unsigned long arg4,
-                unsigned long arg5) {
+void Unk_8ec910(unsigned long self, u8 arg1, u8 arg2, u8 arg3, u8 arg4, u8 arg5) {
     Unk_8ec910_Record* record = reinterpret_cast<Unk_8ec910_Record*>(self);
     record->field_26 = Unk_8ec910_State();
     record->field_20 = arg1;

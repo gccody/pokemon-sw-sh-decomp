@@ -4,7 +4,7 @@
 #include <types.h>
 
 // 0x7100ea2fe0
-void Unk_ea2fe0() {}
+void Unk_ea2fe0(void*) {}
 
 void Unk_ea2e20(void*);
 

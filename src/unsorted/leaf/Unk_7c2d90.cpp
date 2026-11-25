@@ -446,8 +446,8 @@ PKMN_OFFSET_ASSERT(Unk_7cac80, field_150, 0x150);
 void Unk_7fa500(u32, u32);
 
 // 0x71007cac80
-void Unk_7cac80_call(const Unk_7cac80* self, u32 value) {
-    Unk_7fa500(self->field_150, value & 0xff);
+void Unk_7cac80_call(const Unk_7cac80* self, u8 value) {
+    Unk_7fa500(self->field_150, value);
 }
 
 struct Unk_7cac90_88 {

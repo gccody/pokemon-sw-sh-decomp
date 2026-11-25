@@ -140,11 +140,10 @@ bool Unk_7ffe20(const Unk_7ee6b0_Field* self, u32 effect) {
 // rebuilt from the slot (the original widens it and walks a pointer), and the
 // registers differ.
 // 0x71007ffe50
-bool Unk_7ffe50(void* object, u32 slot, u32 id) {
+bool Unk_7ffe50(void* object, u32 slot, u8 id8) {
     Unk_7ee6b0_Field* self = static_cast<Unk_7ee6b0_Field*>(object);
     if (!isActive(self, slot))
         return false;
-    u8 id8 = id;
     if (!hasId(self, slot, id8))
         return false;
     u32 count = self->field_158[slot];

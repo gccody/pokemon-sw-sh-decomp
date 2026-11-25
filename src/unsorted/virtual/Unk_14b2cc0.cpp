@@ -12,13 +12,13 @@ void Unk_14b8030(void* self);
 void Unk_685c60(u64, u32);
 void Unk_14a9520(void*, u32);
 void Unk_14ab040(u64, u64, u32);
-void Unk_14ab080(u64);
-void Unk_14ab0c0(u64);
-void Unk_14ab200(u64);
-void Unk_14ab2b0(u64);
-void Unk_14ab380(u64);
-void Unk_14ab440(u64);
-void Unk_14ab9a0(u64);
+void Unk_14ab080(u64, u64);
+void Unk_14ab0c0(u64, u64);
+void Unk_14ab200(u64, u64);
+void Unk_14ab2b0(u64, u64);
+void Unk_14ab380(u64, u64);
+void Unk_14ab440(u64, u64, f32);
+void Unk_14ab9a0(u64, u64, u64);
 void Unk_14ac040(u64, u64, u64, u32);
 
 class Unk_24422d8 {
@@ -34,12 +34,12 @@ public:
     virtual void vf8();
     virtual void vf9();
     virtual void vf10(u64 value, bool arg2);
-    virtual void vf11();
-    virtual void vf12();
-    virtual void vf13();
-    virtual void vf14();
-    virtual void vf15();
-    virtual void vf16();
+    virtual void vf11(u64 key);
+    virtual void vf12(u64 key);
+    virtual void vf13(u64 key);
+    virtual void vf14(u64 key);
+    virtual void vf15(u64 key);
+    virtual void vf16(u64 key, f32 value);
     virtual void vf17();
     virtual u32 vf18();
     virtual void vf19();
@@ -50,7 +50,7 @@ public:
     virtual void vf24();
     virtual void vf25();
     virtual void vf26();
-    virtual void vf27();
+    virtual void vf27(u64 key, u64 arg2);
     u8 _8[0x50];
     u64 field_58;
 };
@@ -62,33 +62,33 @@ void Unk_24422d8::vf10(u64 value, bool arg2) {
 }
 
 // 0x71014b2cd0
-void Unk_24422d8::vf11() {
-    Unk_14ab080(field_58);
+void Unk_24422d8::vf11(u64 key) {
+    Unk_14ab080(field_58, key);
 }
 
 // 0x71014b2ce0
-void Unk_24422d8::vf12() {
-    Unk_14ab0c0(field_58);
+void Unk_24422d8::vf12(u64 key) {
+    Unk_14ab0c0(field_58, key);
 }
 
 // 0x71014b2cf0
-void Unk_24422d8::vf13() {
-    Unk_14ab200(field_58);
+void Unk_24422d8::vf13(u64 key) {
+    Unk_14ab200(field_58, key);
 }
 
 // 0x71014b2d00
-void Unk_24422d8::vf14() {
-    Unk_14ab2b0(field_58);
+void Unk_24422d8::vf14(u64 key) {
+    Unk_14ab2b0(field_58, key);
 }
 
 // 0x71014b2d10
-void Unk_24422d8::vf15() {
-    Unk_14ab380(field_58);
+void Unk_24422d8::vf15(u64 key) {
+    Unk_14ab380(field_58, key);
 }
 
 // 0x71014b2d20
-void Unk_24422d8::vf16() {
-    Unk_14ab440(field_58);
+void Unk_24422d8::vf16(u64 key, f32 value) {
+    Unk_14ab440(field_58, key, value);
 }
 
 // 0x71014b2d60
@@ -102,8 +102,8 @@ void Unk_24422d8::vf22(u64 value, u64 arg2) {
 }
 
 // 0x71014b3050
-void Unk_24422d8::vf27() {
-    Unk_14ab9a0(field_58);
+void Unk_24422d8::vf27(u64 key, u64 arg2) {
+    Unk_14ab9a0(field_58, key, arg2);
 }
 
 class Unk_24423f8 {

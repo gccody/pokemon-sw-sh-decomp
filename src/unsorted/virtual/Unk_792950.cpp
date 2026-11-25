@@ -6,7 +6,7 @@
 
 // Tail-called by lifted functions. Placeholders, like the forwarders' callees.
 void Unk_793ac0(u64, u64, u64);
-void Unk_793b20(u64, u64, u64, u32);
+void Unk_793b20(u64, u64, f32, u64, u32);
 
 // Globals other TUs define, named after their addresses.
 extern u64 Unk_27ce848;
@@ -35,7 +35,7 @@ class Unk_23a8100 {
 public:
     virtual ~Unk_23a8100();
     virtual void vf2();
-    virtual void vf3(u64 value, u32 arg2);
+    virtual void vf3(u64 value, u32 arg2, f32 arg3);
     virtual void vf4();
     virtual void vf5();
     virtual void vf6();
@@ -47,8 +47,8 @@ public:
 Unk_23a8100::~Unk_23a8100() {}
 
 // 0x7100794310
-void Unk_23a8100::vf3(u64 value, u32 arg2) {
-    Unk_793b20(Unk_27ce848, value, 0xffffffffffffffff, arg2);
+void Unk_23a8100::vf3(u64 value, u32 arg2, f32 arg3) {
+    Unk_793b20(Unk_27ce848, value, arg3, 0xffffffffffffffff, arg2);
 }
 
 // 0x7100794470

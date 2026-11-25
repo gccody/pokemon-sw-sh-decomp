@@ -51,6 +51,3 @@ Unk_239a418_Ref<Unk_2417c28> Unk_2418090::Unk_10ff530() const {
         return Unk_Lock<Unk_2417c28>(field_10.m_ptr);
     return Unk_239a418_Ref<Unk_2417c28>();
 }
-
-// 0x71010ff550, and its D0 at 0x71010ff5a0
-Unk_2418090::~Unk_2418090() = default;

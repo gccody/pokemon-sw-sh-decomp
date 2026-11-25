@@ -11,7 +11,7 @@ u8 Unk_7cb7a0(const Unk_7c2d80_Main* self, u8 position);
 u8 Unk_7cb4b0(const Unk_7c2d80_Main* self, Unk_7ecc90_Con* con, u8 pokeId);
 u8 Unk_7c9b60(void* self, u8 client, u32 index);
 u8 Unk_7cc000(void* self, u8 index);
-bool Unk_7cce80(void* self, u32 id, u32 arg);
+bool Unk_7cce80(void* self, u8 id, u8 arg);
 u32 Unk_7cb320(void* self, u32 value);
 
 // The module at +0x60's counts, per side.
@@ -19,7 +19,7 @@ u32 Unk_8ac1f0(void* self, s32 index);
 
 // Leaf functions with their own placeholder types (src/unsorted/leaf).
 struct Unk_7cac80;
-u8 Unk_7cac80_call(const Unk_7cac80* self, u32 value);
+u8 Unk_7cac80_call(const Unk_7cac80* self, u8 value);
 struct Unk_7cd220;
 u32 Unk_7cd220_call(const Unk_7cd220* self, u32 value);
 struct Unk_7d0bb0;
@@ -210,9 +210,6 @@ void Unk_23b9048::vf241(u32* out1, u32* out2, u32 index, u32 kind) {
           Unk_8024a0_get(As<Unk_8024a0>(info)), Unk_802490_getField18(As<Unk_802490>(info)));
 }
 
-// NON_MATCHING: Unk_7cac80_call and Unk_7cce80 are named with u32 parameters,
-// so their u8 arguments get masked; the original passes them as they are (the
-// callees mask them themselves).
 // 0x71008aa160
 void Unk_23b9048::vf245(u32* out1,
                         u32* out2,

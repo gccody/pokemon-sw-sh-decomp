@@ -20,6 +20,12 @@ public:
     MemAllocator(const MemAllocator<U>&) {}
     T* allocate(size_t n) { return static_cast<T*>(Unk_15b9340(n * sizeof(T))); }
     void deallocate(T* p, size_t) { Unk_15b9390(reinterpret_cast<u64>(p)); }
+    // A construct() of its own: libc++'s vector then moves its elements one
+    // by one when it grows (as the executable's do), not with memcpy.
+    template <class U, class... Args>
+    void construct(U* p, Args&&... args) {
+        ::new (static_cast<void*>(p)) U(std::forward<Args>(args)...);
+    }
     template <class U>
     bool operator==(const MemAllocator<U>&) const {
         return true;
