@@ -8,6 +8,7 @@
 #include <map>
 
 #include <nn/nex/InstanceTable.h>
+#include <nn/nex/String.h>
 #include <nn/nex/qList.h>
 #include <nn/nex/qVector.h>
 
@@ -61,20 +62,20 @@ class CallContextRegister;
 }  // namespace nex
 }  // namespace nn
 
-// MethodCallJob<CallContextRegister, int, PeriodicJob>: a job that calls a
-// member function of an object with an int.
-struct Unk_15d4f00 {
+// MethodCallJob<CallContextRegister, int, PeriodicJob> (named after its
+// vtable): a job that calls a member function of an object with an int.
+struct Unk_24506a8 {
     u8 _0[0x68];
     void (nn::nex::CallContextRegister::*m_method)(int);
     nn::nex::CallContextRegister* m_object;
     int m_arg;
 };
-PKMN_OFFSET_ASSERT(Unk_15d4f00, m_method, 0x68);
-PKMN_OFFSET_ASSERT(Unk_15d4f00, m_object, 0x78);
-PKMN_OFFSET_ASSERT(Unk_15d4f00, m_arg, 0x80);
+PKMN_OFFSET_ASSERT(Unk_24506a8, m_method, 0x68);
+PKMN_OFFSET_ASSERT(Unk_24506a8, m_object, 0x78);
+PKMN_OFFSET_ASSERT(Unk_24506a8, m_arg, 0x80);
 
 // 0x71015d4f00: its slot 3, the call.
-void Unk_15d4f00(Unk_15d4f00* self) {
+void Unk_15d4f00(Unk_24506a8* self) {
     (self->m_object->*self->m_method)(self->m_arg);
 }
 
@@ -237,3 +238,50 @@ struct Unk_15d50b0;
 // code exactly (checked in a scratch build).
 template void std::vector<Unk_15d50b0*, nn::nex::MemAllocator<Unk_15d50b0*>>::__push_back_slow_path<
     Unk_15d50b0* const&>(Unk_15d50b0* const& value);
+
+namespace nn {
+namespace nex {
+
+// N2nn3nex12StringStreamE: a string being written, in a 0x100-byte buffer that
+// grows on the heap.
+class StringStream : public RootObject {
+public:
+    // 0x71015bd810
+    StringStream();
+    // 0x71015bd850
+    ~StringStream() override;
+
+    // 0x71015bd4f0: appends a String.
+    StringStream& Unk_15bd4f0(const String& str);
+    // 0x71015bdc00: appends a number.
+    StringStream& Unk_15bdc00(int value);
+
+    char* m_ptr;
+    u8 _10[0x118];
+};
+PKMN_SIZE_ASSERT(StringStream, 0x128);
+
+}  // namespace nex
+}  // namespace nn
+
+// 0x71015b82d0: appends a C string to a StringStream (the name's parameter is
+// an integer: the string's address).
+nn::nex::StringStream& Unk_15b82d0(void* self, u64 str);
+// 0x71015bc1e0: assigns `length` characters of `str` (all of it for -1).
+void Unk_15bc1e0(nn::nex::String* self, const char* str, size_t length);
+
+// A String with a copy of `str` (NEX's String(const char*), inline).
+static nn::nex::String Unk_MakeString(const char* str) {
+    nn::nex::String result;
+    Unk_15bc1e0(&result, str, static_cast<size_t>(-1));
+    return result;
+}
+
+// 0x71015d4f30: the job's slot 6, its description: Job's (an empty string),
+// then the argument.
+nn::nex::String Unk_15d4f30(const Unk_24506a8* self) {
+    nn::nex::StringStream stream;
+    stream.Unk_15bd4f0(Unk_MakeString(""));
+    Unk_15b82d0(&stream, reinterpret_cast<u64>("\tArgument: ")).Unk_15bdc00(self->m_arg);
+    return Unk_MakeString(stream.m_ptr);
+}
