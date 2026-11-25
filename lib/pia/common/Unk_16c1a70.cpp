@@ -3,6 +3,7 @@
 // from transport::Protocol, RTTI N2nn3pia9transport8ProtocolE, whose
 // constructor is named Unk_2460778 here). Member names are placeholders
 // (vf<slot>, lib/pia/README.md).
+#include "pia/common/Unk_16c1b90.h"
 #include "pia/common/Unk_165e060.h"
 
 // What the global Unk_27fc2d8 points to (lib/pia/common/Unk_1735510.cpp):
@@ -35,18 +36,6 @@ public:
 // Declared in lib/nx_middleware/leaf with the u64 field it returns.
 Unk_16c1d00_lookup* Unk_174de50_get(const Unk_174de50* self);
 
-// A tick and whether it's set (0x71016c1b90-0x71016c1c20, another file; its
-// constructor and destructor are Unk_16c1b90_set and Unk_16c1ba0_update in
-// lib/nx_middleware/leaf/Unk_16c1b60.cpp).
-struct Unk_16c1b90 {
-    Unk_16c1b90();
-    ~Unk_16c1b90();
-
-    u64 field_0;
-    bool field_8;
-};
-PKMN_OFFSET_ASSERT(Unk_16c1b90, field_8, 0x8);
-PKMN_SIZE_ASSERT(Unk_16c1b90, 0x10);
 
 // transport::Protocol (placeholder name: its constructor's).
 class Unk_2460778 {
@@ -112,8 +101,6 @@ PKMN_OFFSET_ASSERT(SyncClockProtocol, field_6c, 0x6c);
 PKMN_OFFSET_ASSERT(SyncClockProtocol, field_98, 0x98);
 
 // 0x71016c1c30
-// NON_MATCHING: the same instructions, but field_48's constructor is named as a free function
-// (Unk_16c1b90_set) until it's renamed to Unk_16c1b90's constructor.
 SyncClockProtocol::SyncClockProtocol()
     : field_58(2000), field_60(0), field_68(false), field_69(false) {
     field_98 = 0;
@@ -122,8 +109,6 @@ SyncClockProtocol::SyncClockProtocol()
 }
 
 // 0x71016c1c80 (and 0x71016c1cc0, deleting)
-// NON_MATCHING: the same instructions, but field_48's destructor is named as a free function
-// (Unk_16c1ba0_update) until it's renamed to Unk_16c1b90's destructor.
 SyncClockProtocol::~SyncClockProtocol() {}
 
 // 0x71016c1d00
