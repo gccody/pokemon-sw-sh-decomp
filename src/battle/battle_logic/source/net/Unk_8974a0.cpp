@@ -1,8 +1,9 @@
 // Scope: common
 //
-// The battle's net peer (Unk_8974a0.h): the slots of 0x7100897580-0x7100898318
-// and their thunks. Part of the segment 0x7100891a20-0x7100898dd0 (one or more
-// TUs). Placeholder names: rename once the classes are known.
+// The battle's net peer (Unk_8974a0.h): the slots of 0x7100896c70-0x7100898318
+// and their thunks (vf9's and its thunk's are in src/unsorted/virtual). Part of the segment
+// 0x7100891a20-0x7100898dd0 (one or more TUs). Placeholder names: rename once the classes are
+// known.
 #include "battle/battle_logic/source/net/Unk_8974a0.h"
 
 #include <algorithm>
@@ -15,6 +16,7 @@
 
 u8 Unk_6ae9d0(u64 peer);  // the client of a peer (0xfd: none)
 bool Unk_8a7000(void* self, u32 clientId);
+bool Unk_8a6fd0(void* self, s32 clientId);  // whether a client (0-4) is in the battle
 void Unk_6d7ac0(u64 arg0, u64 peer, u32 arg2);
 
 struct Unk_1652250;
@@ -112,6 +114,45 @@ PKMN_OFFSET_ASSERT(Unk_23b8348, field_88, 0x88);
 template <class T>
 static Unk_239a418_Ref<T> Unk_LockOrNone(Unk_239a418_Handle* handle) {
     return handle != nullptr ? Unk_Lock<T>(handle) : Unk_239a418_Ref<T>();
+}
+
+// 0x7100896c70, its thunk from +0x60 0x71008972b0
+// NON_MATCHING: the five station searches. The original tests the first
+// station before each loop (the search's first iteration is peeled, as in
+// vf13); the rest is the same. The thunk matches.
+bool Unk_23b7ee8::vf7() {
+    std::vector<u64, Unk_2771620_Allocator<u64>> stations{Unk_2771620_Allocator<u64>(field_80)};
+    for (s32 i = 0; i < 5; ++i) {
+        if (!Unk_8a6fd0(field_3b8, i))
+            continue;
+        u64 stationId = field_a0.field_80.FindClient(i);
+        if (stationId != 0)
+            stations.push_back(stationId);
+    }
+    field_3c0 = Unk_2771620_MakeUnique<Unk_23a3638>(field_80, field_80, 0xa0, stations);
+    if (field_3c0 != nullptr)
+        field_3c0->Unk_6b92c0();
+    return field_3c0 != nullptr;
+}
+
+// 0x71008972e0, its thunk from +0x60 0x7100897350
+void Unk_23b7ee8::vf10() {
+    if (field_3c0 != nullptr)
+        field_3c0->Unk_6b9260();
+    field_3c0.reset();
+}
+
+// 0x71008973c0, its thunk from +0x60 0x71008974a0
+// NON_MATCHING: the station search, in both: the original peels its first
+// iteration (as in vf13 and vf7); the rest is the same.
+bool Unk_23b7ee8::vf8() {
+    u64 stationId = field_a0.field_80.FindClient(field_190.field_81);
+    bool result = true;
+    if (field_3e0 != nullptr)
+        result = field_148->Unk_8984b0(*field_3e0->field_8);
+    if (field_400 != nullptr)
+        result &= Unk_895a30(field_400.get(), stationId);
+    return result;
 }
 
 // 0x7100897580, its thunk from +0x60 0x7100897750

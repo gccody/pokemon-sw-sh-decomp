@@ -13,8 +13,10 @@
 // src/unsorted/virtual/Unk_8923e0.cpp and src/unsorted/types/Unk_898c10.cpp
 // declare it without them (and name the EmptyCommand handler, 0x7100897d20,
 // vf16). Placeholder names: rename once the classes are known.
+#include <algorithm>
 #include <cstring>
 #include <memory>
+#include <vector>
 
 #include <types.h>
 
@@ -22,6 +24,7 @@
 #include "btl_data_holder.pb.h"
 #include "gflib3/Unk_239a418.h"
 #include "unsorted/Unk_23f4660.h"
+#include "unsorted/Unk_2771620.h"
 
 namespace pb = btl::net::protocol_buffers;
 
@@ -53,10 +56,10 @@ public:
 // empty functions). Signatures are what the overrides show.
 class Unk_23b7ee8_60 {
 public:
-    virtual void vf7();
+    virtual bool vf7();
     virtual void vf9();
     virtual void vf10();
-    virtual void vf8();
+    virtual bool vf8();
     virtual void vf11(u64 stationId);
     virtual void vf12();
     virtual u8 vf13(u64 stationId);
@@ -128,6 +131,14 @@ struct Unk_23b7ee8_Stations {
         return end();
     }
 
+    // The station of a client, 0 if it has none.
+    u64 FindClient(u8 clientId) const {
+        const Unk_23b7ee8_Station* it = std::find_if(
+            begin(), end(),
+            [clientId](const Unk_23b7ee8_Station& s) { return s.field_8 == clientId; });
+        return it != end() ? it->field_0 : 0;
+    }
+
     Unk_23b7ee8_Station* field_0;
     u64 field_8;
 };
@@ -151,11 +162,31 @@ struct Unk_23b7ee8_88 {
 PKMN_OFFSET_ASSERT(Unk_23b7ee8_88, field_4, 0x4);
 PKMN_OFFSET_ASSERT(Unk_23b7ee8_88, field_3a5, 0x3a5);
 
+// The battle's channels (src/battle/battle_logic/source/net/Unk_89bca0.cpp).
+class Unk_23b84d0;
+
 struct Unk_23b7ee8_148 {
-    u8 _0[0x2a0];
-    u64 field_2a0;
+    // Send a message to every peer through the channel at +0x2b0.
+    bool Unk_896b10(const pb::TrainerAction& trainerAction);
+    bool Unk_8984b0(const pb::BattleCommand& battleCommand);
+
+    u8 _0[0x78];
+    Unk_239a418_Allocator* field_78;
+    u8 _80[0x220];
+    u64 field_2a0;  // the session (Unk_6d7ab0)
+    u8 _2a8[0x8];
+    Unk_23b84d0* field_2b0;
 };
+PKMN_OFFSET_ASSERT(Unk_23b7ee8_148, field_78, 0x78);
 PKMN_OFFSET_ASSERT(Unk_23b7ee8_148, field_2a0, 0x2a0);
+PKMN_OFFSET_ASSERT(Unk_23b7ee8_148, field_2b0, 0x2b0);
+
+// What +0x3e0 and +0x400 hold: a BattleCommand to send (vf8).
+struct Unk_23b7ee8_3e0 {
+    u8 _0[0x8];
+    const pb::BattleCommand* field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_23b7ee8_3e0, field_8, 0x8);
 
 // A client's last BattleCommand: its type, client, sequence number and body.
 struct Unk_23b7ee8_Command {
@@ -187,12 +218,20 @@ PKMN_SIZE_ASSERT(Unk_23b7ee8_Timer, 0x8);
 
 // The ping listener (src/gflnet3/src/p2p/sync/ping/Unk_23a3638.h), with the
 // destructor that header leaves implicit: the original's is out of line
-// (0x71006b90e0).
-class Unk_23a3638 {
+// (0x71006b90e0). Its size and alignment are what vf7 allocates.
+class alignas(0x10) Unk_23a3638 {
 public:
+    Unk_23a3638(Unk_239a418_Allocator* allocator,
+                u8 arg1,
+                const std::vector<u64, Unk_2771620_Allocator<u64>>& peers);
     ~Unk_23a3638();
     void Unk_6b9260();
+    void Unk_6b92c0();
+
+private:
+    u8 _0[0x130];
 };
+PKMN_SIZE_ASSERT(Unk_23a3638, 0x130);
 
 // What 0x710089b8a0's classes copy at +0x88 (Unk_23b8348).
 struct Unk_23b7ee8_Info {
@@ -211,8 +250,8 @@ public:
     using Unk_239a418::vf4;
 
     ~Unk_23b7ee8() override;
-    void vf7() override;
-    void vf8() override;
+    bool vf7() override;
+    bool vf8() override;
     void vf9() override;
     void vf10() override;
     void vf11(u64 stationId) override;
@@ -232,8 +271,10 @@ public:
 
     void Unk_897f70();
     void Unk_898100();
+    bool Unk_895a30(const Unk_23b7ee8_3e0* commands, const u64& stationId);
+    bool Unk_8969d0(u32 clientId);
 
-    u8 _80[0x8];
+    Unk_239a418_Allocator* field_80;
     Unk_23b7ee8_88* field_88;
     u8 field_90;
     u8 _91[0xf];
@@ -246,12 +287,14 @@ public:
     Unk_23b7ee8_Info field_220;
     // this client's command, then each client's
     std::unique_ptr<Unk_23b7ee8_Command, Unk_23f4660_Deleter> field_238[9];
-    u8 field_358[8];    // each client's RaidAction
-    bool field_360[8];  // each client's TrainerAction came
+    u8 field_358[8];  // each client's RaidAction
+    u8 field_360[8];  // each client's TrainerAction came
     Unk_23b7ee8_Timer field_368[8];
     u8 _3a8[0x10];
     void* field_3b8;
     std::unique_ptr<Unk_23a3638, Unk_23f4660_Deleter> field_3c0;
+    std::unique_ptr<Unk_23b7ee8_3e0, Unk_23f4660_Deleter> field_3e0;
+    std::unique_ptr<Unk_23b7ee8_3e0, Unk_23f4660_Deleter> field_400;
 };
 PKMN_OFFSET_ASSERT(Unk_23b7ee8, field_88, 0x88);
 PKMN_OFFSET_ASSERT(Unk_23b7ee8, field_90, 0x90);
@@ -267,3 +310,5 @@ PKMN_OFFSET_ASSERT(Unk_23b7ee8, field_360, 0x360);
 PKMN_OFFSET_ASSERT(Unk_23b7ee8, field_368, 0x368);
 PKMN_OFFSET_ASSERT(Unk_23b7ee8, field_3b8, 0x3b8);
 PKMN_OFFSET_ASSERT(Unk_23b7ee8, field_3c0, 0x3c0);
+PKMN_OFFSET_ASSERT(Unk_23b7ee8, field_3e0, 0x3e0);
+PKMN_OFFSET_ASSERT(Unk_23b7ee8, field_400, 0x400);
