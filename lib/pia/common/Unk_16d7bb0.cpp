@@ -6,6 +6,7 @@
 // N2nn3pia3nex21NexSessionInfoPrivateE, derived from nex::NexSessionInfo) that
 // it instantiates. Member names are placeholders (vf<slot>, lib/pia/README.md).
 #include "pia/common/Unk_16d8140.h"
+#include "pia/common/Unk_17162d0.h"
 
 
 namespace nn {

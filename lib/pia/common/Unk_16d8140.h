@@ -4,7 +4,11 @@
 // Its members are 0x71016d8020-0x71016d82d0 (lib/pia/common/Unk_16d8140.cpp);
 // NexNetworkFactory's vf82 creates one (lib/pia/common/Unk_16d7bb0.cpp).
 // Member names are placeholders (vf<slot>, lib/pia/README.md).
-#include "pia/common/Unk_17162d0.h"
+#include <types.h>
+
+namespace pead {
+class Heap;
+}
 
 namespace nn {
 namespace pia {
