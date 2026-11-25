@@ -6,6 +6,31 @@
 // inline destructors and their thunks are emitted here.
 #include "gflib3/Unk_239a418.h"
 #include "gflib3/Unk_239a4c0.h"
+#include "gflib3/Unk_New.h"
+
+// What makes the objects' handles: its allocator, at +0x8.
+struct Unk_27736e0_Object {
+    u64 field_0;
+    Unk_239a418_Allocator* field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_27736e0_Object, field_8, 0x8);
+
+extern Unk_27736e0_Object* Unk_27736e0;
+
+// 0x71005e2350
+// NON_MATCHING: ordering. The allocator is stored before the three vptrs (the
+// +0x50 one first, with the pre-indexed store that keeps this + 0x50 for the
+// handle), where the original pairs it with the primary vptr; Unk_23f5d00's
+// constructor (two vptrs) matches with the same root constructor.
+//
+// The handle's interface pointer is converted in Create (`this`, not
+// this + 0x50, is passed): converted here, its null test would be next to the
+// handle constructor's call, and LLVM's call site splitting makes a copy of it
+// with a null `this`, which becomes a trap after vf23.
+Unk_239a418::Unk_239a418() {
+    m_handle = Unk_239a418_Ref<Unk_239a418_Handle>(
+        Unk_New().Create<Unk_239a418_Handle>(Unk_27736e0->field_8, this));
+}
 
 // 0x71005e2700
 void Unk_239a418::vf3() {
