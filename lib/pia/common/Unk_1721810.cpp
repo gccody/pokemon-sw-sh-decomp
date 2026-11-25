@@ -1,7 +1,7 @@
 // Scope: common
 // The message queue holder's other members (Unk_1721740,
 // lib/pia/common/Unk_17214f0.h), pead::Mutex (RTTI N4pead5MutexE, derived from
-// pead::IDisposer), two thread helpers, then pead::Thread (RTTI N4pead6ThreadE).
+// pead::IDisposer) and two thread helpers.
 // Member names are placeholders (lib/pia/README.md).
 #include "pia/common/Unk_17214f0.h"
 
