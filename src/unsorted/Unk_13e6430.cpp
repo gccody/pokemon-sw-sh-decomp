@@ -25,7 +25,7 @@ PKMN_OFFSET_ASSERT(Unk_24ba4e0_Type, field_208, 0x208);
 extern Unk_24ba4e0_Type* Unk_24ba4e0;
 
 // The functions of the object at +0x1d8. They take the values as u16s.
-bool Unk_1367100(void* self, u32 arg1, u32 arg2, u32 arg3);
+bool Unk_1367100(void* self, u16 arg1, u16 arg2, u32 arg3);
 bool Unk_1367350(Unk_239a418* self, u16 arg1, u16 arg2);
 bool Unk_1367510(Unk_239a418* self, u16 arg1, u16 arg2);
 u32 Unk_1367a30(Unk_239a418* self, u16 arg1);
@@ -49,9 +49,6 @@ bool Unk_786ec0(u16 value);
 bool Unk_786f10(u16 value);
 
 // 0x71013e6570
-// NON_MATCHING: Unk_1367100 takes the values as u16s (as Unk_1367350 and
-// Unk_1367510: the original loads them with ldrh and passes them as they are),
-// but its name gives u32s, so they're loaded as words and masked at the call.
 s64 Unk_13e6570(Unk_66efd0* self, const Unk_13f1360_Args* args) {
     u16 value = args->field_8;
     u16 arg = args->field_10;

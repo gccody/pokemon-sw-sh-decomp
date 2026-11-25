@@ -119,7 +119,7 @@ u8 Unk_804920(u8 value);
 u32 Unk_7fb890(u32 rule, u8 arg1, u32 arg2, u32 arg3);
 u32 Unk_7f9a10(u32 rule, u8 arg1, u32 arg2);
 u32 Unk_7f9ac0(u32 rule, u8 arg1, u8 position);
-u32 Unk_1367100(void* self, u32 arg1, u32 arg2, u32 arg3);
+u32 Unk_1367100(void* self, u16 arg1, u16 arg2, u32 arg3);
 void Unk_1379f30(void* self, u32 species);
 void Unk_8ada60(void* self);
 
