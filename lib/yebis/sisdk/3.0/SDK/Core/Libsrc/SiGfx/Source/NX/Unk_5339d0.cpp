@@ -46,12 +46,10 @@ void SiGfxNXFreeTypeFaceCache::vf6() {
 }
 
 // 0x7100533e10
-// NON_MATCHING: as the base's slot 8 (SiGfx_FreeType_FaceCache.cpp): the
-// pixel modes' tests come out the other way round (the original compares 2
-// first and lays the one-bit loop out first). The source pointer is read
-// before the destination's address is computed (the original's registers).
-// Tried: the two cases swapped, nested, as a switch in both orders with and
-// without a default, `!=` forms, five forms of the first test.
+// The one-bit case's row stride is read after the destination's address and
+// before the tests: neither case then starts with a block of its own, so
+// LoopSimplify places the one-bit loop's new preheader right after the
+// switch, and that case is the one tested last.
 bool SiGfxNXFreeTypeFaceCache::vf8(SiGfxFreeTypeGlyph* glyph, const Unk_FTBitmap* bitmap, SiGfxImage* image) {
     if (bitmap->field_1a != 1 && bitmap->field_1a != 2) {
         return false;
@@ -64,8 +62,14 @@ bool SiGfxNXFreeTypeFaceCache::vf8(SiGfxFreeTypeGlyph* glyph, const Unk_FTBitmap
     s64 width = field_30->vf19()->field_14;
     const u8* src = bitmap->field_10;
     u8* dst = pixels + glyph->field_70 + glyph->field_74 * width;
-    if (bitmap->field_1a == 1) {
-        s32 stride = glyph->field_78;
+    s32 stride = glyph->field_78;
+    if (bitmap->field_1a == 2) {
+        for (u32 y = 0; y < bitmap->field_0; y++) {
+            memcpy(dst, src, bitmap->field_4);
+            src += bitmap->field_8;
+            dst += width;
+        }
+    } else if (bitmap->field_1a == 1) {
         for (u32 y = 0; y < bitmap->field_0; y++) {
             u8 mask = 0x80;
             for (u32 x = 0; x < bitmap->field_4; x++) {
@@ -78,12 +82,6 @@ bool SiGfxNXFreeTypeFaceCache::vf8(SiGfxFreeTypeGlyph* glyph, const Unk_FTBitmap
             }
             dst += stride;
             src = bitmap->field_10 + bitmap->field_8 * y;
-        }
-    } else if (bitmap->field_1a == 2) {
-        for (u32 y = 0; y < bitmap->field_0; y++) {
-            memcpy(dst, src, bitmap->field_4);
-            src += bitmap->field_8;
-            dst += width;
         }
     }
     pTexture->Unk_561e50();

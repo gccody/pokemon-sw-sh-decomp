@@ -840,7 +840,11 @@ bool Unk_4ed120(u32 format);
 // `||` or `|`) and if/else-if chains in both orders. The original's compare
 // chain after each case's select is what a switch on a value whose known bits
 // InstCombine couldn't see (no narrowing) gives once tail duplication copies
-// it into the cases.
+// it into the cases. The cube's depth clamps the layers again: the original
+// multiplies a select of its own (`select(layers > 1, layers * 6, 6)`), which
+// InstCombine only distributes when the select has one use. Still to find:
+// why the original's second switch isn't narrowed and is skipped from the
+// cube's case (here it is tested there too).
 void Unk_563270(void* device, s32 kind, const Unk_563270_Desc* desc, void* builder) {
     s32 width = desc->field_10 > 1 ? desc->field_10 : 1;
     s32 height = desc->field_14 > 1 ? desc->field_14 : 1;
@@ -861,7 +865,7 @@ void Unk_563270(void* device, s32 kind, const Unk_563270_Desc* desc, void* build
     case 4:
     case 6:
         target = desc->field_20 > 1 ? 9 : 8;
-        depth = layers * 6;
+        depth = (desc->field_20 > 1 ? desc->field_20 : 1) * 6;
         break;
     case 5:
         target = desc->field_24 == 0 ? 4 : 6;

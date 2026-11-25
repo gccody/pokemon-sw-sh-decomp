@@ -329,23 +329,19 @@ bool SiGfxNXRenderTarget::Unk_5560c0() {
     return true;
 }
 
-// NON_MATCHING: the same calls and stores; the original doesn't test the
-// surface a texture's slot 24 returns (it calls it at once) and has no
-// induction variable of its own for the formats' stores (`add x9, x19, x23,
-// lsl #2` each time), where this keeps 0x29c + 4 * i in a register. Writing
-// the surface's three statements in both branches drops the test but keeps
-// the extra induction variable (and costs 8 bytes).
+// NON_MATCHING: the same calls and stores; the original has no induction
+// variable of its own for the formats' stores (`add x9, x19, x23, lsl #2`
+// each time), where this keeps 0x29c + 4 * i in a register, and it addresses
+// the views' test through this + 8 * i + 0x2c0 (x26). The slot-24 surface
+// isn't tested: the test is of either source (`field_8 || field_18`). Tried
+// for the rest: the index as s64, u32, int; the views' test nested.
 // 0x71005564a0
 bool SiGfxNXRenderTarget::Unk_5564a0() {
     field_298.field_0 = 0;
     for (s32 i = 0; i < 8; i++) {
-        Unk_NXAttachment* surface;
-        if (field_a0[i].field_8 != nullptr) {
-            surface = field_a0[i].field_8->vf24(field_a0[i].field_10);
-        } else {
-            surface = field_a0[i].field_18;
-        }
-        if (surface != nullptr) {
+        if (field_a0[i].field_8 != nullptr || field_a0[i].field_18 != nullptr) {
+            Unk_NXAttachment* surface = field_a0[i].field_8 != nullptr ? field_a0[i].field_8->vf24(field_a0[i].field_10)
+                                                                       : field_a0[i].field_18;
             field_298.field_4[i] = surface->vf17()->field_4;
             field_2c0[i] = reinterpret_cast<u64>(surface->vf25());
             field_308[i] = surface->vf26();

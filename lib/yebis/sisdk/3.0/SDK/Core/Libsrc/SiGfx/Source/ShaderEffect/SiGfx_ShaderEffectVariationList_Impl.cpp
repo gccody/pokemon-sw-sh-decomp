@@ -253,11 +253,13 @@ bool SiGfxShaderEffectVariationList::Unk_572840(ISiIOStream* stream, s32 alignme
 }
 
 // 0x7100571df0
-// NON_MATCHING: 24 bytes short: the loops that count the variations of each
-// program keep their count and the index of the list's walk in 64 bits and
-// test the count (`cinc` if it's above 0) where this one knows it is; the
-// stack frame is 16 bytes larger (tried: the count as s64, a `for` from 1,
-// a `while` from 0).
+// (The loops that count the variations of each program keep their count in
+// 64 bits and test it as an s32, which keeps the original's `cinc` of a
+// count it doesn't know is above 0; the list's walk has an unsigned index,
+// which gives its `cbz` guard.)
+// NON_MATCHING: 12 bytes short; the release of the effects' data at the start
+// keeps the array's address in another callee-saved register (the original
+// copies it once more, `mov x28, x23`), and the registers differ from there.
 bool SiGfxShaderEffectVariationList::vf10() {
     Unk_596640 lock(&field_18, true);
     if (field_48 == nullptr) {
@@ -280,11 +282,11 @@ bool SiGfxShaderEffectVariationList::vf10() {
     s32 effects = 0;
     for (s32 i = 0; i < static_cast<s32>(field_a8.m_itemCount);) {
         s32 program = field_80.Unk_GetAt(i)->field_44;
-        s32 n = 0;
+        s64 n = 0;
         do {
             n++;
         } while (i + n < static_cast<s32>(field_a8.m_itemCount) && field_80.Unk_GetAt(i + n)->field_44 == program);
-        if (n > 0) {
+        if (static_cast<s32>(n) > 0) {
             effects++;
         }
         i += n;
@@ -309,7 +311,7 @@ bool SiGfxShaderEffectVariationList::vf10() {
         data->field_40 = effect->field_48;
         data->field_44 = effect->field_50;
         s32 program = item->field_44;
-        s32 n = 0;
+        s64 n = 0;
         do {
             n++;
         } while (i + n < static_cast<s32>(field_a8.m_itemCount) && field_80.Unk_GetAt(i + n)->field_44 == program);

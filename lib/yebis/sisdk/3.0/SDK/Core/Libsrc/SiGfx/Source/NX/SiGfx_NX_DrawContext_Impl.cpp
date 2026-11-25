@@ -1465,11 +1465,9 @@ void SiGfxNXDrawContext::Unk_53ee60(ISiGfxResource* pResource, u32 stages, s32 s
     }
 }
 
-// NON_MATCHING: three instructions: the original steps a pointer to the
-// sampler slot (`str w0, [x25] ; add x25, x25, #4`) where this indexes it by
-// the inner counter. Tried: the slot through a pointer stepped by the loop or
-// indexed, the counters and the range's fields as s64/u32.
 // 0x710053f2f0
+// (the sampler slot is `*(slots + base + j)`, stepped as a pointer, and the
+// end test is written `count <= first + j`: either one alone is further off)
 void SiGfxNXDrawContext::Unk_53f2f0(s32 index, SiGfxNXDescriptorTable* pTable) {
     if (pTable == nullptr) {
         return;
@@ -1505,7 +1503,7 @@ void SiGfxNXDrawContext::Unk_53f2f0(s32 index, SiGfxNXDescriptorTable* pTable) {
             return;
         }
         for (s32 j = 0; j < count; j++) {
-            if (first + j >= static_cast<s32>(pTable->field_88.field_8.m_itemCount)) {
+            if (static_cast<s32>(pTable->field_88.field_8.m_itemCount) <= first + j) {
                 break;
             }
             Unk_NXDrawTexture* pTexture = static_cast<Unk_NXDrawTexture*>(pTable->field_88.field_8.m_pData[first + j]);
@@ -1513,24 +1511,21 @@ void SiGfxNXDrawContext::Unk_53f2f0(s32 index, SiGfxNXDescriptorTable* pTable) {
                 continue;
             }
             if (pTexture->vf8()->field_0 == 1) {
-                field_30.field_508.field_f50[base + j] = Unk_53f490(pTexture, pSignature);
+                *(field_30.field_508.field_f50 + base + j) = Unk_53f490(pTexture, pSignature);
             }
         }
         first += count;
     }
 }
 
-// NON_MATCHING: the original duplicates the final `mvn` into the block of
-// a missing signature or no samplers (with the dead `mov w23, wzr` left in
-// it); here that block branches to it. Tried: `~result`, `-(result + 1)`, an
-// early return for a missing signature, the result declared first, s32
-// indices, returning from the loop instead of the break.
 // 0x710053f490
+// (both loop indices are `s32`: with either one `s64` the final `mvn` isn't
+// duplicated into the block of a missing signature or no samplers)
 s32 SiGfxNXDrawContext::Unk_53f490(Unk_NXDrawTexture* pTexture, SiGfxNXRootSignature* pSignature) {
     Unk_NXRootSampler* pSampler = pTexture->vf33();
     if (pSampler != nullptr) {
         u32 hash = pSampler->vf19();
-        for (s64 i = 0; i < 64; i++) {
+        for (s32 i = 0; i < 64; i++) {
             if (hash == field_30.field_508.field_e50[i]) {
                 return i;
             }
@@ -1539,7 +1534,7 @@ s32 SiGfxNXDrawContext::Unk_53f490(Unk_NXDrawTexture* pTexture, SiGfxNXRootSigna
     s32 result = 0;
     if (pSignature != nullptr) {
         const SiGfxNXSampler::Unk_Desc* desc = pSampler != nullptr ? pSampler->vf17() : nullptr;
-        for (s64 i = 0; i < static_cast<s32>(pSignature->field_78.m_itemCount); i++) {
+        for (s32 i = 0; i < static_cast<s32>(pSignature->field_78.m_itemCount); i++) {
             const SiGfxNXSampler::Unk_Desc* other = pSignature->field_78.m_pData[i].field_50->vf17();
             if (desc != nullptr && Unk_53f630(desc, other)) {
                 result = i;
@@ -2134,10 +2129,6 @@ bool SiGfxNXDrawContext::vf70(ISiGfxResource* pResource, const Unk_NXDrawFlush* 
     return false;
 }
 
-// NON_MATCHING: the original keeps the buffer found and the one made in two
-// registers (x20 and x21, `mov x20, xzr` for no buffer, `mov x20, x21` once
-// it is made); here they are one, which shifts the registers (1252 bytes for
-// 1236).
 // NON_MATCHING: the null texture and view of a buffer are set before the
 // kind's second comparison (`mov x22, xzr` hoisted into the compare block),
 // where the original has a block of its own for them, tail-duplicated with
@@ -2252,6 +2243,14 @@ bool SiGfxNXDrawContext::vf71(ISiGfxResource* pDst, ISiGfxResource* pSrc) {
     return true;
 }
 
+// The failure of the buffer's creation returns inside the name's scope: the
+// return goes through the string's cleanup with its destination in a
+// register (`mov w22, #1`, then `cbnz w22`), and the buffer made is copied
+// into the result there (`mov x20, x21`). The names' counts are `%d`s. The
+// heap description is made with a size of 0 and given its size after (the
+// zeros are then paired into the original's 16-byte stores), and the
+// buffer's failure is tested first, its success falling through (the copy
+// of the new buffer then comes after the array's last store).
 // 0x7100541210
 SiGfxNXDrawContext::DirectBuffer* SiGfxNXDrawContext::Unk_541210(u32 kind, s32 a2, s32 size, u32 format,
                                                                  Unk_3f00<4>* pMemory) {
@@ -2280,7 +2279,8 @@ SiGfxNXDrawContext::DirectBuffer* SiGfxNXDrawContext::Unk_541210(u32 kind, s32 a
 #line 4247
         DirectBuffer* pNew = UNK_SI_NEW(field_8.m_pAllocator, 0x10) DirectBuffer();
         pNew->field_8 = field_18->vf30(0, nullptr);
-        Unk_NXMemoryHeapDesc heapDesc(0x100000, 1);
+        Unk_NXMemoryHeapDesc heapDesc(0, 1);
+        heapDesc.field_0 = 0x100000;
         switch (kind) {
         case 0:
             heapDesc.field_18 = 4;
@@ -2311,22 +2311,17 @@ SiGfxNXDrawContext::DirectBuffer* SiGfxNXDrawContext::Unk_541210(u32 kind, s32 a
         makeDesc.field_18 = heapDesc.field_10;
         makeDesc.field_0 = format;
         makeDesc.field_38 = pNew->field_8;
-        bool failed;
         {
             Unk_NXString<0x400> name(field_8.m_pAllocator);
             if (kind == 1) {
-                Unk_4c9090(&name, "DirectMapBuffer::VB_%d_%d", field_3e0c, frame.field_10.m_itemCount);
+                Unk_4c9090(&name, "DirectMapBuffer::VB_%d_%d", field_3e0c, static_cast<s32>(frame.field_10.m_itemCount));
             } else if (kind == 2) {
-                Unk_4c9090(&name, "DirectMapBuffer::IB_%d_%d", field_3e0c, frame.field_10.m_itemCount);
+                Unk_4c9090(&name, "DirectMapBuffer::IB_%d_%d", field_3e0c, static_cast<s32>(frame.field_10.m_itemCount));
             } else if (kind == 0) {
-                Unk_4c9090(&name, "DirectMapBuffer::CB_%d_%d", field_3e0c, frame.field_10.m_itemCount);
+                Unk_4c9090(&name, "DirectMapBuffer::CB_%d_%d", field_3e0c, static_cast<s32>(frame.field_10.m_itemCount));
             }
             static_cast<Unk_NXBufferNamedObject&>(*pNew->field_0).vf30(Unk_StringCStr(&name));
-            if (pNew->field_0->vf21(&makeDesc)) {
-                frame.field_8 = frame.field_10.m_itemCount;
-                frame.field_10.Unk_Add(pNew);
-                failed = false;
-            } else {
+            if (!pNew->field_0->vf21(&makeDesc)) {
                 if (pNew->field_0 != nullptr) {
                     pNew->field_0->vf3();
                     pNew->field_0 = nullptr;
@@ -2335,13 +2330,12 @@ SiGfxNXDrawContext::DirectBuffer* SiGfxNXDrawContext::Unk_541210(u32 kind, s32 a
                     pNew->field_8->vf3();
                     pNew->field_8 = nullptr;
                 }
-                failed = true;
+                return nullptr;
             }
+            frame.field_8 = frame.field_10.m_itemCount;
+            frame.field_10.Unk_Add(pNew);
+            pBuffer = pNew;
         }
-        if (failed) {
-            return nullptr;
-        }
-        pBuffer = pNew;
     }
     pMemory->field_20[0] = static_cast<u8*>(nvnBufferMap(pBuffer->field_0->field_d0));
     return pBuffer;

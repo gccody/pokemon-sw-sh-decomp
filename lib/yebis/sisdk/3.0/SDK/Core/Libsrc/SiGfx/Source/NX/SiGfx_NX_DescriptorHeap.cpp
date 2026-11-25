@@ -142,10 +142,11 @@ namespace SiSDK3 {
                     field_0 = nullptr;                                                                              \
                     return false;                                                                                   \
                 }                                                                                                   \
+                u32 end = n + 2;                                                                                    \
                 field_74 = first;                                                                                   \
                 field_5c = count;                                                                                   \
                 memset(field_0, 0, nodesSize);                                                                      \
-                for (u32 i = 2; i < n + 2; i++) {                                                                   \
+                for (u32 i = 2; i < end; i++) {                                                                     \
                     Unk_NXDescriptorNode* node = &field_0[i];                                                       \
                     *node = Unk_NXDescriptorNode();                                                                 \
                     node->field_0 = first + (i - 2);                                                                \
@@ -156,7 +157,7 @@ namespace SiSDK3 {
                 field_10->field_0 = 0xffffffff;                                                                     \
                 field_18 = Unk_Node(1);                                                                             \
                 field_18->field_0 = 0xffffffff;                                                                     \
-                for (u32 i = 1; i < n + 2; i++) {                                                                   \
+                for (u32 i = 1; i < end; i++) {                                                                     \
                     Unk_NXDescriptorNode* node = Unk_Node(i);                                                       \
                     node->field_8 = nullptr;                                                                        \
                     node->field_10 = Unk_Node(i + 1);                                                               \
@@ -181,10 +182,13 @@ void Unk_5518d0_Pool::Unk_551910() {
 UNK_RELEASE(Unk_5518d0_Pool, Unk_551940, nvnTexturePoolFinalize, 194, 208)
 
 // NON_MATCHING (and 0x7100552230): the numbers' loop, unrolled by two in
-// both, has its trip count from count + 2 here, from count in the original
-// (which tests count + 2 >= 3 for its guard and keeps count + 2 for later);
-// `i - 2 < n` gives the trip count from count and the original's size, but
-// not its offset induction variable; and one store of the heap's
+// both, has its trip count from count + 2 here, from count in the original.
+// Both loops' bound is count + 2 computed once before the stores of the
+// count (`end`: the original's w22, kept for the links' loop), which gives
+// the original's guard (`end >= 3`) and its offset induction variable; only
+// the unrolled loop's remainder and count are expressed in `end` here, in
+// count there (tried: `i != end`, `i - 2 + first`, an index from 0 to
+// `end - 2`, which is 2 closer but loses the guard). And one store of the heap's
 // description is scheduled a slot later. The failures before the NVN
 // pool's initialisation share one block that sets the result to false once
 // the function has one `return false` after nested tests (with an early

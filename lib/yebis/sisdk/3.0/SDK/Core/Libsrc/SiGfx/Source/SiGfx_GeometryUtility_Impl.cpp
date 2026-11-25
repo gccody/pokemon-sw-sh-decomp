@@ -322,6 +322,7 @@ void SiGfxGeometryUtility::Unk_4d3e30(SiGfxNXVertexFormat* pFormat, s32 count, u
 // from the top pole to the bottom one; one triangle per slice at the poles,
 // two in the stacks between. The tangent is written after the vertex's other
 // attributes.
+// The element size's second select is written `< 0x10000` (as in vf9).
 // NON_MATCHING: the same blocks; the registers and the spill slots differ
 // throughout (which values the original keeps in callee-saved registers).
 bool SiGfxGeometryUtility::vf6(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVertexBuffer,
@@ -455,7 +456,7 @@ bool SiGfxGeometryUtility::vf6(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
     SiGfxNXBuffer::Unk_MakeDesc indexDesc(0, 0, 0, 1, 1, 0);
     indexDesc.field_0 = indexCount >= 0x10000 ? 0x2a : 0x39;
     indexDesc.field_4 = indexSize;
-    indexDesc.field_8 = indexCount >= 0x10000 ? 4 : 2;
+    indexDesc.field_8 = indexCount < 0x10000 ? 2 : 4;
     indexDesc.field_1c = 2;
     indexDesc.field_20 = 0;
     vertexDesc.field_18 = 1;
@@ -686,9 +687,10 @@ bool SiGfxGeometryUtility::vf7(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
 // The rings' angle is computed and then set to 0 for the last slice (the
 // original selects it, `fcsel eq`; as a conditional expression the division
 // is branched around).
+// The index buffer's element size is selected again for the description
+// (written `< 0x10000`: the same test as the size's is merged with it).
 // NON_MATCHING: the registers, the spill slots and some of the arrays' stack
-// slots differ, and the index buffer's element size is kept from the size's
-// computation (the original selects it again for the description).
+// slots differ.
 bool SiGfxGeometryUtility::vf8(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVertexBuffer,
                                SiGfxNXBuffer* pIndexBuffer, f32 bottomRadius, f32 topRadius, f32 height,
                                s32 slices, s32 stacks, Unk_GeometryBounds* pBounds) {
@@ -929,7 +931,7 @@ bool SiGfxGeometryUtility::vf8(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
     SiGfxNXBuffer::Unk_MakeDesc indexDesc(0, 0, 0, 1, 1, 0);
     indexDesc.field_0 = indexCount >= 0x10000 ? 0x2a : 0x39;
     indexDesc.field_4 = indexSize;
-    indexDesc.field_8 = indexCount >= 0x10000 ? 4 : 2;
+    indexDesc.field_8 = indexCount < 0x10000 ? 2 : 4;
     indexDesc.field_1c = 2;
     indexDesc.field_20 = 0;
     vertexDesc.field_18 = 1;
@@ -961,9 +963,17 @@ bool SiGfxGeometryUtility::vf8(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
 // 0x71004d64d0: for each ring, the rotation about the x axis by its angle
 // (the general axis and angle form with the axis 1, 0, 0: the products with
 // its zeros stay) gives the plane of its circle of sides + 1 vertices
-// NON_MATCHING: written from the original's operations, not matched yet (the
-// rotation and the products of the matrices are a guess at the inline
-// functions)
+// The rotation's sums have the sine's term first and the axis's products
+// taken first (`z * s + t * (x * y)`: with the constant axis they fold to
+// the original's `s * 0 + t * 0`); the angle of a ring's last vertex is a
+// select over the division computed first; the index count is signed and
+// the corners of a cell are locals.
+// NON_MATCHING: `this`, the bounds and the sides are in x21, x19 and w20
+// where the original has x20, x21 and w19, and the index buffer's
+// description is 16 bytes short: the original keeps four of its
+// constructor's stores (see vf11's note). The element size's second select
+// is written `< 0x10000`: with the same `>=` as the first, GVN merges them
+// and the result is spilled, where the original selects again.
 bool SiGfxGeometryUtility::vf9(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVertexBuffer,
                                SiGfxNXBuffer* pIndexBuffer, f32 radius, f32 tubeRadius, s32 sides, s32 rings,
                                Unk_GeometryBounds* pBounds) {
@@ -996,7 +1006,7 @@ bool SiGfxGeometryUtility::vf9(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
     if (vertices == nullptr) {
         return false;
     }
-    u32 indexCount = sides * rings * 3 * 2;
+    s32 indexCount = sides * rings * 3 * 2;
     {
         f32 position[4];
         f32 normal[4];
@@ -1018,17 +1028,20 @@ bool SiGfxGeometryUtility::vf9(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
             f32 s = sinf(angle);
             f32 t = 1.0f - c;
             Unk_Matrix44 rotation;
-            rotation.r[0] = float32x4_t{1.0f - t * (y * y + z * z), t * x * y + s * z, t * x * z - s * y, 0.0f};
-            rotation.r[1] = float32x4_t{t * x * y - s * z, 1.0f - t * (x * x + z * z), t * y * z + s * x, 0.0f};
-            rotation.r[2] = float32x4_t{t * x * z + s * y, t * y * z - s * x, 1.0f - t * (x * x + y * y), 0.0f};
-            rotation.r[3] = float32x4_t{0.0f, 0.0f, 0.0f, 0.0f};
+            rotation.r[0] = float32x4_t{1.0f - t * (y * y + z * z), z * s + t * (x * y), t * (x * z) - y * s, 0.0f};
+            rotation.r[1] = float32x4_t{t * (x * y) - z * s, 1.0f - t * (x * x + z * z), x * s + t * (y * z), 0.0f};
+            rotation.r[2] = float32x4_t{y * s + t * (x * z), t * (y * z) - x * s, 1.0f - t * (x * x + y * y), 0.0f};
+            rotation.r[3] = float32x4_t{0.0f, 0.0f, 0.0f, 1.0f};
             Unk_Matrix44 m = Unk_Multiply(Unk_Identity(), rotation);
             for (s32 j = 0; j <= sides; j++) {
-                f32 phi = j == sides ? 0.0f : static_cast<f32>(-j) / static_cast<f32>(sides) * 6.2831855f;
+                f32 phi = static_cast<f32>(-j) / static_cast<f32>(sides) * 6.2831855f;
+                if (j == sides) {
+                    phi = 0.0f;
+                }
                 f32 cosPhi = cosf(phi);
                 f32 sinPhi = sinf(phi);
-                float32x4_t p = m.r[3] + (m.r[0] * (cosPhi * tubeRadius) + m.r[1] * (sinPhi * tubeRadius + radius));
-                float32x4_t n = m.r[3] + (m.r[0] * cosPhi + m.r[1] * sinPhi);
+                float32x4_t p = m.r[2] * 0.0f + (m.r[0] * (cosPhi * tubeRadius) + m.r[1] * (sinPhi * tubeRadius + radius));
+                float32x4_t n = m.r[2] * 0.0f + (m.r[0] * cosPhi + m.r[1] * sinPhi);
                 position[0] = p[0];
                 position[1] = p[1];
                 position[2] = p[2];
@@ -1061,8 +1074,10 @@ bool SiGfxGeometryUtility::vf9(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
     for (s32 i = 0; i < rings; i++) {
         for (s32 j = 0; j < sides; j++) {
             s32 a = i * (sides + 1) + j;
-            Unk_4ed780(4, indexCount >= 0x10000, indices, triangle, a, a + sides + 2, a + 1);
-            Unk_4ed780(4, indexCount >= 0x10000, indices, triangle + 1, a, a + sides + 1, a + sides + 2);
+            s32 b = a + sides + 1;
+            s32 c = a + sides + 2;
+            Unk_4ed780(4, indexCount >= 0x10000, indices, triangle, a, c, a + 1);
+            Unk_4ed780(4, indexCount >= 0x10000, indices, triangle + 1, a, b, c);
             triangle += 2;
         }
     }
@@ -1084,7 +1099,7 @@ bool SiGfxGeometryUtility::vf9(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVer
     }
     SiGfxNXBuffer::Unk_MakeDesc indexDesc(0, 0, 0, 1, 1, 0);
     indexDesc.field_0 = indexCount >= 0x10000 ? 0x2a : 0x39;
-    indexDesc.field_8 = indexCount >= 0x10000 ? 4 : 2;
+    indexDesc.field_8 = indexCount < 0x10000 ? 2 : 4;
     indexDesc.field_1c = 2;
     indexDesc.field_4 = indexSize;
     indexDesc.field_20 = 0;
@@ -1403,9 +1418,15 @@ bool SiGfxGeometryUtility::vf11(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVe
 
 // 0x71004d7a50: rings of slices vertices from the rim (z 0) to the top, their
 // normals the positions normalised; two triangles per slice and stack
-// NON_MATCHING: the loops are the original's; the registers and spill slots
-// differ, and the index loop compares j with slices - 1 in the original. The
-// index buffer's description has the extra stores vf11's note describes.
+// The index loop compares j with a local of slices - 1 (its subtraction is
+// then the guard's `subs`), the loops' counter i is declared before the
+// running triangle (the order of their phis) and the cell's first corner is
+// a local declared before the next column.
+// NON_MATCHING: the index buffer's description is 20 bytes short: the
+// original keeps its constructor's stores of field_18 and field_1c (0 and 8
+// as one 8-byte store) and of the zeros from 0x20 (see vf11's note), and
+// the element size's selects (written `< 0x10000` for the second, as in
+// vf9) are scheduled otherwise.
 bool SiGfxGeometryUtility::vf12(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVertexBuffer,
                                 SiGfxNXBuffer* pIndexBuffer, f32 radius, s32 slices, s32 stacks,
                                 Unk_GeometryBounds* pBounds) {
@@ -1482,14 +1503,18 @@ bool SiGfxGeometryUtility::vf12(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVe
     s32 indexSize = (indexCount >= 0x10000 ? 4 : 2) * indexCount;
 #line 2275
     void* indices = UNK_ALLOC(field_8.m_pAllocator, indexSize);
-    for (s32 i = 0; i < stacks; i++) {
+    s32 last = slices - 1;
+    s32 i;
+    s32 triangle = 0;
+    for (i = 0; i < stacks; i++) {
         for (s32 j = 0; j < slices; j++) {
-            s32 next = j == slices - 1 ? 0 : j + 1;
-            s32 triangle = (i * slices + j) * 2;
-            Unk_4ed780(4, indexCount >= 0x10000, indices, triangle, i * slices + j, i * slices + next,
+            s32 a = i * slices + j;
+            s32 next = j == last ? 0 : j + 1;
+            Unk_4ed780(4, indexCount >= 0x10000, indices, triangle, a, i * slices + next,
                        (i + 1) * slices + next);
-            Unk_4ed780(4, indexCount >= 0x10000, indices, triangle + 1, i * slices + j, (i + 1) * slices + next,
+            Unk_4ed780(4, indexCount >= 0x10000, indices, triangle + 1, a, (i + 1) * slices + next,
                        (i + 1) * slices + j);
+            triangle += 2;
         }
     }
     SiGfxNXBuffer::Unk_MakeDesc vertexDesc(0, 0, 0, 1, 1, 0);
@@ -1511,7 +1536,7 @@ bool SiGfxGeometryUtility::vf12(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVe
     SiGfxNXBuffer::Unk_MakeDesc indexDesc(0, 0, 0, 1, 1, 0);
     indexDesc.field_0 = indexCount >= 0x10000 ? 0x2a : 0x39;
     indexDesc.field_4 = indexSize;
-    indexDesc.field_8 = indexCount >= 0x10000 ? 4 : 2;
+    indexDesc.field_8 = indexCount < 0x10000 ? 2 : 4;
     indexDesc.field_1c = 2;
     indexDesc.field_20 = 0;
     vertexDesc.field_18 = 1;
@@ -1690,8 +1715,12 @@ bool SiGfxGeometryUtility::vf13(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVe
 // one's from its rim down; two triangles per slice and stack in each, and two
 // per slice between the rims. The second triangle of each pair shares the
 // first's second corner, as the original has it.
+// The index loops' counter i is declared before the running triangle (as in
+// vf12) and the element size's second select is written `< 0x10000`.
 // NON_MATCHING: the registers and the spill slots differ, and the index loops'
-// induction variables are arranged otherwise.
+// induction variables are arranged otherwise (the original's first loop
+// compares j with slices - 1 as vf12's does, its second with -slices; a
+// local of slices - 1 alone doesn't give that).
 bool SiGfxGeometryUtility::vf14(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVertexBuffer,
                                 SiGfxNXBuffer* pIndexBuffer, f32 radius, f32 height, s32 slices, s32 stacks,
                                 Unk_GeometryBounds* pBounds) {
@@ -1796,8 +1825,9 @@ bool SiGfxGeometryUtility::vf14(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVe
     s32 indexSize = (indexCount >= 0x10000 ? 4 : 2) * indexCount;
 #line 2827
     void* indices = UNK_ALLOC(field_8.m_pAllocator, indexSize);
+    s32 i;
     s32 triangle = 0;
-    for (s32 i = 0; i < stacks; i++) {
+    for (i = 0; i < stacks; i++) {
         for (s32 j = 0; j < slices; j++) {
             s32 next = j == slices - 1 ? 0 : j + 1;
             Unk_4ed780(4, indexCount >= 0x10000, indices, triangle, i * slices + j, i * slices + next,
@@ -1808,7 +1838,7 @@ bool SiGfxGeometryUtility::vf14(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVe
         }
     }
     s32 lower = slices * (stacks + 1);
-    for (s32 i = 0; i < stacks; i++) {
+    for (i = 0; i < stacks; i++) {
         for (s32 j = 0; j < slices; j++) {
             s32 next = j == slices - 1 ? 0 : j + 1;
             Unk_4ed780(4, indexCount >= 0x10000, indices, triangle, lower + i * slices + j,
@@ -1843,7 +1873,7 @@ bool SiGfxGeometryUtility::vf14(SiGfxNXVertexFormat* pFormat, SiGfxNXBuffer* pVe
     SiGfxNXBuffer::Unk_MakeDesc indexDesc(0, 0, 0, 1, 1, 0);
     indexDesc.field_0 = indexCount >= 0x10000 ? 0x2a : 0x39;
     indexDesc.field_4 = indexSize;
-    indexDesc.field_8 = indexCount >= 0x10000 ? 4 : 2;
+    indexDesc.field_8 = indexCount < 0x10000 ? 2 : 4;
     indexDesc.field_1c = 2;
     indexDesc.field_20 = 0;
     vertexDesc.field_18 = 1;

@@ -456,6 +456,11 @@ s32 CRenderTexture::Unk_49b230() {
 // 13-byte one for field_14 to field_20, so its field 0 wasn't in the run
 // MemCpyOpt merged; field_0 = 0 written after the reset, a combined null
 // test and a result variable for the -6 don't give it.
+// (Round 5: the reset written field by field in the order the memsets need
+// (4, 8, c, 10 = 1, 0, 14 to 20) directly or through a helper on the
+// description, a placement new, a local copied in, the four-value
+// constructor: the field-by-field forms lose GVN's &field_2c register and
+// the stores are merged into 16 bytes again.)
 s32 CRenderTexture::vf6(IGPUDevice* device, Unk_49b230_Object* texture) {
     IGPUDevice* previous = field_20;
     Unk_49ec80();
@@ -1054,6 +1059,9 @@ s32 CRenderTexture::EndTiling(void* arg0, s32 arg1, s32* arg2, bool* arg3, f32 a
 // The bitwise `Unk_24e53e8 & !(flags & 0x100000)` keeps one block but tests
 // the flag's byte with `tst` (the bool's range lets InstCombine merge the
 // two tests); `(Unk_24e53e8 != 0) & ...` becomes one `bics`.
+// (Round 5: nested ifs with the load outside, the flag test in a u32 or bool
+// local, the load in a local: the and of the two tests is formed early and
+// Reassociate still puts the argument's test first.)
 s32 Unk_49e290(u32 flags, CRenderTexture* target, s32 arg2, bool* done, f32 arg4) {
     if (Unk_24e53e8 && !(flags & 0x100000)) {
         s32 result = CRenderTexture::EndTiling(nullptr, arg2, nullptr, done, arg4);

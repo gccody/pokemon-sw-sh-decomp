@@ -968,14 +968,21 @@ static inline f32 Unk_Range(Unk_4a3cc0_Self* self, f32 lo, f32 hi) {
     return lo + (hi - lo) * r;
 }
 
+// whether a line's shape is under a quarter (inline)
+static inline bool Unk_Small(f32 shape) {
+    return shape < 0.25f;
+}
+
 // 0x71004a2e20: fills in the item's values that are FLT_MAX at random (an
 // empty item without `item`), then adds its lines to the target. It's
 // inline: its static (0x71024e6c70, guard 0x71024e6d60) is reached through
 // the GOT, like those of the other inline functions.
-// NON_MATCHING: 8 bytes longer; the original doesn't fold `spread` into the
-// test of field_50 (separate cbz), keeps field_4c's doubling as a second
-// store instead of a select, and keeps 1.0f in s8 across the colour call
-// (here it's rematerialised); the rest is the registers that follow.
+// The shape's test is an inline function: its call, still there at the first
+// InstCombine, keeps field_4c's doubling a second store (no select).
+// NON_MATCHING: 12 bytes longer; the original doesn't fold `spread` into the
+// test of field_50 (separate cbz; here `spread` comes out inverted and or-ed
+// with the compare), and keeps 1.0f in s8 across the colour call (here it's
+// rematerialised); the rest is the registers that follow.
 inline void Unk_4a2e20(Unk_4a3cc0_Self* self, Unk_4a2e20_Item* item) {
     Unk_4a2e20_Item empty;
     if (item == nullptr)
@@ -1006,12 +1013,12 @@ inline void Unk_4a2e20(Unk_4a3cc0_Self* self, Unk_4a2e20_Item* item) {
         shape = Unk_Range(self, size * size + 0.1f, 1.1f);
         item->field_5c.field_0[0].field_0 = shape;
     }
-    if (shape < 0.25f && !given)
+    if (Unk_Small(shape) && !given)
         item->field_4 = -Unk_Saturate(Unk_Abs(item->field_4) * 2.0f);
     if (item->field_5c.field_0[1].field_0 == FLT_MAX)
-        item->field_5c.field_0[1].field_0 = shape < 0.25f ? Unk_Range(self, 0.75f, 1.0f) : Unk_Range(self, 0.25f, 1.25f);
+        item->field_5c.field_0[1].field_0 = Unk_Small(shape) ? Unk_Range(self, 0.75f, 1.0f) : Unk_Range(self, 0.25f, 1.25f);
     if (item->field_64.field_0[0].field_0 == FLT_MAX) {
-        if (shape < 0.25f)
+        if (Unk_Small(shape))
             item->field_64.field_0[0].field_0 = Unk_Range(self, 0.5f, 1.0f) * Unk_Abs(item->field_4);
         else
             item->field_64.field_0[0].field_0 = Unk_Range(self, 1.0f, 2.0f) * Unk_Abs(item->field_4);
@@ -1019,7 +1026,7 @@ inline void Unk_4a2e20(Unk_4a3cc0_Self* self, Unk_4a2e20_Item* item) {
     if (item->field_64.field_0[1].field_0 == FLT_MAX)
         item->field_64.field_0[1].field_0 = item->field_64.field_0[0].field_0 * Unk_Range(self, 0.5f, 0.75f);
     if (item->field_40 == FLT_MAX)
-        item->field_40 = shape < 0.25f ? Unk_Range(self, 0.25f, 2.0f) : Unk_Range(self, 0.1f, 1.5f);
+        item->field_40 = Unk_Small(shape) ? Unk_Range(self, 0.25f, 2.0f) : Unk_Range(self, 0.1f, 1.5f);
     if (item->field_44 == FLT_MAX)
         item->field_44 = 1.0f - powf(Unk_Range(self, 0.0f, 0.8f), 5.0f);
     if (item->field_48 == FLT_MAX)
@@ -1028,7 +1035,7 @@ inline void Unk_4a2e20(Unk_4a3cc0_Self* self, Unk_4a2e20_Item* item) {
     if (item->field_4c == FLT_MAX) {
         f32 r = Unk_Range(self, 0.5f, 1.0f) * powf(Unk_Abs(item->field_4), 0.5f);
         item->field_4c = powf(size, 0.5f) * r;
-        if (shape < 0.25f)
+        if (Unk_Small(shape))
             item->field_4c *= 2.0f;
         spread = true;
     }
@@ -1040,7 +1047,7 @@ inline void Unk_4a2e20(Unk_4a3cc0_Self* self, Unk_4a2e20_Item* item) {
             item->field_4c *= 2.0f;
         if (item->field_50 < 0.0f)
             item->field_50 = -(item->field_4c * Unk_Soft(-item->field_50 / item->field_4c, 0.8f));
-        if (shape < 0.25f)
+        if (Unk_Small(shape))
             item->field_50 = Unk_Abs(item->field_50);
     }
     bool faded = false;

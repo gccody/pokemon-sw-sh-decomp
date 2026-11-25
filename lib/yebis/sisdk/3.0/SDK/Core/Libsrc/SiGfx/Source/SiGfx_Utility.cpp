@@ -1130,20 +1130,9 @@ bool Unk_4ee290(u32 format, u8* data, s32 width, s32 height) {
 }
 
 // 0x71004ee110: turns an image upside down, a row at a time (a compressed
-// one by its blocks)
-// NON_MATCHING: the bottom row's number: the original keeps it a 32-bit
-// counter (`subs w23, w22, #1` before the loop, `cmp x24, w23, sxtw` at its
-// top, `sub w23, w23, #1`); here IndVars widens it to 64 bits (`cmp x23,
-// x25`, `sub x25, x25, #1`). The pitch as a 64-bit local sign-extended once
-// and the counter decremented in the loop's increment give the rest (same
-// size). Tried: the decrement in the body or before the test, the test
-// written `j <= i`, the bottom row's offset from the 32-bit pitch, row
-// pointers, an int index.
-// Also tried (72 forms): s32/s64 rows with s32/u32 bottom numbers, the
-// bottom row from `height - 1 - i`, the test cast, the decrement in the
-// increment or the body.
-// (Round 3: i as s32/s64/int with j as s32/int declared before or after it,
-// j as u32 tested through a cast, i < j in the loop's condition: no change.)
+// one by its blocks). The bottom row's number is a `u32` counted down in the
+// test (no `nsw`, so IndVars keeps it 32-bit: `cmp x24, w23, sxtw`), and the
+// row's address is computed from `height - i - 1`.
 bool Unk_4ee110(u32 format, u8* data, s32 width, s32 height, s32 pitch) {
     if (Unk_IsBlockFormat(format)) {
         if ((format >= 0x46 && format <= 0x54) || (format >= 0x5e && format <= 0x63)) {
@@ -1155,14 +1144,14 @@ bool Unk_4ee110(u32 format, u8* data, s32 width, s32 height, s32 pitch) {
 #line 7179
     u8* row = pAllocator != nullptr ? static_cast<u8*>(pAllocator->vf8(1, pitch, -1, __FILE__, __LINE__)) : nullptr;
     s64 size = pitch;
-    s32 j = height - 1;
-    for (s64 i = 0; i < height; i++, j--) {
-        if (i >= j) {
+    u32 j = height;
+    for (s64 i = 0; i < height; i++) {
+        if (i >= static_cast<s32>(--j)) {
             break;
         }
         memcpy(row, data + i * size, size);
-        memcpy(data + i * size, data + j * size, size);
-        memcpy(data + j * size, row, size);
+        memcpy(data + i * size, data + (height - i - 1) * size, size);
+        memcpy(data + (height - i - 1) * size, row, size);
     }
     if (row != nullptr) {
         pAllocator = Unk_GfxAllocator();

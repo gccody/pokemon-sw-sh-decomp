@@ -518,6 +518,10 @@ static inline SiGfxShaderEffect::ShaderProgramData* Unk_FindProgram(SiGfxShaderE
 // inline, the midpoint as `(high + low) >> 1`, the single program's test
 // after the search, the result in a variable, the match test as early
 // returns.
+// (Round 5: the IR has one return block with a phi of null from 29 edges;
+// the last block before it is a null edge, so branch folding merges every
+// null copy into it. The search's last tests as ternaries, a result
+// variable, negated tests, the bounds declared high first: no change.)
 inline SiGfxShaderEffect::ShaderProgramData* SiGfxShaderEffect::Unk_578100(const SiGfxShaderEffectKey* key0,
                                                                           const SiGfxShaderEffectKey* key1) {
     s32 index = key0->field_8;

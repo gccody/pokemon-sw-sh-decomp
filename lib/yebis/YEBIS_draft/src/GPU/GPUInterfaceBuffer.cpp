@@ -482,6 +482,9 @@ inline Unk_SiGfxVertexFormat* Unk_CreateVertexFormat(IGPUDevice* device, void* a
 // two results and their formats are exchanged (w13/w14), and the first
 // switch's blocks for 16 and 12 bytes are laid out the other way round (every
 // order of its cases gives the same); the rest is the same.
+// (Round 5: all 24 case orders of the size helper as a result variable and
+// as returns, the size in a local, the element by reference, the format in a
+// local: no change; the components stored first is 3 instructions closer.)
 s32 IGPUInputAttribute::BuildInputAttribute(const Unk_InputElement* elements, s32 count, void* arg3, s32 arg4) {
     UNK_DELETE_ARRAY(field_20);
     if (field_28 != nullptr) {

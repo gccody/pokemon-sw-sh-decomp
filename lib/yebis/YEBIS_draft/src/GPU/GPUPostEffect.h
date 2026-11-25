@@ -320,12 +320,12 @@ PKMN_SIZE_ASSERT(Unk_429da0_Item, 0x78);
 struct Unk_429e60_Item {
     bool field_0;
     u8 pad_1[0x3];
-    f32 field_4;
+    u32 field_4;  // a mode (0x710042e560 reads it as an integer)
     f32 field_8;
     f32 field_c;
     f32 field_10;
-    f32 field_14;
-    f32 field_18;
+    Unk_Float field_14;  // a point (copied as element objects)
+    Unk_Float field_18;
     f32 field_1c;
     f32 field_20;
     bool field_24;

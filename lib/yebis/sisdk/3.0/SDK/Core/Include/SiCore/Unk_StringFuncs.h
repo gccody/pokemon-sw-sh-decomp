@@ -103,12 +103,17 @@ void Unk_4c4f60(const char* s, SiSDK3::SiString<wchar_t>* dst, s64 size);
 #endif
 
 // 0x71004c4700, 0x71004c42b0: assigns (they return the string: the string
-// TU, which defines them, declares them so)
+// TU, which defines them, declares them so). Its callers see 0x71004c4700's
+// result as a reference, as an `operator=` returns it: the reference's
+// return attributes keep CodeGenPrepare from duplicating a shared return
+// into the block of a call whose result is unused, so such a call isn't
+// made a tail call (SiIOCSVDocument::Unk_57eb50 returns through its early
+// return's epilogue after it).
 #ifdef UNK_SICORE_STRING_IMPL
 SiSDK3::SiString<char>* Unk_4c4700(void*, void*);
 SiSDK3::SiString<wchar_t>* Unk_4c42b0(SiSDK3::SiString<wchar_t>* self, const wchar_t* s);
 #else
-void Unk_4c4700(void*, void*);
+SiSDK3::SiString<char>& Unk_4c4700(void*, void*);
 void Unk_4c42b0(SiSDK3::SiString<wchar_t>* self, const wchar_t* s);
 #endif
 // 0x71004c5d50, 0x71004c5eb0: sets the capacity, keeping the contents if keep

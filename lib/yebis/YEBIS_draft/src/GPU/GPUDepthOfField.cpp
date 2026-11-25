@@ -726,11 +726,11 @@ s32 CDepthOfField::Unk_4afd80(f32 size, f32 distance, f32 angle) {
         focus = 0.0f;
     } else {
         f32 depth = distance == 0.0f ? -2.9802322e-8f : distance * -0.5f;
-        f32 near = field_1a8;
         f32 focal = field_1b0;
-        f32 coc = field_1b8 * size * 0.5f;
+        f32 near = field_1a8;
         f32 scale = near * focal / (focal - near);
         f32 position = Unk_Sign(depth) * (near * 0.5f);
+        f32 coc = field_1b8 * size * 0.5f;
         f32 ratio = coc * 2.0f / scale;
         f32 absPosition = Unk_Abs(position);
         f32 view = tanf(angle * 0.5f) / field_19c;
@@ -787,9 +787,13 @@ static inline u32 Unk_ToByte(f64 x, s32 shift) {
 }
 
 // 0x71004aff50
-// NON_MATCHING: the same operations; the original duplicates more of the
-// byte conversions' blocks into their predecessors and converts the alpha
-// channels earlier (about 100 bytes of tail-duplicated code).
+// The channels are read into locals first and updated in place, a step at a
+// time (the original's schedule); the third loop isn't guarded by its own
+// `height != 0` (with it, the column loop is unswitched and the zeroing
+// isn't repeated), and the pixels are addressed from `data` in each loop.
+// NON_MATCHING: registers only: the 255.9999 constant gets d3 (d5 in the
+// original), so the A57 FP load balancing pass can't move three channels'
+// products to odd registers as it does in the original.
 s32 CDepthOfField::Unk_4aff50(u8* data, u32 width, u32 height, const f32* scale, bool merge) {
     u32 stride = width * 4;
     if (width != 0 && merge) {
@@ -805,15 +809,19 @@ s32 CDepthOfField::Unk_4aff50(u8* data, u32 width, u32 height, const f32* scale,
                 f64 r2 = Unk_Channel2(other >> 16);
                 f64 g2 = Unk_Channel2(other >> 8);
                 f64 b2 = Unk_Channel2(other);
-                f64 sr = Unk_SqrtPositive(r + r2);
-                f64 sb = Unk_SqrtPositive(b + b2);
-                f64 sg = Unk_SqrtPositive(g + g2);
-                f32 alpha2 = static_cast<f32>(other >> 24);
-                *reinterpret_cast<u32*>(data + i * 4) = Unk_ToByte(alpha * (1.0 / 255.0), 24);
-                u32 cr = Unk_ToByte(sr, 16);
-                u32 cg = Unk_ToByte(sg, 8);
-                u32 cb = Unk_ToByte(sb, 0);
-                u32 ca = Unk_ToByte(alpha2 * (1.0 / 255.0), 24);
+                r += r2;
+                g += g2;
+                b += b2;
+                f64 a = alpha * (1.0 / 255.0);
+                r = Unk_SqrtPositive(r);
+                g = Unk_SqrtPositive(g);
+                b = Unk_SqrtPositive(b);
+                f64 a2 = static_cast<f32>(other >> 24) * (1.0 / 255.0);
+                *reinterpret_cast<u32*>(data + i * 4) = Unk_ToByte(a, 24);
+                u32 cr = Unk_ToByte(r, 16);
+                u32 cg = Unk_ToByte(g, 8);
+                u32 cb = Unk_ToByte(b, 0);
+                u32 ca = Unk_ToByte(a2, 24);
                 *reinterpret_cast<u32*>(next + i * 4) = cr | cg | cb | ca;
             }
         }
@@ -821,37 +829,49 @@ s32 CDepthOfField::Unk_4aff50(u8* data, u32 width, u32 height, const f32* scale,
     if (width != 0) {
         f64 inverse = 1.0 / height;
         for (u32 x = 0; x < width; x++) {
-            f64 sr = 0.0;
-            f64 sg = 0.0;
             f64 sb = 0.0;
-            u8* column = data + x * 4;
+            f64 sg = 0.0;
+            f64 sr = 0.0;
             for (u32 y = 0; y < height; y++) {
-                u32 pixel = *reinterpret_cast<u32*>(column + y * stride);
+                u32 pixel = *reinterpret_cast<u32*>(data + x * 4 + y * stride);
+                f64 r = Unk_Channel2(pixel >> 16);
+                f64 g = Unk_Channel2(pixel >> 8);
+                f64 b = Unk_Channel2(pixel);
                 f32 position = static_cast<f32>(height - y) - 0.5f;
                 f64 angle = inverse * position * 3.14159265f;
-                sr += inverse * (angle * Unk_Channel2(pixel >> 16));
-                sg += inverse * (angle * Unk_Channel2(pixel >> 8));
-                sb += inverse * (angle * Unk_Channel2(pixel));
+                r *= angle;
+                g *= angle;
+                b *= angle;
+                r *= inverse;
+                g *= inverse;
+                b *= inverse;
+                sr += r;
+                sg += g;
+                sb += b;
             }
-            if (height != 0) {
-                f64 fr = scale[0] / (sr * (2.0 / 3.14159265f));
-                f64 fg = scale[1] / (sg * (2.0 / 3.14159265f));
-                f64 fb = scale[2] / (sb * (2.0 / 3.14159265f));
-                for (u32 y = 0; y < height; y++) {
-                    u32 pixel = *reinterpret_cast<u32*>(column + y * stride);
-                    f64 r = Unk_Channel2(pixel >> 16);
-                    f64 g = Unk_Channel2(pixel >> 8);
-                    f64 b = Unk_Channel2(pixel);
-                    r = Unk_SqrtPositive(fr * r);
-                    g = Unk_SqrtPositive(fg * g);
-                    f64 a = static_cast<f32>(pixel >> 24) * (1.0 / 255.0);
-                    b = Unk_SqrtPositive(fb * b);
-                    u32 cr = Unk_ToByte(r, 16);
-                    u32 cg = Unk_ToByte(g, 8);
-                    u32 cb = Unk_ToByte(b, 0);
-                    u32 ca = Unk_ToByte(a, 24);
-                    *reinterpret_cast<u32*>(column + y * stride) = cr | cg | cb | ca;
-                }
+            sr *= 2.0 / 3.14159265f;
+            sg *= 2.0 / 3.14159265f;
+            sb *= 2.0 / 3.14159265f;
+            f64 fr = scale[0] / sr;
+            f64 fg = scale[1] / sg;
+            f64 fb = scale[2] / sb;
+            for (u32 y = 0; y < height; y++) {
+                u32 pixel = *reinterpret_cast<u32*>(data + x * 4 + y * stride);
+                f64 r = Unk_Channel2(pixel >> 16);
+                f64 g = Unk_Channel2(pixel >> 8);
+                f64 b = Unk_Channel2(pixel);
+                r *= fr;
+                g *= fg;
+                b *= fb;
+                f64 a = static_cast<f32>(pixel >> 24) * (1.0 / 255.0);
+                r = Unk_SqrtPositive(r);
+                g = Unk_SqrtPositive(g);
+                b = Unk_SqrtPositive(b);
+                u32 cr = Unk_ToByte(r, 16);
+                u32 cg = Unk_ToByte(g, 8);
+                u32 cb = Unk_ToByte(b, 0);
+                u32 ca = Unk_ToByte(a, 24);
+                *reinterpret_cast<u32*>(data + x * 4 + y * stride) = cr | cg | cb | ca;
             }
         }
     }
@@ -890,16 +910,24 @@ bool CDepthOfField::Unk_4b5ae0() {
 }
 
 // 0x71004b4c40
-// NON_MATCHING: the loads of the first call's arguments are scheduled in another order
-// (field_418's element and field_420 swap x10/x11).
+// (the arguments are locals read in their order, the last level's flag just before the call)
 s32 CDepthOfField::Unk_4b4c40() {
     s32 result = 0;
     if (field_c0.field_6d) {
         for (s32 i = 0; i < field_3f8; i++) {
+            CRenderTexture* source = field_430[i];
+            CRenderTexture* target = field_430[i + 1];
+            void* arg3 = field_488[i];
+            void* arg4 = field_438[i];
+            s32 arg5 = field_400[i];
+            s32 arg6 = field_408[i];
+            void* arg7 = field_410[i];
+            void* arg8 = field_418[i];
+            Unk_Pass* arg9 = &field_420[i];
+            Unk_Pass* arg10 = &field_428[i];
             bool last = i == field_3f8 - 1;
-            s32 status = Unk_4b35f0(i > 0 ? 2.2f : 3.0f, field_430[i], field_430[i + 1], field_488[i], field_438[i],
-                                    field_400[i], field_408[i], field_410[i], field_418[i], &field_420[i],
-                                    &field_428[i], i == 0, last);
+            s32 status = Unk_4b35f0(i == 0 ? 3.0f : 2.2f, source, target, arg3, arg4, arg5, arg6, arg7, arg8, arg9,
+                                    arg10, i == 0, last);
             if (status < 0)
                 result = status;
             status = Unk_4b48d0(i);
@@ -3063,7 +3091,12 @@ s32 CDepthOfField::Unk_4b35f0(f32 scale, CRenderTexture* source, CRenderTexture*
 // NON_MATCHING: the same calls with the same arguments, but the blocks and
 // registers differ throughout (the original keeps the target and the list in
 // stack slots, shares the texture filter calls' tails and lays the kinds out
-// in another order).
+// in another order). Kind 0's plain blur is the `if (field_18 <= 9)` branch
+// (laid out first, as in the original: written as the early `if (> 9)`,
+// the whole function's layout differs). Still different: the original keeps
+// `!visualize` as a bool (cset ne) for kind 0 and places the visualisation
+// right after it; here kind 0's test is threaded into the tail and the tail
+// follows kind 5's. Case order and the `!` forms of the flag change nothing.
 s32 CDepthOfField::Unk_4b19a0(s32 level, bool first, CRenderTexture* source, CRenderTexture* target,
                               CRenderTexture** list, CRenderTexture* extra, s32 mode) {
     bool flag = first ? (field_154 & 4) != 0 : (field_154 & 8) != 0;
@@ -3087,7 +3120,12 @@ s32 CDepthOfField::Unk_4b19a0(s32 level, bool first, CRenderTexture* source, CRe
     switch (kind) {
     case 0: {
         Unk_Level* item = &levels[level];
-        if (item->field_18 > 9) {
+        if (item->field_18 <= 9) {
+            Unk_GetTexture(source)->vf18(2);
+            Unk_GetTexture(target)->vf18(2);
+            result = util->Unk_493e20(1.0f, source, target, item->field_18, mode, &colour, false, false, 0, 0);
+            visualize = item->field_18 == 9;
+        } else {
             CRenderTexture* other = list[0];
             if (!field_c0.field_6c) {
                 other = list[1];
@@ -3105,12 +3143,7 @@ s32 CDepthOfField::Unk_4b19a0(s32 level, bool first, CRenderTexture* source, CRe
             Unk_Float4 white(1.0f, 1.0f, 1.0f, 1.0f);
             util->Unk_493be0(source, other, target, list[0], 1.0f, true, 0, &white, false, false, 0, 0);
             result = util->Unk_493f30(1.0f, Unk_Float(0.75f), list[0], target, mode, &colour, false, false, 0, 0);
-            break;
         }
-        Unk_GetTexture(source)->vf18(2);
-        Unk_GetTexture(target)->vf18(2);
-        result = util->Unk_493e20(1.0f, source, target, item->field_18, mode, &colour, false, false, 0, 0);
-        visualize = item->field_18 == 9;
         break;
     }
     case 1:
@@ -3450,11 +3483,17 @@ s32 CDepthOfField::Unk_4b5b40() {
 // 0x71004b29b0: a level of the first six kinds: the near blur, the far
 // blur's source scaled down from the level's source, the far blur, each
 // blur faded into its target when the level's size isn't the target's
-// The fade test is `(field_1dc != 0.0f) & (item->field_28 == 1)`.
 // NON_MATCHING: 68 bytes shorter; the same calls with the same arguments,
 // but the original loads field_38 before the test of field_20c (shared by
-// the scaling and the plain path), keeps more of the level's addresses in
-// stack slots and lays out the mask lookups and fade tails differently.
+// the scaling and the plain path; written that way, here, the registers of
+// source and target swap and it gets worse), keeps more of the level's
+// addresses in stack slots (&field_a8, &field_38) and multiplies the
+// source's size by its scale before Unk_49d250 (here after it, although
+// the IR has it before). What decided the rest: the first fade's target
+// (field_a8) read before its test, both fade tests `&&`, the bias read
+// as an Unk_Float through the Unk_Float2 at field_d8 (integer loads and
+// stores) and the range written element by element, the target's size
+// converted where it is read.
 s32 CDepthOfField::Unk_4b29b0(s32 level) {
     Unk_Level* levels = field_4a8;
     CTextureUtil* util = Unk_GetTextureUtil();
@@ -3479,17 +3518,18 @@ s32 CDepthOfField::Unk_4b29b0(s32 level) {
         } else {
             CRenderTexture* target = item->field_48[field_180 == 3 ? 2 : 0];
             Unk_4b19a0(level, true, near, target, list, extra, mode);
-            if ((field_1dc != 0.0f) & (item->field_28 == 1)) {
+            CRenderTexture* final = item->field_a8;
+            if (field_1dc != 0.0f && item->field_28 == 1) {
                 Unk_GetTexture(target)->vf18(2);
                 Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
                 Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
                 f32 fade = Unk_Saturate(field_1dc * (item->field_2c * 0.25f + 0.25f));
-                result = util->Unk_47dfa0(0.0f, 0.0f, fade, 1.0f, target, item->field_a8, field_224, &color, 0, false,
+                result = util->Unk_47dfa0(0.0f, 0.0f, fade, 1.0f, target, final, field_224, &color, 0, false,
                                           false, 1, &zero, nullptr, -1);
             } else {
                 Unk_Float4 color(1.0f, 1.0f, 1.0f, 1.0f);
                 Unk_Float4 zero(0.0f, 0.0f, 0.0f, 0.0f);
-                result = util->Unk_47dfa0(0.0f, 0.0f, 0.0f, 1.0f, target, item->field_a8, field_224, &color, 0, false,
+                result = util->Unk_47dfa0(0.0f, 0.0f, 0.0f, 1.0f, target, final, field_224, &color, 0, false,
                                           false, 1, &zero, nullptr, -1);
             }
         }
@@ -3506,13 +3546,14 @@ s32 CDepthOfField::Unk_4b29b0(s32 level) {
         f32 v1 = source->field_8c * static_cast<f32>(static_cast<u32>(source->field_58));
         f32 u0 = source->field_90;
         f32 v0 = source->field_94;
-        u32 width = target->field_54;
-        u32 height = target->field_58;
+        f32 width = static_cast<f32>(static_cast<u32>(target->field_54));
+        f32 height = static_cast<f32>(static_cast<u32>(target->field_58));
         target->Unk_49d250(0, 0, 1, 0, 0);
+        const Unk_Float2& pair = *reinterpret_cast<const Unk_Float2*>(&item->field_d8);
         f32 scale = -item->field_d8;
-        f32 bias = item->field_dc;
+        Unk_Float bias = pair.field_0[1];
         if (field_16c == 1) {
-            bias = field_1e8.field_0[3].field_0 * scale + item->field_dc;
+            bias = field_1e8.field_0[3].field_0 * scale + bias.field_0;
             scale = field_1e8.field_0[2].field_0 * scale;
         }
         Unk_Float4 values[4] = {
@@ -3547,13 +3588,17 @@ s32 CDepthOfField::Unk_4b29b0(s32 level) {
                 if (texture != nullptr)
                     mask = Unk_GetTexture(texture);
             }
-            result = util->Unk_47b8e0(0.0f, 0.0f, static_cast<f32>(width), static_cast<f32>(height), 0.0f, 0.0f,
+            result = util->Unk_47b8e0(0.0f, 0.0f, width, height, 0.0f, 0.0f,
                                       u1 + u0, v1 + v0, &values[0], &values[1], false, Unk_GetTexture(source), mask,
                                       0);
         } else {
-            Unk_Float2 range(scale, bias);
-            if (field_16c == 1)
-                range = Unk_Float2(-item->field_d8, item->field_dc);
+            Unk_Float2 range;
+            range.field_0[0] = scale;
+            range.field_0[1] = bias;
+            if (field_16c == 1) {
+                range.field_0[0] = -item->field_d8;
+                range.field_0[1] = pair.field_0[1];
+            }
             CRenderTexture* mask = nullptr;
             if (field_c0.field_6d && level >= 2) {
                 s32 index;
@@ -3627,8 +3672,8 @@ static inline s32 Unk_LineBlurWhite(CTextureUtil* util, Unk_Float4* color, Unk_F
 static inline s32 Unk_FadeWhite(CTextureUtil* util, Unk_Float4* weight, Unk_Float4* color, f32 arg0, f32 arg1,
                                 CRenderTexture* source, CRenderTexture* source2, CRenderTexture* target,
                                 const Unk_Float& value) {
-    *color = Unk_Float4(1.0f, 1.0f, 1.0f, 1.0f);
     *weight = Unk_Float4(value, value, value, value);
+    *color = Unk_Float4(1.0f, 1.0f, 1.0f, 1.0f);
     return util->Unk_496b40(arg0, arg1, source, source2, target, weight, 0, color, 0, false, false, 0, 0);
 }
 
@@ -3639,6 +3684,7 @@ static inline s32 Unk_FadeWhite(CTextureUtil* util, Unk_Float4* weight, Unk_Floa
 // highest, then the range, the colour sharing the sources' slot, the fade's
 // colour), and filled in place by inline helpers (so their stores come after
 // the calls' other arguments).
+// The fade's weight is filled in before its colour.
 // NON_MATCHING: the levels' pointer: the original keeps the array's base in a
 // stack slot and computes the level's address again for the last call, and
 // reads field_28 through the pre-indexed field_a0 pointer (`ldur w8, [x24,
@@ -3896,6 +3942,8 @@ static inline f64 Unk_Clamp64(f64 value, f64 max) {
 
 // 0x71004ad3d0 (its log lines name it)
 // The row and column loops' indices are `s64` (closer than `u32`).
+// The pixels' channels are scaled in place before their square roots, and
+// the minimum texture's channels read into locals before they are summed.
 // NON_MATCHING: same calls, loops and arithmetic; register allocation and
 // spills differ (the original's frame is 0x20 bytes larger and addresses the
 // matrix, colour and textures from one base register), the error blocks are
@@ -4120,9 +4168,12 @@ s32 CDepthOfField::CreateScatterBokehOpticsTexture(u32 width, u32 height, const 
                     r = Unk_PowPositiveF(r, gamma);
                     g = Unk_PowPositiveF(g, gamma);
                     b = Unk_PowPositiveF(b, gamma);
-                    r = Unk_SqrtPositiveF(scaleR * r);
-                    g = Unk_SqrtPositiveF(scaleG * g);
-                    b = Unk_SqrtPositiveF(scaleB * b);
+                    r *= scaleR;
+                    g *= scaleG;
+                    b *= scaleB;
+                    r = Unk_SqrtPositiveF(r);
+                    g = Unk_SqrtPositiveF(g);
+                    b = Unk_SqrtPositiveF(b);
                     f32 a = static_cast<f32>(pixel >> 24) * (1.0f / 255.0f);
                     u32 br = Unk_ToByteF(r, 0);
                     u32 bg = Unk_ToByteF(g, 8);
@@ -4162,10 +4213,10 @@ s32 CDepthOfField::CreateScatterBokehOpticsTexture(u32 width, u32 height, const 
                     f32 g11 = Unk_PowPositiveF(static_cast<f32>((p11 >> 8) & 0xff) * (1.0f / 255.0f), 2.0f);
                     f32 b11 = Unk_PowPositiveF(static_cast<f32>(p11 & 0xff) * (1.0f / 255.0f), 2.0f);
                     f32 a11 = static_cast<f32>(p11 >> 24) * (1.0f / 255.0f);
+                    f32 a = (a00 + a01 + a10 + a11) * 0.25f;
                     f32 r = (r00 + r01 + r10 + r11) * 0.25f;
                     f32 g = (g00 + g01 + g10 + g11) * 0.25f;
                     f32 b = (b00 + b01 + b10 + b11) * 0.25f;
-                    f32 a = (a00 + a01 + a10 + a11) * 0.25f;
                     r = Unk_PowPositiveF(r, 0.5f);
                     g = Unk_PowPositiveF(g, 0.5f);
                     b = Unk_PowPositiveF(b, 0.5f);
@@ -4199,14 +4250,21 @@ s32 CDepthOfField::CreateScatterBokehOpticsTexture(u32 width, u32 height, const 
                 u8* column = mips[0] + x * bpp;
                 for (u32 k = 0; k < step; k++) {
                     u32 pixel = *reinterpret_cast<u32*>(column + (j * step + k) * stride);
-                    r += Unk_Channel2(pixel >> 16);
-                    g += Unk_Channel2(pixel >> 8);
-                    b += Unk_Channel2(pixel);
-                    a += static_cast<f32>(pixel >> 24) * (1.0 / 255.0);
+                    f64 cr = Unk_Channel2(pixel >> 16);
+                    f64 cg = Unk_Channel2(pixel >> 8);
+                    f64 cb = Unk_Channel2(pixel);
+                    f64 ca = static_cast<f32>(pixel >> 24) * (1.0 / 255.0);
+                    r += cr;
+                    g += cg;
+                    b += cb;
+                    a += ca;
                 }
-                r = Unk_SqrtPositive(scale * r);
-                g = Unk_SqrtPositive(scale * g);
-                b = Unk_SqrtPositive(scale * b);
+                r *= scale;
+                g *= scale;
+                b *= scale;
+                r = Unk_SqrtPositive(r);
+                g = Unk_SqrtPositive(g);
+                b = Unk_SqrtPositive(b);
                 u32 br = Unk_ToByte(r, 16);
                 u32 bg = Unk_ToByte(g, 8);
                 u32 bb = Unk_ToByte(b, 0);

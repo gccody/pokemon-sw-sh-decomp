@@ -232,6 +232,9 @@ static inline s32 Unk_NextLine(const Unk_TFXString* string, s32 start) {
 // in the original and its not-found exit doesn't clear the flag; every form
 // tried here (break, `&& !quoted`, a helper) gets it folded. The comment's
 // buffer is also 4 bytes higher in the frame.
+// (Round 5: the quote loop as `quoted |= match` with and without the loop's
+// `!quoted`, `quoted = match` with a break, a `while`, the match tested on
+// the quote's character: the same or worse.)
 Unk_TFXString Token(Unk_TFXString* string, const char* delimiters, const char* comment, const char* quotes, s32 delimLen,
                     s32 commentLength, s32 quoteLength) {
 #line 756
@@ -440,8 +443,8 @@ s32 Unk_TFXString::Unk_452400(const char* text, s32 start, s32 count) const {
 }
 
 // 0x71004525a0
-// NON_MATCHING: the original takes the remainder (msub) right after the call that
-// appends the digit; here it comes after the digit's stores (same instructions).
+// (the zero digit first: with the digit's branch first the remainder comes
+// after the digit's stores)
 Unk_TFXString Unk_4525a0(s32 value) {
     Unk_TFXString text;
     if (value < 0) {
@@ -450,12 +453,14 @@ Unk_TFXString Unk_4525a0(s32 value) {
     }
     s32 started = 0;
     for (s32 divisor = 1000000000; divisor > 1; divisor /= 10) {
-        if (divisor <= value) {
+        if (divisor > value) {
+            if (started) {
+                text += '0';
+            }
+        } else {
             text += static_cast<char>('0' + value / divisor);
             value %= divisor;
             started = 1;
-        } else if (started) {
-            text += '0';
         }
     }
     return text + static_cast<char>('0' + value);
