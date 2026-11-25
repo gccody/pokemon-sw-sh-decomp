@@ -204,28 +204,16 @@ bool HaxeSymbolPokemonObject::IsContainsMovementAreaSelf() const {
     return IsContainsAreaSelf(Owner(this), 2);
 }
 
-// NON_MATCHING: Unk_c8dd50's current name takes the areas by value, so they're copied
-// again for the call; the original copies them once, before the handle is locked,
-// and passes that copy by reference. With Unk_c8dd50 renamed to
-// _Z10Unk_c8dd50RK16Unk_debce0_AreasRK13__Float32x4_tif this matches as written.
 // 0x7100dec1c0
 bool HaxeSymbolPokemonObject::IsContainsCreateAreaPlayer() const {
     return IsContainsAreaPlayer(Owner(this), 0);
 }
 
-// NON_MATCHING: Unk_c8dd50's current name takes the areas by value, so they're copied
-// again for the call; the original copies them once, before the handle is locked,
-// and passes that copy by reference. With Unk_c8dd50 renamed to
-// _Z10Unk_c8dd50RK16Unk_debce0_AreasRK13__Float32x4_tif this matches as written.
 // 0x7100dec280
 bool HaxeSymbolPokemonObject::IsContainsVanishAreaPlayer() const {
     return IsContainsAreaPlayer(Owner(this), 1);
 }
 
-// NON_MATCHING: Unk_c8dd50's current name takes the areas by value, so they're copied
-// again for the call; the original copies them once, before the handle is locked,
-// and passes that copy by reference. With Unk_c8dd50 renamed to
-// _Z10Unk_c8dd50RK16Unk_debce0_AreasRK13__Float32x4_tif this matches as written.
 // 0x7100dec340
 bool HaxeSymbolPokemonObject::IsContainsMovementAreaPlayer() const {
     return IsContainsAreaPlayer(Owner(this), 2);
