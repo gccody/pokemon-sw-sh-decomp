@@ -76,7 +76,7 @@ static void Unk_Write(Unk_2432c78* self) {
 
 // 0x710137c470
 void Unk_2432c78::vf7() {
-    field_68.Unk_Reset();
+    Unk_Reset();
     Unk_Write(this);
 }
 
@@ -110,16 +110,24 @@ static u8 Unk_Kind() {
     return Unk_136b580_getField105(owner.m_ptr);
 }
 
+// The bit of the entry of a key.
+static bool Unk_FindBit(Unk_2432c78* self, s32 index, const u64& key, u32* bit) {
+    if (self->field_60 == nullptr)
+        return false;
+    u8 kind = Unk_Kind();
+    Unk_b751c0_Out out;
+    if (!Unk_b751c0(self->field_60, kind, index, key, &out))
+        return false;
+    *bit = out.field_8;
+    return true;
+}
+
 // 0x710137c8a0: the bit of the entry of a key.
 bool Unk_2432c78::Unk_137c8a0(s32 index, const u64& key) {
-    bool result = false;
-    if (field_60 != nullptr) {
-        u8 kind = Unk_Kind();
-        Unk_b751c0_Out out;
-        if (Unk_b751c0(field_60, kind, index, key, &out))
-            result = Unk_137c850(index, out.field_8);
-    }
-    return result;
+    u32 bit;
+    if (!Unk_FindBit(this, index, key, &bit))
+        return false;
+    return Unk_137c850(index, bit);
 }
 
 // 0x710137c9c0
@@ -127,10 +135,18 @@ void Unk_2432c78::Unk_137c9c0(s32 index, u32 bit, bool value) {
     if (index < 0 || index >= 15 || bit >= 1024)
         return;
     u8& bits = field_68.field_0[index][bit / 8];
-    bits = value ? bits | (1 << (bit % 8)) : bits & ~(1 << (bit % 8));
+    u8 old = bits;
+    u8 mask = 1 << (bit % 8);
+    if (value)
+        bits = old | mask;
+    else
+        bits = old & ~mask;
 }
 
 // 0x710137ca10
+// NON_MATCHING: the original sets the bit with a branch on `value` (tbz,
+// orr/bic), not the csel the inlined 0x710137c9c0 gives (and that 0x710137c9c0
+// itself has); an inline copy of the set code gives the csel too.
 void Unk_2432c78::Unk_137ca10(s32 index, const u64& key, bool value) {
     if (field_60 == nullptr)
         return;
@@ -152,9 +168,14 @@ bool Unk_2432c78::Unk_137cb30(s32 index, u32 bit) {
 }
 
 // 0x710137cb80
+// NON_MATCHING: the original's orr takes the old byte first (orr w9, w9, w10);
+// every way of writing it tried gives the operands swapped, or the orr before
+// the bic.
 void Unk_2432c78::Unk_137cb80(s32 index, u32 bit, bool value) {
     if (index < 0 || index >= 15 || bit >= 1024)
         return;
     u8& bits = field_68.field_780[index][bit / 8];
-    bits = value ? bits & ~(1 << (bit % 8)) : bits | (1 << (bit % 8));
+    u8 old = bits;
+    u8 mask = 1 << (bit % 8);
+    bits = value ? old & ~mask : old | mask;
 }

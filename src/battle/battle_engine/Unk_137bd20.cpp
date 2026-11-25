@@ -34,5 +34,5 @@ void Unk_137bd50_set(Unk_137bd50* self, u32 bit, bool value) {
 
 // 0x710137c400
 Unk_2432c78::Unk_2432c78() : field_60(nullptr) {
-    field_68.Unk_Reset();
+    Unk_Reset();
 }
