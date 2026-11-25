@@ -17,7 +17,7 @@ void Unk_817100(const Unk_8139c0_Self* self, u32 condition, void* value);
 bool Unk_817130(const Unk_8139c0_Self* self, u32 value);
 bool Unk_817160(const Unk_8139c0_Self* self, u32 index);
 void Unk_817190(const Unk_8139c0_Self* self, u32 arg1, u32 arg2);
-bool Unk_8171c0(const Unk_8139c0_Self* self, u32 arg1, u32 arg2);
+bool Unk_8171c0(const Unk_8139c0_Self* self, u8 arg1, u32 arg2);
 
 // 0x710080e920
 // NON_MATCHING: block order only. The original places the default message's
@@ -286,9 +286,6 @@ void Unk_80f050(const Unk_80e920_Self* self, u32 arg1, u32 arg2) {
 }
 
 // 0x710080f0a0
-// NON_MATCHING: Unk_8171c0 takes the Pokemon's id as a u8 (the original
-// passes it on unmasked and masks it only for the command); its name's u32
-// makes clang mask it up front. With a u8 it matches.
 bool Unk_80f0a0(const Unk_80e920_Self* self, const Unk_7ee6b0* poke, u32 arg2) {
     u8 pokeId = Unk_7ee6b0_getField7d(poke);
     bool result = Unk_8171c0(self->field_20, pokeId, arg2);
