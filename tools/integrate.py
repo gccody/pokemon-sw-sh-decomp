@@ -130,6 +130,19 @@ def names_csv(names: list[dict], rows: list[Function]) -> str:
     return "\n".join(out) + "\n"
 
 
+def name_conflicts(names: list[dict], rows: list[Function]) -> list[str]:
+    """The sidecar's names whose row already has another name (another unit
+    named a shared callee first): funcs.py would skip them, so they're
+    reported before anything is replayed."""
+    by_sword = {f"0x{r.sword + BASE:x}": r for r in rows if r.sword is not None}
+    out = []
+    for n in names:
+        r = by_sword.get(n["addr"].lower())
+        if r is not None and r.name and r.name != n["name"]:
+            out.append(f"{n['addr']}: sidecar {n['name']}, functions.csv {r.name}")
+    return out
+
+
 def check_lines(log: str, funcs: list[Function]) -> list[str]:
     """check.py's result lines, with their detail lines, for the given functions
     (found by the `[sword:0x..., shield:0x...]` addresses it prints)."""
@@ -195,6 +208,11 @@ def main(argv: list[str] | None = None) -> int:
         sidecar_path = wt / ".swarm" / "sidecar.json"
     sidecar = json.loads(sidecar_path.read_text(encoding="utf-8")) if sidecar_path.exists() else {}
     unit = sidecar.get("unit") or args.branch.rsplit("/", 1)[-1]
+
+    conflicts = name_conflicts(sidecar.get("names", []), read_functions_csv())
+    if conflicts:
+        raise SystemExit("names another unit gave first (make the unit's declarations follow them, or "
+                         "rename together with their callers):\n  " + "\n  ".join(conflicts))
 
     # 2. the unit's commits
     base = args.base or sidecar.get("base")

@@ -54,3 +54,10 @@ def test_check_lines():
     assert lines == ["OK  common      f()  [sword:0x7100000010, shield:0x7100000010]",
                      "BAD common      g()  [sword:0x7100000020, shield:0x7100000028]",
                      "      sword: differs at +0x4"]
+
+
+def test_name_conflicts():
+    rows = [fn(0x10, "U", "_Z1fv"), fn(0x20, "U", ""), fn(0x30, "U", "_Z1hv")]
+    names = [{"addr": f"0x{BASE + 0x10:x}", "name": "_Z1gv"}, {"addr": f"0x{BASE + 0x20:x}", "name": "_Z1iv"},
+             {"addr": f"0x{BASE + 0x30:x}", "name": "_Z1hv"}]
+    assert integrate.name_conflicts(names, rows) == [f"0x{BASE + 0x10:x}: sidecar _Z1gv, functions.csv _Z1fv"]
