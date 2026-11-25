@@ -23,6 +23,7 @@ __pycache__/
 .venv/
 compile_commands.json
 .cache/
+.swarm/
 .pytest_cache/
 .ruff_cache/
 
