@@ -8,8 +8,8 @@
 namespace field {
 namespace content {
 
-// NON_MATCHING: the constructor is at 0x7100ded9e0, matched under its leaf placeholder
-// name Unk_ded9e0_set (src/unsorted/leaf/Unk_de8ae0.cpp); defined here so the factories
+// The constructor, 0x7100ded9e0: matched under its leaf placeholder name Unk_ded9e0_set
+// (src/unsorted/leaf/Unk_de8ae0.cpp) until it's renamed. Defined here so the factories
 // inline it, as the original's do.
 HaxeVector3::HaxeVector3(float x, float y, float z) : X(x), Y(y), Z(z) {}
 
