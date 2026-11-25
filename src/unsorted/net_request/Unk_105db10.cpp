@@ -35,7 +35,8 @@ static_assert(sizeof(Unk_240c3e8) == 0x68, "Unk_240c3e8");
 Unk_240c3e8::~Unk_240c3e8() {}
 
 // Not decompiled yet.
-u32 Unk_15bbd30(const s32* value);
+struct Unk_15bbc10;  // lib/nex/include/nn/nex/Call.h
+u32 Unk_15bbd30(const Unk_15bbc10* result);
 void Unk_104c140(u64 self, const u32& id);
 
 // Globals other TUs define, named after their addresses.
@@ -70,7 +71,7 @@ Unk_240c4e8::~Unk_240c4e8() {}
 // object Unk_104c140 takes is likely bigger or more aligned than a u32 (only
 // its first word is read). Unk_104c140's name lacks its second parameter.
 void Unk_240c4e8::vf8(const s32* value) {
-    Unk_104c140(Unk_24ba150, Unk_15bbd30(value));
+    Unk_104c140(Unk_24ba150, Unk_15bbd30(reinterpret_cast<const Unk_15bbc10*>(value)));
 }
 
 // What 0x710105bf40 makes its Unk_240c4e8 with: it passes a stack object
