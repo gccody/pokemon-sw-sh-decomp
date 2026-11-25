@@ -1,9 +1,10 @@
 #pragma once
 // The Battle Tower's views (vtable 0x71023bd130): five views of an app's
-// frame, found by name, and the battle they show. The battle scene reaches
-// one at +0x2f8 of what Unk_95bb50 returns. Its destructors are in
-// src/unsorted/virtual/Unk_8e4150.cpp. Placeholder names: rename once the
-// class is known.
+// frame, found by name, and the battle they show. The battle scene calls its
+// functions with what Unk_95bb50 returns (battle/battle_scene/Unk_a38ab0.cpp),
+// src/unsorted/leaf/Unk_987eb0.cpp with +0x2f8 of its object. Its
+// destructors are in src/unsorted/virtual/Unk_8e4150.cpp. Placeholder names:
+// rename once the class is known.
 #include <types.h>
 
 #include "battle/battle_logic/source/netwatch/Unk_8a9b50.h"
