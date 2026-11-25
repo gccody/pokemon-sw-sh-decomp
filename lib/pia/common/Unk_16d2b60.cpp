@@ -13,6 +13,46 @@
 
 namespace nn {
 namespace pia {
+namespace common {
+
+// RTTI N2nn3pia6common6StringE: text in a buffer it doesn't own.
+class String {
+public:
+    String(char* buffer, u32 capacity) : m_Buffer(buffer), m_Capacity(capacity), field_14(0), field_18(0) {}
+    virtual ~String() {}
+
+    virtual void vf2();
+    virtual void vf3() = 0;  // empties it
+
+    char* m_Buffer;
+    u32 m_Capacity;
+    u32 field_14;
+    u32 field_18;
+};
+PKMN_OFFSET_ASSERT(String, m_Buffer, 0x8);
+PKMN_OFFSET_ASSERT(String, m_Capacity, 0x10);
+PKMN_OFFSET_ASSERT(String, field_18, 0x18);
+
+// RTTI N2nn3pia6common11FixedStringILj48EEE: a String with room for N
+// characters of up to 4 bytes each.
+template <u32 N>
+class FixedString : public String {
+public:
+    FixedString() : String(m_Storage, N * 4) { vf3(); }
+
+    void vf3() override {
+        for (u32 i = 0; i < N * 4 + 1; i++) {
+            m_Storage[i] = '\0';
+        }
+        field_14 = 0;
+        field_18 = 0;
+    }
+
+    char m_Storage[N * 4 + 1];
+};
+PKMN_SIZE_ASSERT(FixedString<48>, 0xe0);
+
+}  // namespace common
 
 // nn::pia::common::InetAddress (RTTI N2nn3pia6common11InetAddressE; the
 // placeholder of lib/pia/common/Unk_1749cd0.h): a 16-byte host and a port.
@@ -23,6 +63,7 @@ public:
 
     Unk_1652c70& Unk_1652cf0(const Unk_1652c70& other);  // copies both fields
     void Unk_16538d0();                                  // clears both fields
+    void Unk_1652fe0(common::String* out) const;         // writes it as text
 
     u8 field_8[0x10];
     u16 field_18;
@@ -31,21 +72,82 @@ PKMN_OFFSET_ASSERT(Unk_1652c70, field_8, 0x8);
 PKMN_OFFSET_ASSERT(Unk_1652c70, field_18, 0x18);
 PKMN_SIZE_ASSERT(Unk_1652c70, 0x20);
 
+// nn::pia::common::StationAddress (RTTI N2nn3pia6common14StationAddressE; the
+// placeholder of lib/pia/common/Unk_1749cd0.h): one InetAddress.
+class Unk_165fb30 {
+public:
+    Unk_165fb30();
+    virtual ~Unk_165fb30() {}
+
+    Unk_165e060 Unk_165fd90(const Unk_1652c70& value);  // sets field_8
+    Unk_165fb30& Unk_165fd50(const Unk_165fb30& other);  // copies field_8
+
+    Unk_1652c70 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_165fb30, field_8, 0x8);
+PKMN_SIZE_ASSERT(Unk_165fb30, 0x28);
+
 }  // namespace pia
 }  // namespace nn
 
 // Two addresses, defined in lib/pia/common/Unk_16d26c0.cpp.
 extern nn::pia::Unk_1652c70 Unk_27fb438[2];
 
-// The object behind the global Unk_27fb310 (no RTTI name known; see
-// lib/pia/common/Unk_16d8140.cpp).
+// What NexFacade's field_88 points to (placeholder): slot 26 receives a packet
+// through the relay service.
+class Unk_27fb310_88 {
+public:
+    virtual void vf0();
+    virtual void vf1();
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4();
+    virtual void vf5();
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual void vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+    virtual void vf25();
+    virtual nn::pia::Unk_165e060 vf26(u8* buffer, u32* size, nn::pia::Unk_1652c70* address);
+};
+
+// The object behind the global Unk_27fb310: nex::NexFacade's instance (its
+// relay flag at 0xb2 is the one NexFacade::SetRelayServiceEnabled sets).
 struct Unk_27fb310_type {
     u8 _0[0x58];
     u32 field_58;  // an id in the low 24 bits
+    u8 _5c[0x88 - 0x5c];
+    Unk_27fb310_88* field_88;
 };
 PKMN_OFFSET_ASSERT(Unk_27fb310_type, field_58, 0x58);
+PKMN_OFFSET_ASSERT(Unk_27fb310_type, field_88, 0x88);
 
 extern Unk_27fb310_type* Unk_27fb310;
+
+// Functions tools/leafgen.py matched, with their names' types.
+struct Unk_16c6880;
+struct Unk_1653860;
+struct Unk_1653860_arg1;
+struct Unk_1653890_arg0;
+bool Unk_16c6880_get(const Unk_16c6880* self);  // NexFacade's relay flag
+bool Unk_1653860_call(const Unk_1653860* self, const Unk_1653860_arg1* value);  // equal hosts
+bool Unk_1653890(const Unk_1653890_arg0* self);  // set host and port
+nn::pia::Unk_165e060 Unk_165b480_call(void* self, u64 value, u64 arg2, void* arg3, u64 arg4, void* arg5);
 
 namespace nn {
 namespace pia {
@@ -70,7 +172,18 @@ namespace nex {
 
 // What NexInputStream reads a packet into, and what it writes a header from
 // (placeholders: their types aren't known yet).
-struct Unk_16d2c70_arg1;
+struct Unk_16d2c70_arg1 {
+    u8 _0[0x28];
+    u8 field_28[0x5c0];  // the data
+    u32 field_5e8;       // its size
+    u8 _5ec[0x620 - 0x5ec];
+    bool field_620;
+    Unk_165fb30 field_628;  // where it came from
+};
+PKMN_OFFSET_ASSERT(Unk_16d2c70_arg1, field_28, 0x28);
+PKMN_OFFSET_ASSERT(Unk_16d2c70_arg1, field_5e8, 0x5e8);
+PKMN_OFFSET_ASSERT(Unk_16d2c70_arg1, field_620, 0x620);
+PKMN_OFFSET_ASSERT(Unk_16d2c70_arg1, field_628, 0x628);
 
 struct Unk_16d3060_arg3 {
     u8 _0[0xd];
@@ -132,6 +245,46 @@ Unk_165e060 NexInputStream::vf2(Unk_16d2c70_arg1* packet) {
         return Unk_165e060Value<0x2c09>();
     }
     return Unk_16d2cf0(packet);
+}
+
+// 0x71016d2cf0
+// NON_MATCHING: after a failed receive the original also builds a result it
+// doesn't use (0x10c07 when field_8 is set, a second 0x2c09 when it isn't),
+// and its block order differs; the logic is the same.
+Unk_165e060 NexInputStream::Unk_16d2cf0(Unk_16d2c70_arg1* packet) {
+    Unk_1652c70 address;
+    bool flag = false;
+    Unk_165e060 result(0);
+    result = Unk_165b480_call(field_10, reinterpret_cast<u64>(packet->field_28), sizeof(packet->field_28), &address,
+                              reinterpret_cast<u64>(&flag), &packet->field_5e8);
+    if (result.m_Value != 0) {
+        if (!field_8) {
+            return Unk_165e060Value<0x2c09>();
+        }
+        return result;
+    }
+    if (Unk_27fb310 != nullptr && Unk_16c6880_get(reinterpret_cast<const Unk_16c6880*>(Unk_27fb310))) {
+        result = Unk_27fb310->field_88->vf26(packet->field_28, &packet->field_5e8, &address);
+        if (result.m_Value != 0) {
+            return result;
+        }
+    }
+    if (!Unk_1653890(reinterpret_cast<const Unk_1653890_arg0*>(&address))) {
+        common::FixedString<48> text;
+        address.Unk_1652fe0(&text);
+        return Unk_165e060Value<0x2c09>();
+    }
+    for (s32 i = 0; i < 2; i++) {
+        if (Unk_1653860_call(reinterpret_cast<const Unk_1653860*>(&Unk_27fb438[i]),
+                             reinterpret_cast<const Unk_1653860_arg1*>(&address))) {
+            return Unk_165e060Value<0x2c09>();
+        }
+    }
+    Unk_165fb30 source;
+    source.Unk_165fd90(address);
+    packet->field_628.Unk_165fd50(source);
+    packet->field_620 = flag;
+    return Unk_165e060Value<0>();
 }
 
 // 0x71016d3060 (0x71016d3120 from IPacketInput)
