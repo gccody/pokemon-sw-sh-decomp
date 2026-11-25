@@ -12,6 +12,53 @@ void Unk_817460(const Unk_8139c0_Self* self, u8 pokeId, u8 value, u32 arg3);
 void Unk_8174b0(const Unk_8139c0_Self* self, u8 pokeId, u16 value);
 void Unk_8174f0(const Unk_8139c0_Self* self, u8 pokeId, u32 arg2, bool arg3);
 void Unk_817bb0(const Unk_8139c0_Self* self, u8 pokeId, u8 value);
+void Unk_816f20(const Unk_8139c0_Self* self, u8 pokeId, u8 otherId);
+
+u32 Unk_7f02d0(Unk_7ee6b0* self, u8 slot, u8 count);
+u32 Unk_7f0320(Unk_7ee6b0* self, u8 slot, u8 count);
+void Unk_7f1490(Unk_7ee6b0* self, u32 index, const u64* condition);
+void Unk_7f8ba0(const void* condition, u32* outA, u32* outB);
+struct Unk_7f88c0;
+bool Unk_7f88c0_check(const Unk_7f88c0* self);
+
+// 0x710080ff10
+void Unk_80ff10(const Unk_811d90_Self* self, Unk_7ee6b0* poke, u8 slot, u8 count, bool flag) {
+    u8 pokeId = Unk_7ee6b0_getField7d(poke);
+    if (flag) {
+        Unk_7f0320(poke, slot, count);
+        Unk_8150c0(self->field_18, 0xb, pokeId, slot, count);
+    } else {
+        Unk_7f02d0(poke, slot, count);
+        Unk_8150c0(self->field_18, 0xa, pokeId, slot, count);
+    }
+}
+
+// Queues command 0x13: the condition's two values (Unk_7f8ba0 reads them).
+static inline void Unk_80ffa0_PutCondition(u64 que, u8 pokeId, u8 index, const u64* condition) {
+    u32 a = 0;
+    u32 b = 0;
+    Unk_7f8ba0(condition, &a, &b);
+    Unk_8150c0(que, 0x13, pokeId, index, a, b);
+}
+
+// 0x710080ffa0
+void Unk_80ffa0(const Unk_811d90_Self* self, Unk_7ee6b0* poke, s32 index, const u64* condition) {
+    u8 pokeId = Unk_7ee6b0_getField7d(poke);
+    Unk_7f1490(poke, index, condition);
+    Unk_80ffa0_PutCondition(self->field_18, pokeId, index, condition);
+    if (index <= 5) {
+        s32 kind = index;
+        if (index == 5)
+            kind = Unk_7f88c0_check(reinterpret_cast<const Unk_7f88c0*>(condition)) ? 6 : 5;
+        Unk_8150c0(self->field_18, 0x8b, pokeId, kind);
+    }
+}
+
+// 0x7100810170
+void Unk_810170(const Unk_811d90_Self* self, const Unk_7ee6b0* poke, const Unk_7ee6b0* other) {
+    Unk_816f20(self->field_20, Unk_7ee6b0_getField7d(poke), Unk_7ee6b0_getField7d(other));
+    Unk_8150c0(self->field_18, 0x3d, Unk_7ee6b0_getField7d(poke), Unk_7ee6b0_getField7d(other));
+}
 
 // 0x7100810450
 void Unk_810450(const Unk_811d90_Self* self, const Unk_7ee6b0* poke, u8 value) {
