@@ -154,9 +154,8 @@ void Unk_890550(void* self, u8 pokeId) {
     if (Unk_890010_Var(self, 3) != pokeId)
         return;
     s32 count = Unk_890010_Var(self, 0x3d);
-    if (count < 8)
-        return;
-    Unk_819660_call(static_cast<const Unk_819660*>(self), 0x38, 0x1400);
+    if (count >= 8)
+        Unk_819660_call(static_cast<const Unk_819660*>(self), 0x38, 0x1400);
 }
 
 // 0x71008905d0
