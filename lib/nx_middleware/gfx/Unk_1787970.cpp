@@ -61,6 +61,14 @@ void Unk_1787bb0(Unk_1787ac0_Buffer* self, Unk_1791080_Device* device) {
     self->field_0 = 0;
 }
 
+// 0x7101787bf0
+void* Unk_1787bf0(void* self) {
+    return nvnBufferMap(static_cast<Unk_1787ac0_Buffer*>(self)->field_8);
+}
+
+// 0x7101787c10
+void Unk_1787c10(unsigned long) {}
+
 // 0x7101787c20
 void Unk_1787c20(const Unk_1787ac0_Buffer* self, s64 offset, size_t size) {
     if (self->field_1.Test(2)) {
@@ -73,6 +81,13 @@ void Unk_1787c40(const Unk_1787ac0_Buffer* self, s64 offset, size_t size) {
     if (self->field_1.Test(2)) {
         nvnBufferInvalidateMappedRange(self->field_8, offset, size);
     }
+}
+
+// 0x7101787c60
+void Unk_1787c60(void* self, void* address) {
+    Unk_178d730_Address* result = static_cast<Unk_178d730_Address*>(address);
+    result->field_0 = nvnBufferGetAddress(static_cast<Unk_1787ac0_Buffer*>(self)->field_8);
+    result->field_8 = 0;
 }
 
 // 0x7101787cb0
