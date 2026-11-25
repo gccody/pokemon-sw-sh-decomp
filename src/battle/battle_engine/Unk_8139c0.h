@@ -137,7 +137,7 @@ void Unk_7fc7e0_set(Unk_7fc7e0* self);
 
 // Declared as src/unsorted/leaf/Unk_7c2d90.cpp names it.
 struct Unk_7cac80;
-u8 Unk_7cac80_call(const Unk_7cac80* self, u32 value);
+u8 Unk_7cac80_call(const Unk_7cac80* self, u8 value);
 struct Unk_7fe2d0;
 void* Unk_7fe2d0_getField188(const Unk_7fe2d0* self);
 void* Unk_800990(void* self, u8 index);
