@@ -13,13 +13,10 @@
 #include "gflib3/Unk_239a418.h"
 #include "gflib3/Unk_Lock.h"
 
-// The type 0x71027e0580: its getter is the same as in
-// unsorted/types/Unk_90e070.cpp, out of line here (0x710098acc0).
+// The type 0x71027e0580: its getter is out of line (0x710098acc0, the same
+// as the inline one in unsorted/types/Unk_90e070.cpp).
 struct Unk_23f4318 {
-    static const Unk_239a418_Type* Unk_GetType() {
-        static Unk_239a418_Type type(Unk_239a418_GetType());
-        return &type;
-    }
+    static const Unk_239a418_Type* Unk_GetType();
 };
 
 // The type 0x71027d9350: its getter is out of line (0x7100c39c40).
@@ -59,16 +56,13 @@ public:
         return &type;
     }
 
-    u8 _60[0x98 - 0x60];
-    u32 field_98;
-    u8 _9c[0xe0 - 0x9c];
+    u8 _60[0xe0 - 0x60];
     u32 field_e0;
-    u8 _e4[0x220 - 0xe4];
-    u64 field_220;
+    u8 _e4[0x268 - 0xe4];
+    u64 field_268;
 };
-PKMN_OFFSET_ASSERT(Unk_23f41d0, field_98, 0x98);
 PKMN_OFFSET_ASSERT(Unk_23f41d0, field_e0, 0xe0);
-PKMN_OFFSET_ASSERT(Unk_23f41d0, field_220, 0x220);
+PKMN_OFFSET_ASSERT(Unk_23f41d0, field_268, 0x268);
 
 // The scene's objects at +0x38 and +0x58.
 struct Unk_98a950_Self {
