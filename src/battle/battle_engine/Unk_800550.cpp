@@ -5,8 +5,8 @@
 #include <cstring>
 #include <memory>
 
-#include "unsorted/Unk_2771620.h"
 #include "unsorted/Unk_23f4660.h"
+#include "unsorted/Unk_2771620.h"
 
 struct Unk_23ac958_Row {
     u32 field_0[30];
@@ -35,13 +35,16 @@ void Unk_800610(Unk_23ac958* self) {
 
 // 0x7100800680
 bool Unk_800680(const Unk_23ac958* self, u8 index, u8 row, u8 bit) {
-    bool result = false;
-    if (index < 30 && row < 2 && bit < 5)
-        result = (self->field_8[row].field_0[index] & (1u << bit)) != 0;
-    return result;
+    if (index < 30 && row < 2 && bit < 5) {
+        u32 mask = 1u << bit;
+        return (self->field_8[row].field_0[index] & mask) != 0;
+    }
+    return false;
 }
 
 // 0x71008006e0
+// NON_MATCHING: the original takes both arguments as u8s (it extends them at
+// each use); the existing name gives u32s. With (void*, u8, u8) it matches.
 void Unk_8006e0(void* object, u32 arg1, u32 arg2) {
     Unk_23ac958* self = static_cast<Unk_23ac958*>(object);
     u8 index = arg1;
@@ -77,8 +80,8 @@ PKMN_SIZE_ASSERT(Unk_800760_Pair, 0x48);
 void Unk_800760(void* object, void* allocator, u64 arg2, u64 arg3) {
     Unk_800760_Pair* self = static_cast<Unk_800760_Pair*>(object);
     Unk_239a418_Allocator* heap = static_cast<Unk_239a418_Allocator*>(allocator);
-    self->field_8[0] = Unk_2771620_MakeUnique<Unk_800a30>(heap, arg2, arg3);
-    self->field_8[1] = Unk_2771620_MakeUnique<Unk_800a30>(heap, arg2, arg3);
+    for (auto& item : self->field_8)
+        item = Unk_2771620_MakeUnique<Unk_800a30>(heap, arg2, arg3);
 }
 
 // 0x7100800900
