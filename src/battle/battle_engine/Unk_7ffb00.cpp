@@ -42,6 +42,14 @@ bool addId(Unk_7ee6b0_Field* self, u32 slot, u8 id) {
     return false;
 }
 
+bool hasId(const Unk_7ee6b0_Field* self, u32 slot, u8 id) {
+    for (u32 i = 0; i < self->field_158[slot]; i++) {
+        if (self->field_90[slot][i] == id)
+            return true;
+    }
+    return false;
+}
+
 u32 getTurnsGone(const Unk_7ee6b0_Field* self, u32 slot) {
     if (static_cast<s32>(slot) >= static_cast<s32>(Unk_7ee6b0_Field::kSlots))
         return 0;
@@ -73,20 +81,24 @@ u32 Unk_7ffb00(const Unk_7ee6b0_Field* self) {
 }
 
 // NON_MATCHING: the existing name (_Z10Unk_7ffb80v) has no parameter, but the
-// function acts on the counter in x0.
+// function acts on the counter in x0. Under the name below it matches.
+// Returns whether the counter ran out (its active byte).
 // 0x71007ffb80
-bool Unk_7ffb80(Unk_7ee6b0_Field* self) {
-    if (!self->field_0)
-        return false;
-    if (self->field_4 == 0xff)
-        return false;
-    if (++self->field_c < self->field_4)
-        return false;
-    self->field_0 = false;
-    self->field_10 = 0x1f;
-    return true;
+u8 Unk_7ffb80(Unk_7ee6b0_Field* self) {
+    u8 active = self->field_0;
+    if (active) {
+        if (self->field_4 == 0xff)
+            return 0;
+        if (self->field_4 > ++self->field_c)
+            return 0;
+        self->field_0 = 0;
+        self->field_10 = 0x1f;
+    }
+    return active;
 }
 
+// NON_MATCHING: the slot's address is folded differently (the original keeps
+// self + slot * 4 and &field_180[slot] in registers of their own).
 // 0x71007ffbd0
 bool Unk_7ffbd0(void* object, u32 slot, void* value) {
     Unk_7ee6b0_Field* self = static_cast<Unk_7ee6b0_Field*>(object);
@@ -106,6 +118,8 @@ bool Unk_7ffbd0(void* object, u32 slot, void* value) {
     return true;
 }
 
+// NON_MATCHING: the search's index stays 32 bits here; the original widens it
+// to 64 bits and walks it from &field_90[slot].
 // 0x71007ffce0
 bool Unk_7ffce0(void* object, u32 slot, u32 id) {
     return addId(static_cast<Unk_7ee6b0_Field*>(object), slot, id);
@@ -124,22 +138,18 @@ bool Unk_7ffe20(const Unk_7ee6b0_Field* self, u32 effect) {
     return isActive(self, effect);
 }
 
+// NON_MATCHING: the second search's index is kept in 32 bits and its address
+// rebuilt from the slot (the original widens it and walks a pointer), and the
+// registers differ.
 // 0x71007ffe50
 bool Unk_7ffe50(void* object, u32 slot, u32 id) {
     Unk_7ee6b0_Field* self = static_cast<Unk_7ee6b0_Field*>(object);
     if (!isActive(self, slot))
         return false;
-    u32 count = self->field_158[slot];
     u8 id8 = id;
-    bool found = false;
-    for (u32 i = 0; i < count; i++) {
-        if (self->field_90[slot][i] == id8) {
-            found = true;
-            break;
-        }
-    }
-    if (!found)
+    if (!hasId(self, slot, id8))
         return false;
+    u32 count = self->field_158[slot];
     u32 index = 0;
     for (; index < count; index++) {
         if (self->field_90[slot][index] == id8)
