@@ -1,6 +1,7 @@
 // Scope: common
 // transport::ReceiveThreadStream's members (lib/pia/common/Unk_174be20.h),
-// its vtable with them. The constructor and destructor are in Unk_174be20.cpp;
+// its vtable with them, and the constructor of the object behind
+// Unk_27fc2d8 (Unk_174c9f0). The constructor and destructor are in Unk_174be20.cpp;
 // 0x710174c7a0 is a leaf function (lib/nx_middleware/leaf/Unk_1721740.cpp).
 #include "pia/common/Unk_174be20.h"
 
@@ -87,6 +88,12 @@ void ReceiveThreadStream::Unk_174c9c0() {
     u32 value = field_c4;
     Unk_27fac38.field_2b7 = value >= 1 && value <= 0xfe ? value : 0xff;
 }
+
+// 0x710174c9f0
+Unk_174c9f0::Unk_174c9f0()
+    : field_8(0), field_60(0), field_68(0), field_70(0), field_74(Unk_165e060Value<0>()), field_88(0), field_90(0),
+      field_a0(0), field_a8(0), field_b0(0), field_b8(0), field_c0(0), field_c4(0), field_c8(0),
+      field_d0(0), field_d4(Unk_165e060Value<0x10c08>()) {}
 
 }  // namespace transport
 }  // namespace pia

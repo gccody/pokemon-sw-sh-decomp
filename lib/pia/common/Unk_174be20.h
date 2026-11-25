@@ -229,7 +229,7 @@ public:
     // Puts an entry of the list back in the pool.
     void Free(T* data) {
         Entry* entry = reinterpret_cast<Entry*>(reinterpret_cast<uintptr_t>(data) -
-                                                __builtin_offsetof(Entry, data));
+                                                sizeof(common::Unk_16580b0_node));
         data->~T();
         m_List.Unk_1658120(&entry->node);
         m_Pool.Unk_16580f0(&m_Pool.m_Root, reinterpret_cast<common::Unk_16580b0_node*>(
@@ -367,3 +367,98 @@ PKMN_SIZE_ASSERT(ReceiveThreadStream, 0x508);
 }  // namespace transport
 }  // namespace pia
 }  // namespace nn
+
+namespace pead {
+class Heap;
+}
+
+pead::Heap* Unk_1652bd0();
+void* operator new(size_t size, pead::Heap* heap, s32 alignment) noexcept;
+void Unk_1716390(void* memory);  // frees through the heap that holds it
+u64 Unk_17163e0(void* memory);   // called on memory before it's freed
+
+bool Unk_17363e0_get();
+bool Unk_17363f0_get();
+
+namespace nn {
+namespace pia {
+namespace transport {
+
+// RTTI N2nn3pia9transport15ProtocolManagerE (vtable 0x7102460818).
+class ProtocolManager {
+public:
+    ProtocolManager();
+    virtual ~ProtocolManager();
+    virtual void vf2();
+
+    u8 _8[0x50 - 0x8];
+};
+PKMN_SIZE_ASSERT(ProtocolManager, 0x50);
+
+// What creating Unk_174c9f0 takes (placeholder, after the function).
+struct Unk_174cac0_arg0 {
+    void* field_0;
+    u16 field_8;
+    u32 field_c;
+    u32 field_10;
+    s32 field_14;
+};
+PKMN_OFFSET_ASSERT(Unk_174cac0_arg0, field_8, 0x8);
+PKMN_OFFSET_ASSERT(Unk_174cac0_arg0, field_14, 0x14);
+
+// The system tick when it's constructed.
+struct Unk_174c9f0_tick : Unk_165c600 {
+    Unk_174c9f0_tick() {
+        field_0 = 0;
+        Unk_165c600_call(this);
+    }
+};
+
+// The object behind the global Unk_27fc2d8 (pia/common/Unk_174aea0.h calls it
+// Unk_174de50, after its leaf getter): created once, in memory kept in
+// Unk_27fc2e0, with a ProtocolManager. No RTTI: placeholder name, after its
+// constructor.
+class Unk_174c9f0 {
+public:
+    Unk_174c9f0();
+
+    static Unk_165e060 Unk_174cac0(const Unk_174cac0_arg0& setting);  // creates it
+    Unk_165e060 Unk_174cc70(const Unk_174cac0_arg0& setting);         // initializes it
+
+    Unk_174c9f0_tick field_0;
+    u64 field_8;
+    ProtocolManager field_10;
+    u64 field_60;
+    u64 field_68;
+    u32 field_70;
+    Unk_165e060 field_74;
+    u64 field_88;
+    u64 field_90;
+    u8 _98[0xa0 - 0x98];
+    u64 field_a0;
+    u64 field_a8;
+    u32 field_b0;
+    u64 field_b8;
+    u16 field_c0;
+    u32 field_c4;
+    u64 field_c8;
+    u8 field_d0;
+    Unk_165e060 field_d4;
+};
+PKMN_OFFSET_ASSERT(Unk_174c9f0, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_174c9f0, field_60, 0x60);
+PKMN_OFFSET_ASSERT(Unk_174c9f0, field_74, 0x74);
+PKMN_OFFSET_ASSERT(Unk_174c9f0, field_88, 0x88);
+PKMN_OFFSET_ASSERT(Unk_174c9f0, field_a0, 0xa0);
+PKMN_OFFSET_ASSERT(Unk_174c9f0, field_b8, 0xb8);
+PKMN_OFFSET_ASSERT(Unk_174c9f0, field_c4, 0xc4);
+PKMN_OFFSET_ASSERT(Unk_174c9f0, field_d0, 0xd0);
+PKMN_OFFSET_ASSERT(Unk_174c9f0, field_d4, 0xd4);
+PKMN_SIZE_ASSERT(Unk_174c9f0, 0xe8);
+
+}  // namespace transport
+}  // namespace pia
+}  // namespace nn
+
+extern nn::pia::transport::Unk_174c9f0* Unk_27fc2d8;  // the instance
+extern u32* Unk_27fc2e0;                              // its memory
