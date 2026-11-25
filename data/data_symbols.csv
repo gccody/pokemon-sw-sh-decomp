@@ -3744,6 +3744,8 @@ Sword,Shield,Size,Name
 0x71024598a8,0x71024598a8,,_ZTV11Unk_24598a8
 0x7102459ba8,0x7102459ba8,,_ZTVN2nn3pia5local12LocalAddressE
 0x710245a3d8,0x710245a3d8,,_ZTV11Unk_245a3d8
+0x710245a7f8,0x710245a7f8,,_ZTVN2nn3pia5local25LocalMatchLeaveSessionJobE
+0x710245a8a8,0x710245a8a8,,_ZTVN2nn3pia5local26LocalMatchCreateSessionJobE
 0x710245a928,0x710245a928,,_ZTV11Unk_245a928
 0x710245a9a8,0x710245a9a8,,_ZTVN2nn3pia5local28LocalMatchBrowseMatchmakeJobE
 0x710245aa18,0x710245aa18,,_ZTVN2nn3pia5local33LocalLeaveWithHostMigrationJobNewE
