@@ -8,6 +8,7 @@
 
 #include "Unk_Indexed.h"
 #include "Unk_KeyArray.h"
+#include "Unk_31b990.h"
 #include "Unk_PlacementNew.h"
 #include "containers.h"
 
@@ -149,6 +150,16 @@ void Unk_31b340(Unk_237dba8* self, void* owner) {
 // register of its own.
 void Unk_31b420(Unk_237dba8* self, void* owner) {
     self->list.RemoveOwned(owner);
+}
+
+// 0x710031b920: the constructor of the class of vtable 0x710237dbc8
+void Unk_31b920(Unk_310160_T* object, Unk_237c170* node, void* a2) {
+    Unk_319190(object, a2);
+    Unk_31b990_T* self = reinterpret_cast<Unk_31b990_T*>(object);
+    Unk_31b990_SetVtables(self, _ZTV11Unk_237dbc8);
+    self->field_90 = node;
+    if (node != nullptr)
+        node->vf2();
 }
 
 // The value of an entry of Unk_24bb9a0: 0x24 bytes and the tick they were
