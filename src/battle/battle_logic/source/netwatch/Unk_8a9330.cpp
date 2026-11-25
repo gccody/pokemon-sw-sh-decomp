@@ -8,9 +8,9 @@
 struct Unk_7fe1e0;
 u64 Unk_7fe1e0_getField28(const Unk_7fe1e0* self);
 struct Unk_7fe210;
-void Unk_7fe210_call(const Unk_7fe210* self, u64 value, u64 arg2);
+void Unk_7fe210_call(const Unk_7fe210* self, u32 value, u32 arg2);
 struct Unk_7fe230;
-void Unk_7fe230_call(const Unk_7fe230* self, u64 value, u64 arg2);
+void Unk_7fe230_call(const Unk_7fe230* self, u32 value, u32 arg2);
 struct Unk_7c58b0;
 u32 Unk_7c58b0_get(const Unk_7c58b0* self);
 struct Unk_7ca1c0;
@@ -108,8 +108,6 @@ bool Unk_23b9048::vf273() {
 }
 
 // 0x71008a9500
-// NON_MATCHING: Unk_7ccca0 takes a u8 (it masks it itself), where its name
-// (_Z10Unk_7ccca0mj) says u32; the code is the original's.
 bool Unk_23b9048::vf274(u8 client) {
     if (field_58 != nullptr)
         return Unk_7ccca0(reinterpret_cast<u64>(field_58), client);
