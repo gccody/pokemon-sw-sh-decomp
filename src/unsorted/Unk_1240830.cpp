@@ -12,6 +12,8 @@
 // another TU). It makes Unk_2425ff8 (0x7101240890); Unk_2425ff8's vf8 makes
 // Unk_2426310 or hands out a callable that makes Unk_2426100 (0x7101241ce0),
 // whose vf8 makes Unk_2426208. The last three are in Unk_12424f0.h.
+#include <utility>
+
 #include "gflib3/Unk_239a418_Make.h"
 #include "unsorted/Unk_1127d00.h"
 #include "unsorted/Unk_1240830_2423d30.h"
@@ -107,15 +109,6 @@ void Unk_1127d00_Keep(Target* target, u64 hash, const Unk_239a418_Ref<Unk_239a41
     Unk_123dad0(target->field_60, hash, ref, false);
 }
 
-// A reference takes the other's object (a copy), letting go of its own after.
-template <class T>
-void Unk_Copy(Unk_239a418_Ref<T>& to, const Unk_239a418_Ref<T>& from) {
-    Unk_239a418_Ref<T> copy(from);
-    T* p = to.m_ptr;
-    to.m_ptr = copy.m_ptr;
-    copy.m_ptr = p;
-}
-
 class Unk_1240830_Base : public Unk_2423ec8 {
 public:
     static const Unk_239a418_Type* Unk_GetType() {
@@ -171,31 +164,42 @@ bool Unk_1241ce0(Unk_2425ff8* const* captured, Unk_115ba20* const* object) {
 
 }  // namespace
 
-// The other functions of that callable (written as leaves).
-void Unk_1241f30_update();
-struct Unk_1242df0;
-struct Unk_1242df0_arg1;
-void Unk_1242df0_set(const Unk_1242df0* self, Unk_1242df0_arg1* value);
-struct Unk_1242e00;
-struct Unk_1242e00_arg1;
-void Unk_1242e00_set(const Unk_1242e00* self, Unk_1242e00_arg1* value);
-
 namespace {
+
+// The other functions of that callable, local to the TU like it (the vf8
+// below takes their addresses with adrp+add): what it holds needs nothing to
+// go, and it's copied (two functions, the same code). Their rows still have
+// the names of the leaf copies in src/unsorted/leaf/Unk_1241f30.cpp.
+// 0x7101241f30
+void Unk_1241f30_update() {}
+// 0x7101242df0
+void Unk_1242df0_set(Unk_2425ff8* const* self, Unk_2425ff8** value) {
+    *value = *self;
+}
+// 0x7101242e00
+void Unk_1242e00_set(Unk_2425ff8* const* self, Unk_2425ff8** value) {
+    *value = *self;
+}
 
 class Unk_1241ce0_Callable : public Unk_23d4470_Callable {
 public:
+    // What it holds goes in first, then its functions.
     explicit Unk_1241ce0_Callable(Unk_2425ff8* self) {
+        *reinterpret_cast<Unk_2425ff8**>(field_20) = self;
         field_0 = reinterpret_cast<u64>(&Unk_1241ce0);
         field_8 = reinterpret_cast<void (*)(void*)>(&Unk_1241f30_update);
         field_10 = reinterpret_cast<u64>(&Unk_1242df0_set);
         field_18 = reinterpret_cast<u64>(&Unk_1242e00_set);
-        *reinterpret_cast<Unk_2425ff8**>(field_20) = self;
     }
 };
 
 // 0x71012415b0: when a name's callable is taken out (the names' hashes are
 // folded), gives the owner's object a callable that makes the next object;
-// when another's is, makes Unk_2426310 the next one. This object, until there's a next one.
+// when another's is, makes Unk_2426310 the next one. This object, until
+// there's a next one.
+// NON_MATCHING: matches once 0x7101241f30, 0x7101242df0 and 0x7101242e00 have
+// the names of the local functions above (checked with them renamed): their
+// rows name the leaf copies, so the addresses it takes don't resolve.
 Unk_239a418_Ref<Unk_239a418> Unk_2425ff8::vf8() {
     if (Unk_12164a0()->field_60->Unk_Take(0xc554692e5686862e)) {
         Unk_239a418_Ref<Unk_1158640_Owner> owner =
@@ -219,7 +223,11 @@ Unk_239a418_Ref<Unk_239a418> Unk_2426100::vf8() {
         Unk_Assign(field_70, Unk_239a418_Ref<Unk_239a418>(Unk_Create<Unk_2426208>(field_8)));
     }
     if (Unk_12164a0()->field_60->Unk_Take(0x44b3013f578e8a70)) {
-        Unk_Copy(field_70, field_78);
+        {
+            // A copy of field_78 takes field_70's place (and goes with it).
+            Unk_239a418_Ref<Unk_239a418> next(field_78);
+            std::swap(field_70.m_ptr, next.m_ptr);
+        }
         field_78.Reset();
     }
     if (field_70.m_ptr)
