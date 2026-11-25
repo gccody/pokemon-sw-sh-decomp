@@ -5,26 +5,7 @@
 // and 0x710244e440, the second one's constructor, and destructors of the
 // "Gathering" class (lib/nex/Unk_15b2f20.h; vtable 0x710244e510) and of the
 // class in vtable group 0x710244e2e8.
-#include "Unk_15b2f20.h"
-#include "Unk_164e150.h"
-
-#include <nn/nex/qList.h>
-
-namespace nn {
-namespace nex {
-
-// N2nn3nex10StationURLE (0x70 bytes), as lib/nex/Unk_15b36f0.cpp declares it.
-class StationURL : public RootObject {
-public:
-    StationURL();
-    StationURL(const StationURL& other);
-    virtual ~StationURL();
-    u8 _8[0x68];
-};
-PKMN_SIZE_ASSERT(StationURL, 0x70);
-
-}  // namespace nex
-}  // namespace nn
+#include "Unk_15b3ce0.h"
 
 // 0x71016340b0: where the call's result `index` goes (null when the caller
 // doesn't want it).
@@ -92,23 +73,9 @@ void Unk_15b3e10(nn::nex::ClientProtocol* self, nn::nex::ByteStream* response, v
     }
 }
 
-// The client's vtable (vtable group 0x710244e430; its address point two words in).
-extern void* Unk_244e430[];
-
-// The client's constructor, which the factory (slot 22) inlines.
-static inline void Unk_244e430_init(nn::nex::ClientProtocol* self, u16 protocolId) {
-    Unk_162eed0(self, 1);
-    *reinterpret_cast<void***>(self) = Unk_244e430 + 2;
-    if (protocolId != 0) {
-        Unk_1630a10_set(reinterpret_cast<Unk_1630a10*>(self), protocolId);
-        Unk_1647560(GetProtocols()->m_holder->m_registry, self->m_protocolId,
-                    reinterpret_cast<Unk_164e720_Client*>(self)->vf22());
-    }
-}
-
 // 0x71015b3ea0
 void Unk_15b3ea0(nn::nex::ClientProtocol* self, u32 protocolId) {
-    Unk_244e430_init(self, protocolId);
+    Unk_ClientInit(self, Unk_244e430, protocolId);
 }
 
 // 0x71015b3fa0
@@ -140,11 +107,7 @@ void Unk_15b4120(Unk_15b2f20* self) {
     Unk_15b6e10(self);
 }
 
-// Vtable 0x710244e2e8 (4 slots): a class with an empty destructor, freed with
-// the global operator delete (not NEX's allocator).
-struct Unk_244e2d8;
-
-// 0x71015b4170: its D0.
+// 0x71015b4170: Unk_244e2d8's D0.
 void Unk_15b4170(Unk_244e2d8* self) {
     ::operator delete(self);
 }
