@@ -60,7 +60,8 @@ static_assert(sizeof(Unk_2418100_Id) == 0x8, "Unk_2418100_Id");
 // The object's slot 13, which Unk_10ff440.h's Unk_2417c28 doesn't declare.
 class Unk_2417c28_Slot13 : public Unk_2417c28 {
 public:
-    virtual void vf13(bool value, const nn::nex::qVector<Unk_2418100_Id>& ids,
+    virtual void vf13(bool value,
+                      const nn::nex::qVector<Unk_2418100_Id>& ids,
                       const nn::nex::qVector<Unk_24181e0_Item>& items);
 };
 
