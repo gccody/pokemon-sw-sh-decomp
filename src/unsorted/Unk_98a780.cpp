@@ -48,7 +48,7 @@ inline Unk_239a418_Ref<Unk_23f41d0> Unk_98a780_Frame(const Unk_98a950_Self* obje
 void Unk_23c4ef0_Scene::Unk_98a8f0(bool arg1) {
     Unk_239a418_Ref<Unk_23f41d0> frame = Unk_98a780_Frame(field_38);
     if (frame.m_ptr != nullptr)
-        frame.m_ptr->field_98 = arg1 ? 2 : 1;
+        frame.m_ptr->field_e0 = arg1 ? 2 : 1;
 }
 
 Unk_239a418_Ref<Unk_239a418> Unk_672980(u64 object);
@@ -59,14 +59,15 @@ Unk_239a418_Ref<Unk_23f41d0> Unk_98a950(const Unk_98a950_Self* self) {
     Unk_239a498& object = *last.m_ptr;
     if (!Unk_IsKind<Unk_23f41d0>(object.vf_type()))
         return Unk_239a418_Ref<Unk_23f41d0>();
-    return Unk_239a418_Ref<Unk_23f41d0>(static_cast<Unk_23f41d0*>(&object));
+    Unk_23f41d0& frame = static_cast<Unk_23f41d0&>(object);
+    return Unk_239a418_Ref<Unk_23f41d0>(&frame);
 }
 
 // 0x710098aa50
 void Unk_23c4ef0_Scene::Unk_98aa50(u64 flags) {
     Unk_239a418_Ref<Unk_23f41d0> frame = Unk_98a780_Frame(field_38);
     if (frame.m_ptr != nullptr)
-        frame.m_ptr->field_220 = flags;
+        frame.m_ptr->field_268 = flags;
 }
 
 // 0x710098aaa0
@@ -81,7 +82,7 @@ void Unk_23c4ef0_Scene::Unk_98aae0(bool arg1) {
     if (frame1.m_ptr != nullptr)
         frame1.m_ptr->field_e0 = arg1;
     if (frame2.m_ptr != nullptr)
-        frame2.m_ptr->field_98 = arg1;
+        frame2.m_ptr->field_e0 = arg1;
 }
 
 Unk_239a418_Ref<Unk_23bdbb0> Unk_14dd2a0(u64 object);
@@ -105,11 +106,16 @@ inline T* Unk_98a780_Cast(Unk_239a498* object) {
     return static_cast<T*>(object);
 }
 
+// What an object's handle refers to, as a T: null when it's gone or isn't one.
+template <class T>
+inline T* Unk_98a780_Object(Unk_239a418* object) {
+    return Unk_98a780_Cast<T>(Unk_98a780_HandleObject(object->vf2()));
+}
+
 // 0x710098ab90
 u8* Unk_98ab90(u64 object) {
     Unk_239a418_Ref<Unk_23bdbb0> owner = Unk_14dd2a0(object);
-    Unk_23bdd98* target =
-        Unk_98a780_Cast<Unk_23bdd98>(Unk_98a780_HandleObject(owner.m_ptr->field_2c8->vf2()));
+    Unk_23bdd98* target = Unk_98a780_Object<Unk_23bdd98>(owner.m_ptr->field_2c8);
     if (target == nullptr)
         nn::diag::detail::AbortImpl("", "", "", 0);
     return &target->field_638;
