@@ -93,7 +93,7 @@ def test_unit_ids():
 def test_sidecar_roundtrip(tmp_path):
     p = tmp_path / ".swarm" / "sidecar.json"
     data = U.read_sidecar(p)
-    assert data == {"unit": "", "names": [], "statuses": [], "report": ""}
+    assert data == {"unit": "", "base": "", "names": [], "statuses": [], "report": ""}
     U.sidecar_name(data, "0x7100000010", "_Z1fv", "string 'f'")
     U.sidecar_name(data, "0x7100000010", "_Z1gv")            # renaming replaces
     U.sidecar_status(data, "0x7100000020", "M", "regalloc")
