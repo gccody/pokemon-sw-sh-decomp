@@ -878,15 +878,28 @@ CALLS_HEADER = """// Scope: common
 """
 
 
+# A result handler's parameters when its name gives them: the results' stream
+# and the call's context. The protocol's table holds `void (*)()`, so such a
+# handler is stored through a cast (no code of its own).
+HANDLER_PARAMS = "PN2nn3nex10ByteStreamEPNS0_19ProtocolCallContextE"
+
+
 def handler_decl(addr: int, name: str | None) -> tuple[str, str] | None:
-    """(declaration, C++ name) of a result handler: `void Unk_<addr>()` unless
-    it already has a name, which must then be a function without parameters."""
+    """(declaration, C++ expression stored in the table) of a result handler:
+    `void Unk_<addr>()` unless it already has a name, which must then be a
+    function without parameters or with the stream and the context."""
     if name is None:
         n = f"Unk_{addr:x}"
         return f"void {n}();", n
     mm = re.fullmatch(r"_Z(\d+)(\w+)v", name)
     if mm and len(mm.group(2)) == int(mm.group(1)):
         return f"void {mm.group(2)}();", mm.group(2)
+    mm = re.fullmatch(r"_Z(\d+)(\w+)", name)
+    if mm and mm.group(2).endswith(HANDLER_PARAMS):
+        ident = mm.group(2)[:int(mm.group(1))]
+        if mm.group(2) == ident + HANDLER_PARAMS and ident.isidentifier():
+            return (f"void {ident}(nn::nex::ByteStream* s, nn::nex::ProtocolCallContext* ctx);",
+                    f"reinterpret_cast<void (*)()>({ident})")
     return None
 
 
