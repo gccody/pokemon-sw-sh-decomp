@@ -148,6 +148,45 @@ void Unk_810d80(const Unk_810be0_Self* self, const Unk_7ee6b0* poke, u32 move, u
     Unk_8150c0(self->field_18, 0x86, pos, arg3, static_cast<u16>(move), value, 0, 0, 0, 0);
 }
 
+// NON_MATCHING: register allocation, and clang duplicates the Unk_8168e0
+// call into both paths where the original joins them (408 bytes, not 400).
+// 0x7100810e20
+void Unk_810e20(const Unk_811d90_Self* self,
+                const Unk_7ee6b0* poke,
+                const u16* id,
+                u32 count,
+                const Unk_7ee6b0* const* targets,
+                const s32* values,
+                const u16* moves) {
+    u8 effect = 1;
+    if (count != 0) {
+        u8 above = 0;
+        u8 below = 0;
+        for (u32 i = 0; i < count; i++) {
+            const Unk_7ee6b0* target = targets[i];
+            u16 move = moves[i];
+            u8 pokeId = Unk_7ee6b0_getField7d(poke);
+            Unk_816c00(self->field_20, Unk_7ee6b0_getField7d(target), move, 3, pokeId);
+            Unk_8150c0(self->field_18, 2, Unk_7ee6b0_getField7d(target), pokeId, move, 3);
+            if (values[i] > 7)
+                above++;
+            if (values[i] < 7)
+                below++;
+        }
+        if (below != 0)
+            effect = 3;
+        if (above != 0)
+            effect = 2;
+    }
+    Unk_8168e0(reinterpret_cast<Unk_816910_List*>(self->field_18), count * 2);
+    for (u32 i = 0; i < count; i++) {
+        Unk_816910(reinterpret_cast<Unk_816910_List*>(self->field_18),
+                   Unk_7ee6b0_getField7d(targets[i]));
+        Unk_816910(reinterpret_cast<Unk_816910_List*>(self->field_18), values[i]);
+    }
+    Unk_8150c0(self->field_18, 0x89, static_cast<u8>(count), effect, *id);
+}
+
 // 0x7100810fb0
 void Unk_810fb0(Unk_810be0_Self* self, u8 pokeId, bool flag, const Unk_23acc98_Message* message) {
     Unk_7ee6b0* poke = Unk_7ecc90(Unk_7fe1d0_getField8(self->field_10), pokeId);
