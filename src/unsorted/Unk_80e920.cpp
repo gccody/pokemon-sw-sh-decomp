@@ -20,14 +20,14 @@ void Unk_817190(const Unk_8139c0_Self* self, u32 arg1, u32 arg2);
 bool Unk_8171c0(const Unk_8139c0_Self* self, u32 arg1, u32 arg2);
 
 // 0x710080e920
+// NON_MATCHING: block order only. The original places the default message's
+// block (0x55) right after the one cases 30 to 32 share; clang places it where
+// case 5 would be. The order of the cases in the source doesn't change it.
 void Unk_80e920(void* self, void* object, u32 id, u32 arg3) {
     const Unk_80e920_Self* server = static_cast<const Unk_80e920_Self*>(self);
     Unk_7ee6b0* poke = static_cast<Unk_7ee6b0*>(object);
     u8 pokeId = Unk_7ee6b0_getField7d(poke);
     switch (static_cast<u8>(arg3)) {
-        default:
-            Unk_816320(server->field_18, 0xb9, 0x55, pokeId, 0xffff0000);
-            break;
         case 1:
             Unk_816320(server->field_18, 0xb9, 0x60, pokeId, 0xffff0000);
             break;
@@ -128,6 +128,9 @@ void Unk_80e920(void* self, void* object, u32 id, u32 arg3) {
             break;
         case 41:
             Unk_816320(server->field_18, 0xb9, 0x19b, pokeId, 0xffff0000);
+            break;
+        default:
+            Unk_816320(server->field_18, 0xb9, 0x55, pokeId, 0xffff0000);
             break;
     }
 }
