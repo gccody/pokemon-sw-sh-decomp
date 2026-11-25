@@ -36,7 +36,7 @@ u32 Unk_8c6820_getField5c(const Unk_8c6820* self);
 
 void* Unk_7fe1d0_getField8(const Unk_7fe1d0* self);
 Unk_7ee6b0* Unk_7ed5e0(Unk_7ecc90_Con* self, u8 position);
-u32 Unk_7efef0(void* object, u32 index);
+u32 Unk_7efef0(void* object, u8 index);
 u32 Unk_7cac40(const Unk_7c2d80_Main* self, u8 position);
 u32 Unk_7cacb0(const Unk_7c2d80_Main* self, u8 position);
 bool Unk_780ec0(u32 move);

@@ -67,7 +67,7 @@ u16 Unk_7f0160(void* object, u32 index);
 s32 Unk_7f0bb0(const Unk_7ee6b0* object);
 u8 Unk_7f8960(const u64* value);
 u16 Unk_7f89e0(const u64* value);
-u32 Unk_7efef0(void* object, u32 index);
+u32 Unk_7efef0(void* object, u8 index);
 u16 Unk_780d10(u32 id);
 s32 Unk_781210(u32 value);
 s64 Unk_7ff460(void* object, u8 value);

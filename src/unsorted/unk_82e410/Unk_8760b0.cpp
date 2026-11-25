@@ -244,8 +244,6 @@ void Unk_876560(void* self, u8 pokeId) {
     Unk_819640_call(static_cast<const Unk_819640*>(self), 0x59, 1);
 }
 
-// NON_MATCHING: matches once 0x71007efef0 is renamed _Z10Unk_7efef0Pvh: it
-// takes a u8 index, and _Z10Unk_7efef0Pvj gives the loop a widened counter.
 // 0x71008765e0
 void Unk_8765e0(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
