@@ -54,7 +54,7 @@ extern Unk_277a1a0_Entry Unk_277a1a0[0x31d];
 
 class Unk_23a7b38 {
 public:
-    Unk_23a7b38();
+    explicit Unk_23a7b38(Unk_239a418_Allocator* allocator);
     virtual ~Unk_23a7b38();
 
     const Unk_Table* Unk_Root() const { return Unk_277a1a0[field_8].field_8.m_ptr->Unk_Root(); }
@@ -86,6 +86,7 @@ public:
     s32 Unk_7821e0() const;
     s32 Unk_782240() const;
     s32 Unk_7822a0() const;
+    u8 Unk_782300() const;
 
     u32 field_8;
 };
