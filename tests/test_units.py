@@ -110,3 +110,20 @@ def test_sidecar_roundtrip(tmp_path):
 def test_norm_addr():
     assert U.norm_addr("0x7100000010") == "0x7100000010"
     assert U.norm_addr("10") == f"0x{BASE + 0x10:x}"
+
+
+def test_blocked_shape():
+    assert U.blocked_shape([0x14000010])                      # b T
+    assert U.blocked_shape([0xD1012000, 0x17FFFFF0])          # sub x0, x0, #0x48 ; b T
+    assert not U.blocked_shape([0xD65F03C0])                  # ret
+    assert not U.blocked_shape([0xD1012021, 0x14000010])      # sub x1, x1, #0x48 ; b T
+    assert not U.blocked_shape([0x94000010])                  # bl T
+    assert not U.blocked_shape([0x14000010, 0x14000010, 0x14000010])
+
+
+def test_blocked_functions_cost_more(areas):
+    rows = [fn(0x0, 4), fn(0x100, 40)]
+    units = U.build_units(rows, areas, [(0x0, 0x100), (0x100, 0x1000)], {}, unit_funcs=1,
+                          blocked=lambda f: f.sword == 0x0)
+    assert units[0].score == 4 + U.BLOCKED_COST
+    assert [u.id for u in U.ordered(units)] == ["u100", "u0"]

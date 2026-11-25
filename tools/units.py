@@ -34,7 +34,10 @@ Units are ordered easiest first by a score: the bytes of their remaining
 functions, plus CALL_COST per call and UNKNOWN_COST per call to a function
 that is neither matched nor named, per function to do (so small leaf
 functions come first), and among units of about the same difficulty, the
-ones with more functions to do first.
+ones with more functions to do first. A function of a shape that waits for
+its class (a lone `b T` forwarder, a `sub x0, x0, #N ; b T` thunk: see
+docs/game_code.md, "What's left of the small functions") costs BLOCKED_COST
+more, so those come after code that can be written now.
 
 The sidecar (`.swarm/sidecar.json`, untracked) records what a worker found
 that belongs in data/functions.csv: names (with the evidence) and m/M
@@ -66,6 +69,7 @@ UNIT_BYTES = 4096
 CALL_COST = 8
 UNKNOWN_COST = 48
 DIFFICULTY_STEP = 16
+BLOCKED_COST = 256
 EXCLUDED_AREAS = ("yebis",)
 GENERATED_DIRS = (
     "src/unsorted/leaf", "src/unsorted/virtual", "src/unsorted/ctor", "src/unsorted/types",
@@ -228,10 +232,26 @@ def assign_files(parts: list[Part], index: dict[int, str], dirs: dict[str, str],
         claimed.add(u.file)
 
 
-def score_unit(u: Unit, by_addr: dict[int, Function]) -> int:
+B_MASK, B_OP = 0xFC000000, 0x14000000
+
+
+def blocked_shape(words: list[int]) -> bool:
+    """A lone `b T`, or `sub x0, x0, #N ; b T`: forwarders and thunks that the
+    compiler emits with the class they belong to (docs/game_code.md)."""
+    if len(words) == 1:
+        return words[0] & B_MASK == B_OP
+    if len(words) == 2:
+        sub_x0 = (words[0] & 0xFF8003FF) == 0xD1000000  # sub x0, x0, #imm
+        return sub_x0 and words[1] & B_MASK == B_OP
+    return False
+
+
+def score_unit(u: Unit, by_addr: dict[int, Function], blocked=lambda f: False) -> int:
     total = 0
     for f in u.work:
         total += f.sword_size or 0
+        if blocked(f):
+            total += BLOCKED_COST
         for t in u.calls.get(f.sword, []):
             callee = by_addr.get(t)
             total += CALL_COST
@@ -260,7 +280,8 @@ def group_parts(parts: list[Part], max_funcs: int = UNIT_FUNCS, max_bytes: int =
 
 def build_units(rows: list[Function], areas, seg_bounds: list[tuple[int, int]],
                 index: dict[int, str], statuses: str = "U", exists=lambda p: False,
-                calls_of=lambda f: [], unit_funcs: int = UNIT_FUNCS, unit_bytes: int = UNIT_BYTES) -> list[Unit]:
+                calls_of=lambda f: [], unit_funcs: int = UNIT_FUNCS, unit_bytes: int = UNIT_BYTES,
+                blocked=lambda f: False) -> list[Unit]:
     """Every unit of the executable (the ones without work too), in address
     order. `calls_of(f)` gives the Sword offsets function f calls."""
     amap = AreaMap(areas, "sword")
@@ -289,7 +310,7 @@ def build_units(rows: list[Function], areas, seg_bounds: list[tuple[int, int]],
         u.work = [f for f in u.funcs if f.status in statuses]
         for f in u.work:
             u.calls[f.sword] = [t for t in calls_of(f) if t != f.sword]
-        u.score = score_unit(u, by_addr)
+        u.score = score_unit(u, by_addr, blocked)
         units.append(u)
     return units
 
@@ -395,13 +416,22 @@ def callees_fn(img: bytes):
     return calls_of
 
 
+def blocked_fn(img: bytes):
+    import struct
+
+    def blocked(f: Function) -> bool:
+        n = (f.sword_size or 0) // 4
+        return n <= 2 and blocked_shape(list(struct.unpack_from(f"<{n}I", img, f.sword)))
+    return blocked
+
+
 def load_units(statuses: str = "U") -> tuple[list[Unit], list[Function]]:
     from common import load_module
 
     rows = read_functions_csv()
     img = load_module("sword")["image"]
     units = build_units(rows, read_areas_csv(), exe_segments("sword"), source_index(), statuses,
-                        exists=lambda p: (ROOT / p).exists(), calls_of=callees_fn(img))
+                        exists=lambda p: (ROOT / p).exists(), calls_of=callees_fn(img), blocked=blocked_fn(img))
     return units, rows
 
 
