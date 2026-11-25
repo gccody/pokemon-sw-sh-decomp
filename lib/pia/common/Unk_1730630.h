@@ -173,6 +173,7 @@ public:
     common::Unk_165bb20_result CloseParticipation();
     common::Unk_165bb20_result WaitCloseParticipation();
     common::Unk_165bb20_result WaitP2pStable();
+    void Unk_1731170();  // cancels and resets
 
     Unk_1655080* field_58;  // what started it
     Unk_1655080 m_Context;
