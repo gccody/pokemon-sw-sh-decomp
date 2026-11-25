@@ -39,9 +39,7 @@ void Unk_98a8d0(void* scene) {
 
 // The frame of one of the scene's objects, none without the object.
 inline Unk_239a418_Ref<Unk_23f41d0> Unk_98a780_Frame(const Unk_98a950_Self* object) {
-    if (object == nullptr)
-        return Unk_239a418_Ref<Unk_23f41d0>();
-    return Unk_98a950(object);
+    return object != nullptr ? object->Unk_98a950() : Unk_239a418_Ref<Unk_23f41d0>();
 }
 
 // 0x710098a8f0
@@ -51,17 +49,7 @@ void Unk_23c4ef0_Scene::Unk_98a8f0(bool arg1) {
         frame.m_ptr->field_e0 = arg1 ? 2 : 1;
 }
 
-Unk_239a418_Ref<Unk_239a418> Unk_672980(u64 object);
-
-// 0x710098a950
-Unk_239a418_Ref<Unk_23f41d0> Unk_98a950(const Unk_98a950_Self* self) {
-    Unk_239a418_Ref<Unk_239a418> last = Unk_672980(self->field_10);
-    Unk_239a498& object = *last.m_ptr;
-    if (!Unk_IsKind<Unk_23f41d0>(object.vf_type()))
-        return Unk_239a418_Ref<Unk_23f41d0>();
-    Unk_23f41d0& frame = static_cast<Unk_23f41d0&>(object);
-    return Unk_239a418_Ref<Unk_23f41d0>(&frame);
-}
+// 0x710098a950: Unk_98a950_Self::Unk_98a950 (unsorted/Unk_98a420.h)
 
 // 0x710098aa50
 void Unk_23c4ef0_Scene::Unk_98aa50(u64 flags) {
@@ -77,12 +65,13 @@ bool Unk_98aaa0(void* scene, u32 index) {
 
 // 0x710098aae0
 void Unk_23c4ef0_Scene::Unk_98aae0(bool arg1) {
+    const u32 value = arg1;
     Unk_239a418_Ref<Unk_23f41d0> frame1 = Unk_98a780_Frame(field_38);
     Unk_239a418_Ref<Unk_23f41d0> frame2 = Unk_98a780_Frame(field_58);
     if (frame1.m_ptr != nullptr)
-        frame1.m_ptr->field_e0 = arg1;
+        frame1.m_ptr->field_e0 = value;
     if (frame2.m_ptr != nullptr)
-        frame2.m_ptr->field_e0 = arg1;
+        frame2.m_ptr->field_e0 = value;
 }
 
 Unk_239a418_Ref<Unk_23bdbb0> Unk_14dd2a0(u64 object);

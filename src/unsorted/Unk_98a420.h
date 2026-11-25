@@ -64,19 +64,33 @@ public:
 PKMN_OFFSET_ASSERT(Unk_23f41d0, field_e0, 0xe0);
 PKMN_OFFSET_ASSERT(Unk_23f41d0, field_268, 0x268);
 
-// The scene's objects at +0x38 and +0x58.
-struct Unk_98a950_Self {
-    u8 _0[0x10];
-    u64 field_10;
-};
-PKMN_OFFSET_ASSERT(Unk_98a950_Self, field_10, 0x10);
 
 // The +0x38 object's Unk_23bdd98 (its +0x638), and the +0x58 one's.
 u8* Unk_98ab90(u64 object);
 u8* Unk_98adb0(u64 object);
 
-// The last frame an object holds, if it is one.
-Unk_239a418_Ref<Unk_23f41d0> Unk_98a950(const Unk_98a950_Self* self);
+Unk_239a418_Ref<Unk_239a418> Unk_672980(u64 object);
+
+// The scene's objects at +0x38 and +0x58.
+struct Unk_98a950_Self {
+    // The last frame the object holds, if it is one. Defined in the class:
+    // the original's callers reload what it returns after a call, as for a
+    // function whose definition may be replaced (an inline one), and it is
+    // too big to be inlined into them.
+    // 0x710098a950
+    Unk_239a418_Ref<Unk_23f41d0> Unk_98a950() const {
+        Unk_239a418_Ref<Unk_239a418> last = Unk_672980(field_10);
+        Unk_239a498& object = *last.m_ptr;
+        if (!Unk_IsKind<Unk_23f41d0>(object.vf_type()))
+            return Unk_239a418_Ref<Unk_23f41d0>();
+        Unk_23f41d0& frame = static_cast<Unk_23f41d0&>(object);
+        return Unk_239a418_Ref<Unk_23f41d0>(&frame);
+    }
+
+    u8 _0[0x10];
+    u64 field_10;
+};
+PKMN_OFFSET_ASSERT(Unk_98a950_Self, field_10, 0x10);
 
 struct Unk_23c4ef0_Scene {
     void Unk_98a440(bool arg1, u32 arg2);
