@@ -4,10 +4,13 @@
 // rename once the classes are known. Its functions here are written as free
 // functions on a mirror of its fields until its base (0x7100e7c210) is known.
 #include <new>
+#include <type_traits>
+#include <vector>
 
 #include <types.h>
 
 #include "gflib3/Unk_239a418.h"
+#include "unsorted/Unk_2771620.h"
 
 using Unk_fd7eb0_Ref = Unk_239a418_Ref<Unk_239a418>;
 
@@ -28,10 +31,8 @@ class Unk_fd7eb0_Optional {
 public:
     Unk_fd7eb0_Optional() : m_engaged(false) {}
     Unk_fd7eb0_Optional(const Unk_fd7eb0_Optional& other) : m_engaged(false) {
-        if (other.m_engaged) {
-            ::new (&m_value) T(other.m_value);
-            m_engaged = true;
-        }
+        if (other.m_engaged)
+            Construct(other.m_value);
     }
     ~Unk_fd7eb0_Optional() { Reset(); }
 
@@ -42,10 +43,14 @@ public:
             else
                 Reset();
         } else if (other.m_engaged) {
-            ::new (&m_value) T(other.m_value);
-            m_engaged = true;
+            Construct(other.m_value);
         }
         return *this;
+    }
+
+    void Construct(const T& value) {
+        ::new (&m_value) T(value);
+        m_engaged = true;
     }
 
     void Reset() {
@@ -107,6 +112,48 @@ struct Unk_fd7eb0_Range {
     u64 field_18;
 };
 
+// An entry of what the object's +0x68 holds at +0xf00: three references.
+struct Unk_fd7eb0_Entry {
+    Unk_fd7eb0_Entry(const Unk_fd7eb0_Entry& other) = default;
+    Unk_fd7eb0_Entry& operator=(const Unk_fd7eb0_Entry& other) {
+        Unk_fd7eb0_Assign(field_0, other.field_0);
+        Unk_fd7eb0_Assign(field_8, other.field_8);
+        Unk_fd7eb0_Assign(field_10, other.field_10);
+        return *this;
+    }
+
+    Unk_fd7eb0_Ref field_0;
+    Unk_fd7eb0_Ref field_8;
+    Unk_fd7eb0_Ref field_10;
+};
+PKMN_SIZE_ASSERT(Unk_fd7eb0_Entry, 0x18);
+
+// The allocator of the entries: Unk_2771620_Allocator's, but a copy keeps only
+// the allocator (0x7100fc2480 zeroes the rest) and an assignment takes the
+// other's allocator (0x7100f3c740 frees its memory first when they differ).
+template <class T>
+class Unk_fd7eb0_Allocator : public Unk_2771620_Allocator<T> {
+public:
+    using propagate_on_container_copy_assignment = std::true_type;
+
+    Unk_fd7eb0_Allocator(const Unk_fd7eb0_Allocator& other)
+        : Unk_2771620_Allocator<T>(other.field_0) {}
+    Unk_fd7eb0_Allocator& operator=(const Unk_fd7eb0_Allocator& other) {
+        this->field_0 = other.field_0;
+        return *this;
+    }
+};
+
+// The entries. Their copy (0x7100fc2480) and their assignment (0x7100f3c740)
+// are called, in two other TUs, where its destruction is inlined.
+struct Unk_fd7eb0_Entries {
+    Unk_fd7eb0_Entries(const Unk_fd7eb0_Entries& other);
+    Unk_fd7eb0_Entries& operator=(const Unk_fd7eb0_Entries& other);
+
+    std::vector<Unk_fd7eb0_Entry, Unk_fd7eb0_Allocator<Unk_fd7eb0_Entry>> field_0;
+};
+PKMN_SIZE_ASSERT(Unk_fd7eb0_Entries, 0x30);
+
 // What the object's +0x68 holds at +0xd80.
 struct Unk_fd7eb0_d80 {
     u8 _0[0x58];
@@ -133,7 +180,7 @@ struct Unk_fd7eb0_68 {
     u8 _d88[0xee8 - 0xd88];
     Unk_fd7eb0_Ref field_ee8;
     Unk_fd7eb0_ef0* field_ef0;
-    u8 _ef8[0xf30 - 0xef8];
+    Unk_fd7eb0_Optional<Unk_fd7eb0_Entries> field_ef8;
     Unk_fd7eb0_Optional<Unk_fd7eb0_Range> field_f30;
 };
 PKMN_OFFSET_ASSERT(Unk_fd7eb0_68, field_68, 0x68);
@@ -141,14 +188,56 @@ PKMN_OFFSET_ASSERT(Unk_fd7eb0_68, field_8c, 0x8c);
 PKMN_OFFSET_ASSERT(Unk_fd7eb0_68, field_d80, 0xd80);
 PKMN_OFFSET_ASSERT(Unk_fd7eb0_68, field_ee8, 0xee8);
 PKMN_OFFSET_ASSERT(Unk_fd7eb0_68, field_ef0, 0xef0);
+PKMN_OFFSET_ASSERT(Unk_fd7eb0_68, field_ef8, 0xef8);
 PKMN_OFFSET_ASSERT(Unk_fd7eb0_68, field_f30, 0xf30);
+
+// What is told when the object's +0x60 changes.
+class Unk_fd7eb0_Listener {
+public:
+    virtual void vf0();
+    virtual void vf1();
+};
+
+// A pointer that is only used while its handle's count isn't zero.
+struct Unk_fd7eb0_Weak {
+    Unk_fd7eb0_Listener* Get() const {
+        if (field_0 != nullptr && field_0->field_54.load() != 0)
+            return field_8;
+        return nullptr;
+    }
+
+    Unk_239a418_Handle* field_0;
+    Unk_fd7eb0_Listener* field_8;
+};
+
+// An entry of what the object's +0x60 holds at +0xb8.
+struct Unk_fd7eb0_Slot {
+    u16 field_0[13];
+    u8 field_1a;
+    u8 field_1b;
+    u32 field_1c;
+    u32 field_20;
+};
+PKMN_SIZE_ASSERT(Unk_fd7eb0_Slot, 0x24);
 
 // What the object holds at +0x60.
 struct Unk_fd7eb0_60 {
     u8 _0[0x54];
     u8 field_54;
+    u8 _55[0xb8 - 0x55];
+    Unk_fd7eb0_Slot field_b8[4];
+    u8 _148[0x168 - 0x148];
+    u16 field_168[11];
+    u8 _17e[0x184 - 0x17e];
+    u32 field_184;
+    u8 _188[0x198 - 0x188];
+    Unk_fd7eb0_Weak field_198;
 };
 PKMN_OFFSET_ASSERT(Unk_fd7eb0_60, field_54, 0x54);
+PKMN_OFFSET_ASSERT(Unk_fd7eb0_60, field_b8, 0xb8);
+PKMN_OFFSET_ASSERT(Unk_fd7eb0_60, field_168, 0x168);
+PKMN_OFFSET_ASSERT(Unk_fd7eb0_60, field_184, 0x184);
+PKMN_OFFSET_ASSERT(Unk_fd7eb0_60, field_198, 0x198);
 
 // The object.
 struct Unk_fd7eb0 {
