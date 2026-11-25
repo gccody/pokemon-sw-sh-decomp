@@ -329,9 +329,10 @@ def ordered(units: list[Unit]) -> list[Unit]:
 # --------------------------------------------------------------------------- sidecar (tested)
 def read_sidecar(path: Path = SIDECAR) -> dict:
     if not path.exists():
-        return {"unit": "", "names": [], "statuses": [], "report": ""}
+        return {"unit": "", "base": "", "names": [], "statuses": [], "report": ""}
     data = json.loads(path.read_text(encoding="utf-8"))
     data.setdefault("unit", "")
+    data.setdefault("base", "")
     data.setdefault("names", [])
     data.setdefault("statuses", [])
     data.setdefault("report", "")

@@ -21,7 +21,8 @@ Setting up (safe to run again):
    ccache as the compiler launcher if it's on PATH. The codegen flags aren't
    touched.
 4. With `--unit`, starts the unit's sidecar (`.swarm/sidecar.json`, see
-   tools/units.py) if there's none yet.
+   tools/units.py) if there's none yet, with the commit the worktree started
+   from as `base` (tools/integrate.py replays the commits after it).
 
 `teardown` refuses the main checkout, and a worktree with changes to tracked
 files other than data/functions.csv and data/data_symbols.csv (which a worker
@@ -124,7 +125,7 @@ def main_checkout(root: Path = ROOT) -> Path:
     return common.parent
 
 
-def setup(root: Path, jobs: int, unit: str | None, configure: bool = True) -> int:
+def setup(root: Path, jobs: int, unit: str | None, configure: bool = True, base: str | None = None) -> int:
     main = main_checkout(root)
     common = Path(git("rev-parse", "--path-format=absolute", "--git-common-dir", cwd=root))
     added = add_excludes(common / "info" / "exclude")
@@ -155,8 +156,9 @@ def setup(root: Path, jobs: int, unit: str | None, configure: bool = True) -> in
         sc = root / ".swarm" / "sidecar.json"
         if not sc.exists():
             sc.parent.mkdir(parents=True, exist_ok=True)
-            sc.write_text(json.dumps({"unit": unit, "names": [], "statuses": [], "report": ""}, indent=2) + "\n",
-                          encoding="utf-8")
+            data = {"unit": unit, "base": base or git("rev-parse", "HEAD", cwd=root),
+                    "names": [], "statuses": [], "report": ""}
+            sc.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
             print(f"started {sc.relative_to(root).as_posix()} for {unit}")
     print(f"ready: {root}")
     return 0

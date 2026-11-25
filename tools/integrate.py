@@ -9,8 +9,11 @@ Run it in the stack's worktree, with the stack tip checked out and no
 uncommitted changes to tracked files. Steps:
 
 1. `--new-branch`: start that branch at the current HEAD (the stack tip).
-2. Replay the unit branch's own commits (those not on HEAD) with
-   `git cherry-pick`. A commit that touches data/functions.csv or a path that
+2. Replay the unit branch's own commits with `git cherry-pick`: those after
+   the commit the worktree was created from (`--base`, else the sidecar's
+   `base`, which `worktree_setup.py create` records), or else those not on
+   HEAD, leaving out any whose patch HEAD already has (a stack rebased since
+   the unit started has its commits under other hashes). A commit that touches data/functions.csv or a path that
    must never be committed (FORBIDDEN) stops everything: units don't edit
    functions.csv, the sidecar carries what belongs there.
 3. Apply the sidecar (the unit worktree's `.swarm/sidecar.json` unless
@@ -176,6 +179,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("branch", help="the unit's branch")
     ap.add_argument("--new-branch", help="create this stack branch at HEAD first")
     ap.add_argument("--sidecar", type=Path, help="the unit's sidecar (default: its worktree's .swarm/sidecar.json)")
+    ap.add_argument("--base", help="the commit the unit branch started from (default: the sidecar's base)")
     ap.add_argument("--skip-tests", action="store_true", help="skip lint/pytest/ruff/clang-format (not for PRs)")
     args = ap.parse_args(argv)
 
@@ -193,7 +197,12 @@ def main(argv: list[str] | None = None) -> int:
     unit = sidecar.get("unit") or args.branch.rsplit("/", 1)[-1]
 
     # 2. the unit's commits
-    commits = git("rev-list", "--reverse", "--no-merges", f"HEAD..{args.branch}").split()
+    base = args.base or sidecar.get("base")
+    if base:
+        commits = git("rev-list", "--reverse", "--no-merges", f"{base}..{args.branch}").split()
+    else:
+        commits = git("rev-list", "--reverse", "--no-merges", "--cherry-pick", "--right-only",
+                      f"HEAD...{args.branch}").split()
     touched = []
     for c in commits:
         touched += git("diff-tree", "--no-commit-id", "--name-only", "-r", c).splitlines()
