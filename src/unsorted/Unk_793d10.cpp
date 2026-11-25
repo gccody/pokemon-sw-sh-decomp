@@ -52,8 +52,6 @@ bool Unk_793f30(Unk_23a8158* self, const Unk_5cfaf0_Name* name, const Unk_5cfaf0
 }
 
 // Slot 3.
-// NON_MATCHING: calls Unk_793b20 as Unk_793b20(u64, u64, f32, u64, u32), with
-// the float it passes on, which the callee's name has no parameter for.
 // 0x7100793fb0
 bool Unk_793fb0(Unk_23a8158* self, u64 name, u32 arg2, f32 arg3) {
     if (!self->Unk_HasName())

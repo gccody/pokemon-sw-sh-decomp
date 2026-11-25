@@ -32,8 +32,6 @@ bool Unk_794220(Unk_23a8100_Self* self, const Unk_5cfaf0_Name* name, const Unk_5
 }
 
 // Unk_23a8100's slot 8.
-// NON_MATCHING: calls Unk_793b20 as Unk_793b20(u64, u64, f32, u64, u32), with
-// the float it passes on, which the callee's name has no parameter for.
 // 0x7100794290
 bool Unk_794290(Unk_23a8100_Self* self, u64 name, u32 arg2, f32 arg3) {
     s64 index = Unk_791a00(Unk_24ba4f0, self, false);

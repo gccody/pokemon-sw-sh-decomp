@@ -52,9 +52,6 @@ bool Unk_793a10(Unk_793990_Manager* self, u32 value) {
     return result;
 }
 
-// NON_MATCHING: written as Unk_793a60(void*, u32): its name
-// (_Z10Unk_793a60PvS_) gives the value as a pointer, the original's is 32-bit
-// (it tests and passes w1).
 // 0x7100793a60
 bool Unk_793a60(void* manager, u32 value) {
     Unk_793990_Manager* self = static_cast<Unk_793990_Manager*>(manager);
@@ -66,8 +63,6 @@ bool Unk_793a60(void* manager, u32 value) {
     return result;
 }
 
-// NON_MATCHING: calls Unk_675750_call with the index as a third argument, as
-// the original does, which its name has no parameter for.
 // 0x7100793ac0
 bool Unk_793ac0(u64 manager, u64 value, u64 index) {
     Unk_793990_Manager* self = reinterpret_cast<Unk_793990_Manager*>(manager);
@@ -79,10 +74,6 @@ bool Unk_793ac0(u64 manager, u64 value, u64 index) {
     return result;
 }
 
-// NON_MATCHING: written as Unk_793b20(u64, u64, f32, u64, u32): its name
-// (_Z10Unk_793b20mmmj) has no float parameter, and the original passes s0 on
-// (kept in d8, saved between the index and the name as its other float
-// parameters are).
 // 0x7100793b20
 bool Unk_793b20(u64 manager, u64 name, f32 arg2, u64 index, u32 arg3) {
     Unk_793990_Manager* self = reinterpret_cast<Unk_793990_Manager*>(manager);
@@ -93,8 +84,6 @@ bool Unk_793b20(u64 manager, u64 name, f32 arg2, u64 index, u32 arg3) {
     return result;
 }
 
-// NON_MATCHING: calls Unk_6757c0_call with the index as a fourth argument, as
-// the original does, which its name has no parameter for.
 // 0x7100793ba0
 bool Unk_793ba0(Unk_793990_Manager* self,
                 const Unk_5cfaf0_Name* name,
