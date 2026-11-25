@@ -16,6 +16,8 @@ void Unk_85c9a0(void* self, u8 pokeId) {
     Unk_819640_call(static_cast<const Unk_819640*>(self), 0x2f, value);
 }
 
+// NON_MATCHING: Unk_7f7ae0_call is named (u32, u32), so the u16 it's given is
+// extended (and w0, w0, #0xffff). Matches with Unk_7f7ae0_call(u16, u32).
 // 0x710085ca20
 void Unk_85ca20(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
@@ -28,6 +30,8 @@ void Unk_85ca20(void* self, u8 pokeId) {
     Unk_819660_call(static_cast<const Unk_819660*>(self), 0x38, UNK_85C190_FX_PERCENT(percent));
 }
 
+// NON_MATCHING: Unk_7f7ae0_call is named (u32, u32), so the u16 it's given is
+// extended (and w0, w0, #0xffff). Matches with Unk_7f7ae0_call(u16, u32).
 // 0x710085cae0
 void Unk_85cae0(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
@@ -37,6 +41,8 @@ void Unk_85cae0(void* self, u8 pokeId) {
     Unk_819660_call(static_cast<const Unk_819660*>(self), 0x38, UNK_85C190_FX_PERCENT(percent));
 }
 
+// NON_MATCHING: Unk_7f7ae0_call is named (u32, u32), so the u16 it's given is
+// extended (and w0, w0, #0xffff). Matches with Unk_7f7ae0_call(u16, u32).
 // 0x710085cb80
 void Unk_85cb80(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
@@ -48,6 +54,8 @@ void Unk_85cb80(void* self, u8 pokeId) {
     Unk_819660_call(static_cast<const Unk_819660*>(self), 0x34, UNK_85C190_FX_PERCENT(percent));
 }
 
+// NON_MATCHING: Unk_7f7ae0_call is named (u32, u32), so the u16 it's given is
+// extended (and w0, w0, #0xffff). Matches with Unk_7f7ae0_call(u16, u32).
 // 0x710085cc20
 void Unk_85cc20(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
@@ -111,13 +119,18 @@ void Unk_85ce50(void* self, u8 pokeId) {
     Unk_819660_call(static_cast<const Unk_819660*>(self), 0x38, 0x2000);
 }
 
+// The species 0x710085ced0 checks for, in a function of its own: the original
+// folds the two compares into one ((species | 1) == 0x69).
+static inline bool Unk_85ced0_IsSpecies(u16 species) {
+    return species == 0x68 || species == 0x69;
+}
+
 // 0x710085ced0
 void Unk_85ced0(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
     if (Unk_819600_call(static_cast<const Unk_819600*>(self), 3) != pokeId)
         return;
-    u16 species = Unk_85c190_Species(Unk_8196d0(flow, pokeId));
-    if (species != 0x68 && species != 0x69)
+    if (!Unk_85ced0_IsSpecies(Unk_85c190_Species(Unk_8196d0(flow, pokeId))))
         return;
     if (Unk_819630_call(static_cast<const Unk_819630*>(self)) != 1)
         return;
