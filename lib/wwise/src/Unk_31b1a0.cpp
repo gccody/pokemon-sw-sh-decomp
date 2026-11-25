@@ -138,8 +138,7 @@ void Unk_31b2c0(Unk_237dba8* self) {
 }
 
 // 0x710031b340
-// NON_MATCHING: the code of Unk_31b420 (below). Its name has one parameter,
-// `_Z10Unk_31b340Pv`, and the code reads a second one in x1.
+// NON_MATCHING: register allocation, as in Unk_31b420 (below), whose code it is.
 void Unk_31b340(Unk_237dba8* self, void* owner) {
     self->list.RemoveOwned(owner);
 }
