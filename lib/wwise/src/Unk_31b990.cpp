@@ -102,11 +102,8 @@ void Unk_31c190(void* object) {
     operator delete(object);
 }
 
-// NON_MATCHING: register allocation: a1 and a5 have each other's registers.
-// The code passes `a5 & 1` on as Unk_31bb10_call passes its bool: a5 is
-// probably a bool, which the recorded name (`j`) doesn't allow.
 // 0x710031bb90
-u32 Unk_31bb90(void* object, u64 a1, u64 a2, u32 position, void* out, u32 a5) {
+u32 Unk_31bb90(void* object, u64 a1, u64 a2, u32 position, void* out, bool a5) {
     Unk_31b990_T* self = static_cast<Unk_31b990_T*>(object);
     *static_cast<s32*>(out) = 0;
     if (static_cast<s32>(Unk_30ea20(Unk_31b990_Node(self)) + Unk_30ea00(Unk_31b990_Node(self))) <= static_cast<s32>(position))

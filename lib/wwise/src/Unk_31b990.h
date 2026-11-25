@@ -102,4 +102,4 @@ u32 Unk_30e9f0(u64 self);
 s32 Unk_30ec40(Unk_237c860* self, s32 position);
 
 u32 Unk_31bdc0(Unk_31b990_T* self, s32 position);
-u32 Unk_31bb90(void* object, u64 a1, u64 a2, u32 position, void* out, u32 a5);
+u32 Unk_31bb90(void* object, u64 a1, u64 a2, u32 position, void* out, bool a5);

@@ -230,7 +230,7 @@ PKMN_OFFSET_ASSERT(Unk_31bb10, field_90, 0x90);
 
 u32 Unk_30ad70(void*, u64, u64, u32);
 u32 Unk_30e9f0(u64);
-void Unk_31bb90(void*, u64, u64, u32, void*, u32);
+void Unk_31bb90(void*, u64, u64, u32, void*, bool);
 
 // 0x710031bb10
 void Unk_31bb10_call(Unk_31bb10* self, u64 value, u64 arg2, bool arg3) {
