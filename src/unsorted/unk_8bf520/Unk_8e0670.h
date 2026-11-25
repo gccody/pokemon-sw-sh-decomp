@@ -25,11 +25,20 @@ struct Unk_8e0670_Text2 {
 };
 PKMN_SIZE_ASSERT(Unk_8e0670_Text2, 0x94);
 
+// An entry of the first block's list (Unk_8e0f50 looks one up).
+struct Unk_8e0670_Entry {
+    u16 field_0;
+    u8 field_2;
+    u8 _3;
+};
+PKMN_SIZE_ASSERT(Unk_8e0670_Entry, 4);
+
 // The first block's object (Unk_23bc600, 0x2360 bytes): its data from +0x60.
 struct Unk_8e0670_Block1 {
     u8 _0[0x60];
     u32 field_60[0x400];
-    u8 _1060[0xa4];
+    Unk_8e0670_Entry field_1060[40];
+    u8 _1100[4];
     Unk_8e0670_Text1 field_1104[Unk_8e0670_LanguageCount];
     u16 field_219c[9];
     u8 field_21ae[9];
@@ -59,6 +68,7 @@ struct Unk_8e0670_Block1 {
     u16 field_235c;
     u8 _235e[2];
 };
+PKMN_OFFSET_ASSERT(Unk_8e0670_Block1, field_1060, 0x1060);
 PKMN_OFFSET_ASSERT(Unk_8e0670_Block1, field_1104, 0x1104);
 PKMN_OFFSET_ASSERT(Unk_8e0670_Block1, field_219c, 0x219c);
 PKMN_OFFSET_ASSERT(Unk_8e0670_Block1, field_21ae, 0x21ae);
