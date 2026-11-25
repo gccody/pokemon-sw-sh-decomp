@@ -16,7 +16,8 @@ struct Unk_857650_arg2 {
 PKMN_OFFSET_ASSERT(Unk_857650_arg2, field_0, 0x0);
 PKMN_OFFSET_ASSERT(Unk_857650_arg2, field_4, 0x4);
 
-u32 Unk_7ef2b0();
+struct Unk_7ee6b0;
+u32 Unk_7ef2b0(const Unk_7ee6b0*);
 u64 Unk_82ab10(void*, u8);
 void Unk_7f1a20(u64, u32);
 
@@ -24,7 +25,7 @@ void Unk_7f1a20(u64, u32);
 void Unk_857650_call(void* self, Unk_857650_arg1* value, const Unk_857650_arg2* arg2) {
     value->field_0 = 0;
     u64 r0 = Unk_82ab10(self, arg2->field_0);
-    u32 r1 = Unk_7ef2b0();
+    u32 r1 = Unk_7ef2b0(reinterpret_cast<const Unk_7ee6b0*>(r0));
     if ((r1 & 1) == 0) {
         Unk_7f1a20(r0, arg2->field_4);
         value->field_0 = 1;
