@@ -231,11 +231,6 @@ template class qChain<Job*, DefaultChainPolicy<Job*>>;
 struct Unk_15d50b0;
 
 // 0x71015d50b0: libc++'s slow path of push_back (a reallocation).
-// NON_MATCHING: the original moves the old elements with a loop (unrolled by
-// 4), as libc++ does when the allocator has a construct(); qVector.h's
-// MemAllocator has none, so this copies them with memcpy. A MemAllocator with
-// `void construct(T* p, const T& v) { new (p) T(v); }` gives the original's
-// code exactly (checked in a scratch build).
 template void std::vector<Unk_15d50b0*, nn::nex::MemAllocator<Unk_15d50b0*>>::__push_back_slow_path<
     Unk_15d50b0* const&>(Unk_15d50b0* const& value);
 
