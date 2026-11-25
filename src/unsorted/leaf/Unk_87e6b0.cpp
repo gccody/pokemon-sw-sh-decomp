@@ -2014,7 +2014,7 @@ const u8* Unk_88a420_update(Unk_88a420* self) {
     return Unk_23b6390;
 }
 
-void Unk_81b230(void*, u32);
+void Unk_81b230(void*, u8);
 
 // 0x710088a580
 void Unk_88a580_call(void* self, u32 value) {

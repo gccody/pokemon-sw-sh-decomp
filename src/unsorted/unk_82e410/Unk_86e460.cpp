@@ -182,9 +182,6 @@ void Unk_86e830(void* self, u8 pokeId) {
     Unk_81a510(flow, arg);
 }
 
-// NON_MATCHING: Unk_8197f0_call and Unk_81b230 are named with u32 values, so
-// pokeId is zero-extended for them (an extra register). Declared with u8 (as
-// they forward them to Unk_7cbf80(void*, u8, u8)), it matches.
 // 0x710086e930
 void Unk_86e930(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);

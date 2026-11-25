@@ -51,7 +51,7 @@ static inline Unk_7ecc90_Con* Unk_81b200_Con(const Unk_819600_Self* self) {
 }
 
 // 0x710081b230
-void Unk_81b230(void* arg, u32 pokeId) {
+void Unk_81b230(void* arg, u8 pokeId) {
     const Unk_819600_Self* self = static_cast<const Unk_819600_Self*>(arg);
     if (Unk_7f0b70_check(
             reinterpret_cast<const Unk_7f0b70*>(Unk_7ed1e0(Unk_81b200_Con(self), pokeId))))
