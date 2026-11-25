@@ -27,9 +27,6 @@ jobs:
   publish:
     name: Publish progress images and site
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -60,6 +57,28 @@ jobs:
       - uses: actions/upload-pages-artifact@v5
         with:
           path: site
+
+  # Its own job, as in GitHub's Pages starter workflows: deploy-pages run
+  # straight after the upload, in the same job, often found "0 artifact(s)"
+  # (the artifact listing hadn't caught up with the finished upload) and
+  # failed the run. The job boundary gives it time, and one retry covers the
+  # rest.
+  deploy:
+    name: Deploy the site to GitHub Pages
+    needs: publish
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.retry.outputs.page_url || steps.deploy.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
         id: deploy
+        continue-on-error: true
+        uses: actions/deploy-pages@v5
+      - name: Wait before retrying
+        if: steps.deploy.outcome == 'failure'
+        run: sleep 30
+      - name: Deploy to GitHub Pages (retry)
+        id: retry
+        if: steps.deploy.outcome == 'failure'
         uses: actions/deploy-pages@v5
