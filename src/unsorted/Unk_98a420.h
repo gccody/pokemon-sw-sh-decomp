@@ -64,12 +64,21 @@ public:
 PKMN_OFFSET_ASSERT(Unk_23f41d0, field_e0, 0xe0);
 PKMN_OFFSET_ASSERT(Unk_23f41d0, field_268, 0x268);
 
-
 // The +0x38 object's Unk_23bdd98 (its +0x638), and the +0x58 one's.
 u8* Unk_98ab90(u64 object);
 u8* Unk_98adb0(u64 object);
 
 Unk_239a418_Ref<Unk_239a418> Unk_672980(u64 object);
+
+// A reference to an object as a T, none when it isn't one (through its
+// +0x50 interface).
+template <class T>
+Unk_239a418_Ref<T> Unk_98a420_RefCast(Unk_239a418& object) {
+    Unk_239a498& interface = object;
+    if (!Unk_IsKind<T>(interface.vf_type()))
+        return Unk_239a418_Ref<T>();
+    return Unk_239a418_Ref<T>(static_cast<T*>(&object));
+}
 
 // The scene's objects at +0x38 and +0x58.
 struct Unk_98a950_Self {
@@ -77,14 +86,13 @@ struct Unk_98a950_Self {
     // the original's callers reload what it returns after a call, as for a
     // function whose definition may be replaced (an inline one), and it is
     // too big to be inlined into them.
+    // NON_MATCHING: the original forms the frame's pointer from the +0x50
+    // interface's (sub #0x50, then the +0x48 one from it); clang folds it back
+    // to the object's here, and the vtable load takes a copy of the pointer.
     // 0x710098a950
     Unk_239a418_Ref<Unk_23f41d0> Unk_98a950() const {
         Unk_239a418_Ref<Unk_239a418> last = Unk_672980(field_10);
-        Unk_239a498& object = *last.m_ptr;
-        if (!Unk_IsKind<Unk_23f41d0>(object.vf_type()))
-            return Unk_239a418_Ref<Unk_23f41d0>();
-        Unk_23f41d0& frame = static_cast<Unk_23f41d0&>(object);
-        return Unk_239a418_Ref<Unk_23f41d0>(&frame);
+        return Unk_98a420_RefCast<Unk_23f41d0>(*last.m_ptr);
     }
 
     u8 _0[0x10];

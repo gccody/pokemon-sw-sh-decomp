@@ -101,6 +101,9 @@ inline T* Unk_98a780_Object(Unk_239a418* object) {
     return Unk_98a780_Cast<T>(Unk_98a780_HandleObject(object->vf2()));
 }
 
+// NON_MATCHING: the handle vf2 returns is reloaded from its stack slot after
+// the calls (and cleared there); the original keeps it in a register, as if
+// it had been moved out of the return slot.
 // 0x710098ab90
 u8* Unk_98ab90(u64 object) {
     Unk_239a418_Ref<Unk_23bdbb0> owner = Unk_14dd2a0(object);
