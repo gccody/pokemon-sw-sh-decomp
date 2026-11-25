@@ -1,12 +1,12 @@
 // Scope: common
 //
 // The tail of a TU of game/pokecamp (0x7101240830 to 0x7101243470, the rest
-// in src/unsorted/Unk_1240830.cpp and Unk_12424f0.cpp).
+// in src/unsorted/Unk_1240830.cpp).
 //
-// The virtual functions here (0x7101242cb0 to 0x7101243270: Unk_2426208's
-// thunks at +0x50, and Unk_2426310's) aren't written yet: their classes have
-// internal linkage, and their vtables are only emitted where an object is
-// made, inside vf8s that aren't decompiled yet (see Unk_12424f0.cpp).
+// The virtual functions around it (0x71012424f0 to 0x7101243270) are in
+// Unk_12424f0.h: their classes have internal linkage, and their vtables are
+// only emitted where an object is made, in Unk_1240830.cpp's TU, by
+// functions that aren't decompiled yet.
 #include <types.h>
 
 // src/unsorted/leaf/Unk_11575f0.cpp
