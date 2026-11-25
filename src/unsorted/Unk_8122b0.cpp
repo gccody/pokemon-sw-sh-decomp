@@ -19,7 +19,7 @@ void Unk_818550(const Unk_8139c0_Self* self, u8 pokeId);
 u16 Unk_816460(u64 que, u32 id);
 // Variadic, like Unk_8150c0: it saves x3..x7 and q0..q7 into its va_list
 // area. The name callers use gives it seven fixed u32 parameters.
-void Unk_816500(void* que, u32 arg1, u32 id, u32 arg3, u32 arg4, u32 arg5, u32 arg6, u32 arg7);
+void Unk_816500(void* que, u32 arg1, u16 id, ...);
 bool Unk_786d90(u16 id);
 
 // The values Unk_8123d0 reads from the queue and Unk_812420 writes back.
@@ -84,9 +84,8 @@ void Unk_8123d0(const Unk_811d90_Self* self, Unk_8123d0_Arg* arg) {
     arg->field_a = Unk_816460(self->field_18, 0xb7);
 }
 
-// NON_MATCHING: Unk_816500 is variadic, but the name callers use
-// (_Z10Unk_816500Pvjjjjjjj) has seven fixed parameters, so every call passes
-// all of them; the original passes only the ones it uses.
+// NON_MATCHING: Unk_816500 is variadic; the original passes only the arguments
+// each command uses, and loads the two halfwords in the other order.
 // 0x7100812420
 void Unk_812420(const Unk_811d90_Self* self, const Unk_8123d0_Arg* arg) {
     if (arg->field_4) {

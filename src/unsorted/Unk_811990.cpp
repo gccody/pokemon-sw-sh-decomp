@@ -3,8 +3,8 @@
 // command for the clients. Placeholder names: rename once they're known.
 #include "unsorted/Unk_811d90.h"
 
-void Unk_816320(u64, u32, u32, u32, u32, u32);
-void Unk_817de0();
+void Unk_816320(u64, u32, u32, ...);
+void Unk_817de0(const Unk_8139c0_Self* self);
 
 void Unk_817e00(const Unk_8139c0_Self* self, u8 pokeId);
 void Unk_817e30(const Unk_8139c0_Self* self, u8 pokeId);
@@ -50,13 +50,10 @@ void Unk_811aa0(const Unk_811d90_Self* self, u8 arg1, u8 arg2) {
     Unk_8150c0(self->field_18, 0x61, arg1, arg2);
 }
 
-// NON_MATCHING: Unk_816320 is variadic (it saves x3..x7 into its va_list
-// area), but it's named with five fixed parameters, so a fifth value has to
-// be passed in w5 that the original leaves alone.
 // 0x7100811af0
 void Unk_811af0(const Unk_811d90_Self* self, u8 pokeId) {
     Unk_8150c0(self->field_18, 0xa2, 4, 0x7f);
-    Unk_816320(self->field_18, 0xb9, 0x180, pokeId, 0xffff0000, 0);
+    Unk_816320(self->field_18, 0xb9, 0x180, pokeId, 0xffff0000);
 }
 
 // 0x7100811b40
@@ -89,11 +86,9 @@ void Unk_811c50(const Unk_811d90_Self* self, u8 pokeId) {
     Unk_8150c0(self->field_18, 0x56, pokeId);
 }
 
-// NON_MATCHING: Unk_817de0 is named with no parameters, but it takes the
-// server's state (it reads its +0x10), so x0 isn't loaded from +0x20 here.
 // 0x7100811c90
 void Unk_811c90(const Unk_811d90_Self* self) {
-    Unk_817de0();
+    Unk_817de0(self->field_20);
     Unk_8150c0(self->field_18, 0x65);
 }
 
