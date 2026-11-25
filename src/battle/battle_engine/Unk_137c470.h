@@ -21,14 +21,6 @@ struct Unk_137c710_T {
     u32 field_f00;
     u8 field_f04;
     u8 field_f05[0x17];
-
-    void Unk_Reset() {
-        std::memset(field_0, 0, sizeof(field_0));
-        std::memset(field_780, 0, sizeof(field_780));
-        field_f00 = 0;
-        field_f04 = 2;
-        std::memset(field_f05, 0, sizeof(field_f05));
-    }
 };
 PKMN_SIZE_ASSERT(Unk_137c710_T, 0xf1c);
 PKMN_OFFSET_ASSERT(Unk_137c710_T, field_f00, 0xf00);
@@ -48,6 +40,14 @@ public:
     void Unk_137ca10(s32 index, const u64& key, bool value);
     bool Unk_137cb30(s32 index, u32 bit);
     void Unk_137cb80(s32 index, u32 bit, bool value);
+
+    void Unk_Reset() {
+        std::memset(field_68.field_0, 0, sizeof(field_68.field_0));
+        std::memset(field_68.field_780, 0, sizeof(field_68.field_780));
+        field_68.field_f00 = 0;
+        field_68.field_f04 = 2;
+        std::memset(field_68.field_f05, 0, sizeof(field_68.field_f05));
+    }
 
     Unk_b751c0_Self* field_60;
     Unk_137c710_T field_68;
