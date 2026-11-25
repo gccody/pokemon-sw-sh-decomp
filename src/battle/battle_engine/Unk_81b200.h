@@ -30,20 +30,23 @@ PKMN_OFFSET_ASSERT(Unk_819600_Self, field_30, 0x30);
 PKMN_OFFSET_ASSERT(Unk_819600_Self, field_40, 0x40);
 
 // What +0x28 holds: entries of 0x38 bytes at +8, the current one picked by
-// the byte at +0x158 (Unk_82afd0). Each lists up to five Pokemon, with two
-// bytes each, and has a flag at +0x36.
+// the byte at +0x158 (Unk_82afd0). Each has a list of up to five Pokemon,
+// with two bytes each, and a flag at +0x36.
+struct Unk_82afd0_List {
+    u8 count;
+    u8 field_1[5];
+    u8 field_6[5];
+    u8 field_b[5];
+};
+PKMN_SIZE_ASSERT(Unk_82afd0_List, 0x10);
 struct Unk_82afd0_Entry {
     u8 _0[0x24];
-    u8 count;
-    u8 field_25[5];
-    u8 field_2a[5];
-    u8 field_2f[5];
+    Unk_82afd0_List list;
     u8 _34[0x36 - 0x34];
     u8 field_36;
     u8 _37;
 };
-PKMN_OFFSET_ASSERT(Unk_82afd0_Entry, count, 0x24);
-PKMN_OFFSET_ASSERT(Unk_82afd0_Entry, field_2f, 0x2f);
+PKMN_OFFSET_ASSERT(Unk_82afd0_Entry, list, 0x24);
 PKMN_OFFSET_ASSERT(Unk_82afd0_Entry, field_36, 0x36);
 PKMN_SIZE_ASSERT(Unk_82afd0_Entry, 0x38);
 
@@ -67,13 +70,13 @@ inline Unk_82afd0_Entry* Unk_81b200_Entry(const Unk_819600_Self* self) {
     return Unk_82afd0(Unk_82b4f0_getField8(self->field_28));
 }
 
-// Adds a Pokemon to the current entry's list, when there's room.
-inline void Unk_81b200_Add(Unk_82afd0_Entry* entry, u8 pokeId, u8 otherId, u8 value) {
-    u8 count = entry->count;
+// Adds a Pokemon to a list, when there's room.
+inline void Unk_81b200_Add(Unk_82afd0_List* list, u8 pokeId, u8 otherId, u8 value) {
+    u8 count = list->count;
     if (count < 5) {
-        entry->field_25[count] = pokeId;
-        entry->field_2f[count] = otherId;
-        entry->field_2a[count] = value;
-        entry->count = count + 1;
+        list->field_1[count] = pokeId;
+        list->field_b[count] = otherId;
+        list->field_6[count] = value;
+        list->count = count + 1;
     }
 }
