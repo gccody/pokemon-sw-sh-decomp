@@ -29,26 +29,32 @@ PKMN_OFFSET_ASSERT(Unk_179c420_Resource, slots, 0x260);
 
 static const int Unk_179c420_ViewCount = 37;
 
+// NON_MATCHING: instruction scheduling: the original computes each view's address before it loads the slot array
 // 0x710179c420
 void Unk_179c420(Unk_179c420_Resource* self, Unk_179c420_SlotFunction function, void* userData) {
     Unk_177ae80(self->field_80, function, userData);
     for (int i = 0; i < Unk_179c420_ViewCount; i++) {
-        function(&self->slots[i], &self->views[i], userData);
+        const Unk_179c420_View* view = &self->views[i];
+        function(&self->slots[i], view, userData);
     }
 }
 
+// NON_MATCHING: instruction scheduling: the original computes each view's address before it loads the slot array
 // 0x710179c860
 void Unk_179c860(Unk_179c420_Resource* self, Unk_179c420_SlotFunction function, void* userData) {
     Unk_177aea0(self->field_80, function, userData);
     for (int i = 0; i < Unk_179c420_ViewCount; i++) {
-        function(&self->slots[i], &self->views[i], userData);
-        self->slots[i] = ~0ull;
+        const Unk_179c420_View* view = &self->views[i];
+        u64* slot = &self->slots[i];
+        function(slot, view, userData);
+        *slot = ~0ull;
     }
 }
 
 // 0x710179c8e0
 u64* Unk_179c8e0(Unk_179c420_Resource* self, int a, int b, int c, int d) {
-    return &self->slots[a * 12 + b * 4 + c + d * 2];
+    int index = a * 12 + b * 4 + c + d * 2;
+    return &self->slots[index];
 }
 
 // 0x710179c900
@@ -57,15 +63,10 @@ u64* Unk_179c900(Unk_179c420_Resource* self, int index) {
 }
 
 // 0x710179c910
-Unk_24931a0::Unk_24931a0() : name(""), field_30(false) {
-    link.InitializeLinks();
-    elements.Initialize();
-}
+Unk_24931a0::Unk_24931a0() : name(""), field_30(false) {}
 
 // 0x710179c940
 Unk_24931a0::Unk_24931a0(const Unk_179c940_Res* res, Unk_179c940_Finder* finder) : name(res->name), field_30(false) {
-    link.InitializeLinks();
-    elements.Initialize();
     for (int i = 0; i < res->count; i++) {
         void* target = finder->vf12(res->elementNames[i], true);
         if (target != nullptr) {
@@ -84,20 +85,23 @@ void Unk_24931a0::Unk_179ca10(void* target) {
     }
 }
 
+// NON_MATCHING: the original keeps the erase's end() check before each unlink; clang folds it here, as the loop condition implies it (and so in the deleting destructor, 0x710179cad0)
 // 0x710179ca60
 Unk_24931a0::~Unk_24931a0() {
-    for (Unk_179cc10_ListNode* node = elements.begin(); node != elements.end();) {
-        Unk_179cc10_ListNode* element = node;
-        node = elements.erase(node);
-        Unk_179cd30(reinterpret_cast<u64>(element));
+    for (Unk_179cc10_ListNode* node = elements.begin(); elements.end() != node;) {
+        Unk_179cc10_ListNode* current = node;
+        node = elements.erase(current);
+        Unk_179cd30(reinterpret_cast<u64>(current));
     }
 }
 
+// NON_MATCHING: the original keeps the erase's end() check before each unlink; clang folds it here, as the loop condition implies it
 // 0x710179cb50
 void Unk_179cb50(Unk_179cc10_List* list) {
-    for (Unk_179cc10_ListNode* node = list->begin(); node != list->end();) {
-        Unk_24931a0* object = Unk_24931a0::FromLink(node);
-        node = list->erase(node);
+    for (Unk_179cc10_ListNode* node = list->begin(); list->end() != node;) {
+        Unk_179cc10_ListNode* current = node;
+        node = list->erase(current);
+        Unk_24931a0* object = Unk_24931a0::FromLink(current);
         if (!object->field_30) {
             object->~Unk_24931a0();
             Unk_179cd30(reinterpret_cast<u64>(object));
