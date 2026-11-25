@@ -63,7 +63,7 @@ public:
     Unk_1652c70();
     virtual ~Unk_1652c70();
 
-    Unk_1652c70& Unk_1652cf0(const Unk_1652c70& other);  // copies both fields
+    Unk_1652c70& operator=(const Unk_1652c70& other);  // copies both fields
     void Unk_16538d0();                                  // clears both fields
     // Writes it as text. Its name gives the text as Unk_23a2c98
     // (lib/pia/common/Unk_165fb10.h): common::String, by RTTI.
@@ -217,8 +217,8 @@ namespace nex {
 
 // 0x71016d2b60
 void Unk_16d2b60(const Unk_1652c70& first, const Unk_1652c70& second) {
-    Unk_27fb438[0].Unk_1652cf0(first);
-    Unk_27fb438[1].Unk_1652cf0(second);
+    Unk_27fb438[0] = first;
+    Unk_27fb438[1] = second;
 }
 
 class NexInputStream : public common::SocketStreamBase, public common::IPacketInput {
