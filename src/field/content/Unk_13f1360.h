@@ -53,9 +53,12 @@ public:
         return nullptr;
     }
 
-    u8 _60[0x1a0 - 0x60];
+    u8 _60[0xb0 - 0x60];
+    float32x4_t field_b0;  // the position
+    u8 _c0[0x1a0 - 0xc0];
     s64 field_1a0;  // the id the commands look it up by
 };
+static_assert(__builtin_offsetof(Unk_13f1360_Object, field_b0) == 0xb0, "field_b0");
 static_assert(__builtin_offsetof(Unk_13f1360_Object, field_1a0) == 0x1a0, "field_1a0");
 
 struct Unk_13f1360_Manager {
