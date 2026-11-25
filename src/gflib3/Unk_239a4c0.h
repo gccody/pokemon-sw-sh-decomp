@@ -22,56 +22,7 @@
 // Unk_5e2700.cpp): its D0 and thunks follow the object's functions there. vf3
 // and vf4 are inline: their one copy (0x71005cfe90-0x71005cff4c) is the one
 // emitted with Unk_2399470's vtable, in an earlier TU.
-#include <atomic>
-
-#include <types.h>
-
+//
+// The classes themselves are in src/gflib3/Unk_239a418.h: the handle
+// Unk_239a418 keeps its count in is on this object.
 #include "gflib3/Unk_239a418.h"
-
-// The primary base, 0x48 bytes: the allocator and the allocation from 0x8,
-// as in Unk_239a418_Base.
-class Unk_239a4c0_Base {
-public:
-    virtual ~Unk_239a4c0_Base() {}
-    virtual void vf2();  // destroy and free
-    virtual void vf3();  // add a reference
-    virtual void vf4();  // drop a reference
-
-    static void operator delete(void*) {}
-
-    Unk_239a418_Allocator* field_8;
-    u64 field_10;
-    u64 field_18;
-    u64 field_20;
-    // Scalars, not bytes, as in Unk_239a418_Base: a derived class's
-    // destructor thunk addresses its members from the adjusted `this` only
-    // when that lands on a field.
-    u64 field_28;
-    u64 field_30;
-    u64 field_38;
-    u64 field_40;
-};
-static_assert(sizeof(Unk_239a4c0_Base) == 0x48, "Unk_239a4c0_Base");
-
-// The interface at +0x48 (vtable 0x710239a4f8).
-class Unk_239a4f8 {
-public:
-    virtual ~Unk_239a4f8() {}
-    virtual void vf3();
-    virtual void vf4();
-};
-
-class Unk_239a4c0 : public Unk_239a4c0_Base, public Unk_239a4f8 {
-public:
-    ~Unk_239a4c0() override {}
-    void vf2() override;
-    void vf3() override { ++field_50; }
-    void vf4() override {
-        if (--field_50 == 0)
-            vf2();
-    }
-
-    std::atomic<s32> field_50;
-};
-static_assert(sizeof(Unk_239a4c0) == 0x58, "Unk_239a4c0");
-static_assert(__builtin_offsetof(Unk_239a4c0, field_50) == 0x50, "Unk_239a4c0::field_50");

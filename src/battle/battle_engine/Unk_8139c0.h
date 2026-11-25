@@ -85,7 +85,7 @@ void Unk_8006e0(void* self, u8 arg1, u8 arg2);
 void Unk_8002a0(void* self, u8 arg1, u64 arg2);
 void Unk_7ffbd0(void* self, u32 arg1, void* arg2);
 void Unk_7ffce0(void* self, u32 arg1, u32 arg2);
-void Unk_7ffe50(void* self, u32 arg1, u32 arg2);
+void Unk_7ffe50(void* self, u32 arg1, u8 arg2);
 bool Unk_8021d0(void* self, u8 arg1, u8 arg2, u32 arg3);
 void Unk_7eb130(void* self, u8 arg1, u8 arg2, u32 arg3);
 void Unk_802ff0(void* self, u8 pokeId);
@@ -137,7 +137,7 @@ void Unk_7fc7e0_set(Unk_7fc7e0* self);
 
 // Declared as src/unsorted/leaf/Unk_7c2d90.cpp names it.
 struct Unk_7cac80;
-u8 Unk_7cac80_call(const Unk_7cac80* self, u32 value);
+u8 Unk_7cac80_call(const Unk_7cac80* self, u8 value);
 struct Unk_7fe2d0;
 void* Unk_7fe2d0_getField188(const Unk_7fe2d0* self);
 void* Unk_800990(void* self, u8 index);

@@ -99,7 +99,7 @@ u16 Unk_7f24b0_getField78(const Unk_7f24b0* self);
 u32 Unk_7ca1c0_getField150(const Unk_7ca1c0* self);
 u32 Unk_7c58b0_get(const Unk_7c58b0* self);
 void Unk_8c2620_set(Unk_8c2620* self);
-s32 Unk_7f7ae0_call(u32 self, u32 value);
+s32 Unk_7f7ae0_call(u16 self, u32 value);
 u32 Unk_8c1f60(void* self);
 u32 Unk_8c1fd0(void* self);
 u32 Unk_7f05d0(void* object);
