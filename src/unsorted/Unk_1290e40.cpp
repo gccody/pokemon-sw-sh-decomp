@@ -8,10 +8,17 @@
 //
 // Unk_242af50 has a reference of its own (+0x3c0): its destructor is inline,
 // and the classes on it without members to destroy have it (0x71012928c0) in
-// their slot 0. Their D0 and their destructor thunks tail-call it. Three more
-// classes on it here: Unk_242b1c0 (made by Unk_242ae80's vf8), Unk_242b290
-// (made by a callable of Unk_242b1c0's) and Unk_242b0f0 (made by 0x7101292440,
-// not written yet).
+// their slot 0. Their D0 and their destructor thunks tail-call it. Four more
+// classes on it here: Unk_242b020 and Unk_242b0f0 (made by callables of
+// Unk_242ae80's, 0x7101291cb0 and 0x7101292440), Unk_242b1c0 (made by
+// Unk_242ae80's vf8) and Unk_242b290 (made by a callable of Unk_242b1c0's).
+//
+// The classes' type statics are merged in the order their getters are
+// emitted: Unk_242af50's, Unk_242ae80's, Unk_242b020's, Unk_242b0f0's,
+// Unk_242b1c0's, Unk_242b290's in the original, where the makers are lambdas
+// of Unk_242ae80's vf7 (emitted with it, before its vf8). That vf7 isn't
+// written, so here they're functions of their own, and Unk_242b1c0's comes
+// before Unk_242b020's.
 #include "unsorted/Unk_23f43c8.h"
 #include "unsorted/Unk_24284d0_Make.h"
 
@@ -117,6 +124,8 @@ public:
 
     // 0x7101291c20
     void vf7(u64 arg) override { Unk_24284d0::vf7(arg); }
+    // Its destructor is inline (0x71012928c0): its thunks are 0x7101291c30,
+    // 0x7101291c40 (+0x48), 0x7101291c90 and 0x7101291ca0 (+0x50).
     // 0x7101291a40
     void vf10() override {
         vf7(Unk_126ac90_getField68(reinterpret_cast<const Unk_126ac90*>(this)));
@@ -144,11 +153,8 @@ public:
         return &type;
     }
     // 0x7101292a50, its thunks 0x7101292e40 (+0x48) and 0x7101292e60 (+0x50)
-    // NON_MATCHING (and Unk_242b290's): the types' statics are merged in the
-    // order the getters are emitted, and the original has Unk_242b020's and
-    // Unk_242b0f0's before this one (+0x40 from Unk_242af50's, +0x50 for
-    // Unk_242b290's). Their makers (0x7101291cb0, 0x7101292440) aren't written
-    // yet, so these address theirs two places early.
+    // NON_MATCHING: its type static is two places early (+0x20 from
+    // Unk_242af50's, where the original has +0x40): see the top of the file.
     const Unk_239a418_Type* vf_type() override { return Unk_GetType(); }
 
     void vf7(u64 arg) override;  // 0x7101292bb0
@@ -179,8 +185,35 @@ public:
     Unk_239a418_Ref<Unk_239a418> vf8() override;  // 0x71012917e0
 };
 
-// vtable 0x710242b100: made by 0x7101292440 (not in this file yet: until it
-// is, its functions aren't emitted).
+// vtable 0x710242b030: made by a callable of Unk_242ae80's (0x7101291cb0).
+// Its implicit destructor's D0 is 0x7101291f20, its thunks 0x7101292280,
+// 0x7101292290 (+0x48), 0x71012922e0 and 0x71012922f0 (+0x50).
+class Unk_242b020 : public Unk_242af50 {
+public:
+    Unk_242b020() { field_60 = 4; }
+
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_242af50::Unk_GetType());
+        return &type;
+    }
+    // 0x7101291f30, its thunks 0x71012922a0 (+0x48) and 0x71012922c0 (+0x50)
+    // NON_MATCHING (and Unk_242b0f0's): its type static is one place late
+    // (Unk_242b1c0's is before it): see the top of the file.
+    const Unk_239a418_Type* vf_type() override { return Unk_GetType(); }
+
+    void vf7(u64 arg) override;  // 0x7101292090
+    // 0x7101292220
+    Unk_239a418_Ref<Unk_239a418> vf8() override {
+        Unk_126b1f0();
+        if (field_70.m_ptr)
+            return field_70;
+        return Unk_239a418_Ref<Unk_239a418>(this);
+    }
+};
+
+// vtable 0x710242b100: made by a callable of Unk_242ae80's (0x7101292440).
+// Its implicit destructor's D0 is 0x7101292670, its thunks 0x7101292820,
+// 0x7101292830 (+0x48), 0x7101292880 and 0x7101292890 (+0x50).
 class Unk_242b0f0 : public Unk_242af50 {
 public:
     Unk_242b0f0() : Unk_242af50() { field_60 = 2; }
@@ -189,7 +222,8 @@ public:
         static Unk_239a418_Type type(Unk_242af50::Unk_GetType());
         return &type;
     }
-    // 0x7101292680
+    // 0x7101292680, its thunks 0x7101292840 (+0x48) and 0x7101292860 (+0x50)
+    // NON_MATCHING: as Unk_242b020's.
     const Unk_239a418_Type* vf_type() override { return Unk_GetType(); }
     // 0x71012927e0
     void vf7(u64 arg) override {
@@ -210,7 +244,6 @@ public:
         return &type;
     }
     // 0x71012930e0, its thunks 0x7101293460 (+0x48) and 0x7101293480 (+0x50)
-    // NON_MATCHING: as Unk_242b1c0's.
     const Unk_239a418_Type* vf_type() override { return Unk_GetType(); }
     void vf7(u64 arg) override;  // 0x7101293240
     // 0x71012933f0
@@ -240,6 +273,42 @@ void Unk_242ad98::vf7() {
     static_cast<Unk_24284d0*>(field_3c0.m_ptr)->vf7(reinterpret_cast<u64>(this));
 }
 
+// 0x7101290ea0
+Unk_1290ea0_Made::Unk_1290ea0_Made(Unk_239a418_Allocator* allocator)
+    : Unk_239a418_Ref<Unk_239a418>(Unk_Create<Unk_242ae80>(allocator)) {}
+
+// `object` gets `next` as the object after it (taken by value, as the
+// makers in Unk_12851f0.cpp give it).
+template <class Made>
+void Unk_SetNext(Unk_24284d0* object, Made next) {
+    object->Unk_126ad50(std::move(next));
+}
+
+bool Unk_1269880();  // 0x7101269880
+
+// The calls of two callables Unk_242ae80's vf7 stores (local to the TU in the
+// original, like the other callables' functions below).
+void Unk_1291cb0(Unk_24284d0** captured) __attribute__((visibility("hidden")));
+void Unk_1292440(Unk_24284d0** captured) __attribute__((visibility("hidden")));
+
+// 0x7101291cb0
+void Unk_1291cb0(Unk_24284d0** captured) {
+    Unk_24284d0* self = *captured;
+    if (Unk_1269880()) {
+        self->Unk_126aca0()->field_60->Unk_Register(0xc554692e5686862e, false);
+    } else {
+        Unk_242b020* object = Unk_Create<Unk_242b020>(self->field_8);
+        Unk_239a418_Ref<Unk_239a418> next(object);
+        Unk_SetNext(object, Unk_1290ea0_Made(self->field_8));
+        Unk_Copy(self->field_70, next);
+    }
+}
+
+// 0x7101292440
+void Unk_1292440(Unk_24284d0** captured) {
+    Unk_Next<Unk_242b0f0>(*captured, 0xcf2e38d49d8fd87e);
+}
+
 // 0x71012917e0
 // NON_MATCHING: the end. The swap into field_70 stores the object's pointer
 // as an integer (the one Unk_Create stored at +0x10), so field_70's address
@@ -258,10 +327,6 @@ Unk_239a418_Ref<Unk_239a418> Unk_242ae80::vf8() {
         return field_70;
     return Unk_239a418_Ref<Unk_239a418>(this);
 }
-
-// 0x7101290ea0
-Unk_1290ea0_Made::Unk_1290ea0_Made(Unk_239a418_Allocator* allocator)
-    : Unk_239a418_Ref<Unk_239a418>(Unk_Create<Unk_242ae80>(allocator)) {}
 
 // 0x7101290fc0
 // 0x7101291020
@@ -316,6 +381,39 @@ void Unk_242b1c0::vf7(u64 arg) {
     Unk_SetCallable(desc.field_2b0, this, &Unk_1293780, &Unk_12937b0_update, &Unk_12937c0_set,
                     &Unk_12937d0_set);
     Unk_126adb0(this, desc);
+}
+
+// The functions of the callable Unk_242b020's vf7 stores.
+#define UNK_HIDDEN __attribute__((visibility("hidden")))
+void Unk_1292300(Unk_24284d0** captured) UNK_HIDDEN;
+void Unk_1292370_update() UNK_HIDDEN;
+struct Unk_1292380;
+struct Unk_1292380_arg1;
+void Unk_1292380_set(const Unk_1292380* self, Unk_1292380_arg1* value) UNK_HIDDEN;
+struct Unk_1292390;
+struct Unk_1292390_arg1;
+void Unk_1292390_set(const Unk_1292390* self, Unk_1292390_arg1* value) UNK_HIDDEN;
+#undef UNK_HIDDEN
+
+// 0x7101292090
+// NON_MATCHING: as Unk_242b290's: the stores that empty the struct's first
+// callable are scheduled first, where the original has them last (after the
+// fourth's); the instructions are the same.
+void Unk_242b020::vf7(u64 arg) {
+    Unk_24284d0::vf7(arg);
+    Unk_126adb0_Arg desc;
+    desc.field_2a0 = 0xb0ae016561ff9e6f;
+    Unk_SetCallable(desc.field_0.field_20.field_200, this, &Unk_1292300, &Unk_1292370_update,
+                    &Unk_1292380_set, &Unk_1292390_set);
+    Unk_126adb0(this, desc);
+}
+
+// 0x7101292300: what Unk_242b020's callable runs: the next object becomes
+// the one it hands out.
+void Unk_1292300(Unk_24284d0** captured) {
+    Unk_24284d0* self = *captured;
+    Unk_Copy(self->field_70, self->field_78);
+    self->field_78.Reset();
 }
 
 // The functions of the callable Unk_242b290's vf7 stores (its call,
