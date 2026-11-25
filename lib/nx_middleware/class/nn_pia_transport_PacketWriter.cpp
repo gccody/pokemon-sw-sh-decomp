@@ -4,12 +4,14 @@
 // RTTI: N2nn3pia9transport12PacketWriterE
 #include <types.h>
 
+struct Unk_16a9320_arg1;
+
 namespace nn {
 namespace pia {
 namespace transport {
 class PacketWriter {
 public:
-    void vf8();
+    void vf8(Unk_16a9320_arg1* arg);
     void vf11();
 };
 }  // namespace transport
@@ -17,7 +19,7 @@ public:
 }  // namespace nn
 
 // 0x710173c350
-void nn::pia::transport::PacketWriter::vf8() {
+void nn::pia::transport::PacketWriter::vf8(Unk_16a9320_arg1*) {
 }
 
 // 0x710173ce90

@@ -66,8 +66,6 @@ void MeshPacketWriter::vf5() {
 }
 
 // 0x71016a9d20
-// NON_MATCHING: PacketWriter::vf8 (0x710173c350) is named without the
-// parameter it's given (RENAME in the report).
 void MeshPacketWriter::vf8(Unk_16a9320_arg1* arg) {
     vf21(arg);
     PacketWriter::vf8(arg);
