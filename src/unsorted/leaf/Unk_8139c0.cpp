@@ -122,7 +122,7 @@ void Unk_7fe2f0(u64);
 void Unk_802630();
 
 // 0x71008181d0
-void Unk_8181d0_call(const Unk_8181d0* self) {
+void Unk_8181d0_call(const Unk_8181d0* self, u8 /*pokeId*/) {
     Unk_7fe2f0(self->field_10);
     Unk_802630();
 }
