@@ -6,6 +6,7 @@
 // types are MeshNetworkFactory's (lib/pia/gen/nn_pia_mesh_MeshNetworkFactory.cpp).
 // Placeholder member names vf<slot> (lib/pia/README.md).
 // RTTI: N2nn3pia5local17LdnNetworkFactoryE, N2nn3pia5local19LocalNetworkFactoryE
+#include "pia/common/Unk_165e060.h"
 #include <types.h>
 
 struct Unk_168e090_arg1;
@@ -38,9 +39,16 @@ struct Unk_168e840;
 
 namespace nn {
 namespace pia {
+namespace transport {
+class NetworkFactory {
+public:
+    Unk_165e060 vf12();
+};
+}  // namespace transport
+
 namespace local {
 
-class LocalNetworkFactory {
+class LocalNetworkFactory : public transport::NetworkFactory {
 public:
     Unk_245bc18* vf15();
     Unk_245bb18* vf16();
@@ -71,6 +79,7 @@ public:
 class LdnNetworkFactory : public LocalNetworkFactory {
 public:
     Unk_2458be8* vf10();
+    Unk_165e060 vf12();
     Unk_245bc18* vf15();
     Unk_245bb18* vf16();
     void vf17(Unk_168e090_arg1* object);
