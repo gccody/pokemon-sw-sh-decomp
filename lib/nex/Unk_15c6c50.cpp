@@ -41,10 +41,10 @@ void RC4Encryption::vf7() {
     m_j = 0;
     const u8* key = m_key.m_data.empty() ? nullptr : &m_key.m_data[0];
     size_t length = m_key.m_data.size();
-    u8 j = 0;
     u8 k = 0;
+    u32 j = 0;
     for (u32 i = 0; i < 0x100; i++) {
-        j = j + key[k] + m_initialState[i];
+        j = (j + key[k] + m_initialState[i]) & 0xff;
         u8 t = m_initialState[i];
         m_initialState[i] = m_initialState[j];
         m_initialState[j] = t;
@@ -54,11 +54,14 @@ void RC4Encryption::vf7() {
 }
 
 // 0x71015c70f0
+// NON_MATCHING: the original keeps the addresses of m_i and m_j in two more
+// callee-saved registers (computed in both branches of the m_reset check, and
+// the loads after it duplicated into both); the rest is the same.
 u32 RC4Encryption::vf3(Buffer* buffer) {
     u8* data = buffer->m_data + buffer->m_offset;
     size_t size = buffer->m_size;
     Unk_15b78f0_Scope lock(&m_lock);
-    if (!m_key.m_data.empty()) {
+    if (m_key.m_data.size() != 0) {
         if (m_reset) {
             Reset();
         }
@@ -86,11 +89,14 @@ u32 RC4Encryption::vf2(const Buffer& in, Buffer* out) {
 }
 
 // 0x71015c7250
+// NON_MATCHING: the original keeps the addresses of m_i and m_j in two more
+// callee-saved registers (computed in both branches of the m_reset check, and
+// the loads after it duplicated into both); the rest is the same.
 u32 RC4Encryption::vf5(Buffer* buffer) {
     u8* data = buffer->m_data + buffer->m_offset;
     size_t size = buffer->m_size;
     Unk_15b78f0_Scope lock(&m_lock);
-    if (!m_key.m_data.empty()) {
+    if (m_key.m_data.size() != 0) {
         if (m_reset) {
             Reset();
         }
