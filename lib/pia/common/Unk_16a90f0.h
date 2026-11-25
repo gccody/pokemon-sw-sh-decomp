@@ -287,6 +287,8 @@ public:
     void vf3() override;
     Unk_165e060 vf4() override;
     void vf5() override;
+    u64 vf6(const Unk_165fb30* address) override;
+    u8 vf7(const Unk_165fb30* address) override;
     void vf8(Unk_16a9320_arg1* arg) override;
     void vf9(Unk_16a9320_arg1* arg) override;
     void vf11() override;
@@ -295,6 +297,13 @@ public:
     Unk_16a9e40_message* vf17(Unk_16a9e40_arg1* message, u8 station, u32 arg3, bool arg4, bool arg5, bool arg6,
                               bool arg7) override;
     Unk_16a9e40_message* vf18(Unk_16a9e40_arg1* message, u64 id, u32 arg3, bool arg4, bool arg5, bool arg6,
+                              bool arg7) override;
+    void vf21(Unk_16a9320_arg1* arg) override;
+    Unk_16a9e40_message* vf22(Unk_16a9e40_arg1* message, u8 station, u32 arg3, bool arg4, bool arg5, bool arg6,
+                              bool arg7) override;
+    Unk_16a9e40_message* vf23(Unk_16a9e40_arg1* message, u32 arg3, bool arg4, bool arg5, bool arg6,
+                              bool arg7) override;
+    Unk_16a9e40_message* vf24(Unk_16a9e40_arg1* message, u32 stations, u32 arg3, bool arg4, bool arg5, bool arg6,
                               bool arg7) override;
 
     u8 field_1038;   // this station's index (0xfd: not known yet)

@@ -54,6 +54,9 @@ void MeshPacketReader::vf5() {
 }
 
 // 0x71016a9320
+// NON_MATCHING: the ring's first and next free index load as one ldp, where
+// the original has two ldr (its loop wasn't rotated, and the guard was
+// duplicated into the entry later); everything after is one instruction off.
 void MeshPacketReader::vf8(Unk_16a9320_arg1* arg) {
     vf18();
     PacketReader::vf8(arg);
