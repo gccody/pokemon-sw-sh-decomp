@@ -115,6 +115,10 @@ static Unk_239a418_Ref<T> Unk_LockOrNone(Unk_239a418_Handle* handle) {
 }
 
 // 0x7100897580, its thunk from +0x60 0x7100897750
+// NON_MATCHING: the thunk (0x7100897750). It subtracts 0x60 from `this` up
+// front and loads the entries at their offsets from the object; here the
+// subtraction is folded into the loads' offsets and done for the store alone.
+// The function itself matches.
 void Unk_23b7ee8::vf11(u64 stationId) {
     field_190.Remove(stationId);
 }
@@ -138,13 +142,16 @@ void Unk_23b7ee8::vf12() {
 }
 
 // 0x71008978f0, its thunk from +0x60 0x7100897960
+// NON_MATCHING: the original tests the first station before the loop (the
+// search's first iteration is peeled); the rest is the same. A loop that
+// returns from inside, a while loop with both tests and std::find_if (end
+// computed once or twice) don't peel it.
 u8 Unk_23b7ee8::vf13(u64 stationId) {
-    Unk_23b7ee8_Station* begin = field_a0.field_80;
-    Unk_23b7ee8_Station* end = begin + field_a0.field_88;
-    Unk_23b7ee8_Station* it = begin;
-    while (it != end && it->field_0 != stationId)
-        ++it;
-    if (it != begin + field_a0.field_88)
+    const Unk_23b7ee8_Station* end = field_a0.field_80.end();
+    const Unk_23b7ee8_Station* it =
+        std::find_if(field_a0.field_80.begin(), end,
+                     [stationId](const Unk_23b7ee8_Station& s) { return s.field_0 == stationId; });
+    if (it != end)
         return it->field_8;
     return 5;
 }
@@ -249,18 +256,20 @@ void Unk_23b7ee8::Unk_897f70() {
         Unk_239a418_Ref<Unk_23b8280> object = Unk_LockOrNone<Unk_23b8280>(field_150[i]);
         if (object.m_ptr == nullptr || !object.m_ptr->field_61)
             continue;
-        Unk_23b7ee8_Peer station = object.m_ptr->field_88;
+        const Unk_23b7ee8_Peer& station = object.m_ptr->field_88;
+        u64 stationId = station.field_0;
+        u8 clientId = station.field_8;
         Unk_23b7ee8_Peer& entry = field_190.field_0[i];
-        if (entry.field_a)
-            continue;
-        entry.field_8 = station.field_8;
-        entry.field_0 = station.field_0;
-        entry.field_9 = station.field_9;
-        entry.field_a = true;
-        if (station.field_9 > field_190.field_80) {
-            field_190.field_80 = station.field_9;
-            field_a0.Unk_898380(station.field_0, station.field_8);
+        if (!entry.field_a) {
+            u8 version = station.field_9;
+            entry.field_8 = clientId;
+            entry.field_0 = stationId;
+            entry.field_9 = version;
+            entry.field_a = true;
+            if (version > field_190.field_80)
+                field_190.field_80 = version;
         }
+        field_a0.Unk_898380(stationId, clientId);
     }
     field_190.Unk_897640();
 }
