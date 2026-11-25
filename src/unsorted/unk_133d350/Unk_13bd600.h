@@ -29,7 +29,10 @@ struct __attribute__((packed)) Unk_13bd600_Script {
 PKMN_OFFSET_ASSERT(Unk_13bd600_Script, field_84, 0x84);
 
 // 0x71013b12d0: the hash (FNV-1a) of the script's string at `address`.
-u64 Unk_13b12d0(Unk_13bd600_Script* self, s64 address);
+// Named by unit u13b0640 with the script commands' first parameter type of
+// src/field/content/Unk_13f1360.h (Unk_66efd0).
+struct Unk_66efd0;
+u64 Unk_13b12d0(Unk_66efd0* self, s64 address);
 
 // The manager's own virtual functions (Unk_13f1360_Manager starts with a
 // vptr).
