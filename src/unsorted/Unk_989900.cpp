@@ -272,7 +272,7 @@ void Unk_8ec490_set(Unk_8ec490* self, u64 value, u64 arg2, u32 arg3, bool arg4, 
 u8 Unk_8ec4c0_getField42(const Unk_8ec4c0* self);
 void Unk_8ec510_set(Unk_8ec510* self, u64 value, u32 arg2, bool arg3, u64 arg4);
 u8 Unk_8ec540_getField3a(const Unk_8ec540* self);
-void Unk_8ec910(u64 self, u64 arg1, u64 arg2, u64 arg3, u64 arg4, u64 arg5);
+void Unk_8ec910(u64 self, u8 arg1, u8 arg2, u8 arg3, u8 arg4, u8 arg5);
 
 // 0x7100989fd0
 void Unk_989fd0(Unk_23c4ef0_Scene* scene, u64 arg1, u64 arg2, u32 arg3, bool arg4, u64 arg5) {
@@ -298,9 +298,6 @@ u8 Unk_98a0a0(Unk_23c4ef0_Scene* scene) {
         reinterpret_cast<const Unk_8ec540*>(Unk_989900_Sub38(scene, 0x430)));
 }
 
-// NON_MATCHING: 0x71008ec910 takes the five bytes as bytes, which its name
-// (_Z10Unk_8ec910mmmmmm) gives as u64: clang extends them. With the bytes
-// passed as they are this matches. See the unit's report.
 // 0x710098a0c0
 void Unk_98a0c0(Unk_23c4ef0_Scene* scene, u8 arg1, u8 arg2, u8 arg3, u8 arg4, u8 arg5) {
     Unk_8ec910(reinterpret_cast<u64>(Unk_989900_Sub38(scene, 0xe0)), arg1, arg2, arg3, arg4, arg5);
