@@ -201,8 +201,6 @@ s64 Unk_13f2190_call(Unk_66efd0* self, const Unk_13f1360_Args* args) {
     return 1;
 }
 
-// NON_MATCHING: matches but for the type getter's name: 0x71013f6d80 is named
-// _Z11Unk_13f6d80Pv (a void* it doesn't take), this calls it with nothing.
 // 0x71013f21e0
 s64 Unk_13f21e0_call(Unk_66efd0* self, const Unk_13f1360_Args* args) {
     Unk_13f6d80_Object* object = FindRotating(args->field_8);
@@ -212,8 +210,6 @@ s64 Unk_13f21e0_call(Unk_66efd0* self, const Unk_13f1360_Args* args) {
     return vgetq_lane_f32(object->Unk_d05a80(), 0);
 }
 
-// NON_MATCHING: matches but for the type getter's name: 0x71013f6d80 is named
-// _Z11Unk_13f6d80Pv (a void* it doesn't take), this calls it with nothing.
 // 0x71013f22c0
 s64 Unk_13f22c0_call(Unk_66efd0* self, const Unk_13f1360_Args* args) {
     Unk_13f6d80_Object* object = FindRotating(args->field_8);
