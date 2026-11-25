@@ -5,6 +5,10 @@
 // N2nn3nex13MethodCallJobINS0_19CallContextRegisterEiNS0_11PeriodicJobEEE,
 // declared by lib/nx_middleware/class: written here as free functions over its
 // layout), and the destroy function of a tree.
+#include <map>
+
+#include <nn/nex/InstanceTable.h>
+#include <nn/nex/qList.h>
 #include <nn/nex/qVector.h>
 
 #include "Unk_15d48b0.h"
@@ -73,3 +77,83 @@ PKMN_OFFSET_ASSERT(Unk_15d4f00, m_arg, 0x80);
 void Unk_15d4f00(Unk_15d4f00* self) {
     (self->m_object->*self->m_method)(self->m_arg);
 }
+
+// 0x71015beab0: the calling thread's ID.
+u64 Unk_15beab0();
+
+// A critical section, held for the scope.
+class Unk_15d5220_Lock {
+public:
+    explicit Unk_15d5220_Lock(nn::nex::CriticalSection* cs) : m_cs(cs) { m_cs->vf2(); }
+    ~Unk_15d5220_Lock() { m_cs->vf4(); }
+
+private:
+    nn::nex::CriticalSection* m_cs;
+};
+
+namespace nn {
+namespace nex {
+
+// N2nn3nex18ThreadVariableRootE (lib/nx_middleware/class declares only its
+// slots 2 to 4, empty).
+class ThreadVariableRoot : public RootObject {
+public:
+    // 0x71015be820
+    ~ThreadVariableRoot() override;
+    virtual void vf2();
+    virtual void vf3();
+    virtual void vf4(u64 threadId);
+
+    u8 _8[0x10];
+};
+PKMN_SIZE_ASSERT(ThreadVariableRoot, 0x18);
+
+// N2nn3nex14ThreadVariableINS0_5qListINS0_15SecurityContextEEEEE: a value per
+// thread, by thread ID, under a critical section.
+template <class T>
+class ThreadVariable : public ThreadVariableRoot {
+public:
+    ~ThreadVariable() override;
+
+    // Forgets every thread's value.
+    void vf2() override {
+        Unk_15d5220_Lock lock(&m_cs);
+        while (m_values.size() != 0) {
+            m_values.erase(m_values.begin());
+        }
+    }
+
+    // Forgets the calling thread's value.
+    void vf3() override {
+        Unk_15d5220_Lock lock(&m_cs);
+        auto it = m_values.find(Unk_15beab0());
+        if (it != m_values.end()) {
+            m_values.erase(it);
+        }
+    }
+
+    // Forgets a thread's value.
+    void vf4(u64 threadId) override {
+        Unk_15d5220_Lock lock(&m_cs);
+        auto it = m_values.find(threadId);
+        if (it != m_values.end()) {
+            m_values.erase(it);
+        }
+    }
+
+    T m_default;
+    CriticalSection m_cs;
+    u8 _38[0x40];
+    std::map<u64, T, std::less<u64>, MemAllocator<std::pair<const u64, T>>> m_values;
+};
+PKMN_OFFSET_ASSERT(ThreadVariable<qList<SecurityContext>>, m_default, 0x18);
+PKMN_OFFSET_ASSERT(ThreadVariable<qList<SecurityContext>>, m_cs, 0x30);
+PKMN_OFFSET_ASSERT(ThreadVariable<qList<SecurityContext>>, m_values, 0x78);
+
+// 0x71015d5220, 0x71015d5290, 0x71015d5320
+template void ThreadVariable<qList<SecurityContext>>::vf2();
+template void ThreadVariable<qList<SecurityContext>>::vf3();
+template void ThreadVariable<qList<SecurityContext>>::vf4(u64 threadId);
+
+}  // namespace nex
+}  // namespace nn
