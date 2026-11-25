@@ -47,7 +47,7 @@ u8 Unk_8ec930_getField2d(const Unk_8ec930* self);
 u16 Unk_8ec940_getField26(const Unk_8ec940* self);
 u8 Unk_8ec950_getField28(const Unk_8ec950* self);
 u8 Unk_8ec960_getField29(const Unk_8ec960* self);
-void Unk_8ec970();
+void Unk_8ec970(void* self);
 
 // 0x710098a120
 u8 Unk_98a120(const Unk_23c4ef0_Scene* scene) {
@@ -73,13 +73,9 @@ u8 Unk_98a180(const Unk_23c4ef0_Scene* scene) {
         reinterpret_cast<const Unk_8ec960*>(Unk_98a120_Sub38(scene, 0xe0)));
 }
 
-// NON_MATCHING: the original passes the +0xe0 object on to 0x71008ec970,
-// whose placeholder name (_Z10Unk_8ec970v) has no parameter: see the unit's
-// report.
 // 0x710098a1a0
 void Unk_98a1a0(const Unk_23c4ef0_Scene* scene) {
-    Unk_98a120_Sub38(scene, 0xe0);
-    Unk_8ec970();
+    Unk_8ec970(Unk_98a120_Sub38(scene, 0xe0));
 }
 
 struct Unk_8eace0;
@@ -112,14 +108,10 @@ void Unk_98a250(const Unk_23c4ef0_Scene* scene, u64 arg1, bool arg2) {
     Unk_938aa0_call(Unk_98a120_Sub58(scene), arg1, arg2);
 }
 
-void Unk_938c90(u64 self, u64 arg1, u64 arg2, u32 arg3);
+void Unk_938c90(u64 self, u8 arg1, u32 arg2, bool arg3);
 
-// NON_MATCHING: the original passes its first argument on unextended and
-// tests the last as a bool (0x7100938c90 takes a u8 and a bool): the
-// placeholder names (this one's u32, _Z10Unk_938c90mmmj) don't have them. See
-// the unit's report.
 // 0x710098a290
-void Unk_23c4ef0_Scene::Unk_98a290(u8 arg1, u32 arg2, u32 arg3) {
+void Unk_23c4ef0_Scene::Unk_98a290(u8 arg1, u32 arg2, bool arg3) {
     Unk_938c90(reinterpret_cast<u64>(Unk_98a120_Sub58(this)), arg1, arg2, arg3);
 }
 
@@ -132,7 +124,7 @@ void Unk_98a2e0(const Unk_23c4ef0_Scene* scene, u64 arg1) {
 
 void Unk_938d10(u64 self, u64 arg1, u64 arg2);
 void Unk_938d80(u64 self, u64 arg1, u64 arg2);
-void Unk_938df0(u64 self, u64 arg1, u64 arg2, u32 arg3);
+void Unk_938df0(u64 self, u32 arg1, u32 arg2, bool arg3);
 
 // 0x710098a310
 void Unk_98a310(const Unk_23c4ef0_Scene* scene, u32 arg1, u64 arg2) {
@@ -144,10 +136,6 @@ void Unk_98a350(const Unk_23c4ef0_Scene* scene, u32 arg1, u64 arg2) {
     Unk_938d80(reinterpret_cast<u64>(Unk_98a120_Sub58(scene)), arg1, arg2);
 }
 
-// NON_MATCHING: 0x7100938df0 takes a bool (it tests it with `and #1`),
-// which its placeholder name (_Z10Unk_938df0mmmj) gives as a u32: the
-// conversion is scheduled after the other arguments' moves. See the unit's
-// report.
 // 0x710098a390
 void Unk_98a390(const Unk_23c4ef0_Scene* scene, u32 arg1, u32 arg2, bool arg3) {
     Unk_938df0(reinterpret_cast<u64>(Unk_98a120_Sub58(scene)), arg1, arg2, arg3);
