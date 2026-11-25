@@ -43,9 +43,7 @@ bool Unk_800680(const Unk_23ac958* self, u8 index, u8 row, u8 bit) {
 }
 
 // 0x71008006e0
-// NON_MATCHING: the original takes both arguments as u8s (it extends them at
-// each use); the existing name gives u32s. With (void*, u8, u8) it matches.
-void Unk_8006e0(void* object, u32 arg1, u32 arg2) {
+void Unk_8006e0(void* object, u8 arg1, u8 arg2) {
     Unk_23ac958* self = static_cast<Unk_23ac958*>(object);
     u8 index = arg1;
     u8 bit = arg2;

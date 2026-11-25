@@ -47,8 +47,6 @@ bool Unk_98a4e0(u64 scene, Unk_8ec6b0_Out* out) {
     return Unk_8ec6b0_get(reinterpret_cast<Unk_8ec680*>(Unk_98a420_Sub470(scene)), out);
 }
 
-// NON_MATCHING: the callee's placeholder name (_Z10Unk_8ec6f0v) has no
-// parameter, and the original passes it the object: see the unit's report.
 // 0x710098a510
 void Unk_98a510(u64 scene) {
     Unk_8ec6f0(reinterpret_cast<Unk_8ec680*>(Unk_98a420_Sub470(scene)));

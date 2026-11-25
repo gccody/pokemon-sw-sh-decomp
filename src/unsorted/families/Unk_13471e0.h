@@ -200,7 +200,7 @@ PKMN_OFFSET_ASSERT(Unk_2431940, field_48, 0x48);
 
 // What Unk_2431910::Unk_1346860 returns.
 struct Unk_1346860_Result {
-    bool field_0;
+    u8 field_0;
     u64 field_8;
 };
 
