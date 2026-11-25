@@ -22,10 +22,6 @@ nn::nex::String* Unk_15bb6c0(nn::nex::String* self, const char* str);
 class Unk_15b2f20 : public nn::nex::RootObject {
 public:
     Unk_15b2f20() : m_version(0) {}
-    // The factories null-check what `new` returns, so NEX's allocation is
-    // non-throwing: RootObject's (include/nn/nex/RootObject.h, shared) is
-    // declared without throw(), so the classes here declare their own.
-    static void* operator new(size_t size) throw() { return Unk_15b6dc0(size); }
     ~Unk_15b2f20() override {}
     virtual Unk_15b2f20* vf2() const;
     virtual nn::nex::String vf3() const;
