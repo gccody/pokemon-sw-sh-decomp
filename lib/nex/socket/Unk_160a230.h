@@ -36,6 +36,9 @@ inline T& Unk_160a230_Get(nn::nex::PseudoGlobalVariable<T>& var) {
 
 // What an end point's slot 2 gives a stream: a byte and 24 bits of flags.
 struct Unk_160a350_Info {
+    Unk_160a350_Info() : m_value(0), m_flags(0) {}
+    explicit Unk_160a350_Info(u8 value) : m_value(value), m_flags(0) {}
+
     u32 m_value : 8;
     u32 m_flags : 24;
 };

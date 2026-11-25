@@ -49,11 +49,9 @@ u32 PRUDPStreamTemplateImp::vf5(u64 arg1, u64 arg2, u64 arg3, Unk_160a230_Messag
 PRUDPEndPointTemplateImp::~PRUDPEndPointTemplateImp() {}
 
 // 0x710160a350
-// NON_MATCHING: the value's store after the lookup is a byte store (strb) here and
-// a word store (str) in the original, which doesn't reload the zeroed word.
 void PRUDPEndPointTemplateImp::vf2(Unk_160a350_Info* info, u16* arg2) {
     *info = Unk_160a350_Info();
-    info->m_value = Unk_160a230_Get(Unk_27f9070);
+    *info = Unk_160a350_Info(Unk_160a230_Get(Unk_27f9070));
     info->m_flags = Unk_24517d0;
     if ((field_8 != 2 && field_8 != 10) || Unk_160a230_Get(Unk_27f3b38[field_8]).field_fc != 2) {
         info->m_flags &= ~1u;
@@ -147,10 +145,9 @@ bool PRUDPStreamTemplatePRUDPLiteImp::vf6(Unk_160a230_Message* message, u64 arg2
 PRUDPEndPointTemplatePRUDPLiteImp::~PRUDPEndPointTemplatePRUDPLiteImp() {}
 
 // 0x710160a770
-// NON_MATCHING: as 0x710160a350, the value's store is strb here and str there.
 void PRUDPEndPointTemplatePRUDPLiteImp::vf2(Unk_160a350_Info* info, u16* arg2) {
     *info = Unk_160a350_Info();
-    info->m_value = Unk_160a230_Get(Unk_27f9090);
+    *info = Unk_160a350_Info(Unk_160a230_Get(Unk_27f9090));
     info->m_flags = Unk_27f90b0;
     *arg2 = 0;
 }
