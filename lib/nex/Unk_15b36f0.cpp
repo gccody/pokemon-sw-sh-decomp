@@ -98,3 +98,46 @@ void Unk_15b3a60(const Unk_15b2f20* self, nn::nex::ByteStream* s) {
 void Unk_15b3a70(Unk_15b2f20* self, nn::nex::ByteStream* s) {
     Unk_15b2f20_read(s, *self);
 }
+
+namespace nn {
+namespace nex {
+
+// N2nn3nex10StationURLE (0x70 bytes): 0x71015e9650 constructs one,
+// 0x71015e9870 copies one, 0x71015e9a40 is its D2.
+class StationURL : public RootObject {
+public:
+    StationURL();
+    StationURL(const StationURL& other);
+    virtual ~StationURL();
+    u8 _8[0x68];
+};
+PKMN_SIZE_ASSERT(StationURL, 0x70);
+
+}  // namespace nex
+}  // namespace nn
+
+// Whether `size` bytes are left to read; the error flag otherwise.
+static inline bool Unk_HasLeft(nn::nex::ByteStream* s, size_t size) {
+    if (s->m_buffer->m_size - s->m_pos < size) {
+        s->m_error = true;
+        return false;
+    }
+    return true;
+}
+
+// 0x71015b3a80: a list of StationURLs, which 0x710162d5a0 reads (as the stream
+// generator's placeholder for them, Unk_162d5a0).
+void Unk_15b3a80_read(nn::nex::ByteStream* s, nn::nex::qList<nn::nex::StationURL>& v) {
+    v.clear();
+    u32 count;
+    ReadField(s, count);
+    if (!Unk_HasLeft(s, count) || count >= 0x10000) {
+        s->m_error = true;
+        return;
+    }
+    for (u32 i = 0; i < count; i++) {
+        nn::nex::StationURL url;
+        Unk_162d5a0_read(s, reinterpret_cast<Unk_162d5a0&>(url));
+        v.push_back(url);
+    }
+}
