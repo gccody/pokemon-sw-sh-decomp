@@ -64,13 +64,20 @@ public:
     ~Unk_245e0f8() override;
 };
 
-class Unk_245fa38 {
+namespace nn {
+namespace pia {
+namespace session {
+// RTTI N2nn3pia7session31ClearMatchmakeSystemPasswordJobE
+class ClearMatchmakeSystemPasswordJob {
 public:
-    Unk_245fa38();
-    virtual ~Unk_245fa38();
+    ClearMatchmakeSystemPasswordJob();
+    virtual ~ClearMatchmakeSystemPasswordJob();
 };
+}  // namespace session
+}  // namespace pia
+}  // namespace nn
 
-class Unk_245e168 : public Unk_245fa38 {
+class Unk_245e168 : public nn::pia::session::ClearMatchmakeSystemPasswordJob {
 public:
     Unk_245e168();
     ~Unk_245e168() override;
@@ -94,13 +101,20 @@ public:
 };
 PKMN_OFFSET_ASSERT(Unk_245e268, field_98, 0x98);
 
-class Unk_245faa8 {
+namespace nn {
+namespace pia {
+namespace session {
+// RTTI N2nn3pia7session34GenerateMatchmakeSystemPasswordJobE
+class GenerateMatchmakeSystemPasswordJob {
 public:
-    Unk_245faa8();
-    virtual ~Unk_245faa8();
+    GenerateMatchmakeSystemPasswordJob();
+    virtual ~GenerateMatchmakeSystemPasswordJob();
 };
+}  // namespace session
+}  // namespace pia
+}  // namespace nn
 
-class Unk_245e2e8 : public Unk_245faa8 {
+class Unk_245e2e8 : public nn::pia::session::GenerateMatchmakeSystemPasswordJob {
 public:
     Unk_245e2e8();
     ~Unk_245e2e8() override;

@@ -26,17 +26,17 @@ bool Unk_1749cf0::Unk_1749e70(const Unk_1749cf0& other) const {
 
 // 0x7101749f00
 void Unk_1749cf0::Unk_1749f00(const Unk_1652c70& value) {
-    field_8.Unk_1652cf0(value);
+    field_8 = value;
 }
 
 // 0x7101749f10
 void Unk_1749cf0::Unk_1749f10(const Unk_1652c70& value) {
-    field_28.Unk_1652cf0(value);
+    field_28 = value;
 }
 
 // 0x7101749f20
 void Unk_1749cf0::Unk_1749f20(const Unk_1652c70& value) {
-    field_48.Unk_1652cf0(value);
+    field_48 = value;
 }
 
 // 0x7101749f60

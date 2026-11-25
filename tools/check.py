@@ -85,7 +85,8 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import BASE, ROOT, VERSIONS, Function, load_module, nso_path, read_functions_csv, write_functions_csv  # noqa: E402
+from common import (BASE, ROOT, VERSIONS, AreaMap, Function, load_module, nso_path,  # noqa: E402
+                    read_areas_csv, read_functions_csv, write_functions_csv)
 from nx.module import DynInfo  # noqa: E402
 from nx.nso import Nso  # noqa: E402
 from nx.refs import decode, ldst_scale  # noqa: E402
@@ -830,26 +831,43 @@ def tu_spans(compiled: dict[str, CompiledFunc], by_name: dict[str, Function],
     return spans
 
 
-def kept_copy(cf: CompiledFunc, addr: int, spans: dict[str, tuple[int, int]]) -> CompiledFunc | None:
+def kept_copy(cf: CompiledFunc, addr: int, spans: dict[str, tuple[int, int]],
+              area_of=None) -> CompiledFunc | None:
     """The copy of a weak/COMDAT function with differing copies that the
     executable shows the linker kept, or None if it doesn't show it.
 
     The linker keeps one copy and places it among the code of the TU it took
     it from. So when the original at `addr` lies inside the span (tu_spans) of
-    TUs that emit only one of the copies, that's the copy in the executable."""
+    TUs that emit only one of the copies, that's the copy in the executable.
+    Failing that, with `area_of` (address -> data/areas.csv area): the copy
+    whose TUs are the only ones with code in the original's area (a library
+    built with other flags emits a copy that differs, which the linker then
+    drops)."""
     if not cf.variants:
         return None
     holders = [c for c in cf.copies()
                if any(s in spans and spans[s][0] <= addr <= spans[s][1] for s in c.sources())]
+    if len(holders) == 1:
+        return holders[0]
+    if area_of is None or holders:
+        return None
+    area = area_of(addr)
+    if area is None:
+        return None
+    holders = [c for c in cf.copies()
+               if any(s in spans and area_of(spans[s][0]) == area == area_of(spans[s][1])
+                      for s in c.sources())]
     return holders[0] if len(holders) == 1 else None
 
 
 def compare_copies(cf: CompiledFunc, fn: Function, orig: Original, syms,
                    verbose_name, paths: SourcePaths | None = None,
-                   spans: dict[str, tuple[int, int]] | None = None) -> list[tuple[CompiledFunc, Result]]:
+                   spans: dict[str, tuple[int, int]] | None = None,
+                   area_of=None) -> list[tuple[CompiledFunc, Result]]:
     """compare() for every distinct copy of a function (one unless weak/COMDAT
-    copies differ), or only for the one the linker kept if `spans` show it."""
-    kept = kept_copy(cf, fn.addr(orig.version), spans) if spans else None
+    copies differ), or only for the one the linker kept if `spans` (and the
+    areas, `area_of`) show it."""
+    kept = kept_copy(cf, fn.addr(orig.version), spans, area_of) if spans else None
     if kept is not None:
         res = compare(kept, fn, orig, syms, verbose_name, paths)
         others = ", ".join(c.source for c in cf.copies() if c is not kept)
@@ -1020,6 +1038,7 @@ def main() -> int:
     # or destructor (C1/D1) reaches the row of the base one (C2/D2) it aliases.
     syms = (with_aliases(by_name, compiled.values()), *syms[1:])
     spans = {v: tu_spans(compiled[v], by_name, v) for v in VERSIONS}
+    area_maps = {v: AreaMap(read_areas_csv(), v).area_of for v in VERSIONS}
 
     wanted = None
     if args.names:
@@ -1080,7 +1099,7 @@ def main() -> int:
             if cf is None:
                 results[v] = Result(False, [f"not compiled in the {v} build (missing #if branch?)"])
                 continue
-            per_copy[v] = compare_copies(cf, fn, origs[v], syms, dm, paths, spans[v])
+            per_copy[v] = compare_copies(cf, fn, origs[v], syms, dm, paths, spans[v], area_maps[v])
             results[v] = merge_results(per_copy[v])
         ok = all(r.ok for r in results.values())
         tag = "OK " if ok else "BAD"

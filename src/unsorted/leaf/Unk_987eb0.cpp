@@ -134,7 +134,7 @@ struct Unk_98a7e0 {
 PKMN_OFFSET_ASSERT(Unk_98a7e0, field_38, 0x38);
 
 u64 Unk_98ab90(u64);
-void Unk_8ea3b0(u64, u32);
+void Unk_8ea3b0(u64, bool);
 
 // 0x710098a7e0
 void Unk_98a7e0_call(const Unk_98a7e0* self) {

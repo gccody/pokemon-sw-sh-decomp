@@ -3204,14 +3204,14 @@ void Unk_879680_call(void* self, u64 value) {
     Unk_879590(self, value, 4);
 }
 
-void Unk_87a210(void*, u32);
+void Unk_87a210(void*, u8);
 
 // 0x710087a1b0
 void Unk_87a1b0_call(void* self, u32 value) {
     Unk_87a210(self, value);
 }
 
-void Unk_87a7b0(void*, u32);
+void Unk_87a7b0(void*, u8);
 
 // 0x710087a750
 void Unk_87a750_call(void* self, u32 value) {

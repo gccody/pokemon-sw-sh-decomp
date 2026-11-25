@@ -51,7 +51,7 @@ static inline Unk_7ecc90_Con* Unk_81b200_Con(const Unk_819600_Self* self) {
 }
 
 // 0x710081b230
-void Unk_81b230(void* arg, u32 pokeId) {
+void Unk_81b230(void* arg, u8 pokeId) {
     const Unk_819600_Self* self = static_cast<const Unk_819600_Self*>(arg);
     if (Unk_7f0b70_check(
             reinterpret_cast<const Unk_7f0b70*>(Unk_7ed1e0(Unk_81b200_Con(self), pokeId))))
@@ -162,8 +162,8 @@ bool Unk_81b6e0(const Unk_819600_Self* self, u8 pokeId) {
     return false;
 }
 
-// 0x710081b750
-bool Unk_81b750(const Unk_819600_Self* self) {
+// 0x710081b750: its callers pass the Pokemon's id too (unused here).
+bool Unk_81b750(const Unk_819600_Self* self, u8 /*pokeId*/) {
     if (Unk_7ebab0(Unk_7e9830(self->field_30, 0x12)) && Unk_7e97b0(self->field_30, 0x47, 1))
         return true;
     return false;

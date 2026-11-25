@@ -381,10 +381,10 @@ PKMN_OFFSET_ASSERT(Unk_15bbd10, field_8, 0x8);
 PKMN_OFFSET_ASSERT(Unk_15bbd10, field_10, 0x10);
 
 // 0x71015bbd10
-void Unk_15bbd10_set(Unk_15bbd10* self, const Unk_15bbd10_arg1* value) {
-    self->field_0 = value->field_0;
-    self->field_8 = value->field_8;
-    self->field_10 = value->field_10;
+void Unk_15bbd10_set(Unk_15bbd10* self, Unk_15bbd10_arg1 value) {
+    self->field_0 = value.field_0;
+    self->field_8 = value.field_8;
+    self->field_10 = value.field_10;
 }
 
 struct Unk_15bd7f0 {

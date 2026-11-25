@@ -303,6 +303,24 @@ def test_kept_copy_is_the_one_whose_tu_holds_the_original():
     assert check.kept_copy(_weak("a.cpp"), 0x150, spans) is None
 
 
+def test_kept_copy_falls_back_to_the_area_of_the_original():
+    # the original lies between TUs, but only a.cpp's copy comes from TUs in its area
+    first, other = _weak("a.cpp"), _weak("lib.cpp", NOP + RET)
+    first.variants.append(other)
+    spans = {"a.cpp": (0x100, 0x200), "lib.cpp": (0x800, 0x900)}
+
+    def area_of(addr):
+        return "game" if addr < 0x700 else "lib"
+
+    assert check.kept_copy(first, 0x250, spans) is None  # spans alone: no evidence
+    assert check.kept_copy(first, 0x250, spans, area_of) is first
+    assert check.kept_copy(first, 0x850, spans, area_of) is other  # inside lib.cpp's span
+    # TUs of both copies in the original's area: no evidence
+    assert check.kept_copy(first, 0x250, spans | {"lib.cpp": (0x300, 0x400)}, area_of) is None
+    # an address outside every area: none
+    assert check.kept_copy(first, 0x250, spans, lambda a: None) is None
+
+
 def test_compare_copies_compares_only_the_kept_copy(monkeypatch):
     first, other = _weak("a.cpp"), _weak("b.cpp", NOP + RET)
     first.variants.append(other)

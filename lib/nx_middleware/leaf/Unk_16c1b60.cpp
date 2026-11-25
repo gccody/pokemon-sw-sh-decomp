@@ -23,23 +23,6 @@ void Unk_16c1b60_set(Unk_16c1b60* self, u32 value) {
 void Unk_16c1b80_update(u64 /*unused*/, void* /*unused*/) {
 }
 
-struct Unk_16c1b90 {
-    u64 field_0;
-    u8 field_8;
-};
-PKMN_OFFSET_ASSERT(Unk_16c1b90, field_0, 0x0);
-PKMN_OFFSET_ASSERT(Unk_16c1b90, field_8, 0x8);
-
-// 0x71016c1b90
-void Unk_16c1b90_set(Unk_16c1b90* self) {
-    self->field_0 = 0;
-    self->field_8 = 0;
-}
-
-// 0x71016c1ba0
-void Unk_16c1ba0_update(u64 /*unused*/) {
-}
-
 struct Unk_16c1c00_arg1 {
     u64 field_0;
 };
