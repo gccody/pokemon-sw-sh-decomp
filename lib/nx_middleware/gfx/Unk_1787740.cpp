@@ -2,6 +2,86 @@
 // NintendoSDK_gfx 7.3.2 for NVN: its SDK MW tag and the image format queries. Placeholder names (gfx.h).
 #include "nx_middleware/gfx/gfx.h"
 
+// Info structs and the defaults their initialisers set. Only the stores are
+// known, so the field types follow their widths.
+struct Unk_17876c0_Info {
+    u32 field_0;
+    u32 field_4;
+    u32 field_8;
+    u32 field_c;
+    u32 field_10;
+    u32 field_14;
+    u16 field_18;
+    u32 field_1c;
+    u32 field_20;
+};
+PKMN_OFFSET_ASSERT(Unk_17876c0_Info, field_18, 0x18);
+PKMN_OFFSET_ASSERT(Unk_17876c0_Info, field_1c, 0x1c);
+PKMN_SIZE_ASSERT(Unk_17876c0_Info, 0x24);
+
+struct Unk_17876e0_Info {
+    u64 field_0;
+    u64 field_8;
+    u64 field_10;
+    u32 field_18;
+    u32 field_1c;
+    u32 field_20;
+    u16 field_24;
+    u32 field_28;
+    u32 field_2c;
+};
+PKMN_OFFSET_ASSERT(Unk_17876e0_Info, field_24, 0x24);
+PKMN_OFFSET_ASSERT(Unk_17876e0_Info, field_28, 0x28);
+PKMN_SIZE_ASSERT(Unk_17876e0_Info, 0x30);
+
+struct Unk_1787710_Info {
+    void* field_0;
+    void* field_8;
+    u8 _10[0x2000];
+    u8 field_2010;
+    Unk_1787ac0_Flags field_2011;
+    u8 _2012[0xe];
+    u64 field_2020;
+};
+PKMN_OFFSET_ASSERT(Unk_1787710_Info, field_2010, 0x2010);
+PKMN_OFFSET_ASSERT(Unk_1787710_Info, field_2020, 0x2020);
+PKMN_SIZE_ASSERT(Unk_1787710_Info, 0x2028);
+
+// 0x71017876c0
+void Unk_17876c0(Unk_17876c0_Info* self) {
+    self->field_0 = 0;
+    self->field_4 = 0;
+    self->field_8 = 0;
+    self->field_c = 1;
+    self->field_10 = 1;
+    self->field_14 = 1;
+    self->field_18 = 0;
+    self->field_1c = 0;
+    self->field_20 = 1;
+}
+
+// 0x71017876e0
+void Unk_17876e0(Unk_17876e0_Info* self) {
+    self->field_0 = 0;
+    self->field_8 = 0;
+    self->field_10 = 0;
+    self->field_18 = 1;
+    self->field_1c = 1;
+    self->field_20 = 1;
+    self->field_24 = 0;
+    self->field_28 = 0;
+    self->field_2c = 1;
+}
+
+// 0x7101787710
+void Unk_1787710(Unk_1787710_Info* self, void* second, void* first) {
+    self->field_2010 = 1;
+    self->field_2011.Set(1, true);
+    self->field_2020 = 0;
+    self->field_0 = first;
+    self->field_8 = second;
+}
+
 // 0x7101787740
 void Unk_1787740() {
     nn::util::ReferSymbol("SDK MW+Nintendo+NintendoSDK_gfx-7_3_2-Release");
