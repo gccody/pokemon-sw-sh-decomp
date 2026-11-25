@@ -3,6 +3,10 @@
 // its destructors, the slots that show it, what it shows for a selection and
 // the callable its selection calls. Placeholder names: rename once the class
 // is known.
+#include <algorithm>
+#include <new>
+#include <utility>
+
 #include "unsorted/unk_8bf520/Unk_8e7dd0.h"
 
 struct Unk_14abe00_Parts;
@@ -58,7 +62,7 @@ PKMN_OFFSET_ASSERT(Unk_8e7f30_Entry, field_150, 0x150);
 Unk_8e7f30_Entry* Unk_e83e60(Unk_23f4760* self, const u64& key);
 
 // "Unk_23bcd08": a name of 21 characters.
-extern const Unk_5cfad0_Literal Unk_23bcd08;
+extern const Unk_5cfad0_Literal Unk_23bcd08 __attribute__((visibility("hidden")));
 
 // The callable's other functions (src/unsorted/leaf/Unk_8e6770.cpp).
 struct Unk_8e85c0;
@@ -71,6 +75,10 @@ void Unk_8e85d0_set(const Unk_8e85d0* self, Unk_8e85d0* value)
     __attribute__((visibility("hidden")));
 
 // 0x71008e7dd0
+// NON_MATCHING: Unk_1315b90's name (_Z11Unk_1315b90Pvmmjjj) gives its second
+// and third parameters as u64: the original passes u32s (mov w1, wzr; the
+// callee reads w1 and w2), and the value's register differs. Declared with
+// u32s, this matches.
 void Unk_23bcc08::Unk_8e7dd0(u32 value) {
     Unk_239a418_Ref<Unk_8e7dd0_Parts> parts = Unk_8e7dd0_GetParts(this);
     Unk_239a418_Ref<Unk_239a418> a = parts.m_ptr->field_2e8;
@@ -92,12 +100,16 @@ void Unk_23bcc08::Unk_8e7dd0(u32 value) {
 }
 
 // 0x71008e7f30
+// NON_MATCHING: the original keeps the callable's and its storage's addresses
+// in registers (x24, x23) across the dispose call and stores the closure
+// before the four functions; this folds them into the entry's offsets and
+// pairs the stores in another order.
 void Unk_23bcc08::Unk_8e7f30(const u64& key, u32 value, const u64& arg) {
     Unk_8e7f30_Entry* entry = Unk_e83e60(&field_100, key);
     if (entry == nullptr)
         return;
-    entry->field_150.Set(this, value, &Unk_8e8560, &Unk_8e85b0_update, &Unk_8e85c0_set,
-                         &Unk_8e85d0_set);
+    entry->field_150.Set(Unk_23bcc08_Closure{this, value}, &Unk_8e8560, &Unk_8e85b0_update,
+                         &Unk_8e85c0_set, &Unk_8e85d0_set);
     entry->field_f8 = arg;
     if (arg == 0x2000000000000) {
         Unk_5cfaf0_Name name = Unk_23bcd08.Unk_5cfad0();
@@ -158,21 +170,22 @@ struct Unk_8e83d0_Args {
 void Unk_14d9790(u64 self, u32 arg1, u32 arg2, u32 arg3, u32 arg4);
 
 // 0x71008e83d0
+// NON_MATCHING: the two comparisons' results are and-ed in the other order
+// (and w9, w10, w9 in the original).
 void Unk_8e83d0(Unk_23bcc08** closure, const Unk_8e83d0_Args* args) {
     Unk_23bcc08* self = *closure;
     if (self->field_6e0.field_0 == nullptr)
         return;
-    u32 selected = args->field_0 == 0 && args->field_4 == 1;
-    self->field_6a8 = selected;
-    self->field_6e0.field_0(self->field_6e0.field_20, &selected);
+    Unk_8e83d0_Args a = *args;
+    self->field_6a8 = a.field_0 == 0 && a.field_4 == 1;
+    self->field_6e0(self->field_6a8);
     if (self->field_698 == nullptr)
         return;
     const Unk_23bcc08_Count& count =
         self->field_6a8 == 0 ? self->field_698->field_0 : self->field_698->field_10;
-    f32 ratio =
-        static_cast<f32>(count.field_8) / static_cast<f32>(count.field_4 > 1 ? count.field_4 : 1);
-    f32 gauge = ratio < 0.0f ? 0.0f : (ratio > 1.0f ? 1.0f : ratio) * 100.0f;
-    Unk_14d9790(reinterpret_cast<u64>(self->field_760.m_ptr), count.field_0 + 1,
-                static_cast<u32>(gauge), 0, 1);
+    u32 value = count.field_0 + 1;
+    f32 ratio = static_cast<f32>(count.field_8) / static_cast<f32>(std::max(count.field_4, 1));
+    Unk_14d9790(reinterpret_cast<u64>(self->field_760.m_ptr), value,
+                static_cast<u32>(std::clamp(ratio, 0.0f, 1.0f) * 100.0f), 0, 1);
     self->Unk_8e7dd0(count.field_c);
 }

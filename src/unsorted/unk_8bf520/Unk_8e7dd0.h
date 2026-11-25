@@ -5,6 +5,8 @@
 // callable it calls with the selection. Its type getter and vf_type are in
 // src/unsorted/types/Unk_8e8230.cpp. Placeholder names: rename once the class
 // is known.
+#include <new>
+
 #include <types.h>
 
 #include "unsorted/Unk_23f4660.h"
@@ -30,12 +32,21 @@ public:
         }
     }
 
-    // Holds a callable that captures a pointer and a u32.
-    template <class A, class B, class C, class D>
-    void Set(void* captured, u32 value, A invoke, B dispose, C copy, D move) {
-        Reset();
-        *reinterpret_cast<void**>(field_20) = captured;
-        *reinterpret_cast<u32*>(field_20 + 8) = value;
+    // Calls it with `value`.
+    void operator()(u32 value) { field_0(field_20, &value); }
+
+    // Holds `closure` (copied into the storage) and its functions.
+    template <class F, class A, class B, class C, class D>
+    void Set(const F& closure, A invoke, B dispose, C copy, D move) {
+        void* storage = field_20;
+        if (Dispose dispose = field_8) {
+            field_18 = nullptr;
+            field_10 = nullptr;
+            field_8 = nullptr;
+            field_0 = nullptr;
+            dispose(storage);
+        }
+        new (storage) F(closure);
         field_0 = reinterpret_cast<Invoke>(invoke);
         field_8 = reinterpret_cast<Dispose>(dispose);
         field_10 = reinterpret_cast<Copy>(copy);
@@ -59,9 +70,18 @@ struct Unk_23bcc08_Mode {
 static_assert(sizeof(Unk_23bcc08_Mode) == 0x8, "Unk_23bcc08_Mode");
 
 inline Unk_23bcc08_Mode Unk_23bcc08_ToMode(u32 value) {
-    if (value < 4)
-        return {true, value};
-    return {false, 0};
+    switch (value) {
+        case 0:
+            return {true, 0};
+        case 1:
+            return {true, 1};
+        case 2:
+            return {true, 2};
+        case 3:
+            return {true, 3};
+        default:
+            return {false, 0};
+    }
 }
 
 // What was selected: the selection and its mode.
@@ -82,9 +102,12 @@ public:
     }
 
     Unk_23bcc08_Optional& operator=(const Unk_23bcc08_Result& value) {
-        field_4 = value;
-        if (!field_0)
+        if (field_0) {
+            field_4 = value;
+        } else {
+            field_4 = value;
             field_0 = true;
+        }
         return *this;
     }
 
