@@ -350,12 +350,20 @@ s32 CTextureLuminance::Unk_4b8240(CRenderTexture* source, bool flag) {
     return 0;
 }
 
-// 0x71004b8450: the luminance from what was read back
-// NON_MATCHING: register allocation in the conversion of the colour (the
-// original keeps red, green, blue and alpha in s0 to s3 and 1/255 in s4).
-// (Round 5: all 24 orders of the four conversions with both store orders and
-// the sum from the locals or the stored fields, and the four as a loop into
-// an array: none better.)
+// an RGBA colour (whole-value operators, inline)
+struct Unk_Rgba {
+    f32 r;
+    f32 g;
+    f32 b;
+    f32 a;
+};
+
+static inline Unk_Rgba operator*(const Unk_Rgba& c, f32 s) {
+    return {c.r * s, c.g * s, c.b * s, c.a * s};
+}
+
+// 0x71004b8450: the luminance from what was read back (the colour is scaled
+// as one value: every conversion and product comes before the stores)
 s32 CTextureLuminance::Unk_4b8450(bool flag) {
     if (field_74 >= 0.0f) {
         return 0;
@@ -389,15 +397,14 @@ s32 CTextureLuminance::Unk_4b8450(bool flag) {
     if (field_74 >= 0.0f) {
         return 0;
     }
-    f32 r = field_90[2] * (1.0f / 255.0f);
-    f32 b = field_90[0] * (1.0f / 255.0f);
-    f32 a = field_90[3] * (1.0f / 255.0f);
-    f32 g = field_90[1] * (1.0f / 255.0f);
-    field_6c = b;
-    field_70 = a;
-    field_64 = r;
-    field_68 = g;
-    field_74 = r * 0.2126f + g * 0.7152f + b * 0.0722f;
+    Unk_Rgba color = {static_cast<f32>(field_90[2]), static_cast<f32>(field_90[1]), static_cast<f32>(field_90[0]),
+                      static_cast<f32>(field_90[3])};
+    color = color * (1.0f / 255.0f);
+    field_64 = color.r;
+    field_68 = color.g;
+    field_6c = color.b;
+    field_70 = color.a;
+    field_74 = color.r * 0.2126f + color.g * 0.7152f + color.b * 0.0722f;
     return 0;
 }
 
@@ -546,10 +553,14 @@ static inline CTextureLuminanceManage::Unk_Value Unk_LerpValue(const CTextureLum
 }
 
 // 0x71004b8b50
-// NON_MATCHING: scheduling and registers: the colour's address is computed
-// before the luminance object's call, &field_360[i1] isn't computed before
-// the kind test (the original addresses the history as base + index) and the
-// history indices' sums are computed in another order.
+// NON_MATCHING: scheduling only (9 instructions): the original computes
+// &field_360 before the second index's remainder and &field_360[i1] after
+// the first's; here both come right after the first. (Round 6: the colour
+// read into a local before the copy, the indices computed one after the
+// other, a reference to the newer luminance before the kind test and the
+// two interpolations of the last call in the order of their loads gave the
+// rest; a pointer to the history, a reference to the older one, the
+// reference before or after the factor: the same.)
 s32 CTextureLuminanceManage::Unk_4b8b50() {
     field_58++;
     s32 result = 0;
@@ -559,7 +570,8 @@ s32 CTextureLuminanceManage::Unk_4b8b50() {
             s32 index = field_50 % 17;
             field_74[index] = field_58;
             field_1c8[index] = field_40->Unk_GetLuminance();
-            memmove(&field_b8[index], field_40->Unk_GetColor(), sizeof(Unk_Value));
+            const f32* color = field_40->Unk_GetColor();
+            memmove(&field_b8[index], color, sizeof(Unk_Value));
             if (field_2c.field_0 == 1) {
                 f32 depth =
                     field_b8[index].field_0[1] * 255.0f / 256.0f + field_b8[index].field_0[2] * 255.0f / 65536.0f;
@@ -593,25 +605,28 @@ s32 CTextureLuminanceManage::Unk_4b8b50() {
     s32 offset2 = field_4f8 + 2;
     if (offset2 < 0)
         offset2 = 16;
+    s32 i2 = (offset2 + field_50) % 17;
     s32 offset1 = field_4f8 + 1;
     if (offset1 < 0)
         offset1 = 16;
-    s32 i2 = (offset2 + field_50) % 17;
     s32 i1 = (offset1 + field_50) % 17;
+    f32& luminance1 = field_360[i1];
     f32 t = static_cast<f32>(field_58) / static_cast<f32>(field_74[i1]);
     t = t < 0.0f ? 0.0f : std::min(t, 1.0f);
     if (field_2c.field_0 == 1) {
         f32 la = logf(field_360[i2] + 1.17549435e-38f);
-        field_60 = expf(Unk_Lerp(la, logf(field_360[i1] + 1.17549435e-38f), t)) - 1.17549435e-38f;
+        field_60 = expf(Unk_Lerp(la, logf(luminance1 + 1.17549435e-38f), t)) - 1.17549435e-38f;
         f32 lb = logf(field_3a4[i2] + 1.17549435e-38f);
         field_5c = expf(Unk_Lerp(lb, logf(field_3a4[i1] + 1.17549435e-38f), t)) - 1.17549435e-38f;
     } else {
-        field_60 = Unk_Lerp(field_360[i2], field_360[i1], t);
+        field_60 = Unk_Lerp(field_360[i2], luminance1, t);
         field_5c = Unk_Lerp(field_3a4[i2], field_3a4[i1], t);
     }
     field_64 = Unk_LerpValue(field_250[i2], field_250[i1], t);
     if (field_2c.field_0 != 1) {
-        f32 value = Unk_4b8ae0(field_60, Unk_Lerp(field_42c[i2], field_42c[i1], t), Unk_Lerp(field_3e8[i2], field_3e8[i1], t));
+        f32 c = Unk_Lerp(field_3e8[i2], field_3e8[i1], t);
+        f32 b = Unk_Lerp(field_42c[i2], field_42c[i1], t);
+        f32 value = Unk_4b8ae0(field_60, b, c);
         if (field_500 >= 0)
             field_5c = value;
     }

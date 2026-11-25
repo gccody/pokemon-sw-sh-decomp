@@ -4863,20 +4863,27 @@ namespace PPFX {
 
 // 0x7100425750: the vignette handed to the glare, and the target surface
 // (CTextureUtil::Unk_470880 is given field_a: a bool its body doesn't use)
-// NON_MATCHING: case 4's field_960 (a phi of the two loads in the original)
-// and the first select: the original selects on `uge` and keeps field_59c's
-// test a branch of its own, reusing the select's compare; here the two tests
-// are one `ccmp`. `has` set by `if`s from false gives the original's blocks.
+// NON_MATCHING: 22 instructions: case 4's field_960 (a phi of the two loads in
+// the original: the radii read after the DoF update give its tail, but
+// InstCombine sinks the second load into the `else`, so no PRE); field_59c's
+// test, which the original keeps a branch of its own reusing the select's
+// compare (here one `ccmp`); case 2's `has`, which the original computes as
+// values (`(940 != 0) | (944 != 0)` and `cset hi` for case 3), but as values
+// the `if (has)` block is laid out elsewhere. What decided the rest: the
+// select on `keep = !(x < 0)` (`uge`), the radii read into locals after the
+// DoF update, `||` for 940/944.
 // Tried for the select: `x < 0 ? 1 : x`, an `if` from field_91c, a shared
 // `negative` flag, the field_59c test outside (nested `if`s), an if/else
-// with the default in the else, the scale test outside.
+// with the default in the else, the scale test outside; for `has`: values
+// in every arrangement of the `if`s.
 s32 CPostEffect::Unk_425750() {
     Unk_42a0f0();
     Unk_428220();
     UpdateParameters_Base();
-    f32 scale = field_91c >= 0.0f ? field_91c : 1.0f;
+    bool keep = !(field_91c < 0.0f);
+    f32 scale = keep ? field_91c : 1.0f;
     f32 falloff = field_920;
-    if (field_59c && field_91c < 0.0f) {
+    if (field_59c && !keep) {
         scale = (field_8c8 & 0xffff) == 8 ? 0.0f : 0.85f;
     }
     reinterpret_cast<CRenderGlare*>(field_198)->Unk_4534f0(field_6d0, field_6d4, field_6d8);
@@ -4904,7 +4911,7 @@ s32 CPostEffect::Unk_425750() {
         field_198->field_18c = true;
         bool has = false;
         if (field_918 == 2) {
-            if (!(field_93c <= 0.0f) && field_948 != 0.0f && ((field_940 != 0.0f) | (field_944 != 0.0f))) {
+            if (!(field_93c <= 0.0f) && field_948 != 0.0f && (field_940 != 0.0f || field_944 != 0.0f)) {
                 has = true;
             }
         } else if (!(field_950 <= 0.0f)) {
@@ -4939,6 +4946,8 @@ s32 CPostEffect::Unk_425750() {
         if (field_104f && field_1a0->field_3a8) {
             reinterpret_cast<CDepthOfField*>(field_1a0)->Unk_4b5ae0();
         }
+        f32 inner = field_95c;
+        f32 outer = field_960;
         f32 near;
         f32 far;
         if (radius < 0.0f) {
@@ -4946,8 +4955,8 @@ s32 CPostEffect::Unk_425750() {
             far = -1.0f;
         } else {
             f32 k = 0.41421357f / ((field_6d0 - 0.41421357f) * field_920 + 0.41421357f);
-            f32 inner = field_95c * k;
-            f32 outer = field_960 * k;
+            inner *= k;
+            outer *= k;
             near = (inner + outer) * 0.5f;
             far = (outer - inner) * 0.5f;
         }
@@ -7823,19 +7832,17 @@ static inline s32 Unk_LightGhostKind(s32 kind) {
     return kinds[kind];
 }
 
-// whether a colour has no red, green or blue (inline)
-static inline bool Unk_IsBlack(const Unk_Rect& color) {
-    return (color.field_0 <= 0.0f) & (color.field_4 <= 0.0f) & (color.field_8 <= 0.0f);
-}
-
 // 0x7100429460: the light ghosts handed to the glare (whether there are any)
-// NON_MATCHING: 11 instructions: the original's `and`s of the four tests of
-// `none` take their operands the other way round (the later test first) and
-// its loads come in another order, and it tests `none | (on == 0)` where this
-// tests `(on != 0) & !none` (bic). What decided the rest: the two skips as
-// two `if`s with their own store and `continue` (one test would make the loop
-// small enough for LoopUnswitch to split it on `none`), `scale` assigned
-// after `offset` from the factors (their registers), and field_2c stored last.
+// NON_MATCHING: 2 instructions, the post-RA schedule of one load (the
+// colour's blue is loaded after the red's fcmp in the original). What decided
+// the rest: the colour copied into a local first (its loads come before
+// field_848's, so the `and`s take the original's operands) and the four tests
+// in one `&` chain from field_848's on; the skips as nested `if`s around the
+// drawing with one `else` store each (the proceeding block comes first in the
+// IR, so the skip test is `none | !on` and no `bic`; one test would make the
+// loop small enough for LoopUnswitch to split it on `none`); `scale` assigned
+// after `offset` from the factors (their registers); field_2c stored last.
+// Tried: all 120 `&` trees of the four tests and the 24 load orders.
 bool CPostEffect::Unk_429460() {
     Unk_45eb90_Self* glare = field_198;
     field_c6e = false;
@@ -7843,48 +7850,49 @@ bool CPostEffect::Unk_429460() {
     if (glare->field_114 >= 0) {
         glare->field_200 = 0;
     }
-    bool none = (field_848 <= 0.0f) & Unk_IsBlack(field_198->field_224);
+    Unk_Rect color = field_198->field_224;
+    bool none = (field_848 <= 0.0f) & (color.field_0 <= 0.0f) & (color.field_4 <= 0.0f) & (color.field_8 <= 0.0f);
     s32 count = field_524;
     s32 drawn = 0;
     for (s32 i = 0; i < count; i++) {
         const Unk_423ba0_Item& ghost = field_868[i];
-        if (!ghost.field_0 || none) {
-            field_198->field_208[i].field_0 = false;
-            continue;
-        }
-        if (ghost.field_4.field_0 <= 0.0f && ghost.field_4.field_4 <= 0.0f && ghost.field_4.field_8 <= 0.0f) {
-            field_198->field_208[i].field_0 = false;
-            continue;
-        }
-        f32 offset;
-        f32 scale;
-        f32 depth;
-        if (ghost.field_30 == 7) {
-            Unk_Refresh();
-            f32 near = field_1064;
-            Unk_Refresh();
-            depth = (ghost.field_2c - near) / ghost.field_2c;
-            scale = field_1054;
-            offset = field_1058;
+        if (ghost.field_0 && !none) {
+            if (!(ghost.field_4.field_0 <= 0.0f && ghost.field_4.field_4 <= 0.0f && ghost.field_4.field_8 <= 0.0f)) {
+                f32 offset;
+                f32 scale;
+                f32 depth;
+                if (ghost.field_30 == 7) {
+                    Unk_Refresh();
+                    f32 near = field_1064;
+                    Unk_Refresh();
+                    depth = (ghost.field_2c - near) / ghost.field_2c;
+                    scale = field_1054;
+                    offset = field_1058;
+                } else {
+                    f32 factors[4];
+                    Unk_428cc0(factors, ghost.field_30, 2, 1.0f, 0.0f);
+                    offset = factors[1];
+                    scale = factors[0];
+                    depth = ghost.field_2c;
+                }
+                Unk_423ba0_Item& out = field_198->field_208[i];
+                out.field_0 = true;
+                out.field_14 = ghost.field_14;
+                out.field_1c = ghost.field_1c;
+                out.field_4 = ghost.field_4;
+                out.field_24 = ghost.field_24;
+                out.field_28 = ghost.field_28;
+                out.field_2c = offset + scale * depth;
+                if (out.field_24 == 1) {
+                    field_c6f = true;
+                }
+                drawn++;
+            } else {
+                field_198->field_208[i].field_0 = false;
+            }
         } else {
-            f32 factors[4];
-            Unk_428cc0(factors, ghost.field_30, 2, 1.0f, 0.0f);
-            offset = factors[1];
-            scale = factors[0];
-            depth = ghost.field_2c;
+            field_198->field_208[i].field_0 = false;
         }
-        Unk_423ba0_Item& out = field_198->field_208[i];
-        out.field_0 = true;
-        out.field_14 = ghost.field_14;
-        out.field_1c = ghost.field_1c;
-        out.field_4 = ghost.field_4;
-        out.field_24 = ghost.field_24;
-        out.field_28 = ghost.field_28;
-        out.field_2c = offset + scale * depth;
-        if (out.field_24 == 1) {
-            field_c6f = true;
-        }
-        drawn++;
     }
     if (field_198->field_114 >= drawn) {
         field_198->field_200 = drawn;

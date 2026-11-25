@@ -523,16 +523,9 @@ public:
     s32 field_22760;
     s32 field_22764;
     u8 pad_22768[0x4];
-    union {
-        struct {
-            s32 field_2276c;
-            s32 field_22770;
-            s32 field_22774;
-            s32 field_22778;
-        };
-        // tech_Smaa_BlendingWeightCalculation(_Diag)(_Corner): [diagonal][corner]
-        s32 field_2276c_table[2][2];
-    };
+    // tech_Smaa_BlendingWeightCalculation(_Diag)(_Corner): [diagonal][corner]
+    // (a plain array: 0x710048f620's fallback, [0][0], is its own address)
+    s32 field_2276c[2][2];
     s32 field_2277c;
     s32 field_22780;
     s32 field_22784;  // tech_ColorModulateByChannel_<n> from field_22788 for n = 1 on (0 unused)

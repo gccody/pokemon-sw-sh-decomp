@@ -909,7 +909,9 @@ static const u32 Unk_StageBits[33] = {1, 2, 4, 16, 8, 32};
 
 // NON_MATCHING: the loop's invariants are hoisted in another order (the
 // sizes' address before the bit in the original), so the registers of the
-// loop's four pointers differ.
+// loop's four pointers differ. (Round 6, no change) stages read before the
+// address, the other mark helpers (Unk_MarkBit*: 46), a single nested if,
+// the state or the address by reference, an s64 index.
 // 0x710053d8a0
 void SiGfxNXDrawContext::Unk_53d8a0(s32 index, ISiGfxResource* pResource, s32 offset, s32 size) {
     SiGfxNXRootSignature* pSignature;
@@ -1598,7 +1600,12 @@ bool Unk_53f630(const SiGfxNXSampler::Unk_Desc* a, const SiGfxNXSampler::Unk_Des
 // doesn't load the program's count of stages again (it keeps it in w8 through
 // the loop, so the other registers are one up); here it is reloaded
 // (`ldrsw`). Two spill slots are exchanged in the blending's part (1680
-// bytes for 1688). The rest is the original's.
+// bytes for 1688). The rest is the original's. (Round 6) In the IR GVN
+// doesn't PRE the count's reload into the inner loop's exit (the skip path's
+// value would come round the backedge from the load itself); the original's
+// is that PRE. An s32 slot, an s64 i, a guard `continue`, the range by
+// pointer change nothing; the program read from field_3a70 each time is
+// worse.
 // 0x710053f7d0
 void SiGfxNXDrawContext::Unk_53f7d0() {
     if (field_3a68 < 1) {

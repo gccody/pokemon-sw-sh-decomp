@@ -204,7 +204,12 @@ bool SiGfxFontDrawHelper::Unk_544010(void* font) {
 // bytes more); the original converts it once, before the test of the size.
 // Tried: the advance in a local (before the test, in the loop's scope or
 // before it: the empty glyphs' branch becomes selects), the sizes in locals,
-// the test as `&`, the visible glyphs' branch first.
+// the test as `&`, the visible glyphs' branch first. (Round 6) With the
+// advance converted once the empty glyphs' `fadd` is the only instruction
+// left in its branch and FoldTwoEntryPHINode speculates it (selects); the
+// font in a scope of its own or at function scope keeps the branch but
+// loses the visible branch's cleanup select; `&` hoists the next
+// character's load instead of the conversion.
 // 0x7100544290
 bool SiGfxFontDrawHelper::Unk_544290(const char* text, Unk_Vec2* pSize, u32 flags, f32 scale) {
     *pSize = Unk_Vec2();

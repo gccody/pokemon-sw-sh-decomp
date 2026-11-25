@@ -185,7 +185,7 @@ public:
             : field_0(format), field_4(0), field_8(0), field_c(0), field_10(width), field_14(height), field_18(a18),
               field_1c(a1c), field_20(a20), field_24(0), field_28(0), field_2c(0), field_30(a30), field_34(8), field_38(a38), field_3c(0),
               field_40(0), field_44(0), field_50(0), field_54(a54), field_58(0), field_60(a60),
-              field_68(0), field_70(0), field_78(1.0f), field_7c(0), field_80(nullptr), field_e8(0),
+              field_68(), field_78(1.0f), field_7c(0), field_80(nullptr), field_e8(0),
               field_ec(-1), field_f0(-1) {
             field_f4 = Unk_Pair();
             field_fe = false;
@@ -215,6 +215,20 @@ public:
         struct Unk_Layout {
             u8 field_0[8];
         };
+
+        // the two pairs at 0x68 (placeholder): copied one by one too, and
+        // without a move assignment of their own, so that the description's
+        // (implicit) move assignment copies them with a call of their copy
+        // assignment, a 16-byte copy of its own between the block before
+        // them and the one after them (Unk_55ffd0)
+        struct Unk_Pairs {
+            Unk_Pairs(u32 a0 = 0, u32 a8 = 0) : field_0(a0), field_8(a8) {}
+            Unk_Pairs(const Unk_Pairs& other) : field_0(other.field_0), field_8(other.field_8) {}
+            Unk_Pairs& operator=(const Unk_Pairs& other) = default;
+            Unk_Pair2 field_0;
+            Unk_Pair2 field_8;
+        };
+        PKMN_SIZE_ASSERT(Unk_Pairs, 0x10);
 
         // two numbers stored together (placeholder)
         struct Unk_Pair {
@@ -246,8 +260,7 @@ public:
         u32 field_54;
         u64 field_58;
         const void* field_60;
-        Unk_Pair2 field_68;
-        Unk_Pair2 field_70;
+        Unk_Pairs field_68;  // (0x68 and 0x70)
         f32 field_78;
         u32 field_7c;
         SiGfxNXMemoryHeap* field_80;  // the heap to make it in (null: one of its own)

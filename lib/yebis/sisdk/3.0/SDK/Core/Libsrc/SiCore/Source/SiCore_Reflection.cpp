@@ -45,22 +45,25 @@ void SiReflectionObject::Unk_4cb170() {
 }
 
 // 0x71004cb420
-// NON_MATCHING: the loop over the base's properties. The original keeps the
-// list's count in a register (reloading it only after the stores of the
-// non-empty list's links), computes the final count before the loop, and
-// stores the empty list's head and tail as one pair; here the two branches'
-// last stores are sunk into one with a computed address and the count is
-// reloaded every time. The rest is the original's.
+// NON_MATCHING: 9 instructions: the loop's index is zero-extended from the
+// base's count in the original (`and x12, x12, #0xffffffff`, here `sxtw`),
+// and two registers are exchanged. The list's final size is the size before
+// the loop plus the base's count, computed before the loop (`add x10, x12,
+// x8`): the original adds them in the source, it doesn't reread the list's
+// count (round 6; the index as u32, s64, size_t, counted up or down: the
+// same or worse).
 void SiReflectionObject::Unk_4cb420() {
     s64 count = 0;
+    size_t total = field_58.m_count;
     SiReflectionObject* pBase = field_50;
     if (pBase != nullptr) {
+        total += pBase->field_80.m_itemCount;
         for (int i = static_cast<int>(pBase->field_80.m_itemCount) - 1; i >= 0; i--) {
             field_58.AddHead(pBase->field_80.m_pData[i]);
             count++;
         }
     }
-    int n = static_cast<int>(field_58.m_count);
+    int n = static_cast<int>(total);
     field_120 = count;
     field_80.Unk_SetCount(n);
     field_d0.Unk_SetCount(n);

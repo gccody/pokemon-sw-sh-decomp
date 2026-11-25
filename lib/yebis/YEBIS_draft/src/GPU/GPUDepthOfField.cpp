@@ -476,10 +476,13 @@ static inline f32 Unk_ViewSizeTan(f32 tanHalf, f32 distance, f32 width) {
 }
 
 // 0x71004af020
+// (Unk_Quantize's scaled exponent is a named local: see the header.)
 // NON_MATCHING: registers only: the entry copies of `mode` and `value` come in
-// the other order, the rounding's product lands in s3 instead of s0, and the
-// clip's default elements get w12/w11 swapped (so the invalid path reuses a
-// register the original sets again).
+// the other order (moving `mode` among the floats would change the signature
+// that GPUPostEffect.cpp's call uses), and the clip's default elements get
+// w12/w11 swapped, so the invalid path reuses a register the original sets
+// again (the order of the result locals' declarations and assigning the
+// default in each path don't change it).
 s32 CDepthOfField::Unk_4af020(s32 mode, f32 fov, f32 distance, f32 width, f32 value, f32 exponent, f32 angle,
                               f32 focus, f32 a7, f32* outSize, Unk_Float* outFNumber, Unk_Float* outValue, f32* outCoc,
                               f32* outRatio, Unk_Float4* outClip, f32 limit) {
@@ -653,11 +656,8 @@ f32 CDepthOfField::Unk_4af690(f32 angle, f32 distance, f32 width) {
 // 0x71004afae0
 // (the absolute distance is taken before the early exit's test: its compare is
 // then the test's; case 1 reads field_1d8 into a local, whose store shares the
-// return with case 0's)
-// NON_MATCHING: registers: the original has the aperture and the distance in
-// s1/s2 and 0.5 in s0 (here s0/s1 and s3); the absolute value is scheduled
-// after the scale, and the loads of field_1c4 and field_1ac before the
-// subtractions.
+// return with case 0's; the half aperture is a named local, read between the
+// two lens fields, and each branch reads its factor into a local first)
 s32 CDepthOfField::Unk_4afae0(f32* nearSize, f32* farSize) {
     switch (field_1c8) {
     case 0: {
@@ -672,15 +672,19 @@ s32 CDepthOfField::Unk_4afae0(f32* nearSize, f32* farSize) {
             return 1;
         }
         f32 focal = field_1b0;
+        f32 half = aperture * 0.5f;
         f32 near = field_1a8;
         f32 scale = focal * near / (focal - near);
+        f32 coc = half * scale / absDistance;
         f32 depth = distance > -scale ? distance : -scale;
-        f32 coc = aperture * 0.5f * scale / absDistance;
         f32 blur;
-        if (depth > 0.0f)
-            blur = (depth - focal) * field_1c4;
-        else
-            blur = -((scale + depth) * field_1ac.field_0);
+        if (depth > 0.0f) {
+            f32 k = field_1c4;
+            blur = (depth - focal) * k;
+        } else {
+            f32 k = field_1ac.field_0;
+            blur = -((scale + depth) * k);
+        }
         blur = blur / depth * 0.5f;
         f32 absBlur = Unk_Abs(blur);
         coc = fmaxf(coc, 0.0f);
@@ -715,9 +719,10 @@ s32 CDepthOfField::Unk_4afae0(f32* nearSize, f32* farSize) {
 
 // 0x71004afd80
 // The sign test is `!(depth > 0.0f)` (the original's `b.le`), and `focus` is
-// declared before `aperture` (the zero path's registers).
-// NON_MATCHING: the same operations; the scheduling of the first block and the
-// placement of the -6 return differ (registers follow).
+// declared before `aperture` (the zero path's registers). The statement order
+// is the best of 1204 (near read before focal, the doubled size its own
+// local), `half` is named (its DBG_VALUE ends the A57 FP load balancing
+// pass's chain there) and field_1b8 is read after the lens's division.
 s32 CDepthOfField::Unk_4afd80(f32 size, f32 distance, f32 angle) {
     f32 focus;
     f32 aperture;
@@ -726,17 +731,19 @@ s32 CDepthOfField::Unk_4afd80(f32 size, f32 distance, f32 angle) {
         focus = 0.0f;
     } else {
         f32 depth = distance == 0.0f ? -2.9802322e-8f : distance * -0.5f;
-        f32 focal = field_1b0;
         f32 near = field_1a8;
-        f32 scale = near * focal / (focal - near);
-        f32 position = Unk_Sign(depth) * (near * 0.5f);
+        f32 half = near * 0.5f;
+        f32 position = Unk_Sign(depth) * half;
         f32 coc = field_1b8 * size * 0.5f;
-        f32 ratio = coc * 2.0f / scale;
+        f32 diameter = coc * 2.0f;
+        f32 focal = field_1b0;
+        f32 scale = near * focal / (focal - near);
+        f32 ratio = diameter / scale;
         f32 absPosition = Unk_Abs(position);
         f32 view = tanf(angle * 0.5f) / field_19c;
         focal = field_1b0;
         near = field_1a8;
-        f32 factor = field_1b8 * (view / (focal * field_1b4.field_0 / (focal - near)));
+        f32 factor = view / (focal * field_1b4.field_0 / (focal - near)) * field_1b8;
         f32 limit = position > -near ? position : -near;
         f32 far = field_1ac.field_0;
         factor = depth * factor;
@@ -786,32 +793,54 @@ static inline u32 Unk_ToByte(f64 x, s32 shift) {
     return static_cast<u32>(x * 255.9999f) << shift;
 }
 
+// an RGB colour in double precision (whole-value operators, inline)
+struct Unk_Rgb {
+    f64 r;
+    f64 g;
+    f64 b;
+};
+
+static inline Unk_Rgb operator+(const Unk_Rgb& a, const Unk_Rgb& b) {
+    return {a.r + b.r, a.g + b.g, a.b + b.b};
+}
+
+static inline Unk_Rgb operator*(const Unk_Rgb& a, const Unk_Rgb& b) {
+    return {a.r * b.r, a.g * b.g, a.b * b.b};
+}
+
+static inline Unk_Rgb operator*(const Unk_Rgb& a, f64 s) {
+    return {a.r * s, a.g * s, a.b * s};
+}
+
+// an RGBA8 pixel's colour, squared (inline)
+static inline Unk_Rgb Unk_Linear(u32 pixel) {
+    Unk_Rgb c = {static_cast<f32>((pixel >> 16) & 0xff), static_cast<f32>((pixel >> 8) & 0xff),
+                 static_cast<f32>(pixel & 0xff)};
+    c = c * (1.0 / 255.0);
+    return c * c;
+}
+
 // 0x71004aff50
-// The channels are read into locals first and updated in place, a step at a
-// time (the original's schedule); the third loop isn't guarded by its own
-// `height != 0` (with it, the column loop is unswitched and the zeroing
-// isn't repeated), and the pixels are addressed from `data` in each loop.
-// NON_MATCHING: registers only: the 255.9999 constant gets d3 (d5 in the
-// original), so the A57 FP load balancing pass can't move three channels'
-// products to odd registers as it does in the original.
+// The colours are whole values (Unk_Rgb's operators): the A57 FP load
+// balancing pass only renames a product whose next use is the next product,
+// and a named scalar's DBG_VALUE (the build has -g) is a use in between. The
+// third loop isn't guarded by its own `height != 0` (with it, the column loop
+// is unswitched and the zeroing isn't repeated), and the pixels are addressed
+// from `data` in each loop.
 s32 CDepthOfField::Unk_4aff50(u8* data, u32 width, u32 height, const f32* scale, bool merge) {
     u32 stride = width * 4;
     if (width != 0 && merge) {
         u8* next = data + stride;
         for (u32 i = 0; i < width; i++) {
             u32 pixel = *reinterpret_cast<u32*>(data + i * 4);
-            f64 r = Unk_Channel2(pixel >> 16);
-            f64 g = Unk_Channel2(pixel >> 8);
-            f64 b = Unk_Channel2(pixel);
-            if (r > 0.0 || g > 0.0 || b > 0.0) {
+            Unk_Rgb c = Unk_Linear(pixel);
+            if (c.r > 0.0 || c.g > 0.0 || c.b > 0.0) {
                 u32 other = *reinterpret_cast<u32*>(next + i * 4);
                 f32 alpha = static_cast<f32>(pixel >> 24);
-                f64 r2 = Unk_Channel2(other >> 16);
-                f64 g2 = Unk_Channel2(other >> 8);
-                f64 b2 = Unk_Channel2(other);
-                r += r2;
-                g += g2;
-                b += b2;
+                c = c + Unk_Linear(other);
+                f64 r = c.r;
+                f64 g = c.g;
+                f64 b = c.b;
                 f64 a = alpha * (1.0 / 255.0);
                 r = Unk_SqrtPositive(r);
                 g = Unk_SqrtPositive(g);
@@ -834,20 +863,13 @@ s32 CDepthOfField::Unk_4aff50(u8* data, u32 width, u32 height, const f32* scale,
             f64 sr = 0.0;
             for (u32 y = 0; y < height; y++) {
                 u32 pixel = *reinterpret_cast<u32*>(data + x * 4 + y * stride);
-                f64 r = Unk_Channel2(pixel >> 16);
-                f64 g = Unk_Channel2(pixel >> 8);
-                f64 b = Unk_Channel2(pixel);
+                Unk_Rgb c = Unk_Linear(pixel);
                 f32 position = static_cast<f32>(height - y) - 0.5f;
                 f64 angle = inverse * position * 3.14159265f;
-                r *= angle;
-                g *= angle;
-                b *= angle;
-                r *= inverse;
-                g *= inverse;
-                b *= inverse;
-                sr += r;
-                sg += g;
-                sb += b;
+                c = c * angle * inverse;
+                sr += c.r;
+                sg += c.g;
+                sb += c.b;
             }
             sr *= 2.0 / 3.14159265f;
             sg *= 2.0 / 3.14159265f;
@@ -855,14 +877,13 @@ s32 CDepthOfField::Unk_4aff50(u8* data, u32 width, u32 height, const f32* scale,
             f64 fr = scale[0] / sr;
             f64 fg = scale[1] / sg;
             f64 fb = scale[2] / sb;
+            Unk_Rgb f = {fr, fg, fb};
             for (u32 y = 0; y < height; y++) {
                 u32 pixel = *reinterpret_cast<u32*>(data + x * 4 + y * stride);
-                f64 r = Unk_Channel2(pixel >> 16);
-                f64 g = Unk_Channel2(pixel >> 8);
-                f64 b = Unk_Channel2(pixel);
-                r *= fr;
-                g *= fg;
-                b *= fb;
+                Unk_Rgb c = Unk_Linear(pixel) * f;
+                f64 r = c.r;
+                f64 g = c.g;
+                f64 b = c.b;
                 f64 a = static_cast<f32>(pixel >> 24) * (1.0 / 255.0);
                 r = Unk_SqrtPositive(r);
                 g = Unk_SqrtPositive(g);
@@ -1036,9 +1057,15 @@ s32 CDepthOfField::ApplyDepthOfField(CRenderTexture* source, void* arg2, CRender
 
 // 0x71004b6530: the levels' blurs composited into the target (the source's
 // level 0, then the far blurs from the farthest, then the near ones)
-// NON_MATCHING: register allocation only (32 instructions): the source's and
-// the first level's scale/bias floats get other callee-saved registers, and
-// two loop temporaries in the first level loop swap.
+// The textures' sizes, scales and biases are read in field order (source,
+// first level, target); the order of the four coordinates is the closest of
+// all 24 (and of the 120 orders of the read groups).
+// NON_MATCHING: register allocation: the source's and the first level's
+// scale/bias floats get other callee-saved registers, two loop temporaries in
+// the first level loop swap, and the early `return result` keeps its copy to
+// w0 in its own block (laid out after the size test) where here the returns
+// share a phi in w26 (an `if (result >= 0)` body, `result = 0` at the end and
+// the call inside the early return don't change that).
 s32 CDepthOfField::Unk_4b6530(CRenderTexture* source, void* arg2, CRenderTexture* target) {
     if (target == nullptr) {
         target = field_228;
@@ -1135,6 +1162,9 @@ s32 CDepthOfField::Unk_4b6530(CRenderTexture* source, void* arg2, CRenderTexture
     }
     u32 sourceWidth = source->field_54;
     u32 sourceHeight = source->field_58;
+    f32 sourceScaleU = source->field_88;
+    f32 sourceScaleV = source->field_8c;
+    f32 sourceBiasU = source->field_90;
     f32 sourceBiasV = source->field_94;
     u32 firstWidth = first->field_54;
     u32 firstHeight = first->field_58;
@@ -1142,9 +1172,6 @@ s32 CDepthOfField::Unk_4b6530(CRenderTexture* source, void* arg2, CRenderTexture
     f32 firstScaleV = first->field_8c;
     f32 firstBiasU = first->field_90;
     f32 firstBiasV = first->field_94;
-    f32 sourceScaleU = source->field_88;
-    f32 sourceScaleV = source->field_8c;
-    f32 sourceBiasU = source->field_90;
     u32 targetWidth = target->field_54;
     u32 targetHeight = target->field_58;
     for (s32 i = 0; i < 15; i++) {
@@ -1160,10 +1187,10 @@ s32 CDepthOfField::Unk_4b6530(CRenderTexture* source, void* arg2, CRenderTexture
     if (result < 0) {
         return result;
     }
-    f32 v1 = sourceScaleV * static_cast<f32>(sourceHeight) + sourceBiasV;
     f32 u3 = firstScaleU * static_cast<f32>(firstWidth) + firstBiasU;
-    f32 v3 = firstScaleV * static_cast<f32>(firstHeight) + firstBiasV;
+    f32 v1 = sourceScaleV * static_cast<f32>(sourceHeight) + sourceBiasV;
     f32 u1 = sourceScaleU * static_cast<f32>(sourceWidth) + sourceBiasU;
+    f32 v3 = firstScaleV * static_cast<f32>(firstHeight) + firstBiasV;
     bool sameSize = source->field_54 == target->field_54 && source->field_58 == target->field_58;
     bool sameSurface = source->field_b0 == target->field_b8[target->field_a0];
     bool same = sameSize || sameSurface;
@@ -2763,15 +2790,29 @@ inline f32 CDepthOfField::Unk_NearPosition(bool far) {
     return 0.0f;
 }
 
+// a scale, without a translation (inline)
+static inline void Unk_ScaleOnly(MATRIXT44* out, const Unk_Vector3* scale) {
+    out->field_0[0][1] = out->field_0[0][2] = out->field_0[0][3] = out->field_0[1][0] = out->field_0[1][2] =
+        out->field_0[1][3] = out->field_0[2][0] = out->field_0[2][1] = out->field_0[2][3] = out->field_0[3][0] =
+            out->field_0[3][1] = out->field_0[3][2] = 0.0f;
+    out->field_0[0][0] = scale->field_0[0];
+    out->field_0[1][1] = scale->field_0[1];
+    out->field_0[2][2] = scale->field_0[2];
+    out->field_0[3][3] = 1.0f;
+}
+
 // 0x71004b1100: the taps' offsets (the points of `count` rings, scaled to the
 // aspect ratio and rotated), as the constants of field_c8
-// NON_MATCHING: 2184 vs 2196 bytes, same stack layout and the same near
-// position blocks; the A57 FP load balancing pass (it runs after register
-// allocation) colours the position's two products the other way round (s0/s3
-// against s3/s0), the scale matrix's third element is stored as a constant
-// merged with its neighbours (the original stores a register), the near
-// loop walks the points through another base (+4) and folds `y * -0.5f +
-// 0.5f` into a subtraction the original doesn't make.
+// The table position is a named float before its conversion (its DBG_VALUE
+// decides how the A57 FP load balancing pass colours the two products), the
+// near loop's size is converted where it is read, and the scale matrices are
+// Unk_ScaleOnly's (all twelve zeros in one chain, so MemCpyOpt makes three
+// 16-byte memsets and the diagonal's 1.0 is stored on its own).
+// NON_MATCHING: registers and the near loop's layout: the original walks the
+// points and the generator's state through other registers, and keeps the
+// position's `y * -0.5f + 0.5f` (`fmov s1, #-0.5` in the loop) where here
+// InstCombine or Reassociate turn the direct form into a subtraction
+// (`0.5f - p.x * -0.5f` keeps the -0.5 for x instead, closest overall).
 s32 CDepthOfField::Unk_4b1100(bool near, bool far, s32 count, f32 angle) {
     CTextureUtil* util = Unk_GetTextureUtil();
     Unk_ReleaseTextureUtil();
@@ -2791,7 +2832,8 @@ s32 CDepthOfField::Unk_4b1100(bool near, bool far, s32 count, f32 angle) {
     }
     Unk_Vector3 scale = {{1.0f / aspect, 1.0f, 1.0f}};
     if (near) {
-        s32 index = static_cast<s32>((1.0f - Unk_NearPosition(far)) * static_cast<f32>(field_2f0) * 0.9999f);
+        f32 position = (1.0f - Unk_NearPosition(far)) * static_cast<f32>(field_2f0) * 0.9999f;
+        s32 index = static_cast<s32>(position);
         f32 value = field_338[field_2a8][index];
         scale.field_0[0] = scale.field_0[0] * value;
         scale.field_0[1] = value;
@@ -2802,20 +2844,21 @@ s32 CDepthOfField::Unk_4b1100(bool near, bool far, s32 count, f32 angle) {
     Unk_RotationAxis(&rotation, 0.0f, 0.0f, 1.0f, field_1bc);
     MATRIXT44_MatrixMultiply(&matrix, &matrix, &rotation);
     MATRIXT44 scaling;
-    Unk_ScaleTranslation(&scaling, &scale, nullptr);
+    Unk_ScaleOnly(&scaling, &scale);
     MATRIXT44_MatrixMultiply(&matrix, &matrix, &scaling);
     if (near) {
         f32 t = Unk_NearPosition(far);
-        s32 size = field_2f0;
+        f32 size = static_cast<f32>(field_2f0);
         static Unk_Random random(1);
         f32 jitter = 0.0f / rings;
-        s32 index = static_cast<s32>((1.0f - t) * static_cast<f32>(size) * 0.9999f);
+        f32 position = (1.0f - t) * size * 0.9999f;
+        s32 index = static_cast<s32>(position);
         for (s32 i = 0; i < taps; i++) {
             f32 x = points[i].field_0[0].field_0;
             f32 y = points[i].field_0[1].field_0;
             Unk_462090_Params params = field_378[field_2a8][index];
             Unk_Float2 p(-x, -y);
-            Unk_Float2 position(0.5f - x * 0.5f, y * -0.5f + 0.5f);
+            Unk_Float2 position(0.5f - p.field_0[0].field_0 * -0.5f, 0.5f - y * 0.5f);
             Unk_Float2 area(0.0078125f, 0.0078125f);
             Unk_Float4 falloff;
             Unk_462090(&falloff, &position, &area, &params);
@@ -2840,7 +2883,7 @@ s32 CDepthOfField::Unk_4b1100(bool near, bool far, s32 count, f32 angle) {
         MATRIXT44 coords;
         Unk_Identity(&coords);
         Unk_Vector3 flip = {{-0.5f, -0.5f, 1.0f}};
-        Unk_ScaleTranslation(&scaling, &flip, nullptr);
+        Unk_ScaleOnly(&scaling, &flip);
         MATRIXT44_MatrixMultiply(&coords, &coords, &scaling);
         MATRIXT44 offset;
         Unk_Vector3 centre = {{0.5f, 0.5f, 0.0f}};
@@ -2867,7 +2910,8 @@ s32 CDepthOfField::Unk_4b1100(bool near, bool far, s32 count, f32 angle) {
 // to registers: the original spills `scale` and `last` at entry, keeps 0.5f
 // in a callee-saved register from the near test on and lays the near
 // position's ratio test and the technique selection's two near branches out
-// differently. `first` is
+// differently (the blades' table position is a named float, as in
+// 0x71004b1100). `first` is
 // handed to Unk_NearPosition, which ignores it: an argument used only there
 // survives DeadArgElim, so 0x71004b4c40 passes `i == 0` as the original does.
 s32 CDepthOfField::Unk_4b35f0(f32 scale, CRenderTexture* source, CRenderTexture* target, void* arg3, void* arg4,
@@ -3042,7 +3086,8 @@ s32 CDepthOfField::Unk_4b35f0(f32 scale, CRenderTexture* source, CRenderTexture*
     Unk_GPUTexture* noise;
     Unk_GPUTexture* blades;
     if (near) {
-        s32 index = static_cast<s32>((1.0f - Unk_NearPosition(first)) * static_cast<f32>(field_2f0) * 0.9999f);
+        f32 position = (1.0f - Unk_NearPosition(first)) * static_cast<f32>(field_2f0) * 0.9999f;
+        s32 index = static_cast<s32>(position);
         blades = reinterpret_cast<Unk_GPUTexture*>(field_2f8[field_2a8][index]);
         noise = reinterpret_cast<Unk_GPUTexture*>(field_2c8[field_2ac]);
     } else {
@@ -3672,7 +3717,7 @@ static inline s32 Unk_LineBlurWhite(CTextureUtil* util, Unk_Float4* color, Unk_F
 static inline s32 Unk_FadeWhite(CTextureUtil* util, Unk_Float4* weight, Unk_Float4* color, f32 arg0, f32 arg1,
                                 CRenderTexture* source, CRenderTexture* source2, CRenderTexture* target,
                                 const Unk_Float& value) {
-    *weight = Unk_Float4(value, value, value, value);
+    weight->field_0[0] = weight->field_0[1] = weight->field_0[2] = weight->field_0[3] = value;
     *color = Unk_Float4(1.0f, 1.0f, 1.0f, 1.0f);
     return util->Unk_496b40(arg0, arg1, source, source2, target, weight, 0, color, 0, false, false, 0, 0);
 }
@@ -3684,13 +3729,15 @@ static inline s32 Unk_FadeWhite(CTextureUtil* util, Unk_Float4* weight, Unk_Floa
 // highest, then the range, the colour sharing the sources' slot, the fade's
 // colour), and filled in place by inline helpers (so their stores come after
 // the calls' other arguments).
-// The fade's weight is filled in before its colour.
-// NON_MATCHING: the levels' pointer: the original keeps the array's base in a
-// stack slot and computes the level's address again for the last call, and
-// reads field_28 through the pre-indexed field_a0 pointer (`ldur w8, [x24,
-// #-0x78]`); here field_28 is read through field_4a8 again (closer than
-// `item->field_28`, which recomputes the address). The callees 0x7100490780
-// and 0x7100496b40 have placeholder signatures.
+// The fade's weight is filled in before its colour, with one chained
+// assignment (the highest pair is stored first).
+// NON_MATCHING: the test of field_28: the original reads it through the
+// pre-indexed field_a0 pointer (`ldur w8, [x24, #-0x78]`, so the IR had its
+// address relative to &item->field_a0); here it is read through field_4a8
+// again (closer than `item->field_28`, which recomputes the address; a local
+// `levels` array pointer and a reference to field_a0 don't change that). The
+// blur calls' argument copies are also scheduled a little differently.
+// The callees 0x7100490780 and 0x7100496b40 have placeholder signatures.
 s32 CDepthOfField::Unk_4b3280(s32 level) {
     Unk_Level* item = &field_4a8[level];
     CTextureUtil* util = Unk_GetTextureUtil();

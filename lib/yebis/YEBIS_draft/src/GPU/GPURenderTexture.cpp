@@ -450,12 +450,15 @@ s32 CRenderTexture::Unk_49b230() {
 
 // 0x710049bb30: the render texture of an existing texture
 // NON_MATCHING: the description's reset: the original zeroes fields 0x4 to
-// 0xc with one store each and field 0 apart (here one 16-byte store), and it
-// sets the -6 for both null checks before the first. The original's stores
-// are a 12-byte memset's expansion (field_c, then 4 and 8 as one) and a
-// 13-byte one for field_14 to field_20, so its field 0 wasn't in the run
-// MemCpyOpt merged; field_0 = 0 written after the reset, a combined null
-// test and a result variable for the -6 don't give it.
+// 0xc with a 12-byte memset based on &field_2c (x23: stores at x23+0xc and
+// x23+4) and field 0 apart (here one 16-byte store), and it sets the -6 for
+// both null checks before the first. 12 bytes from x23+4 is what DSE leaves
+// of the 16-byte memset when a later `field_2c.field_0 = 0` overwrites its
+// start, but here the shortened memset's address is folded back into
+// this+0x30 and merged with the store of 1 (round 6: the reset followed by
+// field_0 = 0 before or after the first load, field-by-field orders, a
+// reference to the description, the four-value constructor; the -6 as one
+// test, a result variable, or the body inside a non-null test).
 // (Round 5: the reset written field by field in the order the memsets need
 // (4, 8, c, 10 = 1, 0, 14 to 20) directly or through a helper on the
 // description, a placement new, a local copied in, the four-value
@@ -502,7 +505,7 @@ s32 CRenderTexture::vf6(IGPUDevice* device, Unk_49b230_Object* texture) {
             field_e0[set][i] = nullptr;
         }
     }
-    if (field_a8->field_24) {
+    if (field_a8->field_24 & 1) {
         for (s32 set = 0; set < 2; set++) {
             field_b8[set] = field_b0;
             field_b8[set]->vf0();
