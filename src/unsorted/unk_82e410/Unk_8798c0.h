@@ -145,12 +145,12 @@ struct Unk_8197a0;
 void Unk_819650_call(const Unk_819650* self, u8 value);
 u16 Unk_819690_call(const Unk_819690* self);
 // Named (..., u32); 0x710087a0a0 passes it a u8 without extending it.
-u8 Unk_8197a0_call(const Unk_8197a0* self, u32 value);
+u8 Unk_8197a0_call(const Unk_8197a0* self, u8 value);
 u16 Unk_7ef200(const Unk_7ee6b0* self);
 u32 Unk_7f05d0(void* object);
 u32 Unk_7f79e0(Unk_7ee6b0* self, u32 divisor, bool check);
 // Named (u32, u32); 0x710087a310 passes it u8s without extending them.
-u64 Unk_7f7940(u32 pokeId, u32 turns);
+u64 Unk_7f7940(u8 pokeId, u8 turns);
 u32 Unk_82da30(u8 type);
 bool Unk_7f0aa0(const Unk_7ee6b0* poke, u32 flag);
 bool Unk_86ff60(void* self, u8 pokeId, bool flag);
@@ -158,8 +158,8 @@ void Unk_870270(void* self, u8 pokeId, const Unk_7ee6b0* poke, u16 message);
 // Named (u32); 0x710087a7b0 passes it a second value (the Pokemon) in w1.
 u64 Unk_7f78c0(u32 kind, u8 pokeId);
 // Named (void*, u32); they compare the value as a byte.
-void Unk_87a210(void* self, u32 pokeId);
-void Unk_87a7b0(void* self, u32 pokeId);
+void Unk_87a210(void* self, u8 pokeId);
+void Unk_87a7b0(void* self, u8 pokeId);
 
 // The parameter block of 0x710082fa10 (through Unk_81a190): field_0 the
 // Pokemon, field_4 a kind, field_8 a packed value (Unk_7f87a0), a message

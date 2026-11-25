@@ -4,10 +4,7 @@
 #include "unsorted/unk_82e410/Unk_8798c0.h"
 
 // 0x710087a7b0
-// NON_MATCHING: named (void*, u32); the original compares the value as a byte
-// (cmp w0, w20, uxtb), as a u8 parameter gives. Unk_7f78c0 is named with one
-// parameter and takes two.
-void Unk_87a7b0(void* self, u32 pokeId) {
+void Unk_87a7b0(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
     if (Unk_819600_call(static_cast<const Unk_819600*>(self), 4) != pokeId)
         return;
