@@ -13,7 +13,7 @@ u8 Unk_7ee6b0_getField7d(const Unk_7ee6b0* self);
 u8 Unk_7efe00_getField33c(const Unk_7efe00* self);
 u32 Unk_7f2520_getField34c(const Unk_7f2520* self);
 void* Unk_7fe1d0_getField8(const Unk_7fe1d0* self);
-u32 Unk_7efef0(void* object, u32 index);
+u32 Unk_7efef0(void* object, u8 index);
 u16 Unk_8a86e0(void* self, u8 id1, u8 id2, u32 id, u32 arg4, bool flag);
 struct Unk_7c2d80_Main;
 struct Unk_7ecc90_Con;
