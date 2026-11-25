@@ -216,3 +216,8 @@ def test_handler_decl():
     assert N.handler_decl(0x164E850, None) == ("void Unk_164e850();", "Unk_164e850")
     assert N.handler_decl(0x158CFA0, "_Z18Unk_158cfa0_updatev") == ("void Unk_158cfa0_update();", "Unk_158cfa0_update")
     assert N.handler_decl(0x158C0F0, "_Z15Unk_158c0f0_setP11Unk_158c0f0") is None
+    assert N.handler_decl(0x164E850, "_Z11Unk_164e850PN2nn3nex10ByteStreamEPNS0_19ProtocolCallContextE") == (
+        "void Unk_164e850(nn::nex::ByteStream* s, nn::nex::ProtocolCallContext* ctx);",
+        "reinterpret_cast<void (*)()>(Unk_164e850)")
+    # other parameters stay unsupported
+    assert N.handler_decl(0x164E850, "_Z11Unk_164e850PN2nn3nex10ByteStreamE") is None
