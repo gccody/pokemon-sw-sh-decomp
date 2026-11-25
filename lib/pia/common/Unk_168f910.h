@@ -78,7 +78,7 @@ PKMN_OFFSET_ASSERT(Unk_27fc0a8_type, field_180, 0x180);
 
 extern Unk_27fc0a8_type* Unk_27fc0a8;
 
-u32 Unk_172be20(const Unk_27fc0a8_type* self);   // its state (0, or 3 to 8)
+u32 Unk_172be20(void* self);  // its state (0, or 3 to 8)
 void Unk_172e100(Unk_27fc0a8_type* self, u32 value);  // sets the current network's value
 
 // What a LocalMatchBrowseMatchmakeJob is created with (placeholder): leaf
