@@ -171,7 +171,7 @@ PKMN_OFFSET_ASSERT(Unk_8197a0, field_0, 0x0);
 void Unk_7cc000(void*, u8);
 
 // 0x71008197a0
-void Unk_8197a0_call(const Unk_8197a0* self, u32 value) {
+void Unk_8197a0_call(const Unk_8197a0* self, u8 value) {
     Unk_7cc000(self->field_0, value);
 }
 

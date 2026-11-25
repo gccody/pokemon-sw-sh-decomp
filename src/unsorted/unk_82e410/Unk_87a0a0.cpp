@@ -5,8 +5,6 @@
 #include "unsorted/unk_82e410/Unk_8798c0.h"
 
 // 0x710087a0a0
-// NON_MATCHING: Unk_8197a0_call is named with a u32; the original passes the
-// u8 without extending it.
 void Unk_87a0a0(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
     u64 packed = Unk_7f87a0(pokeId, 1);
@@ -26,8 +24,6 @@ void Unk_87a0a0(void* self, u8 pokeId) {
 }
 
 // 0x710087a1c0
-// NON_MATCHING: Unk_87a210 is named (void*, u32); the original passes the u8
-// without extending it.
 void Unk_87a1c0(void* self, u8 pokeId) {
     if (Unk_8196a0_call(static_cast<const Unk_8196a0*>(self), 1) == 0)
         return;
@@ -36,8 +32,6 @@ void Unk_87a1c0(void* self, u8 pokeId) {
 }
 
 // 0x710087a310
-// NON_MATCHING: Unk_7f7940 is named (u32, u32); the original passes the u8s
-// without extending them.
 void Unk_87a310(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
     if (Unk_819600_call(static_cast<const Unk_819600*>(self), 3) != pokeId)
@@ -128,8 +122,6 @@ void Unk_87a6f0(void* self, u8 pokeId) {
 }
 
 // 0x710087a760
-// NON_MATCHING: Unk_87a7b0 is named (void*, u32); the original passes the u8
-// without extending it.
 void Unk_87a760(void* self, u8 pokeId) {
     if (Unk_8196a0_call(static_cast<const Unk_8196a0*>(self), 1) == 0)
         return;
