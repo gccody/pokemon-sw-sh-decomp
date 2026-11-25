@@ -142,36 +142,33 @@ static_assert(sizeof(Unk_23bdeb8) == 0x30, "Unk_23bdeb8");
 // vtable 0x71023bdef0
 class Unk_23bdee0 : public Unk_23bdd70 {
 public:
-    Unk_23bdee0() : field_20(0), field_24(0), field_28(0), field_2c(0) {}
+    Unk_23bdee0() : field_20(0), field_24(0), field_28(0), field_2a(0), field_2c(0) {}
 
     u8 field_20;
     u32 field_24;
-    u32 field_28;
+    u16 field_28;
+    u16 field_2a;
     u16 field_2c;
 };
 static_assert(sizeof(Unk_23bdee0) == 0x30, "Unk_23bdee0");
 
-// What Unk_23bdf08 holds 48 of.
-struct Unk_23bdf08_Entry {
-    Unk_23bdf08_Entry() : field_0(0), field_4(0) {}
+// vtable 0x71023bdf18
+class Unk_23bdf08 : public Unk_23bdd70 {
+public:
+    Unk_23bdf08() : field_20() {}
+
+    u8 field_20[14];
+};
+static_assert(sizeof(Unk_23bdf08) == 0x30, "Unk_23bdf08");
+
+// What Unk_23bde48 holds 48 of.
+struct Unk_23bde48_Entry {
+    Unk_23bde48_Entry() : field_0(0), field_4(0) {}
 
     u16 field_0;
     u32 field_4;
 };
-static_assert(sizeof(Unk_23bdf08_Entry) == 0x8, "Unk_23bdf08_Entry");
-
-// vtable 0x71023bdf18
-class Unk_23bdf08 : public Unk_23bdd70 {
-public:
-    Unk_23bdf08() : field_20(), field_1b0(0) {}
-
-    u8 field_20[14];
-    Unk_23bdf08_Entry field_30[48];
-    u16 field_1b0;
-};
-static_assert(sizeof(Unk_23bdf08) == 0x1b8, "Unk_23bdf08");
-PKMN_OFFSET_ASSERT(Unk_23bdf08, field_30, 0x30);
-PKMN_OFFSET_ASSERT(Unk_23bdf08, field_1b0, 0x1b0);
+static_assert(sizeof(Unk_23bde48_Entry) == 0x8, "Unk_23bde48_Entry");
 
 // vtable 0x71023bdf40
 class Unk_23bdf30 : public Unk_23bdd70 {
@@ -231,6 +228,8 @@ public:
     Unk_23bdeb8 field_e0;
     Unk_23bdee0 field_110;
     Unk_23bdf08 field_140;
+    Unk_23bde48_Entry field_170[48];
+    u16 field_2f0;
     Unk_23bd130 field_2f8;
     u64 field_318;
     u64 field_320;
