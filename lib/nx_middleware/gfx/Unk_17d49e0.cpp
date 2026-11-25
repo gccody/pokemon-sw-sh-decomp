@@ -41,10 +41,16 @@ struct Unk_17d49e0_StringView {
     int Compare(const Unk_17d49e0_StringView& other) const {
         size_t n = other.field_8 < field_8 ? other.field_8 : field_8;
         int result = n != 0 ? memcmp(field_0, other.field_0, n) : 0;
-        if (result == 0) {
-            result = field_8 > other.field_8 ? 1 : (field_8 < other.field_8 ? -1 : 0);
+        if (result != 0) {
+            return result;
         }
-        return result;
+        if (field_8 > other.field_8) {
+            return 1;
+        }
+        if (field_8 < other.field_8) {
+            return -1;
+        }
+        return 0;
     }
 };
 
@@ -72,7 +78,7 @@ struct Unk_17d49e0_Dic {
     s32 field_4;
     Unk_17d49e0_DicNode field_8[1];
 
-    static int GetBit(const Unk_17d49e0_StringView& key, int bit) {
+    static size_t GetBit(const Unk_17d49e0_StringView& key, int bit) {
         int index = bit >> 3;
         if (static_cast<size_t>(index) < key.field_8) {
             return (key.field_0[key.field_8 - index - 1] >> (bit & 7)) & 1;
@@ -122,6 +128,15 @@ struct Unk_17d49e0_Owner {
     const Unk_17d49e0_Entry* field_b8;
     u8 _c0[0x3e8];
     Unk_17d49e0_Owner* field_4a8;
+
+    const char* FindName(u64 id) const {
+        for (const Unk_17d49e0_Entry* entry = field_b0; entry != nullptr; entry = entry->GetNext()) {
+            if (entry->field_0 == id) {
+                return entry->field_10;
+            }
+        }
+        return nullptr;
+    }
 };
 PKMN_OFFSET_ASSERT(Unk_17d49e0_Owner, field_90, 0x90);
 PKMN_OFFSET_ASSERT(Unk_17d49e0_Owner, field_a8, 0xa8);
@@ -146,6 +161,9 @@ PKMN_OFFSET_ASSERT(Unk_17d4b90_List, field_4c, 0x4c);
 PKMN_OFFSET_ASSERT(Unk_17d4b90_List, field_58, 0x58);
 
 // 0x71017d49e0
+// NON_MATCHING: the dictionary search matches, but the string comparison's result and the
+// index's -1 check are merged into one test after the index is computed; the original tests
+// the comparison first and branches straight to the null return (block layout differs too).
 void* Unk_17d49e0(Unk_17d49e0_Owner* self, u64 id) {
     if (id == static_cast<u64>(-1)) {
         return nullptr;
@@ -154,16 +172,15 @@ void* Unk_17d49e0(Unk_17d49e0_Owner* self, u64 id) {
     if (res == nullptr) {
         return nullptr;
     }
-    for (const Unk_17d49e0_Entry* entry = self->field_b0; entry != nullptr; entry = entry->GetNext()) {
-        if (entry->field_0 == id) {
-            int index = res->field_38->FindIndex(Unk_17d49e0_StringView(entry->field_10));
-            if (index != -1) {
-                return res->field_28[index];
-            }
-            return nullptr;
-        }
+    const char* name = self->FindName(id);
+    if (name == nullptr) {
+        return nullptr;
     }
-    return nullptr;
+    int index = res->field_38->FindIndex(Unk_17d49e0_StringView(name));
+    if (index == -1) {
+        return nullptr;
+    }
+    return res->field_28[index];
 }
 
 // 0x71017d4b40
