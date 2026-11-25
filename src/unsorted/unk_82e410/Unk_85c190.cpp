@@ -5,8 +5,6 @@
 // to the battle state's handler objects (Unk_85c190.h). Placeholder names.
 #include "unsorted/unk_82e410/Unk_85c190.h"
 
-// NON_MATCHING: Unk_859570 is named (void*, u64, u32, u32), so the u8 is
-// extended (and x1, x20, #0xff). Matches with Unk_859570(void*, u8, u32, u32).
 // 0x710085c190
 void Unk_85c190(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
@@ -68,8 +66,6 @@ void Unk_85c2f0(void* self, u8 pokeId) {
     Unk_819640_call(static_cast<const Unk_819640*>(self), 0x50, 1);
 }
 
-// NON_MATCHING: Unk_7f7ae0_call is named (u32, u32), so the u16 it's given is
-// extended (and w0, w0, #0xffff). Matches with Unk_7f7ae0_call(u16, u32).
 // 0x710085c3d0
 void Unk_85c3d0(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
@@ -85,9 +81,8 @@ void Unk_85c460(void* self, u8 pokeId) {
         Unk_819660_call(static_cast<const Unk_819660*>(self), 0x38, 0x800);
 }
 
-// NON_MATCHING: Unk_82cd00 is named (void*, u32) and Unk_7f7ae0_call (u32, u32),
-// so their u8 and u16 are extended; and the original tests Unk_7f7ff0's result
-// with cmp/cset (a 32-bit result made a flag), where its bool gives and #1.
+// NON_MATCHING: the original tests Unk_7f7ff0's result with cmp/cset (a
+// 32-bit result made a flag), where its bool gives and #1.
 // 0x710085c4b0
 void Unk_85c4b0(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
@@ -139,8 +134,6 @@ void Unk_85c670(void* self, u8 pokeId) {
     Unk_8196b0_call(static_cast<const Unk_8196b0*>(self), 2, 0);
 }
 
-// NON_MATCHING: Unk_819a60_call is named (..., u32), so clang passes the
-// compared value (w0) for the u8; the original passes the u8 itself (w20).
 // 0x710085c6e0
 void Unk_85c6e0(void* self, u8 pokeId) {
     if (Unk_819600_call(static_cast<const Unk_819600*>(self), 0x11) != 1)
@@ -152,8 +145,6 @@ void Unk_85c6e0(void* self, u8 pokeId) {
     Unk_819640_call(static_cast<const Unk_819640*>(self), 0x11, 0);
 }
 
-// NON_MATCHING: Unk_7f7ae0_call is named (u32, u32), so the u16 it's given is
-// extended (and w0, w0, #0xffff). Matches with Unk_7f7ae0_call(u16, u32).
 // 0x710085c750
 void Unk_85c750(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
@@ -177,8 +168,6 @@ void Unk_85c7c0(void* self, u8 pokeId) {
         Unk_819640_call(static_cast<const Unk_819640*>(self), 0x50, 1);
 }
 
-// NON_MATCHING: Unk_7f7ae0_call is named (u32, u32), so the u16 it's given is
-// extended (and w0, w0, #0xffff). Matches with Unk_7f7ae0_call(u16, u32).
 // 0x710085c830
 void Unk_85c830(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);

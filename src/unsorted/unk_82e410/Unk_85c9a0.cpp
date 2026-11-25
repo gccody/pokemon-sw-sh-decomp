@@ -16,8 +16,6 @@ void Unk_85c9a0(void* self, u8 pokeId) {
     Unk_819640_call(static_cast<const Unk_819640*>(self), 0x2f, value);
 }
 
-// NON_MATCHING: Unk_7f7ae0_call is named (u32, u32), so the u16 it's given is
-// extended (and w0, w0, #0xffff). Matches with Unk_7f7ae0_call(u16, u32).
 // 0x710085ca20
 void Unk_85ca20(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
@@ -30,8 +28,6 @@ void Unk_85ca20(void* self, u8 pokeId) {
     Unk_819660_call(static_cast<const Unk_819660*>(self), 0x38, UNK_85C190_FX_PERCENT(percent));
 }
 
-// NON_MATCHING: Unk_7f7ae0_call is named (u32, u32), so the u16 it's given is
-// extended (and w0, w0, #0xffff). Matches with Unk_7f7ae0_call(u16, u32).
 // 0x710085cae0
 void Unk_85cae0(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
@@ -41,8 +37,6 @@ void Unk_85cae0(void* self, u8 pokeId) {
     Unk_819660_call(static_cast<const Unk_819660*>(self), 0x38, UNK_85C190_FX_PERCENT(percent));
 }
 
-// NON_MATCHING: Unk_7f7ae0_call is named (u32, u32), so the u16 it's given is
-// extended (and w0, w0, #0xffff). Matches with Unk_7f7ae0_call(u16, u32).
 // 0x710085cb80
 void Unk_85cb80(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
@@ -54,8 +48,6 @@ void Unk_85cb80(void* self, u8 pokeId) {
     Unk_819660_call(static_cast<const Unk_819660*>(self), 0x34, UNK_85C190_FX_PERCENT(percent));
 }
 
-// NON_MATCHING: Unk_7f7ae0_call is named (u32, u32), so the u16 it's given is
-// extended (and w0, w0, #0xffff). Matches with Unk_7f7ae0_call(u16, u32).
 // 0x710085cc20
 void Unk_85cc20(void* self, u8 pokeId) {
     const Unk_819600_Self* flow = static_cast<const Unk_819600_Self*>(self);
