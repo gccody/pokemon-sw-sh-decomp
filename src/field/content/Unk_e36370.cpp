@@ -167,17 +167,14 @@ static Unk_23ea168* FindPlayer() {
     return nullptr;
 }
 
-// NON_MATCHING: the original calls 0x7100ded9e0 (the HaxeVector3 constructor)
-// under its leaf placeholder name Unk_ded9e0_set.
 // 0x7100e36820
 HaxeVector3 HaxeFieldFunc::GetPlayerPos() {
     float32x4_t pos = FindPlayer()->field_b0;
     return HaxeVector3(vgetq_lane_f32(pos, 0), vgetq_lane_f32(pos, 1), vgetq_lane_f32(pos, 2));
 }
 
-// NON_MATCHING: the original calls 0x7100ded9e0 (the HaxeVector3 constructor)
-// under its leaf placeholder name Unk_ded9e0_set, and the rotation's copy loads
-// its two halves into x8/x9 the other way round.
+// NON_MATCHING: the rotation's copy loads its two halves into x8/x9 the other
+// way round.
 // 0x7100e368a0
 HaxeVector3 HaxeFieldFunc::GetPlayerRot() {
     Unk_e36820_Rotation rotation = FindPlayer()->field_a0;

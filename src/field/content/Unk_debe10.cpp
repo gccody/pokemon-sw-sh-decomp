@@ -71,8 +71,6 @@ float HaxeSymbolPokemonObject::GetWatchOutBicycleRadius() const {
     return Owner(this)->field_a34;
 }
 
-// NON_MATCHING: the code is identical, but the original calls 0x7100ded9e0 (the
-// HaxeVector3 constructor) under its leaf placeholder name Unk_ded9e0_set.
 // 0x7100debec0
 HaxeVector3 HaxeSymbolPokemonObject::GetEventCollisionDefaultOffset() const {
     float32x4_t offset = Owner(this)->field_a40;
@@ -80,8 +78,6 @@ HaxeVector3 HaxeSymbolPokemonObject::GetEventCollisionDefaultOffset() const {
                        vgetq_lane_f32(offset, 2));
 }
 
-// NON_MATCHING: the code is identical, but the original calls 0x7100ded9e0 (the
-// HaxeVector3 constructor) under its leaf placeholder name Unk_ded9e0_set.
 // 0x7100debf00
 HaxeVector3 HaxeSymbolPokemonObject::GetTouchCollisionDefaultOffset() const {
     float32x4_t offset = Owner(this)->field_a50;
