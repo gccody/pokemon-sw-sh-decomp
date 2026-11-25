@@ -124,9 +124,6 @@ Key MD5KeyDerivation::vf3(const char* password) {
 }
 
 // 0x71016319e0
-// NON_MATCHING: the original checks the allocation for null before it
-// constructs the checksum (NEX's operator new doesn't throw), but RootObject's
-// operator new (nn/nex/RootObject.h) isn't declared non-throwing.
 bool MD5KeyDerivation::vf5(void* arg1, u64 pid, void* arg3, void* arg4) {
     u32 iterations = m_iterations;
     u32 arg5 = field_c;
@@ -134,9 +131,6 @@ bool MD5KeyDerivation::vf5(void* arg1, u64 pid, void* arg3, void* arg4) {
 }
 
 // 0x7101631a60
-// NON_MATCHING: the original checks the allocation for null before it
-// constructs the checksum (NEX's operator new doesn't throw), but RootObject's
-// operator new (nn/nex/RootObject.h) isn't declared non-throwing.
 bool MD5KeyDerivation::vf6(void* arg1, void* arg2, void* arg3) {
     u32 iterations = m_iterations;
     return Unk_15c5520(arg1, new MD5Checksum, arg2, iterations, 0, 0, arg3, 2);

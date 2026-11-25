@@ -73,9 +73,6 @@ struct Unk_1630bf0 {
 PKMN_OFFSET_ASSERT(Unk_1630bf0, field_58, 0x58);
 
 // 0x7101630bf0
-// NON_MATCHING: the code is the original's, but it passes the value to
-// Unk_15bbd10_set by value (copied to the stack), which the existing name
-// (`PK16Unk_15bbd10_arg1`) gives as a pointer: the callee's symbol differs.
 void Unk_1630bf0(Unk_1630bf0* self, const Unk_15bbd10_arg1& value) {
     u64 target = Unk_15ce860_get(&self->field_58->field_50);
     Unk_15bbd10_set(reinterpret_cast<Unk_15bbd10*>(target + 0x40), value);
