@@ -54,6 +54,10 @@ public:
         }
     }
 
+    Unk_8c6550_Ref& operator=(const Unk_8c6550_Ref& other) {
+        Unk_8c6550_Ref copy(other);
+        return *this = static_cast<Unk_8c6550_Ref&&>(copy);
+    }
     Unk_8c6550_Ref& operator=(Unk_8c6550_Ref&& other) {
         if (m_ptr) {
             static_cast<Unk_239a4f8*>(m_ptr)->vf4();
@@ -146,6 +150,10 @@ public:
     void Unk_8c6e00(const u8* arg1, u8 arg2, u8 arg3, u16 arg4, bool arg5);
     void Unk_8c6e80();
     void Unk_8c6ef0();
+    // In the next TU (0x71008c7400 and 0x71008c78b0): what's done with the
+    // scores.
+    void Unk_8c7400();
+    void Unk_8c78b0();
 
     Unk_7c2d80_Main* field_68;
     Unk_7fe1d0* field_70;
