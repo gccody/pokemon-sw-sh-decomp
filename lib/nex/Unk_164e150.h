@@ -1,62 +1,61 @@
 #pragma once
 // NEX 4.6.8's data classes whose type names are "LocationData" and
 // "SubscriptionData" (the strings their type functions return and compare),
-// derived from the data classes' base (type name "Data"), and the client of
-// their protocol (vtable 0x7102456528). They have no RTTI: the structs are
-// placeholders named after the stream functions that write them
-// (lib/nex/ddl/Calls.cpp's inputs), and their slots are written as
-// placeholder free functions over them (lib/nex/Unk_164e150.cpp,
-// lib/nex/Unk_164e830.cpp). Each class has a vtable of its own fields'
-// class (_DDL_-style, the one its D0s store) and one of the class itself.
+// and the client of their protocol (vtable 0x7102456528). They have no RTTI:
+// the classes are placeholders, named after their vtables or after the stream
+// functions that write them (lib/nex/ddl/Calls.cpp's inputs). Each is a class
+// of its fields (whose D0 is in the vtable the constructor stores first)
+// derived from the data classes' base (type name "Data"), and a class derived
+// from that. Their slots are written as placeholder free functions
+// (lib/nex/Unk_164e150.cpp, lib/nex/Unk_164e830.cpp); the virtual functions
+// declared here only give each class its vtable, which none of these files
+// emits.
 #include <nn/nex/ByteStream.h>
 #include <nn/nex/Call.h>
 #include <nn/nex/RefCountedObject.h>
 #include <nn/nex/String.h>
+#include <nn/nex/qVector.h>
 
 // 0x71015cf190: a qBuffer of `capacity` bytes (at least 10), its data starting
 // `offset` bytes in.
 void Unk_15cf190(nn::nex::qBuffer* self, size_t capacity, size_t offset);
+// 0x71015cf230: a copy of another qBuffer.
+void Unk_15cf230(nn::nex::qBuffer* self, const nn::nex::qBuffer& other);
 // 0x71015cf360: assigns another qBuffer.
 nn::nex::qBuffer* Unk_15cf360(nn::nex::qBuffer* self, const nn::nex::qBuffer& other);
 // 0x71015cf460: moves the qBuffer's positions back to where its data starts.
 void Unk_15cf460(nn::nex::qBuffer* self);
 
-// 0x710162fa40: the data classes' base constructor (a version at +8, cleared).
-void Unk_162fa40(void* self);
 // 0x7101630750: the base's assignment (it has nothing to copy).
 void Unk_1630750_update(u64, u64);
-// 0x7101638210: the base's destructor.
-void Unk_1638210(void* self);
 
-// The vtables (data: a vptr is its vtable's address point, two words in).
-extern void* Unk_24566d8[];  // LocationData's fields
-extern void* Unk_2417e68[];  // LocationData
-extern void* Unk_2456628[];  // SubscriptionData's fields
-extern void* Unk_2417e18[];  // SubscriptionData
-extern void* Unk_2456518[];  // the protocol's client
+// The data classes' base: type name "Data" (0x71016309f0 compares it).
+class Unk_162fa40 : public nn::nex::RootObject {
+public:
+    // 0x710162fa40
+    Unk_162fa40();
+    // 0x7101638210
+    ~Unk_162fa40() override;
+    virtual Unk_162fa40* vf2() const;
+    virtual nn::nex::String vf3() const;
+    virtual bool vf4(const nn::nex::String& name) const;
+    virtual bool vf5(const nn::nex::String& name) const;
+    virtual void vf6(nn::nex::ByteStream* s) const;
+    virtual void vf7(nn::nex::ByteStream* s);
 
-// The data class whose type name is "LocationData" (the call input of
-// lib/nex/ddl/Calls.cpp's Unk_164d300 and Unk_164d510). Its constructor and
-// assignment are what the clone (slot 2) inlines; the qBuffer is constructed
-// and destroyed by hand (the anonymous union keeps C++ from doing it).
-struct Unk_164e020 {
-    static void* operator new(size_t size) noexcept { return Unk_15b6dc0(size); }
+    u8 m_baseVersion;
+};
+PKMN_OFFSET_ASSERT(Unk_162fa40, m_baseVersion, 0x8);
 
-    Unk_164e020() {
-        Unk_162fa40(this);
-        m_vtable = Unk_24566d8 + 2;
-        m_version = 0;
-        Unk_15cf190(&field_28, 0, 0);
-        m_vtable = Unk_2417e68 + 2;
-        field_10 = 0;
-        field_18 = 0;
-        field_1c = 0;
-        field_20 = 0;
-        field_24 = 0;
-        Unk_15cf460(&field_28);
-    }
+// Vtable 0x71024566e8: the fields of "LocationData". The qBuffer is
+// constructed, copied and destroyed by hand (the anonymous union keeps C++
+// from doing it: its constructors aren't declared).
+class Unk_24566d8 : public Unk_162fa40 {
+public:
+    Unk_24566d8() : m_version(0) { Unk_15cf190(&field_28, 0, 0); }
+    ~Unk_24566d8() override { field_28.~qBuffer(); }
 
-    Unk_164e020& operator=(const Unk_164e020& other) {
+    Unk_24566d8& operator=(const Unk_24566d8& other) {
         Unk_1630750_update(reinterpret_cast<u64>(this), reinterpret_cast<u64>(&other));
         m_version = other.m_version;
         field_10 = other.field_10;
@@ -70,15 +69,6 @@ struct Unk_164e020 {
         return *this;
     }
 
-    // The fields' class's destructor (what the D0s inline).
-    ~Unk_164e020() {
-        m_vtable = Unk_24566d8 + 2;
-        field_28.~qBuffer();
-        Unk_1638210(this);
-    }
-
-    void** m_vtable;
-    u8 m_baseVersion;  // the base's
     u8 m_version;
     u64 field_10;
     u32 field_18;
@@ -89,27 +79,38 @@ struct Unk_164e020 {
         nn::nex::qBuffer field_28;
     };
 };
-PKMN_SIZE_ASSERT(Unk_164e020, 0x60);
-PKMN_OFFSET_ASSERT(Unk_164e020, m_version, 0x9);
-PKMN_OFFSET_ASSERT(Unk_164e020, field_10, 0x10);
-PKMN_OFFSET_ASSERT(Unk_164e020, field_24, 0x24);
-PKMN_OFFSET_ASSERT(Unk_164e020, field_28, 0x28);
+PKMN_SIZE_ASSERT(Unk_24566d8, 0x60);
+PKMN_OFFSET_ASSERT(Unk_24566d8, m_version, 0x9);
+PKMN_OFFSET_ASSERT(Unk_24566d8, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_24566d8, field_24, 0x24);
+PKMN_OFFSET_ASSERT(Unk_24566d8, field_28, 0x28);
 
-// The data class whose type name is "SubscriptionData" (the call input of
-// lib/nex/Unk_164c460.cpp's protocol calls), likewise.
-struct Unk_164da60 {
-    static void* operator new(size_t size) noexcept { return Unk_15b6dc0(size); }
-
-    Unk_164da60() {
-        Unk_162fa40(this);
-        m_vtable = Unk_2456628 + 2;
-        m_version = 0;
-        Unk_15cf190(&field_18, 0, 0);
-        m_vtable = Unk_2417e18 + 2;
+// Vtable 0x7102417e78: "LocationData" (the call input of
+// lib/nex/ddl/Calls.cpp's Unk_164d300 and Unk_164d510).
+class Unk_164e020 : public Unk_24566d8 {
+public:
+    Unk_164e020() {
         field_10 = 0;
+        field_18 = 0;
+        field_1c = 0;
+        field_20 = 0;
+        field_24 = 0;
+        Unk_15cf460(&field_28);
     }
+    ~Unk_164e020() override {}
+};
 
-    Unk_164da60& operator=(const Unk_164da60& other) {
+// Vtable 0x7102456638: the fields of "SubscriptionData".
+class Unk_2456628 : public Unk_162fa40 {
+public:
+    Unk_2456628() : m_version(0) { Unk_15cf190(&field_18, 0, 0); }
+    Unk_2456628(const Unk_2456628& other)
+        : Unk_162fa40(other), m_version(other.m_version), field_10(other.field_10) {
+        Unk_15cf230(&field_18, other.field_18);
+    }
+    ~Unk_2456628() override { field_18.~qBuffer(); }
+
+    Unk_2456628& operator=(const Unk_2456628& other) {
         Unk_1630750_update(reinterpret_cast<u64>(this), reinterpret_cast<u64>(&other));
         m_version = other.m_version;
         field_10 = other.field_10;
@@ -118,24 +119,26 @@ struct Unk_164da60 {
         return *this;
     }
 
-    ~Unk_164da60() {
-        m_vtable = Unk_2456628 + 2;
-        field_18.~qBuffer();
-        Unk_1638210(this);
-    }
-
-    void** m_vtable;
-    u8 m_baseVersion;  // the base's
     u8 m_version;
     u64 field_10;
     union {
         nn::nex::qBuffer field_18;
     };
 };
-PKMN_SIZE_ASSERT(Unk_164da60, 0x50);
-PKMN_OFFSET_ASSERT(Unk_164da60, m_version, 0x9);
-PKMN_OFFSET_ASSERT(Unk_164da60, field_10, 0x10);
-PKMN_OFFSET_ASSERT(Unk_164da60, field_18, 0x18);
+PKMN_SIZE_ASSERT(Unk_2456628, 0x50);
+PKMN_OFFSET_ASSERT(Unk_2456628, m_version, 0x9);
+PKMN_OFFSET_ASSERT(Unk_2456628, field_10, 0x10);
+PKMN_OFFSET_ASSERT(Unk_2456628, field_18, 0x18);
+
+// Vtable 0x7102417e28: "SubscriptionData" (the call input of
+// lib/nex/Unk_164c460.cpp's protocol calls).
+class Unk_164da60 : public Unk_2456628 {
+public:
+    Unk_164da60() { field_10 = 0; }
+    ~Unk_164da60() override {}
+};
+
+extern void* Unk_2456518[];  // the protocol's client's vtable (its address point two words in)
 
 // The protocol's client: its virtual functions, only as far as its
 // constructor calls them (slot 22 makes a new client of the protocol).
