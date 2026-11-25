@@ -76,10 +76,10 @@ void Unk_239a4c0::vf2() {
     allocator->vf3(arg1, arg2, arg3);
 }
 
-// Called with the owner of the tasks (the global Unk_5e5020_Owner points to)
-// and a task, before the task is destroyed.
+// Called with the owner of the tasks (what Unk_24ba738 points to, the class of
+// vtable 0x710239a528) and a task, before the task is destroyed.
 void Unk_5e5020(void* owner, void* task);
-extern void* Unk_5e5020_Owner;
+extern void* Unk_24ba738;
 
 // NON_MATCHING: register allocation. The original keeps the temporary's handle
 // and the assigned one in two registers (copied), this in one.
@@ -105,7 +105,7 @@ void Unk_5e26a0(void* object) {
 // 0x71005e25f0: Unk_239a360's vf3, destroy and free once it's done.
 void Unk_5e25f0(Unk_239a360_Self* self) {
     Unk_5e26a0(self);
-    Unk_5e5020(Unk_5e5020_Owner, self);
+    Unk_5e5020(Unk_24ba738, self);
     Unk_239a418_Allocator* allocator = self->field_8;
     u64 arg1 = self->field_10;
     u64 arg2 = self->field_18;
