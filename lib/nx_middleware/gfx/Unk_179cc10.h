@@ -24,6 +24,8 @@ struct Unk_179cc10_ListNode {
     Unk_179cc10_ListNode* prev;
     Unk_179cc10_ListNode* next;
 
+    Unk_179cc10_ListNode() { InitializeLinks(); }
+
     void InitializeLinks() {
         prev = this;
         next = this;
@@ -52,7 +54,6 @@ PKMN_SIZE_ASSERT(Unk_179cc10_ListNode, 0x10);
 struct Unk_179cc10_List {
     Unk_179cc10_ListNode root;
 
-    void Initialize() { root.InitializeLinks(); }
     Unk_179cc10_ListNode* begin() { return root.next; }
     Unk_179cc10_ListNode* end() { return &root; }
     bool empty() const { return root.next == &root; }
