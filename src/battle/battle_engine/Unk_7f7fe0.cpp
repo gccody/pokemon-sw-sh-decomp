@@ -104,3 +104,24 @@ u32 Unk_7f8350(const Unk_7f8350_Self* self) {
         total += Unk_7f8350_Pair(self->field_a20, self->field_418);
     return total;
 }
+
+// 0x71007f8620: the initialiser of a guarded static (a template's or an
+// inline one) whose destructor is 0x71007f8670: its constructor is constant,
+// so only the destructor is registered.
+struct Unk_7f8670;
+void Unk_7f8670_call(Unk_7f8670* self) __attribute__((visibility("hidden")));
+
+// Its guard (0x71027cecf8). The static itself (0x71027cecf0, a pointer the
+// destructor releases) is declared in Unk_7ee6b0.h as other code reads it.
+extern u64 Unk_27cecf8;
+
+extern "C" int __cxa_atexit(void (*function)(void*), void* object, void* dso);
+extern "C" void* __dso_handle __attribute__((visibility("hidden")));
+
+void Unk_7f8620_init() {
+    if ((Unk_27cecf8 & 1) == 0) {
+        __cxa_atexit(reinterpret_cast<void (*)(void*)>(Unk_7f8670_call), &Unk_27cecf0,
+                     &__dso_handle);
+        Unk_27cecf8 = 1;
+    }
+}
