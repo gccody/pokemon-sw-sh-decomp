@@ -43,6 +43,86 @@ public:
 
 extern Unk_27d6160_Type* Unk_27d6160;
 
+// The field objects, with the flags 0x71013bdca0 looks at.
+class Unk_13bdca0_Object : public Unk_13f1360_Object {
+public:
+    u8 _1a8[0x378 - 0x1a8];
+    u32 field_378;
+};
+static_assert(__builtin_offsetof(Unk_13bdca0_Object, field_378) == 0x378, "field_378");
+
+// The types (0x71027efd90, 0x71027efd80) the types of the objects below are
+// on, as in src/unsorted/types/Unk_cf2500.cpp. Unk_23dcdd0's getter
+// (src/unsorted/Unk_23dcdd0.h) is called out of line (0x71013a6920).
+class Unk_23dcdd0 {
+public:
+    static const Unk_239a418_Type* Unk_GetType();
+};
+
+struct Unk_23dd820 {
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23dcdd0::Unk_GetType());
+        return &type;
+    }
+};
+
+struct Unk_23e4758 {
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23dd820::Unk_GetType());
+        return &type;
+    }
+};
+
+// Field objects of two kinds (as src/unsorted/types/Unk_d4fd40.cpp and
+// Unk_d16230.cpp name them).
+// The first's type getter is out of line (0x71013ca860).
+class Unk_23ea898 : public Unk_13f1360_Object {
+public:
+    static const Unk_239a418_Type* Unk_GetType();
+};
+
+class Unk_23e8958 : public Unk_13f1360_Object {
+public:
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23e4758::Unk_GetType());
+        return &type;
+    }
+};
+
+// What the two kinds are checked with (src/unsorted/leaf/Unk_d4fb90.cpp and
+// Unk_d17bc0.cpp): whether a name's hash is set.
+struct Unk_d4fbc0;
+struct Unk_d17bc0;
+bool Unk_d4fbc0_check(const Unk_d4fbc0* self);
+bool Unk_d17bc0_check(const Unk_d17bc0* self);
+
+// 0x71013bdca0
+s64 Unk_13bdca0_call(Unk_13bd600_Script* self, const Unk_13bd600_Arg* args) {
+    s64 first = args[1].i;
+    s64 second = args[2].i;
+    Unk_13f1360_Manager* manager = Unk_27d6158;
+    if (first != 0) {
+        for (auto& object : manager->field_b0) {
+            if ((static_cast<Unk_13bdca0_Object*>(object)->field_378 & 0x1000) == 0 ||
+                object->vf17())
+                continue;
+            Unk_23ea898* found = object->Unk_Cast<Unk_23ea898>();
+            if (found != nullptr && Unk_d4fbc0_check(reinterpret_cast<const Unk_d4fbc0*>(found)))
+                found->vf16();
+        }
+    }
+    if (second != 0) {
+        for (auto& object : manager->field_b0) {
+            if ((static_cast<Unk_13bdca0_Object*>(object)->field_378 & 0x8) == 0 || object->vf17())
+                continue;
+            Unk_23e8958* found = object->Unk_Cast<Unk_23e8958>();
+            if (found != nullptr && Unk_d17bc0_check(reinterpret_cast<const Unk_d17bc0*>(found)))
+                found->vf16();
+        }
+    }
+    return 1;
+}
+
 // 0x71013bdec0
 s64 Unk_13bdec0_call(Unk_13bd600_Script* self, const Unk_13bd600_Arg* args) {
     return Unk_27d6160->vf8();
