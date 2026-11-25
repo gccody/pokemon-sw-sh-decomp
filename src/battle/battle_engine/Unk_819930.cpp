@@ -12,7 +12,7 @@ struct Unk_7cb2c0;
 u8 Unk_7cb490(u8 pokeId);
 Unk_7ecc90_Con* Unk_7fe1d0_getField8(const Unk_7fe1d0* self);
 const Unk_7fc430_Party* Unk_7ed1b0(const Unk_7ecc90_Con* self, u32 client);
-u8 Unk_7cb2c0_call(const Unk_7cb2c0* self, u32 value);
+u8 Unk_7cb2c0_call(const Unk_7cb2c0* self, u8 value);
 u8 Unk_7fc350(const Unk_7fc430_Party* self, u8 start);
 
 // The handler objects' functions (game/unk_82e410).
@@ -22,9 +22,8 @@ struct Unk_84d950_Arg;
 void Unk_84d950(Unk_23ae180* self, Unk_23acc98_Result& result, const Unk_84d950_Arg& arg);
 
 // 0x71008199a0
-// NON_MATCHING: Unk_7cb2c0_call's name gives its value as u32 (j), so the u8
-// from Unk_7cb490 is zero-extended here (one extra `and`); the callee itself
-// masks it (`and w2, w1, #0xff`), i.e. it really takes a u8.
+// NON_MATCHING: the load of the handler object is hoisted above the call to
+// Unk_7cb490 (the original loads it after).
 bool Unk_8199a0(const Unk_819600_Self* self, u8 pokeId) {
     u32 client = Unk_7cb490(pokeId);
     const Unk_7fc430_Party* party =
