@@ -50,15 +50,11 @@ void Unk_811ee0(const Unk_811d90_Self* self, u8 pokeId) {
     Unk_8150c0(self->field_18, 0x63, pokeId);
 }
 
-// NON_MATCHING: only the callee's symbol differs: Unk_8150c0 is variadic, but
-// functions.csv names it _Z10Unk_8150c0mjj. Matches as _Z10Unk_8150c0mjz.
 // 0x7100811f20
 void Unk_811f20(const Unk_811d90_Self* self, u8 pokeId, bool flag) {
     Unk_8150c0(self->field_18, 0xb3, pokeId, flag);
 }
 
-// NON_MATCHING: only the callee's symbol differs: Unk_8150c0 is variadic, but
-// functions.csv names it _Z10Unk_8150c0mjj. Matches as _Z10Unk_8150c0mjz.
 // 0x7100811f40
 void Unk_811f40(const Unk_811d90_Self* self, u8 pokeId, u8 value) {
     Unk_8182e0(self->field_20, pokeId);
@@ -80,15 +76,11 @@ void Unk_811fb0(const Unk_811d90_Self* self) {
     Unk_8150c0(self->field_18, 0xb0, 0);
 }
 
-// NON_MATCHING: only the callee's symbol differs: Unk_8150c0 is variadic, but
-// functions.csv names it _Z10Unk_8150c0mjj. Matches as _Z10Unk_8150c0mjz.
 // 0x7100811fc0
 void Unk_811fc0(const Unk_811d90_Self* self, u8 pokeId, bool flag) {
     Unk_8150c0(self->field_18, 0x8f, pokeId, flag);
 }
 
-// NON_MATCHING: only the callee's symbol differs: Unk_8150c0 is variadic, but
-// functions.csv names it _Z10Unk_8150c0mjj. Matches as _Z10Unk_8150c0mjz.
 // 0x7100811fe0
 void Unk_811fe0(const Unk_811d90_Self* self, u8 pokeId, bool flag) {
     Unk_8150c0(self->field_18, 0x87, pokeId, flag);
@@ -104,8 +96,6 @@ void Unk_812010(const Unk_811d90_Self* self) {
     Unk_8150c0(self->field_18, 0xad, 0);
 }
 
-// NON_MATCHING: only the callee's symbol differs: Unk_8150c0 is variadic, but
-// functions.csv names it _Z10Unk_8150c0mjj. Matches as _Z10Unk_8150c0mjz.
 // 0x7100812020
 void Unk_812020(const Unk_811d90_Self* self, u8 pokeId, u32 value) {
     Unk_8150c0(self->field_18, 0xae, pokeId, value);

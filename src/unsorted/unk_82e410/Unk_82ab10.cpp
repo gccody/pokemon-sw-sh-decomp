@@ -22,8 +22,8 @@ const Unk_7ee6b0* Unk_7ed6f0(const Unk_7ecc90_Con* self, u8 client, u8 index);
 u8 Unk_7ee6b0_getField7d(const Unk_7ee6b0* self);
 u8 Unk_803600(void* self, u8 pokeId);
 // Placeholder names whose types came from callers that pass a u32 through.
-void Unk_7cc000(void* self, u32 pokeId);
-void Unk_7cbf80(void* self, u32 pokeId, u32 otherId);
+void Unk_7cc000(void* self, u8 pokeId);
+void Unk_7cbf80(void* self, u8 pokeId, u8 otherId);
 
 static inline void* Unk_82ab10_Field0(const Unk_23acc98* self) {
     return reinterpret_cast<void*>(self->field_8.field_0[0]);
@@ -60,9 +60,6 @@ u8 Unk_82abb0(void* self, u8 index) {
     return Unk_803600(Unk_82ab10_Fielda8(self), index);
 }
 
-// NON_MATCHING: Unk_7cc000/Unk_7cbf80 take u8 IDs (they mask them themselves),
-// but their placeholder names say u32 (_Z10Unk_7cc000Pvj, _Z10Unk_7cbf80Pvjj), so
-// the u8 from Unk_7ee6b0_getField7d is masked here: an extra `and`.
 // 0x710082abe0
 void Unk_82abe0(const Unk_23acc98* self, const Unk_7ee6b0* poke) {
     u8 pokeId = Unk_7ee6b0_getField7d(poke);
@@ -79,9 +76,7 @@ bool Unk_82aca0(const Unk_23acc98* self, u32 value) {
     return Unk_7c56e0_check(reinterpret_cast<const Unk_7c56e0*>(Unk_82ab10_Field0(self)), value);
 }
 
-// NON_MATCHING: Unk_7cbf80 takes u8 IDs (it masks them itself), but its
-// placeholder name says u32 (_Z10Unk_7cbf80Pvjj), so each u8 from Unk_7ee6b0_getField7d is masked
-// here: an extra `and`. 0x710082acb0
+// 0x710082acb0
 void Unk_82acb0(const Unk_23acc98* self, const Unk_7ee6b0* poke, const Unk_7ee6b0* other) {
     u8 pokeId = Unk_7ee6b0_getField7d(poke);
     u8 otherId = Unk_7ee6b0_getField7d(other);

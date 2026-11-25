@@ -15,10 +15,6 @@ struct Unk_811d90_Self {
 PKMN_OFFSET_ASSERT(Unk_811d90_Self, field_18, 0x18);
 PKMN_OFFSET_ASSERT(Unk_811d90_Self, field_20, 0x20);
 
-// Queues command `cmd`. It's variadic (it saves x2..x7 and q0..q7 into its
-// va_list area), but functions.csv names it with one argument after `cmd`
-// (_Z10Unk_8150c0mjj, which existing callers use): the calls with one
-// argument use that declaration, the others the variadic one. Once it's
-// renamed _Z10Unk_8150c0mjz, drop the first declaration.
-void Unk_8150c0(u64 que, u32 cmd, u32 arg);
+// Queues command `cmd` with its arguments: it's variadic (it saves x2..x7 and
+// q0..q7 into its va_list area, and its callers pass 1 to 7 arguments).
 void Unk_8150c0(u64 que, u32 cmd, ...);

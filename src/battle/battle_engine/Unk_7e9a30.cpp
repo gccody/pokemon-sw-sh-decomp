@@ -57,19 +57,13 @@ u64 Unk_7e9910(void* self, u32 label) {
 }
 
 // 0x71007e9a00 - a table of 32-bit values at +0x40, indexed by a byte.
-// NON_MATCHING: the original adds the index with `uxtb` (a u8 parameter);
-// with the u32 its callers' declaration gives (src/unsorted/leaf/Unk_819600.cpp)
-// the byte is masked first. One instruction more.
-u32 Unk_7e9a00(u64 self, u32 index) {
-    u8 i = index;
-    return *reinterpret_cast<const u32*>(self + i * 4 + 0x40);
+u32 Unk_7e9a00(u64 self, u8 index) {
+    return *reinterpret_cast<const u32*>(self + index * 4 + 0x40);
 }
 
 // 0x71007e9a10
-// NON_MATCHING: as Unk_7e9a00, the u8 index is masked instead of extended.
-void Unk_7e9a10(u64 self, u32 index, u32 value) {
-    u8 i = index;
-    *reinterpret_cast<u32*>(self + i * 4 + 0x40) = value;
+void Unk_7e9a10(u64 self, u8 index, u32 value) {
+    *reinterpret_cast<u32*>(self + index * 4 + 0x40) = value;
 }
 
 // 0x71007e9a30

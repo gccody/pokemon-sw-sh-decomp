@@ -78,7 +78,7 @@ u32 Unk_803760(void* self, u8 pokeId);
 u32 Unk_803560(void* self, u8 pokeId);
 u32 Unk_7ed660(Unk_7ecc90_Con* self, u8 pokeId);
 void Unk_7cb420(const Unk_7c2d80_Main* self, Unk_7ecc90_Con* con, u8 pokeId);
-u32 Unk_7ff460(void* self, u32 arg);
+u32 Unk_7ff460(void* self, u8 arg);
 bool Unk_7f05a0(const Unk_7ee6b0* self, u32 flag);
 u8 Unk_7cb490(u8 value);
 bool Unk_7eb4f0(u16 item);
