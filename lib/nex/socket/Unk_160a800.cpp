@@ -184,7 +184,7 @@ public:
     ~PRUDPLiteMessageV1() override;
 
     Unk_15bb890 m_random;
-    Unk_15b78f0 m_lock;
+    nn::nex::CriticalSection m_lock;
 };
 PKMN_OFFSET_ASSERT(PRUDPLiteMessageV1, m_lock, 0x9d8);
 PKMN_SIZE_ASSERT(PRUDPLiteMessageV1, 0xa20);
