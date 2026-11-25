@@ -11,6 +11,8 @@
 #include "pia/common/Unk_165c960.h"
 #include "pia/common/Unk_165e060.h"
 
+class Unk_23a2c98;
+
 namespace nn {
 namespace pia {
 namespace common {
@@ -63,7 +65,9 @@ public:
 
     Unk_1652c70& Unk_1652cf0(const Unk_1652c70& other);  // copies both fields
     void Unk_16538d0();                                  // clears both fields
-    void Unk_1652fe0(common::String* out) const;         // writes it as text
+    // Writes it as text. Its name gives the text as Unk_23a2c98
+    // (lib/pia/common/Unk_165fb10.h): common::String, by RTTI.
+    void Unk_1652fe0(Unk_23a2c98* out) const;
 
     u8 field_8[0x10];
     u16 field_18;
@@ -80,7 +84,7 @@ public:
     virtual ~Unk_165fb30() {}
 
     Unk_165e060 Unk_165fd90(const Unk_1652c70& value);  // sets field_8
-    Unk_165fb30& Unk_165fd50(const Unk_165fb30& other);  // copies field_8
+    Unk_165fb30& operator=(const Unk_165fb30& other);  // copies field_8
 
     Unk_1652c70 field_8;
 };
@@ -271,7 +275,7 @@ Unk_165e060 NexInputStream::Unk_16d2cf0(Unk_16d2c70_arg1* packet) {
     }
     if (!Unk_1653890(reinterpret_cast<const Unk_1653890_arg0*>(&address))) {
         common::FixedString<48> text;
-        address.Unk_1652fe0(&text);
+        address.Unk_1652fe0(reinterpret_cast<Unk_23a2c98*>(&text));
         return Unk_165e060Value<0x2c09>();
     }
     for (s32 i = 0; i < 2; i++) {
@@ -282,7 +286,7 @@ Unk_165e060 NexInputStream::Unk_16d2cf0(Unk_16d2c70_arg1* packet) {
     }
     Unk_165fb30 source;
     source.Unk_165fd90(address);
-    packet->field_628.Unk_165fd50(source);
+    packet->field_628 = source;
     packet->field_620 = flag;
     return Unk_165e060Value<0>();
 }
