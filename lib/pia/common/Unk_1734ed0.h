@@ -27,6 +27,7 @@ PKMN_OFFSET_ASSERT(Unk_172c3e0_arg0, field_15c, 0x15c);
 
 extern Unk_172c3e0_arg0* Unk_27fc0a8;
 
+bool Unk_172abd0(Unk_172c3e0_arg0* self, u64 id, u8 value, void* arg3, bool arg4);
 void Unk_172c3e0(Unk_172c3e0_arg0* self, u64 id);
 void Unk_172c450(Unk_172c3e0_arg0* self, u64 id);
 
