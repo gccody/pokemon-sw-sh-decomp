@@ -18,7 +18,7 @@ void Unk_818650(const Unk_8139c0_Self* self, u8 pokeId);
 void Unk_818690(const Unk_8139c0_Self* self, u8 pokeId);
 void Unk_8186d0(const Unk_8139c0_Self* self, u8 pokeId, u32 arg2);
 void Unk_818720(const Unk_8139c0_Self* self, u8 pokeId, u32 arg2);
-void Unk_8185d0_call(const Unk_8185d0* self, u32 value, u32 arg2, u32 arg3, void* arg4, u64 arg5);
+void Unk_8185d0_call(const Unk_8185d0* self, u32 value, u32 arg2, u32 arg3, void* arg4, u32 arg5);
 void Unk_8185e0_call(const Unk_8185e0* self, u32 value, u32 arg2);
 void Unk_8185f0_call(const Unk_8185f0* self, u32 value, u32 arg2, void* arg3);
 void Unk_818600_call(const Unk_818600* self, u32 value, u32 arg2);
@@ -26,7 +26,7 @@ void Unk_818600_call(const Unk_818600* self, u32 value, u32 arg2);
 // they end with (the callers here return bit 0 of w0).
 bool Unk_818610_call(const Unk_818610* self, u32 value, u32 arg2);
 bool Unk_818620_call(const Unk_818620* self, u32 value, u32 arg2);
-bool Unk_818630_call(const Unk_818630* self, u32 value, u64 arg2);
+bool Unk_818630_call(const Unk_818630* self, u32 value, u32 arg2);
 void Unk_818640_call(const Unk_818640* self, u32 value);
 // Reads the two values of `self`: *out4 = +4, *out0 = +0.
 void Unk_7f8ba0(const void* self, u32* out4, u32* out0);
@@ -37,9 +37,6 @@ void Unk_812710(const Unk_811d90_Self* self, u8 pokeId) {
     Unk_8150c0(self->field_18, 0x75, pokeId);
 }
 
-// NON_MATCHING: the original hands `arg5` on to Unk_8185d0_call as it got it
-// (a 32-bit value), but the name callers use, _Z15Unk_8185d0_callPK10Unk_8185d0jjjPvm,
-// makes that parameter a u64, which is zero-extended first (mov w5, w5).
 // 0x7100812750
 void Unk_812750(const Unk_811d90_Self* self, u32 arg1, u32 arg2, u32 arg3, u32* values, u32 arg5) {
     Unk_8185d0_call(reinterpret_cast<const Unk_8185d0*>(self->field_20), arg1, arg2, arg3, values,
@@ -86,9 +83,6 @@ bool Unk_812930(const Unk_811d90_Self* self, u32 pokeId, u32 arg2) {
     return result;
 }
 
-// NON_MATCHING: the original hands `arg2` on to Unk_818630_call as it got it
-// (a 32-bit value), but the name callers use, _Z15Unk_818630_callPK10Unk_818630jm,
-// makes that parameter a u64, which is zero-extended first (mov w2, w2).
 // 0x7100812980
 bool Unk_812980(const Unk_811d90_Self* self, u32 arg1, u32 arg2) {
     bool result = Unk_818630_call(reinterpret_cast<const Unk_818630*>(self->field_20), arg1, arg2);

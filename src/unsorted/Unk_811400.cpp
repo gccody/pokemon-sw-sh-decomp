@@ -8,7 +8,7 @@ struct Unk_817c60;
 
 bool Unk_7c5910_call(const Unk_7c5910* self, u32 value);
 u32 Unk_817c60_call(const Unk_817c60* self);
-void Unk_817c40();
+void Unk_817c40(const Unk_8139c0_Self* self);
 
 void Unk_816d00(const Unk_8139c0_Self* self, u8 arg1, u8 arg2);
 void Unk_816d40(const Unk_8139c0_Self* self, u8 arg1, u8 arg2);
@@ -63,11 +63,9 @@ void Unk_8114b0(const Unk_811d90_Self* self, u8 arg1, u8 arg2, u8 arg3, u8 arg4,
     Unk_8150c0(self->field_18, 0x82, arg1, arg2, arg3, arg4, arg5);
 }
 
-// NON_MATCHING: Unk_817c40 is named with no parameters, but it takes the
-// server's state (it reads its +0x10), so x0 isn't loaded from +0x20 here.
 // 0x7100811520
 void Unk_811520(const Unk_811d90_Self* self) {
-    Unk_817c40();
+    Unk_817c40(self->field_20);
     Unk_8150c0(self->field_18, 0x68);
 }
 
