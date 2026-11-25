@@ -32,8 +32,22 @@ struct Unk_173bd40 {
     s32 field_10;  // the packets in it
 };
 PKMN_OFFSET_ASSERT(Unk_173bd40, field_10, 0x10);
+namespace nn {
+namespace pia {
+class Unk_1660390;
+}  // namespace pia
+}  // namespace nn
+nn::pia::Unk_1660390* Unk_173bb40(Unk_173bd40* self, u32 index);
+nn::pia::Unk_1660390* Unk_173bb80(Unk_173bd40* self);
 void Unk_173bb30_update(u64 arg0, void* arg1);  // empty
 void Unk_173bc80_set(Unk_173bc80* self);
+
+// What ReceiveThreadStream passes Unk_173bb30_update when it has no packet.
+struct Unk_173bb30_arg1 {
+    u32 field_0;
+    u32 field_4;
+    u32 field_8;
+};
 
 // A table of 12 0x68-byte entries (an entry by its index, null past the end)
 // and an entry's name (up to 63 characters).
@@ -315,14 +329,17 @@ public:
     Unk_165e060 Unk_174f430(const char* name, u32 arg2, u32 arg3, u32 arg4, bool arg5, u32 arg6);
     bool Unk_174fb80(const Unk_1652c70& address);
 
-    u8 _8[0x30 - 0x8];
-    Unk_173bd40 field_30;  // the received packets
+    u8 field_8[0x10];
+    Unk_173bd40 field_18;  // the received packets
+    u8 _2c[0x30 - 0x2c];
+    Unk_173bd40 field_30;  // the packets to send
     u8 _44[0xc4 - 0x44];
     u32 field_c4;
     u8 _c8[0xd8 - 0xc8];
     Unk_174bc30* field_d8;
     u8 _e0[0x4f0 - 0xe0];
 };
+PKMN_OFFSET_ASSERT(TransportThreadStream, field_18, 0x18);
 PKMN_OFFSET_ASSERT(TransportThreadStream, field_30, 0x30);
 PKMN_OFFSET_ASSERT(TransportThreadStream, field_c4, 0xc4);
 PKMN_OFFSET_ASSERT(TransportThreadStream, field_d8, 0xd8);
