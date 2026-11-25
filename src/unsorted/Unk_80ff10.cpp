@@ -16,6 +16,11 @@ void Unk_816eb0(const Unk_8139c0_Self* self, u8 pokeId);
 void Unk_816ee0(const Unk_8139c0_Self* self, u8 pokeId, u32 value);
 u64 Unk_7ef750(const Unk_7ee6b0* self, u32 index);
 u8 Unk_803600(void* self, u8 id);
+// Returns a flag: the caller tests bit 0 of the result.
+bool Unk_817b70(const Unk_8139c0_Self* self, u8 pokeId, u8 count);
+u8 Unk_7f0e50(Unk_7ee6b0* self, u32 stat, u8 count);
+u8 Unk_7f0f30(Unk_7ee6b0* self, u32 stat, u8 count);
+void Unk_816320(u64 que, u16 id, ...);
 void Unk_816f20(const Unk_8139c0_Self* self, u8 pokeId, u8 otherId);
 void Unk_816f90(const Unk_8139c0_Self* self,
                 u8 pokeId,
@@ -123,6 +128,50 @@ void Unk_810520(void* self,
                arg4, arg5, arg6, arg7);
     Unk_810520_Put(server->field_18, Unk_7ee6b0_getField7d(poke), Unk_7ee6b0_getField7d(target),
                    arg3, arg4, arg5, arg6, arg7);
+}
+
+// 0x7100810200
+// NON_MATCHING: the original takes `notify` as a bool (it tests bit 0); the
+// name's u32 gives cbz/cbnz. With bool, only the order of the two masks for
+// command 0x12 differs.
+// Stat 9 goes to the server, the others to the Pokemon: raised by a positive
+// amount, lowered by a negative one.
+void Unk_810200(void* self, void* object, u32 stat, u32 amount, u16 arg4, u32 notify, u8 kind) {
+    const Unk_811d90_Self* server = static_cast<const Unk_811d90_Self*>(self);
+    Unk_7ee6b0* poke = static_cast<Unk_7ee6b0*>(object);
+    u8 pokeId = Unk_7ee6b0_getField7d(poke);
+    s32 count = amount;
+    if (stat == 9) {
+        if (count < 1)
+            return;
+        u8 id = Unk_7ee6b0_getField7d(poke);
+        if (Unk_817b70(server->field_20, id, count))
+            Unk_8150c0(server->field_18, 0x12, id, static_cast<u8>(count));
+        if (kind != 2)
+            Unk_8150c0(server->field_18, 0x8d, pokeId, 9, static_cast<u8>(count), kind);
+        if (notify) {
+            u8 target = Unk_7ee6b0_getField7d(poke);
+            Unk_816320(server->field_18, 0xba, 0x582, target, 0xffff0000);
+        }
+    } else if (count >= 1) {
+        u32 value = Unk_7f0e50(poke, stat, count);
+        Unk_8150c0(server->field_18, 0xc, pokeId, static_cast<u8>(stat), value);
+        if (kind != 2)
+            Unk_8150c0(server->field_18, 0x8d, pokeId, static_cast<u8>(stat), value, kind);
+        if (notify) {
+            if (arg4 != 0)
+                Unk_816320(server->field_18, 0xba, 0x4f8, pokeId, arg4, stat, value, 0xffff0000);
+            else
+                Unk_816320(server->field_18, 0xba, 0x2c, pokeId, stat, value, 0xffff0000);
+        }
+    } else {
+        u32 value = Unk_7f0f30(poke, stat, -count);
+        Unk_8150c0(server->field_18, 0xd, pokeId, static_cast<u8>(stat), value);
+        if (kind != 2)
+            Unk_8150c0(server->field_18, 0x8e, pokeId, static_cast<u8>(stat), value, kind);
+        if (notify)
+            Unk_816320(server->field_18, 0xba, 0x80, pokeId, stat, value, 0xffff0000);
+    }
 }
 
 // 0x7100810450
