@@ -86,9 +86,7 @@ Unk_165e060 RttProtocol::Unk_1748690(u8 index, const common::ISerializable* data
         return Unk_165e060Value<0x10c08>();
     }
     PacketWriter* writer = field_8;
-    Unk_16a9e40_arg1 message;
-    message.field_0 = vf3();
-    Unk_16a9e40_message* packet = writer->vf17(&message, index, size, false, false, false, true);
+    Unk_16a9e40_message* packet = writer->vf17(Unk_16a9e40_arg1(vf3()), index, size, false, false, false, true);
     if (packet == nullptr) {
         return Unk_165e060Value<0x2c0a>();
     }
@@ -101,6 +99,10 @@ Unk_165e060 RttProtocol::Unk_1748690(u8 index, const common::ISerializable* data
 }
 
 // 0x7101748810
+// NON_MATCHING: the original compares a zero-extended copy of the index with
+// the count (and w8, w1, #0xff; cmp w8, w9), which a u64 parameter narrowed
+// to u8 gives; with the u8 parameter its name has, clang folds the extension
+// into the compare (cmp w8, w1, uxtb).
 s32 RttProtocol::Unk_1748810(u8 index) {
     if (field_38 == 0xfd || field_38 == index || index >= field_60) {
         return -1;
@@ -109,6 +111,10 @@ s32 RttProtocol::Unk_1748810(u8 index) {
 }
 
 // 0x7101748850
+// NON_MATCHING: the original compares a zero-extended copy of the index with
+// the count (and w8, w1, #0xff; cmp w8, w9), which a u64 parameter narrowed
+// to u8 gives; with the u8 parameter its name has, clang folds the extension
+// into the compare (cmp w8, w1, uxtb).
 s32 RttProtocol::Unk_1748850(u8 index, u32 count) {
     if (field_38 == 0xfd || field_38 == index || index >= field_60) {
         return -1;
@@ -121,6 +127,10 @@ s32 RttProtocol::Unk_1748850(u8 index, u32 count) {
 }  // namespace nn
 
 // 0x71017488a0
+// NON_MATCHING: the original compares a zero-extended copy of the index with
+// the count (and w8, w1, #0xff; cmp w8, w9), which a u64 parameter narrowed
+// to u8 gives; with the u8 parameter its name has, clang folds the extension
+// into the compare (cmp w8, w1, uxtb).
 s32 Unk_17488a0(void* self, u8 index) {
     nn::pia::transport::RttProtocol* rtt = static_cast<nn::pia::transport::RttProtocol*>(self);
     if (index >= rtt->field_60) {
@@ -134,6 +144,10 @@ namespace pia {
 namespace transport {
 
 // 0x71017488d0
+// NON_MATCHING: the original compares a zero-extended copy of the index with
+// the count (and w8, w1, #0xff; cmp w8, w9), which a u64 parameter narrowed
+// to u8 gives; with the u8 parameter its name has, clang folds the extension
+// into the compare (cmp w8, w1, uxtb).
 void RttProtocol::Unk_17488d0(u8 index) {
     if (index < field_60) {
         Unk_1748d10_set(reinterpret_cast<Unk_1748d10*>(&field_58[index]));
@@ -141,6 +155,10 @@ void RttProtocol::Unk_17488d0(u8 index) {
 }
 
 // 0x7101748900
+// NON_MATCHING: the original compares a zero-extended copy of the index with
+// the count (and w8, w1, #0xff; cmp w8, w9), which a u64 parameter narrowed
+// to u8 gives; with the u8 parameter its name has, clang folds the extension
+// into the compare (cmp w8, w1, uxtb).
 s32 RttProtocol::Unk_1748900(u8 index) {
     if (index >= field_60) {
         return -1;
@@ -149,6 +167,10 @@ s32 RttProtocol::Unk_1748900(u8 index) {
 }
 
 // 0x7101748930
+// NON_MATCHING: the original compares a zero-extended copy of the index with
+// the count (and w8, w1, #0xff; cmp w8, w9), which a u64 parameter narrowed
+// to u8 gives; with the u8 parameter its name has, clang folds the extension
+// into the compare (cmp w8, w1, uxtb).
 s32 RttProtocol::Unk_1748930(u8 index) {
     if (index >= field_60) {
         return -1;
