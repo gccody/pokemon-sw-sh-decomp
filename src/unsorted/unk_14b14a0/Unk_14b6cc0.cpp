@@ -63,8 +63,6 @@ void Unk_2442a00::Unk_14b6f40(u32 state,
 }
 
 // 0x71014b70f0
-// NON_MATCHING: it takes the state (w1), which its name (_Z11Unk_14b70f0Pv)
-// leaves out; as _Z11Unk_14b70f0Pvj it matches.
 void Unk_14b70f0(void* self, u32 state) {
     switch (state) {
         case 0:

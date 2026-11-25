@@ -5,7 +5,7 @@
 #include <types.h>
 
 // Called by forwarders. Placeholders: their real signatures aren't known.
-void Unk_14b70f0(void* self);
+void Unk_14b70f0(void* self, u32 state);
 void Unk_14b8030(void* self);
 
 // Tail-called by lifted functions. Placeholders, like the forwarders' callees.
@@ -343,7 +343,7 @@ public:
     virtual void vf5();
     virtual void vf6();
     virtual void vf7();
-    virtual void vf8();
+    virtual void vf8(u32 state);
     virtual void vf9();
     virtual void vf10();
     virtual void vf11();
@@ -368,8 +368,8 @@ public:
 PKMN_OFFSET_ASSERT(Unk_2442a00, field_388, 0x388);
 
 // 0x71014b76a0
-void Unk_2442a00::vf8() {
-    Unk_14b70f0(this);
+void Unk_2442a00::vf8(u32 state) {
+    Unk_14b70f0(this, state);
 }
 
 // 0x71014b7190
