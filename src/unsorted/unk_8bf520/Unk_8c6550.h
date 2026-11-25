@@ -15,7 +15,7 @@ public:
     Unk_23bb228(u8 arg1, u32 first, u32 last, u32 mask);
     ~Unk_23bb228() override;
     virtual void vf5() = 0;
-    virtual u8 vf6() = 0;
+    virtual bool vf6() = 0;
 
     // The first set bit from field_54, or field_5c's next one.
     void Unk_8c6830();
@@ -83,6 +83,7 @@ class Unk_239a418_Allocator;
 struct Unk_7c2d80_Main;
 struct Unk_7fe1d0;
 struct Unk_7ecc90_Con;
+struct Unk_7ee6b0;
 
 // A random number generator (vtable 0x71023aa6d0, src/unsorted/virtual/
 // Unk_7c3a70.cpp; its D2 is inline here: what holds one doesn't call it):
@@ -140,7 +141,7 @@ public:
                 u8 arg8);
     ~Unk_23bb2a0() override;
     void vf5() override;
-    u8 vf6() override;
+    bool vf6() override;
 
     void Unk_8c6e00(const u8* arg1, u8 arg2, u8 arg3, u16 arg4, bool arg5);
     void Unk_8c6e80();
@@ -148,8 +149,8 @@ public:
 
     Unk_7c2d80_Main* field_68;
     Unk_7fe1d0* field_70;
-    Unk_7ecc90_Con* field_78 = nullptr;
-    void* field_80 = nullptr;
+    Unk_7ee6b0* field_78 = nullptr;
+    Unk_7ee6b0* field_80 = nullptr;
     Unk_23aa6d0 field_88;
     Unk_8c6550_Ref<Unk_239a4c0> field_a8;
     Unk_8c6550_Ref<Unk_23bab98> field_b0;

@@ -63,3 +63,36 @@ Unk_23bb2a0::~Unk_23bb2a0() {
     field_b0.Reset();
     field_b8.Reset();
 }
+
+void* Unk_7fe1d0_getField8(const Unk_7fe1d0* self);
+Unk_7ee6b0* Unk_7ed1e0(Unk_7ecc90_Con* self, u8 pokeId);
+u8 Unk_7cb490(u8 position);
+
+// 0x71008c6e00
+void Unk_23bb2a0::Unk_8c6e00(const u8* arg1, u8 arg2, u8 pokeId, u16 arg4, bool arg5) {
+    field_c0 = pokeId;
+    field_c2 = arg2;
+    field_cc = arg4;
+    field_ce = arg5;
+    field_78 = Unk_7ed1e0(static_cast<Unk_7ecc90_Con*>(Unk_7fe1d0_getField8(field_70)), pokeId);
+    field_c1 = Unk_7cb490(pokeId);
+    for (u32 i = 0; i < 4; i++)
+        field_174[i] = arg1[i];
+}
+
+struct Unk_8c2610;
+void Unk_8c2610_clearField288(Unk_8c2610* self);
+
+// 0x71008c6e80
+void Unk_23bb2a0::Unk_8c6e80() {
+    field_d0 = 0;
+    field_1a1 = 0;
+    field_1a2 = 0;
+    Unk_8c2610_clearField288(reinterpret_cast<Unk_8c2610*>(field_b8.m_ptr));
+}
+
+// 0x71008c6eb0
+void Unk_23bb2a0::vf5() {
+    if (!vf6())
+        Unk_8c6ef0();
+}
