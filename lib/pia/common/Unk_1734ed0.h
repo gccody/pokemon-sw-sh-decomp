@@ -6,6 +6,30 @@
 // placeholder names, the class after its first member here.
 #include "pia/common/Unk_165e060.h"
 
+// The object behind the global Unk_27fc0a8 (no RTTI; its members are free
+// placeholder functions, as Unk_172bd80 is).
+struct Unk_172c3e0_arg0 {
+    u8 _0[0x70];
+    struct Unk_70 {
+        u8 _0[0x90];
+        s32 field_90;
+    }* field_70;
+    u8 _78[0xf0 - 0x78];
+    u64 field_f0;
+    u64 field_f8;
+    u8 _100[0x15c - 0x100];
+    u8 field_15c;
+};
+PKMN_OFFSET_ASSERT(Unk_172c3e0_arg0::Unk_70, field_90, 0x90);
+PKMN_OFFSET_ASSERT(Unk_172c3e0_arg0, field_70, 0x70);
+PKMN_OFFSET_ASSERT(Unk_172c3e0_arg0, field_f0, 0xf0);
+PKMN_OFFSET_ASSERT(Unk_172c3e0_arg0, field_15c, 0x15c);
+
+extern Unk_172c3e0_arg0* Unk_27fc0a8;
+
+void Unk_172c3e0(Unk_172c3e0_arg0* self, u64 id);
+void Unk_172c450(Unk_172c3e0_arg0* self, u64 id);
+
 namespace nn {
 namespace pia {
 namespace common {
@@ -33,6 +57,12 @@ public:
 PKMN_OFFSET_ASSERT(Unk_16580b0, m_Count, 0x10);
 PKMN_OFFSET_ASSERT(Unk_16580b0, m_Offset, 0x14);
 PKMN_SIZE_ASSERT(Unk_16580b0, 0x18);
+
+struct Unk_1735990_arg0 {
+    u64 field_0;  // an id
+    u8 field_8;
+};
+PKMN_OFFSET_ASSERT(Unk_1735990_arg0, field_8, 0x8);
 
 class Unk_1734ed0 {
 public:
@@ -78,6 +108,9 @@ public:
     void Unk_17355d0();
     void Unk_1735600(u64 id, bool value);
     bool Unk_1735640(u64 id) const;
+    void Unk_1735690();
+    void Unk_1735840();
+    bool Unk_1735990(const Unk_1735990_arg0* peer) const;
     bool Unk_1735a20(u64 id, u32* out) const;
     void Unk_1735a70(u64 id, u8 value);
     bool Unk_1735ab0(u64 id, u8* out) const;
