@@ -1,5 +1,5 @@
 // Scope: common
-// Unk_16c1200's members up to 0x71016c19c0 (lib/pia/common/Unk_16c1200.h).
+// Unk_16c1200's members (lib/pia/common/Unk_16c1200.h).
 #include "pia/common/Unk_16c1200.h"
 #include "pia/common/Unk_17162d0.h"
 
@@ -237,6 +237,28 @@ Unk_165e060 Unk_16c1200::Unk_16c19c0(Data* out, u64 field_0) {
         }
     }
     return Unk_165e060Value<0x2c0a>();
+}
+
+// 0x71016c1a70
+Unk_165e060 Unk_16c1200::Unk_16c1a70(Data* out, u64 field_10) {
+    if (out == nullptr) {
+        return Unk_165e060Value<0x10c07>();
+    }
+    const Data* data = Unk_16c18d0(field_10);
+    if (data == nullptr) {
+        return Unk_165e060Value<0x2c0a>();
+    }
+    *out = *data;
+    return Unk_165e060Value<0>();
+}
+
+// 0x71016c1b20
+u32 Unk_16c1200::Unk_16c1b20() const {
+    u32 count = 0;
+    for (Unk_16580b0_node* node = m_List.m_Root.next; node != &m_List.m_Root; node = node->next) {
+        count++;
+    }
+    return count;
 }
 
 }  // namespace common
