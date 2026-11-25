@@ -6,8 +6,12 @@
 // slots. Free functions over a view of the fields they use, as the class
 // is declared elsewhere without them. Placeholder names: rename and move
 // once the class is known.
+#include <arm_neon.h>
+
 #include <types.h>
 
+#include "battle/battle_scene/Unk_23c4ef0_Owner.h"
+#include "unsorted/Unk_23f4660.h"
 #include "unsorted/Unk_98a420.h"
 
 extern u32 Unk_27d6bc0 __attribute__((visibility("hidden")));
@@ -26,6 +30,85 @@ void Unk_8cd080(u64 object, u64 arg1);
 void Unk_8ea710(void* self, u32 arg1, void* arg2);
 void Unk_9411c0(void* self);
 void Unk_95a2a0(void* self, u32 arg1, u32 arg2);
+
+// Called by slot 41.
+void Unk_948f20(void* self, u32 pos, Unk_23c4ef0_Vec* out1, s32* out2);
+void Unk_95ae30(void* self, const Unk_23f4660_Name* name, u32 arg2);
+void Unk_95be10(void* self, const u32* pos, u32 arg2);
+void Unk_97b480(Unk_23c4ef0_Poke* poke, u32 pos, u32 arg2, u32 arg3);
+void Unk_97ba90(Unk_23c4ef0_Poke* poke);
+void Unk_983f70(Unk_23c4ef0_Poke* poke);
+void Unk_984250(Unk_23c4ef0_Poke* poke);
+bool Unk_9846c0(Unk_23c4ef0_Poke* poke);
+void Unk_984790(Unk_23c4ef0_Poke* poke);
+Unk_23f4660_Name Unk_9b2290(const char* path);
+void Unk_9be210(void* object, u32 arg1);
+void Unk_9be2f0(void* object, u32 arg1);
+bool Unk_9be4e0(void* object, u32 arg1);
+bool Unk_9be650(void* object, u32 arg1);
+bool Unk_9be7f0(void* object, u32 arg1);
+
+// A position's object (Unk_23c4ef0_Poke), as slot 41 sees it: the slots and
+// fields Unk_23c4ef0_Owner.h doesn't give it.
+class Unk_9b34e0_Poke : public Unk_239a418 {
+public:
+    virtual void vf6();
+    virtual void vf7();
+    virtual void vf8();
+    virtual void vf9();
+    virtual void vf10();
+    virtual void vf11();
+    virtual bool vf12();
+    virtual void vf13();
+    virtual void vf14();
+    virtual void vf15();
+    virtual void vf16();
+    virtual void vf17();
+    virtual void vf18();
+    virtual void vf19();
+    virtual void vf20();
+    virtual void vf21();
+    virtual void vf22();
+    virtual void vf23();
+    virtual void vf24();
+    virtual void vf25();
+    virtual void vf26();
+    virtual void vf27();
+    virtual void vf28();
+    virtual void vf29();
+    virtual void vf30();
+    virtual void vf31();
+    virtual void vf32();
+    virtual void vf33();
+    virtual void vf34();
+    virtual void vf35();
+    virtual void vf36();
+    virtual void vf37();
+    virtual void vf38();
+    virtual void vf39();
+    virtual void vf40();
+    virtual void vf41();
+    virtual void vf42();
+    virtual void vf43();
+    virtual void vf44();
+    virtual void vf45();
+    virtual void vf46();
+    virtual void vf47();
+    virtual void vf48();
+    virtual void vf49();
+    virtual void vf50();
+    virtual void vf51(bool arg1);
+
+    u8 _60[0x3c0 - 0x60];
+    Unk_23c4ef0_Vec field_3c0;
+    u8 _3d0[0x3f0 - 0x3d0];
+    float32x4_t field_3f0;
+    u8 _400[0x440 - 0x400];
+    float32x4_t field_440;
+};
+PKMN_OFFSET_ASSERT(Unk_9b34e0_Poke, field_3c0, 0x3c0);
+PKMN_OFFSET_ASSERT(Unk_9b34e0_Poke, field_3f0, 0x3f0);
+PKMN_OFFSET_ASSERT(Unk_9b34e0_Poke, field_440, 0x440);
 
 // The view system, as these slots see it.
 class Unk_9b34e0_Self {
@@ -316,9 +399,20 @@ public:
     virtual void vf283();
     virtual u8 vf284(u32 pos);
 
-    u8 _8[0x5c8 - 0x8];
+    // The object at a position, none for 0xff (as Unk_23c4ef0_Owner::GetPoke).
+    Unk_239a418_Ref<Unk_23c4ef0_Poke> GetPoke(u32 pos) const {
+        if (pos == 0xff)
+            return Unk_239a418_Ref<Unk_23c4ef0_Poke>();
+        return field_548[pos];
+    }
+
+    u8 _8[0x548 - 0x8];
+    Unk_239a418_Ref<Unk_23c4ef0_Poke> field_548[7];
+    u8 _580[0x5c8 - 0x580];
     Unk_23c4ef0_Scene* field_5c8;
-    u8 _5d0[0x628 - 0x5d0];
+    u8 _5d0[0x5e8 - 0x5d0];
+    void* field_5e8;
+    u8 _5f0[0x628 - 0x5f0];
     u64 field_628;
     u8 _630[0x16f4 - 0x630];
     u32 field_16f4;
@@ -333,7 +427,9 @@ public:
     u8 _1744[0x1f78 - 0x1744];
     u32 field_1f78;
 };
+PKMN_OFFSET_ASSERT(Unk_9b34e0_Self, field_548, 0x548);
 PKMN_OFFSET_ASSERT(Unk_9b34e0_Self, field_5c8, 0x5c8);
+PKMN_OFFSET_ASSERT(Unk_9b34e0_Self, field_5e8, 0x5e8);
 PKMN_OFFSET_ASSERT(Unk_9b34e0_Self, field_628, 0x628);
 PKMN_OFFSET_ASSERT(Unk_9b34e0_Self, field_16f4, 0x16f4);
 PKMN_OFFSET_ASSERT(Unk_9b34e0_Self, field_16fc, 0x16fc);
@@ -376,6 +472,75 @@ void Unk_9b3600(Unk_9b34e0_Self* self) {
     self->field_1f78 = pos;
     Unk_8ea710(Unk_98ab90(reinterpret_cast<u64>(self->field_5c8->field_38)) + 0x2f8, 0xc, self);
     self->field_16f4 = 0;
+}
+
+// A step of the view system's state machine (+0x16f4).
+// NON_MATCHING: one instruction. After case 1's success path the original
+// knows the object is non-null and branches past the release's null check
+// (jump threading); this one keeps the check (cbz x20) on that path too.
+// Reference parameters for the success path's callees don't change it.
+// 0x71009b36c0
+u32 Unk_9b36c0(Unk_9b34e0_Self* self) {
+    if (Unk_27d6bc0 != 0x3e4) {
+        Unk_27d6bc0 = 0x3e4;
+    }
+    switch (self->field_16f4) {
+        case 0: {
+            Unk_239a418_Ref<Unk_23c4ef0_Poke> poke = self->GetPoke(self->field_16fc);
+            Unk_97b480(poke.m_ptr, self->field_16fc, 0, 0);
+            Unk_984250(poke.m_ptr);
+            self->field_16f4++;
+            return 0;
+        }
+        case 1: {
+            Unk_239a418_Ref<Unk_23c4ef0_Poke> poke = self->GetPoke(self->field_16fc);
+            Unk_9b34e0_Poke* view = reinterpret_cast<Unk_9b34e0_Poke*>(poke.m_ptr);
+            if (view->vf12() && Unk_9846c0(poke.m_ptr)) {
+                Unk_97ba90(poke.m_ptr);
+                Unk_983f70(poke.m_ptr);
+                Unk_984790(poke.m_ptr);
+                Unk_23c4ef0_Vec offset;
+                s32 height;
+                Unk_948f20(self, self->field_16fc, &offset, &height);
+                view->field_3c0 = offset;
+                float32x4_t lift = vdupq_n_f32(0.0f);
+                lift = vsetq_lane_f32(static_cast<f32>(height), lift, 1);
+                float32x4_t scale = vdupq_n_f32(0.0f);
+                scale = vsetq_lane_f32(1.0f, scale, 0);
+                scale = vsetq_lane_f32(1.0f, scale, 1);
+                scale = vsetq_lane_f32(1.0f, scale, 2);
+                view->field_3f0 = scale;
+                view->field_440 = lift;
+                view->vf51(false);
+                Unk_23f4660_Name name = Unk_9b2290("bin/battle/waza/sequence/ee630.bseq");
+                Unk_95ae30(self, &name, 0);
+                self->field_16f4++;
+            }
+            return 0;
+        }
+        case 2: {
+            if (!Unk_95abd0_check(reinterpret_cast<const Unk_95abd0*>(self)))
+                return 0;
+            u32 pos = self->field_16fc;
+            Unk_95be10(self, &pos, 1);
+            self->field_16f4++;
+            return 0;
+        }
+        case 3:
+            if (!Unk_95abd0_check(reinterpret_cast<const Unk_95abd0*>(self)))
+                return 0;
+            self->field_16f4++;
+            return 0;
+        case 4:
+            if (Unk_9be4e0(self->field_5e8, self->field_1f78))
+                Unk_9be210(self->field_5e8, 5);
+            if (Unk_9be650(self->field_5e8, self->field_1f78))
+                Unk_9be2f0(self->field_5e8, 2);
+            if (Unk_9be7f0(self->field_5e8, self->field_1f78))
+                Unk_9be2f0(self->field_5e8, 4);
+            return 1;
+    }
+    return 0;
 }
 
 // 0x71009b3a20
