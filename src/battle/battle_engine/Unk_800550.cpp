@@ -65,7 +65,7 @@ struct Unk_800a30 {
 PKMN_SIZE_ASSERT(Unk_800a30, 0x40);
 
 struct Unk_7cac80;
-u8 Unk_7cac80_call(const Unk_7cac80* self, u32 value);
+u8 Unk_7cac80_call(const Unk_7cac80* self, u8 value);
 
 struct Unk_800760_Pair {
     const Unk_7cac80* field_0;
