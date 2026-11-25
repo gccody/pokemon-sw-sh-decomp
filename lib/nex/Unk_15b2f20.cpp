@@ -1,20 +1,14 @@
 // Scope: common
-// NEX 4.6.8's matchmaking data classes whose type names are "Gathering",
-// "DynamicGathering" and "GameSession" (the strings their type functions
-// return and compare): the reader of their common structure, and virtual
-// functions of the classes in vtable groups 0x710244e5a8 (and 0x710244e6f8,
-// which shares slots 2 and 4-7) and 0x710244e768. The classes have no RTTI, so
-// the functions are placeholders over self structures.
+// NEX 4.6.8's "Gathering" data classes (Unk_15b2f20.h): the reader of their
+// fields, and virtual functions of the classes in vtable groups 0x710244e5a8
+// ("DynamicGathering"; 0x710244e6f8 shares its slots 2 and 4-7) and
+// 0x710244e768 ("GameSession").
 #include "Unk_15b2f20.h"
 
 using nn::nex::EndStructure;
 using nn::nex::ReadField;
 using nn::nex::ReadLength;
 
-// 0x71015bc5d0: whether two C strings are equal (a null one is "").
-bool Unk_15bc5d0(const char* a, const char* b);
-// 0x71015bc1e0: assigns `length` characters of `str` (all of it for -1).
-void Unk_15bc1e0(nn::nex::String* self, const char* str, size_t length);
 void Unk_162d790_write(nn::nex::ByteStream* s, const nn::nex::Buffer& v);
 void Unk_162d7d0_read(nn::nex::ByteStream* s, nn::nex::Buffer& v);
 
@@ -69,7 +63,7 @@ bool Unk_15b3460(const Unk_15b2f20* self, const nn::nex::String& name) {
 
 // 0x71015b3480
 void Unk_15b3480(const Unk_244e598* self, nn::nex::ByteStream* s) {
-    Unk_15b2dc0_write(s, *self);
+    Unk_15b2dc0_write(s, Unk_15b2f20_fields(*self));
     Unk_162d790_write(s, self->field_68);
 }
 
@@ -100,7 +94,7 @@ bool Unk_15b3610(const Unk_244e758* self, const nn::nex::String& name) {
 
 // 0x71015b3660
 void Unk_15b3660(const Unk_244e758* self, nn::nex::ByteStream* s) {
-    Unk_15b2dc0_write(s, *self);
+    Unk_15b2dc0_write(s, Unk_15b2f20_fields(*self));
     if (s->m_noHeader) return;
     u8 version = self->field_60;
     s->Write(std::min(version, (u8)0));
