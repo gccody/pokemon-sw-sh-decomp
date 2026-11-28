@@ -20,14 +20,10 @@ u8 Unk_7ee6b0_getField7d(const Unk_7ee6b0* self);
 // A client's party and the server's position table (Unk_7fc210.cpp,
 // src/unsorted/unk_82e410/Unk_802dd0.cpp).
 void Unk_7fc470(Unk_7fc430_Party* self, u8 index, u8 other);
-u8 Unk_7c9b60(void* self, u8 client, u32 index);
+u8 Unk_7c9b60(void* self, u8 client, u8 index);
 struct Unk_802dd0_Self;
 void Unk_803080(Unk_802dd0_Self* self, void* main, u8 index, u8 pokeId, Unk_7ecc90_Con* con);
 
-// NON_MATCHING: the existing name gives Unk_7c9b60's index as a u32, so clang
-// passes the zero-extended copy of index and allocates registers differently;
-// the original passes it as a u8, and with a u8 declaration this matches
-// (RENAME _Z10Unk_7c9b60Pvhj -> _Z10Unk_7c9b60Pvhh).
 // 0x7100816ff0
 void Unk_816ff0(const Unk_8139c0_Self* self, u8 client, u8 index, u8 other, u32 value) {
     Unk_7fc430_Party* party = Unk_7ed1a0(Unk_7fe1d0_getField8(self->field_10), client);

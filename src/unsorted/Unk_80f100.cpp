@@ -28,7 +28,7 @@ bool Unk_7fa9c0(u8 position);
 // A client's id (5: none). A scoped enum: the queue's variadic arguments get
 // it as is, without the promotion a u8 gets.
 enum class Unk_80f3e0_Client : u8 {};
-Unk_80f3e0_Client Unk_7c9b60(void* self, u8 client, u32 index);
+Unk_80f3e0_Client Unk_7c9b60(void* self, u8 client, u8 index);
 Unk_80f3e0_Client Unk_803600(void* self, u8 id);
 void Unk_7f8ba0(const void* condition, u32* outA, u32* outB);
 u32 Unk_7ef710(const Unk_7ee6b0* self, u32 index);
