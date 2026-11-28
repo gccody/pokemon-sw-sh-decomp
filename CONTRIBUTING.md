@@ -255,7 +255,7 @@ a `// NON_MATCHING: <reason>` comment above it.
 | Check | Command | Needs the game? | In CI? |
 |---|---|---|---|
 | Data + repo lint | `python tools/lint.py` | no | yes |
-| Tooling unit tests | `python -m pytest` | no | yes (Linux + Windows) |
+| Tooling unit tests | `python -m pytest` | no | yes (Linux + Windows; only what the PR can affect, see below) |
 | Python lint | `ruff check .` | no | yes |
 | C/C++ formatting | `clang-format --dry-run --Werror <files>` | no | yes |
 | Compiles for both games | `cmake --preset sword && cmake --build --preset sword` (and `shield`) | no | yes, with clang 7.0.1 (`get_llvm.py --compiler`) |
@@ -263,6 +263,13 @@ a `// NON_MATCHING: <reason>` comment above it.
 
 `pre-commit run --all-files` runs everything in the table except the build and
 `check.py`.
+
+On a pull request, the test jobs run only what its paths can affect
+(`tools/ci_changes.py`): the whole suite when it touches `tools/`, `tests/`,
+the configuration or another file a test reads; only the tests that read
+`data/` when that's the only such change; nothing for sources alone. The
+jobs still report, because their names are required checks. The build jobs
+use ccache, which doesn't change the objects.
 
 If you change anything under `tools/`, add or update a test in `tests/`. Tests
 must not need game files. Build what you need inline (see `tests/test_refs.py`,
