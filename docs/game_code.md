@@ -2942,6 +2942,52 @@ check and null references skipped) rather than by fixed offsets:
   with members that call (creator-like, `0x7101005a30`), 9 creators with
   other vptr layouts, and the creators' wrappers (`0x7100790140`).
 
+### The creators' wrappers (`tools/creategen.py`, 2026-11-28)
+
+Shape group `5f6118bb324c` (188 functions of 288 bytes, all over game code,
+first `0x7100790140`; docs/agents/generators.md, family 3) is a second
+template member of the creators' owner, written once per class in front of
+its creator: `Unk_790260_Owner::Unk_790140<T>(Unk_Ref parent, Unk_23f4660*
+target, const char* name)` (src/gflib3/Unk_790260.h). It defaults a null
+parent to the owner's `field_58` (assigned: the new reference added, stored,
+the old one dropped: `Unk_239a418_Ref`'s copy assignment, new), calls
+`Create<T>` with a copy of the parent, and hands the new object to the
+target (the owner's `field_70` when it's null) through `Unk_e809c0_call`,
+holding a reference to the target for the call.
+
+- The callers copy a reference into a temporary for the parent and drop it
+  after the call, and the creators' callers do the same: the parent is by
+  value. The creators were renamed from `(const Unk_Ref&, u64)` to
+  `(Unk_Ref, const char*)`: the name is a string literal in every caller
+  (the object's name, `Unk_23f4660::field_5c0`). All 74 still match.
+- The owner moved from the creators' file to `src/gflib3/Unk_790260.h`,
+  where both files include it; T is only declared in the wrappers' file.
+- T is the creator's class: read from its name when familygen wrote it (74),
+  else from familygen's parse of the creator (32) or of its factory when
+  `Unk_New::Create<T>` isn't inlined (31), else from the primary vtable the
+  construction stores last (41; this agrees with all 137 classes known the
+  other ways). Those 104 creators are named, still U. 10 wrappers are left:
+  their factories call further out of line, and no class was found.
+
+None of the 178 match, so they're `M`, with one `NON_MATCHING` note on the
+template. Two of LLVM's block duplications differ from the original's:
+
+- the original threads the parent's copy past the copy's null test on the
+  path that already tested it. Here the copy constructor (which tests the
+  other reference's pointer) leaves an `i64` load that LVI can't see through.
+  A copy made from the pointer, `Unk_Ref(parent.m_ptr)`, gives the
+  original's code for that half;
+- the original computes the target's `+0x48` interface again for the drop.
+  Here GVN merges it with the add's, because the drop's null test is folded
+  before GVN runs (JumpThreading's first run duplicates the call's block).
+  Copying `field_70` as a reference keeps the two apart, but then the drop's
+  test isn't folded at all. Neither the shape of the reference's
+  constructor and destructor, the target's static type, `?:` against
+  `if`, selects, conditional cleanups, moves, nor one TU with the creators
+  changed it.
+
+check.py: 59,906 matching and 943 not matching (was 59,906 and 765).
+
 ### The objects' adders (`familygen.py`, 2026-11-20)
 
 65 functions of the network requests (`0x7101050c60` and 51 of its shape,

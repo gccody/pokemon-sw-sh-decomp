@@ -36,6 +36,9 @@ public:
 
     // Takes over the other's reference, letting go of its own first.
     Unk_239a418_Ref& operator=(Unk_239a418_Ref&& other);
+    // Holds the other's object too: its reference added, then stored, then
+    // the old one dropped (Unk_790260_Owner::Unk_790140, src/gflib3/create).
+    Unk_239a418_Ref& operator=(const Unk_239a418_Ref& other);
 
     // Lets go of the object: cleared first, then released.
     void Reset();
@@ -364,5 +367,17 @@ Unk_239a418_Ref<T>& Unk_239a418_Ref<T>::operator=(Unk_239a418_Ref&& other) {
         m_ptr = nullptr;
     }
     m_ptr = other.Release();
+    return *this;
+}
+
+template <class T>
+Unk_239a418_Ref<T>& Unk_239a418_Ref<T>::operator=(const Unk_239a418_Ref& other) {
+    T* p = other.m_ptr;
+    if (p)
+        static_cast<Unk_239a458*>(p)->vf4();
+    T* old = m_ptr;
+    m_ptr = p;
+    if (old)
+        static_cast<Unk_239a458*>(old)->vf5();
     return *this;
 }
