@@ -1,0 +1,1028 @@
+{
+ "games": {
+  "sword": {
+   "functions": 104005,
+   "bytes": 24349728,
+   "matching_functions": 60852,
+   "matching_bytes": 9155552,
+   "minor_functions": 454,
+   "percent_bytes": 37.6002
+  },
+  "shield": {
+   "functions": 104005,
+   "bytes": 24349904,
+   "matching_functions": 60852,
+   "matching_bytes": 9155552,
+   "minor_functions": 454,
+   "percent_bytes": 37.6
+  }
+ },
+ "scopes": {
+  "common": {
+   "functions": 103985,
+   "bytes": 24327336,
+   "matching_functions": 60848,
+   "matching_bytes": 9154832,
+   "minor_functions": 454,
+   "percent_bytes": 37.6319
+  },
+  "diverged": {
+   "functions": 17,
+   "bytes": 18692,
+   "matching_functions": 4,
+   "matching_bytes": 720,
+   "minor_functions": 0,
+   "percent_bytes": 3.8519
+  },
+  "common-data": {
+   "functions": 3,
+   "bytes": 3700,
+   "matching_functions": 0,
+   "matching_bytes": 0,
+   "minor_functions": 0,
+   "percent_bytes": 0.0
+  }
+ },
+ "areas": {
+  "sword": {
+   "startup": {
+    "functions": 320,
+    "bytes": 66320,
+    "matching_functions": 178,
+    "matching_bytes": 15564,
+    "minor_functions": 3,
+    "percent_bytes": 23.468
+   },
+   "physx": {
+    "functions": 8247,
+    "bytes": 3039340,
+    "matching_functions": 8247,
+    "matching_bytes": 3039340,
+    "minor_functions": 0,
+    "percent_bytes": 100.0
+   },
+   "wwise": {
+    "functions": 4179,
+    "bytes": 1070620,
+    "matching_functions": 1952,
+    "matching_bytes": 213548,
+    "minor_functions": 33,
+    "percent_bytes": 19.9462
+   },
+   "yebis": {
+    "functions": 5002,
+    "bytes": 1569188,
+    "matching_functions": 4723,
+    "matching_bytes": 1072372,
+    "minor_functions": 272,
+    "percent_bytes": 68.3393
+   },
+   "gflib3": {
+    "functions": 4587,
+    "bytes": 1044280,
+    "matching_functions": 1496,
+    "matching_bytes": 118560,
+    "minor_functions": 4,
+    "percent_bytes": 11.3533
+   },
+   "gflnet3": {
+    "functions": 1521,
+    "bytes": 257420,
+    "matching_functions": 763,
+    "matching_bytes": 63756,
+    "minor_functions": 2,
+    "percent_bytes": 24.7673
+   },
+   "protobuf": {
+    "functions": 1622,
+    "bytes": 527580,
+    "matching_functions": 1622,
+    "matching_bytes": 527580,
+    "minor_functions": 0,
+    "percent_bytes": 100.0
+   },
+   "game/unk_761f70": {
+    "functions": 1080,
+    "bytes": 234592,
+    "matching_functions": 402,
+    "matching_bytes": 35304,
+    "minor_functions": 3,
+    "percent_bytes": 15.0491
+   },
+   "game/bag": {
+    "functions": 610,
+    "bytes": 135628,
+    "matching_functions": 351,
+    "matching_bytes": 14984,
+    "minor_functions": 0,
+    "percent_bytes": 11.0479
+   },
+   "game/unk_7bf610": {
+    "functions": 51,
+    "bytes": 13828,
+    "matching_functions": 22,
+    "matching_bytes": 1668,
+    "minor_functions": 0,
+    "percent_bytes": 12.0625
+   },
+   "game/battle_engine": {
+    "functions": 2802,
+    "bytes": 420904,
+    "matching_functions": 2007,
+    "matching_bytes": 183608,
+    "minor_functions": 40,
+    "percent_bytes": 43.6223
+   },
+   "game/unk_82e410": {
+    "functions": 3174,
+    "bytes": 383708,
+    "matching_functions": 1898,
+    "matching_bytes": 103484,
+    "minor_functions": 0,
+    "percent_bytes": 26.9695
+   },
+   "game/battle_logic": {
+    "functions": 1487,
+    "bytes": 176692,
+    "matching_functions": 1159,
+    "matching_bytes": 101260,
+    "minor_functions": 2,
+    "percent_bytes": 57.3088
+   },
+   "game/unk_8bf520": {
+    "functions": 991,
+    "bytes": 184456,
+    "matching_functions": 566,
+    "matching_bytes": 46872,
+    "minor_functions": 6,
+    "percent_bytes": 25.4109
+   },
+   "game/battle_app": {
+    "functions": 1480,
+    "bytes": 436816,
+    "matching_functions": 676,
+    "matching_bytes": 52704,
+    "minor_functions": 1,
+    "percent_bytes": 12.0655
+   },
+   "game/battle_scene": {
+    "functions": 2930,
+    "bytes": 1103700,
+    "matching_functions": 1742,
+    "matching_bytes": 570724,
+    "minor_functions": 0,
+    "percent_bytes": 51.7101
+   },
+   "game/blacklist": {
+    "functions": 177,
+    "bytes": 35256,
+    "matching_functions": 104,
+    "matching_bytes": 7944,
+    "minor_functions": 0,
+    "percent_bytes": 22.5323
+   },
+   "game/pokebox": {
+    "functions": 995,
+    "bytes": 262924,
+    "matching_functions": 532,
+    "matching_bytes": 49044,
+    "minor_functions": 0,
+    "percent_bytes": 18.6533
+   },
+   "game/unk_ab9140": {
+    "functions": 200,
+    "bytes": 32528,
+    "matching_functions": 69,
+    "matching_bytes": 3700,
+    "minor_functions": 0,
+    "percent_bytes": 11.3748
+   },
+   "game/btl_spot": {
+    "functions": 2422,
+    "bytes": 414148,
+    "matching_functions": 1560,
+    "matching_bytes": 63612,
+    "minor_functions": 1,
+    "percent_bytes": 15.3597
+   },
+   "game/unk_b2b110": {
+    "functions": 1959,
+    "bytes": 489184,
+    "matching_functions": 698,
+    "matching_bytes": 37008,
+    "minor_functions": 0,
+    "percent_bytes": 7.5653
+   },
+   "game/comp_organize": {
+    "functions": 394,
+    "bytes": 80700,
+    "matching_functions": 206,
+    "matching_bytes": 14164,
+    "minor_functions": 0,
+    "percent_bytes": 17.5514
+   },
+   "game/unk_bba3d0": {
+    "functions": 11053,
+    "bytes": 2712172,
+    "matching_functions": 5904,
+    "matching_bytes": 639128,
+    "minor_functions": 1,
+    "percent_bytes": 23.5652
+   },
+   "game/xmenu": {
+    "functions": 66,
+    "bytes": 12888,
+    "matching_functions": 35,
+    "matching_bytes": 1160,
+    "minor_functions": 0,
+    "percent_bytes": 9.0006
+   },
+   "game/unk_e66990": {
+    "functions": 3504,
+    "bytes": 732532,
+    "matching_functions": 1565,
+    "matching_bytes": 98332,
+    "minor_functions": 1,
+    "percent_bytes": 13.4236
+   },
+   "game/live_comm": {
+    "functions": 376,
+    "bytes": 109096,
+    "matching_functions": 179,
+    "matching_bytes": 10492,
+    "minor_functions": 0,
+    "percent_bytes": 9.6172
+   },
+   "game/unk_f3b120": {
+    "functions": 37,
+    "bytes": 9628,
+    "matching_functions": 11,
+    "matching_bytes": 512,
+    "minor_functions": 0,
+    "percent_bytes": 5.3178
+   },
+   "game/live_tournament": {
+    "functions": 497,
+    "bytes": 109120,
+    "matching_functions": 266,
+    "matching_bytes": 20820,
+    "minor_functions": 0,
+    "percent_bytes": 19.0799
+   },
+   "game/mystery": {
+    "functions": 1224,
+    "bytes": 245736,
+    "matching_functions": 608,
+    "matching_bytes": 30696,
+    "minor_functions": 1,
+    "percent_bytes": 12.4915
+   },
+   "game/nesthole": {
+    "functions": 733,
+    "bytes": 108016,
+    "matching_functions": 522,
+    "matching_bytes": 24968,
+    "minor_functions": 0,
+    "percent_bytes": 23.1151
+   },
+   "game/unk_fb2de0": {
+    "functions": 192,
+    "bytes": 76508,
+    "matching_functions": 78,
+    "matching_bytes": 6148,
+    "minor_functions": 0,
+    "percent_bytes": 8.0358
+   },
+   "game/net_btl": {
+    "functions": 591,
+    "bytes": 69376,
+    "matching_functions": 416,
+    "matching_bytes": 16764,
+    "minor_functions": 0,
+    "percent_bytes": 24.164
+   },
+   "game/unk_fd7eb0": {
+    "functions": 236,
+    "bytes": 44636,
+    "matching_functions": 156,
+    "matching_bytes": 12788,
+    "minor_functions": 0,
+    "percent_bytes": 28.6495
+   },
+   "game/net_contents/live": {
+    "functions": 398,
+    "bytes": 58572,
+    "matching_functions": 283,
+    "matching_bytes": 28644,
+    "minor_functions": 0,
+    "percent_bytes": 48.9039
+   },
+   "game/unk_ff22f0": {
+    "functions": 208,
+    "bytes": 26664,
+    "matching_functions": 127,
+    "matching_bytes": 6004,
+    "minor_functions": 0,
+    "percent_bytes": 22.5173
+   },
+   "game/net_contents/nbr": {
+    "functions": 1950,
+    "bytes": 290004,
+    "matching_functions": 1345,
+    "matching_bytes": 138564,
+    "minor_functions": 1,
+    "percent_bytes": 47.78
+   },
+   "game/unk_10431f0": {
+    "functions": 1331,
+    "bytes": 223792,
+    "matching_functions": 643,
+    "matching_bytes": 40568,
+    "minor_functions": 0,
+    "percent_bytes": 18.1275
+   },
+   "game/net_request": {
+    "functions": 3741,
+    "bytes": 533804,
+    "matching_functions": 2643,
+    "matching_bytes": 275264,
+    "minor_functions": 2,
+    "percent_bytes": 51.5665
+   },
+   "game/unk_1104c80": {
+    "functions": 172,
+    "bytes": 61196,
+    "matching_functions": 56,
+    "matching_bytes": 1908,
+    "minor_functions": 0,
+    "percent_bytes": 3.1179
+   },
+   "game/pokecamp": {
+    "functions": 7311,
+    "bytes": 1510640,
+    "matching_functions": 3635,
+    "matching_bytes": 299848,
+    "minor_functions": 15,
+    "percent_bytes": 19.8491
+   },
+   "game/unk_1290e40": {
+    "functions": 208,
+    "bytes": 52360,
+    "matching_functions": 134,
+    "matching_bytes": 24672,
+    "minor_functions": 11,
+    "percent_bytes": 47.1199
+   },
+   "game/pw": {
+    "functions": 457,
+    "bytes": 102636,
+    "matching_functions": 214,
+    "matching_bytes": 13200,
+    "minor_functions": 0,
+    "percent_bytes": 12.861
+   },
+   "game/pokelist": {
+    "functions": 261,
+    "bytes": 71736,
+    "matching_functions": 108,
+    "matching_bytes": 4948,
+    "minor_functions": 0,
+    "percent_bytes": 6.8975
+   },
+   "game/unk_12c9b90": {
+    "functions": 18,
+    "bytes": 2876,
+    "matching_functions": 12,
+    "matching_bytes": 1284,
+    "minor_functions": 0,
+    "percent_bytes": 44.6453
+   },
+   "game/status": {
+    "functions": 469,
+    "bytes": 138544,
+    "matching_functions": 248,
+    "matching_bytes": 25120,
+    "minor_functions": 0,
+    "percent_bytes": 18.1314
+   },
+   "game/unk_12ed1a0": {
+    "functions": 728,
+    "bytes": 205284,
+    "matching_functions": 252,
+    "matching_bytes": 22032,
+    "minor_functions": 0,
+    "percent_bytes": 10.7324
+   },
+   "game/regulation": {
+    "functions": 76,
+    "bytes": 12684,
+    "matching_functions": 59,
+    "matching_bytes": 3904,
+    "minor_functions": 0,
+    "percent_bytes": 30.7789
+   },
+   "game/rental_team": {
+    "functions": 593,
+    "bytes": 99920,
+    "matching_functions": 413,
+    "matching_bytes": 22616,
+    "minor_functions": 1,
+    "percent_bytes": 22.6341
+   },
+   "game/unk_133d350": {
+    "functions": 4505,
+    "bytes": 954188,
+    "matching_functions": 2243,
+    "matching_bytes": 231736,
+    "minor_functions": 12,
+    "percent_bytes": 24.2862
+   },
+   "game/btlteam_select": {
+    "functions": 265,
+    "bytes": 51844,
+    "matching_functions": 143,
+    "matching_bytes": 11292,
+    "minor_functions": 0,
+    "percent_bytes": 21.7807
+   },
+   "game/unk_143a7a0": {
+    "functions": 520,
+    "bytes": 106036,
+    "matching_functions": 285,
+    "matching_bytes": 20836,
+    "minor_functions": 0,
+    "percent_bytes": 19.6499
+   },
+   "game/trainer_license": {
+    "functions": 1903,
+    "bytes": 361556,
+    "matching_functions": 1232,
+    "matching_bytes": 100136,
+    "minor_functions": 4,
+    "percent_bytes": 27.6958
+   },
+   "game/unk_14b14a0": {
+    "functions": 1588,
+    "bytes": 340400,
+    "matching_functions": 589,
+    "matching_bytes": 38292,
+    "minor_functions": 4,
+    "percent_bytes": 11.2491
+   },
+   "game/waza_remember": {
+    "functions": 153,
+    "bytes": 36680,
+    "matching_functions": 94,
+    "matching_bytes": 6904,
+    "minor_functions": 0,
+    "percent_bytes": 18.8222
+   },
+   "game/xmenu_net": {
+    "functions": 48,
+    "bytes": 15052,
+    "matching_functions": 26,
+    "matching_bytes": 3552,
+    "minor_functions": 0,
+    "percent_bytes": 23.5982
+   },
+   "game/unk_1514310": {
+    "functions": 153,
+    "bytes": 30628,
+    "matching_functions": 91,
+    "matching_bytes": 4844,
+    "minor_functions": 0,
+    "percent_bytes": 15.8156
+   },
+   "game/pokedex": {
+    "functions": 845,
+    "bytes": 174524,
+    "matching_functions": 521,
+    "matching_bytes": 36884,
+    "minor_functions": 0,
+    "percent_bytes": 21.1341
+   },
+   "lua": {
+    "functions": 517,
+    "bytes": 162000,
+    "matching_functions": 517,
+    "matching_bytes": 162000,
+    "minor_functions": 0,
+    "percent_bytes": 100.0
+   },
+   "middleware": {
+    "functions": 8881,
+    "bytes": 1906832,
+    "matching_functions": 3236,
+    "matching_bytes": 226236,
+    "minor_functions": 16,
+    "percent_bytes": 11.8645
+   },
+   "libcurl": {
+    "functions": 395,
+    "bytes": 162384,
+    "matching_functions": 395,
+    "matching_bytes": 162384,
+    "minor_functions": 0,
+    "percent_bytes": 100.0
+   },
+   "middleware-nw": {
+    "functions": 1572,
+    "bytes": 447372,
+    "matching_functions": 595,
+    "matching_bytes": 43272,
+    "minor_functions": 18,
+    "percent_bytes": 9.6725
+   }
+  },
+  "shield": {
+   "startup": {
+    "functions": 320,
+    "bytes": 66320,
+    "matching_functions": 178,
+    "matching_bytes": 15564,
+    "minor_functions": 3,
+    "percent_bytes": 23.468
+   },
+   "physx": {
+    "functions": 8247,
+    "bytes": 3039340,
+    "matching_functions": 8247,
+    "matching_bytes": 3039340,
+    "minor_functions": 0,
+    "percent_bytes": 100.0
+   },
+   "wwise": {
+    "functions": 4179,
+    "bytes": 1070620,
+    "matching_functions": 1952,
+    "matching_bytes": 213548,
+    "minor_functions": 33,
+    "percent_bytes": 19.9462
+   },
+   "yebis": {
+    "functions": 5002,
+    "bytes": 1569188,
+    "matching_functions": 4723,
+    "matching_bytes": 1072372,
+    "minor_functions": 272,
+    "percent_bytes": 68.3393
+   },
+   "gflib3": {
+    "functions": 4587,
+    "bytes": 1044280,
+    "matching_functions": 1496,
+    "matching_bytes": 118560,
+    "minor_functions": 4,
+    "percent_bytes": 11.3533
+   },
+   "gflnet3": {
+    "functions": 1521,
+    "bytes": 257420,
+    "matching_functions": 763,
+    "matching_bytes": 63756,
+    "minor_functions": 2,
+    "percent_bytes": 24.7673
+   },
+   "protobuf": {
+    "functions": 1622,
+    "bytes": 527580,
+    "matching_functions": 1622,
+    "matching_bytes": 527580,
+    "minor_functions": 0,
+    "percent_bytes": 100.0
+   },
+   "game/unk_761f70": {
+    "functions": 1080,
+    "bytes": 234592,
+    "matching_functions": 402,
+    "matching_bytes": 35304,
+    "minor_functions": 3,
+    "percent_bytes": 15.0491
+   },
+   "game/bag": {
+    "functions": 610,
+    "bytes": 135628,
+    "matching_functions": 351,
+    "matching_bytes": 14984,
+    "minor_functions": 0,
+    "percent_bytes": 11.0479
+   },
+   "game/unk_7bf610": {
+    "functions": 51,
+    "bytes": 13828,
+    "matching_functions": 22,
+    "matching_bytes": 1668,
+    "minor_functions": 0,
+    "percent_bytes": 12.0625
+   },
+   "game/battle_engine": {
+    "functions": 2802,
+    "bytes": 420904,
+    "matching_functions": 2007,
+    "matching_bytes": 183608,
+    "minor_functions": 40,
+    "percent_bytes": 43.6223
+   },
+   "game/unk_82e410": {
+    "functions": 3174,
+    "bytes": 383708,
+    "matching_functions": 1898,
+    "matching_bytes": 103484,
+    "minor_functions": 0,
+    "percent_bytes": 26.9695
+   },
+   "game/battle_logic": {
+    "functions": 1487,
+    "bytes": 176692,
+    "matching_functions": 1159,
+    "matching_bytes": 101260,
+    "minor_functions": 2,
+    "percent_bytes": 57.3088
+   },
+   "game/unk_8bf520": {
+    "functions": 991,
+    "bytes": 184456,
+    "matching_functions": 566,
+    "matching_bytes": 46872,
+    "minor_functions": 6,
+    "percent_bytes": 25.4109
+   },
+   "game/battle_app": {
+    "functions": 1480,
+    "bytes": 436816,
+    "matching_functions": 676,
+    "matching_bytes": 52704,
+    "minor_functions": 1,
+    "percent_bytes": 12.0655
+   },
+   "game/battle_scene": {
+    "functions": 2930,
+    "bytes": 1103700,
+    "matching_functions": 1742,
+    "matching_bytes": 570724,
+    "minor_functions": 0,
+    "percent_bytes": 51.7101
+   },
+   "game/blacklist": {
+    "functions": 177,
+    "bytes": 35256,
+    "matching_functions": 104,
+    "matching_bytes": 7944,
+    "minor_functions": 0,
+    "percent_bytes": 22.5323
+   },
+   "game/pokebox": {
+    "functions": 995,
+    "bytes": 262924,
+    "matching_functions": 532,
+    "matching_bytes": 49044,
+    "minor_functions": 0,
+    "percent_bytes": 18.6533
+   },
+   "game/unk_ab9140": {
+    "functions": 200,
+    "bytes": 32528,
+    "matching_functions": 69,
+    "matching_bytes": 3700,
+    "minor_functions": 0,
+    "percent_bytes": 11.3748
+   },
+   "game/btl_spot": {
+    "functions": 2422,
+    "bytes": 414148,
+    "matching_functions": 1560,
+    "matching_bytes": 63612,
+    "minor_functions": 1,
+    "percent_bytes": 15.3597
+   },
+   "game/unk_b2b110": {
+    "functions": 1959,
+    "bytes": 489184,
+    "matching_functions": 698,
+    "matching_bytes": 37008,
+    "minor_functions": 0,
+    "percent_bytes": 7.5653
+   },
+   "game/comp_organize": {
+    "functions": 394,
+    "bytes": 80700,
+    "matching_functions": 206,
+    "matching_bytes": 14164,
+    "minor_functions": 0,
+    "percent_bytes": 17.5514
+   },
+   "game/unk_bba3d0": {
+    "functions": 11053,
+    "bytes": 2712224,
+    "matching_functions": 5904,
+    "matching_bytes": 639128,
+    "minor_functions": 1,
+    "percent_bytes": 23.5647
+   },
+   "game/xmenu": {
+    "functions": 66,
+    "bytes": 12888,
+    "matching_functions": 35,
+    "matching_bytes": 1160,
+    "minor_functions": 0,
+    "percent_bytes": 9.0006
+   },
+   "game/unk_e66990": {
+    "functions": 3504,
+    "bytes": 732532,
+    "matching_functions": 1565,
+    "matching_bytes": 98332,
+    "minor_functions": 1,
+    "percent_bytes": 13.4236
+   },
+   "game/live_comm": {
+    "functions": 376,
+    "bytes": 109096,
+    "matching_functions": 179,
+    "matching_bytes": 10492,
+    "minor_functions": 0,
+    "percent_bytes": 9.6172
+   },
+   "game/unk_f3b120": {
+    "functions": 37,
+    "bytes": 9628,
+    "matching_functions": 11,
+    "matching_bytes": 512,
+    "minor_functions": 0,
+    "percent_bytes": 5.3178
+   },
+   "game/live_tournament": {
+    "functions": 497,
+    "bytes": 109120,
+    "matching_functions": 266,
+    "matching_bytes": 20820,
+    "minor_functions": 0,
+    "percent_bytes": 19.0799
+   },
+   "game/mystery": {
+    "functions": 1224,
+    "bytes": 245736,
+    "matching_functions": 608,
+    "matching_bytes": 30696,
+    "minor_functions": 1,
+    "percent_bytes": 12.4915
+   },
+   "game/nesthole": {
+    "functions": 733,
+    "bytes": 108016,
+    "matching_functions": 522,
+    "matching_bytes": 24968,
+    "minor_functions": 0,
+    "percent_bytes": 23.1151
+   },
+   "game/unk_fb2de0": {
+    "functions": 192,
+    "bytes": 76508,
+    "matching_functions": 78,
+    "matching_bytes": 6148,
+    "minor_functions": 0,
+    "percent_bytes": 8.0358
+   },
+   "game/net_btl": {
+    "functions": 591,
+    "bytes": 69376,
+    "matching_functions": 416,
+    "matching_bytes": 16764,
+    "minor_functions": 0,
+    "percent_bytes": 24.164
+   },
+   "game/unk_fd7eb0": {
+    "functions": 236,
+    "bytes": 44636,
+    "matching_functions": 156,
+    "matching_bytes": 12788,
+    "minor_functions": 0,
+    "percent_bytes": 28.6495
+   },
+   "game/net_contents/live": {
+    "functions": 398,
+    "bytes": 58572,
+    "matching_functions": 283,
+    "matching_bytes": 28644,
+    "minor_functions": 0,
+    "percent_bytes": 48.9039
+   },
+   "game/unk_ff22f0": {
+    "functions": 208,
+    "bytes": 26664,
+    "matching_functions": 127,
+    "matching_bytes": 6004,
+    "minor_functions": 0,
+    "percent_bytes": 22.5173
+   },
+   "game/net_contents/nbr": {
+    "functions": 1950,
+    "bytes": 290004,
+    "matching_functions": 1345,
+    "matching_bytes": 138564,
+    "minor_functions": 1,
+    "percent_bytes": 47.78
+   },
+   "game/unk_10431f0": {
+    "functions": 1331,
+    "bytes": 223800,
+    "matching_functions": 643,
+    "matching_bytes": 40568,
+    "minor_functions": 0,
+    "percent_bytes": 18.1269
+   },
+   "game/net_request": {
+    "functions": 3741,
+    "bytes": 533804,
+    "matching_functions": 2643,
+    "matching_bytes": 275264,
+    "minor_functions": 2,
+    "percent_bytes": 51.5665
+   },
+   "game/unk_1104c80": {
+    "functions": 172,
+    "bytes": 61196,
+    "matching_functions": 56,
+    "matching_bytes": 1908,
+    "minor_functions": 0,
+    "percent_bytes": 3.1179
+   },
+   "game/pokecamp": {
+    "functions": 7311,
+    "bytes": 1510640,
+    "matching_functions": 3635,
+    "matching_bytes": 299848,
+    "minor_functions": 15,
+    "percent_bytes": 19.8491
+   },
+   "game/unk_1290e40": {
+    "functions": 208,
+    "bytes": 52360,
+    "matching_functions": 134,
+    "matching_bytes": 24672,
+    "minor_functions": 11,
+    "percent_bytes": 47.1199
+   },
+   "game/pw": {
+    "functions": 457,
+    "bytes": 102636,
+    "matching_functions": 214,
+    "matching_bytes": 13200,
+    "minor_functions": 0,
+    "percent_bytes": 12.861
+   },
+   "game/pokelist": {
+    "functions": 261,
+    "bytes": 71736,
+    "matching_functions": 108,
+    "matching_bytes": 4948,
+    "minor_functions": 0,
+    "percent_bytes": 6.8975
+   },
+   "game/unk_12c9b90": {
+    "functions": 18,
+    "bytes": 2876,
+    "matching_functions": 12,
+    "matching_bytes": 1284,
+    "minor_functions": 0,
+    "percent_bytes": 44.6453
+   },
+   "game/status": {
+    "functions": 469,
+    "bytes": 138544,
+    "matching_functions": 248,
+    "matching_bytes": 25120,
+    "minor_functions": 0,
+    "percent_bytes": 18.1314
+   },
+   "game/unk_12ed1a0": {
+    "functions": 728,
+    "bytes": 205284,
+    "matching_functions": 252,
+    "matching_bytes": 22032,
+    "minor_functions": 0,
+    "percent_bytes": 10.7324
+   },
+   "game/regulation": {
+    "functions": 76,
+    "bytes": 12684,
+    "matching_functions": 59,
+    "matching_bytes": 3904,
+    "minor_functions": 0,
+    "percent_bytes": 30.7789
+   },
+   "game/rental_team": {
+    "functions": 593,
+    "bytes": 99920,
+    "matching_functions": 413,
+    "matching_bytes": 22616,
+    "minor_functions": 1,
+    "percent_bytes": 22.6341
+   },
+   "game/unk_133d350": {
+    "functions": 4505,
+    "bytes": 954264,
+    "matching_functions": 2243,
+    "matching_bytes": 231736,
+    "minor_functions": 12,
+    "percent_bytes": 24.2843
+   },
+   "game/btlteam_select": {
+    "functions": 265,
+    "bytes": 51844,
+    "matching_functions": 143,
+    "matching_bytes": 11292,
+    "minor_functions": 0,
+    "percent_bytes": 21.7807
+   },
+   "game/unk_143a7a0": {
+    "functions": 520,
+    "bytes": 106072,
+    "matching_functions": 285,
+    "matching_bytes": 20836,
+    "minor_functions": 0,
+    "percent_bytes": 19.6433
+   },
+   "game/trainer_license": {
+    "functions": 1903,
+    "bytes": 361556,
+    "matching_functions": 1232,
+    "matching_bytes": 100136,
+    "minor_functions": 4,
+    "percent_bytes": 27.6958
+   },
+   "game/unk_14b14a0": {
+    "functions": 1588,
+    "bytes": 340404,
+    "matching_functions": 589,
+    "matching_bytes": 38292,
+    "minor_functions": 4,
+    "percent_bytes": 11.249
+   },
+   "game/waza_remember": {
+    "functions": 153,
+    "bytes": 36680,
+    "matching_functions": 94,
+    "matching_bytes": 6904,
+    "minor_functions": 0,
+    "percent_bytes": 18.8222
+   },
+   "game/xmenu_net": {
+    "functions": 48,
+    "bytes": 15052,
+    "matching_functions": 26,
+    "matching_bytes": 3552,
+    "minor_functions": 0,
+    "percent_bytes": 23.5982
+   },
+   "game/unk_1514310": {
+    "functions": 153,
+    "bytes": 30628,
+    "matching_functions": 91,
+    "matching_bytes": 4844,
+    "minor_functions": 0,
+    "percent_bytes": 15.8156
+   },
+   "game/pokedex": {
+    "functions": 845,
+    "bytes": 174524,
+    "matching_functions": 521,
+    "matching_bytes": 36884,
+    "minor_functions": 0,
+    "percent_bytes": 21.1341
+   },
+   "lua": {
+    "functions": 517,
+    "bytes": 162000,
+    "matching_functions": 517,
+    "matching_bytes": 162000,
+    "minor_functions": 0,
+    "percent_bytes": 100.0
+   },
+   "middleware": {
+    "functions": 8881,
+    "bytes": 1906832,
+    "matching_functions": 3236,
+    "matching_bytes": 226236,
+    "minor_functions": 16,
+    "percent_bytes": 11.8645
+   },
+   "libcurl": {
+    "functions": 395,
+    "bytes": 162384,
+    "matching_functions": 395,
+    "matching_bytes": 162384,
+    "minor_functions": 0,
+    "percent_bytes": 100.0
+   },
+   "middleware-nw": {
+    "functions": 1572,
+    "bytes": 447372,
+    "matching_functions": 595,
+    "matching_bytes": 43272,
+    "minor_functions": 18,
+    "percent_bytes": 9.6725
+   }
+  }
+ }
+}
