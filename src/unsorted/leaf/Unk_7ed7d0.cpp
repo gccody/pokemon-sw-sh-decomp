@@ -1079,7 +1079,7 @@ void Unk_7f7130_call(void* self, u64 value) {
     Unk_787000(self, value, Unk_27ced04);
 }
 
-void Unk_7870a0(u32, u32);
+void Unk_7870a0(s32, s32);
 
 // 0x71007f7140
 void Unk_7f7140_call(u32 self, u32 value) {
@@ -1094,7 +1094,7 @@ void Unk_7f7ae0_call(u16 self, u32 value) {
     Unk_785c80(Unk_27cecf0, self, value);
 }
 
-void Unk_787110(u32);
+void Unk_787110(s32);
 
 // 0x71007f7fe0
 void Unk_7f7fe0_call(u32 self) {
