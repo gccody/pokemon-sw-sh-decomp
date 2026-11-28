@@ -7,8 +7,18 @@
 #include "gflib3/Unk_239a418.h"
 
 // The type 0x71027e0590: its getter is out of line.
-struct Unk_23f43c8 {
+// Unk_23f43c8 (unsorted/Unk_23f43c8.h), as far as this file needs it: its destructor is out of
+// line (its D2, which the D0s and thunks of the classes on it tail-call).
+class Unk_23f43c8 : public Unk_239a418 {
+public:
     static const Unk_239a418_Type* Unk_GetType();
+
+    ~Unk_23f43c8() override;
+    const Unk_239a418_Type* vf_type() override;
+    virtual void vf7();
+    virtual u32 vf8();
+    virtual void vf9();
+    virtual u32 vf10();
 };
 
 // The type 0x71027d9350: its getter is out of line.
@@ -82,29 +92,49 @@ public:
 };
 
 // vtable 0x71023f3340: vf_type and its thunks 0x7100e6c3c0 (+0x48), 0x7100e6c430 (+0x50).
-// Its base and its other functions aren't written here.
-class Unk_23f3330 : public Unk_239a418 {
+// vf_type is its key function, so its vtable is emitted here, with the D0 and the
+// destructor thunks below: its destructor is implicit, and they tail-call its
+// base's D2 (out of line).
+// 0x7100e6c320
+// 0x7100e6c3a0
+// 0x7100e6c3b0
+// 0x7100e6c4a0
+// 0x7100e6c4b0
+// Its other virtual functions are declared only (written elsewhere, or not yet).
+class Unk_23f3330 : public Unk_23f43c8 {
 public:
     static const Unk_239a418_Type* Unk_GetType() {
         static Unk_239a418_Type type(Unk_23f43c8::Unk_GetType());
         return &type;
     }
 
-    ~Unk_23f3330() override;
     const Unk_239a418_Type* vf_type() override;
+    void vf7() override;
+    u32 vf8() override;
+    void vf9() override;
 };
 
 // vtable 0x71023f3410: vf_type and its thunks 0x7100e6c560 (+0x48), 0x7100e6c5d0 (+0x50).
-// Its base and its other functions aren't written here.
-class Unk_23f3400 : public Unk_239a418 {
+// vf_type is its key function, so its vtable is emitted here, with the D0 and the
+// destructor thunks below: its destructor is implicit, and they tail-call its
+// base's D2 (out of line).
+// 0x7100e6c4c0
+// 0x7100e6c540
+// 0x7100e6c550
+// 0x7100e6c640
+// 0x7100e6c650
+// Its other virtual functions are declared only (written elsewhere, or not yet).
+class Unk_23f3400 : public Unk_23f43c8 {
 public:
     static const Unk_239a418_Type* Unk_GetType() {
         static Unk_239a418_Type type(Unk_23f43c8::Unk_GetType());
         return &type;
     }
 
-    ~Unk_23f3400() override;
     const Unk_239a418_Type* vf_type() override;
+    void vf7() override;
+    u32 vf8() override;
+    void vf9() override;
 };
 
 // 0x7100e69f40

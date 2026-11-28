@@ -160,6 +160,68 @@ def new_slots(layout: dict[int, list], obj: dict[int, list]) -> list[int]:
     return list(range(len(obj[0]) + 1, len(layout[0])))
 
 
+SCALARS = {"u8", "u16", "u32", "u64", "s8", "s16", "s32", "s64", "f32", "bool"}
+# The interfaces' destructor slots: (offset in the object, slot).
+THUNK_SLOTS = ((0x48, 0), (0x48, 1), (0x50, 1), (0x50, 2))
+
+
+def stub_base(e) -> list[str] | None:
+    """What a file needs of hand-written base e (vtables.EXTERNAL_BASES) to
+    declare a class on it: its destructor (out of line, not defined here),
+    vf_type and its own virtual functions, declared. None if one takes a
+    parameter that isn't a scalar (its type would be needed too)."""
+    out = [f"    ~{e.name}() override;"]
+    for i, ret, name, *_ in e.slots:
+        if i < 6:
+            continue
+        params = e.params(i)
+        if params and not all(p.strip() in SCALARS for p in params.split(",")):
+            return None
+        out.append(f"    {TYPE} vf_type() override;" if i == 6 else f"    virtual {ret} {name}({params});")
+    return out
+
+
+def based_dtors(m, cls: str, layout: dict[int, list], e, base: dict[int, list], own) -> tuple | None:
+    """The D0 and destructor thunks (address, name) of class `cls` on
+    hand-written base e (`base`: its vtable group's layout), whose D2 is out
+    of line, and the lines that declare the class's other virtual functions.
+    Its destructor is implicit when its slot 0 is the base's D2, its D0 is
+    `b <that D2>` (the family's operator delete is empty) and its thunks are
+    `sub x0, x0, #N ; b <that D2>`: clang emits them that way with its vtable
+    wherever the base's destructor is only declared. Its other slots must be
+    the base's, or its own (`own(f)`, not a class in between's): an override
+    is declared as the base declares it, a new function as `void vf<k>()`.
+    None otherwise."""
+    if sorted(layout) != sorted(base) or len(layout[0]) < len(base[0]) \
+            or any(len(layout[o]) != len(base[o]) for o in base if o):
+        return None
+    d2 = base[0][0]
+    if layout[0][0] != d2 or layout[0][1] == base[0][1] or branch_only(m, layout[0][1]) != d2 \
+            or any(thunk_target(m, layout[o][i], o) != d2 for o, i in THUNK_SLOTS):
+        return None
+    for o in base:
+        if o and any(layout[o][i] != g for i, g in enumerate(base[o])
+                     if (o, i) not in THUNK_SLOTS and (o, i) not in OBJECT_SLOTS):
+            return None
+    decls = []
+    for i in range(2, len(layout[0])):
+        f = layout[0][i]
+        if i == 6 or i < len(base[0]) and f == base[0][i]:
+            continue
+        if not isinstance(f, int) or not own(f):
+            return None
+        if i < len(base[0]):
+            ret, name = e.slot(i)
+            params = e.params(i)
+            if params and not all(p.strip() in SCALARS for p in params.split(",")):
+                return None
+            decls.append(f"    {ret} {name}({params}) override;")
+        else:
+            decls.append(f"    virtual void vf{i}();")
+    names = [(layout[o][i], n.format(n=len(cls), c=cls)) for o, i, n in DTOR_SLOTS]
+    return names, decls
+
+
 def kept(rows: dict, only: set[int], names: list[tuple[int, str]]) -> bool:
     """Whether every function (address, name) of a class matched in the trial
     (`only`) or matches already under that name: a name alone isn't a match
@@ -499,6 +561,8 @@ class ClassPlan:
     dtors: list = field(default_factory=list)  # its D0 and destructor thunks, emitted here: emitted_dtors
     slots: list[int] = field(default_factory=list)  # with them, its virtual functions after vf_type (declared)
     cut_def: tuple = ()                      # the cut getter defined here: (its inlined types, their end)
+    base: object = None                      # with them, the hand-written base it's on, its D2 out of line
+    decls: list[str] = field(default_factory=list)  # then its other virtual functions' declarations
 
 
 @dataclass
@@ -709,11 +773,28 @@ def render(t: Types, expr: dict[int, str], classes: list[ClassPlan]) -> str:
            "// don't edit). Placeholder classes, named after their vtables, and types, named",
            "// after their type objects where no class is known: rename them once they are.",
            "#include <types.h>", "", f'#include "{OBJECT_HEADER}"', ""]
+    # The hand-written bases (D2 out of line) of classes whose D0 is emitted
+    # here: declared as far as this file needs, where their type's struct is.
+    stubs = {c.base.name: c.base for c in classes if getattr(c, "base", None) is not None}
+
+    def struct(name: str, body: list[str]) -> list[str]:
+        if name not in stubs:
+            return [f"struct {name} {{", *body, "};"]
+        e = stubs[name]
+        return [f"// {name} ({e.header}), as far as this file needs it: its destructor is out of",
+                "// line (its D2, which the D0s and thunks of the classes on it tail-call).",
+                f"class {name} : public Unk_239a418 {{", "public:", *body, *([""] if body else []),
+                *stub_base(e), "};"]
+
+    named = {cls for cls, _ in cut if cls not in fwd_cut} | \
+        {cls_of(expr[ty]) for ty in parent if ty not in own}
     for cls, ty in cut:
         if cls in fwd_cut:
             continue
-        out += [f"// The type 0x{ty + BASE:x}: its getter is out of line.", f"struct {cls} {{",
-                f"    static {TYPE} Unk_GetType();", "};", ""]
+        out += [f"// The type 0x{ty + BASE:x}: its getter is out of line.",
+                *struct(cls, [f"    static {TYPE} Unk_GetType();"]), ""]
+    for name in sorted(set(stubs) - named):
+        out += [*struct(name, []), ""]
 
     def getter(ty: int) -> list[str]:
         return [f"    static {TYPE} Unk_GetType() {{", f"        static Unk_239a418_Type type({parent[ty]});",
@@ -741,23 +822,30 @@ def render(t: Types, expr: dict[int, str], classes: list[ClassPlan]) -> str:
         slots = [f"    virtual void vf{i}();" for i in c.slots]
         later = ["// Its other virtual functions are declared only (written elsewhere, or not yet)."] \
             if c.slots else []
+        base = c.base.name if getattr(c, "base", None) is not None else "Unk_239a418"
+        what = "they tail-call its base's D2" if base != "Unk_239a418" else "they are copies of the object's D2"
+        slots = [*c.decls, *slots] if getattr(c, "decls", None) else slots
+        if c.decls and not later:
+            later = ["// Its other virtual functions are declared only (written elsewhere, or not yet)."]
         if c.bare and c.dtors:
             return [f"// vtable 0x{c.group + BASE:x}: vf_type, its key function, so its vtable is emitted",
                     "// here, with the D0 and the destructor thunks below: its destructor is implicit,",
-                    "// and they are copies of the object's D2. vf_type's thunks come out as calls:",
+                    f"// and {what}. vf_type's thunks come out as calls:",
                     "// the original's vf_type is inline (emitted with the vtable where the class is",
                     "// constructed), and they tail-call it with the adjustment.",
                     *dtors, *later,
-                    f"class {c.name} : public Unk_239a418 {{", "public:",
+                    f"class {c.name} : public {base} {{", "public:",
                     *((*getter(c.top), "") if c.top in own else ()),
                     f"    {TYPE} vf_type() override;", *slots, "};", ""]
         if c.dtors:
             return [f"// vtable 0x{c.group + BASE:x}: vf_type and its thunks {th}.", *how,
                     "// vf_type is its key function, so its vtable is emitted here, with the D0 and the",
-                    "// destructor thunks below: its destructor is implicit, and they are copies of the",
-                    "// object's D2.",
+                    *(["// destructor thunks below: its destructor is implicit, and they are copies of the",
+                       "// object's D2."] if base == "Unk_239a418" else
+                      ["// destructor thunks below: its destructor is implicit, and they tail-call its",
+                       "// base's D2 (out of line)."]),
                     *dtors, *later,
-                    f"class {c.name} : public Unk_239a418 {{", "public:",
+                    f"class {c.name} : public {base} {{", "public:",
                     *((*getter(c.top), "") if c.top in own else ()),
                     f"    {TYPE} vf_type() override;", *slots, "};", ""]
         if c.bare:
@@ -794,7 +882,7 @@ def render(t: Types, expr: dict[int, str], classes: list[ClassPlan]) -> str:
         if ty in own:
             out += declare(own[ty])
         else:
-            out += [f"// The type 0x{ty + BASE:x}.", f"struct {cls_of(expr[ty])} {{", *getter(ty), "};", ""]
+            out += [f"// The type 0x{ty + BASE:x}.", *struct(cls_of(expr[ty]), getter(ty)), ""]
 
     for ty in sorted(parent, key=lambda ty: expr[ty]):
         emit(ty)
@@ -902,6 +990,35 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int],
         c.cut_def = ch
 
     ours = written_addresses()
+
+    on_base = {layouts[e.vtable][0][0]: e for e in vt.EXTERNAL_BASES
+               if e.vtable in layouts and e.name != "Unk_239a418" and e.type_slot == 6 and not e.inline_dtor
+               and e.secondaries == ((0x48, (0, 1), 5), (0x50, (1, 2), 0)) and stub_base(e) is not None}
+
+    def dtors_of(c: ClassPlan) -> bool:
+        """Give c its D0 and destructor thunks to emit (and what it declares
+        with them), if its destructor is implicit and they're all free: on the
+        object (emitted_dtors), or on a hand-written base whose D2 is out of
+        line (based_dtors). Not for a class another file declares."""
+        if c.name in declared:
+            return False
+        # not when that would cost matched thunks: with the vtable here, a bare
+        # class's thunks compile as calls
+        if c.bare and any(rows[a].status == "O" for _, a in c.thunks):
+            return False
+        lay = layouts[c.group]
+        mine = lambda f, g=c.group: owner.get(f, (None,))[0] == g  # noqa: E731
+        dtors = emitted_dtors(c.name, lay, obj, lambda f, g: same_code(t.m, f, g), mine) if obj else None
+        if dtors is not None and all(free(f, n) for f, n in dtors):
+            c.dtors, c.slots = dtors, new_slots(lay, obj)
+            return True
+        e = on_base.get(lay.get(0, [None])[0])
+        b = based_dtors(t.m, c.name, lay, e, layouts[e.vtable], mine) if e is not None else None
+        if b is not None and all(free(f, n) for f, n in b[0]):
+            c.dtors, c.decls, c.base = b[0], b[1], e
+            return True
+        return False
+
     keep = []
     for c in classes:
         if c.name in taken:
@@ -916,17 +1033,9 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int],
                 # Defined strongly with a vtable around it, its thunks would lose
                 # the adjustment, so it's written alone, as a plain member.
                 c.bare = True
-            dtors = emitted_dtors(c.name, layouts[c.group], obj, lambda f, g: same_code(t.m, f, g),
-                                  lambda f, g=c.group: owner.get(f, (None,))[0] == g) \
-                if obj and c.name not in declared else None
             thunk_names = set(names[1:])
-            # not when that would cost matched thunks: with the vtable here, a bare
-            # class's thunks compile as calls
-            if dtors and all(free(f, n) for f, n in dtors) \
-                    and not (c.bare and any(rows[a].status == "O" for _, a in c.thunks)):
-                c.dtors = dtors
-                c.slots = new_slots(layouts[c.group], obj)
-                names += dtors
+            if dtors_of(c):
+                names += c.dtors
             elif c.bare:
                 names = names[:1]
             # a bare class's thunks, emitted with its vtable, don't match (they
@@ -948,6 +1057,8 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int],
             names.append((c.forward, n))
             if only is not None and not kept(rows, only, names):
                 continue  # all of it matched in the trial, or none of it is written
+            if dtors_of(c):
+                names += c.dtors
         c.inlined, c.end = ch
         if not cut_named(c, names):
             continue

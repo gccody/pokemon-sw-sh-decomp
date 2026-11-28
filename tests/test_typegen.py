@@ -396,3 +396,55 @@ def test_keep_list():
     base = "BAD common      b  [sword:0x7100000200, shield:0x7100000200]\n" \
            "BAD common      d  [sword:0x7100000400, shield:0x7100000400]\n"
     assert T.keep_list(names | {0x400}, log, files, base) == {0x100, 0x200, 0x300, 0x400, 0x600, 0x800, 0x900}
+
+
+def b(pc: int, target: int) -> int:
+    return 0x14000000 | (((target - pc) >> 2) & 0x3FFFFFF)
+
+
+def test_based_dtors_on_a_base_with_an_out_of_line_d2():
+    d2 = 0x900
+    # the D0 (`b D2`) and the four thunks (`sub x0, x0, #N ; b D2`)
+    funcs = {0x100: [b(0x100, d2)]}
+    sizes = {0x100: 4}
+    for a, off in ((0x200, 0x48), (0x210, 0x48), (0x220, 0x50), (0x230, 0x50)):
+        funcs[a] = [0xD1000000 | (off << 10), b(a + 4, d2)]
+        sizes[a] = 8
+    m = SimpleNamespace(img=image(funcs), sizes=sizes)
+    base = {0: [d2, 0x901, 0x12, 0x13, 0x14, 0x15, 0x906, 0x907, 0x908], 0x48: [0x920, 0x921, 0x22, 0x23, 0x24, 0x925],
+            0x50: [0x930, 0x931, 0x932]}
+    lay = {0: [d2, 0x100, 0x12, 0x13, 0x14, 0x15, 0x306, 0x307, 0x908, 0x309],
+           0x48: [0x200, 0x210, 0x22, 0x23, 0x24, 0x325], 0x50: [0x335, 0x220, 0x230]}
+    e = SimpleNamespace(slot=lambda i: ("u32", f"vf{i}"), params=lambda i: "")
+    names, decls = T.based_dtors(m, "Unk_X", lay, e, base, lambda f: f >= 0x300)
+    assert names == [(0x100, "_ZN5Unk_XD0Ev"), (0x200, "_ZThn72_N5Unk_XD1Ev"), (0x210, "_ZThn72_N5Unk_XD0Ev"),
+                     (0x220, "_ZThn80_N5Unk_XD1Ev"), (0x230, "_ZThn80_N5Unk_XD0Ev")]
+    # vf7 overrides the base's (as the base declares it), vf9 is new
+    assert decls == ["    u32 vf7() override;", "    virtual void vf9();"]
+    # an override from a class in between, a parameter that isn't a scalar, a D2 of its own
+    assert T.based_dtors(m, "Unk_X", lay, e, base, lambda f: f != 0x307) is None
+    e2 = SimpleNamespace(slot=e.slot, params=lambda i: "Unk_Arg*")
+    assert T.based_dtors(m, "Unk_X", lay, e2, base, lambda f: True) is None
+    assert T.based_dtors(m, "Unk_X", {**lay, 0: [0x300, *lay[0][1:]]}, e, base, lambda f: True) is None
+
+
+def test_stub_base_declares_its_destructor_and_slots():
+    e = SimpleNamespace(name="Unk_B", slots=((2, "void", "vf2"), (6, T.TYPE, "vf_type"), (7, "u32", "vf7", "s32")),
+                        params=lambda i: "s32" if i == 7 else "")
+    assert T.stub_base(e) == ["    ~Unk_B() override;", "    const Unk_239a418_Type* vf_type() override;",
+                              "    virtual u32 vf7(s32);"]
+    e = SimpleNamespace(name="Unk_B", slots=((7, "void", "vf7", "Unk_Arg*"),), params=lambda i: "Unk_Arg*")
+    assert T.stub_base(e) is None
+
+
+def test_render_declares_the_base_stub_before_its_class():
+    t = fake({}, {0xA008: ("zero",)})
+    expr = {0xA008: "Unk_C::Unk_GetType()"}
+    e = SimpleNamespace(name="Unk_B", header="unsorted/Unk_B.h", slots=((6, T.TYPE, "vf_type"),), params=lambda i: "")
+    c = T.ClassPlan("Unk_C", 0x5000, 0x300, [(0x48, 0x310), (0x50, 0x320)], 0xA008, [0xA008], ("zero",),
+                    dtors=[(0x101, "_ZN5Unk_CD0Ev")], base=e, decls=["    virtual void vf7();"])
+    src = T.render(t, expr, [c])
+    stub = src.index("class Unk_B : public Unk_239a418 {\npublic:\n    ~Unk_B() override;\n")
+    assert stub < src.index("class Unk_C : public Unk_B {")
+    assert "    const Unk_239a418_Type* vf_type() override;\n    virtual void vf7();\n};" in src
+    assert "~Unk_C()" not in src and "// 0x7100000101\n" in src

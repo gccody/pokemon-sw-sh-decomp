@@ -108,6 +108,8 @@ since every one has the same shape). By what T is, from `vtables.py`'s slots:
 | Another slot or target | 85 | `0x71006a83e0` | Hand work. |
 | Not in a vtable | 20 | `0x71000001e0` | Hand work. |
 
+Of the D0s in the first row, 63 tail-call a hand-written base's D2 (`b <base D2>`, slot 0 the base's D2), not their own D2. `typegen.py` now emits 21 of those with their 84 destructor thunks (family 7's `sub x0, x0, #N ; b <base D2>`), on a stub of the base, `vf_type` as the key function (2026-11-28, +105). Left: 17 whose `vf_type` isn't typegen's, 11 whose `vf_type` is a forwarder to an unmatched getter, 5 with an override inherited or taking a parameter, 5 on `Unk_2399590` (a struct parameter), 3 that inherit `vf_type`, and 1 another file declares. The other 448 need their own D2 written first.
+
 The coordinator's run-1 counts (268 forwarders, 186 `b operator delete`, ~80
 D2s) used other buckets: a D2's `b base D2` is a same-slot forward too.
 
