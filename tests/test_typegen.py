@@ -285,3 +285,31 @@ def test_render_declares_a_class_with_emitted_dtors_on_the_object():
     src = T.render(t, expr, [T.ClassPlan("Unk_C", 0x5000, 0x300, [(0x48, 0x310)], 0xA008, [0xA008], ("zero",),
                                          bare=True)])
     assert "struct Unk_C {" in src and "// 0x7100000310" not in src
+
+
+def test_emitted_dtors_with_new_slots_after_vf_type():
+    longer = derived()
+    longer[0] += [0x107, 0x108]
+    # its own new slots: allowed, and listed by new_slots
+    assert T.emitted_dtors("Unk_X", longer, OBJ, copies, lambda f: f in (0x107, 0x108)) is not None
+    assert T.new_slots(longer, OBJ) == [7, 8]
+    assert T.new_slots(derived(), OBJ) == []
+    # one inherited from a class in between, or pure: its vtable isn't only its own
+    assert T.emitted_dtors("Unk_X", longer, OBJ, copies, lambda f: f == 0x107) is None
+    longer[0][8] = "__cxa_pure_virtual"
+    assert T.emitted_dtors("Unk_X", longer, OBJ, copies, lambda f: True) is None
+    # an override of the object's slots is still refused
+    over = derived(s0_3=0x113)
+    over[0].append(0x107)
+    assert T.emitted_dtors("Unk_X", over, OBJ, copies, lambda f: True) is None
+
+
+def test_render_declares_new_slots_after_vf_type():
+    t = fake({}, {0xA008: ("zero",)})
+    expr = {0xA008: "Unk_C::Unk_GetType()"}
+    c = T.ClassPlan("Unk_C", 0x5000, 0x300, [(0x48, 0x310), (0x50, 0x320)], 0xA008, [0xA008], ("zero",),
+                    bare=True, dtors=[(0x101, "_ZN5Unk_CD0Ev")], slots=[7, 8])
+    src = T.render(t, expr, [c])
+    assert "    const Unk_239a418_Type* vf_type() override;\n    virtual void vf7();\n    virtual void vf8();\n};" \
+        in src
+    assert "~Unk_C()" not in src
