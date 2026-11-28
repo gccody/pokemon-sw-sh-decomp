@@ -6,9 +6,30 @@
 
 #include "gflib3/Unk_239a418.h"
 
-// The type 0x71024ba520: its getter is out of line.
+// The type 0x71024ba540.
+struct Unk_24ba540 {
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(&Unk_239a418_RootType());
+        return &type;
+    }
+};
+
+// The type 0x71024ba530.
+struct Unk_24ba530 {
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_24ba540::Unk_GetType());
+        return &type;
+    }
+};
+
+// 0x71000027d0: the copy of its getter that the getters below call (too big
+// to be inlined into them: clang emits it here).
+// The type 0x71024ba520.
 struct Unk_24ba520 {
-    static const Unk_239a418_Type* Unk_GetType();
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_24ba530::Unk_GetType());
+        return &type;
+    }
 };
 
 // The type 0x71024ba510.

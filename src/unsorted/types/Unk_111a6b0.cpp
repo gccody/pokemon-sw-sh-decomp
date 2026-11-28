@@ -97,10 +97,26 @@ struct Unk_2419ad0 {
     }
 };
 
+// The type 0x71027d8f88.
+struct Unk_241b428 {
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_27d8f98::Unk_GetType());
+        return &type;
+    }
+};
+
 // The type 0x71027e9fa8.
 struct Unk_2427a70 {
     static const Unk_239a418_Type* Unk_GetType() {
         static Unk_239a418_Type type(Unk_23f41d0::Unk_GetType());
+        return &type;
+    }
+};
+
+// The type 0x71027e9f48.
+struct Unk_27e9f48 {
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_241b428::Unk_GetType());
         return &type;
     }
 };
@@ -140,6 +156,9 @@ bool Unk_61a530(Unk_239a498* object) {
 
 // 0x7101122400
 template bool Unk_61a530<Unk_2427a70>(Unk_239a498* object);
+
+// 0x7101124520
+template bool Unk_61a530<Unk_27e9f48>(Unk_239a498* object);
 
 // 0x7101127600
 template bool Unk_61a530<Unk_2419ad0>(Unk_239a498* object);

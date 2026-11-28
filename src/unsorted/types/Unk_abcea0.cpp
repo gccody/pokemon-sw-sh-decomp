@@ -6,9 +6,14 @@
 
 #include "gflib3/Unk_239a418.h"
 
-// The type 0x71027d7680: its getter is out of line.
+// 0x7100ab8fb0: the copy of its getter that the getters below call (too big
+// to be inlined into them: clang emits it here).
+// The type 0x71027d7680.
 struct Unk_23c8808 {
-    static const Unk_239a418_Type* Unk_GetType();
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_239a418_GetType());
+        return &type;
+    }
 };
 
 // vtable 0x71023c8938: vf_type and its thunks 0x7100abcfe0 (+0x48), 0x7100abd050 (+0x50).
