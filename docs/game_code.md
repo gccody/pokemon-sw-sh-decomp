@@ -2098,6 +2098,85 @@ with a placeholder mapped type (`src/unsorted/Unk_597350.cpp`: their code
 doesn't read it). Two more groups of `__rehash` (24 instances) pass another
 alignment to the allocator and aren't written.
 
+### Type getters, again (`tools/typegen.py`, 2026-11-28)
+
+Family 2 of docs/agents/generators.md, the guarded type getters (shape groups
+`d1211a1e6828` 84x296, `066a4a854740` 98x236, `6ae9155d5b75` 47x232 and
+`1d60ca677a5b` 37x300 on master at 5916bb64: 266 U functions), is
+typegen.py's: every one of them parses as a getter, chains of two to four
+levels included. typegen.py hadn't been run since 2026-11-19. What a re-run
+needed:
+
+- **Drift.** `write --only <empty>` no longer reproduced src/unsorted/types:
+  workers had declared some of its classes by hand since (an inline getter in
+  a header, like `Unk_23c8530`'s in `contents/pokebox/Unk_box.h`), so it left
+  them out with their matched functions. #427 keeps writing them
+  (`taken_classes`, `write --keep`). And what a hand-written source defines
+  out of line (an address comment at the start of a line, then a body) is
+  never written here now (`handwritten_addresses`). One defined in its class
+  (an indented comment) is inline there, and the generated copy is what
+  matches, so it still is.
+- **vtables.py can't be re-run on master.** Its sources were edited by hand
+  during the swarm (parameter names and types of lifted members), which a
+  rewrite would undo, and it rewrites members workers defined by hand under
+  its names (`0x7101392f50`, in `src/unsorted/Unk_1392d70.cpp`). typegen's
+  renames (a forwarder class's `vf6`/`vf5`/`vf0` to `vf_type` and its thunks,
+  a forwarder's callee `Unk_<G>(void*)` to its type's getter) need that
+  re-run. `--no-renames` leaves vtables.py's functions alone; the getters of
+  forwarder classes wait for vtables.py (or tools/retype.py) to be
+  reproducible again.
+- **Slot getters of one type, one per file.** The copies of a class's getter
+  in its +0x48 and +0x50 vtables (`vf5`, `vf0` of their placeholder classes)
+  were written in one file. There the type's getter has two callers, and
+  clang calls it from both where the original inlines it into each. A file
+  takes one of them now (`partition(one_caller=...)`), unless they're in one
+  file already (and matched that way).
+- **Cut getters, defined where they're called** (`define_cut`). A getter that
+  others call out of line (their cut) was only declared, so it stayed U
+  unless something else emitted it. When it initialises three statics or
+  more, it's now defined inline, with its own chain, in its callers' files:
+  too big to be inlined into them, clang emits its copy there, as in the
+  original's TU (`0x7100ca3ca0`, `Unk_27da568::Unk_GetType`, next to
+  `Unk_23e0cb0::vf_type`). In some files the caller's getter, with the cut
+  inlined, becomes too big for `vf_type` instead, or the cut is inlined after
+  all: `keep` takes those definitions out of a trial's list, with the rest
+  of their files tried again without them.
+
+A batch:
+
+```sh
+python tools/check.py > before.log
+python tools/typegen.py write --no-renames --names trial.csv
+python tools/funcs.py name --from-file trial.csv
+python tools/check.py > trial.log
+python tools/typegen.py keep --names trial.csv --log trial.log --base before.log --out only.txt
+python tools/typegen.py write --no-renames --names keep.csv --only only.txt
+git checkout -- data/functions.csv && python tools/funcs.py name --from-file keep.csv
+python tools/check.py > keep.log    # keep again on it (--names keep.csv) until it keeps every name
+python tools/check.py --no-build --update && python tools/check.py --no-build --record-data
+```
+
+`--base`: what was BAD before the trial (the `vf_type` thunks of the classes
+whose vtables typegen emits, U on purpose) doesn't count against a file.
+
+On master at c531840b (60,071 matching, 1,009 not), one trial and one
+rewrite: 66 more match in both games (60,137 matching, not matching
+unchanged), none lost. 57 classes are new (slot getters apart, and `vf_type`s,
+kind tests and getters of classes no one had written; 81 in the trial), and
+9 cut getters are defined in their callers' files (21 files); 40 more
+cut definitions didn't work out.
+Two fixes for the classes #420 gave emitted destructors (`emitted_dtors`):
+their `vf_type` thunks, written U on purpose, no longer drop the class from
+an `--only` rewrite, and a bare class whose thunks had matched isn't given
+its vtable (which would make them calls).
+
+Of family 2's 266 functions, 63 match now. Of the other 203: 81 are named as
+a vtables.py forwarder's callee and 33 are called by vtables.py's `vf6`/`vf5`/
+`vf0` forwarders (both need the renames, so vtables.py run again); 48 have
+callers not decompiled yet; 26 are in vtable slots (their chains or files
+didn't match); 15 have only matched callers elsewhere, where a definition
+didn't hold (inlined after all, or the callers are hand-written).
+
 ### The locks of weak handles (`tools/lockgen.py`, 2026-11-21)
 
 `Unk_Lock<T>(handle)` (`src/gflib3/Unk_Lock.h`): a reference to the handle's

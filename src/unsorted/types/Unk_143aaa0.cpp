@@ -21,15 +21,18 @@ struct Unk_2444b38 {
     static const Unk_239a418_Type* Unk_GetType();
 };
 
-// The type 0x71027f0a48: its getter is out of line.
-struct Unk_27f0a48 {
-    static const Unk_239a418_Type* Unk_GetType();
-};
-
 // The type 0x71027d9380.
 struct Unk_23f41d0 {
     static const Unk_239a418_Type* Unk_GetType() {
         static Unk_239a418_Type type(Unk_23f5318::Unk_GetType());
+        return &type;
+    }
+};
+
+// The type 0x71027e0590.
+struct Unk_23f43c8 {
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_239a418_GetType());
         return &type;
     }
 };
@@ -46,6 +49,16 @@ struct Unk_23f6328 {
 struct Unk_23f6a68 {
     static const Unk_239a418_Type* Unk_GetType() {
         static Unk_239a418_Type type(Unk_23f6328::Unk_GetType());
+        return &type;
+    }
+};
+
+// 0x710143ad70: the copy of its getter that the getters below call (too big
+// to be inlined into them: clang emits it here).
+// The type 0x71027f0a48.
+struct Unk_27f0a48 {
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_23f43c8::Unk_GetType());
         return &type;
     }
 };
