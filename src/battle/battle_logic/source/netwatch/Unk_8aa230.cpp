@@ -48,7 +48,7 @@ s32 Unk_804700(u32 species, u16 form, bool arg2, bool arg3, u32 move);
 u32 Unk_82d9a0(u32 move);
 bool Unk_12fa500(u32 species);
 
-u32 Unk_8a8770(void* self, u8 client, u8 pokeId, u32 move, u32 arg4);
+u32 Unk_8a8770(void* self, u8 client, u8 pokeId, u32 move, bool arg4);
 bool Unk_8a7df0(void* self, u8 client);
 bool Unk_8abfc0(void* self, u8 index);
 void Unk_67bfa0(void* self);
