@@ -166,7 +166,7 @@ def test_rewrite_file_and_check(tmp_path, capsys):
     (["clang", "-c", "a.c"], None),
 ])
 def test_output_of(cmd, out):
-    assert fix_traps.output_of(cmd) == (None if out is None else fix_traps.Path(out))
+    assert fix_traps.output_of(cmd) == out
 
 
 def test_run_compiles_then_rewrites(tmp_path):
@@ -209,3 +209,26 @@ def test_check_py_requires_trap_rewrite(tmp_path):
 
 def test_check_py_uses_the_same_words():
     assert (check.BRK_1, check.NX_TRAP) == (fix_traps.BRK_1, fix_traps.NX_TRAP) == (BRK_1, NX_TRAP)
+
+
+def test_call_exit_codes_and_missing_program(tmp_path):
+    assert fix_traps.call([sys.executable, "-c", "import sys; sys.exit(5)"]) == 5
+    assert fix_traps.call([sys.executable, "-c", "pass"]) == 0
+    with pytest.raises(OSError):
+        fix_traps.call([str(tmp_path / "no-such-compiler")])
+
+
+def test_run_path_imports_little():
+    """--run is the per-object launcher: it mustn't pull in subprocess, argparse or pathlib
+    where the OS can spawn directly (Python's start-up is most of its cost)."""
+    import subprocess
+
+    code = ("import sys; sys.argv = ['fix_traps.py', '--run', '--', sys.executable, '-c', 'pass']; "
+            "import fix_traps; rc = fix_traps.main(); "
+            "print(rc, *sorted(m for m in ('subprocess', 'argparse', 'pathlib') if m in sys.modules))")
+    out = subprocess.run([sys.executable, "-S", "-c", code], cwd=str(fix_traps.__file__).rsplit("fix_traps.py", 1)[0],
+                         capture_output=True, text=True, check=True).stdout.split()
+    assert out[0] == "0"
+    import os
+    if hasattr(os, "posix_spawnp"):
+        assert out[1:] == []
