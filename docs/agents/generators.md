@@ -6,9 +6,10 @@ the same code reaching other functions and data: one template instantiated
 twice, or two copies of an inline function. A group of many U functions is
 work a generator can do at once, the way `leafgen.py`, `typegen.py`,
 `lockgen.py`, `familygen.py` and `clonegen.py` did for earlier batches
-(docs/game_code.md). This page ranks what's left. No generator is written
-yet; each row is a guess at what the code is, from the callees' names and the
-first instructions, to check before writing one.
+(docs/game_code.md). This page ranks what's left. Families 1-4 and part of
+the lone `b` D0s have generators now ("Where to start" says what they
+matched); for the other rows, each is a guess at what the code is, from the
+callees' names and the first instructions, to check before writing one.
 
 Snapshot: 2026-11-28, `master` at 5916bb64 (59,906 functions matching). U
 functions only; `yebis` has none left. 15,241 of the 43,343 U functions
@@ -115,12 +116,39 @@ D2s) used other buckets: a D2's `b base D2` is a same-slot forward too.
 
 ## Where to start
 
-1. Family 1 (multiply-inherited destructors): the biggest, and it unblocks
-   most of family 7's thunks.
-2. Families 3 and 4: two templates, 329 functions, ~100 KB.
-3. Family 2: extend `typegen.py` to chains of guarded getters.
+Done on 2026-11-28 (the speed-up work after swarm run 1), in the order this
+page gave, each with a check.py count on its own base:
+
+- Family 1 (#420, +150; #428, +15): the D0s and destructor thunks of classes
+  derived from a base whose destructor is inline, emitted where typegen's
+  `vf_type` is the key function. Left: 27 classes on gflib3's object and 17
+  on `Unk_241b640` whose key function is unwritten or in vtables.py's files,
+  and 41 on `0x71023a3578`, whose own D2 isn't written.
+- Family 3 (#424, `tools/creategen.py`, `src/gflib3/create`): 178 written,
+  all M (two LLVM block-duplication decisions no natural spelling
+  reproduced; docs/game_code.md lists what was ruled out), 10 left U. A
+  matching idiom for the target half would turn the 178 into matches with
+  one `check.py --update`.
+- Family 2 (#430, +66): typegen.py writes multi-level chains and defines
+  cut getters where they're called. 114 more wait on vtables.py renames
+  (below).
+- Family 4 (#431, `tools/viewgen.py`, `src/unsorted/views`, +135): 135 of
+  141 match.
+- Lone `b` D0s on hand-written bases (#429, +105, with 84 family-7 thunks).
+
+Next, by expected yield:
+
+1. Make `vtables.py write` reproducible on master. Swarm fixes were applied
+   by hand to its generated files, and it re-writes members workers defined
+   by hand under its names (e.g. `0x7101392f50`). Until it is, typegen.py's
+   renames stay off (`--no-renames`), which blocks 114 family-2 functions,
+   and the classes that need their secondary bases (family 1's leftovers,
+   family 7's thunks) can't be declared there.
+2. familygen.py's store templates: a block's read and write instances got
+   two placeholder types when the key is a stack local (units u137af00 and
+   u138f100 each lost a match to it). Fix the same-key rule, then rename.
+3. The family 3 idiom (above), and the 448 D0s whose own D2 is unwritten:
+   they come with hand units, so units of classes with many D0s first.
 4. Name `0x7100c46830` (family 6) and `0x71005dfda0` (what family 11's
    deleting destructors tail-call, probably a deallocation function) from
    evidence first; those groups then come cheaply.
-5. The lone `b` functions (above): most come with a D2 or a class declared
-   with its base, so they follow the generators that write those.
