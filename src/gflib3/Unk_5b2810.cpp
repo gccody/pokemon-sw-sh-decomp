@@ -5,7 +5,11 @@
 
 #include <utility>
 
-// 0x71005b2810, 0x71005b2ae0 (its thunk from +0x48)
+// 0x71005b2810, 0x71005b2ae0 (its thunk from +0x48). The key function: the
+// vtables come with it, and with them 0x71005b2e50 (the D2), 0x71005b2ea0 (the
+// D0), thunks 0x71005b2eb0/0x71005b2f00 (+0x48) and 0x71005b2f30/0x71005b2f80
+// (+0x50), 0x71005b2b70 (the thunk of vf2 from +0x48) and 0x71005b2f90
+// (Unk_27715a0::Unk_GetType, which the interface's vf_type calls).
 void Unk_2398ab8::vf4() {
     Unk_239a418_Handle* handle = m_handle.m_ptr;
     if (handle->field_58 == nullptr)
