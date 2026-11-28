@@ -210,13 +210,13 @@ def test_object_names():
     assert F.object_name(f) == "_ZN7Unk_New6CreateI11Unk_23c9028JRKPvRKmS6_EEEPT_P21Unk_239a418_AllocatorDpOT0_"
     assert "    using Unk_23f4660::Unk_23f4660;" in F.object_class(f)
     assert F.creator_name("Unk_23f5fa8") == (
-        "_ZN16Unk_790260_Owner6CreateI11Unk_23f5fa8EE15Unk_239a418_RefIT_ERKS2_I11Unk_239a418Em")
+        "_ZN16Unk_790260_Owner6CreateI11Unk_23f5fa8EE15Unk_239a418_RefIT_ES2_I11Unk_239a418EPKc")
     f.parented = True
     text = F.object_class(f)
     assert "class Unk_23c9028_Parent : public Unk_23f4660 {" in text
     assert "class Unk_23c9028 : public Unk_23c9028_Parent {" in text
     assert F.creator_class(f).endswith(
-        "template Unk_239a418_Ref<Unk_23c9028> Unk_790260_Owner::Create<Unk_23c9028>(const Unk_Ref& parent, u64 a2);\n")
+        "template Unk_239a418_Ref<Unk_23c9028> Unk_790260_Owner::Create<Unk_23c9028>(Unk_Ref parent, const char* name);\n")
 
 
 def test_adders():

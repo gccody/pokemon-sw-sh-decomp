@@ -1574,59 +1574,37 @@ def parse_creator(m: Module, a: int, seed_tail: list | None = None) -> ObjectFac
 
 def creator_name(cls: str) -> str:
     o = mangled_class(OWNER)
-    return (f"_ZN{o}6CreateI{mangled_class(cls)}EE15Unk_239a418_RefIT_ERKS2_I11Unk_239a418Em")
+    return (f"_ZN{o}6CreateI{mangled_class(cls)}EE15Unk_239a418_RefIT_ES2_I11Unk_239a418EPKc")
 
 
 def creator_class(f: ObjectFactory) -> str:
     text = object_class(f)
     lines = text.rstrip("\n").split("\n")
     assert lines[-1].startswith("template ")
-    lines[-1] = (f"template Unk_239a418_Ref<{f.cls}> {OWNER}::Create<{f.cls}>(const Unk_Ref& parent, u64 a2);")
+    lines[-1] = (f"template Unk_239a418_Ref<{f.cls}> {OWNER}::Create<{f.cls}>(Unk_Ref parent, const char* name);")
     return "\n".join(lines) + "\n"
 
 
 CREATOR_HEADER = """// Scope: common
 //
-// The creators of an owner (Unk_790260_Owner, placeholder): each makes a class
-// on Unk_23f4660 (src/unsorted/Unk_23f4660.h) with the owner's allocator,
-// sets its parent, keeps a reference to it and returns one. One template, an
-// instance per class; the classes are named after their vtables, their
-// members are what the creators store after Unk_23f4660's constructor.
+// The creators of an owner (Unk_790260_Owner, placeholder, src/gflib3/Unk_790260.h):
+// each makes a class on Unk_23f4660 (src/unsorted/Unk_23f4660.h) with the
+// owner's allocator, sets its parent, keeps a reference to it and returns one.
+// One template, an instance per class; the classes are named after their
+// vtables, their members are what the creators store after Unk_23f4660's
+// constructor.
 // Written by tools/familygen.py: regenerate, don't edit.
 #include <nn/os.h>
 
+#include "gflib3/Unk_790260.h"
 #include "gflib3/Unk_New.h"
-#include "unsorted/Unk_23f4660.h"
-#include "unsorted/Unk_2771620.h"
-
-using Unk_Ref = Unk_239a418_Ref<Unk_239a418>;
-
-// The element of the owner's vector (its push_back's slow path is
-// 0x7100790490, in Unk_5ac520.cpp).
-struct Unk_790490 : Unk_239a418 {};
-
-class Unk_790260_Owner {
-public:
-    template <class T>
-    Unk_239a418_Ref<T> Create(const Unk_Ref& parent, u64 a2);
-
-    u64 field_0;
-    Unk_239a418_Allocator* field_8;
-    u8 _10[0x68];
-    std::vector<Unk_239a418_Ref2<Unk_790490>, Unk_2771620_Allocator<Unk_239a418_Ref2<Unk_790490>>> field_78;
-    u64 field_a8;
-    u8 _b0[0x10];
-    bool field_c0;
-};
-PKMN_OFFSET_ASSERT(Unk_790260_Owner, field_78, 0x78);
-PKMN_OFFSET_ASSERT(Unk_790260_Owner, field_a8, 0xa8);
-PKMN_OFFSET_ASSERT(Unk_790260_Owner, field_c0, 0xc0);
 
 template <class T>
-Unk_239a418_Ref<T> Unk_790260_Owner::Create(const Unk_Ref& parent, u64 a2) {
+Unk_239a418_Ref<T> Unk_790260_Owner::Create(Unk_Ref parent, const char* name) {
     if (!parent.m_ptr)
         nn::diag::detail::AbortImpl("", "", "", 0);
-    Unk_239a418_Ref<T> result(Unk_New().Create<T>(field_8, this, a2, u64(field_a8)));
+    // Unk_23f4660's constructor (not decompiled) is declared with a u64 there.
+    Unk_239a418_Ref<T> result(Unk_New().Create<T>(field_8, this, reinterpret_cast<u64>(name), u64(field_a8)));
     // Through the result, not the new object: clang then computes the
     // object's interface again for the vector's reference, as the original does.
     result.m_ptr->Unk_e7fe20(parent);
