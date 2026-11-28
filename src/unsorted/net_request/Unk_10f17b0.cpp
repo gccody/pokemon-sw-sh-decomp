@@ -86,6 +86,13 @@ extern u64 Unk_24ba150;
 // 0x710104c0e0 (it doesn't use the object)
 void Unk_104c0e0(u64 self, const Unk_15bbd10_arg1& value);
 
+// What the object heard: whether it's done, and whether it went well. The step
+// reads it whole (one 16-bit load), as a getter's return value.
+struct Unk_10f17b0_Result {
+    u8 m_done;
+    u8 m_ok;
+};
+
 // The interface at +0x60 of Unk_24174f0 (vtable 0x71024175c0).
 class Unk_24175b0 {
 public:
@@ -100,7 +107,7 @@ public:
 // What hears the result (vtable 0x7102417500), on gflib3's object.
 class Unk_24174f0 : public Unk_239a418, public Unk_24175b0 {
 public:
-    Unk_24174f0() : field_68(false) {}
+    Unk_24174f0() { field_68.m_done = 0; }
     // The key function: the vtables, the thunks at +0x48 (0x71010f1d00,
     // 0x71010f1d50) and +0x50 (0x71010f1dc0, 0x71010f1e10) and vf_type's
     // (0x71010f1da0, 0x71010f1db0) come from here. The D0 deletes nothing (the
@@ -118,15 +125,15 @@ public:
     // 0x71010f17d0 (its thunk: 0x71010f1810)
     void vf4(const Unk_15bbd10_arg1& value) override {
         Unk_104c0e0(Unk_24ba150, value);
-        field_68 = true;
-        field_69 = false;
+        field_68.m_done = 1;
+        field_68.m_ok = 0;
     }
 
-    bool field_68;
-    bool field_69;
+    Unk_10f17b0_Result Unk_GetResult() const { return field_68; }
+
+    Unk_10f17b0_Result field_68;
 };
 PKMN_OFFSET_ASSERT(Unk_24174f0, field_68, 0x68);
-PKMN_OFFSET_ASSERT(Unk_24174f0, field_69, 0x69);
 PKMN_SIZE_ASSERT(Unk_24174f0, 0x70);
 
 // 0x71010f1bc0
@@ -140,8 +147,8 @@ template Unk_24174f0* Unk_New::Create<Unk_24174f0>(Unk_239a418_Allocator* alloca
 template <class T>
 struct Unk_10f17b0_Weak {
     Unk_10f17b0_Weak() : m_ptr(nullptr) {}
-    Unk_10f17b0_Weak(const Unk_239a418_Ref2<Unk_239a418_Handle>& handle, T* ptr)
-        : m_handle(handle.m_ptr), m_ptr(ptr) {}
+    Unk_10f17b0_Weak(const Unk_239a418_Ref<Unk_239a418_Handle>& handle, T* ptr)
+        : m_handle(handle), m_ptr(ptr) {}
 
     T* Get() const {
         if (m_handle.m_ptr == nullptr)
@@ -170,7 +177,7 @@ struct Unk_10f17b0_Flag {
 class Unk_10f17b0_Listener {
 public:
     virtual void vf0();
-    virtual void vf1(Unk_10f17b0_Flag* flag);
+    virtual void vf1(Unk_10f17b0_Flag flag);
 };
 
 // vtable 0x71024176b0 (abstract: slots 2 and 3 are pure).
@@ -219,7 +226,7 @@ u64 Unk_6a43a0_getFieldd8(const Unk_6a43a0* self);
 // 0x71006a43b0
 bool Unk_6a43b0(Unk_6a43a0* self);
 // 0x71006a6530: keeps the weak reference.
-void Unk_6a6530(u64 self, const Unk_10f17b0_Weak<Unk_24175b0>& listener);
+void Unk_6a6530(u64 self, Unk_10f17b0_Weak<Unk_24175b0> listener);
 // 0x71006a6590
 bool Unk_6a6590(u64 self, const Unk_2417660& data);
 
@@ -241,7 +248,7 @@ public:
     Unk_10f17b0_Listener field_50;
     Unk_239a418_Ref<Unk_24174f0> field_58;
     bool field_60;
-    bool field_61;
+    u8 field_61;
 };
 PKMN_OFFSET_ASSERT(Unk_24175f0, field_28, 0x28);
 PKMN_OFFSET_ASSERT(Unk_24175f0, field_30, 0x30);
@@ -262,26 +269,46 @@ Unk_10f17b0_Listener* Unk_24175f0::vf11() {
     return listener != nullptr ? listener : &field_50;
 }
 
-// 0x71010f1850
+// 0x71010f1850: the step's update. 0: make the object, give the session its
+// weak reference and send the request; 1: wait for the object's result; 2: tell
+// the listener.
+// NON_MATCHING: on the path where the object's handle is null, the original
+// carries a flag for the weak reference's last release (w27, tbnz) where this
+// carries the pointer (a phi: mov x23, xzr / x27, then cbz), which shifts the
+// registers from there (x28 for the interface in the original).
 bool Unk_24175f0::vf2() {
     Unk_10f17b0_Listener* listener = Unk_24175f0::vf11();
     switch (field_14) {
         case 0: {
-            field_60 = Unk_6a4320(Unk_2778bf8);
-            if (!field_60 || field_28 == nullptr || field_30 > 0x10 || field_48 > 0x400)
-                break;
+            Unk_6a43a0* system = Unk_2778bf8;
+            field_60 = Unk_6a4320(system);
+            if (!field_60 || field_28 == nullptr) {
+                field_14 = 2;
+                return false;
+            }
+            if (field_30 > 0x10) {
+                field_14 = 2;
+                return false;
+            }
+            if (field_48 > 0x400) {
+                field_14 = 2;
+                return false;
+            }
             Unk_239a418_Allocator* allocator = field_28;
             u8 type = field_30;
             u32 mode = field_38;
             const void* data = field_40;
             size_t size = field_48;
-            u64 session = Unk_6a43a0_getFieldd8(Unk_2778bf8);
+            u64 session = Unk_6a43a0_getFieldd8(system);
             field_58 = Unk_239a418_Ref<Unk_24174f0>(Unk_New().Create<Unk_24174f0>(allocator));
-            if (field_58.m_ptr == nullptr)
-                break;
+            if (field_58.m_ptr == nullptr) {
+                field_14 = 2;
+                return false;
+            }
             Unk_24174f0* object = field_58.m_ptr;
-            Unk_239a418_Ref2<Unk_239a418_Handle> handle(static_cast<Unk_239a418*>(object)->vf2());
-            Unk_6a6530(session, Unk_10f17b0_Weak<Unk_24175b0>(handle, object));
+            Unk_24175b0* heard = object;
+            Unk_10f17b0_Weak<Unk_24175b0> weak(static_cast<Unk_239a418*>(object)->vf2(), heard);
+            Unk_6a6530(session, weak);
             Unk_2417660 request;
             request.field_9 = type;
             request.field_a = mode == 1 ? 2 : 1;
@@ -291,25 +318,23 @@ bool Unk_24175f0::vf2() {
             field_14 = Unk_6a6590(session, request) ? 1 : 2;
             return false;
         }
-        case 1:
-            if (field_58.m_ptr->field_68) {
-                field_61 = field_58.m_ptr->field_69;
-                break;
+        case 1: {
+            Unk_10f17b0_Result result = field_58.m_ptr->Unk_GetResult();
+            if (result.m_done) {
+                field_61 = result.m_ok;
+                field_14 = 2;
             }
             return false;
+        }
         case 2:
             if (field_60)
                 Unk_6a43b0(Unk_2778bf8);
             if (field_61) {
                 listener->vf0();
             } else {
-                Unk_10f17b0_Flag flag;
-                listener->vf1(&flag);
+                listener->vf1(Unk_10f17b0_Flag());
             }
             return true;
-        default:
-            return false;
     }
-    field_14 = 2;
     return false;
 }
