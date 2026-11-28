@@ -98,7 +98,7 @@ GENERATED_DIRS = (
     "src/unsorted/leaf", "src/unsorted/virtual", "src/unsorted/ctor", "src/unsorted/types",
     "src/unsorted/clone", "src/unsorted/families", "src/unsorted/init", "src/unsorted/locks",
     "src/unsorted/registry", "src/gflib3/families", "lib/nx_middleware/leaf", "lib/nx_middleware/class",
-    "lib/wwise/leaf", "lib/wwise/class", "lib/pia/gen", "lib/nex/ddl", "src/gflib3/create",
+    "lib/wwise/leaf", "lib/wwise/class", "lib/pia/gen", "lib/nex/ddl", "src/gflib3/create", "src/unsorted/views",
 )
 # Directories of vendored code compiled from upstream source: not scanned for address comments.
 UNSCANNED_DIRS = ("lib/physx", "lib/yebis", "lib/protobuf", "lib/lua", "lib/curl", "lib/freetype",
