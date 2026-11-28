@@ -132,6 +132,11 @@ DTOR_SLOTS = ((0, 1, "_ZN{n}{c}D0Ev"), (0x48, 0, "_ZThn72_N{n}{c}D1Ev"), (0x48, 
               (0x50, 1, "_ZThn80_N{n}{c}D1Ev"), (0x50, 2, "_ZThn80_N{n}{c}D0Ev"))
 
 
+def new_slots(layout: dict[int, list], obj: dict[int, list]) -> list[int]:
+    """The slots of a class's primary vtable after its vf_type (emitted_dtors)."""
+    return list(range(len(obj[0]) + 1, len(layout[0])))
+
+
 def kept(rows: dict, only: set[int], names: list[tuple[int, str]]) -> bool:
     """Whether every function (address, name) of a class matched in the trial
     (`only`) or matches already under that name: a name alone isn't a match
@@ -139,15 +144,21 @@ def kept(rows: dict, only: set[int], names: list[tuple[int, str]]) -> bool:
     return all(f in only or rows[f].status == "O" and rows[f].name == n for f, n in names)
 
 
-def emitted_dtors(cls: str, layout: dict[int, list], obj: dict[int, list], same) -> list[tuple[int, str]] | None:
+def emitted_dtors(cls: str, layout: dict[int, list], obj: dict[int, list], same,
+                  own=None) -> list[tuple[int, str]] | None:
     """The D0 and destructor thunks (address, name) of class `cls`, if its
     vtable group (`layout`: offset in the object -> slots) is the object's
     (`obj`) with only the type slots overridden and slot 6 added for vf_type,
     its slot 0 the object's D2 (its destructor is implicit) and each of its
     destructor slots a copy of the object's (`same(f, g)`: the same code
-    reaching the same kind of data). None otherwise."""
-    if sorted(layout) != sorted(obj) or len(layout[0]) != len(obj[0]) + 1 \
-            or any(len(layout[o]) != len(obj[o]) for o in obj if o):
+    reaching the same kind of data). None otherwise. With `own` (f -> whether
+    f is the class's own, not inherited from a class in between), the primary
+    vtable may have new slots after vf_type too (`new_slots`): declared, they
+    don't change what's emitted."""
+    n = len(obj[0]) + 1
+    if sorted(layout) != sorted(obj) or len(layout[0]) < n or len(layout[0]) > n and own is None \
+            or any(len(layout[o]) != len(obj[o]) for o in obj if o) \
+            or not all(isinstance(f, int) and own(f) for f in layout[0][n:]):
         return None
     types = set(OBJECT_SLOTS)
     dtors = {(o, i) for o, i, _ in DTOR_SLOTS}
@@ -415,6 +426,7 @@ class ClassPlan:
     member: str = "vf_type"                  # its name: vtables.py's vf<slot> for the other slots
     fwd: bool = False                        # a forwarder: tail-calls its cut, declared (vtables.py's name)
     dtors: list = field(default_factory=list)  # its D0 and destructor thunks, emitted here: emitted_dtors
+    slots: list[int] = field(default_factory=list)  # with them, its virtual functions after vf_type (declared)
 
 
 @dataclass
@@ -638,25 +650,30 @@ def render(t: Types, expr: dict[int, str], classes: list[ClassPlan]) -> str:
                     f"struct {c.name} {{", *((*getter(c.top), "") if c.top in own else ()),
                     f"    {TYPE} {c.member}();", "};", ""]
         dtors = [f"// 0x{a + BASE:x}" for a, _ in c.dtors]
+        # Its functions after vf_type: declared after it (vf_type stays the key
+        # function), defined in other files or not yet.
+        slots = [f"    virtual void vf{i}();" for i in c.slots]
+        later = ["// Its other virtual functions are declared only (written elsewhere, or not yet)."] \
+            if c.slots else []
         if c.bare and c.dtors:
             return [f"// vtable 0x{c.group + BASE:x}: vf_type, its key function, so its vtable is emitted",
                     "// here, with the D0 and the destructor thunks below: its destructor is implicit,",
                     "// and they are copies of the object's D2. vf_type's thunks come out as calls:",
                     "// the original's vf_type is inline (emitted with the vtable where the class is",
                     "// constructed), and they tail-call it with the adjustment.",
-                    *dtors,
+                    *dtors, *later,
                     f"class {c.name} : public Unk_239a418 {{", "public:",
                     *((*getter(c.top), "") if c.top in own else ()),
-                    f"    {TYPE} vf_type() override;", "};", ""]
+                    f"    {TYPE} vf_type() override;", *slots, "};", ""]
         if c.dtors:
             return [f"// vtable 0x{c.group + BASE:x}: vf_type and its thunks {th}.", *how,
                     "// vf_type is its key function, so its vtable is emitted here, with the D0 and the",
                     "// destructor thunks below: its destructor is implicit, and they are copies of the",
                     "// object's D2.",
-                    *dtors,
+                    *dtors, *later,
                     f"class {c.name} : public Unk_239a418 {{", "public:",
                     *((*getter(c.top), "") if c.top in own else ()),
-                    f"    {TYPE} vf_type() override;", "};", ""]
+                    f"    {TYPE} vf_type() override;", *slots, "};", ""]
         if c.bare:
             return [f"// vtable 0x{c.group + BASE:x}: vf_type (its thunks {th} aren't written: they",
                     "// call it, and the original's is inline, emitted with the class's vtable).",
@@ -725,6 +742,7 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int],
     rows = t.rows
     used = {r.name: a for a, r in rows.items() if r.name}
     layouts = layouts_of(t.m)
+    owner = vt.owners(t.m.vtables)
     obj = layouts.get(object_group(t.m), {})
 
     def free(f: int, name: str) -> bool:
@@ -782,10 +800,12 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int],
                 # Defined strongly with a vtable around it, its thunks would lose
                 # the adjustment, so it's written alone, as a plain member.
                 c.bare = True
-            dtors = emitted_dtors(c.name, layouts[c.group], obj, lambda f, g: same_code(t.m, f, g)) \
+            dtors = emitted_dtors(c.name, layouts[c.group], obj, lambda f, g: same_code(t.m, f, g),
+                                  lambda f, g=c.group: owner.get(f, (None,))[0] == g) \
                 if obj and c.name not in declared else None
             if dtors and all(free(f, n) for f, n in dtors):
                 c.dtors = dtors
+                c.slots = new_slots(layouts[c.group], obj)
                 names += dtors
             elif c.bare:
                 names = names[:1]
@@ -826,7 +846,6 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int],
     # Getters in other vtable slots (other layouts, secondary vtables' copies,
     # classes left out above): each a plain member of its owner vtable's class.
     covered = {f for _, names in keep for f, _ in names}
-    owner = vt.owners(t.m.vtables)
     by_addr = {v.addr: v for v in t.m.vtables}
     for f, g in sorted(t.getters.items()):
         if f not in t.slot_of or f in covered or f not in owner:
