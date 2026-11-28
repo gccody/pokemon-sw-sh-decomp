@@ -319,8 +319,13 @@ def edit_text(text: str, old: Sig, new: Sig, generated: bool) -> tuple[str, File
         e.rewrote.append(m.line)
     out = "".join(pieces) + text[pos:]
     if e.rewrote:
-        structs = sorted({re.sub(r"^const |\*+$", "", t).strip() for t in new.params if t.endswith("*")}
-                         - {"void", "const void", "char", "const char"})
+        import leafgen
+
+        def names(params: list[str]) -> set[str]:
+            return {re.sub(r"^const |\*+$", "", t).strip() for t in params if t.endswith("*")}
+
+        builtin = set(leafgen._BUILTIN.values()) | {"void"}
+        structs = sorted(names(new.params) - names(old.params) - builtin)  # the new ones, not u16 or void
         missing = [s for s in structs if re.match(r"^[A-Za-z_]\w*$", s)
                    and not re.search(rf"\b(?:struct|class|union|using|typedef)\s+{re.escape(s)}\b", out)
                    and not re.search(rf"\b{re.escape(s)}\s*;\s*$", out, re.M)]
