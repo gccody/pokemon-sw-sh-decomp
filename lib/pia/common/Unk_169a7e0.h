@@ -6,9 +6,12 @@
 //   N2nn3pia5local21LocalResendMessageJobE; the rest of it is in
 //   lib/pia/common/Unk_169a160.cpp);
 // - local::LocalScanNetworkJob (N2nn3pia5local19LocalScanNetworkJobE, vtable
-//   0x710245b418; vtables.py names the class Unk_245b408 after it).
+//   0x710245b418; vtables.py names the class Unk_245b408 after it);
+// - local::LocalSessionInfo's constructor and destructors
+//   (N2nn3pia5local16LocalSessionInfoE, vtable 0x710245b478; its small slots
+//   are in lib/nx_middleware/class/nn_pia_local_LocalSessionInfo.cpp).
 //
-// Both derive from common::StepSequenceJob. The steps' names are the strings
+// The jobs derive from common::StepSequenceJob. The steps' names are the strings
 // stored with them ("Class::Function"), and the GOT slots each step's pointer
 // is loaded from hold the functions they name. LocalScanNetworkJob's vf5 is in
 // lib/nx_middleware/class/nn_pia_local_LocalScanNetworkJob.cpp. Other names
@@ -181,6 +184,24 @@ PKMN_OFFSET_ASSERT(LocalScanNetworkJob, m_Context, 0x58);
 PKMN_OFFSET_ASSERT(LocalScanNetworkJob, m_JobContext, 0x60);
 PKMN_OFFSET_ASSERT(LocalScanNetworkJob, m_Protocol, 0x68);
 PKMN_SIZE_ASSERT(LocalScanNetworkJob, 0x70);
+
+// Abstract: most of its slots are pure, so its deleting destructor is a trap.
+// Only the fields its constructor sets (the leaves call them field_8 to field_b).
+class LocalSessionInfo {
+public:
+    LocalSessionInfo();
+    virtual ~LocalSessionInfo();
+
+    virtual void vf2() = 0;
+
+    u8 field_8;
+    u8 field_9;
+    u8 field_a;
+    u8 field_b;
+};
+PKMN_OFFSET_ASSERT(LocalSessionInfo, field_8, 0x8);
+PKMN_OFFSET_ASSERT(LocalSessionInfo, field_b, 0xb);
+PKMN_SIZE_ASSERT(LocalSessionInfo, 0x10);
 
 }  // namespace local
 }  // namespace pia
