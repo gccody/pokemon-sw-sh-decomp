@@ -65,6 +65,10 @@ Unk_1346860_Result Unk_1396ff0(Unk_2431910* self, u32 count, s32* data, u64 max)
 }
 
 // 0x7101396e70: reads an array, room for `max` elements.
+// NON_MATCHING: control flow: the failed read of the count gets its own copy
+// of the reader's advance (the original keeps one, then tests the result),
+// and the null check of `data` returns before the prologue instead of through
+// the shared return.
 Unk_1346860_Result Unk_1396e70(Unk_2431910* self, s32* data, u64 max) {
     Unk_1346860_Result result;
     result.field_0 = false;
@@ -98,17 +102,12 @@ Unk_1346860_Result Unk_1396c50(Unk_13471e0_Store* self,
     return result;
 }
 
-// Whether a header is that of an array of `type`.
-static bool IsArrayOf(const Unk_13477b0_Header& header, u8 type) {
-    return header.field_1 == type && IsFixedType(header.field_1) &&
-           (header.field_2 == 0 || header.field_4 == 0);
-}
-
 // 0x7101397160: whether an entry holds an array of s32.
+// NON_MATCHING: the kind and element type tests are merged into one test of
+// the header's low 16 bits (the original tests the two bytes apart).
 bool Unk_1397160(Unk_13471e0_Store* self, const Unk_13471e0_Entry* entry) {
     Unk_2431910 reader = Unk_13471e0_Store::Unk_Reader(entry);
     Unk_13477b0_Header header = Unk_13477b0(&reader);
-    if (header.field_0 != kArray)
-        return false;
-    return IsArrayOf(header, kS32);
+    return header.field_0 == kArray && header.field_1 == kS32 && IsFixedType(header.field_1) &&
+           (header.field_2 == 0 || header.field_4 == 0);
 }
