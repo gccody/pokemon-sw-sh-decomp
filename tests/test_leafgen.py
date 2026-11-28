@@ -626,3 +626,16 @@ def test_external_references(tmp_path, monkeypatch):
     assert called == {2: "src/b.cpp"}
     assert declared == {tmp_path / "src" / "a.cpp": {1}, tmp_path / "src" / "b.cpp": {2}}
     assert leafgen._decl_line("const u8* Unk_1_call(void*, u64);", "Unk_1_call").group(1) == "const u8* "
+
+
+def test_decode_params():
+    """encode_params backwards, for what it spells; None for the rest."""
+    for codes, types in (("PK10Unk_7cd220h", ["const Unk_7cd220*", "u8"]), ("PvS_", ["void*", "void*"]),
+                         ("P5Unk_1PKS_", ["Unk_1*", "const Unk_1*"]), ("PKvj", ["const void*", "u32"]),
+                         ("v", []), ("PvmS_mj", ["void*", "u64", "void*", "u64", "u32"])):
+        assert leafgen.decode_params(codes) == types
+        assert leafgen.encode_params(types) == codes
+    assert leafgen.decode_params("PS_", ["Unk_2409118"]) == ["Unk_2409118*"]   # the class its name made
+    assert leafgen.encode_params(["Unk_2409118*"], ["Unk_2409118"]) == "PS_"
+    for bad in ("RK3Foo", "N2nn3BarE", "vj", "S0_", "Pz", "5Unk"):
+        assert leafgen.decode_params(bad) is None

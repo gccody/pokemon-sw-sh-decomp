@@ -140,3 +140,42 @@ def test_source_files():
     index = {0x8: "lib/x/src/W.cpp", 0x4: "lib/x/include/y/Z.h", 0x2: "src/unsorted/leaf/Unk_2.cpp",
              0x1: "src/a/B.cpp"}
     assert U.source_files(index) == [(0x1, "src/a/B.cpp"), (0x8, "lib/x/src/W.cpp")]
+
+
+def test_sidecar_retypes(tmp_path):
+    p = tmp_path / ".swarm" / "sidecar.json"
+    data = U.read_sidecar(p)
+    U.sidecar_retype(data, "0x7100000010", "_Z1fh", "_Z1fj")
+    U.sidecar_retype(data, "0x7100000010", "_Z1ft", "_Z1fj")   # again: replaces
+    U.write_sidecar(data, p)
+    assert U.read_sidecar(p)["retypes"] == [{"addr": "0x7100000010", "name": "_Z1ft", "old": "_Z1fj"}]
+    p.write_text('{"unit": "u1", "names": []}', encoding="utf-8")   # an older sidecar
+    assert U.read_sidecar(p)["retypes"] == []
+
+
+def test_record_retype_runs_retype_py(tmp_path, monkeypatch):
+    """record retype applies tools/retype.py here and records it only if that worked."""
+    import subprocess
+    import types
+
+    p = tmp_path / ".swarm" / "sidecar.json"
+    read, write = U.read_sidecar, U.write_sidecar
+    monkeypatch.setattr(U, "read_sidecar", lambda path=p: read(path))
+    monkeypatch.setattr(U, "write_sidecar", lambda data, path=p: write(data, path))
+    monkeypatch.setattr(U, "SIDECAR", p)
+    monkeypatch.setattr(U, "ROOT", tmp_path)
+    monkeypatch.setattr(U, "read_functions_csv", lambda: [fn(0x10, 8, "O", "_Z1fj")])
+    runs = []
+    rc = [0]
+    monkeypatch.setattr(subprocess, "run", lambda argv, **kw: runs.append(argv[1:]) or types.SimpleNamespace(
+        returncode=rc[0]))
+    args = types.SimpleNamespace(what="retype", addr="0x10", value="_Z1fh", evidence=None, reason=None)
+    U.write_sidecar(U.read_sidecar(p), p)
+    assert U.cmd_record(args) == 0
+    assert runs == [[str(tmp_path / "tools" / "retype.py"), f"0x{BASE + 0x10:x}", "_Z1fh", "--apply"]]
+    assert U.read_sidecar(p)["retypes"] == [{"addr": f"0x{BASE + 0x10:x}", "name": "_Z1fh", "old": "_Z1fj"}]
+    rc[0] = 1
+    args.value = "_Z1ft"
+    with pytest.raises(SystemExit):
+        U.cmd_record(args)
+    assert U.read_sidecar(p)["retypes"][0]["name"] == "_Z1fh"

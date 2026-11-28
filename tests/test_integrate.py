@@ -61,3 +61,16 @@ def test_name_conflicts():
     names = [{"addr": f"0x{BASE + 0x10:x}", "name": "_Z1gv"}, {"addr": f"0x{BASE + 0x20:x}", "name": "_Z1iv"},
              {"addr": f"0x{BASE + 0x30:x}", "name": "_Z1hv"}]
     assert integrate.name_conflicts(names, rows) == [f"0x{BASE + 0x10:x}: sidecar _Z1gv, functions.csv _Z1fv"]
+
+
+def test_retype_conflicts():
+    rows = [fn(0x10, "O", "_Z1fj"), fn(0x20, "U", "_Z1gh"), fn(0x30, "U", "_Z1kv")]
+    retypes = [{"addr": f"0x{BASE + 0x10:x}", "name": "_Z1fh", "old": "_Z1fj"},    # to do
+               {"addr": f"0x{BASE + 0x20:x}", "name": "_Z1gh", "old": "_Z1gj"},    # done already
+               {"addr": f"0x{BASE + 0x30:x}", "name": "_Z1kh", "old": "_Z1kj"},    # renamed since
+               {"addr": f"0x{BASE + 0x40:x}", "name": "_Z1mh", "old": "_Z1mj"}]
+    assert integrate.retype_conflicts(retypes, rows) == [
+        f"0x{BASE + 0x30:x}: sidecar retypes _Z1kj -> _Z1kh, functions.csv _Z1kv",
+        f"0x{BASE + 0x40:x}: retyped, but it isn't a Sword function start"]
+    # a retype isn't a name conflict: the names list stays the sidecar's names only
+    assert integrate.name_conflicts([], rows) == []

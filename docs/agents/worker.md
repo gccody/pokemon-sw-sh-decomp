@@ -173,3 +173,34 @@ is committed (`git status` shows only data/functions.csv and
 data/data_symbols.csv modified). Then reply with the counts (matched / m/M /
 skipped), the one-line reasons for m/M and skips, and the branch's last
 commit hash.
+
+## Retyping a callee
+
+A callee named with the wrong parameter types (a `u8` that leafgen declared
+as `u32`: `j` where the original's code says `h`) can't be called the way
+the original calls it. Instead of a `RENAME` line for the coordinator, a
+worker fixes it inside its own unit:
+
+```sh
+python tools/retype.py <addr> <new mangled name>                # dry run: the rename and the diff
+python tools/units.py record retype <addr> <new mangled name>   # apply it, and record it in the sidecar
+```
+
+`retype.py` renames the function in functions.csv, rewrites every
+declaration of it by its old prototype (in the generated directories too:
+the one change there a worker may make, and only through this tool) and its
+definition if a generator wrote it, then re-checks the function and every
+function in a file it rewrote or that mentions it, and puts everything back
+if one that matched no longer does or the build fails. `record retype`
+records it only if that worked. Only retype what the callee's own
+instructions support (a `uxtb`/`and #0xff`/`strb`/`cmp ..., uxtb` of that
+register; for a register it only passes on, what its own callee does with
+it), not just a caller passing a byte. When it refuses (a hand-written
+definition, a name it can't read: templates, operators, references), submit
+the caller as m/M with the `RENAME` line in the report.
+
+Commit only your own files. The coordinator's `tools/integrate.py` applies
+the sidecar's retypes on the stack with `retype.py --apply --no-check`
+before its full check, and commits the declarations it rewrote with the
+data. A retype whose function has been renamed since (neither the name the
+worker saw nor the new one) stops the integration like a name conflict.

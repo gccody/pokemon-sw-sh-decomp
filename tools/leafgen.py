@@ -492,12 +492,13 @@ def _encode_type(t: str, subs: list[str]) -> str | None:
     return code
 
 
-def encode_params(types: list[str]) -> str | None:
+def encode_params(types: list[str], subs: list[str] | None = None) -> str | None:
     """The Itanium encoding of a parameter list of leafgen's types (builtins,
     struct names, pointers and const), with its substitutions: `(void*,
     void*)` is `PvS_`, `(Unk_1*, const Unk_1*)` `P5Unk_1PKS_`. None for a
-    type it doesn't spell."""
-    subs: list[str] = []
+    type it doesn't spell. `subs`: the candidates the function's own name
+    made first (a member's class: `_ZN5Unk_13fooEPS_` takes an `Unk_1*`)."""
+    subs = list(subs or [])
     codes = [_encode_type(t, subs) for t in types]
     if any(c is None for c in codes):
         return None
@@ -509,6 +510,58 @@ GUARDS = ("cbz", "cbnz", "tbz", "tbnz", *(f"b.{c}" for c in ("eq", "ne", "hi", "
 
 
 CODE_TYPES = {v: k for k, v in CALL_CODES.items()}
+
+
+def decode_params(codes: str, subs: list[str] | None = None) -> list[str] | None:
+    """encode_params backwards: leafgen's spellings of the parameter types an
+    Itanium parameter encoding spells (builtins, source names, `P`, `K` and
+    substitutions), or None for anything else (references, nested or template
+    types, function types...). `subs` as for encode_params."""
+    subs = list(subs or [])
+    if codes == "v":
+        return []
+    pos = 0
+
+    def one() -> str | None:
+        nonlocal pos
+        if pos >= len(codes):
+            return None
+        c = codes[pos]
+        if c in "PK":
+            pos += 1
+            inner = one()
+            if inner is None:
+                return None
+            t = inner + "*" if c == "P" else "const " + inner
+        elif c.isdigit():
+            n = int(re.match(r"\d+", codes[pos:]).group())
+            pos += len(str(n))
+            t = codes[pos:pos + n]
+            pos += n
+            if not _TYPE_NAME.match(t) or len(t) != n:
+                return None
+        elif c == "S":
+            m = re.match(r"S([0-9A-Z]*)_", codes[pos:])
+            if m is None:
+                return None
+            pos += m.end()
+            k = 0 if not m.group(1) else int(m.group(1), 36) + 1
+            return subs[k] if k < len(subs) else None
+        elif c in _BUILTIN or c == "v":
+            pos += 1
+            return "void" if c == "v" else _BUILTIN[c]
+        else:
+            return None
+        subs.append(t)
+        return t
+
+    out = []
+    while pos < len(codes):
+        t = one()
+        if t is None or t == "void":
+            return None
+        out.append(t)
+    return out
 
 
 def placeholder_params(name: str, target: int) -> list[str] | None:
