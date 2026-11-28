@@ -23,15 +23,16 @@ immediates and non-executable sections are left alone. Objects that aren't
 little-endian ELF64 AArch64 relocatables are rejected. Rewriting is idempotent.
 
 Standard library only: the build may run it with a Python that has none of
-tools/requirements.txt.
+tools/requirements.txt. `--run` runs once per object (11,270 for both games),
+so it imports only what it needs: Python's start-up is most of its cost, and
+`subprocess`, `argparse` and `pathlib` would nearly double it. It starts the
+compiler with `os.posix_spawnp` where there is one, `subprocess` elsewhere.
 """
 from __future__ import annotations
 
-import argparse
+import os
 import struct
-import subprocess
 import sys
-from pathlib import Path
 
 BRK_1 = 0xD4200020  # brk #1, upstream LLVM's AArch64 trap
 NX_TRAP = 0xE7FFDEFE  # the trap word in the NX originals (the A32 `trap` encoding)
@@ -128,17 +129,35 @@ def rewrite(data: bytes) -> tuple[bytes, int]:
     return bytes(out), len(offsets)
 
 
-def rewrite_file(path: Path) -> int:
-    data = path.read_bytes()
+def rewrite_file(path: str | os.PathLike) -> int:
+    with open(path, "rb") as f:
+        data = f.read()
     new, n = rewrite(data)
     if n:
-        tmp = path.with_name(path.name + ".traps.tmp")
-        tmp.write_bytes(new)
-        tmp.replace(path)
+        tmp = os.fspath(path) + ".traps.tmp"
+        with open(tmp, "wb") as f:
+            f.write(new)
+        os.replace(tmp, path)
     return n
 
 
-def output_of(cmd: list[str]) -> Path | None:
+def call(cmd: list[str]) -> int:
+    """Run cmd and return its exit code (negative: killed by that signal),
+    like subprocess.call, without importing subprocess where the OS can spawn
+    directly."""
+    if hasattr(os, "posix_spawnp") and hasattr(os, "waitstatus_to_exitcode"):
+        pid = os.posix_spawnp(cmd[0], cmd, os.environ)
+        while True:
+            try:
+                _, status = os.waitpid(pid, 0)
+                return os.waitstatus_to_exitcode(status)
+            except InterruptedError:  # pragma: no cover (PEP 475 retries it already)
+                continue
+    import subprocess
+    return subprocess.call(cmd)
+
+
+def output_of(cmd: list[str]) -> str | None:
     """The object a compiler command line writes (`-o X`, `-oX` or `--output=X`)."""
     out = None
     for i, a in enumerate(cmd):
@@ -148,7 +167,7 @@ def output_of(cmd: list[str]) -> Path | None:
             out = a[2:]
         elif a.startswith("--output="):
             out = a.split("=", 1)[1]
-    return Path(out) if out else None
+    return out or None
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -162,7 +181,7 @@ def main(argv: list[str] | None = None) -> int:
             print("fix_traps.py: --run needs a compiler command", file=sys.stderr)
             return 2
         try:
-            rc = subprocess.call(cmd)
+            rc = call(cmd)
         except OSError as e:
             print(f"fix_traps.py: can't run {cmd[0]}: {e}", file=sys.stderr)
             return 127
@@ -180,6 +199,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"fix_traps.py: {out}: {e}", file=sys.stderr)
             return 1
         return 0
+
+    import argparse
+    from pathlib import Path
 
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("objects", nargs="+", type=Path)
