@@ -45,14 +45,37 @@ jobs:
           - { os: ubuntu-latest, python: "3.13" }
           - { os: windows-latest, python: "3.13" }
     steps:
+      # A pull request's merge commit has its base as first parent, so
+      # fetch-depth 2 is enough to diff the two.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 1 }}
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
           cache: pip
           cache-dependency-path: tools/requirements*.txt
-      - run: pip install -r tools/requirements-dev.txt
-      - run: python -m pytest
+      # The job name is a required check, so the job always runs; the steps
+      # skip what the change can't affect (tools/ci_changes.py): all, only
+      # the tests that read data/ (data), or nothing (src/lib/include only).
+      - name: Which tests this change needs
+        id: changes
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = pull_request ]; then
+            python tools/ci_changes.py --base HEAD^1
+          else
+            python tools/ci_changes.py --all
+          fi
+      - name: Install the test requirements
+        if: steps.changes.outputs.tests != 'none'
+        run: pip install -r tools/requirements-dev.txt
+      - name: Tests
+        if: steps.changes.outputs.tests == 'all'
+        run: python -m pytest
+      - name: Tests (the ones that read data/)
+        if: steps.changes.outputs.tests == 'data'
+        run: python -m pytest tests/test_common.py tests/test_lint.py
 
   format:
     name: clang-format
@@ -76,6 +99,10 @@ jobs:
     # NCURSES6_TINFO_*. When GitHub retires 22.04, run this job in an
     # ubuntu:22.04 (or older) container instead.
     runs-on: ubuntu-22.04
+    env:
+      CCACHE_DIR: /home/runner/.ccache
+      CCACHE_MAXSIZE: 1G
+      CCACHE_COMPILERCHECK: content  # the restored toolchain's mtimes aren't the ones it was cached with
     strategy:
       fail-fast: false
       matrix:
@@ -85,8 +112,8 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - name: Install ninja + libtinfo5
-        run: sudo apt-get update && sudo apt-get install -y ninja-build libtinfo5
+      - name: Install ninja, ccache + libtinfo5
+        run: sudo apt-get update && sudo apt-get install -y ninja-build ccache libtinfo5
       # Libraries built with another clang name it in CMakeLists.txt
       # (pkmn_library_settings(... COMPILER_VERSION <version>)). get_llvm.py
       # lists the versions whose library has sources, so they're named only
@@ -139,11 +166,27 @@ jobs:
           key: protoc-3.0.0-${{ runner.os }}-${{ hashFiles('tools/protos.py') }}
       - name: Generate the protobuf messages
         run: python tools/protos.py generate
+      # ccache only skips compiles whose preprocessed source, flags and
+      # compiler are the same as a cached one, so the objects are the ones a
+      # plain build makes (checked locally: every object byte-identical). The
+      # checkout path is the same on every run, so the debug info's paths
+      # match too. The cache of the newest run of a game is restored, and
+      # this run's is saved under its own key.
+      - name: Cache ccache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-${{ matrix.game }}-${{ runner.os }}-${{ github.sha }}
+          restore-keys: ccache-${{ matrix.game }}-${{ runner.os }}-
       - name: Configure
         shell: bash  # -eo pipefail, so a failing cmake isn't hidden by tee
         run: |
-          cmake --preset ${{ matrix.game }} | tee "$RUNNER_TEMP/configure.log"
+          cmake --preset ${{ matrix.game }} -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            | tee "$RUNNER_TEMP/configure.log"
           grep -Eq 'The CXX compiler identification is Clang 7\.0\.[0-9]+' "$RUNNER_TEMP/configure.log" \
             || { echo "::error::CMake did not pick clang 7.0.x"; exit 1; }
       - name: Build
-        run: cmake --build --preset ${{ matrix.game }}
+        run: |
+          ccache --zero-stats
+          cmake --build --preset ${{ matrix.game }}
+          ccache --show-stats
