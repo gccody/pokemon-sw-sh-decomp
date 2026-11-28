@@ -21,14 +21,17 @@ u32 Unk_66efe0(Unk_66efd0* self, s64 offset, u64** out) {
     return 0;
 }
 
+// NON_MATCHING: in the one-character-a-word copy the original tests `wide`
+// before the first word and checks count at the loop's head; here the first
+// word is tested first (same instructions, other order).
 // 0x710066f050: copies a string (packed eight characters a word, the first
 // in the top byte, or one a word) into count characters, wide ones or not.
-u32 Unk_66f050(void* dst, const u64* src, bool wide, u64 count) {
+u32 Unk_66f050(void* dst, const u64* src, u32 wide, u64 count) {
     s32 i = 0;
     if (src[0] >> 56) {
         s64 word = 0;
         u64 shift = 7;
-        for (; i < count; i++) {
+        while (i < count) {
             if (shift == 7)
                 word = *src++;
             u8 c = word >> (shift * 8);
@@ -38,16 +41,17 @@ u32 Unk_66f050(void* dst, const u64* src, bool wide, u64 count) {
                 static_cast<u32*>(dst)[i] = c;
             else
                 static_cast<char*>(dst)[i] = c;
+            i++;
             shift = (shift - 1) & 7;
         }
     } else {
-        for (; src[i] != 0; i++) {
+        for (u64 c = src[0]; c != 0; c = src[++i]) {
             if (i >= count)
                 break;
             if (wide)
-                static_cast<u32*>(dst)[i] = src[i];
+                static_cast<u32*>(dst)[i] = c;
             else
-                static_cast<char*>(dst)[i] = src[i];
+                static_cast<char*>(dst)[i] = c;
         }
     }
     s32 end = i < count ? i : static_cast<s32>(count) - 1;
@@ -92,7 +96,7 @@ s64 Unk_66f190(Unk_66efd0* self, const Unk_66efd0_Args* args) {
     if (length == 0 || length >= 60)
         return 0;
     char buffer[60];
-    Unk_66f050(buffer, str, false, sizeof(buffer));
+    Unk_66f050(buffer, str, 0, sizeof(buffer));
     return Unk_66efd0_Result(atof(buffer));
 }
 
@@ -122,6 +126,9 @@ s64 Unk_66f380(Unk_66efd0* self, const Unk_66efd0_Args* args) {
     return Unk_66efd0_Result(value - floor(value));
 }
 
+// NON_MATCHING: case 3's select: the original computes ceil before floor
+// and selects on lt (the inverse of ge), so its frint/fcmp order and
+// registers differ.
 // 0x710066f3a0: a double as an integer, rounded down (1), up (2), towards
 // zero (3) or to the nearest.
 s64 Unk_66f3a0(Unk_66efd0* self, const Unk_66efd0_Args* args) {
@@ -132,7 +139,7 @@ s64 Unk_66f3a0(Unk_66efd0* self, const Unk_66efd0_Args* args) {
         case 2:
             return static_cast<s64>(ceil(value));
         case 3:
-            return static_cast<s64>(value < 0.0 ? ceil(value) : floor(value));
+            return static_cast<s64>(value >= 0.0 ? floor(value) : ceil(value));
         default:
             return static_cast<s64>(floor(value + 0.5));
     }
