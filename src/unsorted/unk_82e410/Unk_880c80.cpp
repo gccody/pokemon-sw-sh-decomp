@@ -9,8 +9,6 @@ void Unk_880c80(void* self, u8 pokeId) {
         Unk_819640_call(static_cast<const Unk_819640*>(self), 0x48, 1);
 }
 
-// NON_MATCHING: Unk_880b40 is named (void*, u64, u32), so the u8 is extended
-// (and the registers swap). Matches with Unk_880b40(void*, u8, u32).
 // 0x7100880cd0
 void Unk_880cd0(void* self, u8 pokeId) {
     if (Unk_819600_call(static_cast<const Unk_819600*>(self), 2) == pokeId)
@@ -23,8 +21,6 @@ void Unk_880d50(void* self, u8 pokeId) {
     Unk_8196b0_call(static_cast<const Unk_8196b0*>(self), 0, Unk_81b7e0(flow, pokeId, 3));
 }
 
-// NON_MATCHING: Unk_880b40 is named (void*, u64, u32), so the u8 is extended
-// (and the registers swap). Matches with Unk_880b40(void*, u8, u32).
 // 0x7100880d80
 void Unk_880d80(void* self, u8 pokeId) {
     if (Unk_819600_call(static_cast<const Unk_819600*>(self), 2) == pokeId)
@@ -53,8 +49,6 @@ void Unk_880ee0(void* self, u8 pokeId) {
     Unk_8196b0_call(static_cast<const Unk_8196b0*>(self), 0, Unk_81b7e0(flow, pokeId, 4));
 }
 
-// NON_MATCHING: Unk_880b40 is named (void*, u64, u32), so the u8 is extended
-// (and the registers swap). Matches with Unk_880b40(void*, u8, u32).
 // 0x7100880f10
 void Unk_880f10(void* self, u8 pokeId) {
     if (Unk_819600_call(static_cast<const Unk_819600*>(self), 2) == pokeId)

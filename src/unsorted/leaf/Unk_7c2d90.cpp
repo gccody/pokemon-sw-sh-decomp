@@ -1094,10 +1094,10 @@ struct Unk_7cd220 {
 PKMN_OFFSET_ASSERT(Unk_7cd220, field_88, 0x88);
 PKMN_OFFSET_ASSERT(Unk_7cd220, field_150, 0x150);
 
-void Unk_7f9d10(u32, u8, u32);
+void Unk_7f9d10(u32, u8, u8);
 
 // 0x71007cd220
-void Unk_7cd220_call(const Unk_7cd220* self, u32 value) {
+void Unk_7cd220_call(const Unk_7cd220* self, u8 value) {
     Unk_7f9d10(self->field_150, self->field_88->field_3a5, value);
 }
 

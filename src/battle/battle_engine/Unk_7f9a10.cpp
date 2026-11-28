@@ -59,7 +59,7 @@ u8 Unk_7f9c40(u32 rule) {
 }
 
 // 0x71007f9d10
-u8 Unk_7f9d10(u32 rule, u8 arg1, u32 position) {
+u8 Unk_7f9d10(u32 rule, u8 arg1, u8 position) {
     return Unk_7fa500(rule, Unk_7f9ac0(rule, arg1, position));
 }
 
