@@ -8,6 +8,11 @@
 // over the view's layout, with placeholder names: rename them once the class
 // is known. The positions the slots take and give are 16-byte vectors whose
 // first two lanes are a part's 2D position.
+//
+// The view is on gflib3's Unk_239a4c0 (src/gflib3/Unk_239a4c0.h): its
+// constructor (0x71014b2b20) and destructors (0x71014b3060, 0x71014b30b0 and
+// the +0x48 thunks 0x71014b3100, 0x71014b3150) need the class declared with
+// its bases, and drop the parts' reference at +0x58. They aren't written yet.
 #include <arm_neon.h>
 #include <cstring>
 
@@ -129,33 +134,37 @@ void Unk_14b2d70(Unk_14b2b20_View* self, const u64& key, const u64& other) {
     Unk_14ab670(self->field_58, key, other);
 }
 
-// 0x71014b2db0: moves the part with `key` to the position of the first
-// visible "N_cursor" part from the one with `from` on (or of that one).
-void Unk_14b2db0(Unk_14b2b20_View* self, const u64& key, const u64& from) {
-    Unk_14b2b20_Part* part = Unk_14aad40(self->field_58, from);
-    for (; part != nullptr; part = Unk_17b9140(part)) {
-        if (strstr(part->field_b0, "N_cursor") != nullptr && (part->field_58 & 1))
-            break;
-    }
-    if (part == nullptr)
-        part = Unk_14aad40(self->field_58, from);
+// Moves the part with `key` to `part`'s position (the sum of the offsets up
+// its chain).
+inline void Unk_14b2b20_MoveTo(Unk_14b2b20_View* self, const u64& key, Unk_14b2b20_Part* part) {
     float32x4_t pos =
         Unk_14b2b20_ToVector(Unk_14aae90(reinterpret_cast<const Unk_14aae90_Node*>(part)));
     Unk_14b2b20_SetPosition(self, key, pos);
 }
 
+// 0x71014b2db0: moves the part with `key` to the first visible "N_cursor"
+// part from the one with `from` on, or to that one when there's none.
+void Unk_14b2db0(Unk_14b2b20_View* self, const u64& key, const u64& from) {
+    for (Unk_14b2b20_Part* part = Unk_14aad40(self->field_58, from); part != nullptr;
+         part = Unk_17b9140(part)) {
+        if (strstr(part->field_b0, "N_cursor") != nullptr && (part->field_58 & 1)) {
+            Unk_14b2b20_MoveTo(self, key, part);
+            return;
+        }
+    }
+    Unk_14b2b20_MoveTo(self, key, Unk_14aad40(self->field_58, from));
+}
+
 // 0x71014b2e60: the same with the first "N_context" part.
 void Unk_14b2e60(Unk_14b2b20_View* self, const u64& key, const u64& from) {
-    Unk_14b2b20_Part* part = Unk_14aad40(self->field_58, from);
-    for (; part != nullptr; part = Unk_17b9140(part)) {
-        if (strstr(part->field_b0, "N_context") != nullptr)
-            break;
+    for (Unk_14b2b20_Part* part = Unk_14aad40(self->field_58, from); part != nullptr;
+         part = Unk_17b9140(part)) {
+        if (strstr(part->field_b0, "N_context") != nullptr) {
+            Unk_14b2b20_MoveTo(self, key, part);
+            return;
+        }
     }
-    if (part == nullptr)
-        part = Unk_14aad40(self->field_58, from);
-    float32x4_t pos =
-        Unk_14b2b20_ToVector(Unk_14aae90(reinterpret_cast<const Unk_14aae90_Node*>(part)));
-    Unk_14b2b20_SetPosition(self, key, pos);
+    Unk_14b2b20_MoveTo(self, key, Unk_14aad40(self->field_58, from));
 }
 
 // 0x71014b2f10
