@@ -1,9 +1,9 @@
 // Scope: common
-// Hands a weak handle's object, locked as Unk_23cf990, a callback that sets
-// (state 3) or clears a flag of what it's given. The callbacks are
-// captureless lambdas in libc++ std::functions (vtables 0x71023d8b50 and
-// 0x71023d8b98: no target slots without RTTI). Placeholder names: rename
-// once the classes are known.
+// Hands a weak handle's object, locked as Unk_23cf990, a callback that
+// calls Unk_619060 on what it's given with `true` and a mask of 0x10 (in
+// state 3) or 0. The callbacks are captureless lambdas in libc++
+// std::functions (vtables 0x71023d8b50 and 0x71023d8b98: no target slots
+// without RTTI). Placeholder names: rename once the classes are known.
 #include <functional>
 
 #include <types.h>
