@@ -20,24 +20,36 @@ struct Unk_23f41d0 {
 };
 
 // The type 0x71027e0580.
-struct Unk_23f4318 {
+// Unk_23f4318 (unsorted/Unk_23f43c8.h), as far as this file needs it: its destructor is out of
+// line (its D2, which the D0s and thunks of the classes on it tail-call).
+class Unk_23f4318 : public Unk_239a418 {
+public:
     static const Unk_239a418_Type* Unk_GetType() {
         static Unk_239a418_Type type(Unk_239a418_GetType());
         return &type;
     }
+
+    ~Unk_23f4318() override;
+    const Unk_239a418_Type* vf_type() override;
 };
 
 // vtable 0x71024471c8: vf_type and its thunks 0x7101511c50 (+0x48), 0x7101511c60 (+0x50).
 // Its getter is too big to be inlined: vf_type and the thunks tail-call it (0x7101513650).
-// Its base and its other functions aren't written here.
-class Unk_24471b8 : public Unk_239a418 {
+// vf_type is its key function, so its vtable is emitted here, with the D0 and the
+// destructor thunks below: its destructor is implicit, and they tail-call its
+// base's D2 (out of line).
+// 0x7101511c10
+// 0x7101511c30
+// 0x7101511c40
+// 0x7101511c70
+// 0x7101511c80
+class Unk_24471b8 : public Unk_23f4318 {
 public:
     static const Unk_239a418_Type* Unk_GetType() {
         static Unk_239a418_Type type(Unk_23f4318::Unk_GetType());
         return &type;
     }
 
-    ~Unk_24471b8() override;
     const Unk_239a418_Type* vf_type() override;
 };
 
