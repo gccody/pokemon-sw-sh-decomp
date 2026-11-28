@@ -2393,6 +2393,35 @@ def render_file(entries: list[tuple[int, str, str]]) -> str:
 REACH = ("call", "none", "data")
 
 
+def code_references(img: bytes, funcs: list[tuple[int, int]]) -> tuple[dict[int, set[int]], dict[int, set[int]]]:
+    """(function -> the functions whose code takes its address: adrp+add/ldr or
+    adr of its start, function -> the functions that call it: B/BL), over
+    `funcs` ((start, size) pairs)."""
+    from nx.refs import decode, is_b_bl
+
+    starts = {s for s, _ in funcs}
+    takers: dict[int, set[int]] = {}
+    callers: dict[int, set[int]] = {}
+    for s, n in funcs:
+        for _, w, _, t in decode(img, s, n):
+            if t is not None and t != s and t in starts:
+                (callers if is_b_bl(w) else takers).setdefault(t, set()).add(s)
+    return takers, callers
+
+
+def segment_local(addr: int, takers: set[int], callers: set[int], in_data: set[int], seg_of) -> bool:
+    """Whether a function is local to its segment (tools/segments.py): code
+    takes its address, only code of its own segment does, no data slot holds
+    it, and nothing outside the segment calls it. That's a TU's own callable
+    (a lambda's or a type-erased functor's operations, a callback it passes
+    on), which belongs in the hand-written file of that TU: a leaf copy of it
+    has to go once that file is written."""
+    if not takers or addr in in_data:
+        return False
+    seg = seg_of(addr)
+    return all(seg_of(x) == seg for x in (*takers, *callers))
+
+
 def candidates(args) -> list[tuple[int, bytes]]:
     """Common, unnamed, U functions in the area, reached the ways `--reach` lists
     (funcs.reference_kind; default only through B/BL), that end in ret with no
@@ -2402,7 +2431,8 @@ def candidates(args) -> list[tuple[int, bytes]]:
     operations of type-erased callables, which their caller puts in a table on
     its stack) or that nothing references; `data` the ones in a function-pointer
     table that isn't a vtable (no-op callbacks in static records). A function
-    in a vtable slot is never a candidate: vtables.py writes those, as members."""
+    in a vtable slot is never a candidate: vtables.py writes those, as members.
+    Nor is one local to its segment (segment_local): its TU's file gets it."""
     import funcs as F
     from common import AreaMap, area_names, in_area, load_module, nso_path, read_areas_csv, read_functions_csv
     from nx.module import DynInfo
@@ -2440,6 +2470,17 @@ def candidates(args) -> list[tuple[int, bytes]]:
 
     DATA_AT = _data_at
     in_vtable = {t for v in vts for t in v.slots if isinstance(t, int)}
+    import bisect
+
+    takers, callers = code_references(img, mod["functions"])
+    inits = set(segments.init_array_targets(segments.dynamic_tags(img, nso.mod0.dynamic), dyn.slots))
+    starts = [s for s, _ in mod["functions"]]
+    seg_starts = sorted({starts[i + 1] for i, s in enumerate(starts[:-1]) if s in inits} | {0})
+
+    def seg_of(a: int) -> int:
+        return seg_starts[bisect.bisect_right(seg_starts, a) - 1]
+
+    local = 0
     out = []
     rows = read_functions_csv()
     NAMED.update({f.sword + BASE: f.name for f in rows if f.name and f.sword is not None})
@@ -2455,7 +2496,12 @@ def candidates(args) -> list[tuple[int, bytes]]:
             continue
         if F.reference_kind(a, called, in_data) not in reach or a in in_vtable:
             continue
+        if segment_local(a, takers.get(a, set()), callers.get(a, set()), in_data, seg_of):
+            local += 1
+            continue
         out.append((a + BASE, img[a:a + size]))
+    if local:
+        print(f"{local} functions local to their segment left out (segment_local)", file=sys.stderr)
     return out
 
 
