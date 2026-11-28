@@ -18,8 +18,10 @@ uncommitted changes to tracked files. Steps:
    functions.csv, the sidecar carries what belongs there.
 3. Apply the sidecar (the unit worktree's `.swarm/sidecar.json` unless
    `--sidecar` names one): names through `tools/funcs.py name --from-file`,
-   then m/M statuses through `tools/funcs.py status`, for functions that are
-   still U.
+   retypes (`units.py record retype`) through `tools/retype.py --from-file
+   --apply --no-check`, which also rewrites the declarations the stack has of
+   them (committed with the data), then m/M statuses through `tools/funcs.py
+   status`, for functions that are still U.
 4. `tools/check.py --update --record-data` (it builds both games), so every
    status comes from check.py. A function that was O and isn't any more
    (REGRESSION or STALE) stops before anything is committed.
@@ -143,6 +145,20 @@ def name_conflicts(names: list[dict], rows: list[Function]) -> list[str]:
     return out
 
 
+def retype_conflicts(retypes: list[dict], rows: list[Function]) -> list[str]:
+    """The sidecar's retypes whose row has neither the name the worker
+    retyped nor the new one (someone renamed it since)."""
+    by_sword = {f"0x{r.sword + BASE:x}": r for r in rows if r.sword is not None}
+    out = []
+    for t in retypes:
+        r = by_sword.get(t["addr"].lower())
+        if r is None:
+            out.append(f"{t['addr']}: retyped, but it isn't a Sword function start")
+        elif r.name not in (t.get("old"), t["name"]):
+            out.append(f"{t['addr']}: sidecar retypes {t.get('old')} -> {t['name']}, functions.csv {r.name}")
+    return out
+
+
 def check_lines(log: str, funcs: list[Function]) -> list[str]:
     """check.py's result lines, with their detail lines, for the given functions
     (found by the `[sword:0x..., shield:0x...]` addresses it prints)."""
@@ -210,6 +226,7 @@ def main(argv: list[str] | None = None) -> int:
     unit = sidecar.get("unit") or args.branch.rsplit("/", 1)[-1]
 
     conflicts = name_conflicts(sidecar.get("names", []), read_functions_csv())
+    conflicts += retype_conflicts(sidecar.get("retypes", []), read_functions_csv())
     if conflicts:
         raise SystemExit("names another unit gave first (make the unit's declarations follow them, or "
                          "rename together with their callers):\n  " + "\n  ".join(conflicts))
@@ -248,6 +265,15 @@ def main(argv: list[str] | None = None) -> int:
         Path(tf.name).unlink()
         if code:
             raise SystemExit(f"funcs.py name failed:\n{out}\n(back: git reset --hard {orig})")
+    retyped: list[str] = []
+    if sidecar.get("retypes"):
+        with tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False, encoding="utf-8") as tf:
+            tf.write("Address,Name\n" + "".join(f"{t['addr']},{t['name']}\n" for t in sidecar["retypes"]))
+        code, out = run([py, "tools/retype.py", "--from-file", tf.name, "--apply", "--no-check"])
+        Path(tf.name).unlink()
+        if code:
+            raise SystemExit(f"retype.py failed:\n{out}\n(back: git reset --hard {orig})")
+        retyped = [p for p in git("diff", "--name-only").splitlines() if p not in DATA_FILES]
     rows_now = {f"0x{r.sword + BASE:x}": r for r in read_functions_csv() if r.sword is not None}
     for s in sidecar.get("statuses", []):
         r = rows_now.get(s["addr"].lower())
@@ -294,12 +320,15 @@ def main(argv: list[str] | None = None) -> int:
                 raise SystemExit(f"{' '.join(st[:3])} failed:\n{o[-3000:]}\n(back: git reset --hard {orig})")
 
     # 6. commit
-    git("add", *DATA_FILES)
+    git("add", *DATA_FILES, *retyped)
     lines = check_lines(out, summary.matched + summary.nonmatching + summary.skipped)
     if git("diff", "--cached", "--name-only"):
         subject = (f"data: unit {unit}: {len(summary.matched)} functions match"
                    + (f", {len(summary.nonmatching)} m/M" if summary.nonmatching else ""))
         body = [summary.text(), "", "Statuses from tools/check.py --update; names from the unit's sidecar."]
+        if retyped:
+            body += ["", f"Retyped {len(sidecar['retypes'])} callees (tools/retype.py), rewriting "
+                     + ", ".join(retyped) + "."]
         msg = subject + "\n\n" + "\n".join(body) + "\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\n"
         subprocess.run(["git", "commit", "-q", "-F", "-"], cwd=ROOT, input=msg, text=True, check=True)
     totals = next((ln for ln in reversed(out.splitlines()) if re.match(r"\d+ matching, \d+ not matching", ln)), "")

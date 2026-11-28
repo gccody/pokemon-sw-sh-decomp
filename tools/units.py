@@ -7,6 +7,7 @@
     python tools/units.py show u7c3a40             # one unit: its file, its functions, their callees
     python tools/units.py record name 0x71007c3a40 _ZN4pkmn3FooEv     # name it here + in the sidecar
     python tools/units.py record status 0x71007c3a40 M "loop is unrolled differently"
+    python tools/units.py record retype 0x71007cd220 _Z15Unk_7cd220_callPK10Unk_7cd220h   # tools/retype.py here
     python tools/units.py record report "matched 9; the struct at x0 is Unk_7c3a40 (0x48 bytes)"
     python tools/units.py sidecar                  # print this checkout's sidecar
 
@@ -45,7 +46,9 @@ statuses with their NON_MATCHING reasons, plus a free-form report.
 `record name` and `record status` also apply the change to this checkout's
 data/functions.csv through tools/funcs.py, so check.py works here, but
 workers never commit that file: tools/integrate.py re-applies the sidecar on
-top of the stack, where check.py --update decides the statuses.
+top of the stack, where check.py --update decides the statuses. `record
+retype` (a callee's parameter types) runs tools/retype.py --apply here and
+records it only if that succeeds; integrate.py runs it again on the stack.
 """
 from __future__ import annotations
 
@@ -345,6 +348,7 @@ def read_sidecar(path: Path = SIDECAR) -> dict:
     data.setdefault("base", "")
     data.setdefault("names", [])
     data.setdefault("statuses", [])
+    data.setdefault("retypes", [])
     data.setdefault("report", "")
     return data
 
@@ -357,6 +361,12 @@ def write_sidecar(data: dict, path: Path = SIDECAR) -> None:
 def sidecar_name(data: dict, addr: str, name: str, evidence: str = "") -> None:
     data["names"] = [n for n in data["names"] if n["addr"] != addr]
     data["names"].append({"addr": addr, "name": name, "evidence": evidence})
+
+
+def sidecar_retype(data: dict, addr: str, name: str, old: str) -> None:
+    data.setdefault("retypes", [])
+    data["retypes"] = [r for r in data["retypes"] if r["addr"] != addr]
+    data["retypes"].append({"addr": addr, "name": name, "old": old})
 
 
 def sidecar_status(data: dict, addr: str, status: str, reason: str) -> None:
@@ -507,6 +517,16 @@ def cmd_record(args) -> int:
         addr = norm_addr(args.addr)
         _funcs_py("name", addr, args.value)
         sidecar_name(data, addr, args.value, args.evidence or "")
+    elif args.what == "retype":
+        addr = norm_addr(args.addr)
+        rows = {r.sword: r for r in read_functions_csv() if r.sword is not None}
+        old = rows.get(int(addr, 16) - BASE)
+        if old is None or not old.name:
+            raise SystemExit(f"{addr}: no named function starts there")
+        r = subprocess.run([sys.executable, str(ROOT / "tools" / "retype.py"), addr, args.value, "--apply"])
+        if r.returncode:
+            raise SystemExit("retype.py didn't apply it: nothing recorded")
+        sidecar_retype(data, addr, args.value, old.name)
     elif args.what == "status":
         addr = norm_addr(args.addr)
         sidecar_status(data, addr, args.value, args.reason or "")
@@ -536,15 +556,15 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("show", help="one unit")
     p.add_argument("unit")
     p.add_argument("--mm", action="store_true")
-    p = sub.add_parser("record", help="record a name, an m/M status or the report in the sidecar")
-    p.add_argument("what", choices=("name", "status", "report"))
+    p = sub.add_parser("record", help="record a name, a retype, an m/M status or the report in the sidecar")
+    p.add_argument("what", choices=("name", "retype", "status", "report"))
     p.add_argument("addr", help="the function's address (report: the text, or @file)")
-    p.add_argument("value", nargs="?", help="name: the mangled name; status: m or M")
+    p.add_argument("value", nargs="?", help="name/retype: the (new) mangled name; status: m or M")
     p.add_argument("reason", nargs="?", help="status: the NON_MATCHING reason")
     p.add_argument("--evidence", help="name: what shows the name is right")
     sub.add_parser("sidecar", help="print this checkout's sidecar")
     args = ap.parse_args(argv)
-    if args.cmd == "record" and args.what in ("name", "status") and not args.value:
+    if args.cmd == "record" and args.what in ("name", "retype", "status") and not args.value:
         ap.error(f"record {args.what} needs a value")
     return {"list": cmd_list, "show": cmd_show, "record": cmd_record, "sidecar": cmd_sidecar}[args.cmd](args)
 
