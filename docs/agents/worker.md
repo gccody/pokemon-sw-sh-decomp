@@ -88,8 +88,8 @@ You may also:
 - create `Unk_<addr>.cpp` (`addr` = one of your functions, as in the other
   file names) in the same directory, when a function needs a TU of its own.
   That's the case when it calls a function defined in its file: clang would
-  inline the callee, and the original calls it. `context.py` flags this with
-  `!`.
+  inline the callee, and the original calls it. `units.py show` and
+  `context.py` flag this with `!`.
 
 Don't edit other files, not even shared headers. If you need a declaration,
 write it in your own file. Never touch generated directories

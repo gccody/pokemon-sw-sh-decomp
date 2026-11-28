@@ -19,6 +19,18 @@ status, so a unit's ID (`u` + the Sword offset of its first function) and its
 extent stay the same as functions get matched. A unit is listed while it still
 has a function of the statuses asked for (U, or m/M with --mm).
 
+No cut goes through a *tied block* (tied_blocks): functions that have to be
+in one file, a TU's local call graph (a call to a helper only the segment
+calls, from nearby) and a class (the functions that address its vtable group,
+and the slot functions it owns). Such a block can make a part or a unit
+larger than the limits, up to GROUP_CAP_FUNCS functions and GROUP_CAP_BYTES
+bytes. A block above the cap is tied again with fewer ties (TIE_LEVELS); what
+is still above it is cut as before, and `show` says so. Only the stretches
+that a block crosses are cut again, so the other units keep their IDs.
+`show` also lists, per function, its callees in the unit: the original calls
+them out of line, so a small one in the same file needs one of the two in an
+`Unk_<addr>.cpp` of its own (clang would inline it).
+
 Every unit gets one source file, and no two units share one:
 
 - a hand-written file that already holds functions of the unit (found by the
@@ -60,6 +72,7 @@ import subprocess
 import sys
 from collections import Counter
 from dataclasses import dataclass, field
+from functools import cached_property
 from pathlib import Path, PurePosixPath
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -69,6 +82,13 @@ MAX_FUNCS = 16        # per part (one source file)
 MAX_BYTES = 2048
 UNIT_FUNCS = 32       # per unit (consecutive parts of one area)
 UNIT_BYTES = 4096
+GROUP_CAP_FUNCS = 6 * UNIT_FUNCS   # a tied block (tied_blocks) larger than this is cut as before
+GROUP_CAP_BYTES = 6 * UNIT_BYTES
+NEAR_CALL = 8                      # a call ties caller and callee up to this many functions apart
+INLINE_BYTES = 128                 # `show`: a same-file callee up to this size, clang would likely inline
+# A tied block above the cap is tied again with fewer ties (tied_blocks), level by level; what's
+# still above the cap after the last level is cut as if it weren't tied.
+TIE_LEVELS = ({}, {"members": False}, {"classes": False, "near": 4}, {"classes": False, "near": 1})
 CALL_COST = 8
 UNKNOWN_COST = 48
 DIFFICULTY_STEP = 16
@@ -100,23 +120,194 @@ def address_comments(text: str) -> list[int]:
     return [int(m.group(1), 16) - BASE for m in ADDR_COMMENT.finditer(text)]
 
 
-def chunk(funcs: list[Function], max_funcs: int = MAX_FUNCS, max_bytes: int = MAX_BYTES) -> list[list[Function]]:
-    """Cut a run of consecutive functions (sorted by Sword address) into chunks
-    of at most max_funcs functions and max_bytes bytes. A function larger than
-    max_bytes is a chunk of its own."""
+def _bytes(funcs: list[Function]) -> int:
+    return sum(f.sword_size or 0 for f in funcs)
+
+
+def pack(atoms: list[list[Function]], max_funcs: int = MAX_FUNCS, max_bytes: int = MAX_BYTES) -> list[list[Function]]:
+    """Cut a run of atoms (runs of consecutive functions that stay together)
+    into chunks of at most max_funcs functions and max_bytes bytes. An atom
+    larger than that is a chunk of its own."""
     out: list[list[Function]] = []
     cur: list[Function] = []
     size = 0
-    for f in funcs:
-        n = f.sword_size or 0
-        if cur and (len(cur) >= max_funcs or size + n > max_bytes):
+    for atom in atoms:
+        n = _bytes(atom)
+        if cur and (len(cur) + len(atom) > max_funcs or size + n > max_bytes):
             out.append(cur)
             cur, size = [], 0
-        cur.append(f)
+        cur.extend(atom)
         size += n
     if cur:
         out.append(cur)
     return out
+
+
+def chunk(funcs: list[Function], max_funcs: int = MAX_FUNCS, max_bytes: int = MAX_BYTES) -> list[list[Function]]:
+    """Cut a run of consecutive functions (sorted by Sword address) into chunks
+    of at most max_funcs functions and max_bytes bytes. A function larger than
+    max_bytes is a chunk of its own."""
+    return pack([[f] for f in funcs], max_funcs, max_bytes)
+
+
+@dataclass
+class Links:
+    """What ties functions to one file, from the executable (load_links)."""
+    calls: dict[int, set[int]] = field(default_factory=dict)    # function -> the functions it calls (B/BL)
+    vtables: dict[int, set[int]] = field(default_factory=dict)  # function -> the vtable groups it addresses
+    members: dict[int, set[int]] = field(default_factory=dict)  # vtable group -> the slot functions it owns
+    taken: set[int] = field(default_factory=set)  # functions whose address code or data takes (not B/BL)
+
+    @cached_property
+    def callers(self) -> dict[int, set[int]]:
+        out: dict[int, set[int]] = {}
+        for f, ts in self.calls.items():
+            for t in ts:
+                out.setdefault(t, set()).add(f)
+        return out
+
+    @cached_property
+    def referrers(self) -> dict[int, set[int]]:
+        out: dict[int, set[int]] = {}
+        for f, gs in self.vtables.items():
+            for g in gs:
+                out.setdefault(g, set()).add(f)
+        return out
+
+
+def tied_blocks(run: list[Function], links: Links, near: int = NEAR_CALL, classes: bool = True,
+                members: bool = True, bounds: tuple[int, int] | None = None) -> list[tuple[int, int]]:
+    """[lo, hi] index ranges of `run` (the functions of one segment and area,
+    in address order) that no cut may go through: the span of each group of
+    functions tied together, with overlapping spans merged. Ties:
+
+    - a call (B/BL) to a function of the run that only the run calls, from at
+      most `near` functions away: a TU's own helper (clang emits a static
+      function next to its first caller);
+    - the functions that address one vtable group, when all of them are in
+      the run (a class's constructors and destructors, and whatever else sets
+      its vptr: the class's TU), together with the slot functions of the
+      group that it owns (tools/vtables.py owners: the class's members).
+
+    Calls from far away, or to a function other code calls too, and vtables
+    that code outside the run addresses as well (a base class whose inline
+    destructor every derived class's has), don't tie: they're what chains
+    separate TUs of a segment together.
+
+    `classes` and `members` turn the vtable ties (all, or the slot functions)
+    off; `bounds` ([start, end) offsets, default the run's) is what "the run"
+    means for "only the run calls it", when `run` is part of a longer one."""
+    last = run[-1]
+    lo_a, hi_a = bounds or (run[0].sword, last.sword + (last.sword_size or 0))
+    idx = {f.sword: i for i, f in enumerate(run)}
+    parent = list(range(len(run)))
+
+    def find(i: int) -> int:
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    def union(i: int, j: int) -> None:
+        a, b = find(i), find(j)
+        if a != b:
+            parent[max(a, b)] = min(a, b)
+
+    def local(fs) -> bool:
+        return all(lo_a <= x < hi_a for x in fs)
+
+    first_of: dict[int, int] = {}
+    for i, f in enumerate(run):
+        for t in links.calls.get(f.sword, ()):
+            j = idx.get(t)
+            if j is not None and abs(i - j) <= near and local(links.callers.get(t, ())):
+                union(i, j)
+        for g in links.vtables.get(f.sword, ()) if classes else ():
+            if g not in first_of:
+                first_of[g] = i if local(links.referrers[g]) else -1
+                if first_of[g] >= 0 and members:
+                    for x in links.members.get(g, ()):
+                        j = idx.get(x)
+                        if j is not None:
+                            union(i, j)
+            if first_of[g] >= 0:
+                union(i, first_of[g])
+    span: dict[int, list[int]] = {}
+    for i in range(len(run)):
+        lo_hi = span.setdefault(find(i), [i, i])
+        lo_hi[1] = i
+    out: list[tuple[int, int]] = []
+    for lo, hi in sorted(tuple(v) for v in span.values() if v[0] < v[1]):
+        if out and lo <= out[-1][1]:
+            out[-1] = (out[-1][0], max(out[-1][1], hi))
+        else:
+            out.append((lo, hi))
+    return out
+
+
+def tie_run(run: list[Function], links: Links, cap_funcs: int | None = None,
+             cap_bytes: int | None = None) -> tuple[list[tuple[int, int]], list[tuple[int, int]]]:
+    """The tied blocks of a run ([lo, hi] indexes, in order) within the cap,
+    and the (start, end) offsets of the blocks above it with every tie (a
+    region where some ties get cut: crossing_ties says which). A block above
+    the cap at one level is tied again, inside itself, at the next
+    (TIE_LEVELS). The caps default to GROUP_CAP_FUNCS/GROUP_CAP_BYTES."""
+    cap_funcs = cap_funcs or GROUP_CAP_FUNCS
+    cap_bytes = cap_bytes or GROUP_CAP_BYTES
+    keep: list[tuple[int, int]] = []
+    over: list[tuple[int, int]] = []
+    last = run[-1]
+    bounds = (run[0].sword, last.sword + (last.sword_size or 0))
+
+    def split(lo: int, hi: int, level: int) -> None:
+        sub = run[lo:hi + 1]
+        for a, b in tied_blocks(sub, links, bounds=bounds, **TIE_LEVELS[level]):
+            if b - a + 1 <= cap_funcs and _bytes(sub[a:b + 1]) <= cap_bytes:
+                keep.append((lo + a, lo + b))
+                continue
+            if level == 0:
+                end = sub[b]
+                over.append((sub[a].sword, end.sword + (end.sword_size or 0)))
+            if level + 1 < len(TIE_LEVELS):
+                split(lo + a, lo + b, level + 1)
+
+    split(0, len(run) - 1, 0)
+    return sorted(keep), over
+
+
+def cut_run(run: list[Function], links: Links | None, max_funcs: int = MAX_FUNCS, max_bytes: int = MAX_BYTES,
+            cap_funcs: int | None = None, cap_bytes: int | None = None
+            ) -> tuple[list[list[Function]], list[tuple[int, int]]]:
+    """The parts of a run (tie_run), and the (start, end) offsets of the tied
+    blocks above the cap, which are cut as if they weren't tied.
+
+    The cuts are chunk()'s, minus the ones inside a tied block; only a stretch
+    between two cuts that survive is cut again (with the blocks as atoms), so
+    the parts elsewhere, and their starts, stay what chunk() gives."""
+    old = chunk(run, max_funcs, max_bytes)
+    if links is None:
+        return old, []
+    keep, over = tie_run(run, links, cap_funcs, cap_bytes)
+    if not keep:
+        return old, over
+    inside: set[int] = set()
+    for lo, hi in keep:
+        inside.update(range(lo + 1, hi + 1))
+    cuts, i = set(), 0
+    for c in old:
+        if i not in inside:
+            cuts.add(i)
+        i += len(c)
+    block_at = dict(keep)
+    stretches: list[list[list[Function]]] = []
+    i = 0
+    while i < len(run):
+        hi = block_at.get(i, i)
+        if i in cuts or not stretches:
+            stretches.append([])
+        stretches[-1].append(run[i:hi + 1])
+        i = hi + 1
+    return [p for st in stretches for p in pack(st, max_funcs, max_bytes)], over
 
 
 def unit_id(start: int) -> str:
@@ -153,6 +344,7 @@ class Unit:
     score: int = 0
     work: list[Function] = field(default_factory=list)   # the functions of the statuses asked for
     calls: dict[int, list[int]] = field(default_factory=dict)  # function -> its callees (Sword offsets)
+    loose: list[tuple[int, int]] = field(default_factory=list)  # tied blocks above the cap (tie_run)
 
     @property
     def funcs(self) -> list[Function]:
@@ -291,17 +483,35 @@ def group_parts(parts: list[Part], max_funcs: int = UNIT_FUNCS, max_bytes: int =
     return out
 
 
+def group_stable(parts: list[Part], old_parts: list[Part], max_funcs: int = UNIT_FUNCS,
+                 max_bytes: int = UNIT_BYTES) -> list[list[Part]]:
+    """group_parts(parts), keeping the units that group_parts(old_parts) gives
+    where they didn't change: `parts` are old_parts with some of them merged
+    or re-cut (cut_run), so only a stretch between two old unit starts that
+    are still part starts is grouped again."""
+    old_starts = {g[0].start for g in group_parts(old_parts, max_funcs, max_bytes)}
+    stretches: list[list[Part]] = []
+    for p in parts:
+        if not stretches or p.start in old_starts:
+            stretches.append([])
+        stretches[-1].append(p)
+    return [g for st in stretches for g in group_parts(st, max_funcs, max_bytes)]
+
+
 def build_units(rows: list[Function], areas, seg_bounds: list[tuple[int, int]],
                 index: dict[int, str], statuses: str = "U", exists=lambda p: False,
                 calls_of=lambda f: [], unit_funcs: int = UNIT_FUNCS, unit_bytes: int = UNIT_BYTES,
-                blocked=lambda f: False) -> list[Unit]:
+                blocked=lambda f: False, links: Links | None = None) -> list[Unit]:
     """Every unit of the executable (the ones without work too), in address
-    order. `calls_of(f)` gives the Sword offsets function f calls."""
+    order. `calls_of(f)` gives the Sword offsets function f calls. With
+    `links`, no part or unit splits a tied block (cut_run)."""
     amap = AreaMap(areas, "sword")
     kinds = {a.name: a.kind for a in areas}
     funcs = sorted((r for r in rows if r.sword is not None), key=lambda r: r.sword)
     starts = [f.sword for f in funcs]
     parts: list[Part] = []
+    old_parts: list[Part] = []
+    loose: list[tuple[int, int]] = []
     for a, b in seg_bounds:
         run = funcs[bisect.bisect_left(starts, a):bisect.bisect_left(starts, b)]
         # cut at area boundaries too
@@ -314,12 +524,16 @@ def build_units(rows: list[Function], areas, seg_bounds: list[tuple[int, int]],
         for area, g in groups:
             if area is None or any(in_area(area, x) for x in EXCLUDED_AREAS):
                 continue
-            parts.extend(Part(c, (a, b), area) for c in chunk(g))
+            cut, over = cut_run(g, links)
+            parts.extend(Part(c, (a, b), area) for c in cut)
+            old_parts.extend(Part(c, (a, b), area) for c in chunk(g))
+            loose.extend(over)
     assign_files(parts, index, area_dirs(index, amap, areas), amap, exists)
     by_addr = {f.sword: f for f in funcs}
     units = []
-    for g in group_parts(parts, unit_funcs, unit_bytes):
+    for g in group_stable(parts, old_parts, unit_funcs, unit_bytes):
         u = Unit(unit_id(g[0].start), g[0].area, kinds.get(g[0].area, ""), g)
+        u.loose = [(lo, hi) for lo, hi in loose if lo < u.end and u.start < hi]
         u.work = [f for f in u.funcs if f.status in statuses]
         for f in u.work:
             u.calls[f.sword] = [t for t in calls_of(f) if t != f.sword]
@@ -446,13 +660,68 @@ def blocked_fn(img: bytes):
     return blocked
 
 
-def load_units(statuses: str = "U") -> tuple[list[Unit], list[Function]]:
+def exe_links(img: bytes, funcs: list[tuple[int, int]], slots: dict[int, int | str], vtables) -> Links:
+    """Links of every function in `funcs` ((start, size), relative): its B/BL
+    targets that are function starts, the vtable groups (tools/vtables.py) it
+    addresses, directly (adrp+add/ldr of the vtable or its address point) or
+    through a GOT slot, the slot functions each vtable group owns, and which
+    functions have their address taken (by code, or by a relocated slot in the
+    data: vtables, function tables)."""
+    from nx.refs import decode, is_b_bl
+
+    starts = {s for s, _ in funcs}
+    group = {}
+    for v in vtables:
+        group[v.addr] = group[v.start] = v.group
+    got = {s: group[t] for s, t in slots.items() if isinstance(t, int) and t in group}
+    import vtables as V
+
+    links = Links(taken={t for t in slots.values() if isinstance(t, int) and t in starts})
+    for f, (vt, _) in V.owners(vtables).items():
+        links.members.setdefault(group[vt], set()).add(f)
+    for s, n in funcs:
+        calls: set[int] = set()
+        vts: set[int] = set()
+        for _, w, _, t in decode(img, s, n):
+            if t is None:
+                continue
+            if is_b_bl(w):
+                if t in starts and t != s:
+                    calls.add(t)
+            elif (g := group.get(t, got.get(t))) is not None:
+                vts.add(g)
+            elif t in starts and t != s:
+                links.taken.add(t)
+        if calls:
+            links.calls[s] = calls
+        if vts:
+            links.vtables[s] = vts
+    return links
+
+
+def load_links(game: str = "sword") -> Links:
+    from common import load_module, nso_path
+    from nx.module import DynInfo
+    from nx.nso import Nso
+    import vtables as V
+
+    mod = load_module(game)
+    img = mod["image"]
+    nso = Nso(nso_path(game).read_bytes())
+    dyn = DynInfo(nso, img, mod["text_end"])
+    vts, _ = V.find_vtables(img, dyn.slots, {s for s, _ in mod["functions"]}, nso.data.mem_off, nso.data.end)
+    return exe_links(img, mod["functions"], dyn.slots, vts)
+
+
+def load_units(statuses: str = "U", links: Links | None = None,
+               index: dict[int, str] | None = None) -> tuple[list[Unit], list[Function]]:
     from common import load_module
 
     rows = read_functions_csv()
     img = load_module("sword")["image"]
-    units = build_units(rows, read_areas_csv(), exe_segments("sword"), source_index(), statuses,
-                        exists=lambda p: (ROOT / p).exists(), calls_of=callees_fn(img), blocked=blocked_fn(img))
+    units = build_units(rows, read_areas_csv(), exe_segments("sword"), index or source_index(), statuses,
+                        exists=lambda p: (ROOT / p).exists(), calls_of=callees_fn(img), blocked=blocked_fn(img),
+                        links=links or load_links("sword"))
     return units, rows
 
 
@@ -478,11 +747,93 @@ def cmd_list(args) -> int:
     return 0
 
 
+def local_calls(u: Unit, links: Links, index: dict[int, str] | None = None
+                ) -> dict[int, list[tuple[int, str, bool]]]:
+    """Function of the unit -> its callees in the unit, each with its source
+    file and whether that's the caller's: the hand-written file an address
+    comment puts a function in (`index`, source_index), else its part's. The original calls
+    all of them out of line; clang inlines a small callee defined in the
+    caller's file, so a same-file one needs one of the two in a file of its
+    own."""
+    index = index or {}
+    file_of = {f.sword: index.get(f.sword, p.file) for p in u.parts for f in p.funcs}
+    out = {}
+    for f in u.funcs:
+        cs = sorted(t for t in links.calls.get(f.sword, ()) if t in file_of)
+        if cs:
+            out[f.sword] = [(t, file_of[t], file_of[t] == file_of[f.sword]) for t in cs]
+    return out
+
+
+def crossing_ties(u: Unit, links: Links, pos: dict[int, int], near: int = NEAR_CALL) -> list[tuple]:
+    """The ties (tied_blocks, all of them) between the unit and other units,
+    which a block above the cap (u.loose) can leave: ("call", caller, callee)
+    and ("class", vtable group, [its functions outside the unit]). `pos` is
+    each function's index in address order. Only ties inside u.loose count:
+    elsewhere no tie crosses a unit."""
+    mine = {f.sword for f in u.funcs}
+    seg = {f.sword: p.segment for p in u.parts for f in p.funcs}
+    out: list[tuple] = []
+
+    def loose(x: int) -> bool:
+        return any(lo <= x < hi for lo, hi in u.loose)
+
+    def local(fs, bounds) -> bool:
+        return all(bounds[0] <= x < bounds[1] for x in fs)
+
+    seen: set[int] = set()
+    for f in sorted(mine):
+        b = seg[f]
+        for c, t in [(f, t) for t in links.calls.get(f, ())] + [(c, f) for c in links.callers.get(f, ())]:
+            other = t if c == f else c
+            if (other not in mine and loose(other) and other in pos and abs(pos[c] - pos[t]) <= near
+                    and local(links.callers.get(t, ()), b)):
+                out.append(("call", c, t))
+        for g in links.vtables.get(f, ()):
+            if g in seen or not local(links.referrers[g], b):
+                continue
+            seen.add(g)
+            rest = sorted(x for x in links.referrers[g] | links.members.get(g, set())
+                          if x not in mine and b[0] <= x < b[1])
+            if rest:
+                out.append(("class", g, rest))
+    return out
+
+
+def inlined_in_original(u: Unit, links: Links) -> list[int]:
+    """Functions of the unit to do that nothing calls and whose address nothing
+    takes: emitted (external linkage) but inlined wherever the original uses
+    them, or unused. Defining one next to its users is right: clang inlines it
+    there too."""
+    called = links.callers
+    return [f.sword for f in u.work if f.sword not in called and f.sword not in links.taken]
+
+
 def cmd_show(args) -> int:
-    units, rows = load_units("mM" if args.mm else "U")
+    links = load_links("sword")
+    index = source_index()
+    units, rows = load_units("mM" if args.mm else "U", links, index)
     u = find_unit(units, args.unit)
     by_addr = {r.sword: r for r in rows if r.sword is not None}
     print(f"unit {u.id}: {u.area} ({u.kind}), 0x{u.start + BASE:x}-0x{u.end + BASE:x}, score {u.score}")
+    if u.loose:
+        pos = {a: i for i, a in enumerate(sorted(by_addr))}
+        unit_of = {f.sword: x.id for x in units for f in x.funcs}
+        cross = crossing_ties(u, links, pos)
+        if cross:
+            print(f"  note: the functions tied together around here are more than {GROUP_CAP_FUNCS} functions or"
+                  f" {GROUP_CAP_BYTES} bytes, so units cut through them. Ties to other units:")
+            for kind, a, b in cross[:12]:
+                if kind == "call":
+                    other = b if unit_of.get(a) == u.id else a
+                    print(f"    0x{a + BASE:x} calls 0x{b + BASE:x} (0x{other + BASE:x} is in {unit_of.get(other, '?')})")
+                else:
+                    print(f"    the class of vtable 0x{a + BASE:x} also has "
+                          + ", ".join(f"0x{x + BASE:x} ({unit_of.get(x, '?')})" for x in b[:6])
+                          + (" ..." if len(b) > 6 else ""))
+            if len(cross) > 12:
+                print(f"    ... {len(cross) - 12} more")
+    calls_in = local_calls(u, links, index)
     print(f"{len(u.work)} functions to do ({u.work_bytes} bytes). Only edit these files; new headers")
     print("next to one must be named after it (<stem>*.h):")
     for p in u.parts:
@@ -497,6 +848,24 @@ def cmd_show(args) -> int:
                           if t not in by_addr or (by_addr[t].status != "O" and not by_addr[t].name))
             print(f"  0x{f.sword + BASE:x} {f.sword_size:6} {f.scope:9} {f.status}  calls {len(calls)}"
                   f" ({unknown} unknown)  {f.name or '-'}")
+            same = [t for t, _, here in calls_in.get(f.sword, []) if here]
+            small = [t for t in same if (by_addr[t].sword_size or 0) <= INLINE_BYTES]
+            large = [t for t in same if t not in small]
+            other = [(t, file) for t, file, here in calls_in.get(f.sword, []) if not here]
+            if small:
+                print("      ! out of line in the original, same file: "
+                      + ", ".join(f"0x{t + BASE:x}" for t in small)
+                      + " (clang would inline them: put this function, or them, in an Unk_<addr>.cpp)")
+            if large:
+                print("      out of line, same file, large (clang likely keeps the call): "
+                      + ", ".join(f"0x{t + BASE:x}" for t in large))
+            if other:
+                print("      out of line, another file: " + ", ".join(f"0x{t + BASE:x} ({file})" for t, file in other))
+    inl = inlined_in_original(u, links)
+    if inl:
+        print("\nnothing calls or takes the address of " + ", ".join(f"0x{a + BASE:x}" for a in inl)
+              + ": the original inlined them into their callers (or they're unused). Define them next to"
+              " their callers; clang inlines them there too.")
     done = [f for f in u.funcs if f not in u.work]
     if done:
         print(f"{len(done)} other functions of the unit: "
