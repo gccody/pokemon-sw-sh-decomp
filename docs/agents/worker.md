@@ -93,7 +93,7 @@ You may also:
 
 Don't edit other files, not even shared headers. If you need a declaration,
 write it in your own file. Never touch generated directories
-(`src/unsorted/{leaf,virtual,ctor,types,clone,families,init,locks,registry}`,
+(`src/unsorted/{leaf,virtual,ctor,types,clone,families,init,locks,registry,views}`,
 `src/gflib3/families`, `lib/*/leaf`, `lib/*/class`, `lib/pia/gen`,
 `lib/nex/ddl`, and any other listed in `tools/units.py` `GENERATED_DIRS`):
 tools rewrite their files. Before you declare a callee, check

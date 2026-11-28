@@ -10,6 +10,7 @@
 #include <nn/os.h>
 #include <types.h>
 
+#include "contents/common/cast.h"
 #include "gflib3/Unk_239a418.h"
 #include "gflib3/Unk_239a4c0.h"
 #include "unsorted/Unk_23f43c8.h"
@@ -35,29 +36,6 @@ inline Unk_239a498* Unk_HandleObject(const Unk_239a418_Ref<Unk_239a418>& handle)
     if (p == nullptr)
         return nullptr;
     return reinterpret_cast<Unk_239a498*>(reinterpret_cast<Unk_239a418_Handle*>(p)->field_60);
-}
-
-// Whether an object's type is T's or one derived from it (the same template
-// as tools/typegen.py's).
-template <class T>
-bool Unk_61a530(Unk_239a498* object) {
-    const Unk_239a418_Type* type = object->vf_type();
-    const Unk_239a418_Type* kind = T::Unk_GetType();
-    for (; type != nullptr; type = type->field_0)
-        if (type == kind)
-            return true;
-    return false;
-}
-
-// The object as a T, or null when it isn't one: through its +0x50 interface.
-template <class T, class U>
-T* Unk_DynamicCast(U* object) {
-    if (object == nullptr)
-        return nullptr;
-    Unk_239a498* interface = object;
-    if (!Unk_61a530<T>(interface))
-        return nullptr;
-    return static_cast<T*>(interface);
 }
 
 // The views of an app's frame (its field_548), by name.

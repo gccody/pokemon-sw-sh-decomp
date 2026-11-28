@@ -81,9 +81,6 @@ void Unk_23bcdf0::Unk_8e8f80() {
 // Unk_8e8f80 instantiates the lookups of contents/common/views.h for its
 // first two views: 0x71008e9210 (Unk_a7bb80<Unk_23bcc08>) and 0x71008e9360
 // (Unk_a7bb80<Unk_23bca18>).
-// NON_MATCHING (both): the find_if loop's blocks are laid out differently
-// (the original falls through when a view is found); no copy of the
-// template matches yet.
 
 // 0x71008e94b0; the vtable's D0 0x71008e9570 and thunks for +0x48
 // (0x71008e9610 D1, 0x71008e96b0 D0) and +0x50 (0x71008e9750 D1,
