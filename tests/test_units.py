@@ -179,3 +179,168 @@ def test_record_retype_runs_retype_py(tmp_path, monkeypatch):
     with pytest.raises(SystemExit):
         U.cmd_record(args)
     assert U.read_sidecar(p)["retypes"][0]["name"] == "_Z1fh"
+
+
+# --------------------------------------------------------------------------- tied blocks (E1)
+def links(calls=None, vtables=None, members=None, taken=()) -> U.Links:
+    return U.Links(calls={k: set(v) for k, v in (calls or {}).items()},
+                   vtables={k: set(v) for k, v in (vtables or {}).items()},
+                   members={k: set(v) for k, v in (members or {}).items()}, taken=set(taken))
+
+
+def run_of(n: int, size: int = 16) -> list:
+    return [fn(i * size, size) for i in range(n)]
+
+
+def test_tied_blocks_calls():
+    run = run_of(20)
+    at = [f.sword for f in run]
+    # 0 -> 2 ties 0..2; 5 -> 4 too; 10 -> 19 is too far; 12 -> 13's callee is also called from outside
+    lk = links({at[0]: [at[2]], at[5]: [at[4]], at[10]: [at[19]], at[12]: [at[13]], 0x9000: [at[13]]})
+    assert U.tied_blocks(run, lk) == [(0, 2), (4, 5)]
+    assert U.tied_blocks(run, lk, near=9) == [(0, 2), (4, 5), (10, 19)]
+    # overlapping spans merge
+    lk = links({at[0]: [at[3]], at[2]: [at[5]]})
+    assert U.tied_blocks(run, lk) == [(0, 5)]
+    # `bounds`: what counts as the run for "only the run calls it"
+    lk = links({at[1]: [at[2]], 0x9000: [at[2]]})
+    assert U.tied_blocks(run, lk) == []
+    assert U.tied_blocks(run, lk, bounds=(0, 0x10000)) == [(1, 2)]
+
+
+def test_tied_blocks_classes():
+    run = run_of(20)
+    at = [f.sword for f in run]
+    # a class: ctor at 3 and dtor at 9 address vtable group 0x100; it owns the slot function at 12
+    lk = links(vtables={at[3]: [0x100], at[9]: [0x100]}, members={0x100: [at[12], 0x9000]})
+    assert U.tied_blocks(run, lk) == [(3, 12)]
+    assert U.tied_blocks(run, lk, members=False) == [(3, 9)]
+    assert U.tied_blocks(run, lk, classes=False) == []
+    # a vtable that code outside the run addresses too doesn't tie
+    lk = links(vtables={at[3]: [0x100], at[9]: [0x100], 0x9000: [0x100]})
+    assert U.tied_blocks(run, lk) == []
+
+
+def test_cut_run_keeps_blocks_and_other_cuts():
+    run = run_of(40)
+    at = [f.sword for f in run]
+    old = U.chunk(run)                                   # 16 + 16 + 8
+    assert [len(c) for c in old] == [16, 16, 8]
+    parts, over = U.cut_run(run, links({at[14]: [at[18]]}))
+    assert over == []
+    # the block 14..18 crosses the first cut: that stretch (0..31) is cut again with the block as one
+    # atom (0..13, 14..29, 30..31); the cut at 32 survives, so the last part is the old one
+    assert [len(p) for p in parts] == [14, 16, 2, 8]
+    assert parts[-1] == old[-1]
+    assert [f.sword for f in parts[1]][:5] == at[14:19]
+    # no tie: chunk()'s cut
+    assert U.cut_run(run, links())[0] == old
+    assert U.cut_run(run, None) == (old, [])
+
+
+def test_cut_run_cap_falls_back_level_by_level():
+    run = run_of(40)
+    at = [f.sword for f in run]
+    # a class spanning everything (above a cap of 10), with a near call 20 -> 21 inside it
+    lk = links({at[20]: [at[21]]}, vtables={at[0]: [0x100], at[39]: [0x100]})
+    parts, over = U.cut_run(run, lk, cap_funcs=10)
+    assert over == [(0, 640)]                           # the class is above the cap: reported
+    assert any(at[20] in [f.sword for f in p] and at[21] in [f.sword for f in p] for p in parts)  # the call ties
+    keep, over = U.tie_run(run, lk, cap_funcs=1)
+    assert keep == [] and over == [(0, 640)]
+
+
+def test_build_units_never_split_a_block(areas):
+    rows = [fn(i * 16, 16) for i in range(100)]                    # one segment, game/a
+    at = [f.sword for f in rows]
+    lk = links({at[30]: [at[34]]})                                  # crosses the unit cut at 32
+    before = U.build_units(rows, areas, [(0, 0x1000)], {})
+    after = U.build_units(rows, areas, [(0, 0x1000)], {}, links=lk)
+    assert [u.id for u in before] == ["u0", "u200", "u400", "u600"]
+    unit_of = {f.sword: u.id for u in after for f in u.funcs}
+    assert unit_of[at[30]] == unit_of[at[34]]
+    # the units the block doesn't touch keep their IDs and extents
+    assert {(u.start, u.end) for u in before if u.start >= 0x400} <= {(u.start, u.end) for u in after}
+    assert sum(len(u.funcs) for u in after) == 100
+    assert all(not u.loose for u in after)
+    # a class of all 100 (within the cap): one unit, one file
+    big = links(vtables={at[0]: [0x100], at[99]: [0x100]})
+    units = U.build_units(rows, areas, [(0, 0x1000)], {}, links=big)
+    assert [(u.start, u.end, len(u.parts)) for u in units] == [(0, 1600, 1)]
+
+
+def test_build_units_reports_loose(areas, monkeypatch):
+    # above the cap: cut as before, and reported on every unit the block crosses
+    monkeypatch.setattr(U, "GROUP_CAP_FUNCS", 8)
+    rows = [fn(i * 16, 16) for i in range(100)]
+    at = [f.sword for f in rows]
+    big = links(vtables={at[0]: [0x100], at[99]: [0x100]})
+    before = U.build_units(rows, areas, [(0, 0x1000)], {})
+    units = U.build_units(rows, areas, [(0, 0x1000)], {}, links=big)
+    assert [(u.start, u.end) for u in units] == [(u.start, u.end) for u in before]
+    assert all(u.loose == [(0, 1600)] for u in units)
+    pos = {f.sword: i for i, f in enumerate(rows)}
+    assert U.crossing_ties(units[0], big, pos) == [("class", 0x100, [at[99]])]
+    assert U.crossing_ties(units[1], big, pos) == []      # it addresses no vtable
+
+
+def test_crossing_ties_calls(areas, monkeypatch):
+    monkeypatch.setattr(U, "GROUP_CAP_FUNCS", 4)
+    rows = [fn(i * 16, 16) for i in range(40)]
+    at = [f.sword for f in rows]
+    # a chain of near calls (0 -> 3 -> 6 -> ... -> 36): one block above the cap at every level
+    lk = links({at[i]: [at[i + 3]] for i in range(0, 36, 3)})
+    units = U.build_units(rows, areas, [(0, 0x1000)], {}, links=lk, unit_funcs=8)
+    assert units[0].loose == [(0, 37 * 16)]
+    pos = {f.sword: i for i, f in enumerate(rows)}
+    assert [len(u.funcs) for u in units][:2] == [16, 16]     # MAX_FUNCS parts, one per unit
+    assert U.crossing_ties(units[0], lk, pos) == [("call", at[15], at[18])]
+    assert U.crossing_ties(units[1], lk, pos) == [("call", at[15], at[18]), ("call", at[30], at[33])]
+
+
+def test_group_stable():
+    parts = [U.Part([fn(i * 16, 16)], (0, 0x1000), "game/a") for i in range(6)]
+    old = list(parts)
+    assert [len(g) for g in U.group_stable(parts, old, max_funcs=2)] == [2, 2, 2]
+    # parts 1 and 2 merged: only the stretch from the old unit start 0 to the next surviving one (4) changes
+    merged = [parts[0], U.Part(parts[1].funcs + parts[2].funcs, (0, 0x1000), "game/a"), parts[3], parts[4], parts[5]]
+    groups = U.group_stable(merged, old, max_funcs=2)
+    assert [g[0].start for g in groups] == [0x0, 0x10, 0x30, 0x40]
+    assert [g[0].start for g in groups][-1] == 0x40 and len(groups[-1]) == 2
+
+
+def test_local_calls_and_inlined(areas):
+    rows = [fn(0x0, 16), fn(0x10, 16), fn(0x20, 16), fn(0x30, 16)]
+    lk = links({0x0: [0x10, 0x20, 0x9000]}, taken=[0x30])
+    index = {0x20: "src/unsorted/leaf/Gen.cpp"}             # already written, in a generated file
+    u = U.build_units(rows, areas, [(0, 0x1000)], index, links=lk)[0]
+    assert u.parts[0].file == "src/unsorted/a/Unk_0.cpp"
+    calls = U.local_calls(u, lk, index)
+    assert calls == {0x0: [(0x10, "src/unsorted/a/Unk_0.cpp", True), (0x20, "src/unsorted/leaf/Gen.cpp", False)]}
+    # 0x0 has no caller and isn't taken; 0x30's address is taken
+    assert U.inlined_in_original(u, lk) == [0x0]
+
+
+def test_exe_links():
+    import struct
+
+    import vtables as V
+    words = {0x0: [0x94000004,            # bl 0x10
+                   0x90000000,            # adrp x0, 0
+                   0x91044000,            # add x0, x0, #0x110 (the vtable's address point)
+                   0xD65F03C0],
+             0x10: [0x90000001,           # adrp x1, 0
+                    0x91008021,           # add x1, x1, #0x20 (function 0x20's address)
+                    0xD65F03C0, 0xD503201F],
+             0x20: [0xD65F03C0]}
+    img = bytearray(0x200)
+    for a, ws in words.items():
+        struct.pack_into(f"<{len(ws)}I", img, a, *ws)
+    funcs = [(0x0, 16), (0x10, 16), (0x20, 4)]
+    vt = V.Vtable(0x110, 0, None, [0x20], group=0x110)
+    lk = U.exe_links(bytes(img), funcs, {0x110: 0x20}, [vt])
+    assert lk.calls == {0x0: {0x10}}
+    assert lk.vtables == {0x0: {0x110}}
+    assert lk.members == {0x110: {0x20}}
+    assert lk.taken == {0x20}
+    assert lk.callers == {0x10: {0x0}} and lk.referrers == {0x110: {0x0}}

@@ -227,7 +227,7 @@ def main(argv: list[str] | None = None) -> int:
     own_file = None
     if fn.sword is not None:
         all_units = U.build_units(rows, U.read_areas_csv(), U.exe_segments("sword"), index, "UmMO",
-                                  exists=lambda p: (ROOT / p).exists())
+                                  exists=lambda p: (ROOT / p).exists(), links=U.load_links("sword"))
         u = next((u for u in all_units if any(f is fn for f in u.funcs)), None)
         if u is not None:
             part = next(p for p in u.parts if any(f is fn for f in p.funcs))
