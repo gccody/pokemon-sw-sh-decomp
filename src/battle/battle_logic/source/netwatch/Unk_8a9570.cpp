@@ -5,7 +5,7 @@
 
 // The main module's functions (src/battle/battle_engine/Unk_7c2d80.cpp).
 bool Unk_7ca170(const Unk_7c2d80_Main* self, u8 client);
-u8 Unk_7c9b60(void* self, u8 client, u32 index);
+u8 Unk_7c9b60(void* self, u8 client, u8 index);
 // Returns a 32-bit value: Unk_7cb7a0 compares it with a u8 unmasked.
 u32 Unk_7cb540(const Unk_7c2d80_Main* self, u8 position);
 u8 Unk_7cb660(void* self, u8 value);

@@ -145,7 +145,7 @@ PKMN_OFFSET_ASSERT(Unk_7c84b0, field_88, 0x88);
 PKMN_OFFSET_ASSERT(Unk_7c84b0, field_174, 0x174);
 PKMN_OFFSET_ASSERT(Unk_7c84b0, field_175, 0x175);
 
-u32 Unk_7c9b60(void*, u8, u32);
+u32 Unk_7c9b60(void*, u8, u8);
 void Unk_7c7a10(void*, void*);
 
 // 0x71007c84b0

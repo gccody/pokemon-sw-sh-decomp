@@ -9,7 +9,7 @@
 u8 Unk_7cb540(const Unk_7c2d80_Main* self, u8 position);
 u8 Unk_7cb7a0(const Unk_7c2d80_Main* self, u8 position);
 u8 Unk_7cb4b0(const Unk_7c2d80_Main* self, Unk_7ecc90_Con* con, u8 pokeId);
-u8 Unk_7c9b60(void* self, u8 client, u32 index);
+u8 Unk_7c9b60(void* self, u8 client, u8 index);
 u8 Unk_7cc000(void* self, u8 index);
 bool Unk_7cce80(void* self, u8 id, u8 arg);
 u32 Unk_7cb320(void* self, u32 value);

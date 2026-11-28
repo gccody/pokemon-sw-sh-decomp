@@ -112,7 +112,7 @@ u32 Unk_7fbd00(u32 rule, u8 arg1, u32 arg2, u32 arg3);
 
 u32 Unk_8048c0(u8 value);
 s32 Unk_7ed4d0(Unk_7ecc90_Con* self, u8 client, u8 pokeId);
-u8 Unk_7c9b60(void* self, u8 client, u32 index);
+u8 Unk_7c9b60(void* self, u8 client, u8 index);
 u8 Unk_7cb540(const Unk_7c2d80_Main* self, u8 position);
 bool Unk_7faf80(u32 rule, u8 arg1, u32 client);
 u8 Unk_804920(u8 value);
