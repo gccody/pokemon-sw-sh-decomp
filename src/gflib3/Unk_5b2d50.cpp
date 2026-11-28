@@ -1,18 +1,11 @@
 // Scope: common
-// Unk_2398ab8's destructor (its key function: its vtables and the handle
-// getter's thunk come with it), the type its interfaces return and a vector
-// growing (src/gflib3/Unk_5b2810.h). Placeholder names.
+// A vector of Unk_2398848's growing (src/gflib3/Unk_5b2810.h). Placeholder
+// names.
 #include "gflib3/Unk_5b2810.h"
 
 #include <vector>
 
 #include "unsorted/Unk_2771620.h"
-
-// 0x71005b2e50, 0x71005b2ea0 (D0), thunks 0x71005b2eb0/0x71005b2f00 (+0x48)
-// and 0x71005b2f30/0x71005b2f80 (+0x50). The vtables come with it, and with
-// them 0x71005b2b70 (the thunk of vf2 from +0x48) and 0x71005b2f90
-// (Unk_27715a0::Unk_GetType, which the interface's vf_type calls).
-Unk_2398ab8::~Unk_2398ab8() {}
 
 template <class T>
 using Unk_2771620_Vector = std::vector<T, Unk_2771620_Allocator<T>>;
