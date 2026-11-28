@@ -49,6 +49,8 @@ bool LdnConnectionStatus::vf3(LdnProtocol* protocol) {
 }
 
 // 0x7101685790
+// NON_MATCHING: the address local sits at x29-8 in the original, x29-4 here (the
+// original object is 8 bytes or 8-aligned: its type is unknown)
 bool LdnConnectionStatus::vf6(const Unk_1652c70* address) {
     u32 value = 0;
     address->Unk_1652de0(&value);
