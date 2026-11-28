@@ -1,15 +1,20 @@
 // Scope: common
 //
 // A battle spot state (Unk_23cc7a0, src/unsorted/virtual/Unk_af1c10.cpp, on
-// Unk_23c9470): its slots 18 and 19, the callable it hands on, and what its
-// sixteen lambdas do. 0x7100af16f0 sets the state's slots up for a mode
-// (0-3), a std::function each (Unk_23c9470_Slot), from a lambda that
-// captures the state. Those lambdas' classes are the std::function model
-// classes of src/unsorted/clone/Unk_ad7090.cpp (vtables 0x71023cc8f0 to
-// 0x71023ccd28, in the order they're made); their calls (slot 6) are written
-// here as free functions over the callable. Each one takes the reference
-// it's called with and passes it on, with a hash per slot, to the object at
-// the state's +0x5e0. Placeholder names: rename once the classes are known.
+// Unk_23c9470): its slots 18 and 19, the callable it hands on, and how it
+// sets its slots up for a mode (0-3): a std::function each, from a lambda
+// that captures the state. Each lambda takes the reference it's called with
+// and passes it on, with a hash per slot, to the object at the state's
+// +0x5e0. The slots' callables take that reference (std::function<void(Ref)>,
+// not the void() Unk_23c9470_Slot declares).
+//
+// The lambdas' classes are also the std::function model classes of
+// src/unsorted/clone/Unk_ad7090.cpp (vtables 0x71023cc8f0 to 0x71023ccd28, in
+// the order they're made here), and their calls (slot 6) are written below as
+// free functions over the callable, the names functions.csv gives them. The
+// lambdas' own copies compile to the same code but aren't checked.
+// Placeholder names: rename once the classes are known.
+#include <functional>
 #include <utility>
 
 #include "gflib3/Unk_239a418.h"
@@ -20,6 +25,11 @@ u32 Unk_eb6530(void*);
 
 struct Unk_ace0e0;
 void Unk_ace0e0_call(Unk_ace0e0* self);
+
+// Unk_23c9470's: set a slot's callable, then two more steps.
+void Unk_ace570(void* self, u32 slot, std::function<void(Unk_239a418_Ref<Unk_239a418>)> callback);
+void Unk_ace620(void* self);
+void Unk_ace880(void* self);
 
 // What Unk_23c9470 keeps at +0x630.
 struct Unk_af16f0_630 {
@@ -203,4 +213,106 @@ void Unk_af2cd0(Unk_af16f0_Lambda* self, Unk_239a418_Ref<Unk_239a418>&& arg) {
     Unk_239a418* target = self->field_8->field_5e0.m_ptr;
     u64 key = 0xd79d80f0c1ba58f6;
     Unk_67d450(target, &key, object.m_ptr);
+}
+
+// 0x7100af16f0
+void Unk_af16f0(Unk_af16f0_State* self, u32 mode) {
+    switch (mode) {
+        case 0:
+            Unk_ace570(self, 0, [self](Unk_239a418_Ref<Unk_239a418> object) {
+                Unk_239a418* target = self->field_5e0.m_ptr;
+                u64 key = 0xd79d86f0c1ba6328;
+                Unk_67d450(target, &key, object.m_ptr);
+            });
+            Unk_ace570(self, 2, [self](Unk_239a418_Ref<Unk_239a418> object) {
+                Unk_239a418* target = self->field_5e0.m_ptr;
+                u64 key = 0xd79a18f0c1b77267;
+                Unk_67d450(target, &key, object.m_ptr);
+            });
+            Unk_ace570(self, 7, [self](Unk_239a418_Ref<Unk_239a418> object) {
+                Unk_239a418* target = self->field_5e0.m_ptr;
+                u64 key = 0xd79d84f0c1ba5fc2;
+                Unk_67d450(target, &key, object.m_ptr);
+            });
+            Unk_ace570(self, 3, [self](Unk_239a418_Ref<Unk_239a418> object) {
+                Unk_239a418* target = self->field_5e0.m_ptr;
+                u64 key = 0xd79a19f0c1b7741a;
+                Unk_67d450(target, &key, object.m_ptr);
+            });
+            Unk_ace570(self, 1, [self](Unk_239a418_Ref<Unk_239a418> object) {
+                Unk_239a418* target = self->field_5e0.m_ptr;
+                u64 key = 0xd79d80f0c1ba58f6;
+                Unk_67d450(target, &key, object.m_ptr);
+            });
+            Unk_ace620(self);
+            Unk_ace880(self);
+            break;
+        case 1:
+            Unk_ace570(self, 0, [self](Unk_239a418_Ref<Unk_239a418> object) {
+                Unk_239a418* target = self->field_5e0.m_ptr;
+                u64 key = 0xd79d86f0c1ba6328;
+                Unk_67d450(target, &key, object.m_ptr);
+            });
+            Unk_ace570(self, 2, [self](Unk_239a418_Ref<Unk_239a418> object) {
+                Unk_239a418* target = self->field_5e0.m_ptr;
+                u64 key = 0xd79a18f0c1b77267;
+                Unk_67d450(target, &key, object.m_ptr);
+            });
+            Unk_ace570(self, 7, [self](Unk_239a418_Ref<Unk_239a418> object) {
+                Unk_239a418* target = self->field_5e0.m_ptr;
+                u64 key = 0xd79d84f0c1ba5fc2;
+                Unk_67d450(target, &key, object.m_ptr);
+            });
+            Unk_ace570(self, 1, [self](Unk_239a418_Ref<Unk_239a418> object) {
+                Unk_239a418* target = self->field_5e0.m_ptr;
+                u64 key = 0xd79d80f0c1ba58f6;
+                Unk_67d450(target, &key, object.m_ptr);
+            });
+            Unk_ace620(self);
+            Unk_ace880(self);
+            break;
+        case 2:
+            Unk_ace570(self, 2, [self](Unk_239a418_Ref<Unk_239a418> object) {
+                Unk_239a418* target = self->field_5e0.m_ptr;
+                u64 key = 0xd79a18f0c1b77267;
+                Unk_67d450(target, &key, object.m_ptr);
+            });
+            Unk_ace570(self, 7, [self](Unk_239a418_Ref<Unk_239a418> object) {
+                Unk_239a418* target = self->field_5e0.m_ptr;
+                u64 key = 0xd79d84f0c1ba5fc2;
+                Unk_67d450(target, &key, object.m_ptr);
+            });
+            Unk_ace570(self, 3, [self](Unk_239a418_Ref<Unk_239a418> object) {
+                Unk_239a418* target = self->field_5e0.m_ptr;
+                u64 key = 0xd79a19f0c1b7741a;
+                Unk_67d450(target, &key, object.m_ptr);
+            });
+            Unk_ace570(self, 1, [self](Unk_239a418_Ref<Unk_239a418> object) {
+                Unk_239a418* target = self->field_5e0.m_ptr;
+                u64 key = 0xd79d80f0c1ba58f6;
+                Unk_67d450(target, &key, object.m_ptr);
+            });
+            Unk_ace620(self);
+            Unk_ace880(self);
+            break;
+        case 3:
+            Unk_ace570(self, 2, [self](Unk_239a418_Ref<Unk_239a418> object) {
+                Unk_239a418* target = self->field_5e0.m_ptr;
+                u64 key = 0xd79a18f0c1b77267;
+                Unk_67d450(target, &key, object.m_ptr);
+            });
+            Unk_ace570(self, 7, [self](Unk_239a418_Ref<Unk_239a418> object) {
+                Unk_239a418* target = self->field_5e0.m_ptr;
+                u64 key = 0xd79d84f0c1ba5fc2;
+                Unk_67d450(target, &key, object.m_ptr);
+            });
+            Unk_ace570(self, 1, [self](Unk_239a418_Ref<Unk_239a418> object) {
+                Unk_239a418* target = self->field_5e0.m_ptr;
+                u64 key = 0xd79d80f0c1ba58f6;
+                Unk_67d450(target, &key, object.m_ptr);
+            });
+            Unk_ace620(self);
+            Unk_ace880(self);
+            break;
+    }
 }
