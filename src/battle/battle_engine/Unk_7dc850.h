@@ -245,7 +245,7 @@ struct Unk_7cdac0_Self {
     bool Unk_7d0160();
 
     u8 _0[0x58];
-    const Unk_7c2d80_Main* field_58;
+    Unk_7c2d80_Main* field_58;
     u8 _60[0x70 - 0x60];
     const Unk_7fe1d0* field_70;
     u8 _78[0xd0 - 0x78];

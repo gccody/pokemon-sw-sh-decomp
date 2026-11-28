@@ -84,7 +84,8 @@ bool Unk_7dc990(Unk_7cdac0_Self* self, u32*, const u32* args) {
 
 // 0x71007dc9c0
 bool Unk_7dc9c0(Unk_7cdac0_Self* self, u32*, const u32* args) {
-    Unk_818270(Unk_7cdac0_Server(self), args[0]);
+    u32 value = args[0];
+    Unk_818270(Unk_7cdac0_Server(self), value);
     return true;
 }
 
