@@ -174,6 +174,37 @@ def test_vf_type_classes_counts_definitions_only(tmp_path):
         "class Unk_2 : public B {\npublic:\n    const T* vf_type() override { return x(); }\n};\n"
         "const T* Unk_3::vf_type() {\n    return y();\n}\n")
     assert T.vf_type_classes(tmp_path, tmp_path / "types") == {"Unk_2", "Unk_3"}
+    assert T.vf_type_classes(tmp_path, tmp_path / "types", inline=False) == {"Unk_3"}
+
+
+def test_taken_classes_keeps_what_is_written_here(tmp_path):
+    out = tmp_path / "types"
+    out.mkdir()
+    (tmp_path / "a.h").write_text(
+        "class Unk_1 : public B {\npublic:\n    static const T* Unk_GetType() {\n        return x();\n    }\n};\n"
+        "class Unk_2 : public B {\npublic:\n    const T* vf_type() override { return x(); }\n};\n"
+        "class Unk_5 : public B {\npublic:\n    const T* vf_type() override { return x(); }\n};\n")
+    (tmp_path / "b.cpp").write_text("const T* Unk_3::vf_type() {\n    return y();\n}\n")
+    # Written here: Unk_2 (inline elsewhere: kept), Unk_3 (strong elsewhere: taken), Unk_4.
+    (out / "Unk_1.cpp").write_text(
+        "// 0x7100000300\nconst Unk_239a418_Type* Unk_2::vf_type() {\n    return Unk_GetType();\n}\n"
+        "// 0x7100000310\nconst Unk_239a418_Type* Unk_3::vf_type() {\n    return Unk_GetType();\n}\n"
+        "// 0x7100000320\nconst Unk_239a418_Type* Unk_4::vf6() {\n    return Unk_4::Unk_GetType();\n}\n")
+    assert T.written_classes(out) == {"Unk_2", "Unk_3", "Unk_4"}
+    taken, declared = T.taken_classes(tmp_path, out)
+    assert taken == {"Unk_1", "Unk_3", "Unk_5"}
+    assert declared == {"Unk_1", "Unk_2", "Unk_3", "Unk_5"}
+
+
+def test_kept_needs_a_match_not_only_a_name():
+    rows = {0x300: SimpleNamespace(status="O", name="_ZN5Unk_C7vf_typeEv"),
+            0x400: SimpleNamespace(status="U", name="_ZN5Unk_C11Unk_GetTypeEv")}
+    names = [(0x300, "_ZN5Unk_C7vf_typeEv"), (0x400, "_ZN5Unk_C11Unk_GetTypeEv")]
+    assert not T.kept(rows, set(), names)        # the getter is named (by a trial), not matched
+    assert T.kept(rows, {0x400}, names)          # it matched in the trial
+    rows[0x400].status = "O"
+    assert T.kept(rows, set(), names)
+    assert not T.kept(rows, set(), [(0x300, "_ZN5Unk_C3vf6Ev")])  # matched, under another name
 
 
 # The object's vtable group, as offset in the object -> slots: D2, D0, vf2-vf5;
