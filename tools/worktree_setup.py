@@ -245,18 +245,21 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--base", default="HEAD", help="commit to start the branch from (default HEAD)")
     p.add_argument("--unit")
     p.add_argument("--jobs", type=int, dest="jobs_sub")
+    p.add_argument("--workers", type=int, dest="workers_sub")
     p = sub.add_parser("reuse", help="give a finished worker's worktree the next unit, keeping its build dirs")
     p.add_argument("path")
     p.add_argument("--branch", required=True)
     p.add_argument("--unit", required=True)
     p.add_argument("--base", default="HEAD", help="commit to start the branch from (default: this checkout's HEAD)")
     p.add_argument("--jobs", type=int, dest="jobs_sub")
+    p.add_argument("--workers", type=int, dest="workers_sub")
     p = sub.add_parser("teardown", help="remove a worktree and its build dir")
     p.add_argument("path")
     p.add_argument("--force", action="store_true")
     args = ap.parse_args(argv)
-    if args.cmd in ("create", "reuse") and args.jobs_sub:
-        args.jobs = args.jobs_sub
+    if args.cmd in ("create", "reuse"):
+        args.jobs = args.jobs_sub or args.jobs
+        args.workers = args.workers_sub or args.workers
     if args.jobs is None:
         args.jobs = int(os.environ.get("PKMN_JOBS") or default_jobs(os.cpu_count(), args.workers))
     if args.cmd == "create":

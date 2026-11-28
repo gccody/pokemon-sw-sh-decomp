@@ -58,3 +58,17 @@ def test_archived_sidecar_never_overwrites(tmp_path):
     (tmp_path / "sidecar-u10.json").write_text("{}")
     assert W.archived_sidecar(tmp_path, "u10").name == "sidecar-u10-2.json"
     assert W.archived_sidecar(tmp_path, "").name == "sidecar-unknown.json"
+
+
+def test_workers_and_jobs_after_the_subcommand(monkeypatch):
+    """`create ... --workers 6` (as the docs write it) sets the job count, like `--workers 6 create ...`."""
+    seen = {}
+    monkeypatch.setattr(W, "cmd_create", lambda args: seen.update(vars(args)) or 0)
+    monkeypatch.setattr(W.os, "cpu_count", lambda: 20)
+    monkeypatch.delenv("PKMN_JOBS", raising=False)
+    assert W.main(["create", "../w", "--branch", "b", "--workers", "5"]) == 0
+    assert seen["workers"] == 5 and seen["jobs"] == 4
+    assert W.main(["--workers", "2", "create", "../w", "--branch", "b"]) == 0
+    assert seen["jobs"] == 10
+    assert W.main(["create", "../w", "--branch", "b", "--jobs", "3"]) == 0
+    assert seen["jobs"] == 3
