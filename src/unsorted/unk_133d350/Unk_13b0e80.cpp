@@ -27,7 +27,7 @@ bool Unk_ca4e20_check(const Unk_ca4e20* self);
 u32 Unk_66efe0(Unk_66efd0* self, s64 index, u64** out);
 // Unpacks the string at `src` into `dst` (`size` characters at most, of 32
 // bits when `wide`, else of 8).
-u32 Unk_66f050(void* dst, const u64* src, bool wide, u64 size);
+u32 Unk_66f050(void* dst, const u64* src, u32 wide, u64 size);
 // Packs the string at `src` into `dst`.
 u32 Unk_66c710(u64* dst, const void* src, bool arg2, bool arg3, s64 size);
 
