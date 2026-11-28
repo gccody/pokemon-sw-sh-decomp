@@ -1,5 +1,6 @@
 // Scope: common
-// local::LocalResendMessageJob's last member and local::LocalScanNetworkJob
+// local::LocalResendMessageJob's last member, local::LocalScanNetworkJob,
+// and local::LocalSessionInfo's constructor and destructors
 // (lib/pia/common/Unk_169a7e0.h).
 #include "pia/common/Unk_169a7e0.h"
 
@@ -16,7 +17,10 @@ void LocalResendMessageJob::Unk_169a7e0(u32 station) {
     m_Stations &= ~(1 << station);
 }
 
-// 0x710169a810
+// 0x710169a810: data/functions.csv still has the placeholder _ZN11Unk_245b408C2Ev
+// for it (no parameter; LdnScanNetworkJob's constructor, Unk_24598a8 in
+// src/unsorted/ctor/Unk_1685a70.cpp, calls it so). It takes the protocol: it
+// matches under this name.
 LocalScanNetworkJob::LocalScanNetworkJob(LocalProtocol* protocol) : m_Context(nullptr), m_Protocol(protocol) {
     m_JobContext = new (Unk_1652bd0()) Unk_1655080();
 }
@@ -102,6 +106,12 @@ Unk_165bb20_result LocalScanNetworkJob::WaitForCancel() {
         return {5};
     }
 }
+
+// 0x710169ac20
+LocalSessionInfo::LocalSessionInfo() : field_8(0), field_9(0), field_a(0) {}
+
+// 0x710169ac40 (and 0x710169ac50, deleting: a trap, the class is abstract)
+LocalSessionInfo::~LocalSessionInfo() {}
 
 }  // namespace local
 }  // namespace pia
