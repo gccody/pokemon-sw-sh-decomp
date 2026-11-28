@@ -212,6 +212,7 @@ Sword,Shield,Size,Name
 0x7101f2e85c,0x7101f2e85c,24,_ZZN8contents8pokecamp2pb53protobuf_AssignDesc_cooking_5fmatching_5fdata_2eprotoEvE28CookingMatchingData_offsets_@cooking_matching_data.pb
 0x7101f2eab0,0x7101f2eab0,8,_ZZN8contents8pokecamp2pb47protobuf_AssignDesc_cooking_5ftransform_2eprotoEvE30CookingToolsSyncParam_offsets_@cooking_transform.pb
 0x7101f2eb9c,0x7101f2eb9c,20,_ZZN8contents8pokecamp2pb44protobuf_AssignDesc_cooking_5fspiece_2eprotoEvE14Spice_offsets_@cooking_spiece.pb
+0x7101f33d64,0x7101f33d64,,Unk_1f33d64
 0x7101f340a4,0x7101f340a4,,Unk_1f340a4
 0x7101f340a8,0x7101f340a8,,Unk_1f340a8
 0x7101f340ac,0x7101f340ac,,Unk_1f340ac
@@ -3418,6 +3419,7 @@ Sword,Shield,Size,Name
 0x71024319a8,0x71024319a8,,_ZTV11Unk_24319a8
 0x71024319f0,0x71024319f0,,_ZTV11Unk_24319f0
 0x7102431fa8,0x7102431fa8,,_ZTV11Unk_2431fa8
+0x7102432200,0x7102432200,,_ZTV11Unk_2432200
 0x7102432540,0x7102432540,,_ZTV11Unk_2432540
 0x71024329f0,0x71024329f0,,Unk_24329f0
 0x7102432c78,0x7102432c78,,_ZTV11Unk_2432c78
