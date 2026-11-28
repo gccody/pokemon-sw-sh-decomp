@@ -456,6 +456,14 @@ void Unk_1500e20_call(const Unk_1500e20* self) {
     Unk_15016d0(self->field_58, 0);
 }
 
+extern void* Unk_27ce848;
+void Unk_793a60(void*, u32);
+
+// 0x7101502160
+void Unk_1502160_call(u32 self) {
+    Unk_793a60(Unk_27ce848, self);
+}
+
 // 0x71015030d0
 u32 Unk_15030d0_get(u64 /*unused*/) {
     return 1;

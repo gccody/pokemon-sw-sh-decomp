@@ -274,10 +274,10 @@ struct Unk_93cc80 {
 };
 PKMN_OFFSET_ASSERT(Unk_93cc80, field_68, 0x68);
 
-void Unk_67e9d0(void*, u32, u32);
+void Unk_67e9d0(void*, u32, u8);
 
 // 0x710093cc80
-void Unk_93cc80_call(const Unk_93cc80* self, u32 value, u32 arg2) {
+void Unk_93cc80_call(const Unk_93cc80* self, u32 value, u8 arg2) {
     if (self->field_68 != nullptr) {
         Unk_67e9d0(self->field_68, value, arg2);
     }

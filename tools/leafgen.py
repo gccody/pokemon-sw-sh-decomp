@@ -1163,6 +1163,7 @@ class Emitter:
         self.stack_addr: set[int] = set()     # ... and the ones whose address is taken
         self.passed: set[Arg] = set()         # arguments passed on to a call
         self.call_types: dict[int, str] = {}  # call index -> the type of the result it returns
+        self.narrow: dict[int, str] = OWN_NARROW.get(addr, {})  # x<n> its own code reads as u8/u16/s8/s16
 
     # -- structs
     def struct_for(self, base: object) -> StructDef:
@@ -1327,7 +1328,7 @@ class Emitter:
         if isinstance(e, Arg):
             if e.fp:
                 return self.fp_types.get(e.index, "f32")
-            return self.arg_types.get(e.index, "u32")
+            return self.arg_types.get(e.index, self.narrow.get(e.index, "u32"))
         raise LiftError("type")
 
     def expr(self, e: object, want: str | None = None) -> str:
@@ -1346,7 +1347,7 @@ class Emitter:
                 return self.fp_name(e.index)
             if e.index == 0 and want != "self":
                 raise LiftError("self used as a value")
-            self.arg_types.setdefault(e.index, want or "u32")
+            self.arg_types.setdefault(e.index, want or self.narrow.get(e.index, "u32"))
             return self.arg_name(e.index)
         if isinstance(e, Load):
             return self.field_expr(e.base, e.offset, e.type)
@@ -1398,6 +1399,11 @@ class Emitter:
                 if self.arg_types[c.a.index] == "bool":
                     name = self.arg_name(c.a.index)
                     return name if c.cond == "ne" else f"!{name}"
+            if isinstance(c.b, Const) and isinstance(c.a, Arg) and not c.a.fp and \
+                    c.b.value == {"u8": 0xFF, "u16": 0xFFFF}.get(self.type_of(c.a)):
+                # `tst w1, #0xff`: a test of the whole u8 (OWN_NARROW)
+                name = self.expr(c.a)
+                return f"{name} != 0" if c.cond == "ne" else f"{name} == 0"
             inner = f"({self.paren(c.a)} & {self.paren(c.b)})"
             return f"{inner} != 0" if c.cond == "ne" else f"{inner} == 0"
         if isinstance(c.a, Op) and c.a.op == "-" and isinstance(c.a.b, Const) and isinstance(c.b, Const) \
@@ -1991,7 +1997,8 @@ class Emitter:
             if isinstance(e, Arg) and not e.fp:
                 t = self.arg_types.get(e.index)
                 if t is None:
-                    t = want or ("u32" if pos in lf.narrow else "void*" if e.index == 0 else "u64")
+                    t = want or self.narrow.get(e.index) or \
+                        ("u32" if pos in lf.narrow else "void*" if e.index == 0 else "u64")
                     self.arg_types[e.index] = t
                 if pos in lf.narrow and (t.endswith("*") or WIDTH.get(t, 8) > 4):
                     raise LiftError("tail-call argument narrowed from 64 bits")
@@ -2142,8 +2149,31 @@ def _const(v: int, t: str) -> str:
     return f"0x{v:x}"
 
 
+# The argument registers a function's own code reads as u8/s8/u16/s16 (argregs
+# Params.int_type: every read uses only those bits): absolute address -> {n: type}.
+# Set by generate() (again each time: what the callees take may have changed),
+# read by Emitter (for an argument nothing else types).
+OWN_NARROW: dict[int, dict[int, str]] = {}
+
+
+def own_narrow(addr: int, code: bytes) -> dict[int, str]:
+    """OWN_NARROW of the function at `addr` (absolute): what its instructions
+    say, with what a call passes on read as the callee's call_params say."""
+    import capstone
+
+    from nx import argregs as A
+
+    md = capstone.Cs(capstone.CS_ARCH_ARM64, capstone.CS_MODE_ARM)
+    insns = [(i.address, i.mnemonic, _split_ops(i.op_str)) for i in md.disasm(code, addr)]
+    p = A.analyze(insns, addr, addr + len(code), lambda t: A.Params.from_types(call_params(t)))
+    out = {i: t for i in range(8) if (t := p.int_type(i)) is not None}
+    OWN_NARROW[addr] = out
+    return out
+
+
 def generate(addr: int, code: bytes) -> tuple[str, str]:
     """(structs, function) of the leaf at `addr` (absolute), or LiftError."""
+    own_narrow(addr, code)
     try:
         return generate_one(addr, code)
     except LiftError:
@@ -2733,6 +2763,8 @@ def _evidence_type(i: int, own, sites: list) -> str:
     looks = {regs[i] for _, _, regs in sites if i in regs}
     if kind == "ptr" or (kind is None and "ptr" in looks):
         return "void*"
+    if own is not None and (narrow := own.int_type(i)) is not None:
+        return narrow  # every read of it uses only its low 8 or 16 bits
     if kind == "w" or (kind is None and looks == {"w"}):
         return "u32"
     if kind is None and not looks and i == 0:
@@ -2745,9 +2777,14 @@ def inferred_types(base: list[str], own, sites: list, placeholder: bool) -> list
     many as the function reads, itself or by passing them on (own), or its
     callers write for it (sites), the new ones typed by how they're read or
     written (_evidence_type). A placeholder callee's u64 that it dereferences
-    is a pointer (void*): no source spells it yet."""
+    is a pointer (void*): no source spells it yet. A u32 its own code reads
+    only as 8 or 16 bits is that (Params.int_type): u32 was only the default.
+
+    The positions are x0.. (a float parameter, in s0/d0.., is left alone)."""
     n = max(len(base), own.count if own is not None else 0, max((c[1] for c in sites), default=0))
     out = list(base)
+    if own is not None and not any(t in ("f32", "f64") for t in out):
+        out = [own.int_type(i) or t if t == "u32" else t for i, t in enumerate(out)]
     if placeholder and own is not None:
         out = ["void*" if t in ("u64", "s64") and own.kind(i) == "ptr" else t for i, t in enumerate(out)]
     return out + [_evidence_type(i, own, sites) for i in range(len(base), n)]
@@ -2764,8 +2801,7 @@ def _import_params() -> dict:
         ptypes = LIBC.get(name) if dm is None else dm[2]
         if ptypes is None:
             continue
-        out[stub] = Params({i: {"ptr" if t.endswith("*") else "w" if WIDTH.get(t, 8) <= 4 else "x"}
-                            for i, t in enumerate(ptypes)})
+        out[stub] = Params.from_types(ptypes)
     return out
 
 
@@ -2868,8 +2904,13 @@ def external_references(names: dict[str, int], skip: set[Path]) -> tuple[dict[in
     return called, declared
 
 
+_STATEMENT = {"return", "else", "case", "goto", "throw", "new", "delete", "co_return", "sizeof"}
+
+
 def _decl_line(line: str, name: str) -> re.Match | None:
-    return re.fullmatch(rf"(\s*(?:[\w:]+[\s*&]+)+){re.escape(name)}\((.*)\);\s*", line)
+    """A declaration of `name` on one line (`return name(x);` is a call)."""
+    m = re.fullmatch(rf"(\s*(?:[\w:]+[\s*&]+)+){re.escape(name)}\((.*)\);\s*", line)
+    return None if m is None or set(re.findall(r"\w+", m.group(1))) & _STATEMENT else m
 
 
 def cmd_widen(args) -> int:
@@ -3552,7 +3593,10 @@ def parse_file(text: str) -> list[tuple[int, str, str]]:
 
     A block is the struct definitions before a `// 0x<addr>` line (none for an
     empty function), that line, and the function: up to a line that is `}`, or
-    the definition line itself when it ends with `{}`."""
+    the definition line itself when it ends with `{}`. A file without the
+    include (only a comment where a function moved out) has none."""
+    if "#include <types.h>" not in text:
+        return []
     lines = text.split("#include <types.h>", 1)[1].splitlines()
     while lines and (not lines[0].strip() or lines[0].startswith("#include")):
         lines.pop(0)

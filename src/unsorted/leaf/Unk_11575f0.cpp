@@ -43,10 +43,10 @@ void Unk_115a250_call(Unk_115a250* self) {
     }
 }
 
-void Unk_115a2e0(void*, u64, u32, void*);
+void Unk_115a2e0(void*, u64, u8, void*);
 
 // 0x710115a510
-void Unk_115a510_call(void* self, u32 value, void* arg2) {
+void Unk_115a510_call(void* self, u8 value, void* arg2) {
     Unk_115a2e0(self, 0, value, arg2);
 }
 

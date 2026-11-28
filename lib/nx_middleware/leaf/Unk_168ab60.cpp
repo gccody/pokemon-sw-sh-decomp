@@ -922,10 +922,10 @@ struct Unk_16a80a0 {
 };
 PKMN_OFFSET_ASSERT(Unk_16a80a0, field_50, 0x50);
 
-void Unk_16a3220(void*, u32);
+void Unk_16a3220(void*, u8);
 
 // 0x71016a80a0
-void Unk_16a80a0_call(const Unk_16a80a0* self, u32 value) {
+void Unk_16a80a0_call(const Unk_16a80a0* self, u8 value) {
     if (self->field_50 != nullptr) {
         Unk_16a3220(self->field_50, value);
     }

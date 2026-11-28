@@ -32,8 +32,8 @@ u32 Unk_782de0_get(void* /*unused*/, u32 value) {
 void Unk_782df0() {}
 
 // 0x7100782e00
-u32 Unk_782e00_get(void* /*unused*/, u32 value) {
-    return value & 0xff;
+u32 Unk_782e00_get(void* /*unused*/, u8 value) {
+    return value;
 }
 
 struct Unk_7847d0 {
@@ -167,10 +167,10 @@ void Unk_786c10_call(u32 self) {
 }
 
 extern u64 Unk_27cecf0;
-void Unk_785fb0(u64, u32);
+void Unk_785fb0(u64, u8);
 
 // 0x7100786cd0
-void Unk_786cd0_call(u32 self) {
+void Unk_786cd0_call(u8 self) {
     Unk_785fb0(Unk_27cecf0, self);
 }
 
@@ -213,10 +213,10 @@ u32 Unk_786fb0_get(const Unk_786fb0* self) {
 }
 
 extern u64 Unk_27cecf0;
-void Unk_785ff0(u64, u32);
+void Unk_785ff0(u64, u16);
 
 // 0x7100786fc0
-void Unk_786fc0_call(u32 self) {
+void Unk_786fc0_call(u16 self) {
     Unk_785ff0(Unk_27cecf0, self);
 }
 

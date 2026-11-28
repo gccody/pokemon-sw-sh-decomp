@@ -129,3 +129,112 @@ def test_callers():
     """B/BL words to the targets, by the function they're in."""
     img, funcs = image({0: [bl(0, 0x100), RET], 0x40: [b(0x40, 0x100)], 0x100: [RET]})
     assert A.callers(img, funcs, {0x100}, len(img)) == {0x100: {0, 0x40}}
+
+
+# The narrow uses of w1 (llvm-mc's encodings).
+AND_W2_W1_FF = 0x12001C22     # and w2, w1, #0xff
+UXTB_W8_W1 = 0x53001C28       # uxtb w8, w1
+SXTB_W8_W1 = 0x13001C28       # sxtb w8, w1
+UXTH_W8_W1 = 0x53003C28       # uxth w8, w1
+SXTH_W8_W1 = 0x13003C28       # sxth w8, w1
+STRB_W1 = 0x39002001          # strb w1, [x0, #8]
+STRH_W1 = 0x79001001          # strh w1, [x0, #8]
+CMP_UXTB = 0x6B21011F         # cmp w8, w1, uxtb
+CMP_SXTB = 0x6B21811F         # cmp w8, w1, sxtb
+CMP_UXTH = 0x6B21211F         # cmp w8, w1, uxth
+TST_FF = 0x72001C3F           # tst w1, #0xff
+TBZ_3 = 0x36180201            # tbz w1, #3, +0x40
+TBZ_12 = 0x36600201           # tbz w1, #12, +0x40
+CMP_5 = 0x7100143F            # cmp w1, #5
+AND_3F = 0x12001428           # and w8, w1, #0x3f
+AND_FFFF = 0x12003C28         # and w8, w1, #0xffff
+UBFIZ_8 = 0x531D1C28          # ubfiz w8, w1, #3, #8
+MOV_W19_W1 = 0x2A0103F3       # mov w19, w1
+STR_W1 = 0xB9000801           # str w1, [x0, #8]
+AND_X9_X1_FF = 0x92401C29     # and x9, x1, #0xff
+ADD_W8_W1_1 = 0x11000428      # add w8, w1, #1
+
+
+def narrow(words: list[int]) -> str | None:
+    return A.analyze(insns(words + [RET]), 0, 4 * len(words) + 4).int_type(1)
+
+
+def test_width_use():
+    """Each instruction's use of register 1, from capstone's text."""
+    cases = {AND_W2_W1_FF: "u8", UXTB_W8_W1: "u8", SXTB_W8_W1: "s8", UXTH_W8_W1: "u16", SXTH_W8_W1: "s16",
+             STRB_W1: "8", STRH_W1: "16", CMP_UXTB: "u8", CMP_SXTB: "s8", CMP_UXTH: "u16", TST_FF: "8",
+             TBZ_3: "n8", TBZ_12: "n16", CMP_5: "full", AND_3F: "n8", AND_FFFF: "u16", UBFIZ_8: "u8",
+             STR_W1: "full", AND_X9_X1_FF: "u8", ADD_W8_W1_1: "full"}
+    for word, want in cases.items():
+        (_, mn, ops), = insns([word])
+        assert A.width_use(mn, ops, 1) == want, (hex(word), mn, ops)
+    (_, mn, ops), = insns([ldr_w(8, 1, 0)])
+    assert A.width_use(mn, ops, 1) == "full"     # an address
+    (_, mn, ops), = insns([STRB_W1])
+    assert A.width_use(mn, ops, 0) == "full"     # strb's base
+
+
+def test_narrow_type():
+    assert A.narrow_type({"u8", "8", "n8"}) == "u8"
+    assert A.narrow_type({"s8", "n8"}) == "s8"
+    assert A.narrow_type({"16", "n8", "n16"}) == "u16"
+    assert A.narrow_type({"n8"}) is None            # bits inside a byte: a u32 does that too
+    assert A.narrow_type({"u8", "full"}) is None    # one read uses more
+    assert A.narrow_type({"u8", "u16"}) is None     # the widths disagree
+    assert A.narrow_type({"u8", "n16"}) is None
+    assert A.narrow_type({"u8", "s8"}) is None      # the signedness does
+    assert A.narrow_type(set()) is None
+
+
+def test_int_type_from_its_own_code():
+    """An argument is u8 (u16, s8, s16) only when every read of it is one of
+    those widths and one of them uses all of its bits."""
+    assert narrow([AND_W2_W1_FF]) == "u8"                  # `and w2, w1, #0xff ; b T`'s shape
+    assert narrow([CMP_UXTB, STRB_W1]) == "u8"
+    assert narrow([STRB_W1, TBZ_3]) == "u8"
+    assert narrow([SXTB_W8_W1]) == "s8"
+    assert narrow([UXTH_W8_W1, STRH_W1]) == "u16"
+    assert narrow([SXTH_W8_W1]) == "s16"
+    assert narrow([AND_X9_X1_FF]) == "u8"                  # the 64-bit mask of it
+    assert narrow([MOV_W19_W1, 0x53001E68]) == "u8"        # through a copy: uxtb w8, w19
+    assert narrow([TBZ_3]) is None                         # a bit test alone proves nothing
+    assert narrow([AND_3F]) is None
+    assert narrow([CMP_UXTB, CMP_5]) is None               # cmp w1, #5 reads all 32 bits
+    assert narrow([STRB_W1, STR_W1]) is None
+    assert narrow([UXTB_W8_W1, UXTH_W8_W1]) is None        # u8 and u16 reads: they disagree
+    assert narrow([UXTB_W8_W1, SXTB_W8_W1]) is None
+    assert narrow([STRB_W1, ADD_W8_W1_1]) is None
+    assert narrow([mov_w(19, 1)]) is None                  # copied, never read: nothing says
+    assert narrow([ldr_w(8, 1, 0)]) is None                # a pointer
+
+
+def test_int_type_on_one_path_only():
+    """Every path counts: cbz x0 skips the strb, the other path compares all 32 bits."""
+    words = [cbz_x(0, 0x0, 0xC), STRB_W1, RET, CMP_5]
+    assert A.analyze(insns(words + [RET]), 0, 20).int_type(1) is None
+    words = [cbz_x(0, 0x0, 0xC), STRB_W1, RET, TST_FF]
+    assert A.analyze(insns(words + [RET]), 0, 20).int_type(1) == "u8"
+
+
+def test_int_type_passed_on():
+    """A register only passed on to a callee proves nothing, even to a u8
+    parameter (a u32 passed to one needs no instruction either); passed on
+    to one and extended here, it's that."""
+    leaf = [mov_w(2, 1), b(0x4, 0x100)]
+    callee = [0x53001C48, RET]   # uxtb w8, w2
+    img, funcs = image({0: leaf, 0x100: callee})
+    res = A.Resolver(img, funcs)
+    assert res.params(0x100).int_type(2) == "u8"
+    assert res.params(0).int_type(1) is None
+    leaf = [STRB_W1, mov_w(2, 1), b(0x8, 0x100)]
+    img, funcs = image({0: leaf, 0x100: callee})
+    assert A.Resolver(img, funcs).params(0).int_type(1) == "u8"
+    wide = [ADD_W8_W1_1 & ~0x3E0 | 2 << 5, RET]   # add w8, w2, #1: all 32 bits
+    img, funcs = image({0: leaf, 0x100: wide})
+    assert A.Resolver(img, funcs).params(0).int_type(1) is None
+
+
+def test_params_from_types():
+    p = A.Params.from_types(["void*", "u8", "f32", "s16", "u32", "u64", "bool"])
+    assert [p.kind(i) for i in range(6)] == ["ptr", "w", "w", "w", "x", "w"]   # f32 is in s0
+    assert [p.int_type(i) for i in range(6)] == [None, "u8", "s16", None, None, None]

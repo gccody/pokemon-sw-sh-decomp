@@ -112,6 +112,99 @@ def access(mn: str, ops: list[str]) -> tuple[list[tuple[int, int, bool]], list[t
     return reads, writes
 
 
+_EXTEND = {"uxtb": "u8", "sxtb": "s8", "uxth": "u16", "sxth": "s16"}
+
+
+def _imm(ops: list[str], j: int) -> int | None:
+    o = ops[j].strip() if j < len(ops) else ""
+    return int(o[1:], 0) if o.startswith("#") else None
+
+
+def _mask_use(v: int | None, sign: str) -> str:
+    """A mask of v: all of the low 8 or 16 bits (sign + "8"/"16"), bits
+    inside them ("n8"/"n16"), or more ("full")."""
+    if v is None:
+        return "full"
+    if v in (0xFF, 0xFFFF):
+        return sign + ("8" if v == 0xFF else "16")
+    return "n8" if v < 0x100 else "n16" if v < 0x10000 else "full"
+
+
+def _use_at(mn: str, ops: list[str], k: int) -> str:
+    """width_use of the register that is operand k."""
+    nxt = ops[k + 1].split()[0] if k + 1 < len(ops) and ops[k + 1] else ""
+    if k >= 1 and nxt in _EXTEND:
+        return _EXTEND[nxt]  # an extended-register operand: `cmp w8, w1, uxtb`
+    if k == 1 and mn in _EXTEND and len(ops) == 2:
+        return _EXTEND[mn]
+    if k == 1 and mn == "and" and len(ops) == 3:
+        return _mask_use(_imm(ops, 2), "u")
+    if k == 0 and mn == "tst" and len(ops) == 2:
+        return _mask_use(_imm(ops, 1), "")
+    if k == 0 and mn in ("strb", "sturb", "stlrb"):
+        return "8"
+    if k == 0 and mn in ("strh", "sturh", "stlrh"):
+        return "16"
+    if k == 0 and mn in ("tbz", "tbnz"):
+        bit = _imm(ops, 1)
+        return "full" if bit is None else "n8" if bit < 8 else "n16" if bit < 16 else "full"
+    if k == 1 and len(ops) == 4 and (lsb := _imm(ops, 2)) is not None and (wid := _imm(ops, 3)) is not None:
+        if mn in ("ubfx", "sbfx", "bfxil"):
+            top = lsb + wid
+            return "n8" if top <= 8 else "n16" if top <= 16 else "full"
+        if mn in ("ubfiz", "sbfiz"):
+            if wid in (8, 16):
+                return ("s" if mn == "sbfiz" else "u") + str(wid)
+            return "n8" if wid < 8 else "n16" if wid < 16 else "full"
+        if mn == "bfi":
+            return "n8" if wid <= 8 else "n16" if wid <= 16 else "full"
+    return "full"
+
+
+def width_use(mn: str, ops: list[str], n: int) -> str:
+    """How an instruction reads register n (not as an address):
+    - "u8"/"s8"/"u16"/"s16": its low 8 or 16 bits, zero- or sign-extended
+      (`uxtb`, `and #0xff`, an extended operand `cmp w8, w1, uxtb`, `ubfiz
+      w8, w1, #3, #8`);
+    - "8"/"16": all of them, either signedness (`strb`, `tst w1, #0xff`);
+    - "n8"/"n16": only bits inside them (a smaller mask, `tbz` of bit 3, a
+      bitfield of them: what a u32 does too);
+    - "full": more, or anything else (a compare, arithmetic, an address)."""
+    ops = [o.strip() for o in ops]
+    uses = []
+    for k, o in enumerate(ops):
+        m = _MEM.fullmatch(o)
+        if m:
+            if any((r := reg(p)) is not None and r[0] == n for p in m.group(1).split(",")):
+                return "full"
+            continue
+        r = reg(o)
+        if r is not None and r[0] == n:
+            uses.append(_use_at(mn, ops, k))
+    if not uses or any(u != uses[0] for u in uses):
+        return "full"
+    return uses[0]
+
+
+def narrow_type(widths: set[str]) -> str | None:
+    """u8/s8/u16/s16 for a register whose reads (width_use classes) all use
+    only its low 8 or 16 bits, at least one all of them, none disagreeing in
+    width or signedness; None otherwise."""
+    if not widths or "full" in widths:
+        return None
+    exact = {c for c in widths if not c.startswith("n")}
+    bits = {c.lstrip("us") for c in exact}
+    if len(bits) != 1:
+        return None
+    b = bits.pop()
+    if b == "8" and "n16" in widths:
+        return None
+    signs = {c[0] for c in exact if c[0] in "us"}
+    if len(signs) > 1:
+        return None
+    return ("s" if signs == {"s"} else "u") + b
+
+
 def target(ops: list[str]) -> int | None:
     """A direct branch's target (its last operand), absolute."""
     if not ops or not ops[-1].strip().startswith("#"):
@@ -124,6 +217,25 @@ class Params:
     """What a function's code says about its argument registers x0..x7."""
     uses: dict[int, set[str]] = field(default_factory=dict)  # register -> {"ptr", "w", "x"}
     variadic: bool = False  # saves x7 as it got it on the stack: a `...` function's register save area
+    widths: dict[int, set[str]] = field(default_factory=dict)  # register -> its reads' width_use classes
+
+    @classmethod
+    def from_types(cls, types: list[str]) -> Params:
+        """The Params of a prototype (leafgen's type spellings): its integer and
+        pointer parameters in x0.., floats skipped (they're in s0/d0..)."""
+        out = cls()
+        n = 0
+        for t in types:
+            t = t.strip()
+            if t in ("f32", "f64", "float", "double"):
+                continue
+            if n >= 8:
+                break
+            ptr = t.endswith("*")
+            out.uses[n] = {"ptr" if ptr else "x" if t in ("u64", "s64") else "w"}
+            out.widths[n] = {t if t in ("u8", "s8", "u16", "s16") else "n8" if t == "bool" else "full"}
+            n += 1
+        return out
 
     @property
     def count(self) -> int:
@@ -136,6 +248,14 @@ class Params:
         if not u:
             return None
         return "ptr" if "ptr" in u else "w" if u == {"w"} else "x"
+
+    def int_type(self, i: int) -> str | None:
+        """u8/s8/u16/s16 when every read of x<i>, on every path, uses only its
+        low 8 or 16 bits and one uses all of them (narrow_type); None when
+        not, when it's a pointer or when it's only passed on."""
+        if self.kind(i) in (None, "ptr"):
+            return None
+        return narrow_type(self.widths.get(i, set()))
 
 
 def _blocks(insns: list[tuple[int, str, list[str]]], start: int, end: int) -> dict[int, list[int]]:
@@ -172,18 +292,22 @@ def analyze(insns: list[tuple[int, str, list[str]]], start: int, end: int, calle
     work = [0]
 
     spilled: dict[int, set[str]] = {}  # stored to the stack, as it got it
+    spilled_w: dict[int, set[str]] = {}
 
-    def use(state: dict, n: int, kind: str, into: dict | None = None) -> None:
+    def use(state: dict, n: int, kind: str, into: dict | None = None, width: str | None = "full") -> None:
         for t in state.get(n, ()):
             (out.uses if into is None else into).setdefault(t, set()).add(kind)
+            if width is not None:
+                (out.widths if into is None else spilled_w).setdefault(t, set()).add(width)
 
     def call(state: dict, addr: int | None) -> None:
         p = callee(addr) if callee is not None and addr is not None else None
         if p is None:
             return
         for i, kinds in p.uses.items():
+            narrow = p.int_type(i)  # passed on to a narrow parameter: only its bits are read
             for k in kinds:
-                use(state, i, k)
+                use(state, i, k, width="full" if narrow is None else "n" + narrow.lstrip("us"))
 
     while work:
         i = work.pop()
@@ -193,14 +317,15 @@ def analyze(insns: list[tuple[int, str, list[str]]], start: int, end: int, calle
         if mn == "mov" and len(ops) == 2 and reg(ops[0]) and reg(ops[1]):
             (d, _), (s, sw) = reg(ops[0]), reg(ops[1])
             if sw == 4:
-                use(state, s, "w")
+                use(state, s, "w", width=None)  # a copy: how the copy is read says the width
             state[d] = state.get(s, frozenset())
         else:
             stack = is_store(mn) and any(o.strip().startswith(("[sp", "[x29")) for o in ops)
             for n, w, base in reads:
                 untouched = state.get(n) == frozenset({n})
                 use(state, n, "ptr" if base else "w" if w == 4 else "x",
-                    spilled if stack and not base and untouched else None)
+                    spilled if stack and not base and untouched else None,
+                    "full" if base else width_use(mn, ops, n))
             if mn in ("bl", "b") and not (mn == "b" and start <= (target(ops) or start) < end):
                 call(state, target(ops))
             if mn in ("blr", "br"):
@@ -226,6 +351,7 @@ def analyze(insns: list[tuple[int, str, list[str]]], start: int, end: int, calle
     else:
         for t, kinds in spilled.items():
             out.uses.setdefault(t, set()).update(kinds)
+            out.widths.setdefault(t, set()).update(spilled_w.get(t, ()))
     return out
 
 
