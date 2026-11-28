@@ -313,3 +313,86 @@ def test_render_declares_new_slots_after_vf_type():
     assert "    const Unk_239a418_Type* vf_type() override;\n    virtual void vf7();\n    virtual void vf8();\n};" \
         in src
     assert "~Unk_C()" not in src
+
+
+def test_render_defines_a_cut_getter():
+    # C cuts at 0xA028's getter (0x400), which inlines 0xA038's, under the object's:
+    # defined here (define_cut), with its address, rather than declared.
+    v = T.Getter(0x300, {0xA008: ("ret", 0x400)}, 0xA008, [0x400])
+    g = T.Getter(0x400, {0xA028: ("obj", 0xA038), 0xA038: ("obj", 0xA048)}, 0xA028, [])
+    t = fake({0x300: v, 0x400: g}, {})
+    expr = {0xA008: "Unk_C::Unk_GetType()", 0xA028: "Unk_a028::Unk_GetType()", 0xA038: "Unk_a038::Unk_GetType()",
+            0xA048: "Unk_239a418_GetType()"}
+    c = T.ClassPlan("Unk_C", 0x5000, 0x300, [(0x48, 0x310), (0x50, 0x320)], 0xA008, [0xA008], ("cut", 0x400),
+                    cut_def=([0xA028, 0xA038], ("global", 0xA048)))
+    src = T.render(t, expr, [c])
+    assert "static const Unk_239a418_Type* Unk_GetType();" not in src
+    assert "static Unk_239a418_Type type(Unk_239a418_GetType());" in src
+    assert "static Unk_239a418_Type type(Unk_a038::Unk_GetType());" in src
+    assert "static Unk_239a418_Type type(Unk_a028::Unk_GetType());" in src
+    assert src.index("struct Unk_a038") < src.index("struct Unk_a028") < src.index("class Unk_C")
+    assert {int(a, 16) - T.BASE for a in T.ADDR_RE.findall(src)} == {0x300, 0x310, 0x320, 0x400}
+
+
+def test_partition_puts_cut_definitions_with_what_they_inline():
+    t = fake({0x400: T.Getter(0x400, {}, 0xA028, []), 0x410: T.Getter(0x410, {}, 0xA048, [])}, {})
+    expr = {0xA008: "Unk_C::Unk_GetType()", 0xA018: "Unk_D::Unk_GetType()", 0xA028: "Unk_a028::Unk_GetType()",
+            0xA048: "Unk_a048::Unk_GetType()"}
+    # C defines 0xA028's getter, which calls 0xA048's; D inlines 0xA048: apart.
+    c = T.ClassPlan("Unk_C", 1, 0x300, [], 0xA008, [0xA008], ("cut", 0x400), cut_def=([0xA028], ("cut", 0x410)))
+    d = T.ClassPlan("Unk_D", 2, 0x500, [], 0xA018, [0xA018, 0xA048], ("zero",))
+    assert [[x.name for x in p] for p in T.partition(t, expr, [c, d])] == [["Unk_C"], ["Unk_D"]]
+
+
+def test_partition_one_caller():
+    # Two slot getters returning one type: apart, unless they're in one file now.
+    t = fake({}, {})
+    expr = {0xA008: "Unk_a008::Unk_GetType()"}
+    now = {0x300: "Unk_300.cpp", 0x310: "Unk_310.cpp", 0x320: "Unk_320.cpp", 0x330: "Unk_320.cpp"}
+
+    def plan(f):
+        return T.ClassPlan(f"Unk_{f:x}", f, f, [], 0xA008, [0xA008], ("zero",), bare=True, member="vf5")
+    assert len(T.partition(t, expr, [plan(0x300), plan(0x310)], one_caller=now)) == 2
+    assert len(T.partition(t, expr, [plan(0x320), plan(0x330)], one_caller=now)) == 1
+    assert len(T.partition(t, expr, [plan(0x340), plan(0x350)], one_caller=now)) == 2
+    assert len(T.partition(t, expr, [plan(0x300), plan(0x310)])) == 1
+
+
+def test_written_files(tmp_path):
+    (tmp_path / "Unk_1.cpp").write_text("// 0x7100000300\ncode\n")
+    (tmp_path / "Unk_2.cpp").write_text("// 0x7100000310\n// 0x7100000320\n")
+    assert T.written_files(tmp_path) == {0x300: "Unk_1.cpp", 0x310: "Unk_2.cpp", 0x320: "Unk_2.cpp"}
+
+
+def test_defined_addresses():
+    text = ("// 0x7100000100\nvoid Unk_1::vf7() {\n}\n"           # a definition
+            "// 0x7100000200\ntemplate <class T>\nbool Unk_2(Unk_3* x);\n"  # a declaration
+            "class Unk_4 {\n    // 0x7100000300\n    void vf1() {}\n};\n"   # inline in its class
+            "// 0x7100000400\nclass Unk_5 {\n    void f();\n};\n"          # a class
+            "// 0x7100000500, 0x7100000510\n// what it does\nconst T* Unk_6::vf_type() {\n")
+    assert T.defined_addresses(text) == {0x100, 0x500}
+
+
+def test_keep_list():
+    log = ("OK  common      a  [sword:0x7100000100, shield:0x7100000100]\n"
+           "BAD common      b  [sword:0x7100000200, shield:0x7100000200]\n"
+           "OK  common      c  [sword:0x7100000300, shield:0x7100000300]\n"
+           "BAD common      d  [sword:0x7100000400, shield:0x7100000400]\n"
+           "OK  common      e  [sword:0x7100000600, shield:0x7100000600]\n")
+    files = [
+        # 0x500 defined here, but 0x400 is BAD in its file: refused
+        "// 0x7100000500: the copy of its getter that the getters below call\n// 0x7100000400\n",
+        # 0x600 defined and emitted, nothing regressed: kept
+        "// 0x7100000600: the copy of its getter that the getters below call\n// 0x7100000100\n",
+        # 0x700 defined but not emitted (no line in the log): refused
+        "// 0x7100000700: the copy of its getter that the getters below call\n// 0x7100000300\n",
+    ]
+    names = {0x100, 0x200, 0x300, 0x500, 0x600, 0x700, 0x800, 0x900}
+    # 0x400 and 0x900, BAD in the first file, are tried again without 0x500; 0x200 (elsewhere) isn't
+    files[0] += "// 0x7100000900\n"
+    log += "BAD common      f  [sword:0x7100000900, shield:0x7100000900]\n"
+    assert T.keep_list(names | {0x400}, log, files) == {0x100, 0x300, 0x400, 0x600, 0x800, 0x900}
+    # 0x200 and 0x400 BAD before the trial too: kept (0x500 is still refused: 0x900 is new)
+    base = "BAD common      b  [sword:0x7100000200, shield:0x7100000200]\n" \
+           "BAD common      d  [sword:0x7100000400, shield:0x7100000400]\n"
+    assert T.keep_list(names | {0x400}, log, files, base) == {0x100, 0x200, 0x300, 0x400, 0x600, 0x800, 0x900}

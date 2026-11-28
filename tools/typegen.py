@@ -5,6 +5,8 @@
     python tools/typegen.py write --names n.csv         # src/unsorted/types, and the names to give
     python tools/typegen.py write --names n.csv --only keep.txt
     python tools/typegen.py write --names n.csv --keep  # a re-run: what's written stays as it is
+    python tools/typegen.py keep --names trial.csv --log trial.log --base before.log --out keep.txt
+    python tools/typegen.py write --no-renames ...      # vtables.py's functions keep their names
 
 A class on gflib3's reference-counted object (src/gflib3/Unk_239a418.h)
 overrides the object's `vf_type`, which returns the class's type descriptor:
@@ -54,7 +56,16 @@ classes into files where it never is. What it writes, in src/unsorted/types:
   stops writing the forwarders (it skips the functions of
   src/unsorted/types, read from their address comments);
 - the kind test (`Unk_61a530<T>`): whether an object's type, from its +0x50
-  interface, is T or derives from it, one explicit instantiation per T.
+  interface, is T or derives from it, one explicit instantiation per T;
+- the getters these call out of line (their cut) that nothing else emits,
+  when they initialise three statics or more (`define_cut`): defined inline
+  in their callers' files with their own chain, too big for clang to inline
+  into them, so it emits their copy there as the original's TU did.
+
+Getters in vtable slots that return one type are in files of their own (in
+one file, the type's getter would have two callers and not be inlined into
+either), unless they're in one file now. What a hand-written source
+defines out of line is never written here (`handwritten_addresses`).
 
 A class whose vtable group is the object's with only vf_type added (slot 6,
 and its thunks), and whose D0 and destructor thunks are copies of the
@@ -82,6 +93,14 @@ its own it rewrites nothing. A class another file defines a getter or an
 inline vf_type for is left to that file, unless it's written here already:
 its inline copy is emitted only with its vtable, maybe nowhere
 (`taken_classes`).
+
+The list `keep` makes is the trial's names minus check.py's BAD
+addresses and minus the cut getters whose definitions didn't work out
+(keep_list): run `keep` again on the rewrite's check until nothing more is
+dropped. Renaming vtables.py's functions (a forwarder class's slots to
+vf_type and its thunks, a forwarder's callee `Unk_<G>(void*)` to its type's
+getter) needs `vtables.py write` run afterwards; `--no-renames` leaves them
+alone, for when it can't be.
 """
 from __future__ import annotations
 
@@ -105,6 +124,10 @@ GLOBAL_GETTERS = {"Unk_239a418_GetType": "Unk_239a418_GetType()",
                   "Unk_239a418_RootType": "&Unk_239a418_RootType()"}
 # Where a class on the object keeps vf_type: (offset-to-top, slot) of its vtable group.
 OBJECT_SLOTS = ((0, 6), (0x48, 5), (0x50, 0))
+# A cut getter is defined in its callers' files (define_cut) when it initialises
+# at least this many statics, the object's own included: smaller, clang would
+# inline it into them.
+CUT_DEF_STATICS = 3
 STATIC_RE = re.compile(r"_ZZ(?:N(\d+)(\w+?)11Unk_GetTypeEv|(\d+)(\w+?)v)E4type")
 PLAIN_MEMBER = re.compile(r"_ZN(\d+)(Unk_[0-9a-f]+)(\d+)(vf\d+)Ev")  # vtables.py's Unk_<vtable>::vf<k>()
 FORWARD_NAME = re.compile(r"_Z\d+Unk_[0-9a-f]+Pv")  # vtables.py's forwarders' callees
@@ -294,6 +317,10 @@ class Types:
                 if isinstance(f, int):
                     self.slot_of[f].append((v.group, -v.offset_to_top, i))
         self.data_names = data_names
+        self.hand: set[int] = set()  # what hand-written sources define: never written here (load() fills it)
+        # Whether functions vtables.py writes may be renamed (its forwarders and
+        # their callees): only when vtables.py write runs after this tool.
+        self.renames = True
 
     @staticmethod
     def _imports(game: str, names: tuple[str, ...]) -> list[int]:
@@ -403,6 +430,50 @@ def taken_classes(root: Path, out_dir: Path = OUT_DIR) -> tuple[set[str], set[st
     return vf_type_classes(root, out_dir, inline=False) | (inline - written_classes(out_dir)), inline
 
 
+HAND_ADDR_RE = re.compile(r"^// (?:sword:? ?)?0x(71[0-9a-f]{8})\b", re.M | re.I)
+
+
+def handwritten_addresses(root: Path = ROOT) -> set[int]:
+    """The functions that sources outside the generators' directories define
+    out of line (an address comment at the start of a line), relative to BASE.
+    A member defined in its class (an indented comment) is inline: only its
+    TU's vtable emits it, so a generator's copy is what matches."""
+    import units
+
+    out = set()
+    for top in ("src", "lib"):
+        for p in sorted((root / top).rglob("*")) if (root / top).exists() else ():
+            rel = p.relative_to(root).as_posix()
+            if p.suffix not in units.SOURCE_SUFFIXES or units.is_generated(rel) \
+                    or any(rel.startswith(d + "/") for d in units.UNSCANNED_DIRS) or not p.is_file():
+                continue
+            out |= defined_addresses(p.read_text(encoding="utf-8", errors="replace"))
+    return out
+
+
+def defined_addresses(text: str) -> set[int]:
+    """The addresses of a source's out-of-line definitions: an address comment
+    at the start of a line, followed by a function's body (a `{` before any
+    `;`), not by a declaration or a class."""
+    out = set()
+    for m in HAND_ADDR_RE.finditer(text):
+        rest = text[m.end():]
+        code = "\n".join(ln for ln in rest.split("\n")[1:8] if not ln.lstrip().startswith("//"))
+        brace, semi = code.find("{"), code.find(";")
+        if brace >= 0 and (semi < 0 or brace < semi) and not re.match(r"\s*(?:class|struct|union|namespace)\b", code):
+            out.add(int(m.group(1), 16) - BASE)
+    return out
+
+
+def written_files(out_dir: Path = OUT_DIR) -> dict[int, str]:
+    """The functions src/unsorted/types defines -> the file (its name) that does."""
+    out = {}
+    for p in sorted(out_dir.glob("*.cpp")) if out_dir.exists() else ():
+        for a in ADDR_RE.findall(p.read_text(encoding="utf-8")):
+            out[int(a, 16) - BASE] = p.name
+    return out
+
+
 def written_addresses(out_dir: Path = OUT_DIR) -> set[int]:
     """The functions src/unsorted/types defines (its address comments), relative to BASE."""
     out = set()
@@ -427,6 +498,7 @@ class ClassPlan:
     fwd: bool = False                        # a forwarder: tail-calls its cut, declared (vtables.py's name)
     dtors: list = field(default_factory=list)  # its D0 and destructor thunks, emitted here: emitted_dtors
     slots: list[int] = field(default_factory=list)  # with them, its virtual functions after vf_type (declared)
+    cut_def: tuple = ()                      # the cut getter defined here: (its inlined types, their end)
 
 
 @dataclass
@@ -436,6 +508,7 @@ class KindPlan:
     top: int
     inlined: list[int] = field(default_factory=list)
     end: tuple = ()
+    cut_def: tuple = ()
 
     @property
     def name(self) -> str:  # not a C++ name: partition's key for it
@@ -585,13 +658,18 @@ def chain_of(t: Types, expr: dict[int, str], f: int, g: Getter | None = None) ->
 
 def parent_expr(t: Types, expr: dict[int, str], c: ClassPlan, i: int) -> str:
     """The parent of c's i-th inlined type, spelled as this file calls it."""
-    if i + 1 < len(c.inlined):
-        return expr[c.inlined[i + 1]]
-    if c.end[0] == "zero":
+    return chain_parent(t, expr, c.inlined, c.end, i)
+
+
+def chain_parent(t: Types, expr: dict[int, str], inlined: list[int], end: tuple, i: int) -> str:
+    """The parent of a chain's i-th inlined type, spelled as this file calls it."""
+    if i + 1 < len(inlined):
+        return expr[inlined[i + 1]]
+    if end[0] == "zero":
         return "nullptr"
-    if c.end[0] == "global":
-        return expr[c.end[1]]
-    return f"{cut_class(expr, t, c.end)}::Unk_GetType()"
+    if end[0] == "global":
+        return expr[end[1]]
+    return f"{cut_class(expr, t, end)}::Unk_GetType()"
 
 
 def cut_class(expr: dict[int, str], t: Types, end: tuple) -> str:
@@ -612,7 +690,15 @@ def render(t: Types, expr: dict[int, str], classes: list[ClassPlan]) -> str:
     for c in classes:
         for i, ty in enumerate(c.inlined):
             parent[ty] = parent_expr(t, expr, c, i)
-    cut = sorted({(cut_class(expr, t, c.end), t.getters[c.end[1]].top) for c in classes if c.end[0] == "cut"})
+    # the cut getters defined here (define_cut), with the types they inline
+    defined = {c.end[1]: c.cut_def for c in classes if getattr(c, "cut_def", ())}
+    for ins, end in defined.values():
+        for i, ty in enumerate(ins):
+            parent[ty] = chain_parent(t, expr, ins, end, i)
+    def_top = {t.getters[g].top: g for g in defined}
+    cut = sorted({(cut_class(expr, t, c.end), t.getters[c.end[1]].top) for c in classes
+                  if c.end[0] == "cut" and not getattr(c, "cut_def", ())}
+                 | {(cut_class(expr, t, end), t.getters[end[1]].top) for _, end in defined.values() if end[0] == "cut"})
     own = {c.top: c for c in classes if cls_of(expr[c.top]) == c.name and not getattr(c, "fwd", False)}
     # A forwarder's struct that is also its cut's declares the getter itself.
     fwd_cut = {c.name for c in classes if getattr(c, "fwd", False) and cut_class(expr, t, c.end) == c.name}
@@ -702,6 +788,9 @@ def render(t: Types, expr: dict[int, str], classes: list[ClassPlan]) -> str:
         p = by_expr.get(parent[ty])
         if p is not None:
             emit(p)
+        if ty in def_top:
+            out += [f"// 0x{def_top[ty] + BASE:x}: the copy of its getter that the getters below call (too big",
+                    "// to be inlined into them: clang emits it here)."]
         if ty in own:
             out += declare(own[ty])
         else:
@@ -731,7 +820,9 @@ def load(game: str = "sword") -> Types:
 
     m = vt.load(game)
     rows = {f.sword: f for f in read_functions_csv() if f.sword is not None}
-    return Types(m, rows, read_data_names())
+    t = Types(m, rows, read_data_names())
+    t.hand = handwritten_addresses()
+    return t
 
 
 def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int],
@@ -747,14 +838,14 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int],
 
     def free(f: int, name: str) -> bool:
         r = rows.get(f)
-        return r is not None and r.scope == "common" and r.shield is not None \
+        return r is not None and r.scope == "common" and r.shield is not None and f not in t.hand \
             and (only is None or f in only or r.status == "O") and (not r.name and r.status == "U" or r.name == name)
 
     def forwarder(f: int, name: str) -> bool:
         """A forwarder vtables.py wrote (matched, named as its placeholder's member), or a free one."""
         r = rows.get(f)
-        return free(f, name) or r is not None and r.status == "O" and r.scope == "common" \
-            and r.shield is not None and vt.WRITTEN.fullmatch(r.name) is not None
+        return free(f, name) or t.renames and r is not None and r.status == "O" and r.scope == "common" \
+            and r.shield is not None and vt.WRITTEN.fullmatch(r.name) is not None and f not in t.hand
 
     def getter_name(g: int) -> str | None:
         """The name to give getter g, its type's: None if g is named otherwise."""
@@ -776,8 +867,7 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int],
         g = c.end[1]
         n = getter_name(g)
         if n is not None:
-            if rows[g].name != n:
-                names.append((g, n))
+            names.append((g, n))  # even when it has it already: a trial's names list what it relies on
             return True
         other = member_getter(rows[g].name or "")
         if other is not None and rows[g].shield is not None:
@@ -786,6 +876,32 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int],
         skipped.append(f"{c.name}: the getter it calls is named otherwise")
         return False
 
+    def define_cut(c, names: list) -> None:
+        """Define c's cut getter here, inline with its own chain, when it isn't
+        matched elsewhere: too big to be inlined into c (three statics or more),
+        clang emits its copy in the file, as the original's TU did. In a trial
+        (no `only`) every such getter, then those that matched."""
+        if c.end[0] != "cut" or len(c.end) > 2 or getattr(c, "fwd", False):
+            return
+        g = c.end[1]
+        r = rows[g]
+        if r.status not in "OU" or g in t.hand or g in t.slot_of or r.status == "O" and g not in ours:
+            return
+        if only is not None and g not in only and not (r.status == "O" and g in ours):
+            return
+        ch = chain_of(t, expr, g)
+        if ch is None or len(ch[0]) + (2 if ch[1][0] == "global" else 0) < CUT_DEF_STATICS:
+            return
+        if ch[1][0] == "cut":
+            n = getter_name(ch[1][1])
+            if n is None:
+                return
+            names.append((ch[1][1], n))
+        if not any(f == g for f, _ in names):
+            names.append((g, getter_symbol(expr[t.getters[g].top])))
+        c.cut_def = ch
+
+    ours = written_addresses()
     keep = []
     for c in classes:
         if c.name in taken:
@@ -803,13 +919,19 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int],
             dtors = emitted_dtors(c.name, layouts[c.group], obj, lambda f, g: same_code(t.m, f, g),
                                   lambda f, g=c.group: owner.get(f, (None,))[0] == g) \
                 if obj and c.name not in declared else None
-            if dtors and all(free(f, n) for f, n in dtors):
+            thunk_names = set(names[1:])
+            # not when that would cost matched thunks: with the vtable here, a bare
+            # class's thunks compile as calls
+            if dtors and all(free(f, n) for f, n in dtors) \
+                    and not (c.bare and any(rows[a].status == "O" for _, a in c.thunks)):
                 c.dtors = dtors
                 c.slots = new_slots(layouts[c.group], obj)
                 names += dtors
             elif c.bare:
                 names = names[:1]
-            if not all(free(f, n) for f, n in names):
+            # a bare class's thunks, emitted with its vtable, don't match (they
+            # call vf_type): named as written, they're written again, U
+            if not all(free(f, n) or c.bare and (f, n) in thunk_names and rows[f].name == n for f, n in names):
                 continue
             ch = chain_of(t, expr, c.vf_type)
             if ch is None or not c.bare and any(chain_of(t, expr, a) != ch for _, a in c.thunks):
@@ -829,6 +951,7 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int],
         c.inlined, c.end = ch
         if not cut_named(c, names):
             continue
+        define_cut(c, names)
         keep.append((c, names))
     for f, g in sorted(t.kind_of.items()):
         if g.top not in expr or is_global(expr[g.top]):
@@ -842,6 +965,7 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int],
         k.inlined, k.end = ch
         if not cut_named(k, names):
             continue
+        define_cut(k, names)
         keep.append((k, names))
     # Getters in other vtable slots (other layouts, secondary vtables' copies,
     # classes left out above): each a plain member of its owner vtable's class.
@@ -862,6 +986,7 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int],
         c.inlined, c.end = ch
         if not cut_named(c, names):
             continue
+        define_cut(c, names)
         keep.append((c, names))
     # The forwarders vtables.py wrote to a getter renamed here: each a plain
     # member that tail-calls it (its name kept), so that no matched function
@@ -871,7 +996,6 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int],
     renamed = {f for _, names in keep for f, n in names
                if f in t.getters and FORWARD_NAME.fullmatch(rows[f].name or "") and n != rows[f].name}
     cuts = {c.end[1] for c, _ in keep if getattr(c, "end", ()) and c.end[0] == "cut"}
-    ours = written_addresses()
     written = {f for _, names in keep for f, _ in names}
     if renamed or cuts:
         callers = callers_of(t.m, renamed | cuts)
@@ -879,7 +1003,7 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int],
             for f in sorted(callers.get(g, ())):
                 r = rows[f]
                 pm = PLAIN_MEMBER.fullmatch(r.name or "")
-                if f in written or r.status != "O" or pm is None or branch_only(t.m, f) != g:
+                if f in written or f in t.hand or r.status != "O" or pm is None or branch_only(t.m, f) != g:
                     continue
                 if g not in renamed and f not in ours:
                     continue  # a forwarder vtables.py writes, to a getter named as its type's already
@@ -922,7 +1046,7 @@ def selection(t: Types, only: set[int] | None):
     taken, declared = taken_classes(ROOT / "src")
     fwd = {f for f in t.getters if f in t.rows and FORWARD_NAME.fullmatch(t.rows[f].name or "")}
     callers = callers_of(t.m, fwd)
-    blocked: set[int] = set()
+    blocked: set[int] = set() if t.renames else set(fwd)
     while True:
         keep, expr, skipped = _select(t, only, taken, blocked, declared)
         written = {f for _, names in keep for f, _ in names}
@@ -933,22 +1057,35 @@ def selection(t: Types, only: set[int] | None):
         blocked |= now
 
 
-def partition(t: Types, expr: dict[int, str], classes: list[ClassPlan]) -> list[list[ClassPlan]]:
+def partition(t: Types, expr: dict[int, str], classes: list[ClassPlan],
+              one_caller: dict[int, str] | None = None) -> list[list[ClassPlan]]:
     """Classes in files where no type is both inlined and only declared, and
-    no struct is declared twice."""
+    no struct is declared twice. `one_caller` (address -> the file that has it
+    now): nor two of them return the same type (its getter would have two
+    callers there, and clang would call it rather than inline it into either),
+    unless they're in one file now (and matched that way)."""
+    def together(x, c) -> bool:
+        return one_caller.get(key(x)) is not None and one_caller.get(key(x)) == one_caller.get(key(c))
+
     files: list[tuple[list[ClassPlan], set[int], set[int], dict[str, int]]] = []
     for c in classes:
         inl = set(c.inlined)
-        cut = {t.getters[c.end[1]].top} if c.end[0] == "cut" else set()
+        end = c.end
+        if getattr(c, "cut_def", ()):
+            inl |= set(c.cut_def[0])
+            end = c.cut_def[1]
+        cut = {t.getters[end[1]].top} if end[0] == "cut" else set()
         names = {cls_of(expr[ty]): ty for ty in inl}
-        if c.end[0] == "cut":
-            names[cut_class(expr, t, c.end)] = t.getters[c.end[1]].top
+        if end[0] == "cut":
+            names[cut_class(expr, t, end)] = t.getters[end[1]].top
         if c.name in names and names[c.name] != c.top:
             continue
         for cs, i, d, n in files:
             tops = {x.name: x.top for x in cs}
             # a forwarder's struct is its own: no other plan of its name in the file
             if any(x.name == c.name and (getattr(x, "fwd", False) or getattr(c, "fwd", False)) for x in cs):
+                continue
+            if one_caller is not None and any(x.top == c.top and not together(x, c) for x in cs):
                 continue
             if inl & d or cut & i or n.get(c.name, c.top) != c.top \
                     or any(tops.get(k, ty) != ty or n.get(k, ty) != ty for k, ty in names.items()):
@@ -1004,6 +1141,7 @@ def cmd_write(t: Types, args) -> None:
     for c, _ in keep:
         by_seg[seg(key(c))].append(c)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    now = written_files()
     for old in OUT_DIR.glob("Unk_*.cpp"):
         old.unlink()
     n_files = 0
@@ -1017,7 +1155,8 @@ def cmd_write(t: Types, args) -> None:
         loose = [c for c in cs if getattr(c, "bare", False) and not c.thunks]
         rest = [c for c in cs if not getattr(c, "bare", False)]
         for part in [*partition(t, expr, sorted(rest, key=key)), *partition(t, expr, sorted(bare, key=key)),
-                     *partition(t, expr, sorted(loose, key=key)), *partition(t, expr, sorted(named, key=key))]:
+                     *partition(t, expr, sorted(loose, key=key), one_caller=now),
+                     *partition(t, expr, sorted(named, key=key))]:
             (OUT_DIR / f"Unk_{key(part[0]):x}.cpp").write_text(render(t, expr, part), encoding="utf-8",
                                                                 newline="\n")
             written |= {c.name for c in part}
@@ -1035,6 +1174,45 @@ def cmd_write(t: Types, args) -> None:
     print(f"{len(written)} classes in {n_files} files, {len(names)} names in {args.names}", file=sys.stderr)
 
 
+CHECK_LINE = re.compile(r"^(OK|BAD) .*\[sword:0x([0-9a-f]+)", re.M)
+CUT_DEF_RE = re.compile(r"^// (0x71[0-9a-f]+): the copy of its getter", re.M)
+
+
+def keep_list(names: set[int], log: str, files: list[str], base: str = "") -> set[int]:
+    """What a trial (`write`, check.py's output `log`) keeps for `write --only`:
+    its names' functions that weren't BAD, but not the cut getters it defined
+    (define_cut) in a file where something didn't match (a cut definition
+    changes how its file's other getters inline), or that clang didn't emit
+    (inlined into their callers after all). What was BAD in such a file is
+    tried again without them: run `keep` on each rewrite's check until it
+    keeps all of its names. What was BAD before the trial too (`base`,
+    check.py's output then) is neither: written U on purpose."""
+    ok, bad = set(), set()
+    for kind, a in CHECK_LINE.findall(log):
+        (ok if kind == "OK" else bad).add(int(a, 16) - BASE)
+    bad -= {int(a, 16) - BASE for kind, a in CHECK_LINE.findall(base) if kind == "BAD"}
+    refused, retry = set(), set()
+    for text in files:
+        cut = {int(a, 16) - BASE for a in CUT_DEF_RE.findall(text)}
+        addrs = {int(a, 16) - BASE for a in ADDR_RE.findall(text)}
+        if cut and (addrs & bad or cut - ok):
+            refused |= cut
+            retry |= addrs - cut
+    return names - (bad - retry) - refused
+
+
+def cmd_keep(args) -> None:
+    import csv
+
+    with open(args.names, encoding="utf-8", newline="") as fh:
+        names = {int(r["Sword"], 16) - BASE for r in csv.DictReader(fh)}
+    files = [p.read_text(encoding="utf-8") for p in sorted(OUT_DIR.glob("*.cpp"))]
+    base = args.base.read_text(encoding="utf-8", errors="replace") if args.base else ""
+    keep = keep_list(names, args.log.read_text(encoding="utf-8", errors="replace"), files, base)
+    args.out.write_text("".join(f"0x{a + BASE:x}\n" for a in sorted(keep)), encoding="utf-8", newline="\n")
+    print(f"{len(keep)} of {len(names)} functions kept, in {args.out}", file=sys.stderr)
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -1045,8 +1223,21 @@ def main(argv: list[str] | None = None) -> int:
     w.add_argument("--keep", action="store_true",
                    help="also keep what src/unsorted/types writes now (its address comments): "
                         "on its own, a re-run that changes nothing")
+    for p in (sub.choices["census"], w):
+        p.add_argument("--no-renames", action="store_true",
+                       help="leave vtables.py's functions alone: its forwarders and their callees keep their names "
+                            "(when vtables.py write isn't run after this)")
+    k = sub.add_parser("keep", help="the --only list of a trial, from its names and check.py's output")
+    k.add_argument("--names", type=Path, required=True, help="the trial's names (write --names)")
+    k.add_argument("--log", type=Path, required=True, help="check.py's output on the trial")
+    k.add_argument("--out", type=Path, required=True)
+    k.add_argument("--base", type=Path, help="check.py's output before the trial: what was BAD then doesn't count")
     args = ap.parse_args(argv)
+    if args.cmd == "keep":  # run on the trial's files and data/functions.csv, before they're reset
+        cmd_keep(args)
+        return 0
     t = load()
+    t.renames = not args.no_renames
     {"census": cmd_census, "write": cmd_write}[args.cmd](t, args)
     return 0
 
