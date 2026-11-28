@@ -6,16 +6,24 @@
 
 #include "gflib3/Unk_239a418.h"
 
-// vtable 0x71023ff1d0: vf_type (its thunks 0x7100f66800 (+0x48), 0x7100f66810 (+0x50) aren't
-// written: they call it, and the original's is inline, emitted with the class's vtable). Declared
-// without its bases or its vtable: vf_type doesn't use them.
-struct Unk_23ff1c0 {
+// vtable 0x71023ff1d0: vf_type, its key function, so its vtable is emitted
+// here, with the D0 and the destructor thunks below: its destructor is implicit,
+// and they are copies of the object's D2. vf_type's thunks come out as calls:
+// the original's vf_type is inline (emitted with the vtable where the class is
+// constructed), and they tail-call it with the adjustment.
+// 0x7100f66620
+// 0x7100f66760
+// 0x7100f667b0
+// 0x7100f66820
+// 0x7100f66870
+class Unk_23ff1c0 : public Unk_239a418 {
+public:
     static const Unk_239a418_Type* Unk_GetType() {
         static Unk_239a418_Type type(Unk_239a418_GetType());
         return &type;
     }
 
-    const Unk_239a418_Type* vf_type();
+    const Unk_239a418_Type* vf_type() override;
 };
 
 // vtable 0x71023ff540: vf_type (its thunks 0x7100f68120 (+0x48), 0x7100f68130 (+0x50) aren't
@@ -55,6 +63,8 @@ struct Unk_23ff690 {
 };
 
 // 0x7100f66670
+// 0x7100f66800
+// 0x7100f66810
 const Unk_239a418_Type* Unk_23ff1c0::vf_type() {
     return Unk_GetType();
 }

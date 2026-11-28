@@ -18,16 +18,24 @@ struct Unk_240c798 {
     const Unk_239a418_Type* vf_type();
 };
 
-// vtable 0x710240c938: vf_type (its thunks 0x71010612b0 (+0x48), 0x71010612c0 (+0x50) aren't
-// written: they call it, and the original's is inline, emitted with the class's vtable). Declared
-// without its bases or its vtable: vf_type doesn't use them.
-struct Unk_240c928 {
+// vtable 0x710240c938: vf_type, its key function, so its vtable is emitted
+// here, with the D0 and the destructor thunks below: its destructor is implicit,
+// and they are copies of the object's D2. vf_type's thunks come out as calls:
+// the original's vf_type is inline (emitted with the vtable where the class is
+// constructed), and they tail-call it with the adjustment.
+// 0x71010610d0
+// 0x7101061210
+// 0x7101061260
+// 0x71010612d0
+// 0x7101061320
+class Unk_240c928 : public Unk_239a418 {
+public:
     static const Unk_239a418_Type* Unk_GetType() {
         static Unk_239a418_Type type(Unk_239a418_GetType());
         return &type;
     }
 
-    const Unk_239a418_Type* vf_type();
+    const Unk_239a418_Type* vf_type() override;
 };
 
 // 0x71010606b0
@@ -36,6 +44,8 @@ const Unk_239a418_Type* Unk_240c798::vf_type() {
 }
 
 // 0x7101061120
+// 0x71010612b0
+// 0x71010612c0
 const Unk_239a418_Type* Unk_240c928::vf_type() {
     return Unk_GetType();
 }

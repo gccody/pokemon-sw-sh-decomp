@@ -174,3 +174,83 @@ def test_vf_type_classes_counts_definitions_only(tmp_path):
         "class Unk_2 : public B {\npublic:\n    const T* vf_type() override { return x(); }\n};\n"
         "const T* Unk_3::vf_type() {\n    return y();\n}\n")
     assert T.vf_type_classes(tmp_path, tmp_path / "types") == {"Unk_2", "Unk_3"}
+
+
+# The object's vtable group, as offset in the object -> slots: D2, D0, vf2-vf5;
+# the +0x48 interface's D1/D0 thunks, three thunks and its vf_type; the +0x50
+# one's vf_type and D1/D0 thunks.
+OBJ = {0: [0x10, 0x11, 0x12, 0x13, 0x14, 0x15], 0x48: [0x20, 0x21, 0x22, 0x23, 0x24, 0x25], 0x50: [0x30, 0x31, 0x32]}
+
+
+def derived(**changes) -> dict[int, list]:
+    """A class on the object: its own D0 and destructor thunks (0x1xx), its
+    vf_type (slot 6) and the interfaces' type slots, the rest the object's."""
+    out = {0: [0x10, 0x111, 0x12, 0x13, 0x14, 0x15, 0x116], 0x48: [0x120, 0x121, 0x22, 0x23, 0x24, 0x125],
+           0x50: [0x130, 0x131, 0x132]}
+    for k, v in changes.items():
+        o, i = (int(x, 16) for x in k[1:].split("_"))
+        out[o][i] = v
+    return out
+
+
+def copies(f: int, g: int) -> bool:
+    return f - 0x100 == g  # 0x1xx is a copy of the object's 0xx
+
+
+def test_emitted_dtors_names_the_d0_and_the_thunks():
+    assert T.emitted_dtors("Unk_X", derived(), OBJ, copies) == [
+        (0x111, "_ZN5Unk_XD0Ev"), (0x120, "_ZThn72_N5Unk_XD1Ev"), (0x121, "_ZThn72_N5Unk_XD0Ev"),
+        (0x131, "_ZThn80_N5Unk_XD1Ev"), (0x132, "_ZThn80_N5Unk_XD0Ev")]
+
+
+def test_emitted_dtors_refuses_other_classes():
+    # a D2 of its own: its destructor isn't implicit
+    assert T.emitted_dtors("Unk_X", derived(s0_0=0x100), OBJ, copies) is None
+    # an override of its own (vf3), or a slot more: its key function is elsewhere
+    assert T.emitted_dtors("Unk_X", derived(s0_3=0x113), OBJ, copies) is None
+    longer = derived()
+    longer[0].append(0x107)
+    assert T.emitted_dtors("Unk_X", longer, OBJ, copies) is None
+    # a D0 that isn't a copy of the object's (a trap, a tail call)
+    assert T.emitted_dtors("Unk_X", derived(s48_1=0x999), OBJ, copies) is None
+    # the object's own D0 (inherited): nothing of its own to emit
+    assert T.emitted_dtors("Unk_X", derived(s0_1=0x11), OBJ, copies) is None
+    # another layout (one interface)
+    assert T.emitted_dtors("Unk_X", {0: derived()[0], 0x48: derived()[0x48]}, OBJ, copies) is None
+
+
+def test_same_code_compares_shape_and_size():
+    # two copies that reach different vtables through the GOT (masked), and one that stores elsewhere
+    def d0(at: int, got: int, off: int) -> list[int]:
+        return [lambda pc: adrp(8, pc, got), ldr(8, 8, 0x150), 0xF9000008 | (off // 8) << 10, RET]
+
+    funcs = {0x100: d0(0x100, 0x8000, 0), 0x200: d0(0x200, 0x9000, 0), 0x300: d0(0x300, 0x8000, 8)}
+    img = image({a: [w(a + 4 * i) if callable(w) else w for i, w in enumerate(ws)] for a, ws in funcs.items()})
+    m = SimpleNamespace(img=img, sizes={0x100: 16, 0x200: 16, 0x300: 16, 0x400: 12})
+    assert T.same_code(m, 0x100, 0x200)
+    assert not T.same_code(m, 0x100, 0x300)
+    assert not T.same_code(m, 0x100, 0x400)
+
+
+def test_render_declares_a_class_with_emitted_dtors_on_the_object():
+    t = fake({}, {0xA008: ("zero",)})
+    expr = {0xA008: "Unk_C::Unk_GetType()"}
+    dtors = [(0x101, "_ZN5Unk_CD0Ev"), (0x120, "_ZThn72_N5Unk_CD1Ev")]
+    # vf_type's thunks are getter copies: they're written as before
+    c = T.ClassPlan("Unk_C", 0x5000, 0x300, [(0x48, 0x310), (0x50, 0x320)], 0xA008, [0xA008], ("zero",),
+                    dtors=dtors)
+    src = T.render(t, expr, [c])
+    assert "class Unk_C : public Unk_239a418 {\npublic:\n" in src
+    assert "~Unk_C()" not in src  # implicit: vf_type is the key function
+    assert "// 0x7100000101\n// 0x7100000120\nclass Unk_C" in src
+    assert "// 0x7100000300\n// 0x7100000310\n// 0x7100000320\nconst Unk_239a418_Type* Unk_C::vf_type()" in src
+    # a bare one (its thunks `sub ; b vf_type`) is declared on the object too, its thunks listed
+    b = T.ClassPlan("Unk_C", 0x5000, 0x300, [(0x48, 0x310), (0x50, 0x320)], 0xA008, [0xA008], ("zero",),
+                    bare=True, dtors=dtors)
+    src = T.render(t, expr, [b])
+    assert "class Unk_C : public Unk_239a418 {" in src and "vf_type() override;" in src
+    assert "// 0x7100000300\n// 0x7100000310\n// 0x7100000320\n" in src
+    # without them, a bare class stays a plain struct
+    src = T.render(t, expr, [T.ClassPlan("Unk_C", 0x5000, 0x300, [(0x48, 0x310)], 0xA008, [0xA008], ("zero",),
+                                         bare=True)])
+    assert "struct Unk_C {" in src and "// 0x7100000310" not in src
