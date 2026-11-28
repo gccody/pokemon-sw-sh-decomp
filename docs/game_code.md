@@ -2234,6 +2234,54 @@ reference (`0x7100946e90`, 404 bytes, 8 of its shape; `0x7100b35720`, 364
 bytes, 4; `0x710110c4f0`, 420 bytes, 5). 831 functions that aren't matched
 (836 KB) have this lock in them: they need this spelling.
 
+### Views' lookups by name (`tools/viewgen.py`, 2026-11-28)
+
+Family 4 of docs/agents/generators.md: `Unk_a7bb80_Views::Unk_a7bb80<T>`, an
+app's frame's view of a name as a T (shape groups `82bedd704e78` 116x332 and
+`ae18320baece` 23x260, plus copies emitted with their hand-written callers:
+141 instances). The template was in `contents/common/views.h` already, with
+`std::find_if`, and no copy matched: the original's loop isn't rotated the
+same way. The original returns `last` itself when no view has the name
+(the empty vector's path goes straight to the "not found" block with the
+end iterator), which libc++'s `find_if` (it returns `first`) doesn't compile
+to. A find of its own does (`Unk_FindIf` in `contents/common/views.inl`):
+
+```cpp
+template <class It, class Pred>
+inline It Unk_FindIf(It first, It last, Pred pred) {
+    for (It it = first; it != last; ++it)
+        if (pred(*it))
+            return it;
+    return last;
+}
+```
+
+With it, the 2 M instances of `src/unsorted/unk_8bf520/Unk_8e8e50.cpp` and the
+copies the hand-written TUs emit match, and every function that inlined the
+lookup and matched still does. The template's body is now
+`contents/common/views.inl`, which `views.h` includes after
+`contents/common/framework.h`; the casts it uses (`Unk_61a530`,
+`Unk_DynamicCast`) moved to `contents/common/cast.h`, which framework.h
+includes.
+
+`tools/viewgen.py` writes the other instances, one file each in
+`src/unsorted/views`, with an explicit instantiation. Each file declares its
+own view class (`Unk_23f4660`, with what the lookup reads) and frame views
+class rather than including framework.h, whose `Unk_23f4660.h` defines the
+view class's getter inline: an instance inlines T's getter (in
+`82bedd704e78`) or calls it (in `ae18320baece`), and calls the next one out of
+line, and those are spelled out as typegen.py does. The instances are found
+by the shapes of the named ones; T and its chain come from the stores into
+the getters' statics (typegen.py's type tree and names); an instance named
+already keeps its T. 131 are written, and all match (both games): check.py
+60,079 -> 60,214 matching, not matching 1,009 -> 1,004 (the two M), with 3
+callers of the lookups matching too now that their callees are named.
+`viewgen.py census`: 141 candidates, 135 matched. Not written: 7 that
+hand-written TUs instantiate (they match but `Unk_a7bb80<Unk_23f5fa8>`, from
+`contents/pokebox/state/Unk_a852e0.cpp`, which inlines T's getter where the
+original calls it), and 3 whose T's getter is named as a vtables.py
+forwarder's callee.
+
 ### Static initialisers that store constants (`tools/initgen.py`, 2026-11-21)
 
 A TU's static initialiser is one function, and for many TUs it only stores
