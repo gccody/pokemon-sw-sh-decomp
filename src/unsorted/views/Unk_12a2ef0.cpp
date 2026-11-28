@@ -1,0 +1,49 @@
+// Scope: common
+// The lookup of a view by name as a Unk_242c1b8 (contents/common/views.inl), with the type
+// getters it inlines. Written by tools/viewgen.py: regenerate, don't edit. Placeholder
+// classes, named after their vtables or type objects: rename them once they're known.
+#include <vector>
+
+#include <types.h>
+
+#include "contents/common/cast.h"
+#include "gflib3/Unk_239a418.h"
+#include "unsorted/Unk_d0c0.h"
+
+// The type 0x71027ee828: its getter is out of line.
+struct Unk_242be70 {
+    static const Unk_239a418_Type* Unk_GetType();
+};
+
+// The views (src/unsorted/Unk_23f4660.h): what the lookup reads of them.
+class Unk_23f4660 : public Unk_239a418 {
+public:
+    static const Unk_239a418_Type* Unk_GetType();
+
+    u8 _60[0x5c0 - 0x60];
+    Unk_d0c0_String field_5c0;
+};
+
+// An app's frame's views (contents/common/framework.h).
+class Unk_a7bb80_Views {
+public:
+    template <class T>
+    T* Unk_a7bb80(const Unk_5cfaf0_Name& name);
+
+    u8 _0[0x78];
+    std::vector<Unk_23f4660*> field_78;
+};
+
+#include "contents/common/views.inl"
+
+// The type 0x71027ee868 (its getter inlined).
+class Unk_242c1b8 : public Unk_23f4660 {
+public:
+    static const Unk_239a418_Type* Unk_GetType() {
+        static Unk_239a418_Type type(Unk_242be70::Unk_GetType());
+        return &type;
+    }
+};
+
+// 0x71012a2ef0
+template Unk_242c1b8* Unk_a7bb80_Views::Unk_a7bb80<Unk_242c1b8>(const Unk_5cfaf0_Name& name);
