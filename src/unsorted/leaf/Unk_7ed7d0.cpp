@@ -1101,7 +1101,7 @@ void Unk_7f7fe0_call(u32 self) {
     Unk_787110(self);
 }
 
-void Unk_7f80f0(void*, u64, void*, u64, u32);
+void Unk_7f80f0(void*, u64, void*, u32, u32);
 
 // 0x71007f8320
 void Unk_7f8320_call(void* self, u64 value, void* arg2, u64 arg3, void* /*unused*/) {

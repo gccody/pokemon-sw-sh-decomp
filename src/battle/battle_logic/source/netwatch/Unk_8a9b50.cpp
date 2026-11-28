@@ -21,7 +21,7 @@ u32 Unk_8ac1f0(void* self, s32 index);
 struct Unk_7cac80;
 u8 Unk_7cac80_call(const Unk_7cac80* self, u8 value);
 struct Unk_7cd220;
-u32 Unk_7cd220_call(const Unk_7cd220* self, u32 value);
+u32 Unk_7cd220_call(const Unk_7cd220* self, u8 value);
 struct Unk_7d0bb0;
 void* Unk_7d0bb0_getField250(const Unk_7d0bb0* self);
 u32 Unk_7d0bc0(const Unk_7d0bb0* self, u32 index);
@@ -96,8 +96,6 @@ u8 Unk_23b9048::vf228(u8 client) {
     return 5;
 }
 
-// NON_MATCHING: Unk_7cd220_call is named with a u32 parameter, so the index
-// gets masked; the original passes it as it is.
 // 0x71008a9c50
 u32 Unk_23b9048::vf229(u32 client) {
     if (field_58 == nullptr)
@@ -115,8 +113,6 @@ u8 Unk_23b9048::vf230(u8 pokeId) {
     return Unk_7cb4b0(field_58, vf252(), pokeId);
 }
 
-// NON_MATCHING: Unk_7cd220_call is named with a u32 parameter, so the index
-// gets masked; the original passes it as it is.
 // 0x71008a9d10
 u32 Unk_23b9048::vf231(u32 client) {
     if (field_58 == nullptr)

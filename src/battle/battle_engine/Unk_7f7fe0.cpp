@@ -142,15 +142,13 @@ struct Unk_7f80f0_Target {
 };
 PKMN_OFFSET_ASSERT(Unk_7f80f0_Target, field_4, 0x4);
 
-// NON_MATCHING: the move is a 32-bit parameter (the existing name gives it as
-// u64: `mov x26, x3` for `mov w26, w3`), and with one the result still
-// lives in w0 rather than w22 (a `mov w0, #5` before the second switch's
-// range check where the original shares one `mov w22, #5`).
+// NON_MATCHING: the result lives in w0 rather than w22 (a `mov w0, #5`
+// before the second switch's range check where the original shares one
+// `mov w22, #5`).
 // 0x71007f80f0: the Pokemon a move of `poke`'s is aimed at (5: none).
-u8 Unk_7f80f0(void* main, u64 conArg, void* pokeArg, u64 moveArg, u32 flag) {
+u8 Unk_7f80f0(void* main, u64 conArg, void* pokeArg, u32 move, u32 flag) {
     Unk_7ecc90_Con* con = reinterpret_cast<Unk_7ecc90_Con*>(conArg);
     const Unk_7ee6b0* poke = static_cast<const Unk_7ee6b0*>(pokeArg);
-    u32 move = static_cast<u32>(moveArg);
     u32 rule = Unk_7ca1c0_getField150(static_cast<const Unk_7ca1c0*>(main));
     u32 pos =
         Unk_7cb420(static_cast<const Unk_7c2d80_Main*>(main), con, Unk_7ee6b0_getField7d(poke));
