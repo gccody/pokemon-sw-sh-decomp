@@ -233,3 +233,9 @@ def test_main_hand_definitions(tmp_path, functions_csv, monkeypatch):
     assert hand.read_text() == HAND
     assert R.main(["0x71008a9c50", "_Z6CallerPK10Unk_7cd220j", "--apply", "--hand-definitions"]) == 0
     assert "u32 Caller(const Unk_7cd220* p, u32 index) {" in hand.read_text()
+
+
+def test_no_forward_declaration_of_builtins_or_old_types():
+    old, new = R.check_rename("_Z10Unk_67be60P10Unk_67be60m", "_Z10Unk_67be60P10Unk_67be60PKt")
+    out, e = R.edit_text("void Unk_67be60(Unk_67be60* self, u64 value);\n", old, new, generated=False)
+    assert out == "void Unk_67be60(Unk_67be60* self, const u16* value);\n"
