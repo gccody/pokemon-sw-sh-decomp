@@ -4,6 +4,7 @@
     python tools/typegen.py census                      # what's there, and how much isn't matched
     python tools/typegen.py write --names n.csv         # src/unsorted/types, and the names to give
     python tools/typegen.py write --names n.csv --only keep.txt
+    python tools/typegen.py write --names n.csv --keep  # a re-run: what's written stays as it is
 
 A class on gflib3's reference-counted object (src/gflib3/Unk_239a418.h)
 overrides the object's `vf_type`, which returns the class's type descriptor:
@@ -75,7 +76,12 @@ hand-written headers that define some of them.
 
 A trial writes every candidate; then keep only what matched: `write --only`
 with the trial's names minus check.py's BAD addresses. A forwarder class is
-kept only if all of its functions, getter included, are listed.
+kept only if all of its functions, getter included, are listed (or match
+already). `write --keep` adds what the files here hold now to `--only`: on
+its own it rewrites nothing. A class another file defines a getter or an
+inline vf_type for is left to that file, unless it's written here already:
+its inline copy is emitted only with its vtable, maybe nowhere
+(`taken_classes`).
 """
 from __future__ import annotations
 
@@ -124,6 +130,13 @@ ADDR_RE = re.compile(r"^// (0x71[0-9a-f]+)", re.M)
 # the D0, then the D1 and D0 thunks of each interface.
 DTOR_SLOTS = ((0, 1, "_ZN{n}{c}D0Ev"), (0x48, 0, "_ZThn72_N{n}{c}D1Ev"), (0x48, 1, "_ZThn72_N{n}{c}D0Ev"),
               (0x50, 1, "_ZThn80_N{n}{c}D1Ev"), (0x50, 2, "_ZThn80_N{n}{c}D0Ev"))
+
+
+def kept(rows: dict, only: set[int], names: list[tuple[int, str]]) -> bool:
+    """Whether every function (address, name) of a class matched in the trial
+    (`only`) or matches already under that name: a name alone isn't a match
+    (a trial names what it writes, matched or not)."""
+    return all(f in only or rows[f].status == "O" and rows[f].name == n for f, n in names)
 
 
 def emitted_dtors(cls: str, layout: dict[int, list], obj: dict[int, list], same) -> list[tuple[int, str]] | None:
@@ -335,10 +348,10 @@ def header_getters(root: Path) -> dict[str, str]:
     return out
 
 
-def vf_type_classes(root: Path, skip: Path = OUT_DIR) -> set[str]:
+def vf_type_classes(root: Path, skip: Path = OUT_DIR, inline: bool = True) -> set[str]:
     """Classes src/ (but `skip`) defines a vf_type of their own for: in the class
-    body, or out of line. A class that only declares one (its vf_type is
-    defined here, or nowhere yet) isn't taken."""
+    body (only if `inline`), or out of line. A class that only declares one (its
+    vf_type is defined here, or nowhere yet) isn't taken."""
     out = set()
     for p in sorted([*root.rglob("*.h"), *root.rglob("*.cpp")]):
         if skip in p.parents:
@@ -346,12 +359,37 @@ def vf_type_classes(root: Path, skip: Path = OUT_DIR) -> set[str]:
         text = p.read_text(encoding="utf-8", errors="replace")
         if "vf_type(" not in text:
             continue
-        for c in re.finditer(r"^(?:class|struct) (\w+)\b[^;{]*\{", text, re.M):
+        for c in re.finditer(r"^(?:class|struct) (\w+)\b[^;{]*\{", text, re.M) if inline else ():
             end = text.find("\n};", c.end())
             if re.search(r"vf_type\(\)[^;{}]*\{", text[c.end():end if end >= 0 else len(text)]):
                 out.add(c[1])
         out |= set(re.findall(r"(\w+)::vf_type\(", text))
     return out
+
+
+def written_classes(out_dir: Path = OUT_DIR) -> set[str]:
+    """The classes whose members (vf_type, a slot's vf<k>) src/unsorted/types defines."""
+    out = set()
+    for p in out_dir.glob("*.cpp") if out_dir.exists() else ():
+        out |= set(re.findall(r"^\S.*?\b(\w+)::vf(?:_type|\d+)\(\) \{", p.read_text(encoding="utf-8"), re.M))
+    return out
+
+
+def taken_classes(root: Path, out_dir: Path = OUT_DIR) -> tuple[set[str], set[str]]:
+    """The classes left to src/'s other files, and those it declares.
+
+    Taken (not written here): those another file defines vf_type out of line
+    for (a strong definition: two would clash), and those whose getter or
+    vf_type it defines inline that no file here writes yet. An inline copy is
+    emitted only where the class's vtable is, which may be nowhere: a class
+    written here stays written (its strong vf_type wins over any inline copy),
+    so a re-run doesn't drop functions only this tool compiles.
+
+    Declared (all of those, written here or not): their vtable, D0 and
+    thunks belong to the other file's class, so `emitted_dtors` doesn't
+    apply to them here."""
+    inline = set(header_getters(root)) | vf_type_classes(root, out_dir)
+    return vf_type_classes(root, out_dir, inline=False) | (inline - written_classes(out_dir)), inline
 
 
 def written_addresses(out_dir: Path = OUT_DIR) -> set[int]:
@@ -679,7 +717,8 @@ def load(game: str = "sword") -> Types:
     return Types(m, rows, read_data_names())
 
 
-def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int]):
+def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int],
+            declared: set[str] = frozenset()):
     import vtables as vt
 
     classes, expr, skipped = plan(t, taken, blocked)
@@ -743,7 +782,8 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int])
                 # Defined strongly with a vtable around it, its thunks would lose
                 # the adjustment, so it's written alone, as a plain member.
                 c.bare = True
-            dtors = emitted_dtors(c.name, layouts[c.group], obj, lambda f, g: same_code(t.m, f, g)) if obj else None
+            dtors = emitted_dtors(c.name, layouts[c.group], obj, lambda f, g: same_code(t.m, f, g)) \
+                if obj and c.name not in declared else None
             if dtors and all(free(f, n) for f, n in dtors):
                 c.dtors = dtors
                 names += dtors
@@ -764,7 +804,7 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int])
                 skipped.append(f"{c.name}: its getter's chain or name")
                 continue
             names.append((c.forward, n))
-            if only is not None and not all(f in only or rows[f].name == n for f, n in names):
+            if only is not None and not kept(rows, only, names):
                 continue  # all of it matched in the trial, or none of it is written
         c.inlined, c.end = ch
         if not cut_named(c, names):
@@ -860,12 +900,12 @@ def selection(t: Types, only: set[int] | None):
     getters they call), the getter expressions, and why the others weren't.
     A forwarder's callee is renamed only if every matched function that calls
     it is one of these: blocked otherwise, until nothing changes."""
-    taken = set(header_getters(ROOT / "src")) | vf_type_classes(ROOT / "src")
+    taken, declared = taken_classes(ROOT / "src")
     fwd = {f for f in t.getters if f in t.rows and FORWARD_NAME.fullmatch(t.rows[f].name or "")}
     callers = callers_of(t.m, fwd)
     blocked: set[int] = set()
     while True:
-        keep, expr, skipped = _select(t, only, taken, blocked)
+        keep, expr, skipped = _select(t, only, taken, blocked, declared)
         written = {f for _, names in keep for f, _ in names}
         now = {g for g in fwd if any(t.rows[c].status == "O" and c not in written for c in callers.get(g, ()))
                or g not in written}
@@ -932,6 +972,8 @@ def cmd_write(t: Types, args) -> None:
     from common import clang_format
 
     only = {int(x, 16) - BASE for x in args.only.read_text(encoding="utf-8").split()} if args.only else None
+    if args.keep:
+        only = (only or set()) | written_addresses()
     keep, expr, _ = selection(t, only)
     seg_starts = vt.segment_starts(t.m)
 
@@ -981,6 +1023,9 @@ def main(argv: list[str] | None = None) -> int:
     w = sub.add_parser("write")
     w.add_argument("--names", type=Path, required=True)
     w.add_argument("--only", type=Path)
+    w.add_argument("--keep", action="store_true",
+                   help="also keep what src/unsorted/types writes now (its address comments): "
+                        "on its own, a re-run that changes nothing")
     args = ap.parse_args(argv)
     t = load()
     {"census": cmd_census, "write": cmd_write}[args.cmd](t, args)
