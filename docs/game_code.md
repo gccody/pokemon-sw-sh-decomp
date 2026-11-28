@@ -1321,6 +1321,13 @@ still never a candidate: `vtables.py` writes those as members. Their real
 names come from templates and enclosing functions nobody has decompiled, so
 they're placeholders like every other leaf (`Unk_<addr>_set`, ...).
 
+Later, `leafgen.py` stopped writing new ones of these that are local to their
+segment (`segment_local`): only code of the segment takes the address, no
+data slot holds it and nothing outside calls it. They belong to that TU's
+hand-written file, and the leaf copies written here had to be removed when
+that file was written (swarm run 1). With `--reach call,none` that leaves out
+162 candidates at `--max 32` and 411 at `--max 64`.
+
 Two shapes of those copy operations needed the lifter to change:
 
 - **Struct copies.** A copy of x0's first 16, 24 or 32 bytes to x1 with

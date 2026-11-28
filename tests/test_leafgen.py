@@ -639,3 +639,25 @@ def test_decode_params():
     assert leafgen.encode_params(["Unk_2409118*"], ["Unk_2409118"]) == "PS_"
     for bad in ("RK3Foo", "N2nn3BarE", "vj", "S0_", "Pz", "5Unk"):
         assert leafgen.decode_params(bad) is None
+
+
+def test_code_references():
+    # 0x0: bl 0x20 ; adrp x0, 0 ; add x0, x0, #0x30 (0x30's address) ; ret
+    # 0x10: adr x1, #0x20 (0x30's address, from 0x10) ; b 0x20 ; ret ; nop
+    img = bytearray(0x40)
+    struct.pack_into("<4I", img, 0x0, 0x94000008, 0x90000000, 0x9100C000, RET)
+    struct.pack_into("<4I", img, 0x10, 0x10000101, 0x14000003, RET, 0xD503201F)
+    struct.pack_into("<I", img, 0x20, RET)
+    struct.pack_into("<I", img, 0x30, RET)
+    takers, callers = leafgen.code_references(bytes(img), [(0x0, 16), (0x10, 16), (0x20, 4), (0x30, 4)])
+    assert takers == {0x30: {0x0, 0x10}}
+    assert callers == {0x20: {0x0, 0x10}}
+
+
+def test_segment_local():
+    seg_of = lambda a: 0 if a < 0x100 else 0x100  # noqa: E731
+    assert leafgen.segment_local(0x10, {0x20}, {0x30}, set(), seg_of)
+    assert not leafgen.segment_local(0x10, set(), {0x30}, set(), seg_of)       # only called: not a callable
+    assert not leafgen.segment_local(0x10, {0x20, 0x120}, set(), set(), seg_of)  # taken in another segment
+    assert not leafgen.segment_local(0x10, {0x20}, {0x130}, set(), seg_of)     # called from another one
+    assert not leafgen.segment_local(0x10, {0x20}, set(), {0x10}, seg_of)      # a data slot holds it
