@@ -49,9 +49,35 @@ project), e.g. `ghidra.sh refresh all` with `PKMN_REPO` set to the batch
 worktree, between batches.
 
 Timings (2026-11-28, 20 cores): a cold build of both games takes ~2.5 min
-(~30 s from a warm ccache in the same worktree; a new worktree's paths
+(~21 s from a warm ccache in the same worktree; a new worktree's paths
 differ, so ccache doesn't share between worktrees), an incremental check.py
-10-20 s, and `finish` about a minute, mostly the full check.py run.
+10-20 s, `units.py list` 4-10 s, and `finish` 42-56 s (about 2 min for the
+first one after a sync, which rebuilds what the new master changed). A batch
+PR's CI run takes about 3 minutes.
+
+**Running a swarm** (as run 2 did, with T3's `delegate_task` or any agent
+runner that starts a fresh agent from a prompt):
+
+- Save each brief to a file (`swarm.py start`/`finish --next` print it after
+  `----- brief -----`) and give the worker a one-line task that points at
+  that file, so the brief reaches it exactly as the template says.
+- At most 6 agents at once in total, tooling agents included; every brief
+  says not to start subagents or forks.
+- When a worker names callees that belong to the next unit in address order,
+  give that unit to the same worktree with `--next`: the names and their
+  callers then stay one person's work.
+- A unit whose sidecar *renames* a function that already has a name (a
+  placeholder `vf1` that is really `vf_type`) stops `finish` at integrate.py's
+  name-conflict check, as it should. If the rename is right, commit it on the
+  batch first (`tools/funcs.py name`, plus whatever generated file defined
+  the old name: a generator that sees the hand-written definition would drop
+  it too), then `finish` again. Parameter-type fixes go through the sidecar
+  (`units.py record retype`) and need nothing from the coordinator.
+- To end a run: `finish` the last units without `--next` (the worktrees are
+  torn down), then `swarm.py open` for the partial batch.
+- Keep the follow-ups workers report (renames across generated files,
+  shared headers, generator bugs) in one list, and turn repeated ones into a
+  tooling change rather than one-off fixes.
 
 ## The brief
 
