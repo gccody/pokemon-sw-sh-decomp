@@ -22,6 +22,7 @@ extern const u8 Unk_1f34574[] __attribute__((visibility("hidden")));
 static const u32 kMax = 9999999;
 
 // 0x710137b540
+// NON_MATCHING: the first key's stack slot, as in vf9 (Unk_137af00.cpp).
 void Unk_2432ba8::vf8() {
     {
         Unk_13471e0_Store* store = Unk_137e480(Unk_24ba4e0, 0);
