@@ -67,31 +67,35 @@ struct Unk_1311c60;
 void Unk_1311c60_call(Unk_1311c60* self, void* value, void* arg2);
 
 // 0x7100f795e0
+// NON_MATCHING: the original computes the message's address in each branch
+// (after the calls, from the index it keeps) and passes zero for a null
+// object on its own path; this keeps the address in a register from the start
+// and passes the object's register. `this` and the parts swap registers.
 void Unk_2400128::Unk_f795e0(u32 index) {
+    Unk_239a418_Ref<Unk_239a418>& message = field_5f8[index];
     Unk_eb5fb0_Params params;
-    if (!field_740) {
-        params.field_8 = field_5f8[index].m_ptr;
+    if (field_740) {
+        u64 date = field_748;
+        Unk_239a418_Ref<Unk_f795e0_Parts> parts =
+            *reinterpret_cast<Unk_239a418_Ref<Unk_f795e0_Parts>*>(field_100._8 + 0x1a8);
+        Unk_239a418_Ref<Unk_239a418> text = parts.m_ptr->field_2e0;
+        Unk_1315b90(text.m_ptr, 0,
+                    Unk_15b80a0_get(reinterpret_cast<const Unk_15b80a0*>(&date)) - 2000, 2, 2, 1);
+        Unk_1315b90(text.m_ptr, 1, Unk_15b80b0_get(reinterpret_cast<const Unk_15b80b0*>(&date)), 2,
+                    2, 1);
+        Unk_1315b90(text.m_ptr, 2, Unk_15b80c0_get(reinterpret_cast<const Unk_15b80c0*>(&date)), 2,
+                    2, 1);
+        Unk_1315b90(text.m_ptr, 3, Unk_15b80d0_get(reinterpret_cast<const Unk_15b80d0*>(&date)), 2,
+                    2, 1);
+        Unk_1315b90(text.m_ptr, 4, Unk_15b80e0_get(reinterpret_cast<const Unk_15b80e0*>(&date)), 2,
+                    2, 1);
+        Unk_239a418_Ref<Unk_239a418> object = parts.m_ptr->field_2e8;
+        Unk_1311c60_call(reinterpret_cast<Unk_1311c60*>(text.m_ptr), object.m_ptr, message.m_ptr);
+        params.field_8 = object.m_ptr;
+        field_740 = false;
+    } else {
+        params.field_8 = message.m_ptr;
         params.field_0 = 0;
         Unk_eb5fb0(params);
-        return;
     }
-    u64 date = field_748;
-    Unk_239a418_Ref<Unk_f795e0_Parts> parts =
-        *reinterpret_cast<Unk_239a418_Ref<Unk_f795e0_Parts>*>(field_100._8 + 0x1a8);
-    Unk_239a418_Ref<Unk_239a418> text = parts.m_ptr->field_2e0;
-    Unk_1315b90(text.m_ptr, 0, Unk_15b80a0_get(reinterpret_cast<const Unk_15b80a0*>(&date)) - 2000,
-                2, 2, 1);
-    Unk_1315b90(text.m_ptr, 1, Unk_15b80b0_get(reinterpret_cast<const Unk_15b80b0*>(&date)), 2, 2,
-                1);
-    Unk_1315b90(text.m_ptr, 2, Unk_15b80c0_get(reinterpret_cast<const Unk_15b80c0*>(&date)), 2, 2,
-                1);
-    Unk_1315b90(text.m_ptr, 3, Unk_15b80d0_get(reinterpret_cast<const Unk_15b80d0*>(&date)), 2, 2,
-                1);
-    Unk_1315b90(text.m_ptr, 4, Unk_15b80e0_get(reinterpret_cast<const Unk_15b80e0*>(&date)), 2, 2,
-                1);
-    Unk_239a418_Ref<Unk_239a418> object = parts.m_ptr->field_2e8;
-    Unk_1311c60_call(reinterpret_cast<Unk_1311c60*>(text.m_ptr), object.m_ptr,
-                     field_5f8[index].m_ptr);
-    params.field_8 = object.m_ptr;
-    field_740 = false;
 }
