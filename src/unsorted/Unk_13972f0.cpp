@@ -74,6 +74,10 @@ bool Unk_13972f0(Unk_13471e0_Store* self,
 }
 
 // 0x7101397540
+// NON_MATCHING: as the store's Unk_13475a0 (src/unsorted/families/
+// Unk_13471e0.h): the original takes the address of field_78 again for
+// Unk_Sort's lock instead of reusing the outer lock's, and keeps the result in
+// w20, which lets the failure paths share their `mov w20, wzr`.
 bool Unk_1397540(Unk_13471e0_Store* self, const u32& key, const s32 (&data)[10], const u64& count) {
     nn::os::LockMutex(&self->field_78);
     if (self->field_58 != nullptr)
