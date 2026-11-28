@@ -1,6 +1,8 @@
 // Scope: common
 #include "unsorted/Unk_14f5fb0.h"
 
+// NON_MATCHING: ordering: the original speculates the field_24 division of
+// position() before the field_20 one (and selects field_4 first); same instructions.
 // 0x71014f58b0
 s32 Unk_14f58b0(const Unk_14f5fb0* self, s32 index) {
     s32 partial = index % Unk_14f5fb0_lineSize(*self) != 0;
@@ -47,4 +49,59 @@ s32 Unk_14f5a10(const Unk_14f5fb0* self) {
 // 0x71014f5c40
 s32 Unk_14f5c40(const Unk_14f5fb0* self, const Unk_14f5fb0_Pair* pos) {
     return Unk_14f5fb0_major(*self, *pos);
+}
+
+// NON_MATCHING: the original computes the item index per branch as
+// index(pos shifted by field_10/field_14) and divides it directly; this reuses the
+// page start and keeps position()'s remainder.
+// 0x71014f5a60
+bool Unk_14f5a60(const Unk_14f5fb0* self, const Unk_14f5fb0_Pair* pos) {
+    if (self->field_c <= 0) {
+        return false;
+    }
+    s32 first = self->field_14 + self->field_10 * Unk_14f5fb0_lineSize(*self);
+    Unk_14f5fb0_Pair firstPos = Unk_14f5fb0_position(*self, first);
+    s32 firstLine = Unk_14f5fb0_major(*self, firstPos);
+    s32 index = self->field_14 + Unk_14f5fb0_index(*self, *pos) +
+                self->field_10 * Unk_14f5fb0_lineSize(*self);
+    Unk_14f5fb0_Pair indexPos = Unk_14f5fb0_position(*self, index);
+    s32 line = Unk_14f5fb0_major(*self, indexPos);
+    if (line > firstLine) {
+        if (self->field_10 == self->field_c || line <= self->field_1c + self->field_10) {
+            return false;
+        }
+    } else if (line < firstLine) {
+        if (self->field_10 == 0 || line >= self->field_18 + self->field_10) {
+            return false;
+        }
+    } else {
+        return false;
+    }
+    s32 step = Unk_14f5fb0_major(*self, *pos);
+    if (step > 0) {
+        return self->field_10 < self->field_c;
+    }
+    return step != 0 && self->field_10 > 0;
+}
+
+// NON_MATCHING: same item-index shape difference as Unk_14f5a60.
+// 0x71014f5b70
+bool Unk_14f5b70(const Unk_14f5fb0* self, const Unk_14f5fb0_Pair* pos) {
+    s32 first = self->field_14 + self->field_10 * Unk_14f5fb0_lineSize(*self);
+    Unk_14f5fb0_Pair firstPos = Unk_14f5fb0_position(*self, first);
+    s32 firstLine = Unk_14f5fb0_major(*self, firstPos);
+    s32 index = self->field_14 + Unk_14f5fb0_index(*self, *pos) +
+                self->field_10 * Unk_14f5fb0_lineSize(*self);
+    Unk_14f5fb0_Pair indexPos = Unk_14f5fb0_position(*self, index);
+    s32 line = Unk_14f5fb0_major(*self, indexPos);
+    if (line > firstLine) {
+        if (line <= self->field_1c + self->field_10) {
+            return false;
+        }
+        return self->field_10 != self->field_c;
+    }
+    if (line < firstLine) {
+        return self->field_10 != 0 && line < self->field_18 + self->field_10;
+    }
+    return false;
 }
