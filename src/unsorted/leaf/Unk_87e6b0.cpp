@@ -425,6 +425,13 @@ void Unk_8805d0_call(void* self, u64 value) {
     Unk_8805f0(self, value, 1);
 }
 
+void Unk_8806b0(void*, u8, u8, u32);
+
+// 0x71008805e0
+void Unk_8805e0_call(void* self, u8 value) {
+    Unk_8806b0(self, value, value, 0x114);
+}
+
 extern const u8 Unk_23b52e0[] __attribute__((visibility("hidden")));
 struct Unk_8807b0 {
     u32 field_0;
@@ -442,6 +449,13 @@ void Unk_8805f0(void*, u64, u32);
 // 0x71008807d0
 void Unk_8807d0_call(void* self, u64 value) {
     Unk_8805f0(self, value, 6);
+}
+
+void Unk_8806b0(void*, u8, u8, u32);
+
+// 0x71008807e0
+void Unk_8807e0_call(void* self, u8 value) {
+    Unk_8806b0(self, value, value, 0x11c);
 }
 
 extern const u8 Unk_23b5310[] __attribute__((visibility("hidden")));
@@ -1796,6 +1810,13 @@ void Unk_8805f0(void*, u64, u32);
 // 0x7100889210
 void Unk_889210_call(void* self, u64 value) {
     Unk_8805f0(self, value, 2);
+}
+
+void Unk_8806b0(void*, u8, u8, u32);
+
+// 0x7100889220
+void Unk_889220_call(void* self, u8 value) {
+    Unk_8806b0(self, value, value, 0x118);
 }
 
 extern const u8 Unk_23b61f0[] __attribute__((visibility("hidden")));

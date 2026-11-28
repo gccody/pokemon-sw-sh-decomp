@@ -3155,10 +3155,10 @@ void Unk_86eb40_call(void* self, u32 value) {
     Unk_81b860(static_cast<const Unk_819600_Self*>(self), value);
 }
 
-void Unk_86f720(void*, u32);
+void Unk_86f720(void*, u8);
 
 // 0x710086f5f0
-void Unk_86f5f0_call(void* self, u32 value) {
+void Unk_86f5f0_call(void* self, u8 value) {
     Unk_86f720(self, value);
 }
 

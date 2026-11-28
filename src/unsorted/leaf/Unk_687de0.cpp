@@ -139,10 +139,10 @@ struct Unk_68da70 {
 };
 PKMN_OFFSET_ASSERT(Unk_68da70, field_f8, 0xf8);
 
-void Unk_68f030(void*, u32);
+void Unk_68f030(void*, u8);
 
 // 0x710068da70
-void Unk_68da70_call(const Unk_68da70* self, u32 value) {
+void Unk_68da70_call(const Unk_68da70* self, u8 value) {
     Unk_68f030(self->field_f8, value);
 }
 

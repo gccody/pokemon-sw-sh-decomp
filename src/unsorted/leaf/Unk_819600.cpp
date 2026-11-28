@@ -437,10 +437,10 @@ struct Unk_81bf30 {
 };
 PKMN_OFFSET_ASSERT(Unk_81bf30, field_0, 0x0);
 
-void Unk_7cd200_call(const Unk_7cd200*, u32);
+void Unk_7cd200_call(const Unk_7cd200*, u8);
 
 // 0x710081bf30
-void Unk_81bf30_call(const Unk_81bf30* self, u32 value) {
+void Unk_81bf30_call(const Unk_81bf30* self, u8 value) {
     Unk_7cd200_call(self->field_0, value);
 }
 

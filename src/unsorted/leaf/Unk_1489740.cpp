@@ -1298,10 +1298,10 @@ struct Unk_14a9460 {
 PKMN_OFFSET_ASSERT(Unk_14a9460, field_a0, 0xa0);
 PKMN_OFFSET_ASSERT(Unk_14a9460, field_e0, 0xe0);
 
-void Unk_67e9d0(void*, u32, u32);
+void Unk_67e9d0(void*, u32, u8);
 
 // 0x71014a9460
-void Unk_14a9460_call(Unk_14a9460* self, u32 value, u32 arg2) {
+void Unk_14a9460_call(Unk_14a9460* self, u32 value, u8 arg2) {
     if (self->field_a0 != nullptr) {
         Unk_67e9d0(self->field_a0, value, arg2);
         self->field_e0 = value == 0 ? 0 : 4;

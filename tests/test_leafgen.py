@@ -661,3 +661,37 @@ def test_segment_local():
     assert not leafgen.segment_local(0x10, {0x20, 0x120}, set(), set(), seg_of)  # taken in another segment
     assert not leafgen.segment_local(0x10, {0x20}, {0x130}, set(), seg_of)     # called from another one
     assert not leafgen.segment_local(0x10, {0x20}, set(), {0x10}, seg_of)      # a data slot holds it
+
+
+def test_inferred_types_narrow(monkeypatch):
+    """A u32 (the default) that the function's own code reads only as 8 or 16
+    bits is that; a new parameter too. A u64, or a list with a float, stays."""
+    from nx.argregs import Params
+
+    own = Params({0: {"ptr"}, 1: {"w"}, 2: {"w"}, 3: {"w"}}, widths={0: {"full"}, 1: {"u8"}, 2: {"full"},
+                                                                     3: {"16", "n8"}})
+    assert leafgen.inferred_types(["void*", "u32", "u32"], own, [], False) == ["void*", "u8", "u32", "u16"]
+    assert leafgen.inferred_types(["void*", "u64"], own, [], False) == ["void*", "u64", "u32", "u16"]
+    assert leafgen.inferred_types(["void*", "f32", "u32"], own, [], False) == ["void*", "f32", "u32", "u16"]
+
+
+def test_own_narrow_argument(monkeypatch):
+    """tst w1, #0xff ; cset w0, ne ; ret: the argument is a u8 (argregs), tested whole."""
+    monkeypatch.setattr(leafgen, "SIGNATURES", {})
+    _, func = leafgen.generate(ADDR, code(0x72001C3F, 0x1A9F07E0, RET))
+    assert func == "bool Unk_123450_check(void* /*unused*/, u8 value) {\n    return value != 0;\n}\n"
+    assert leafgen.OWN_NARROW[ADDR] == {1: "u8"}
+    # tst w1, #0xf: a u32 does that too
+    _, func = leafgen.generate(ADDR, code(0x72000C3F, 0x1A9F07E0, RET))
+    assert "u32 value" in func and leafgen.OWN_NARROW[ADDR] == {}
+
+
+def test_parse_file_without_functions():
+    """A leaf file whose only function moved elsewhere is just a comment."""
+    assert leafgen.parse_file("// Scope: common\n// (0x71004cb410 is SiReflectionObject's now.)\n") == []
+
+
+def test_decl_line_is_not_a_call():
+    assert leafgen._decl_line("u8 Unk_7fa580(u32, u8, u8);", "Unk_7fa580") is not None
+    assert leafgen._decl_line("    return Unk_7fa580(rule, a, b);", "Unk_7fa580") is None
+    assert leafgen._decl_line("    else Unk_7fa580(rule, a, b);", "Unk_7fa580") is None

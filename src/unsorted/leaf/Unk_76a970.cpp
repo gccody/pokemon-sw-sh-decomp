@@ -259,27 +259,43 @@ void Unk_76ac10_call(Unk_76ac10* self) {
     }
 }
 
+extern u64 Unk_2779ba8 __attribute__((visibility("hidden")));
+void Unk_76c9a0(u64, u32);
+
+// 0x710076bc90
+void Unk_76bc90_call(u16 self) {
+    Unk_76c9a0(Unk_2779ba8, self);
+}
+
+extern u64 Unk_2779ba8 __attribute__((visibility("hidden")));
+void Unk_76c9e0(u64, u32);
+
+// 0x710076bcb0
+void Unk_76bcb0_call(u16 self) {
+    Unk_76c9e0(Unk_2779ba8, self);
+}
+
 extern void* Unk_2779c28 __attribute__((visibility("hidden")));
-void Unk_76d790(void*, u32);
+void Unk_76d790(void*, u16);
 
 // 0x710076bec0
-void Unk_76bec0_call(u32 self) {
+void Unk_76bec0_call(u16 self) {
     Unk_76d790(Unk_2779c28, self);
 }
 
 extern void* Unk_2779c28 __attribute__((visibility("hidden")));
-void Unk_76d7b0(void*, u32);
+void Unk_76d7b0(void*, u16);
 
 // 0x710076bed0
-void Unk_76bed0_call(u32 self) {
+void Unk_76bed0_call(u16 self) {
     Unk_76d7b0(Unk_2779c28, self);
 }
 
 extern void* Unk_2779c28 __attribute__((visibility("hidden")));
-void Unk_76d750(void*, u32);
+void Unk_76d750(void*, u16);
 
 // 0x710076bee0
-void Unk_76bee0_call(u32 self) {
+void Unk_76bee0_call(u16 self) {
     Unk_76d750(Unk_2779c28, self);
 }
 
@@ -297,10 +313,10 @@ void Unk_76bfa0_call() {
 }
 
 extern void* Unk_2779ca8 __attribute__((visibility("hidden")));
-void Unk_76dd50(void*, u32);
+void Unk_76dd50(void*, u8);
 
 // 0x710076bfb0
-void Unk_76bfb0_call(u32 self) {
+void Unk_76bfb0_call(u8 self) {
     Unk_76dd50(Unk_2779ca8, self);
 }
 

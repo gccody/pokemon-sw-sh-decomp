@@ -1893,6 +1893,55 @@ there, `widen` could rename the 12 placeholders `src/unsorted/virtual`
 calls and `vtables.py write --only <empty>` would write their callers
 again.
 
+### Parameter widths from the code (`argregs.py`, 2026-11-28)
+
+An argument leafgen couldn't type was a `u32`: a tail call's register it
+only masks or passes on, a placeholder callee's parameter its callers
+declared that way. Most of the 25 rename batches of the first swarm run
+were the result: `u32` -> `u8`/`u16` in a callee's name (`j` -> `h`, `jj`
+-> `hh`), each found by a worker whose hand-written caller couldn't match
+against it. `tools/nx/argregs.py` now reads the width from the callee's own
+instructions too (`width_use`, `Params.int_type`): an argument is a `u8`
+(`u16`) when **every read of it, on every path, uses only its low 8 (16)
+bits, and at least one uses all of them**: `uxtb`/`and #0xff`/`ubfiz ...,
+#8`, `strb`, `tst w1, #0xff`, an extended operand (`cmp w8, w1, uxtb`);
+`sxtb`/`sxth` make it signed. A bit test, a smaller mask or a bitfield of
+it is allowed but proves nothing alone (a `u32` does those too); a read of
+more bits, reads of two widths or signednesses, or a register that is only
+passed on (a `u32` passed to a `u8` parameter needs no instruction either)
+keep the old type. Passing it on to a callee whose own code says `u8` counts
+as a read of 8 bits.
+
+leafgen uses it in three places: a new parameter (`_evidence_type`), a
+declared `u32` that the code reads narrower (`inferred_types`: `u32` was
+only the default) and an argument nothing else types (`OWN_NARROW`, read by
+the Emitter; a `u8` masked with `& 0xff` or tested with `tst #0xff` is
+written as the plain argument).
+
+Against the parameter types of the matched functions' names (19,348 free
+functions and the members the measurement could tell apart), the rule
+infers a narrow type for 828 parameters and agrees with the name for 779
+(94.1%). Of the 49 others, 34 are leafgen placeholders still named with the
+old `u32` default (what this fixes), 5 are `char` (unsigned on AArch64, so
+the same code), 4 one PhysX function that compares `PxI8`s for equality only
+(`uxtb` either way), and 6 a `u32` the source truncated into a byte or
+halfword field. It infers nothing for 585 parameters named `u8`/`u16`, most
+of them only passed on.
+
+`leafgen.py widen` with it (then a keep run without 6 leaves: 5 whose
+rewrite lost a hand-fixed variadic callee declaration, `Unk_816320(u64, u16,
+...)`, and `Unk_3baa80_call`, whose new parameters broke two wwise
+functions) renamed 60 functions, every one a `u32` -> `u8`/`u16`: 32 matched
+leaves and 28 placeholder callees. 29 more that the code says are narrower
+stay: 5 called from hand-written files (`tools/retype.py` renames those
+with their callers), 18 because a leaf calling them can't be written again,
+6 left out of the keep run. `leafgen.py write --max 32
+--reach call,none,data` then matched 8 more leaves, 5 of them with the new
+`u8`/`u16` parameters. check.py: 59,906 -> 59,914 matching, no regressions.
+Two `widen` fixes came with it: a leaf file with no functions left (only a
+comment) is skipped, and `return f(x);` in another source isn't taken for a
+declaration of `f` (it is a call: the callee stays as it is).
+
 ### The largest functions: generated tables (2026-11-19)
 
 The four largest undecompiled functions of game code were tables written out
