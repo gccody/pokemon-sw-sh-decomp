@@ -195,11 +195,19 @@ def area_dirs(index: dict[int, str], amap: AreaMap, areas) -> dict[str, str]:
     return out
 
 
+def source_files(index: dict[int, str]) -> list[tuple[int, str]]:
+    """The hand-written files of `index` a new file may go next to: sorted
+    (offset, path), without generated files and headers under `include`.
+    Built once per run: nearest_dir runs for every new part (~13k)."""
+    return sorted((a, p) for a, p in index.items()
+                  if not is_generated(p) and "include" not in PurePosixPath(p).parts)
+
+
 def nearest_dir(addr: int, area: str, hand: list[tuple[int, str]], amap: AreaMap) -> str | None:
     """The directory of the hand-written file whose address comment is nearest
-    to `addr` in the same area (`hand`: sorted (offset, path)). Files under an
-    `include` directory don't count: a new source file never goes there."""
-    hand = [h for h in hand if "include" not in PurePosixPath(h[1]).parts]
+    to `addr` in the same area (`hand`: sorted (offset, path), without the
+    files under an `include` directory: a new source file never goes there;
+    see source_files)."""
     i = bisect.bisect_left(hand, (addr, ""))
     best = None
     for j in (i - 1, i):
@@ -218,7 +226,7 @@ def assign_files(parts: list[Part], index: dict[int, str], dirs: dict[str, str],
     of the nearest hand-written file of the area (libraries of one area, like
     NEX and Pia in `middleware`, are built with different settings), else in
     the area's directory."""
-    hand = sorted((a, p) for a, p in index.items() if not is_generated(p))
+    hand = source_files(index)
     claimed: set[str] = set()
     for u in parts:
         homes = Counter(index[f.sword] for f in u.funcs if f.sword in index and not is_generated(index[f.sword]))

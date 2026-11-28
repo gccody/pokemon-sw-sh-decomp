@@ -134,3 +134,9 @@ def test_new_files_avoid_include_dirs(areas):
     index = {0x4: "lib/x/include/y/Z.cpp", 0x8: "lib/x/src/W.cpp"}
     units = U.build_units(rows, areas, [(0x0, 0x10), (0x10, 0x1000)], index, unit_funcs=1)
     assert all("include" not in p.file for u in units for p in u.parts)
+
+
+def test_source_files():
+    index = {0x8: "lib/x/src/W.cpp", 0x4: "lib/x/include/y/Z.h", 0x2: "src/unsorted/leaf/Unk_2.cpp",
+             0x1: "src/a/B.cpp"}
+    assert U.source_files(index) == [(0x1, "src/a/B.cpp"), (0x8, "lib/x/src/W.cpp")]
