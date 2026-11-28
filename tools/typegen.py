@@ -55,6 +55,17 @@ classes into files where it never is. What it writes, in src/unsorted/types:
 - the kind test (`Unk_61a530<T>`): whether an object's type, from its +0x50
   interface, is T or derives from it, one explicit instantiation per T.
 
+A class whose vtable group is the object's with only vf_type added (slot 6,
+and its thunks), and whose D0 and destructor thunks are copies of the
+object's D2, has an implicit destructor and nothing else of its own: it's
+declared on the object with no destructor, so vf_type is its key function
+and its vtable is emitted here, with the D0 and the four thunks
+(`emitted_dtors`). The original emitted them with the vtable where the class
+is constructed (its vf_type inline); their code is the same. For a class
+whose vf_type thunks are `sub x0, x0, #N ; b vf_type` (`bare`, above) the
+thunks come out too, as calls (vf_type is defined strongly here), and don't
+match: they're named, and stay U.
+
 A type is named by what already names it: its static in data_symbols.csv
 (`_ZZN<n><Class>11Unk_GetTypeEvE4type`), else a getter of it named in
 functions.csv, else the class whose `vf_type` returns it (one class), else
@@ -109,6 +120,39 @@ bool {name}(Unk_239a498* object) {{
     return false;
 }}"""
 ADDR_RE = re.compile(r"^// (0x71[0-9a-f]+)", re.M)
+# The destructor slots of a class on the object, (offset-to-top, slot, name):
+# the D0, then the D1 and D0 thunks of each interface.
+DTOR_SLOTS = ((0, 1, "_ZN{n}{c}D0Ev"), (0x48, 0, "_ZThn72_N{n}{c}D1Ev"), (0x48, 1, "_ZThn72_N{n}{c}D0Ev"),
+              (0x50, 1, "_ZThn80_N{n}{c}D1Ev"), (0x50, 2, "_ZThn80_N{n}{c}D0Ev"))
+
+
+def emitted_dtors(cls: str, layout: dict[int, list], obj: dict[int, list], same) -> list[tuple[int, str]] | None:
+    """The D0 and destructor thunks (address, name) of class `cls`, if its
+    vtable group (`layout`: offset in the object -> slots) is the object's
+    (`obj`) with only the type slots overridden and slot 6 added for vf_type,
+    its slot 0 the object's D2 (its destructor is implicit) and each of its
+    destructor slots a copy of the object's (`same(f, g)`: the same code
+    reaching the same kind of data). None otherwise."""
+    if sorted(layout) != sorted(obj) or len(layout[0]) != len(obj[0]) + 1 \
+            or any(len(layout[o]) != len(obj[o]) for o in obj if o):
+        return None
+    types = set(OBJECT_SLOTS)
+    dtors = {(o, i) for o, i, _ in DTOR_SLOTS}
+    for o, slots in obj.items():
+        for i, g in enumerate(slots):
+            f = layout[o][i]
+            if (o, i) in types or (o, i) in dtors:
+                continue
+            if f != g:
+                return None
+    out = []
+    for o, i, name in DTOR_SLOTS:
+        f, g = layout[o][i], obj[o][i]
+        if not isinstance(f, int) or f == g or not same(f, g):
+            return None
+        out.append((f, name.format(n=len(cls), c=cls)))
+    return out
+
 
 
 @dataclass
@@ -332,6 +376,7 @@ class ClassPlan:
     bare: bool = False                       # vf_type only, not virtual here: its thunks aren't written
     member: str = "vf_type"                  # its name: vtables.py's vf<slot> for the other slots
     fwd: bool = False                        # a forwarder: tail-calls its cut, declared (vtables.py's name)
+    dtors: list = field(default_factory=list)  # its D0 and destructor thunks, emitted here: emitted_dtors
 
 
 @dataclass
@@ -554,6 +599,26 @@ def render(t: Types, expr: dict[int, str], classes: list[ClassPlan]) -> str:
                     "// isn't known: declared without its bases or its vtable, which it doesn't use.",
                     f"struct {c.name} {{", *((*getter(c.top), "") if c.top in own else ()),
                     f"    {TYPE} {c.member}();", "};", ""]
+        dtors = [f"// 0x{a + BASE:x}" for a, _ in c.dtors]
+        if c.bare and c.dtors:
+            return [f"// vtable 0x{c.group + BASE:x}: vf_type, its key function, so its vtable is emitted",
+                    "// here, with the D0 and the destructor thunks below: its destructor is implicit,",
+                    "// and they are copies of the object's D2. vf_type's thunks come out as calls:",
+                    "// the original's vf_type is inline (emitted with the vtable where the class is",
+                    "// constructed), and they tail-call it with the adjustment.",
+                    *dtors,
+                    f"class {c.name} : public Unk_239a418 {{", "public:",
+                    *((*getter(c.top), "") if c.top in own else ()),
+                    f"    {TYPE} vf_type() override;", "};", ""]
+        if c.dtors:
+            return [f"// vtable 0x{c.group + BASE:x}: vf_type and its thunks {th}.", *how,
+                    "// vf_type is its key function, so its vtable is emitted here, with the D0 and the",
+                    "// destructor thunks below: its destructor is implicit, and they are copies of the",
+                    "// object's D2.",
+                    *dtors,
+                    f"class {c.name} : public Unk_239a418 {{", "public:",
+                    *((*getter(c.top), "") if c.top in own else ()),
+                    f"    {TYPE} vf_type() override;", "};", ""]
         if c.bare:
             return [f"// vtable 0x{c.group + BASE:x}: vf_type (its thunks {th} aren't written: they",
                     "// call it, and the original's is inline, emitted with the class's vtable).",
@@ -593,7 +658,7 @@ def render(t: Types, expr: dict[int, str], classes: list[ClassPlan]) -> str:
         if c.top not in own:
             out += declare(c)
     for c in classes:
-        out += [f"// 0x{c.vf_type + BASE:x}", *(f"// 0x{a + BASE:x}" for _, a in c.thunks if not c.bare),
+        out += [f"// 0x{c.vf_type + BASE:x}", *(f"// 0x{a + BASE:x}" for _, a in c.thunks if not c.bare or c.dtors),
                 f"{TYPE} {c.name}::{c.member}() {{",
                 f"    return {ret(c)};", "}", ""]
     if kinds:
@@ -620,6 +685,8 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int])
     classes, expr, skipped = plan(t, taken, blocked)
     rows = t.rows
     used = {r.name: a for a, r in rows.items() if r.name}
+    layouts = layouts_of(t.m)
+    obj = layouts.get(object_group(t.m), {})
 
     def free(f: int, name: str) -> bool:
         r = rows.get(f)
@@ -676,6 +743,11 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int])
                 # Defined strongly with a vtable around it, its thunks would lose
                 # the adjustment, so it's written alone, as a plain member.
                 c.bare = True
+            dtors = emitted_dtors(c.name, layouts[c.group], obj, lambda f, g: same_code(t.m, f, g)) if obj else None
+            if dtors and all(free(f, n) for f, n in dtors):
+                c.dtors = dtors
+                names += dtors
+            elif c.bare:
                 names = names[:1]
             if not all(free(f, n) for f, n in names):
                 continue
@@ -757,6 +829,30 @@ def _select(t: Types, only: set[int] | None, taken: set[str], blocked: set[int])
                               fwd=True)
                 keep.append((c, [(f, r.name)]))
     return keep, expr, skipped
+
+
+def layouts_of(m) -> dict[int, dict[int, list]]:
+    """Each vtable group's vtables: group -> {offset in the object: slots}."""
+    out: dict[int, dict[int, list]] = defaultdict(dict)
+    for v in m.vtables:
+        out[v.group][-v.offset_to_top] = v.slots
+    return out
+
+
+def object_group(m) -> int:
+    """The object's vtable group (Unk_239a418, vtables.py's hand-written base)."""
+    import vtables as vt
+
+    return next(e.vtable for e in vt.EXTERNAL_BASES if e.header == OBJECT_HEADER and e.name == "Unk_239a418")
+
+
+def same_code(m, f: int, g: int) -> bool:
+    """Whether functions f and g are the same code reaching the same kind of
+    data: one shape (tools/shapes.py), the same size."""
+    from shapes import shape
+
+    n = m.sizes.get(f)
+    return n is not None and n == m.sizes.get(g) and shape(m.img[f:f + n]) == shape(m.img[g:g + n])
 
 
 def selection(t: Types, only: set[int] | None):
